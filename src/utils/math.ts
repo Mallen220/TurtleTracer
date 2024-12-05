@@ -81,3 +81,23 @@ export function shortestRotation(
 export function radiansToDegrees(radians: number) {
   return radians * (180 / Math.PI);
 }
+
+export function lerp(ratio: number, start: number, end: number) {
+  return start + (end - start) * ratio;
+}
+
+export function lerp2d(ratio: number, start: BasePoint, end: BasePoint) {
+  return {
+    x: lerp(ratio, start.x, end.x),
+    y: lerp(ratio, start.y, end.y)
+  };
+}
+
+export function getCurvePoint(t: number, points: BasePoint[]): BasePoint {
+  if (points.length === 1) return points[0];
+  var newpoints = [];
+  for (var i = 0, j = 1; j < points.length; i++, j++) {
+    newpoints[i] = lerp2d(t, points[i], points[j]);
+  }
+  return getCurvePoint(t,newpoints);
+}

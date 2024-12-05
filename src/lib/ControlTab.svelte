@@ -93,34 +93,32 @@
             />
           </div>
           <div class="flex flex-row justify-end items-center gap-1">
-            {#if line.controlPoints.length < 2}
-              <button
-                title="Add Control Point"
-                on:click={() => {
-                  line.controlPoints = [
-                    ...line.controlPoints,
-                    {
-                      x: _.random(0, 144),
-                      y: _.random(0, 144),
-                    },
-                  ];
-                }}
+            <button
+              title="Add Control Point"
+              on:click={() => {
+                line.controlPoints = [
+                  ...line.controlPoints,
+                  {
+                    x: _.random(0, 144),
+                    y: _.random(0, 144),
+                  },
+                ];
+              }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width={2}
+                class="size-5 stroke-green-500"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width={2}
-                  class="size-5 stroke-green-500"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M12 4.5v15m7.5-7.5h-15"
-                  />
-                </svg>
-              </button>
-            {/if}
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+            </button>
             {#if lines.length > 1}
               <button
                 title="Remove Line"

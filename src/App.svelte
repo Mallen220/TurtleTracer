@@ -8,6 +8,7 @@
   import Navbar from "./lib/Navbar.svelte";
   import {
     easeInOutQuad,
+    getCurvePoint,
     getMousePos,
     getRandomColor,
     quadraticToCubic,
@@ -128,7 +129,21 @@
     lines.forEach((line, idx) => {
       let _startPoint = idx === 0 ? startPoint : lines[idx - 1].endPoint;
 
-      if (line.controlPoints.length > 0) {
+      let lineElem: Path | PathLine;
+      if (line.controlPoints.length > 2) {
+        // Approximate an n-degree bezier curve by sampling it at 100 points
+        const samples = 100;
+        const cps = [_startPoint, ...line.controlPoints, line.endPoint];
+        let points = [new Two.Anchor(x(_startPoint.x), y(_startPoint.y), 0, 0, 0, 0, Two.Commands.move)];
+        for (let i = 1; i <= samples; ++i) {
+          const point = getCurvePoint(i / samples, cps);
+          points.push(new Two.Anchor(x(point.x), y(point.y), 0, 0, 0, 0, Two.Commands.line));
+        }
+        points.forEach((point) => (point.relative = false));
+
+        lineElem = new Two.Path(points);
+        lineElem.automatic = false;
+      } else if (line.controlPoints.length > 0) {
         let cp1 = line.controlPoints[1]
           ? line.controlPoints[0]
           : quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
@@ -160,28 +175,23 @@
         ];
         points.forEach((point) => (point.relative = false));
 
-        let curveElem = new Two.Path(points);
-        curveElem.id = `line-${idx + 1}`;
-        curveElem.automatic = false;
-        curveElem.stroke = line.color;
-        curveElem.linewidth = x(lineWidth);
-        curveElem.noFill();
-
-        _path.push(curveElem);
+        lineElem = new Two.Path(points);
+        lineElem.automatic = false;
       } else {
-        let lineElem = new Two.Line(
+        lineElem = new Two.Line(
           x(_startPoint.x),
           y(_startPoint.y),
           x(line.endPoint.x),
           y(line.endPoint.y)
         );
-        lineElem.id = `line-${idx + 1}`;
-        lineElem.stroke = line.color;
-        lineElem.linewidth = x(lineWidth);
-        lineElem.noFill();
-
-        _path.push(lineElem);
       }
+
+      lineElem.id = `line-${idx + 1}`;
+      lineElem.stroke = line.color;
+      lineElem.linewidth = x(lineWidth);
+      lineElem.noFill();
+
+      _path.push(lineElem);
     });
 
     return _path;
@@ -191,16 +201,14 @@
   let robotHeading: number = 0;
 
   $: {
-    let currentLineIdx = (lines.length * Math.min(percent, 99.999999999)) / 100;
-    let currentLinePath =
-      path[Math.min(Math.trunc(currentLineIdx), path.length - 1)];
-    let currentLine =
-      lines[Math.min(Math.trunc(currentLineIdx), lines.length - 1)];
+    let totalLineProgress = (lines.length * Math.min(percent, 99.999999999)) / 100;
+    let currentLineIdx = Math.min(Math.trunc(totalLineProgress), lines.length - 1);
+    let currentLine = lines[currentLineIdx];
 
-    let linePercent = easeInOutQuad(
-      currentLineIdx - Math.floor(currentLineIdx)
-    );
-    robotXY = currentLinePath.getPointAt(linePercent) as BasePoint;
+    let linePercent = easeInOutQuad(totalLineProgress - Math.floor(totalLineProgress));
+    let _startPoint = currentLineIdx === 0 ? startPoint : lines[currentLineIdx - 1].endPoint;
+    let robotInchesXY = getCurvePoint(linePercent, [_startPoint, ...currentLine.controlPoints, currentLine.endPoint]);
+    robotXY = { x: x(robotInchesXY.x), y: y(robotInchesXY.y) };
 
     switch (currentLine.endPoint.heading) {
       case "linear":
@@ -214,9 +222,11 @@
         robotHeading = -currentLine.endPoint.degrees;
         break;
       case "tangential":
-        const nextPoint = currentLinePath.getPointAt(
-          linePercent + (currentLine.endPoint.reverse ? -0.01 : 0.01)
+        const nextPointInches = getCurvePoint(
+          linePercent + (currentLine.endPoint.reverse ? -0.01 : 0.01),
+          [_startPoint, ...currentLine.controlPoints, currentLine.endPoint]
         );
+        const nextPoint = { x: x(nextPointInches.x), y: y(nextPointInches.y) };
 
         const dx = nextPoint.x - robotXY.x;
         const dy = nextPoint.y - robotXY.y;
