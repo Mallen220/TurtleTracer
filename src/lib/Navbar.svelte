@@ -36,6 +36,12 @@
   let exportedCode = "";
 
   async function exportToCode() {
+    const headingTypeToFunctionName = {
+      constant: "setConstantHeadingInterpolation",
+      linear: "setLinearHeadingInterpolation",
+      tangential: "setTangentHeadingInterpolation",
+    };
+
     let file = `
     public class GeneratedPath {
       public GeneratedPath() {
@@ -62,7 +68,7 @@
                 }
                 new Point(${line.endPoint.x.toFixed(3)}, ${line.endPoint.y.toFixed(3)}, Point.CARTESIAN)
               )
-            ).set${titleCase(line.endPoint.heading)}HeadingInterpolation(${line.endPoint.heading === "constant" ? `Math.toRadians(${line.endPoint.degrees})` : line.endPoint.heading === "linear" ? `Math.toRadians(${line.endPoint.startDeg}), Math.toRadians(${line.endPoint.endDeg})` : ""})
+            ).${headingTypeToFunctionName[line.endPoint.heading]}(${line.endPoint.heading === "constant" ? `Math.toRadians(${line.endPoint.degrees})` : line.endPoint.heading === "linear" ? `Math.toRadians(${line.endPoint.startDeg}), Math.toRadians(${line.endPoint.endDeg})` : ""})
             ${line.endPoint.reverse ? ".setReversed(true)" : ""}
           `
           )
