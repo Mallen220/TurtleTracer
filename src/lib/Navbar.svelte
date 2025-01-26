@@ -102,16 +102,13 @@
 >
   <div class="flex flex-row justify-start items-center gap-2">
     <div class="font-semibold flex flex-col justify-start items-start">
-      <div>Pedro Path Generator</div>
-      <div class="text-xs font-extralight flex flex-row gap-1">
-        by <p class="text-orange-500">#16166 WATT's UP</p>
-      </div>
+      <div>Pedro Pathing Simulator</div>
     </div>
     <a
       target="_blank"
       rel="norefferer"
       title="GitHub Repo"
-      href="https://github.com/scama01/pedro-path-generator"
+      href="https://github.com/Pedro-Pathing/Simulator"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

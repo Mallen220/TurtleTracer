@@ -1,3 +1,3 @@
-# Pedro Path Generator
+# Pedro Pathing Simulator
 
-by #16166 WATT's UP
+Big Thanks to #16116 for developing this, we really appreciate your work.
