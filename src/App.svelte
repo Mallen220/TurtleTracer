@@ -429,22 +429,10 @@
   ];
 }
 
-let lastWPress = 0;
-
 hotkeys('w', function(event, handler){
-  const now = Date.now();
-  if (now - lastWPress < 100) {
-    return;
-  }
-  lastWPress = now;
-
   // Prevent the default refresh event under WINDOWS system
   event.preventDefault();
   addNewLine();
-
-  setTimeout(() => {
-    lastWPress = 0;
-  }, 1000);
 });
 
 </script>
