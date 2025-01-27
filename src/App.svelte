@@ -453,15 +453,16 @@ hotkeys('w', function(event, handler){
   event.preventDefault();
   addNewLine();
 });
-
 hotkeys('a', function(event, handler){
   event.preventDefault();
   addControlPoint();
+  two.update();
 });
 
 hotkeys('s', function(event, handler){
   event.preventDefault();
   removeControlPoint();
+  two.update();
 });
 
 </script>
