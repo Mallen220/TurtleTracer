@@ -314,6 +314,8 @@
       type: Two.Types.svg,
     }).appendTo(twoElement);
 
+    updateRobotImage();
+
     let currentElem: string | null = null;
     let isDown = false;
 
@@ -414,28 +416,29 @@
   }
 
   function loadRobot(evt: Event) {
-  const elem = evt.target as HTMLInputElement;
-  const file = elem.files?.[0];
+    const elem = evt.target as HTMLInputElement;
+    const file = elem.files?.[0];
 
-  if (file) {
-    const reader = new FileReader();
+    if (file) {
+      const reader = new FileReader();
 
-    reader.onload = function (e: ProgressEvent<FileReader>) {
-      const result = e.target?.result as string;
-      const blob = new Blob([result], { type: "image/png" });
-      const url = URL.createObjectURL(blob);
-      const linkObj = document.createElement("a");
-      linkObj.href = url;
-      linkObj.download = "public/robot.png";
-      document.body.appendChild(linkObj);
-      linkObj.click();
-      document.body.removeChild(linkObj);
-      URL.revokeObjectURL(url);
-    };
+      reader.onload = function (e: ProgressEvent<FileReader>) {
+        const result = e.target?.result as string;
+        localStorage.setItem('robot.png', result);
+        updateRobotImage();
+      };
 
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    }
   }
-}
+
+  function updateRobotImage() {
+    const robotImage = document.querySelector('img[alt="Robot"]') as HTMLImageElement;
+    const storedImage = localStorage.getItem('robot.png');
+    if (robotImage && storedImage) {
+      robotImage.src = storedImage;
+    }
+  }
 
   function addNewLine() {
   lines = [
