@@ -333,7 +333,7 @@ ${line.endPoint.reverse ? ".setReversed(true)" : ""}
                   id="separate-lines"
                   type="checkbox"
                   bind:checked={separateLines}
-                  on:click={exportToCode}
+                  on:change={exportToCode}
                   class="cursor-pointer"
           />
           <button
