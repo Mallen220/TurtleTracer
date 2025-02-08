@@ -16,7 +16,6 @@
   export let loadRobot: (evt: any) => any;
 
   let separateLines = false;
-  let seperatedExportedCode = "";
   export let startPoint: Point;
   export let lines: Line[];
 
@@ -112,9 +111,10 @@ ${line.endPoint.reverse ? ".setReversed(true)" : ""}
               )
             ).${headingTypeToFunctionName[line.endPoint.heading]}(${line.endPoint.heading === "constant" ? `Math.toRadians(${line.endPoint.degrees})` : line.endPoint.heading === "linear" ? `Math.toRadians(${line.endPoint.startDeg}), Math.toRadians(${line.endPoint.endDeg})` : ""})
             ${line.endPoint.reverse ? ".setReversed(true)" : ""}
-          `
+          .build();`
               )
               .join("\n")};
+
     }
     `;
     }
