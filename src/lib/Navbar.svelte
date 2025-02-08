@@ -334,6 +334,7 @@ ${line.endPoint.reverse ? ".setReversed(true)" : ""}
                   id="separate-lines"
                   type="checkbox"
                   bind:checked={separateLines}
+                  on:change={exportToCode}
                   class="cursor-pointer"
           />
           <button
@@ -361,10 +362,10 @@ ${line.endPoint.reverse ? ".setReversed(true)" : ""}
       </div>
 
       <div class="relative w-full">
-        <Highlight language={java} code={separateLines ? seperatedExportedCode : exportedCode} class="w-full" />
+        <Highlight language={java} code={exportedCode} class="w-full" />
         <button
                 title="Copy code to clipboard"
-                use:copy={separateLines ? seperatedExportedCode : exportedCode}
+                use:copy={exportedCode}
                 class="absolute bottom-2 right-2 opacity-45 hover:opacity-100 transition-all duration-200"
         >
           <svg
