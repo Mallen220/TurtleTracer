@@ -15,6 +15,10 @@
   export let loadFile: (evt: any) => any;
   export let loadRobot: (evt: any) => any;
 
+  import FileManager from './FileManager.svelte';
+  
+  let fileManagerOpen = false;
+
   let exportFullCode = false;
   export let startPoint: Point;
   export let lines: Line[];
@@ -45,9 +49,9 @@
       selectedGridSize = value;
     });
 
-    window.onbeforeunload = () => {
-      return "Are you sure you want to leave?";
-    };
+    // window.onbeforeunload = () => {
+    //   return "Are you sure you want to leave?";
+    // };
 
     return () => {
       unsubscribeDarkMode();
@@ -229,6 +233,22 @@
           </div>
         {/if}
       </div>
+
+        <button title="File Manager" on:click={() => fileManagerOpen = true}>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width={2} stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
+
+        {#if fileManagerOpen}
+          <FileManager 
+            bind:isOpen={fileManagerOpen}
+            bind:startPoint
+            bind:lines
+            bind:shapes
+          />
+        {/if}
+
       <button title="Toggle Ruler" on:click={() => showRuler.update(v => !v)} class:text-blue-500={$showRuler}>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0z"></path><path d="m14.5 12.5 2-2"></path><path d="m11.5 9.5 2-2"></path><path d="m8.5 6.5 2-2"></path><path d="m17.5 15.5 2-2"></path></svg>
       </button>

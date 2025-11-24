@@ -228,7 +228,7 @@
     </div>
 
     <div class="flex flex-col w-full justify-start items-start gap-0.5">
-      <div class="font-semibold">Start Point</div>
+      <div class="font-semibold">Starting Point</div>
       <div class="flex flex-row justify-start items-center gap-2">
         <div class="font-extralight">X:</div>
         <input

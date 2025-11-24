@@ -1,8 +1,10 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import express from 'express';
 import http from 'http';
 import { fileURLToPath } from 'url';
+import fs from 'fs/promises';
+
 
 // Handle __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -46,6 +48,10 @@ const createWindow = () => {
         }
     });
 
+    // Force clear the cache to ensure we load the latest build
+    mainWindow.webContents.session.clearCache();
+    mainWindow.webContents.session.clearStorageData();
+
     // Load the app from the local server
     mainWindow.loadURL(`http://localhost:${serverPort}`);
 
@@ -61,6 +67,7 @@ const createWindow = () => {
 
     mainWindow.on('closed', () => {
         mainWindow = null;
+        app.quit();
     });
 };
 
@@ -78,4 +85,95 @@ app.on('will-quit', () => {
     if (server) {
         server.close();
     }
+});
+
+// Add IPC handlers for file operations
+ipcMain.handle('file:get-directory', async () => {
+  // Default directory - can be changed by user
+  const defaultDir = path.join(process.env.HOME, 'Documents', 'GitHub', 'BBots2025-26', 'TeamCode', 'src', 'main', 'java', 'org', 'firstinspires', 'ftc', 'teamcode', 'AutoPaths');
+  
+  try {
+    await fs.access(defaultDir);
+    return defaultDir;
+  } catch {
+    // Create directory if it doesn't exist
+    await fs.mkdir(defaultDir, { recursive: true });
+    return defaultDir;
+  }
+});
+
+ipcMain.handle('file:set-directory', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+    title: 'Select AutoPaths Directory'
+  });
+  
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  }
+  return null;
+});
+
+ipcMain.handle('file:list', async (event, directory) => {
+  try {
+    const files = await fs.readdir(directory);
+    const ppFiles = files.filter(file => file.endsWith('.pp'));
+    
+    const fileDetails = await Promise.all(
+      ppFiles.map(async (file) => {
+        const filePath = path.join(directory, file);
+        const stats = await fs.stat(filePath);
+        return {
+          name: file,
+          path: filePath,
+          size: stats.size,
+          modified: stats.mtime
+        };
+      })
+    );
+    
+    return fileDetails;
+  } catch (error) {
+    console.error('Error reading directory:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('file:read', async (event, filePath) => {
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    return content;
+  } catch (error) {
+    console.error('Error reading file:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('file:write', async (event, filePath, content) => {
+  try {
+    await fs.writeFile(filePath, content, 'utf-8');
+    return true;
+  } catch (error) {
+    console.error('Error writing file:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('file:delete', async (event, filePath) => {
+  try {
+    await fs.unlink(filePath);
+    return true;
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('file:exists', async (event, filePath) => {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 });

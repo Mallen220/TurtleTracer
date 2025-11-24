@@ -48,10 +48,10 @@ self.addEventListener("activate", (event) => {
 // and respond with cached responses instead of going to network
 self.addEventListener("fetch", (event) => {
   // As a single page app, direct app to always go to cached home page.
-  if (event.request.mode === "navigate") {
-    event.respondWith(caches.match("/"));
-    return;
-  }
+  // if (event.request.mode === "navigate") {
+  //   event.respondWith(caches.match("/"));
+  //   return;
+  // }
 
   // Allow FPA API requests to go through to the network
   if (event.request.url.includes('fpa.pedropathing.com')) {
