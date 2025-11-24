@@ -8,12 +8,13 @@
   import codeStyle from "svelte-highlight/styles/androidstudio";
   import { cubicInOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
-  import { darkMode, showRuler, showProtractor, showGrid, protractorLockToRobot, gridSize } from "../stores";
+  import { darkMode, showRuler, showProtractor, showGrid, protractorLockToRobot, gridSize, currentFilePath, isUnsaved } from "../stores";
   import { getRandomColor, titleCase } from "../utils";
 
-  export let saveFile: () => any;
   export let loadFile: (evt: any) => any;
   export let loadRobot: (evt: any) => any;
+  export let saveFile: () => any; // This acts as "Save As"
+  export let onSave: () => any;
 
   import FileManager from './FileManager.svelte';
   
@@ -206,17 +207,63 @@
   {@html codeStyle}
 </svelte:head>
 
-<div
+
+
+        {#if fileManagerOpen}
+          <FileManager 
+            bind:isOpen={fileManagerOpen}
+            bind:startPoint
+            bind:lines
+            bind:shapes
+          />
+        {/if}
+
+      <div
   class="absolute top-0 left-0 w-full bg-neutral-50 dark:bg-neutral-900 shadow-md flex flex-row justify-between items-center px-6 py-4 border-b-[0.75px] border-[#b300e6]"
 >
+  <!-- Title -->
   <div class="font-semibold flex flex-col justify-start items-start">
-    <div>Pedro Pathing Visualizer</div>
+    <div class="flex flex-row items-center gap-2">
+      <span>Pedro Pathing Visualizer</span>
+      {#if $currentFilePath}
+        <span class="text-neutral-400 font-light text-sm mx-2">/</span>
+        <span class="text-sm font-normal text-neutral-600 dark:text-neutral-300">
+          {$currentFilePath.split(/[\\/]/).pop()}
+          {#if $isUnsaved}
+            <span class="text-amber-500 font-bold ml-1" title="Unsaved changes">*</span>
+          {/if}
+        </span>
+      {/if}
+    </div>
   </div>
+
+  <!-- Actions -->
   <div class="flex flex-row justify-end items-center gap-4">
     <div class="flex items-center gap-3">
+      <!-- Grid toggle -->
       <div class="relative flex flex-col items-center justify-center">
-        <button title="Toggle Grid" on:click={() => showGrid.update(v => !v)} class:text-blue-500={$showGrid}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+        <button
+          title="Toggle Grid"
+          on:click={() => showGrid.update(v => !v)}
+          class:text-blue-500={$showGrid}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="3" y1="15" x2="21" y2="15"></line>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
         </button>
         {#if $showGrid}
           <div class="absolute top-full left-1/2 mt-2 -translate-x-1/2">
@@ -234,38 +281,116 @@
         {/if}
       </div>
 
-        <button title="File Manager" on:click={() => fileManagerOpen = true}>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width={2} stroke="currentColor" class="size-6">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-          </svg>
-        </button>
-
-        {#if fileManagerOpen}
-          <FileManager 
-            bind:isOpen={fileManagerOpen}
-            bind:startPoint
-            bind:lines
-            bind:shapes
+      <!-- File manager button -->
+      <button
+        title="File Manager"
+        on:click={() => (fileManagerOpen = true)}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-6"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
           />
-        {/if}
+        </svg>
+      </button>
 
-      <button title="Toggle Ruler" on:click={() => showRuler.update(v => !v)} class:text-blue-500={$showRuler}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0z"></path><path d="m14.5 12.5 2-2"></path><path d="m11.5 9.5 2-2"></path><path d="m8.5 6.5 2-2"></path><path d="m17.5 15.5 2-2"></path></svg>
+      <!-- Ruler toggle -->
+      <button
+        title="Toggle Ruler"
+        on:click={() => showRuler.update(v => !v)}
+        class:text-blue-500={$showRuler}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0z"></path>
+          <path d="m14.5 12.5 2-2"></path>
+          <path d="m11.5 9.5 2-2"></path>
+          <path d="m8.5 6.5 2-2"></path>
+          <path d="m17.5 15.5 2-2"></path>
+        </svg>
       </button>
-      <button title="Toggle Protractor" on:click={() => showProtractor.update(v => !v)} class:text-blue-500={$showProtractor}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 0-18c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M12 3v6l3.7 2.7"></path></svg>
+
+      <!-- Protractor toggle -->
+      <button
+        title="Toggle Protractor"
+        on:click={() => showProtractor.update(v => !v)}
+        class:text-blue-500={$showProtractor}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 21a9 9 0 1 1 0-18c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+          <path d="M12 3v6l3.7 2.7"></path>
+        </svg>
       </button>
+
       {#if $showProtractor}
-        <button title={$protractorLockToRobot ? "Unlock Protractor from Robot" : "Lock Protractor to Robot"} on:click={() => protractorLockToRobot.update(v => !v)} class:text-amber-500={$protractorLockToRobot}>
+        <button
+          title={$protractorLockToRobot ? "Unlock Protractor from Robot" : "Lock Protractor to Robot"}
+          on:click={() => protractorLockToRobot.update(v => !v)}
+          class:text-amber-500={$protractorLockToRobot}
+        >
           {#if $protractorLockToRobot}
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
           {:else}
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+            </svg>
           {/if}
         </button>
       {/if}
     </div>
 
+    <!-- Divider -->
     <div class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4" aria-hidden="true"></div>
 
     <div class="flex items-center gap-3">

@@ -3,7 +3,7 @@
   import { cubicInOut } from 'svelte/easing';
   import { fade, fly } from 'svelte/transition';
   import type { FileInfo } from '../types';
-  
+  import { currentFilePath, isUnsaved } from "../stores"; // Import new stores
   export let isOpen = false;
   export let startPoint: Point;
   export let lines: Line[];
@@ -45,7 +45,7 @@
     }
   }
 
-  async function loadFile(file: FileInfo) {
+async function loadFile(file: FileInfo) {
     try {
       const content = await electronAPI.readFile(file.path);
       const data = JSON.parse(content);
@@ -55,7 +55,14 @@
       lines = data.lines;
       shapes = data.shapes || [];
       
+      // NEW: Update Global Store State
+      currentFilePath.set(file.path);
+      isUnsaved.set(false); // Reset dirty flag
+      
       selectedFile = file;
+      
+      // Close the manager (optional UX improvement)
+      // isOpen = false; 
     } catch (error) {
       console.error('Error loading file:', error);
       alert('Error loading file: ' + error.message);
@@ -64,11 +71,14 @@
 
   async function saveCurrentToFile() {
     if (!selectedFile) return;
-    
     try {
       const content = JSON.stringify({ startPoint, lines, shapes });
       await electronAPI.writeFile(selectedFile.path, content);
-      await loadDirectory(); // Refresh file list
+      await loadDirectory();
+      
+      // NEW: Reset dirty state
+      isUnsaved.set(false);
+      
     } catch (error) {
       console.error('Error saving file:', error);
       alert('Error saving file: ' + error.message);
@@ -89,13 +99,21 @@
       }
     }
     
+    // inside try block
     try {
       const content = JSON.stringify({ startPoint, lines, shapes });
       await electronAPI.writeFile(filePath, content);
+      
       creatingNewFile = false;
       newFileName = '';
       await loadDirectory();
+      
+      // NEW: Automatically "load" the new file into state
       selectedFile = files.find(f => f.name === fileName) || null;
+      if (selectedFile) {
+          currentFilePath.set(selectedFile.path);
+          isUnsaved.set(false);
+      }
     } catch (error) {
       console.error('Error creating file:', error);
       alert('Error creating file: ' + error.message);
@@ -297,7 +315,7 @@
           <div class="text-sm font-medium text-neutral-900 dark:text-white mb-2 truncate" title={selectedFile.name}>
             {selectedFile.name}
           </div>
-          <button
+          <!-- <button
             on:click={saveCurrentToFile}
             class="w-full px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
           >
@@ -305,7 +323,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
             </svg>
             Save Current to File
-          </button>
+          </button> -->
         </div>
       {/if}
     </div>

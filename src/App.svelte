@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as d3 from "d3";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
+  import { currentFilePath, isUnsaved } from "./stores";
   import Two from "two.js";
   import type { Path } from "two.js/src/path";
   import type { Line as PathLine } from "two.js/src/shapes/line";
@@ -307,6 +308,51 @@
 
   let robotXY: BasePoint = { x: 0, y: 0 };
   let robotHeading: number = 0;
+
+  declare const electronAPI: {
+    writeFile: (filePath: string, content: string) => Promise<boolean>;
+  };
+
+  let isLoaded = false;
+  
+  // Reactively trigger when any saveable data changes
+  $: {
+    if (isLoaded && (lines || shapes || startPoint || settings)) {
+        isUnsaved.set(true);
+    }
+  }
+
+  // Allow the app to stabilize before tracking changes
+  onMount(() => {
+    setTimeout(() => { isLoaded = true; }, 500);
+  });
+
+  // NEW: Save Function
+  async function saveProject() {
+    // If we have a file path, save to it
+    if ($currentFilePath) {
+        try {
+            const jsonString = JSON.stringify({ startPoint, lines, shapes, settings });
+            await electronAPI.writeFile($currentFilePath, jsonString);
+            isUnsaved.set(false);
+            
+            // Visual feedback (optional console log)
+            console.log("Saved to", $currentFilePath);
+        } catch (e) {
+            console.error("Failed to save", e);
+            alert("Failed to save file.");
+        }
+    } else {
+        // If no file path, trigger the existing "Save As" / Download behavior
+        saveFile(); 
+    }
+  }
+
+  // Modify hotkeys to include Save
+  hotkeys('cmd+s, ctrl+s', function(event, handler){
+    event.preventDefault();
+    saveProject();
+  });
 
   $: {
     let totalLineProgress = (lines.length * Math.min(percent, 99.999999999)) / 100;
@@ -809,7 +855,18 @@ hotkeys('s', function(event, handler){
 
 </script>
 
-<Navbar bind:lines bind:startPoint bind:shapes bind:settings bind:robotWidth bind:robotHeight {saveFile} {loadFile} {loadRobot}/>
+<Navbar 
+    bind:lines 
+    bind:startPoint 
+    bind:shapes 
+    bind:settings 
+    bind:robotWidth 
+    bind:robotHeight 
+    {saveFile} 
+    {loadFile} 
+    {loadRobot}
+    onSave={saveProject} 
+/>
 <div
   class="w-screen h-screen pt-20 p-2 flex flex-row justify-center items-center gap-2"
 >
