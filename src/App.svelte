@@ -24,6 +24,8 @@
 
   let two: Two;
   let twoElement: HTMLDivElement;
+  let width = 0;
+  let height = 0;
 
   let pointRadius = 1.15;
   let lineWidth = 0.57;
@@ -55,7 +57,7 @@
   $: x = d3
     .scaleLinear()
     .domain([0, 144])
-    .range([0, twoElement?.clientWidth ?? 144]);
+    .range([0, width || 144]);
 
   /**
    * Converter for Y axis from inches to pixels.
@@ -63,7 +65,7 @@
   $: y = d3
     .scaleLinear()
     .domain([0, 144])
-    .range([twoElement?.clientHeight ?? 144, 0]);
+    .range([height || 144, 0]);
 
   let lineGroup = new Two.Group();
   lineGroup.id = "line-group";
@@ -758,6 +760,8 @@ hotkeys('s', function(event, handler){
   <div class="flex h-full justify-center items-center">
     <div
       bind:this={twoElement}
+      bind:clientWidth={width}
+      bind:clientHeight={height}
       class="h-full aspect-square rounded-lg shadow-md bg-neutral-50 dark:bg-neutral-900 relative overflow-clip"
     >
       <img
