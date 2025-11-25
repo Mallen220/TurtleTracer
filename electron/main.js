@@ -4,6 +4,7 @@ import express from 'express';
 import http from 'http';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import AppUpdater from './updater.js';
 
 
 // Handle __dirname in ES Modules
@@ -13,6 +14,7 @@ const __dirname = path.dirname(__filename);
 let mainWindow;
 let server;
 let serverPort = 34567; // Default port, can be dynamic if using get-port
+let appUpdater;
 
 const startServer = async () => {
     const expressApp = express();
@@ -52,6 +54,9 @@ const createWindow = () => {
     mainWindow.webContents.session.clearCache();
     mainWindow.webContents.session.clearStorageData();
 
+    appUpdater = new AppUpdater(mainWindow);
+
+
     // Load the app from the local server
     mainWindow.loadURL(`http://localhost:${serverPort}`);
 
@@ -74,6 +79,14 @@ const createWindow = () => {
 app.on('ready', async () => {
     await startServer();
     createWindow();
+
+    // Check for updates after a short delay to ensure window is ready
+    setTimeout(() => {
+    if (appUpdater) {
+        appUpdater.checkForUpdates();
+    }
+    }, 3000);
+
 });
 
 // CRITICAL: Satisfies "when the project closes it should auto close" [cite: 647]

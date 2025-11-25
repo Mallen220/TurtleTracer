@@ -1,7 +1,7 @@
 {
   "name": "pedro-pathing-visualizer",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "electron/main.js",
   "type": "module",
   "scripts": {
@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
     "electron:dev": "npm run build && electron .",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder --publish=never",
+    "dist:publish": "npm run build && electron-builder --publish=always"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^3.1.1",
@@ -31,6 +32,7 @@
     "@types/d3": "^7.4.3",
     "@types/lodash": "^4.17.7",
     "d3": "^7.9.0",
+    "electron-updater": "^6.6.2",
     "express": "^4.18.2",
     "get-port": "^7.0.0",
     "hotkeys-js": "^3.13.9",
@@ -46,6 +48,11 @@
   "build": {
     "appId": "com.pedropathing.visualizer",
     "productName": "Pedro Pathing Visualizer",
+    "publish": {
+      "provider": "github",
+      "owner": "Mallen220",
+      "repo": "VisualizerMacOSApp"
+    },
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": "dmg",
