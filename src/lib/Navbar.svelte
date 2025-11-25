@@ -398,7 +398,7 @@
         target="_blank"
         rel="norefferer"
         title="GitHub Repo"
-        href="https://github.com/Pedro-Pathing/Visualizer"
+        href="https://github.com/Mallen220/VisualizerMacOSApp"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -748,7 +748,7 @@
               <option value={5}>High</option>
             </select>
           </div>
-          
+
         </div>
       </div>
     </div>
