@@ -187,22 +187,16 @@ export async function generateSequentialCommandCode(
     if (!className) className = "AutoPath";
   }
 
-  // Generate pose declarations for all points including control points
+  // Generate pose declarations without initialization
   const allPoses: string[] = [];
   
   // Add start point
-  allPoses.push('  private final Pose startPoint = pp.get("startPoint");');
+  allPoses.push('  private Pose startPoint;');
   
-  // Add end points and control points
+  // Add end points
   lines.forEach((line, idx) => {
     const endPointName = line.name ? line.name.replace(/[^a-zA-Z0-9]/g, '') : `point${idx + 1}`;
-    allPoses.push(`  private final Pose ${endPointName} = pp.get("${endPointName}");`);
-    
-    // Add control points for this line
-    line.controlPoints.forEach((controlPoint, cpIdx) => {
-      const controlPointName = `${endPointName}_control${cpIdx + 1}`;
-      allPoses.push(`  private final Pose ${controlPointName} = pp.get("${controlPointName}");`);
-    });
+    allPoses.push(`  private Pose ${endPointName};`);
   });
 
   // Generate path chain declarations using FirstPointTOLastPoint naming
@@ -253,6 +247,14 @@ export async function generateSequentialCommandCode(
             .build();`;
   }).join("\n\n");
 
+  // Generate pose assignments in constructor
+  const poseAssignments: string[] = [];
+  poseAssignments.push('    startPoint = pp.get("startPoint");');
+  lines.forEach((line, idx) => {
+    const endPointName = line.name ? line.name.replace(/[^a-zA-Z0-9]/g, '') : `point${idx + 1}`;
+    poseAssignments.push(`    ${endPointName} = pp.get("${endPointName}");`);
+  });
+
   const sequentialCommandCode = `
 package org.firstinspires.ftc.teamcode.Commands.AutoCommands;
 
@@ -261,6 +263,7 @@ import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.seattlesolvers.solverslib.command.SequentialCommandGroup;
 import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
 import java.io.IOException;
@@ -268,18 +271,22 @@ import org.firstinspires.ftc.teamcode.Subsystems.Drivetrain;
 import org.firstinspires.ftc.teamcode.Utils.PedroPathReader;
 
 public class ${className} extends SequentialCommandGroup {
+
   private final Follower follower;
 
   // Poses
-  PedroPathReader pp = new PedroPathReader("${fileName ? fileName.split(/[\\/]/).pop() + '.pp' || 'AutoPath.pp' : 'AutoPath.pp'}");
-
 ${allPoses.join("\n")}
 
   // Path chains
 ${pathChainDeclarations}
 
-  public ${className}(final Drivetrain drive) throws IOException {
+  public ${className}(final Drivetrain drive, HardwareMap hw) throws IOException {
     this.follower = drive.getFollower();
+
+    PedroPathReader pp = new PedroPathReader("${fileName ? fileName.split(/[\\/]/).pop() + '.pp' || 'AutoPath.pp' : 'AutoPath.pp'}", hw.appContext);
+
+${poseAssignments.join("\n")}
+
     follower.setStartingPose(startPoint);
 
     buildPaths();

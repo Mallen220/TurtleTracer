@@ -103,7 +103,7 @@ app.on('will-quit', () => {
 // Add IPC handlers for file operations
 ipcMain.handle('file:get-directory', async () => {
   // Default directory - can be changed by user
-  const defaultDir = path.join(process.env.HOME, 'Documents', 'GitHub', 'BBots2025-26', 'TeamCode', 'src', 'main', 'java', 'org', 'firstinspires', 'ftc', 'teamcode', 'AutoPaths');
+  const defaultDir = path.join(process.env.HOME, 'Documents', 'GitHub', 'BBots2025-26', 'TeamCode', 'src', 'main', 'assets', 'AutoPaths');
   
   try {
     await fs.access(defaultDir);
