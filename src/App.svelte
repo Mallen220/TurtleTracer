@@ -36,10 +36,13 @@
     getDefaultShapes,
   } from "./config";
 
-  // Electron API declaration
-  declare const electronAPI: {
+  // Electron API type (defined in preload.js, attached to window)
+  interface ElectronAPI {
     writeFile: (filePath: string, content: string) => Promise<boolean>;
-  };
+  }
+
+  // Access electron API from window (attached by preload script)
+  const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
 
   // Canvas state
   let two: Two;
@@ -331,7 +334,7 @@
 
   // Save Function
   async function saveProject() {
-    if ($currentFilePath) {
+    if ($currentFilePath && electronAPI) {
         try {
             const jsonString = JSON.stringify({ startPoint, lines, shapes, settings });
             await electronAPI.writeFile($currentFilePath, jsonString);

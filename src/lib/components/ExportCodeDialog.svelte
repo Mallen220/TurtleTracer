@@ -8,7 +8,6 @@
   import { fade, fly } from 'svelte/transition';
   import { currentFilePath } from "../../stores";
   import { generateJavaCode, generatePointsArray, generateSequentialCommandCode } from "../../utils";
-  import type { Point, Line } from "../../types";
 
   export let isOpen = false;
   export let startPoint: Point;

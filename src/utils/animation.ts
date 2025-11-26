@@ -1,5 +1,6 @@
 import { getCurvePoint, easeInOutQuad, shortestRotation, radiansToDegrees } from './math';
 import type { Point, Line } from '../types';
+import type { ScaleLinear } from 'd3';
 
 export interface RobotState {
   x: number;
@@ -22,8 +23,8 @@ export function calculateRobotState(
   percent: number,
   lines: Line[],
   startPoint: Point,
-  xScale: d3.ScaleLinear<number, number>,
-  yScale: d3.ScaleLinear<number, number>
+  xScale: ScaleLinear<number, number>,
+  yScale: ScaleLinear<number, number>
 ): RobotState {
   const totalLineProgress = (lines.length * Math.min(percent, 99.999999999)) / 100;
   const currentLineIdx = Math.min(Math.trunc(totalLineProgress), lines.length - 1);
