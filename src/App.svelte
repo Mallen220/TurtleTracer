@@ -46,10 +46,6 @@
 
   let percent: number = 0;
 
-  // Initialize default shapes - start with no obstacles
-  let shapes: Shape[] = [];
-
-
 
   /**
    * Converter for X axis from inches to pixels.
@@ -88,6 +84,35 @@
       controlPoints: [],
       color: getRandomColor(),
     },
+  ];
+
+  let shapes: Shape[] = [
+    {
+      id: "triangle-1",
+      name: "Red Goal",
+      vertices: [
+        { x: 144, y: 70 },
+        { x: 144, y: 144 },
+        { x: 118, y: 144 },
+        { x: 138, y: 118 },
+        { x: 138, y: 70 }
+      ],
+      color: "#dc2626",
+      fillColor: "#fca5a5"
+    },
+    {
+      id: "triangle-2", 
+      name: "Blue Goal",
+      vertices: [
+        { x: 7, y: 118 },
+        { x: 26, y: 144 },
+        { x: 0, y: 144 },
+        { x: 0, y: 70 },
+        { x: 7, y: 70 }
+      ],
+      color: "#0b08d9",
+      fillColor: "#fca5a5"
+    }
   ];
 
   $: points = (() => {
