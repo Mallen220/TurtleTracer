@@ -47,22 +47,22 @@ interface FPALine {
 }
 
 interface FPASettings {
-    xVelocity: number;
-    yVelocity: number;
-    aVelocity: number
-    kFriction: number;
-    rWidth: number;
-    rHeight: number;
-    safetyMargin: number;
-    optimizationQuality: number;
+  xVelocity: number;
+  yVelocity: number;
+  aVelocity: number;
+  kFriction: number;
+  rWidth: number;
+  rHeight: number;
+  safetyMargin: number;
+  optimizationQuality: number;
 }
 
 interface Shape {
-    id: string;
-    name?: string;
-    vertices: BasePoint[];
-    color: string;
-    fillColor: string;
+  id: string;
+  name?: string;
+  vertices: BasePoint[];
+  color: string;
+  fillColor: string;
 }
 
 interface FileInfo {

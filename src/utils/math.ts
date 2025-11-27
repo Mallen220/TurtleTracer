@@ -1,7 +1,7 @@
 export function quadraticToCubic(
   P0: BasePoint,
   P1: BasePoint,
-  P2: BasePoint
+  P2: BasePoint,
 ): { Q1: BasePoint; Q2: BasePoint } {
   const Q1 = {
     x: P0.x + (2 / 3) * (P1.x - P0.x),
@@ -35,7 +35,7 @@ export function getMousePos(evt: MouseEvent, canvas: any) {
 export function vh(percent: number) {
   var h = Math.max(
     document.documentElement.clientHeight,
-    window.innerHeight || 0
+    window.innerHeight || 0,
   );
   return (percent * h) / 100;
 }
@@ -43,7 +43,7 @@ export function vh(percent: number) {
 export function vw(percent: number) {
   var w = Math.max(
     document.documentElement.clientWidth,
-    window.innerWidth || 0
+    window.innerWidth || 0,
   );
   return (percent * w) / 100;
 }
@@ -55,7 +55,7 @@ export function transformAngle(angle: number) {
 export function shortestRotation(
   startAngle: number,
   endAngle: number,
-  percentage: number
+  percentage: number,
 ) {
   // Normalize the angles to the range 0 to 360
   startAngle = (startAngle + 360) % 360;
@@ -89,7 +89,7 @@ export function lerp(ratio: number, start: number, end: number) {
 export function lerp2d(ratio: number, start: BasePoint, end: BasePoint) {
   return {
     x: lerp(ratio, start.x, end.x),
-    y: lerp(ratio, start.y, end.y)
+    y: lerp(ratio, start.y, end.y),
   };
 }
 
@@ -99,5 +99,5 @@ export function getCurvePoint(t: number, points: BasePoint[]): BasePoint {
   for (var i = 0, j = 1; j < points.length; i++, j++) {
     newpoints[i] = lerp2d(t, points[i], points[j]);
   }
-  return getCurvePoint(t,newpoints);
+  return getCurvePoint(t, newpoints);
 }

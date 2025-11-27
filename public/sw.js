@@ -54,22 +54,23 @@ self.addEventListener("fetch", (event) => {
   // }
 
   // Allow FPA API requests to go through to the network
-  if (event.request.url.includes('fpa.pedropathing.com')) {
+  if (event.request.url.includes("fpa.pedropathing.com")) {
     event.respondWith(
       fetch(event.request).catch(() => {
         // If network fails, return a custom offline response
         return new Response(
-          JSON.stringify({ 
-            error: 'offline', 
-            message: 'You are offline. Please check your internet connection and try again.' 
-          }), 
-          { 
-            status: 503, 
-            statusText: 'Service Unavailable',
-            headers: { 'Content-Type': 'application/json' }
-          }
+          JSON.stringify({
+            error: "offline",
+            message:
+              "You are offline. Please check your internet connection and try again.",
+          }),
+          {
+            status: 503,
+            statusText: "Service Unavailable",
+            headers: { "Content-Type": "application/json" },
+          },
         );
-      })
+      }),
     );
     return;
   }

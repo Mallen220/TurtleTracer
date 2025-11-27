@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { cubicInOut } from 'svelte/easing';
-  import { fade, fly } from 'svelte/transition';
+  import { cubicInOut } from "svelte/easing";
+  import { fade, fly } from "svelte/transition";
 
   export let isOpen = false;
   export let settings: FPASettings;
@@ -28,10 +28,7 @@
     >
       <div class="flex flex-row justify-between items-center w-full">
         <h2 id="settings-title" class="sr-only">FPA Settings</h2>
-        <button
-          on:click={() => isOpen = false}
-          aria-label="Close settings"
-        >
+        <button on:click={() => (isOpen = false)} aria-label="Close settings">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -50,9 +47,11 @@
       </div>
 
       <div class="relative w-full">
-        <div class="flex flex-col w-full justify-start items-start gap-4 text-base">
+        <div
+          class="flex flex-col w-full justify-start items-start gap-4 text-base"
+        >
           <div class="font-semibold text-lg">FPA Settings</div>
-          
+
           <div class="flex flex-row justify-between items-center w-full">
             <div class="font-light">X Velocity (in/s):</div>
             <input
@@ -63,7 +62,7 @@
               bind:value={settings.xVelocity}
             />
           </div>
-        
+
           <div class="flex flex-row justify-between items-center w-full">
             <div class="font-light">Y Velocity (in/s):</div>
             <input
@@ -74,7 +73,7 @@
               bind:value={settings.yVelocity}
             />
           </div>
-          
+
           <div class="flex flex-col justify-start items-start w-full gap-1">
             <div class="flex flex-row justify-between items-center w-full">
               <div class="font-light">Angular Velocity:</div>
@@ -87,11 +86,13 @@
                 on:input={handleAngularVelocityInput}
               />
             </div>
-            <div class="text-sm text-neutral-500 dark:text-neutral-400 self-end">
+            <div
+              class="text-sm text-neutral-500 dark:text-neutral-400 self-end"
+            >
               (× π rad/s)
             </div>
           </div>
-            
+
           <div class="flex flex-row justify-between items-center w-full">
             <div class="font-light">Friction Coefficient:</div>
             <input
@@ -129,5 +130,5 @@
         </div>
       </div>
     </div>
-  </div> 
+  </div>
 {/if}

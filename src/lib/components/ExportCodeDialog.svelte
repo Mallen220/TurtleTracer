@@ -4,10 +4,14 @@
   import { java } from "svelte-highlight/languages";
   import plaintext from "svelte-highlight/languages/plaintext";
   import codeStyle from "svelte-highlight/styles/androidstudio";
-  import { cubicInOut } from 'svelte/easing';
-  import { fade, fly } from 'svelte/transition';
+  import { cubicInOut } from "svelte/easing";
+  import { fade, fly } from "svelte/transition";
   import { currentFilePath } from "../../stores";
-  import { generateJavaCode, generatePointsArray, generateSequentialCommandCode } from "../../utils";
+  import {
+    generateJavaCode,
+    generatePointsArray,
+    generateSequentialCommandCode,
+  } from "../../utils";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -23,31 +27,47 @@
   $: if ($currentFilePath) {
     const fileName = $currentFilePath.split(/[\\/]/).pop();
     if (fileName) {
-      const baseName = fileName.replace('.pp', '').replace(/[^a-zA-Z0-9]/g, '_');
-      if (sequentialClassName === "AutoPath" || sequentialClassName === baseName) {
+      const baseName = fileName
+        .replace(".pp", "")
+        .replace(/[^a-zA-Z0-9]/g, "_");
+      if (
+        sequentialClassName === "AutoPath" ||
+        sequentialClassName === baseName
+      ) {
         sequentialClassName = baseName;
       }
     }
   }
 
-  export async function openWithFormat(format: "java" | "points" | "sequential") {
+  export async function openWithFormat(
+    format: "java" | "points" | "sequential",
+  ) {
     exportFormat = format;
-    
+
     try {
       if (format === "java") {
-        exportedCode = await generateJavaCode(startPoint, lines, exportFullCode);
+        exportedCode = await generateJavaCode(
+          startPoint,
+          lines,
+          exportFullCode,
+        );
         currentLanguage = java;
       } else if (format === "points") {
         exportedCode = generatePointsArray(startPoint, lines);
         currentLanguage = plaintext;
       } else if (format === "sequential") {
-        exportedCode = await generateSequentialCommandCode(startPoint, lines, sequentialClassName);
+        exportedCode = await generateSequentialCommandCode(
+          startPoint,
+          lines,
+          sequentialClassName,
+        );
         currentLanguage = java;
       }
       isOpen = true;
     } catch (error) {
       console.error("Export failed:", error);
-      exportedCode = "// Error generating code. Please check the console for details.";
+      exportedCode =
+        "// Error generating code. Please check the console for details.";
       currentLanguage = plaintext;
       isOpen = true;
     }
@@ -56,10 +76,15 @@
   async function refreshSequentialCode() {
     if (exportFormat === "sequential" && isOpen) {
       try {
-        exportedCode = await generateSequentialCommandCode(startPoint, lines, sequentialClassName);
+        exportedCode = await generateSequentialCommandCode(
+          startPoint,
+          lines,
+          sequentialClassName,
+        );
       } catch (error) {
         console.error("Refresh failed:", error);
-        exportedCode = "// Error refreshing code. Please check the console for details.";
+        exportedCode =
+          "// Error refreshing code. Please check the console for details.";
       }
     }
   }
@@ -79,8 +104,8 @@
   <div
     transition:fade={{ duration: 500, easing: cubicInOut }}
     class="bg-black bg-opacity-25 flex flex-col justify-center items-center absolute top-0 left-0 w-full h-full z-[1005]"
-    on:click={() => isOpen = false}
-    on:keydown={(e) => e.key === 'Escape' && (isOpen = false)}
+    on:click={() => (isOpen = false)}
+    on:keydown={(e) => e.key === "Escape" && (isOpen = false)}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
@@ -104,7 +129,11 @@
         </p>
         <div class="flex items-center gap-2">
           {#if exportFormat === "java"}
-            <label for="export-full-code" class="text-sm font-light text-neutral-700 dark:text-neutral-400">Export Full Code</label>
+            <label
+              for="export-full-code"
+              class="text-sm font-light text-neutral-700 dark:text-neutral-400"
+              >Export Full Code</label
+            >
             <input
               id="export-full-code"
               type="checkbox"
@@ -114,7 +143,11 @@
             />
           {:else if exportFormat === "sequential"}
             <div class="flex items-center gap-2">
-              <label for="class-name" class="text-sm font-light text-neutral-700 dark:text-neutral-400">Class Name:</label>
+              <label
+                for="class-name"
+                class="text-sm font-light text-neutral-700 dark:text-neutral-400"
+                >Class Name:</label
+              >
               <input
                 id="class-name"
                 type="text"
@@ -126,7 +159,7 @@
             </div>
           {/if}
           <button
-            on:click={() => isOpen = false}
+            on:click={() => (isOpen = false)}
             aria-label="Close export dialog"
           >
             <svg
@@ -148,7 +181,11 @@
       </div>
 
       <div class="relative w-full flex-1 overflow-auto">
-        <Highlight language={currentLanguage} code={exportedCode} class="w-full" />
+        <Highlight
+          language={currentLanguage}
+          code={exportedCode}
+          class="w-full"
+        />
         <button
           title="Copy code to clipboard"
           use:copy={exportedCode}

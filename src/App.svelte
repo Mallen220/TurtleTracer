@@ -9,7 +9,7 @@
   import Navbar from "./lib/Navbar.svelte";
   import MathTools from "./lib/MathTools.svelte";
   import _ from "lodash";
-  import hotkeys from 'hotkeys-js';
+  import hotkeys from "hotkeys-js";
 
   import {
     easeInOutQuad,
@@ -101,7 +101,7 @@
     let startPointElem = new Two.Circle(
       x(startPoint.x),
       y(startPoint.y),
-      x(POINT_RADIUS)
+      x(POINT_RADIUS),
     );
     startPointElem.id = `point-0-0`;
     startPointElem.fill = lines[0].color;
@@ -118,7 +118,7 @@
           let pointElem = new Two.Circle(
             x(point.x),
             y(point.y),
-            x(POINT_RADIUS)
+            x(POINT_RADIUS),
           );
           pointElem.id = `point-${idx + 1}-${idx1}-background`;
           pointElem.fill = line.color;
@@ -128,7 +128,7 @@
             `${idx1}`,
             x(point.x),
             y(point.y - 0.15),
-            x(POINT_RADIUS)
+            x(POINT_RADIUS),
           );
           pointText.id = `point-${idx + 1}-${idx1}-text`;
           pointText.size = x(1.55);
@@ -145,7 +145,7 @@
           let pointElem = new Two.Circle(
             x(point.x),
             y(point.y),
-            x(POINT_RADIUS)
+            x(POINT_RADIUS),
           );
           pointElem.id = `point-${idx + 1}-${idx1}`;
           pointElem.fill = line.color;
@@ -164,7 +164,7 @@
         let pointElem = new Two.Circle(
           x(vertex.x),
           y(vertex.y),
-          x(POINT_RADIUS)
+          x(POINT_RADIUS),
         );
         pointElem.id = `obstacle-${shapeIdx}-${vertexIdx}-background`;
         pointElem.fill = "#991b1b"; // Match obstacle color
@@ -174,7 +174,7 @@
           `${vertexIdx + 1}`,
           x(vertex.x),
           y(vertex.y - 0.15),
-          x(POINT_RADIUS)
+          x(POINT_RADIUS),
         );
         pointText.id = `obstacle-${shapeIdx}-${vertexIdx}-text`;
         pointText.size = x(1.55);
@@ -204,10 +204,30 @@
         // Approximate an n-degree bezier curve by sampling it at 100 points
         const samples = 100;
         const cps = [_startPoint, ...line.controlPoints, line.endPoint];
-        let points = [new Two.Anchor(x(_startPoint.x), y(_startPoint.y), 0, 0, 0, 0, Two.Commands.move)];
+        let points = [
+          new Two.Anchor(
+            x(_startPoint.x),
+            y(_startPoint.y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.move,
+          ),
+        ];
         for (let i = 1; i <= samples; ++i) {
           const point = getCurvePoint(i / samples, cps);
-          points.push(new Two.Anchor(x(point.x), y(point.y), 0, 0, 0, 0, Two.Commands.line));
+          points.push(
+            new Two.Anchor(
+              x(point.x),
+              y(point.y),
+              0,
+              0,
+              0,
+              0,
+              Two.Commands.line,
+            ),
+          );
         }
         points.forEach((point) => (point.relative = false));
 
@@ -231,7 +251,7 @@
             y(_startPoint.y),
             x(cp1.x),
             y(cp1.y),
-            Two.Commands.move
+            Two.Commands.move,
           ),
           new Two.Anchor(
             x(line.endPoint.x),
@@ -240,7 +260,7 @@
             y(cp2.y),
             x(line.endPoint.x),
             y(line.endPoint.y),
-            Two.Commands.curve
+            Two.Commands.curve,
           ),
         ];
         points.forEach((point) => (point.relative = false));
@@ -252,7 +272,7 @@
           x(_startPoint.x),
           y(_startPoint.y),
           x(line.endPoint.x),
-          y(line.endPoint.y)
+          y(line.endPoint.y),
         );
       }
 
@@ -274,43 +294,58 @@
       if (shape.vertices.length >= 3) {
         // Create polygon from vertices - properly format for Two.js
         let vertices = [];
-        
+
         // Start with move command for first vertex
-        vertices.push(new Two.Anchor(
-          x(shape.vertices[0].x), 
-          y(shape.vertices[0].y), 
-          0, 0, 0, 0, 
-          Two.Commands.move
-        ));
-        
+        vertices.push(
+          new Two.Anchor(
+            x(shape.vertices[0].x),
+            y(shape.vertices[0].y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.move,
+          ),
+        );
+
         // Add line commands for remaining vertices
         for (let i = 1; i < shape.vertices.length; i++) {
-          vertices.push(new Two.Anchor(
-            x(shape.vertices[i].x), 
-            y(shape.vertices[i].y), 
-            0, 0, 0, 0, 
-            Two.Commands.line
-          ));
+          vertices.push(
+            new Two.Anchor(
+              x(shape.vertices[i].x),
+              y(shape.vertices[i].y),
+              0,
+              0,
+              0,
+              0,
+              Two.Commands.line,
+            ),
+          );
         }
-        
+
         // Close the shape
-        vertices.push(new Two.Anchor(
-          x(shape.vertices[0].x), 
-          y(shape.vertices[0].y), 
-          0, 0, 0, 0, 
-          Two.Commands.close
-        ));
-        
+        vertices.push(
+          new Two.Anchor(
+            x(shape.vertices[0].x),
+            y(shape.vertices[0].y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.close,
+          ),
+        );
+
         vertices.forEach((point) => (point.relative = false));
-        
+
         let shapeElement = new Two.Path(vertices);
         shapeElement.id = `shape-${idx}`;
-        shapeElement.stroke = shape.color; 
-        shapeElement.fill = shape.color;   
+        shapeElement.stroke = shape.color;
+        shapeElement.fill = shape.color;
         shapeElement.opacity = 0.4;
         shapeElement.linewidth = x(0.8); // Make border more visible
         shapeElement.automatic = false;
-        
+
         _shapes.push(shapeElement);
       }
     });
@@ -319,50 +354,68 @@
   })();
 
   let isLoaded = false;
-  
+
   // Reactively trigger when any saveable data changes
   $: {
     if (isLoaded && (lines || shapes || startPoint || settings)) {
-        isUnsaved.set(true);
+      isUnsaved.set(true);
     }
   }
 
   // Allow the app to stabilize before tracking changes
   onMount(() => {
-    setTimeout(() => { isLoaded = true; }, 500);
+    setTimeout(() => {
+      isLoaded = true;
+    }, 500);
   });
 
   // Save Function
   async function saveProject() {
     if ($currentFilePath && electronAPI) {
-        try {
-            const jsonString = JSON.stringify({ startPoint, lines, shapes, settings });
-            await electronAPI.writeFile($currentFilePath, jsonString);
-            isUnsaved.set(false);
-            console.log("Saved to", $currentFilePath);
-        } catch (e) {
-            console.error("Failed to save", e);
-            alert("Failed to save file.");
-        }
+      try {
+        const jsonString = JSON.stringify({
+          startPoint,
+          lines,
+          shapes,
+          settings,
+        });
+        await electronAPI.writeFile($currentFilePath, jsonString);
+        isUnsaved.set(false);
+        console.log("Saved to", $currentFilePath);
+      } catch (e) {
+        console.error("Failed to save", e);
+        alert("Failed to save file.");
+      }
     } else {
-        saveFile(); 
+      saveFile();
     }
   }
 
   // Keyboard shortcut for save
-  hotkeys('cmd+s, ctrl+s', function(event, handler){
+  hotkeys("cmd+s, ctrl+s", function (event, handler) {
     event.preventDefault();
     saveProject();
   });
 
   $: {
-    let totalLineProgress = (lines.length * Math.min(percent, 99.999999999)) / 100;
-    let currentLineIdx = Math.min(Math.trunc(totalLineProgress), lines.length - 1);
+    let totalLineProgress =
+      (lines.length * Math.min(percent, 99.999999999)) / 100;
+    let currentLineIdx = Math.min(
+      Math.trunc(totalLineProgress),
+      lines.length - 1,
+    );
     let currentLine = lines[currentLineIdx];
 
-    let linePercent = easeInOutQuad(totalLineProgress - Math.floor(totalLineProgress));
-    let _startPoint = currentLineIdx === 0 ? startPoint : lines[currentLineIdx - 1].endPoint;
-    let robotInchesXY = getCurvePoint(linePercent, [_startPoint, ...currentLine.controlPoints, currentLine.endPoint]);
+    let linePercent = easeInOutQuad(
+      totalLineProgress - Math.floor(totalLineProgress),
+    );
+    let _startPoint =
+      currentLineIdx === 0 ? startPoint : lines[currentLineIdx - 1].endPoint;
+    let robotInchesXY = getCurvePoint(linePercent, [
+      _startPoint,
+      ...currentLine.controlPoints,
+      currentLine.endPoint,
+    ]);
     robotXY = { x: x(robotInchesXY.x), y: y(robotInchesXY.y) };
 
     switch (currentLine.endPoint.heading) {
@@ -370,7 +423,7 @@
         robotHeading = -shortestRotation(
           currentLine.endPoint.startDeg,
           currentLine.endPoint.endDeg,
-          linePercent
+          linePercent,
         );
         break;
       case "constant":
@@ -379,7 +432,7 @@
       case "tangential":
         const nextPointInches = getCurvePoint(
           linePercent + (currentLine.endPoint.reverse ? -0.01 : 0.01),
-          [_startPoint, ...currentLine.controlPoints, currentLine.endPoint]
+          [_startPoint, ...currentLine.controlPoints, currentLine.endPoint],
         );
         const nextPoint = { x: x(nextPointInches.x), y: y(nextPointInches.y) };
 
@@ -474,7 +527,7 @@
           const parts = currentElem.split("-");
           const shapeIdx = Number(parts[1]);
           const vertexIdx = Number(parts[2]);
-          
+
           shapes[shapeIdx].vertices[vertexIdx].x = x.invert(xPos);
           shapes[shapeIdx].vertices[vertexIdx].y = y.invert(yPos);
         } else {
@@ -577,35 +630,34 @@
   }
 
   // Keyboard shortcuts for quick path editing
-  hotkeys('w', function(event, handler){
+  hotkeys("w", function (event, handler) {
     event.preventDefault();
     addNewLine();
   });
 
-  hotkeys('a', function(event, handler){
+  hotkeys("a", function (event, handler) {
     event.preventDefault();
     addControlPoint();
     two.update();
   });
 
-  hotkeys('s', function(event, handler){
+  hotkeys("s", function (event, handler) {
     event.preventDefault();
     removeControlPoint();
     two.update();
   });
-
 </script>
 
-<Navbar 
-    bind:lines 
-    bind:startPoint 
-    bind:shapes 
-    bind:settings 
-    bind:robotWidth 
-    bind:robotHeight 
-    {saveFile} 
-    {loadFile} 
-    {loadRobot}
+<Navbar
+  bind:lines
+  bind:startPoint
+  bind:shapes
+  bind:settings
+  bind:robotWidth
+  bind:robotHeight
+  {saveFile}
+  {loadFile}
+  {loadRobot}
 />
 <div
   class="w-screen h-screen pt-20 p-2 flex flex-row justify-center items-center gap-2"

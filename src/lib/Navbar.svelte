@@ -1,11 +1,20 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { darkMode, showRuler, showProtractor, showGrid, protractorLockToRobot, gridSize, currentFilePath, isUnsaved } from "../stores";
+  import {
+    darkMode,
+    showRuler,
+    showProtractor,
+    showGrid,
+    protractorLockToRobot,
+    gridSize,
+    currentFilePath,
+    isUnsaved,
+  } from "../stores";
   import { getRandomColor } from "../utils";
   import { getDefaultStartPoint, getDefaultLines } from "../config";
-  import FileManager from './FileManager.svelte';
-  import SettingsDialog from './components/SettingsDialog.svelte';
-  import ExportCodeDialog from './components/ExportCodeDialog.svelte';
+  import FileManager from "./FileManager.svelte";
+  import SettingsDialog from "./components/SettingsDialog.svelte";
+  import ExportCodeDialog from "./components/ExportCodeDialog.svelte";
 
   export let loadFile: (evt: any) => any;
   export let loadRobot: (evt: any) => any;
@@ -69,7 +78,7 @@
 </script>
 
 {#if fileManagerOpen}
-  <FileManager 
+  <FileManager
     bind:isOpen={fileManagerOpen}
     bind:startPoint
     bind:lines
@@ -77,16 +86,9 @@
   />
 {/if}
 
-<ExportCodeDialog
-  bind:this={exportDialog}
-  bind:startPoint
-  bind:lines
-/>
+<ExportCodeDialog bind:this={exportDialog} bind:startPoint bind:lines />
 
-<SettingsDialog
-  bind:isOpen={settingsOpen}
-  bind:settings
-/>
+<SettingsDialog bind:isOpen={settingsOpen} bind:settings />
 
 <div
   class="absolute top-0 left-0 w-full bg-neutral-50 dark:bg-neutral-900 shadow-md flex flex-row justify-between items-center px-6 py-4 border-b-[0.75px] border-[#b300e6]"
@@ -97,10 +99,14 @@
       <span>Pedro Pathing Visualizer</span>
       {#if $currentFilePath}
         <span class="text-neutral-400 font-light text-sm mx-2">/</span>
-        <span class="text-sm font-normal text-neutral-600 dark:text-neutral-300">
+        <span
+          class="text-sm font-normal text-neutral-600 dark:text-neutral-300"
+        >
           {$currentFilePath.split(/[\\/]/).pop()}
           {#if $isUnsaved}
-            <span class="text-amber-500 font-bold ml-1" title="Unsaved changes">*</span>
+            <span class="text-amber-500 font-bold ml-1" title="Unsaved changes"
+              >*</span
+            >
           {/if}
         </span>
       {/if}
@@ -114,7 +120,7 @@
       <div class="relative flex flex-col items-center justify-center">
         <button
           title="Toggle Grid"
-          on:click={() => showGrid.update(v => !v)}
+          on:click={() => showGrid.update((v) => !v)}
           class:text-blue-500={$showGrid}
         >
           <svg
@@ -152,10 +158,7 @@
       </div>
 
       <!-- File manager button -->
-      <button
-        title="File Manager"
-        on:click={() => (fileManagerOpen = true)}
-      >
+      <button title="File Manager" on:click={() => (fileManagerOpen = true)}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -175,7 +178,7 @@
       <!-- Ruler toggle -->
       <button
         title="Toggle Ruler"
-        on:click={() => showRuler.update(v => !v)}
+        on:click={() => showRuler.update((v) => !v)}
         class:text-blue-500={$showRuler}
       >
         <svg
@@ -189,7 +192,9 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0z"></path>
+          <path
+            d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0z"
+          ></path>
           <path d="m14.5 12.5 2-2"></path>
           <path d="m11.5 9.5 2-2"></path>
           <path d="m8.5 6.5 2-2"></path>
@@ -200,7 +205,7 @@
       <!-- Protractor toggle -->
       <button
         title="Toggle Protractor"
-        on:click={() => showProtractor.update(v => !v)}
+        on:click={() => showProtractor.update((v) => !v)}
         class:text-blue-500={$showProtractor}
       >
         <svg
@@ -221,8 +226,10 @@
 
       {#if $showProtractor}
         <button
-          title={$protractorLockToRobot ? "Unlock Protractor from Robot" : "Lock Protractor to Robot"}
-          on:click={() => protractorLockToRobot.update(v => !v)}
+          title={$protractorLockToRobot
+            ? "Unlock Protractor from Robot"
+            : "Lock Protractor to Robot"}
+          on:click={() => protractorLockToRobot.update((v) => !v)}
           class:text-amber-500={$protractorLockToRobot}
         >
           {#if $protractorLockToRobot}
@@ -261,7 +268,10 @@
     </div>
 
     <!-- Divider -->
-    <div class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4" aria-hidden="true"></div>
+    <div
+      class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4"
+      aria-hidden="true"
+    ></div>
 
     <div class="flex items-center gap-3">
       <a
@@ -323,10 +333,7 @@
           />
         </svg>
       </label>
-      <button
-        title="Delete/Reset path"
-        on:click={resetPath}
-      >
+      <button title="Delete/Reset path" on:click={resetPath}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -345,7 +352,7 @@
       <div class="relative">
         <button
           title="Export path"
-          on:click={() => exportMenuOpen = !exportMenuOpen}
+          on:click={() => (exportMenuOpen = !exportMenuOpen)}
           class="flex items-center gap-1"
         >
           <svg
@@ -370,7 +377,11 @@
             stroke="currentColor"
             class="size-4"
           >
-            <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m19.5 8.25-7.5 7.5-7.5-7.5"
+            />
           </svg>
         </button>
 
@@ -401,11 +412,27 @@
       </div>
     </div>
 
-    <div class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4" aria-hidden="true"></div>
+    <div
+      class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4"
+      aria-hidden="true"
+    ></div>
 
     <div class="flex items-center gap-3">
-      <button title="Open Settings" on:click={() => settingsOpen = true}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      <button title="Open Settings" on:click={() => (settingsOpen = true)}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><circle cx="12" cy="12" r="3"></circle><path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+          ></path></svg
+        >
       </button>
       <button
         title="Toggle Dark/Light Mode"
@@ -457,7 +484,21 @@
         title="Load Robot Picture from a file"
         class="cursor-pointer"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"></path><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"></polygon></svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><path
+            d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"
+          ></path><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"
+          ></polygon></svg
+        >
       </label>
     </div>
   </div>

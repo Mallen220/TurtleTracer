@@ -1,5 +1,5 @@
-import type { Point, Line, Shape, FPASettings } from '../types';
-import { getRandomColor } from '../utils';
+import type { Point, Line, Shape, FPASettings } from "../types";
+import { getRandomColor } from "../utils";
 
 /**
  * Default robot dimensions
@@ -25,7 +25,7 @@ export const DEFAULT_FPA_SETTINGS: FPASettings = {
   rWidth: DEFAULT_ROBOT_WIDTH,
   rHeight: DEFAULT_ROBOT_HEIGHT,
   safetyMargin: 1,
-  optimizationQuality: 3
+  optimizationQuality: 3,
 };
 
 /**
@@ -37,7 +37,7 @@ export function getDefaultStartPoint(): Point {
     y: 8,
     heading: "linear",
     startDeg: 90,
-    endDeg: 180
+    endDeg: 180,
   };
 }
 
@@ -68,23 +68,23 @@ export function getDefaultShapes(): Shape[] {
         { x: 144, y: 144 },
         { x: 118, y: 144 },
         { x: 138, y: 118 },
-        { x: 138, y: 70 }
+        { x: 138, y: 70 },
       ],
       color: "#dc2626",
-      fillColor: "#fca5a5"
+      fillColor: "#fca5a5",
     },
     {
-      id: "triangle-2", 
+      id: "triangle-2",
       name: "Blue Goal",
       vertices: [
         { x: 7, y: 118 },
         { x: 26, y: 144 },
         { x: 0, y: 144 },
         { x: 0, y: 70 },
-        { x: 7, y: 70 }
+        { x: 7, y: 70 },
       ],
       color: "#0b08d9",
-      fillColor: "#fca5a5"
-    }
+      fillColor: "#fca5a5",
+    },
   ];
 }

@@ -1,4 +1,4 @@
-import type { Point, Line, Shape } from '../types';
+import type { Point, Line, Shape } from "../types";
 
 /**
  * File save/load utilities for the visualizer
@@ -14,7 +14,11 @@ export interface SaveData {
 /**
  * Download trajectory data as a .pp file
  */
-export function downloadTrajectory(startPoint: Point, lines: Line[], shapes: Shape[]): void {
+export function downloadTrajectory(
+  startPoint: Point,
+  lines: Line[],
+  shapes: Shape[],
+): void {
   const jsonString = JSON.stringify({ startPoint, lines, shapes });
   const blob = new Blob([jsonString], { type: "application/json" });
   const linkObj = document.createElement("a");
@@ -33,9 +37,9 @@ export function downloadTrajectory(startPoint: Point, lines: Line[], shapes: Sha
  * Load trajectory from a file input event
  */
 export function loadTrajectoryFromFile(
-  evt: Event, 
+  evt: Event,
   onSuccess: (data: SaveData) => void,
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void,
 ): void {
   const elem = evt.target as HTMLInputElement;
   const file = elem.files?.[0];
@@ -64,7 +68,7 @@ export function loadTrajectoryFromFile(
 export function loadRobotImage(
   evt: Event,
   onSuccess: (imageData: string) => void,
-  onError?: (error: Error) => void
+  onError?: (error: Error) => void,
 ): void {
   const elem = evt.target as HTMLInputElement;
   const file = elem.files?.[0];
@@ -74,7 +78,7 @@ export function loadRobotImage(
 
     reader.onload = function (e: ProgressEvent<FileReader>) {
       const result = e.target?.result as string;
-      localStorage.setItem('robot.png', result);
+      localStorage.setItem("robot.png", result);
       onSuccess(result);
     };
 
@@ -90,8 +94,10 @@ export function loadRobotImage(
  * Update the robot image displayed on the canvas
  */
 export function updateRobotImageDisplay(): void {
-  const robotImage = document.querySelector('img[alt="Robot"]') as HTMLImageElement;
-  const storedImage = localStorage.getItem('robot.png');
+  const robotImage = document.querySelector(
+    'img[alt="Robot"]',
+  ) as HTMLImageElement;
+  const storedImage = localStorage.getItem("robot.png");
   if (robotImage && storedImage) {
     robotImage.src = storedImage;
   }

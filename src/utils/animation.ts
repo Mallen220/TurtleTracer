@@ -1,6 +1,11 @@
-import { getCurvePoint, easeInOutQuad, shortestRotation, radiansToDegrees } from './math';
-import type { Point, Line } from '../types';
-import type { ScaleLinear } from 'd3';
+import {
+  getCurvePoint,
+  easeInOutQuad,
+  shortestRotation,
+  radiansToDegrees,
+} from "./math";
+import type { Point, Line } from "../types";
+import type { ScaleLinear } from "d3";
 
 export interface RobotState {
   x: number;
@@ -24,16 +29,27 @@ export function calculateRobotState(
   lines: Line[],
   startPoint: Point,
   xScale: ScaleLinear<number, number>,
-  yScale: ScaleLinear<number, number>
+  yScale: ScaleLinear<number, number>,
 ): RobotState {
-  const totalLineProgress = (lines.length * Math.min(percent, 99.999999999)) / 100;
-  const currentLineIdx = Math.min(Math.trunc(totalLineProgress), lines.length - 1);
+  const totalLineProgress =
+    (lines.length * Math.min(percent, 99.999999999)) / 100;
+  const currentLineIdx = Math.min(
+    Math.trunc(totalLineProgress),
+    lines.length - 1,
+  );
   const currentLine = lines[currentLineIdx];
 
-  const linePercent = easeInOutQuad(totalLineProgress - Math.floor(totalLineProgress));
-  const _startPoint = currentLineIdx === 0 ? startPoint : lines[currentLineIdx - 1].endPoint;
-  const robotInchesXY = getCurvePoint(linePercent, [_startPoint, ...currentLine.controlPoints, currentLine.endPoint]);
-  
+  const linePercent = easeInOutQuad(
+    totalLineProgress - Math.floor(totalLineProgress),
+  );
+  const _startPoint =
+    currentLineIdx === 0 ? startPoint : lines[currentLineIdx - 1].endPoint;
+  const robotInchesXY = getCurvePoint(linePercent, [
+    _startPoint,
+    ...currentLine.controlPoints,
+    currentLine.endPoint,
+  ]);
+
   const robotXY = { x: xScale(robotInchesXY.x), y: yScale(robotInchesXY.y) };
   let robotHeading = 0;
 
@@ -42,7 +58,7 @@ export function calculateRobotState(
       robotHeading = -shortestRotation(
         currentLine.endPoint.startDeg,
         currentLine.endPoint.endDeg,
-        linePercent
+        linePercent,
       );
       break;
     case "constant":
@@ -51,9 +67,12 @@ export function calculateRobotState(
     case "tangential":
       const nextPointInches = getCurvePoint(
         linePercent + (currentLine.endPoint.reverse ? -0.01 : 0.01),
-        [_startPoint, ...currentLine.controlPoints, currentLine.endPoint]
+        [_startPoint, ...currentLine.controlPoints, currentLine.endPoint],
       );
-      const nextPoint = { x: xScale(nextPointInches.x), y: yScale(nextPointInches.y) };
+      const nextPoint = {
+        x: xScale(nextPointInches.x),
+        y: yScale(nextPointInches.y),
+      };
 
       const dx = nextPoint.x - robotXY.x;
       const dy = nextPoint.y - robotXY.y;
@@ -68,7 +87,7 @@ export function calculateRobotState(
   return {
     x: robotXY.x,
     y: robotXY.y,
-    heading: robotHeading
+    heading: robotHeading,
   };
 }
 
@@ -77,14 +96,14 @@ export function calculateRobotState(
  */
 export function createAnimationController(
   linesCount: number,
-  onPercentChange: (percent: number) => void
+  onPercentChange: (percent: number) => void,
 ) {
   let state: AnimationState = {
     playing: false,
     percent: 0,
     startTime: null,
     previousTime: null,
-    animationFrame: 0
+    animationFrame: 0,
   };
 
   function animate(timestamp: number) {
@@ -135,6 +154,6 @@ export function createAnimationController(
     },
     updateLinesCount(count: number) {
       linesCount = count;
-    }
+    },
   };
 }

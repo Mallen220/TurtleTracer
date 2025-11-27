@@ -1,4 +1,4 @@
-import type { Shape } from '../types';
+import type { Shape } from "../types";
 
 /**
  * Shape creation factory functions
@@ -14,10 +14,10 @@ export function createTriangle(existingShapesCount: number): Shape {
     vertices: [
       { x: 60, y: 60 },
       { x: 84, y: 60 },
-      { x: 72, y: 84 }
+      { x: 72, y: 84 },
     ],
     color: "#dc2626",
-    fillColor: "#fca5a5"
+    fillColor: "#fca5a5",
   };
 }
 
@@ -32,10 +32,10 @@ export function createRectangle(existingShapesCount: number): Shape {
       { x: 30, y: 30 },
       { x: 60, y: 30 },
       { x: 60, y: 50 },
-      { x: 30, y: 50 }
+      { x: 30, y: 50 },
     ],
     color: "#dc2626",
-    fillColor: "#fca5a5"
+    fillColor: "#fca5a5",
   };
 }
 
@@ -47,20 +47,20 @@ export function createNGon(sides: number, existingShapesCount: number): Shape {
   const centerY = 45;
   const radius = 15;
   const vertices = [];
-  
+
   for (let i = 0; i < sides; i++) {
     const angle = (i * 2 * Math.PI) / sides;
     vertices.push({
       x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle)
+      y: centerY + radius * Math.sin(angle),
     });
   }
-  
+
   return {
     id: `${sides}-gon-${existingShapesCount + 1}`,
     name: `Obstacle ${existingShapesCount + 1}`,
     vertices,
     color: "#dc2626",
-    fillColor: "#fca5a5"
+    fillColor: "#fca5a5",
   };
 }
