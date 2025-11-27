@@ -9,7 +9,7 @@
   import Navbar from "./lib/Navbar.svelte";
   import MathTools from "./lib/MathTools.svelte";
   import _ from "lodash";
-
+  import hotkeys from 'hotkeys-js';
 
   import {
     easeInOutQuad,
@@ -19,50 +19,57 @@
     quadraticToCubic,
     radiansToDegrees,
     shortestRotation,
+    downloadTrajectory,
+    loadTrajectoryFromFile,
+    loadRobotImage,
+    updateRobotImageDisplay,
   } from "./utils";
-  import hotkeys from 'hotkeys-js';
+  import {
+    POINT_RADIUS,
+    LINE_WIDTH,
+    DEFAULT_ROBOT_WIDTH,
+    DEFAULT_ROBOT_HEIGHT,
+    DEFAULT_FPA_SETTINGS,
+    FIELD_SIZE,
+    getDefaultStartPoint,
+    getDefaultLines,
+    getDefaultShapes,
+  } from "./config";
 
+  // Electron API type (defined in preload.js, attached to window)
+  interface ElectronAPI {
+    writeFile: (filePath: string, content: string) => Promise<boolean>;
+  }
+
+  // Access electron API from window (attached by preload script)
+  const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
+
+  // Canvas state
   let two: Two;
   let twoElement: HTMLDivElement;
   let width = 0;
   let height = 0;
 
-  let pointRadius = 1.15;
-  let lineWidth = 0.57;
-  let robotWidth = 16;
-  let robotHeight = 16;
-  let settings: FPASettings = {
-    xVelocity: 60,
-    yVelocity: 60,
-    aVelocity: Math.PI,
-    kFriction: 0.05,
-    rWidth: robotWidth,
-    rHeight: robotHeight,
-    safetyMargin: 1,
-    optimizationQuality: 3
-  };
+  // Robot state
+  let robotWidth = DEFAULT_ROBOT_WIDTH;
+  let robotHeight = DEFAULT_ROBOT_HEIGHT;
+  let robotXY: BasePoint = { x: 0, y: 0 };
+  let robotHeading: number = 0;
 
-  let x
-
+  // Animation state
   let percent: number = 0;
+  let playing = false;
+  let animationFrame: number;
+  let startTime: number | null = null;
+  let previousTime: number | null = null;
 
+  // Path data
+  let settings: FPASettings = { ...DEFAULT_FPA_SETTINGS };
+  let startPoint: Point = getDefaultStartPoint();
+  let lines: Line[] = getDefaultLines();
+  let shapes: Shape[] = getDefaultShapes();
 
-  /**
-   * Converter for X axis from inches to pixels.
-   */
-  $: x = d3
-    .scaleLinear()
-    .domain([0, 144])
-    .range([0, width || 144]);
-
-  /**
-   * Converter for Y axis from inches to pixels.
-   */
-  $: y = d3
-    .scaleLinear()
-    .domain([0, 144])
-    .range([height || 144, 0]);
-
+  // Two.js groups
   let lineGroup = new Two.Group();
   lineGroup.id = "line-group";
   let pointGroup = new Two.Group();
@@ -70,57 +77,31 @@
   let shapeGroup = new Two.Group();
   shapeGroup.id = "shape-group";
 
-  let startPoint: Point = {
-    x: 56,
-    y: 8,
-    heading: "linear",
-    startDeg: 90,
-    endDeg: 180
-  };
-  let lines: Line[] = [
-    {
-      name: "Path 1",
-      endPoint: { x: 56, y: 36, heading: "linear", startDeg: 90, endDeg: 180 },
-      controlPoints: [],
-      color: getRandomColor(),
-    },
-  ];
+  // Coordinate converters
+  let x: d3.ScaleLinear<number, number, number>;
 
-  let shapes: Shape[] = [
-    {
-      id: "triangle-1",
-      name: "Red Goal",
-      vertices: [
-        { x: 144, y: 70 },
-        { x: 144, y: 144 },
-        { x: 118, y: 144 },
-        { x: 138, y: 118 },
-        { x: 138, y: 70 }
-      ],
-      color: "#dc2626",
-      fillColor: "#fca5a5"
-    },
-    {
-      id: "triangle-2", 
-      name: "Blue Goal",
-      vertices: [
-        { x: 7, y: 118 },
-        { x: 26, y: 144 },
-        { x: 0, y: 144 },
-        { x: 0, y: 70 },
-        { x: 7, y: 70 }
-      ],
-      color: "#0b08d9",
-      fillColor: "#fca5a5"
-    }
-  ];
+  /**
+   * Converter for X axis from inches to pixels.
+   */
+  $: x = d3
+    .scaleLinear()
+    .domain([0, FIELD_SIZE])
+    .range([0, width || FIELD_SIZE]);
+
+  /**
+   * Converter for Y axis from inches to pixels.
+   */
+  $: y = d3
+    .scaleLinear()
+    .domain([0, FIELD_SIZE])
+    .range([height || FIELD_SIZE, 0]);
 
   $: points = (() => {
     let _points = [];
     let startPointElem = new Two.Circle(
       x(startPoint.x),
       y(startPoint.y),
-      x(pointRadius)
+      x(POINT_RADIUS)
     );
     startPointElem.id = `point-0-0`;
     startPointElem.fill = lines[0].color;
@@ -137,7 +118,7 @@
           let pointElem = new Two.Circle(
             x(point.x),
             y(point.y),
-            x(pointRadius)
+            x(POINT_RADIUS)
           );
           pointElem.id = `point-${idx + 1}-${idx1}-background`;
           pointElem.fill = line.color;
@@ -147,7 +128,7 @@
             `${idx1}`,
             x(point.x),
             y(point.y - 0.15),
-            x(pointRadius)
+            x(POINT_RADIUS)
           );
           pointText.id = `point-${idx + 1}-${idx1}-text`;
           pointText.size = x(1.55);
@@ -164,7 +145,7 @@
           let pointElem = new Two.Circle(
             x(point.x),
             y(point.y),
-            x(pointRadius)
+            x(POINT_RADIUS)
           );
           pointElem.id = `point-${idx + 1}-${idx1}`;
           pointElem.fill = line.color;
@@ -183,7 +164,7 @@
         let pointElem = new Two.Circle(
           x(vertex.x),
           y(vertex.y),
-          x(pointRadius)
+          x(POINT_RADIUS)
         );
         pointElem.id = `obstacle-${shapeIdx}-${vertexIdx}-background`;
         pointElem.fill = "#991b1b"; // Match obstacle color
@@ -193,7 +174,7 @@
           `${vertexIdx + 1}`,
           x(vertex.x),
           y(vertex.y - 0.15),
-          x(pointRadius)
+          x(POINT_RADIUS)
         );
         pointText.id = `obstacle-${shapeIdx}-${vertexIdx}-text`;
         pointText.size = x(1.55);
@@ -277,7 +258,7 @@
 
       lineElem.id = `line-${idx + 1}`;
       lineElem.stroke = line.color;
-      lineElem.linewidth = x(lineWidth);
+      lineElem.linewidth = x(LINE_WIDTH);
       lineElem.noFill();
 
       _path.push(lineElem);
@@ -337,13 +318,6 @@
     return _shapes;
   })();
 
-  let robotXY: BasePoint = { x: 0, y: 0 };
-  let robotHeading: number = 0;
-
-  declare const electronAPI: {
-    writeFile: (filePath: string, content: string) => Promise<boolean>;
-  };
-
   let isLoaded = false;
   
   // Reactively trigger when any saveable data changes
@@ -358,28 +332,24 @@
     setTimeout(() => { isLoaded = true; }, 500);
   });
 
-  // NEW: Save Function
+  // Save Function
   async function saveProject() {
-    // If we have a file path, save to it
-    if ($currentFilePath) {
+    if ($currentFilePath && electronAPI) {
         try {
             const jsonString = JSON.stringify({ startPoint, lines, shapes, settings });
             await electronAPI.writeFile($currentFilePath, jsonString);
             isUnsaved.set(false);
-            
-            // Visual feedback (optional console log)
             console.log("Saved to", $currentFilePath);
         } catch (e) {
             console.error("Failed to save", e);
             alert("Failed to save file.");
         }
     } else {
-        // If no file path, trigger the existing "Save As" / Download behavior
         saveFile(); 
     }
   }
 
-  // Modify hotkeys to include Save
+  // Keyboard shortcut for save
   hotkeys('cmd+s, ctrl+s', function(event, handler){
     event.preventDefault();
     saveProject();
@@ -447,13 +417,6 @@
     two.update();
   })();
 
-  let playing = false;
-
-  let animationFrame: number;
-  let startTime: number | null = null;
-  let previousTime: number | null = null;
-
-
   function animate(timestamp: number) {
     if (!startTime) {
       startTime = timestamp;
@@ -490,85 +453,13 @@
     cancelAnimationFrame(animationFrame);
   }
 
-// Utility functions for obstacle detection
-function pointInPolygon(point: number[], polygon: BasePoint[]): boolean {
-  const x = point[0], y = point[1];
-  let inside = false;
-  
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const xi = polygon[i].x, yi = polygon[i].y;
-    const xj = polygon[j].x, yj = polygon[j].y;
-    
-    const intersect = ((yi > y) !== (yj > y)) &&
-      (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-    
-    if (intersect) inside = !inside;
-  }
-  
-  return inside;
-}
-
-function minDistanceToPolygon(point: number[], polygon: BasePoint[]): number {
-  let minDistance = Infinity;
-  
-  for (let i = 0; i < polygon.length; i++) {
-    const p1 = polygon[i];
-    const p2 = polygon[(i + 1) % polygon.length];
-    
-    const distance = pointToLineDistance(point, [p1.x, p1.y], [p2.x, p2.y]);
-    minDistance = Math.min(minDistance, distance);
-  }
-  
-  return minDistance;
-}
-
-function pointToLineDistance(point: number[], lineStart: number[], lineEnd: number[]): number {
-  const A = point[0] - lineStart[0];
-  const B = point[1] - lineStart[1];
-  const C = lineEnd[0] - lineStart[0];
-  const D = lineEnd[1] - lineStart[1];
-  
-  const dot = A * C + B * D;
-  const lenSq = C * C + D * D;
-  let param = -1;
-  
-  if (lenSq !== 0) param = dot / lenSq;
-  
-  let xx, yy;
-  
-  if (param < 0) {
-    xx = lineStart[0];
-    yy = lineStart[1];
-  } else if (param > 1) {
-    xx = lineEnd[0];
-    yy = lineEnd[1];
-  } else {
-    xx = lineStart[0] + param * C;
-    yy = lineStart[1] + param * D;
-  }
-  
-  const dx = point[0] - xx;
-  const dy = point[1] - yy;
-  
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
-function polygonCenter(vertices: BasePoint[]): number[] {
-  const sum = vertices.reduce((acc, vertex) => {
-    return [acc[0] + vertex.x, acc[1] + vertex.y];
-  }, [0, 0]);
-  
-  return [sum[0] / vertices.length, sum[1] / vertices.length];
-}
-
-
   onMount(() => {
     two = new Two({
       fitted: true,
       type: Two.Types.svg,
     }).appendTo(twoElement);
 
-    updateRobotImage();
+    updateRobotImageDisplay();
 
     let currentElem: string | null = null;
     let isDown = false;
@@ -633,138 +524,75 @@ function polygonCenter(vertices: BasePoint[]): number[] {
   });
 
   function saveFile() {
-    const jsonString = JSON.stringify({ startPoint, lines, shapes });
-
-    const blob = new Blob([jsonString], { type: "application/json" });
-
-    const linkObj = document.createElement("a");
-
-    const url = URL.createObjectURL(blob);
-
-    linkObj.href = url;
-    linkObj.download = "trajectory.pp";
-
-    document.body.appendChild(linkObj);
-
-    linkObj.click();
-
-    document.body.removeChild(linkObj);
-
-    URL.revokeObjectURL(url);
+    downloadTrajectory(startPoint, lines, shapes);
   }
 
   function loadFile(evt: Event) {
-    const elem = evt.target as HTMLInputElement;
-    const file = elem.files?.[0];
-
-    if (file) {
-      const reader = new FileReader();
-
-      reader.onload = function (e: ProgressEvent<FileReader>) {
-        try {
-          const result = e.target?.result as string;
-
-          const jsonObj: {
-            startPoint: Point;
-            lines: Line[];
-            shapes?: Shape[];
-          } = JSON.parse(result);
-
-          startPoint = jsonObj.startPoint;
-          lines = jsonObj.lines;
-          if (jsonObj.shapes) {
-            shapes = jsonObj.shapes;
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      };
-
-      reader.readAsText(file);
-    }
+    loadTrajectoryFromFile(evt, (data) => {
+      startPoint = data.startPoint;
+      lines = data.lines;
+      if (data.shapes) {
+        shapes = data.shapes;
+      }
+    });
   }
 
   function loadRobot(evt: Event) {
-    const elem = evt.target as HTMLInputElement;
-    const file = elem.files?.[0];
-
-    if (file && file.type === "image/png") {
-      const reader = new FileReader();
-
-      reader.onload = function (e: ProgressEvent<FileReader>) {
-        const result = e.target?.result as string;
-        localStorage.setItem('robot.png', result);
-        updateRobotImage();
-      };
-
-      reader.readAsDataURL(file);
-    } else {
-      console.error("Invalid file type. Please upload a PNG file.");
-    }
-  }
-
-  function updateRobotImage() {
-    const robotImage = document.querySelector('img[alt="Robot"]') as HTMLImageElement;
-    const storedImage = localStorage.getItem('robot.png');
-    if (robotImage && storedImage) {
-      robotImage.src = storedImage;
-    }
+    loadRobotImage(evt, () => updateRobotImageDisplay());
   }
 
   function addNewLine() {
-  lines = [
-    ...lines,
-    {
-      endPoint: {
+    lines = [
+      ...lines,
+      {
+        endPoint: {
+          x: _.random(36, 108),
+          y: _.random(36, 108),
+          heading: "tangential",
+          reverse: true,
+        } as Point,
+        controlPoints: [],
+        color: getRandomColor(),
+      },
+    ];
+  }
+
+  function addControlPoint() {
+    if (lines.length > 0) {
+      const lastLine = lines[lines.length - 1];
+      lastLine.controlPoints.push({
         x: _.random(36, 108),
         y: _.random(36, 108),
-        heading: "tangential",
-        reverse: true,
-        // Remove startDeg/endDeg for tangential type if not needed by your Point type
-      } as Point,
-      controlPoints: [],
-      color: getRandomColor(),
-    },
-  ];
-}
-
-
-function addControlPoint() {
-  if (lines.length > 0) {
-    const lastLine = lines[lines.length - 1];
-    lastLine.controlPoints.push({
-      x: _.random(36, 108),
-      y: _.random(36, 108),
-    });
-  }
-}
-
-function removeControlPoint() {
-  if (lines.length > 0) {
-    const lastLine = lines[lines.length - 1];
-    if (lastLine.controlPoints.length > 0) {
-      lastLine.controlPoints.pop();
+      });
     }
   }
-}
 
-hotkeys('w', function(event, handler){
-  event.preventDefault();
-  addNewLine();
-});
+  function removeControlPoint() {
+    if (lines.length > 0) {
+      const lastLine = lines[lines.length - 1];
+      if (lastLine.controlPoints.length > 0) {
+        lastLine.controlPoints.pop();
+      }
+    }
+  }
 
+  // Keyboard shortcuts for quick path editing
+  hotkeys('w', function(event, handler){
+    event.preventDefault();
+    addNewLine();
+  });
 
-hotkeys('a', function(event, handler){
-  event.preventDefault();
-  addControlPoint();
-  two.update();
-});
+  hotkeys('a', function(event, handler){
+    event.preventDefault();
+    addControlPoint();
+    two.update();
+  });
 
-hotkeys('s', function(event, handler){
-  event.preventDefault();
-  removeControlPoint();
-  two.update();
-});
+  hotkeys('s', function(event, handler){
+    event.preventDefault();
+    removeControlPoint();
+    two.update();
+  });
 
 </script>
 
@@ -778,7 +606,6 @@ hotkeys('s', function(event, handler){
     {saveFile} 
     {loadFile} 
     {loadRobot}
-    onSave={saveProject} 
 />
 <div
   class="w-screen h-screen pt-20 p-2 flex flex-row justify-center items-center gap-2"

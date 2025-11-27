@@ -1,27 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { copy } from "svelte-copy";
-  import Highlight from "svelte-highlight";
-  import { java } from "svelte-highlight/languages";
-  import plaintext from "svelte-highlight/languages/plaintext";
-  import codeStyle from "svelte-highlight/styles/androidstudio";
-  import { cubicInOut } from "svelte/easing";
-  import { fade, fly } from "svelte/transition";
   import { darkMode, showRuler, showProtractor, showGrid, protractorLockToRobot, gridSize, currentFilePath, isUnsaved } from "../stores";
-  import { getRandomColor, titleCase, generateJavaCode, generatePointsArray, generateSequentialCommandCode } from "../utils";
+  import { getRandomColor } from "../utils";
+  import { getDefaultStartPoint, getDefaultLines } from "../config";
+  import FileManager from './FileManager.svelte';
+  import SettingsDialog from './components/SettingsDialog.svelte';
+  import ExportCodeDialog from './components/ExportCodeDialog.svelte';
 
   export let loadFile: (evt: any) => any;
   export let loadRobot: (evt: any) => any;
   export let saveFile: () => any;
-  export let onSave: () => any;
 
-  import FileManager from './FileManager.svelte';
-  
-  let fileManagerOpen = false;
-
-  let exportFullCode = false;
-  let exportFormat = "java"; // "java", "points", "sequential"
-  let sequentialClassName = "AutoPath"; // Default class name
   export let startPoint: Point;
   export let lines: Line[];
   export let shapes: Shape[];
@@ -29,27 +18,13 @@
   export let robotHeight: number;
   export let settings: FPASettings;
 
-  let selectedGridSize = 12;
-  const gridSizeOptions = [12, 24, 36, 48];
-
-  let dialogOpen = false;
+  let fileManagerOpen = false;
   let settingsOpen = false;
   let exportMenuOpen = false;
-  
-  // Display value for angular velocity (user inputs this, gets multiplied by PI)
-  $: angularVelocityDisplay = settings ? settings.aVelocity / Math.PI : 1;
+  let exportDialog: ExportCodeDialog;
 
-  // Update sequential class name when file changes
-  $: if ($currentFilePath) {
-    const fileName = $currentFilePath.split(/[\\/]/).pop();
-    if (fileName) {
-      const baseName = fileName.replace('.pp', '').replace(/[^a-zA-Z0-9]/g, '_');
-      // Only update if user hasn't manually changed it from the default
-      if (sequentialClassName === "AutoPath" || sequentialClassName === baseName) {
-        sequentialClassName = baseName;
-      }
-    }
-  }  
+  let selectedGridSize = 12;
+  const gridSizeOptions = [12, 24, 36, 48];
 
   onMount(() => {
     const unsubscribeDarkMode = darkMode.subscribe((val) => {
@@ -64,18 +39,11 @@
       selectedGridSize = value;
     });
 
-    // window.onbeforeunload = () => {
-    //   return "Are you sure you want to leave?";
-    // };
-
     return () => {
       unsubscribeDarkMode();
       unsubscribeGridSize();
     };
   });
-
-  let exportedCode = "";
-  let currentLanguage = java;
 
   function handleGridSizeChange(event: Event) {
     const value = Number((event.target as HTMLSelectElement).value);
@@ -83,44 +51,15 @@
     gridSize.set(value);
   }
 
-  async function exportCode(format: string) {
-    exportFormat = format;
+  function handleExport(format: "java" | "points" | "sequential") {
     exportMenuOpen = false;
-    
-    try {
-      if (format === "java") {
-        exportedCode = await generateJavaCode(startPoint, lines, exportFullCode);
-        currentLanguage = java;
-      } else if (format === "points") {
-        exportedCode = generatePointsArray(startPoint, lines);
-        currentLanguage = plaintext; // Use plaintext instead of text
-      } else if (format === "sequential") {
-        exportedCode = await generateSequentialCommandCode(startPoint, lines, sequentialClassName);
-        currentLanguage = java;
-      }
-      dialogOpen = true;
-    } catch (error) {
-      console.error("Export failed:", error);
-      exportedCode = "// Error generating code. Please check the console for details.";
-      currentLanguage = plaintext; // Use plaintext for error messages too
-      dialogOpen = true;
-    }
+    exportDialog.openWithFormat(format);
   }
 
-  // Function to refresh the sequential command code when class name changes
-  async function refreshSequentialCode() {
-    if (exportFormat === "sequential" && dialogOpen) {
-      try {
-        exportedCode = await generateSequentialCommandCode(startPoint, lines, sequentialClassName);
-      } catch (error) {
-        console.error("Refresh failed:", error);
-        exportedCode = "// Error refreshing code. Please check the console for details.";
-      }
-    }
-  }
-
-  function openSettings() {
-      settingsOpen = true;
+  function resetPath() {
+    startPoint = getDefaultStartPoint();
+    lines = getDefaultLines();
+    shapes = [];
   }
 
   $: if (settings) {
@@ -129,22 +68,27 @@
   }
 </script>
 
-<svelte:head>
-  {@html codeStyle}
-</svelte:head>
+{#if fileManagerOpen}
+  <FileManager 
+    bind:isOpen={fileManagerOpen}
+    bind:startPoint
+    bind:lines
+    bind:shapes
+  />
+{/if}
 
+<ExportCodeDialog
+  bind:this={exportDialog}
+  bind:startPoint
+  bind:lines
+/>
 
+<SettingsDialog
+  bind:isOpen={settingsOpen}
+  bind:settings
+/>
 
-        {#if fileManagerOpen}
-          <FileManager 
-            bind:isOpen={fileManagerOpen}
-            bind:startPoint
-            bind:lines
-            bind:shapes
-          />
-        {/if}
-
-      <div
+<div
   class="absolute top-0 left-0 w-full bg-neutral-50 dark:bg-neutral-900 shadow-md flex flex-row justify-between items-center px-6 py-4 border-b-[0.75px] border-[#b300e6]"
 >
   <!-- Title -->
@@ -381,24 +325,7 @@
       </label>
       <button
         title="Delete/Reset path"
-        on:click={() => {
-         startPoint = {
-      x: 56,
-      y: 8,
-      heading: "linear",
-      startDeg: 90,
-      endDeg: 180
-    };
-    lines = [
-      {
-        name: "Path 1",
-        endPoint: { x: 56, y: 36, heading: "linear", startDeg: 90, endDeg: 180 },
-        controlPoints: [],
-        color: getRandomColor(),
-      },
-    ];
-    shapes = [];
-        }}
+        on:click={resetPath}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -452,19 +379,19 @@
             class="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-lg py-1 z-50 border border-neutral-200 dark:border-neutral-700"
           >
             <button
-              on:click={() => exportCode("java")}
+              on:click={() => handleExport("java")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
             >
               Java Code
             </button>
             <button
-              on:click={() => exportCode("points")}
+              on:click={() => handleExport("points")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
             >
               Points Array
             </button>
             <button
-              on:click={() => exportCode("sequential")}
+              on:click={() => handleExport("sequential")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
             >
               Sequential Command
@@ -477,7 +404,7 @@
     <div class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4" aria-hidden="true"></div>
 
     <div class="flex items-center gap-3">
-      <button title="Open Settings" on:click={openSettings}>
+      <button title="Open Settings" on:click={() => settingsOpen = true}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
       </button>
       <button
@@ -535,209 +462,3 @@
     </div>
   </div>
 </div>
-{#if dialogOpen}
-  <div
-    transition:fade={{ duration: 500, easing: cubicInOut }}
-    class="bg-black bg-opacity-25 flex flex-col justify-center items-center absolute top-0 left-0 w-full h-full z-[1005]"
-    on:click={() => dialogOpen = false}
-  >
-    <div
-      transition:fly={{ duration: 500, easing: cubicInOut, y: 20 }}
-      class="flex flex-col justify-start items-start p-4 bg-white dark:bg-neutral-900 rounded-lg w-full max-w-4xl gap-2.5 max-h-[90vh]"
-      on:click|stopPropagation
-    >
-      <div class="flex flex-row justify-between items-center w-full">
-        <p class="text-sm font-light text-neutral-700 dark:text-neutral-400">
-          {#if exportFormat === "java"}
-            Here is the generated Java code for this path:
-          {:else if exportFormat === "points"}
-            Here is the points array for this path:
-          {:else if exportFormat === "sequential"}
-            Here is the Sequential Command code for this path:
-          {/if}
-        </p>
-        <div class="flex items-center gap-2">
-          {#if exportFormat === "java"}
-            <label for="full-code-export" class="text-sm font-light text-neutral-700 dark:text-neutral-400">Export Full Code</label>
-            <input
-              id="export-full-code"
-              type="checkbox"
-              bind:checked={exportFullCode}
-              on:change={() => exportCode("java")}
-              class="cursor-pointer"
-            />
-          {:else if exportFormat === "sequential"}
-            <div class="flex items-center gap-2">
-              <label for="class-name" class="text-sm font-light text-neutral-700 dark:text-neutral-400">Class Name:</label>
-              <input
-                id="class-name"
-                type="text"
-                bind:value={sequentialClassName}
-                on:input={refreshSequentialCode}
-                class="px-2 py-1 text-sm rounded-md bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500 w-32"
-                placeholder="AutoPath"
-              />
-            </div>
-          {/if}
-          <button
-            class=""
-            on:click={() => dialogOpen = false}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="size-6 text-neutral-700 dark:text-neutral-400"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M6 18 18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="relative w-full flex-1 overflow-auto">
-        <Highlight language={currentLanguage} code={exportedCode} class="w-full" />
-        <button
-          title="Copy code to clipboard"
-          use:copy={exportedCode}
-          class="absolute bottom-2 right-2 opacity-45 hover:opacity-100 transition-all duration-200 bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-800 p-2 rounded"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="size-5"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9Z"
-            />
-          </svg>
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
-{#if settingsOpen}
-  <div
-          transition:fade={{ duration: 500, easing: cubicInOut }}
-          class="bg-black bg-opacity-25 flex flex-col justify-center items-center absolute top-0 left-0 w-full h-full z-[1005]"
-  >
-    <div
-            transition:fly={{ duration: 500, easing: cubicInOut, y: 20 }}
-            class="flex flex-col justify-start items-start p-6 bg-white dark:bg-neutral-900 rounded-lg w-full max-w-md gap-4"
-    >
-      <div class="flex flex-row justify-between items-center w-full">
-        <button
-                class=""
-                on:click={() => {
-            settingsOpen = false;
-          }}
-        ><svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-6 text-neutral-700 dark:text-neutral-400"
-        >
-          <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M6 18 18 6M6 6l12 12"
-          />
-        </svg>
-        </button>
-      </div>
-
-      <div class="relative w-full">
-        <div class="flex flex-col w-full justify-start items-start gap-4 text-base">
-          <div class="font-semibold text-lg">FPA Settings</div>
-          
-          <div class="flex flex-row justify-between items-center w-full">
-            <div class="font-light">X Velocity (in/s):</div>
-            <input
-              class="px-3 py-2 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border focus:outline-none focus:ring-2 focus:ring-blue-500 w-24 text-base"
-              step="0.1"
-              type="number"
-              min="0"
-              bind:value={settings.xVelocity}
-            />
-          </div>
-        
-          <div class="flex flex-row justify-between items-center w-full">
-            <div class="font-light">Y Velocity (in/s):</div>
-            <input
-              class="px-3 py-2 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border focus:outline-none focus:ring-2 focus:ring-blue-500 w-24 text-base"
-              step="0.1"
-              type="number"
-              min="0"
-              bind:value={settings.yVelocity}
-            />
-          </div>
-          
-          <div class="flex flex-col justify-start items-start w-full gap-1">
-            <div class="flex flex-row justify-between items-center w-full">
-              <div class="font-light">Angular Velocity:</div>
-              <input
-                class="px-3 py-2 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border focus:outline-none focus:ring-2 focus:ring-blue-500 w-24 text-base"
-                step="0.1"
-                type="number"
-                min="0"
-                bind:value={angularVelocityDisplay}
-                on:input={(e) => settings.aVelocity = parseFloat(e.target.value) * Math.PI}
-              />
-            </div>
-            <div class="text-sm text-neutral-500 dark:text-neutral-400 self-end">
-              (× π rad/s)
-            </div>
-          </div>
-            
-          <div class="flex flex-row justify-between items-center w-full">
-            <div class="font-light">Friction Coefficient:</div>
-            <input
-              class="px-3 py-2 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border focus:outline-none focus:ring-2 focus:ring-blue-500 w-24 text-base"
-              step="0.1"
-              type="number"
-              min="0"
-              bind:value={settings.kFriction}
-            />
-          </div>
-          <div class="flex flex-row justify-between items-center w-full">
-            <div class="font-light">Safety Margin (in):</div>
-            <input
-              class="px-3 py-2 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border focus:outline-none focus:ring-2 focus:ring-blue-500 w-24 text-base"
-              step="0.5"
-              type="number"
-              min="0"
-              max="24"
-              bind:value={settings.safetyMargin}
-            />
-          </div>
-
-          <div class="flex flex-row justify-between items-center w-full">
-            <div class="font-light">Optimization Quality:</div>
-            <select
-              class="px-3 py-2 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border focus:outline-none focus:ring-2 focus:ring-blue-500 w-24 text-base"
-              bind:value={settings.optimizationQuality}
-            >
-              <option value={1}>Fast</option>
-              <option value={3}>Balanced</option>
-              <option value={5}>High</option>
-            </select>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div> 
-{/if}

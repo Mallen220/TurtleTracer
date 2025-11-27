@@ -1,7 +1,6 @@
 <script lang="ts">
   import _ from "lodash";
-  import { getRandomColor } from "../utils";
-
+  import { getRandomColor, createTriangle } from "../utils";
 
   export let percent: number;
   export let playing: boolean;
@@ -17,60 +16,7 @@
   export let y: d3.ScaleLinear<number, number, number>;
   export let settings: FPASettings;
 
-
   export let shapes: Shape[];
-
-  function createTriangle(): Shape {
-    return {
-      id: `triangle-${shapes.length + 1}`,
-      name: "", // Empty name to show placeholder
-      vertices: [
-        { x: 60, y: 60 },
-        { x: 84, y: 60 },
-        { x: 72, y: 84 }
-      ],
-      color: "#dc2626",
-      fillColor: "#fca5a5"
-    };
-  }
-
-  function createRectangle(): Shape {
-    return {
-      id: `rectangle-${shapes.length + 1}`,
-      name: `Obstacle ${shapes.length + 1}`,
-      vertices: [
-        { x: 30, y: 30 },
-        { x: 60, y: 30 },
-        { x: 60, y: 50 },
-        { x: 30, y: 50 }
-      ],
-      color: "#dc2626",
-      fillColor: "#fca5a5"
-    };
-  }
-
-  function createNGon(sides: number): Shape {
-    const centerX = 45;
-    const centerY = 45;
-    const radius = 15;
-    const vertices = [];
-    
-    for (let i = 0; i < sides; i++) {
-      const angle = (i * 2 * Math.PI) / sides;
-      vertices.push({
-        x: centerX + radius * Math.cos(angle),
-        y: centerY + radius * Math.sin(angle)
-      });
-    }
-    
-    return {
-      id: `${sides}-gon-${shapes.length + 1}`,
-      name: `Obstacle ${shapes.length + 1}`,
-      vertices,
-      color: "#dc2626",
-      fillColor: "#fca5a5"
-    };
-  }
 </script>
 
 <div class="flex-1 flex flex-col justify-start items-center gap-2 h-full">
@@ -198,7 +144,7 @@
       
       <button
         on:click={() => {
-          shapes = [...shapes, createTriangle()];
+          shapes = [...shapes, createTriangle(shapes.length)];
         }}
         class="font-semibold text-red-500 text-sm flex flex-row justify-start items-center gap-1"
       >
