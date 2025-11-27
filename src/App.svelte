@@ -10,6 +10,8 @@
   import MathTools from "./lib/MathTools.svelte";
   import _ from "lodash";
   import hotkeys from "hotkeys-js";
+  import { createAnimationController } from "./utils/animation";
+  import { calculatePathTime, getAnimationDuration } from "./utils";
 
   import {
     easeInOutQuad,
@@ -79,6 +81,12 @@
 
   // Coordinate converters
   let x: d3.ScaleLinear<number, number, number>;
+
+  // Animation controller
+  let loopAnimation = false;
+  let animationController: ReturnType<typeof createAnimationController>;
+  $: timePrediction = calculatePathTime(startPoint, lines, settings);
+  $: animationDuration = getAnimationDuration(timePrediction.totalTime);
 
   /**
    * Converter for X axis from inches to pixels.
@@ -369,6 +377,30 @@
     }, 500);
   });
 
+  // Initialize animation controller
+  onMount(() => {
+    animationController = createAnimationController(
+      animationDuration,
+      (newPercent) => {
+        percent = newPercent;
+      },
+      () => {
+        // Animation completed callback
+        console.log("Animation completed");
+        playing = false;
+      },
+    );
+  });
+
+  $: if (animationController) {
+    animationController.setDuration(animationDuration);
+  }
+
+  // Update loop setting when it changes
+  $: if (animationController) {
+    animationController.setLoop(loopAnimation);
+  }
+
   // Save Function
   async function saveProject() {
     if ($currentFilePath && electronAPI) {
@@ -493,17 +525,25 @@
   }
 
   function play() {
-    if (!playing) {
-      playing = true;
-      startTime = null;
-      previousTime = null;
-      animationFrame = requestAnimationFrame(animate);
-    }
+    animationController.play();
+    playing = true;
   }
 
   function pause() {
+    animationController.pause();
     playing = false;
-    cancelAnimationFrame(animationFrame);
+  }
+
+  function resetAnimation() {
+    animationController.reset();
+    playing = false;
+  }
+
+  // Handle slider changes
+  function handleSeek(newPercent: number) {
+    if (animationController) {
+      animationController.seekToPercent(newPercent);
+    }
   }
 
   onMount(() => {
@@ -697,5 +737,9 @@
     bind:shapes
     {x}
     {y}
+    {animationDuration}
+    {handleSeek}
+    bind:loopAnimation
+    {resetAnimation}
   />
 </div>

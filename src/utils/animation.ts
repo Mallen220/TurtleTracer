@@ -19,6 +19,8 @@ export interface AnimationState {
   startTime: number | null;
   previousTime: number | null;
   animationFrame: number;
+  totalDuration: number;
+  loop: boolean; // Add loop capability
 }
 
 /**
@@ -95,8 +97,9 @@ export function calculateRobotState(
  * Create an animation controller for the robot simulation
  */
 export function createAnimationController(
-  linesCount: number,
+  totalDuration: number,
   onPercentChange: (percent: number) => void,
+  onComplete?: () => void, // Add completion callback
 ) {
   let state: AnimationState = {
     playing: false,
@@ -104,56 +107,137 @@ export function createAnimationController(
     startTime: null,
     previousTime: null,
     animationFrame: 0,
+    totalDuration,
+    loop: false, // Default to no loop
   };
+
+  let isExternalChange = false;
 
   function animate(timestamp: number) {
     if (!state.startTime) {
       state.startTime = timestamp;
+      state.previousTime = timestamp;
     }
 
-    if (state.previousTime !== null) {
-      const deltaTime = timestamp - state.previousTime;
+    const elapsed = (timestamp - state.startTime) / 1000;
 
-      if (state.percent >= 100) {
-        state.percent = 0;
-      } else {
-        state.percent += (0.65 / linesCount) * (deltaTime * 0.1);
-      }
+    if (state.totalDuration > 0) {
+      state.percent = Math.min(100, (elapsed / state.totalDuration) * 100);
+    } else {
+      state.percent = 0;
+    }
+
+    // Only trigger callback if this is an animation-driven change
+    if (!isExternalChange) {
       onPercentChange(state.percent);
     }
 
     state.previousTime = timestamp;
 
-    if (state.playing) {
+    if (state.playing && state.percent < 100) {
+      state.animationFrame = requestAnimationFrame(animate);
+    } else if (state.percent >= 100) {
+      // Animation completed
+      state.playing = false;
+      state.percent = 100;
+
+      if (!isExternalChange) {
+        onPercentChange(100);
+      }
+
+      // Call completion callback
+      if (onComplete) {
+        onComplete();
+      }
+
+      // Auto-reset and replay if looping is enabled
+      if (state.loop) {
+        setTimeout(() => {
+          reset();
+          play();
+        }, 500); // Small delay before restarting
+      }
+    }
+  }
+
+  function reset() {
+    state.percent = 0;
+    state.startTime = null;
+    state.previousTime = null;
+    if (!isExternalChange) {
+      onPercentChange(0);
+    }
+  }
+
+  function play() {
+    if (!state.playing && state.percent < 100) {
+      state.playing = true;
+      isExternalChange = false;
+
+      if (state.totalDuration > 0) {
+        const elapsedTime = (state.percent / 100) * state.totalDuration * 1000;
+        state.startTime = performance.now() - elapsedTime;
+      } else {
+        state.startTime = performance.now();
+      }
+      state.previousTime = state.startTime;
       state.animationFrame = requestAnimationFrame(animate);
     }
   }
 
+  function pause() {
+    state.playing = false;
+    isExternalChange = false;
+    if (state.animationFrame) {
+      cancelAnimationFrame(state.animationFrame);
+    }
+  }
+
   return {
-    play() {
-      if (!state.playing) {
-        state.playing = true;
-        state.startTime = null;
-        state.previousTime = null;
-        state.animationFrame = requestAnimationFrame(animate);
+    play,
+    pause,
+    reset() {
+      pause();
+      reset();
+    },
+    seekToPercent(targetPercent: number) {
+      isExternalChange = true;
+      state.percent = Math.max(0, Math.min(100, targetPercent));
+      onPercentChange(state.percent);
+
+      // If we're playing, adjust the start time to maintain correct timing
+      if (state.playing && state.totalDuration > 0) {
+        const elapsedTime = (state.percent / 100) * state.totalDuration * 1000;
+        state.startTime = performance.now() - elapsedTime;
+      }
+
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isExternalChange = false;
+      }, 0);
+    },
+    setDuration(duration: number) {
+      state.totalDuration = duration;
+      // If we're playing, adjust timing to maintain current progress
+      if (state.playing && state.totalDuration > 0) {
+        const elapsedTime = (state.percent / 100) * state.totalDuration * 1000;
+        state.startTime = performance.now() - elapsedTime;
       }
     },
-    pause() {
-      state.playing = false;
-      cancelAnimationFrame(state.animationFrame);
+    setLoop(loop: boolean) {
+      state.loop = loop;
     },
     isPlaying() {
       return state.playing;
     },
-    setPercent(percent: number) {
-      state.percent = percent;
-      onPercentChange(percent);
-    },
     getPercent() {
       return state.percent;
     },
-    updateLinesCount(count: number) {
-      linesCount = count;
+    getDuration() {
+      return state.totalDuration;
+    },
+    isLooping() {
+      return state.loop;
     },
   };
 }

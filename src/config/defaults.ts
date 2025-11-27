@@ -18,10 +18,10 @@ export const FIELD_SIZE = 144;
  * Default FPA settings
  */
 export const DEFAULT_FPA_SETTINGS: FPASettings = {
-  xVelocity: 60,
-  yVelocity: 60,
+  xVelocity: 30,
+  yVelocity: 30,
   aVelocity: Math.PI,
-  kFriction: 0.05,
+  kFriction: 0.4,
   rWidth: DEFAULT_ROBOT_WIDTH,
   rHeight: DEFAULT_ROBOT_HEIGHT,
   safetyMargin: 1,

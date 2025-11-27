@@ -15,6 +15,10 @@
   export let x: d3.ScaleLinear<number, number, number>;
   export let y: d3.ScaleLinear<number, number, number>;
   export let settings: FPASettings;
+  export let handleSeek: (percent: number) => void;
+  export let animationDuration: number;
+  export let loopAnimation: boolean;
+  export let resetAnimation: () => void;
 
   export let shapes: Shape[];
 </script>
@@ -476,6 +480,9 @@ With tangential heading, the heading follows the direction of the line."
       <p>Add Line</p>
     </button>
   </div>
+
+  <!-- Play/Pause Button and controls -->
+
   <div
     class="w-full bg-neutral-50 dark:bg-neutral-900 rounded-lg p-3 flex flex-row justify-start items-center gap-3 shadow-lg"
   >
@@ -521,6 +528,30 @@ With tangential heading, the heading follows the direction of the line."
         </svg>
       {/if}
     </button>
+
+    <!-- Add Loop Toggle Button -->
+    <button
+      title={loopAnimation ? "Disable Loop" : "Enable Loop"}
+      on:click={() => (loopAnimation = !loopAnimation)}
+      class:opacity-100={loopAnimation}
+      class:opacity-50={!loopAnimation}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+        stroke="currentColor"
+        class="size-6 stroke-blue-500"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+        />
+      </svg>
+    </button>
+
     <input
       bind:value={percent}
       type="range"
@@ -528,6 +559,25 @@ With tangential heading, the heading follows the direction of the line."
       max="100"
       step="0.000001"
       class="w-full appearance-none slider focus:outline-none"
+      on:input={(e) => handleSeek(parseFloat(e.target.value))}
     />
+
+    <!-- Add Reset Button -->
+    <!-- <button title="Reset Animation" on:click={resetAnimation}>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+        stroke="currentColor"
+        class="size-6 stroke-red-500"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+        />
+      </svg>
+    </button> -->
   </div>
 </div>

@@ -15,6 +15,7 @@
   import FileManager from "./FileManager.svelte";
   import SettingsDialog from "./components/SettingsDialog.svelte";
   import ExportCodeDialog from "./components/ExportCodeDialog.svelte";
+  import { calculatePathTime, formatTime } from "../utils";
 
   export let loadFile: (evt: any) => any;
   export let loadRobot: (evt: any) => any;
@@ -34,6 +35,8 @@
 
   let selectedGridSize = 12;
   const gridSizeOptions = [12, 24, 36, 48];
+
+  $: timePrediction = calculatePathTime(startPoint, lines, settings);
 
   onMount(() => {
     const unsubscribeDarkMode = darkMode.subscribe((val) => {
@@ -96,6 +99,24 @@
   <!-- Title -->
   <div class="font-semibold flex flex-col justify-start items-start">
     <div class="flex flex-row items-center gap-2">
+      <!-- File manager button -->
+      <button title="File Manager" on:click={() => (fileManagerOpen = true)}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-6"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+          />
+        </svg>
+      </button>
+
       <span>Pedro Pathing Visualizer</span>
       {#if $currentFilePath}
         <span class="text-neutral-400 font-light text-sm mx-2">/</span>
@@ -116,6 +137,16 @@
   <!-- Actions -->
   <div class="flex flex-row justify-end items-center gap-4">
     <div class="flex items-center gap-3">
+      <!-- time estimate -->
+      <div class="flex items-center gap-2 text-sm">
+        <div class="text-neutral-600 dark:text-neutral-300">
+          Est: {formatTime(timePrediction.totalTime)}
+        </div>
+        <div class="text-neutral-500 dark:text-neutral-400">
+          ({timePrediction.totalDistance.toFixed(0)} in)
+        </div>
+      </div>
+
       <!-- Grid toggle -->
       <div class="relative flex flex-col items-center justify-center">
         <button
@@ -156,24 +187,6 @@
           </div>
         {/if}
       </div>
-
-      <!-- File manager button -->
-      <button title="File Manager" on:click={() => (fileManagerOpen = true)}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-6"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-          />
-        </svg>
-      </button>
 
       <!-- Ruler toggle -->
       <button

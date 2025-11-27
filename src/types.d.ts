@@ -71,3 +71,9 @@ interface FileInfo {
   size: number;
   modified: Date;
 }
+
+interface TimePrediction {
+  totalTime: number;
+  segmentTimes: number[];
+  totalDistance: number;
+}
