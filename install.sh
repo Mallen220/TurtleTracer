@@ -1,11 +1,12 @@
 #!/bin/bash
 
-echo "Installing Pedro Pathing Visualizer..."
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Function to print colored output
@@ -21,9 +22,35 @@ print_warning() {
     echo -e "${YELLOW}[!]${NC} $1"
 }
 
+print_info() {
+    echo -e "${BLUE}[i]${NC} $1"
+}
+
+print_header() {
+    echo -e "${CYAN}$1${NC}"
+}
+
+# ASCII art logo
+print_logo() {
+    echo -e "${PURPLE}"
+    echo '╔══════════════════════════════════════════════════════════════╗'
+    echo '║                                                              ║'
+    echo '║     Pedro Pathing Visualizer                                 ║'
+    echo '║                     Installation                             ║'
+    echo '║                                                              ║'
+    echo '╚══════════════════════════════════════════════════════════════╝'
+    echo -e "${NC}"
+}
+
+print_logo
+
+echo "This will install Pedro Pathing Visualizer on your macOS system."
+echo "You may be asked for your password to fix macOS security settings."
+echo ""
+
 # Install Homebrew if needed
 if ! command -v brew &> /dev/null; then
-    print_status "Installing Homebrew..."
+    print_warning "Homebrew not found. Installing..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     
     # Add to PATH for Apple Silicon
@@ -95,10 +122,6 @@ fi
 
 print_status "DMG mounted successfully at $TEMP_MOUNT"
 
-# List contents for debugging
-print_status "Contents of mounted DMG:"
-ls -la "$TEMP_MOUNT"
-
 # Find the app (should be at the root)
 APP_SOURCE=$(find "$TEMP_MOUNT" -name "*.app" -type d -maxdepth 1 2>/dev/null | head -1)
 
@@ -137,28 +160,38 @@ print_status "Fixing macOS security permissions..."
 sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Visualizer.app"
 sudo chmod -R 755 "/Applications/Pedro Pathing Visualizer.app"
 
-print_status "Installation complete!"
 echo ""
-echo "🌟 ${GREEN}Pedro Pathing Visualizer is now installed!${NC}"
+echo -e "${PURPLE}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${PURPLE}║                     Installation Complete!                    ║${NC}"
+echo -e "${PURPLE}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "To open the app:"
+echo -e "${GREEN}🌟 Pedro Pathing Visualizer is now installed!${NC}"
+echo ""
+print_header "To open the app:"
 echo "  1. Open Finder"
 echo "  2. Go to Applications"
 echo "  3. Find 'Pedro Pathing Visualizer'"
 echo "  4. Double-click it"
 echo ""
-echo "${YELLOW}⚠  IMPORTANT: On first run, you may see a security warning.${NC}"
-echo "   Here's how to fix it:"
+print_warning "⚠  IMPORTANT: On first run, you may see a security warning."
 echo ""
-echo "   Option A (Recommended):"
-echo "     1. Go to ${YELLOW}System Settings → Privacy & Security${NC}"
-echo "     2. Scroll down until you see 'Pedro Pathing Visualizer'"
-echo "     3. Click '${GREEN}Open Anyway${NC}'"
+print_header "Here's how to fix it:"
 echo ""
-echo "   Option B:"
-echo "     1. Right-click the app in Applications"
-echo "     2. Select '${GREEN}Open${NC}'"
-echo "     3. Click '${GREEN}Open${NC}' in the dialog"
+echo "Option A (Recommended):"
+echo -e "  1. Go to ${YELLOW}System Settings → Privacy & Security${NC}"
+echo -e "  2. Scroll down until you see 'Pedro Pathing Visualizer'"
+echo -e "  3. Click ${GREEN}Open Anyway${NC}"
 echo ""
-echo "${GREEN}Need help?${NC} Visit: https://github.com/Mallen220/PedroPathingVisualizer"
+echo "Option B:"
+echo -e "  1. Right-click the app in Applications"
+echo -e "  2. Select ${GREEN}Open${NC}"
+echo -e "  3. Click ${GREEN}Open${NC} in the dialog"
 echo ""
+print_header "Troubleshooting:"
+echo "If you see 'App is damaged and can't be opened', run:"
+echo -e "  ${CYAN}sudo xattr -rd com.apple.quarantine \"/Applications/Pedro Pathing Visualizer.app\"${NC}"
+echo ""
+print_header "Need help?"
+echo "Visit: https://github.com/Mallen220/PedroPathingVisualizer"
+echo ""
+echo -e "${GREEN}Enjoy path planning! 🤖${NC}"

@@ -62,7 +62,7 @@ async function bumpVersion() {
   console.log("\nNext steps:");
   console.log("1. git add package.json CHANGELOG.md");
   console.log('2. git commit -m "Bump version to v' + newVersion + '"');
-  console.log('3. git push');
+  console.log("3. git push");
   console.log("4. npm run dist:publish");
 }
 
