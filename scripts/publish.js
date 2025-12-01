@@ -1,215 +1,291 @@
-import fs from "fs/promises";
-import path from "path";
-import { exec } from "child_process";
-import { promisify } from "util";
-import { fileURLToPath } from "url";
+import fs from 'fs/promises';
+import path from 'path';
+import { spawn } from 'child_process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { fileURLToPath } from 'url';
+import readline from 'readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const execAsync = promisify(exec);
 
+// Create a progress bar
+function createProgressBar(total, current = 0) {
+  const width = 30;
+  const percentage = Math.min(100, (current / total) * 100);
+  const filled = Math.floor((width * percentage) / 100);
+  const empty = width - filled;
+  const bar = '█'.repeat(filled) + '░'.repeat(empty);
+  return `[${bar}] ${percentage.toFixed(1)}%`;
+}
+
+// Run command with streaming output and progress tracking
+async function runCommandStream(command, args, label) {
+  return new Promise((resolve, reject) => {
+    console.log(`🚀 ${label}...`);
+    
+    const child = spawn(command, args, {
+      stdio: ['inherit', 'pipe', 'pipe']
+    });
+    
+    let output = '';
+    let error = '';
+    
+    child.stdout.on('data', (data) => {
+      const text = data.toString();
+      output += text;
+      
+      // Show progress for uploads
+      if (text.includes('Uploading') || text.includes('uploading')) {
+        const match = text.match(/(\d+)%/);
+        if (match) {
+          const percent = parseInt(match[1]);
+          process.stdout.write(`\r📤 Uploading: ${createProgressBar(100, percent)}`);
+        }
+      } else {
+        console.log(`   ${text.trim()}`);
+      }
+    });
+    
+    child.stderr.on('data', (data) => {
+      const text = data.toString();
+      error += text;
+      console.log(`   ⚠ ${text.trim()}`);
+    });
+    
+    child.on('close', (code) => {
+      if (code === 0) {
+        console.log(`\n✅ ${label} complete`);
+        resolve({ stdout: output, stderr: error });
+      } else {
+        console.log(`\n❌ ${label} failed with code ${code}`);
+        reject(new Error(`${label} failed: ${error}`));
+      }
+    });
+    
+    child.on('error', (err) => {
+      console.log(`\n❌ ${label} error:`, err.message);
+      reject(err);
+    });
+  });
+}
+
+// Simple command runner for non-interactive commands
 async function runCommand(cmd, label) {
   console.log(`🚀 ${label}...`);
   try {
-    const { stdout, stderr } = await execAsync(cmd, { cwd: __dirname + "/.." });
-    if (stderr && !stderr.includes("warning")) console.log(stderr);
+    const { stdout, stderr } = await execAsync(cmd, { cwd: __dirname + '/..' });
+    if (stderr && !stderr.includes('warning')) console.log(`   ${stderr.trim()}`);
     console.log(`✅ ${label} complete`);
     return stdout;
   } catch (error) {
-    console.error(`❌ ${label} failed:`, error.message);
+    console.error(`\n❌ ${label} failed:`, error.message);
     throw error;
-  }
-}
-
-async function checkGitHubCLI() {
-  try {
-    await execAsync("which gh");
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function installGitHubCLI() {
-  console.log("📦 GitHub CLI not found. Installing...");
-  try {
-    await execAsync("brew install gh");
-    console.log("✅ GitHub CLI installed");
-
-    // Check if user is logged in
-    try {
-      await execAsync("gh auth status");
-      console.log("✅ GitHub CLI authenticated");
-      return true;
-    } catch {
-      console.log("⚠️  GitHub CLI not authenticated");
-      console.log("Please run: gh auth login");
-      return false;
-    }
-  } catch (error) {
-    console.error("❌ Failed to install GitHub CLI:", error.message);
-    console.log("You can install it manually: brew install gh");
-    return false;
   }
 }
 
 async function getCurrentVersion() {
   const packageJson = JSON.parse(
-    await fs.readFile(path.join(__dirname, "../package.json"), "utf8"),
+    await fs.readFile(path.join(__dirname, '../package.json'), 'utf8')
   );
   return packageJson.version;
 }
 
-async function createReleaseWithGH(version, dmgPath) {
-  const tag = `v${version}`;
-  const title = `Pedro Pathing Visualizer ${version}`;
-  const notes = `## What's New\n\n- Update description here\n\n## Installation\n\n### Via Homebrew:\n\`\`\`bash\nbrew tap Mallen220/PedroPathingVisualizer\nbrew install --cask pedro-pathing-visualizer\n\`\`\`\n\n### Direct Download:\nDownload the DMG above and drag to Applications.`;
-
-  await runCommand(
-    `gh release create ${tag} ${dmgPath} --title "${title}" --notes "${notes}" --draft`,
-    "Creating GitHub draft release",
-  );
-}
-
-async function createReleaseManually(version, dmgPath) {
-  const tag = `v${version}`;
-  console.log("\n📋 Manual Release Instructions:");
-  console.log("=============================");
-  console.log(
-    `1. Go to: https://github.com/Mallen220/PedroPathingVisualizer/releases/new`,
-  );
-  console.log(`2. Tag: ${tag}`);
-  console.log(`3. Title: Pedro Pathing Visualizer ${version}`);
-  console.log(`4. Description: Copy from CHANGELOG.md or write your own`);
-  console.log(`5. Attach DMG: ${dmgPath}`);
-  console.log(`6. Check "Set as latest release"`);
-  console.log(`7. Click "Publish release"`);
-
-  // Try to open the browser
+async function checkGitHubAuth() {
   try {
-    if (process.platform === "darwin") {
-      await execAsync(
-        `open "https://github.com/Mallen220/PedroPathingVisualizer/releases/new"`,
-      );
-    }
+    await execAsync('gh auth status');
+    console.log('✅ GitHub CLI authenticated');
+    return true;
   } catch (error) {
-    // Ignore if we can't open browser
+    console.log('❌ GitHub CLI not authenticated or error:', error.message);
+    console.log('\n💡 Please authenticate:');
+    console.log('   1. Run: gh auth login');
+    console.log('   2. Select "GitHub.com"');
+    console.log('   3. Select "HTTPS" or "SSH"');
+    console.log('   4. Follow the prompts');
+    return false;
   }
 }
 
-async function createAndPushTag(version) {
+async function createGitHubRelease(version, dmgPath) {
   const tag = `v${version}`;
-
-  console.log(`📦 Creating release for version ${version}`);
-
-  // Check if tag already exists
+  const title = `Pedro Pathing Visualizer ${version}`;
+  
+  // Try to get changelog if it exists
+  let notes = `## What's New\n\n- See the changes in the latest version\n\n## Installation\n\n### Via Homebrew:\n\`\`\`bash\nbrew tap Mallen220/PedroPathingVisualizer\nbrew install --cask pedro-pathing-visualizer\n\`\`\`\n\n### Direct Download:\nDownload the DMG above and drag to Applications.\n\nFirst run: Right-click → Open, then click "Open" in security dialog.`;
+  
   try {
-    await execAsync(`git rev-parse ${tag}`, { cwd: __dirname + "/.." });
-    console.log(`⚠ Tag ${tag} already exists. Skipping tag creation.`);
-    return false; // Tag already exists
-  } catch {
-    // Create tag
-    await runCommand(
-      `git tag -a ${tag} -m "Release ${version}"`,
-      "Creating git tag",
-    );
-    await runCommand(`git push origin ${tag}`, "Pushing tag to GitHub");
-    return true; // Tag was created
+    const changelog = await fs.readFile(path.join(__dirname, '../CHANGELOG.md'), 'utf8');
+    const versionSection = changelog.match(new RegExp(`## ${version}[\\s\\S]*?(?=## |$)`));
+    if (versionSection) {
+      notes = versionSection[0];
+    }
+  } catch (error) {
+    // No changelog, use default
+  }
+  
+  console.log(`\n📦 Creating GitHub release ${tag}...`);
+  console.log(`📁 DMG: ${dmgPath}`);
+  console.log(`📝 Notes length: ${notes.length} characters`);
+  
+  // Create a temporary file for the release notes
+  const notesFile = path.join(__dirname, `../release-notes-${version}.md`);
+  await fs.writeFile(notesFile, notes);
+  
+  try {
+    await runCommandStream('gh', [
+      'release',
+      'create',
+      tag,
+      dmgPath,
+      '--title', title,
+      '--notes-file', notesFile,
+      '--draft'
+    ], 'Creating GitHub draft release');
+    
+    console.log('\n✨ Draft release created!');
+    
+    // Clean up notes file
+    await fs.unlink(notesFile);
+    
+  } catch (error) {
+    // Clean up notes file even on error
+    try {
+      await fs.unlink(notesFile);
+    } catch {}
+    
+    throw error;
   }
 }
 
 async function main() {
-  console.log("🚀 Starting release process...\n");
-
+  console.log('🚀 Pedro Pathing Visualizer Release Process');
+  console.log('==========================================\n');
+  
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  
+  const ask = (question) => new Promise((resolve) => rl.question(question, resolve));
+  
   try {
-    // 1. Build the app
-    await runCommand("npm run build", "Building app");
-
-    // 2. Create DMG
-    await runCommand("npm run dist:unsigned", "Creating DMG");
-
-    // 3. Get version and DMG path
+    // 1. Get current version
     const version = await getCurrentVersion();
-    const dmgPath = `release/Pedro Pathing Visualizer-${version}-arm64.dmg`;
-
-    // Check if DMG exists
-    try {
-      await fs.access(path.join(__dirname, "..", dmgPath));
-    } catch {
-      console.log(
-        `⚠ DMG not found at ${dmgPath}. Looking for alternatives...`,
-      );
-      // Try to find DMG with arm64 suffix
-      const altDmgPath = `release/Pedro Pathing Visualizer-${version}.dmg`;
-      try {
-        await fs.access(path.join(__dirname, "..", altDmgPath));
-        dmgPath = altDmgPath;
-      } catch {
-        throw new Error(`No DMG found for version ${version}`);
-      }
-    }
-
-    console.log(`📦 DMG ready: ${dmgPath}`);
-
-    // 4. Create and push tag
-    const tagCreated = await createAndPushTag(version);
-
-    if (!tagCreated) {
-      console.log("\n⚠ Tag already exists. Skipping release creation.");
-      console.log("If you want to create a new release:");
-      console.log("1. Update version in package.json");
-      console.log("2. Run: npm run dist:publish");
+    console.log(`📦 Current version: ${version}`);
+    
+    // 2. Confirm with user
+    const proceed = await ask(`\nCreate release v${version}? (y/N): `);
+    if (!proceed.toLowerCase().startsWith('y')) {
+      console.log('Release cancelled.');
+      rl.close();
       return;
     }
-
-    // 5. Create release (try with gh, fallback to manual)
-    const hasGH = await checkGitHubCLI();
-
-    if (hasGH) {
+    
+    // 3. Check GitHub auth
+    console.log('\n🔐 Checking GitHub authentication...');
+    const isAuthenticated = await checkGitHubAuth();
+    if (!isAuthenticated) {
+      console.log('\n❌ Cannot proceed without GitHub authentication.');
+      rl.close();
+      return;
+    }
+    
+    // 4. Build the app
+    console.log('\n🔨 Step 1: Building app...');
+    console.log('========================');
+    await runCommand('npm run build', 'Building with Vite');
+    
+    // 5. Create DMG
+    console.log('\n📦 Step 2: Creating DMG...');
+    console.log('========================');
+    await runCommand('npm run dist:unsigned', 'Packaging for macOS');
+    
+    // 6. Find DMG
+    console.log('\n🔍 Step 3: Finding DMG...');
+    console.log('========================');
+    const releaseDir = path.join(__dirname, '../release');
+    const files = await fs.readdir(releaseDir);
+    const dmgFile = files.find(f => f.includes(version) && f.endsWith('.dmg'));
+    
+    if (!dmgFile) {
+      throw new Error(`No DMG found for version ${version} in release/ folder`);
+    }
+    
+    const dmgPath = path.join(releaseDir, dmgFile);
+    const stats = await fs.stat(dmgPath);
+    const sizeMB = (stats.size / (1024 * 1024)).toFixed(1);
+    
+    console.log(`✅ Found: ${dmgFile} (${sizeMB} MB)`);
+    
+    // 7. Create git tag
+    console.log('\n🏷️  Step 4: Creating git tag...');
+    console.log('============================');
+    
+    const tagExists = await (async () => {
       try {
-        await createReleaseWithGH(version, dmgPath);
-        console.log("\n✨ Release draft created!");
-        console.log(
-          "👉 Visit: https://github.com/Mallen220/PedroPathingVisualizer/releases",
-        );
-      } catch (ghError) {
-        console.log(
-          "⚠ Failed to create release with gh, falling back to manual...",
-        );
-        await createReleaseManually(version, dmgPath);
+        await execAsync(`git rev-parse v${version}`);
+        return true;
+      } catch {
+        return false;
       }
+    })();
+    
+    if (tagExists) {
+      console.log(`⚠ Tag v${version} already exists. Skipping.`);
     } else {
-      console.log("ℹ GitHub CLI not found.");
-      const install = process.argv.includes("--install-gh");
-
-      if (install) {
-        const installed = await installGitHubCLI();
-        if (installed) {
-          await createReleaseWithGH(version, dmgPath);
-        } else {
-          await createReleaseManually(version, dmgPath);
-        }
-      } else {
-        console.log(
-          "💡 Run with --install-gh to install GitHub CLI and automate release creation",
+      const createTag = await ask(`Create git tag v${version}? (y/N): `);
+      if (createTag.toLowerCase().startsWith('y')) {
+        await runCommand(
+          `git tag -a v${version} -m "Release ${version}"`,
+          'Creating git tag'
         );
-        await createReleaseManually(version, dmgPath);
+        await runCommand(
+          `git push origin v${version}`,
+          'Pushing tag to GitHub'
+        );
+      } else {
+        console.log('Skipping tag creation.');
       }
     }
-
-    console.log("\n🎉 Release process complete!");
-    console.log("\nNext steps:");
-    console.log("1. If using manual method, create the release on GitHub");
-    console.log("2. The Homebrew cask will auto-update via workflow");
-    console.log("3. Update the cask SHA256 if needed");
+    
+    // 8. Create GitHub release
+    console.log('\n🚀 Step 5: Creating GitHub release...');
+    console.log('====================================');
+    
+    const createRelease = await ask(`Create GitHub draft release for v${version}? (y/N): `);
+    if (createRelease.toLowerCase().startsWith('y')) {
+      console.log('\n📤 This may take a few minutes for the DMG upload...');
+      await createGitHubRelease(version, dmgPath);
+      
+      console.log('\n✅ Release draft created!');
+      console.log('\n📋 Next steps:');
+      console.log('==============');
+      console.log('1. Review the draft: https://github.com/Mallen220/PedroPathingVisualizer/releases');
+      console.log('2. Edit release notes if needed');
+      console.log('3. Click "Publish release"');
+      console.log('4. Homebrew cask will auto-update via workflow');
+    } else {
+      console.log('Skipping GitHub release creation.');
+      console.log(`\n📁 DMG is ready at: ${dmgPath}`);
+      console.log('\nTo manually create release:');
+      console.log('1. Go to: https://github.com/Mallen220/PedroPathingVisualizer/releases/new');
+      console.log(`2. Tag: v${version}`);
+      console.log(`3. Title: Pedro Pathing Visualizer ${version}`);
+      console.log(`4. Attach: ${dmgFile}`);
+    }
+    
+    console.log('\n🎉 Release process complete!');
+    
   } catch (error) {
-    console.error("\n❌ Release failed:", error.message);
-    console.log("\n💡 Try running:");
-    console.log("  npm run dist:unsigned  # Just build the DMG");
-    console.log(
-      "  npm run dist:publish -- --install-gh  # Install GitHub CLI and retry",
-    );
-    process.exit(1);
+    console.error('\n❌ Release failed:', error.message);
+    console.log('\n💡 Debug tips:');
+    console.log('1. Check GitHub authentication: gh auth status');
+    console.log('2. Try creating release manually');
+    console.log('3. Check DMG exists in release/ folder');
+  } finally {
+    rl.close();
   }
 }
 
