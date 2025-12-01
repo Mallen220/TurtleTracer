@@ -141,7 +141,8 @@ async function createGitHubRelease(version, dmgPath) {
       dmgPath,
       '--title', title,
       '--notes-file', notesFile,
-      '--draft'
+      '--draft',
+      '--target', 'main'
     ], 'Creating GitHub draft release');
     
     console.log('\n✨ Draft release created!');
