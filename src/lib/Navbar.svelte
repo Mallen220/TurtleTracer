@@ -291,7 +291,7 @@
         target="_blank"
         rel="norefferer"
         title="GitHub Repo"
-        href="https://github.com/Mallen220/homebrew-PedroPathingVisualizer"
+        href="https://github.com/Mallen220/PedroPathingVisualizer"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

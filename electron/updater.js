@@ -12,7 +12,7 @@ class AppUpdater {
 
       // GitHub API URL for your repository releases
       const repoUrl =
-        "https://api.github.com/repos/Mallen220/homebrew-PedroPathingVisualizer/releases/latest";
+        "https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases/latest";
 
       const response = await fetch(repoUrl);
 

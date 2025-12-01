@@ -101,7 +101,7 @@
     "publish": {
       "provider": "github",
       "owner": "Mallen220",
-      "repo": "homebrew-PedroPathingVisualizer"
+      "repo": "PedroPathingVisualizer"
     }
   }
 }
