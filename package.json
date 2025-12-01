@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.4",
   "main": "electron/main.js",
+  "author": "Matthew Allen",
+  "license": "MIT",
+  "description": "A better alternative to pedro pathing visualizer",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +13,7 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
     "electron:dev": "npm run format && npm run build && electron .",
-    "start": "electron .",
+    "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder --publish=never",
     "dist:publish": "npm run build && electron-builder --publish=always",
     "format": "prettier --write ."
@@ -21,6 +24,7 @@
     "autoprefixer": "^10.4.20",
     "electron": "^39.2.3",
     "electron-builder": "^24.9.1",
+    "electron-installer-dmg": "^5.0.1",
     "hotkeys-js": "^3.13.9",
     "postcss": "^8.4.41",
     "prettier": "^3.6.2",
