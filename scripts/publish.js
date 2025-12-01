@@ -130,17 +130,16 @@ Enter your password when prompted (for clearing old versions and fixing permissi
 curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
 \`\`\`
 
-### **Option 2: Homebrew**
-\`\`\`bash
-brew tap Mallen220/PedroPathingVisualizer
-brew install --cask pedro-pathing-visualizer
-\`\`\`
-
-### **Option 3: Manual Download**
+### **Option 2: Manual Download**
 1. Download the DMG above
-2. Double-click to mount it
-3. Drag to Applications folder
-4. On first run: Right-click → Open, then click "Open"
+2. Clear Mac decontamination quarantine:
+\`\`\`bash
+sudo xattr -rd com.apple.quarantine "/path/to/Pedro Pathing Visualizer.app"
+\`\`\`
+(Replace \`/path/to/\` with the actual path to the downloaded app)
+3. Double-click to mount it
+4. Drag to Applications folder
+5. On first run: Right-click → Open, then click "Open" if prompted. This bypasses macOS security for apps from unidentified developers.
 
 ## 🔧 First Run Fix
 If you get "App is damaged", run this one-time fix:
