@@ -132,9 +132,15 @@ Enter your password when prompted (for clearing old versions and fixing permissi
 \`\`\`bash
 curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
 \`\`\`
+Enter your password when prompted. This script will:
+1. Download the latest DMG
+2. Clear any old versions
+3. Mount the DMG
+4. Copy the app to your Applications folder
+5. Fix permissions
 
 ### **Option 2: Manual Download**
-1. Download the DMG above
+1. Download the DMG below
 2. Clear Mac decontamination quarantine:
 \`\`\`bash
 sudo xattr -rd com.apple.quarantine "/path/to/Pedro Pathing Visualizer.app"
