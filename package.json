@@ -8,6 +8,7 @@
   "description": "A better alternative to pedro pathing visualizer",
   "type": "module",
   "scripts": {
+    "version:bump": "node scripts/bump-version.js",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
@@ -17,7 +18,7 @@
     "dist": "npm run build && electron-builder --mac --arm64 --publish=never",
     "dist:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --publish=never",
     "dist:all": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --x64 --publish=never",
-    "dist:publish": "npm run build && electron-builder --publish=always",
+    "dist:publish": "node scripts/publish.js",
     "format": "prettier --write ."
   },
   "devDependencies": {

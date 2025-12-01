@@ -1,40 +1,72 @@
-name: Build and Release
+name: Build, Release, and Update Homebrew
 
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types: [published]
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
-  release:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [macos-latest]
+  update-homebrew:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Check out Git repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$GITHUB_REF" >> $GITHUB_OUTPUT
 
-      - name: Install dependencies
-        run: npm install
+      - name: Get DMG URL
+        id: get_dmg
+        run: |
+          # For releases, we can get the asset URL from the release
+          # For now, construct it based on naming convention
+          DMG_URL="https://github.com/${{ github.repository }}/releases/download/v${{ steps.get_version.outputs.version }}/Pedro-Pathing-Visualizer-${{ steps.get_version.outputs.version }}.dmg"
+          echo "dmg_url=$DMG_URL" >> $GITHUB_OUTPUT
 
-      - name: Build the app
-        run: npm run build
+      - name: Download DMG to calculate SHA256
+        id: sha256
+        run: |
+          # Install wget if needed
+          apt-get update && apt-get install -y wget
 
-      - name: Build/release Electron app
-        uses: samuelmeuli/action-electron-builder@v1
-        with:
-          # GitHub token, automatically provided to the action
-          # (No need to define it in the workflow file)
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Download DMG
+          wget "${{ steps.get_dmg.outputs.dmg_url }}" -O app.dmg
 
-          # If the commit is tagged with a version (e.g. "v1.0.0"),
-          # release the app after building
-          release: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          # Calculate SHA256
+          SHA256=$(sha256sum app.dmg | awk '{print $1}')
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+
+      - name: Update Homebrew Cask
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Clone homebrew repo
+          git clone https://github.com/Mallen220/homebrew-PedroPathingVisualizer.git
+          cd homebrew-PedroPathingVisualizer
+
+          # Update cask file
+          VERSION="${{ steps.get_version.outputs.version }}"
+          SHA="${{ steps.sha256.outputs.sha256 }}"
+          CASK_FILE="Casks/pedro-pathing-visualizer.rb"
+
+          # Update version
+          sed -i "s/version \".*\"/version \"$VERSION\"/" "$CASK_FILE"
+
+          # Update SHA256
+          sed -i "s/sha256 \".*\"/sha256 \"$SHA\"/" "$CASK_FILE"
+
+          # Update URL (if needed)
+          sed -i "s|https://github.com/Mallen220/PedroPathingVisualizer/releases/download/v[^/]*/Pedro-Pathing-Visualizer-[^.]*\.dmg|https://github.com/Mallen220/PedroPathingVisualizer/releases/download/v$VERSION/Pedro-Pathing-Visualizer-$VERSION.dmg|" "$CASK_FILE"
+
+          # Commit and push
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add "$CASK_FILE"
+          git commit -m "Update to version $VERSION"
+          git push
