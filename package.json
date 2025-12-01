@@ -15,6 +15,9 @@
     "electron:dev": "npm run format && npm run build && electron .",
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder --publish=never",
+    "dist:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --publish=never",
+    "dist:homebrew": "npm run build && electron-builder --mac --arm64 --x64 --publish=never",
+    "dist:all": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --x64 --publish=never",
     "dist:publish": "npm run build && electron-builder --publish=always",
     "format": "prettier --write ."
   },
@@ -56,24 +59,49 @@
   "build": {
     "appId": "com.pedropathing.visualizer",
     "productName": "Pedro Pathing Visualizer",
+    "copyright": "Copyright © 2025 Matthew Allen",
+    "directories": {
+      "output": "dist",
+      "app": ".",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist-electron/**/*",
+      "public/**/*",
+      "!public/fields/*.map",
+      "electron/**/*"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "asarUnpack": [
+        "node_modules/electron-updater"
+      ]
+    },
     "publish": {
       "provider": "github",
       "owner": "Mallen220",
-      "repo": "VisualizerMacOSApp"
-    },
-    "mac": {
-      "category": "public.app-category.developer-tools",
-      "target": "dmg",
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
-    },
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "package.json"
-    ]
+      "repo": "homebrew-PedroPathingVisualizer"
+    }
   }
 }
