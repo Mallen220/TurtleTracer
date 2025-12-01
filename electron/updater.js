@@ -62,7 +62,7 @@ class AppUpdater {
         type: "info",
         title: "Update Available",
         message: `A new version of Pedro Pathing Visualizer is available!`,
-        detail: `Current version: ${this.currentVersion}\nLatest version: ${releaseData.tag_name}\n\n${releaseData.body || ""}\n\nWould you like to download the update?`,
+        detail: `Current version: ${this.currentVersion}\nLatest version: ${releaseData.tag_name}\n\n\nWould you like to download the update?`,
         buttons: ["Download Update", "Skip This Version", "Remind Me Later"],
         defaultId: 0,
         cancelId: 2,
