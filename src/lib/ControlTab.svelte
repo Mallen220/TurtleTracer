@@ -22,6 +22,8 @@
 
   export let shapes: Shape[];
 
+  let collapsedEventMarkers: boolean[] = lines.map(() => false);
+
   // State for collapsed sections
   let collapsedSections = {
     obstacles: false,
@@ -41,6 +43,34 @@
   function toggleControlPoints(index: number) {
     collapsedSections.controlPoints[index] =
       !collapsedSections.controlPoints[index];
+  }
+
+  // Function to toggle event markers visibility
+  function toggleEventMarkers(index: number) {
+    collapsedEventMarkers[index] = !collapsedEventMarkers[index];
+    collapsedEventMarkers = [...collapsedEventMarkers]; // Force reactivity
+  }
+
+  // Function to add event marker to a line
+  function addEventMarker(lineIndex: number) {
+    if (!lines[lineIndex].eventMarkers) {
+      lines[lineIndex].eventMarkers = [];
+    }
+    lines[lineIndex].eventMarkers!.push({
+      id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: `Event_${lineIndex + 1}_${lines[lineIndex].eventMarkers!.length + 1}`,
+      position: 0.5,
+      lineIndex,
+    });
+    lines = [...lines]; // Force reactivity
+  }
+
+  // Function to remove event marker
+  function removeEventMarker(lineIndex: number, eventIndex: number) {
+    if (lines[lineIndex].eventMarkers) {
+      lines[lineIndex].eventMarkers!.splice(eventIndex, 1);
+      lines = [...lines];
+    }
   }
 </script>
 
@@ -372,6 +402,7 @@
                 </svg>
               </button>
             {/if}
+
             {#if lines.length > 1}
               <button
                 title="Remove Line"
@@ -479,6 +510,134 @@ With tangential heading, the heading follows the direction of the line."
               {/if}
             </div>
           </div>
+
+          {#if !collapsedSections.lines[idx]}
+            <!-- Event Markers section -->
+            <div class="flex flex-col w-full justify-start items-start mt-2">
+              <div class="flex items-center justify-between w-full">
+                <button
+                  on:click={() => toggleEventMarkers(idx)}
+                  class="flex items-center gap-2 font-light hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-sm"
+                  title="{collapsedEventMarkers[idx]
+                    ? 'Show'
+                    : 'Hide'} event markers"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width={2}
+                    stroke="currentColor"
+                    class="size-3 transition-transform {collapsedEventMarkers[
+                      idx
+                    ]
+                      ? 'rotate-0'
+                      : 'rotate-90'}"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="m8.25 4.5 7.5 7.5-7.5 7.5"
+                    />
+                  </svg>
+                  Event Markers ({line.eventMarkers?.length || 0})
+                </button>
+                <button
+                  on:click={() => addEventMarker(idx)}
+                  class="text-sm text-purple-500 hover:text-purple-600 flex items-center gap-1 px-2 py-1"
+                  title="Add Event Marker"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width={2}
+                    stroke="currentColor"
+                    class="size-4"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 4.5v15m7.5-7.5h-15"
+                    />
+                  </svg>
+                  Add Marker
+                </button>
+              </div>
+
+              {#if !collapsedEventMarkers[idx] && line.eventMarkers && line.eventMarkers.length > 0}
+                <div class="w-full mt-2 space-y-2">
+                  {#each line.eventMarkers as event, eventIdx}
+                    <div
+                      class="flex flex-col p-2 border border-purple-300 dark:border-purple-700 rounded-md bg-purple-50 dark:bg-purple-900/20"
+                    >
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                          <div class="w-3 h-3 rounded-full bg-purple-500"></div>
+                          <input
+                            bind:value={event.name}
+                            class="pl-1.5 rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm w-32"
+                            placeholder="Event name"
+                            on:change={() => {
+                              // Update the array to trigger reactivity
+                              line.eventMarkers = [...line.eventMarkers];
+                            }}
+                          />
+                        </div>
+                        <button
+                          on:click={() => removeEventMarker(idx, eventIdx)}
+                          class="text-red-500 hover:text-red-600"
+                          title="Remove Event Marker"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width={2}
+                            class="size-4"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div class="flex items-center gap-2">
+                        <span
+                          class="text-xs text-neutral-600 dark:text-neutral-400"
+                          >Position:</span
+                        >
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          bind:value={event.position}
+                          class="flex-1 slider"
+                          on:input={() => {
+                            // Update the array to trigger reactivity
+                            line.eventMarkers = [...line.eventMarkers];
+                          }}
+                        />
+                        <span class="text-xs font-medium w-10 text-right">
+                          {Math.round(event.position * 100)}%
+                        </span>
+                      </div>
+
+                      <div
+                        class="mt-1 text-xs text-neutral-500 dark:text-neutral-400"
+                      >
+                        Line {idx + 1}, Position: {event.position.toFixed(2)}
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/if}
 
           <!-- Collapsible Control Points -->
           {#if line.controlPoints.length > 0}

@@ -35,6 +35,7 @@ interface Line {
   controlPoints: ControlPoint[];
   color: string;
   name?: string;
+  eventMarkers?: EventMarker[];
 }
 
 interface FPALine {
@@ -76,4 +77,18 @@ interface TimePrediction {
   totalTime: number;
   segmentTimes: number[];
   totalDistance: number;
+}
+
+interface EventMarker {
+  id: string;
+  name: string;
+  position: number; // 0-1 within the path segment
+  lineIndex: number;
+  parameters?: Record<string, any>; // Optional parameters for the command
+}
+
+interface NamedCommand {
+  name: string;
+  description?: string;
+  parameters?: string[]; // Parameter names
 }

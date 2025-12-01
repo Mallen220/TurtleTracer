@@ -487,6 +487,63 @@
     }
   }
 
+  $: eventMarkers = (() => {
+    const markers = [];
+
+    lines.forEach((line, lineIdx) => {
+      if (line.eventMarkers && line.eventMarkers.length > 0) {
+        line.eventMarkers.forEach((event, eventIdx) => {
+          // Get the correct start point for this line
+          const lineStart =
+            lineIdx === 0 ? startPoint : lines[lineIdx - 1].endPoint;
+          const curvePoints = [lineStart, ...line.controlPoints, line.endPoint];
+          const eventPosition = getCurvePoint(event.position, curvePoints);
+
+          // Create marker visualization
+          const markerGroup = new Two.Group();
+          markerGroup.id = `event-${lineIdx}-${eventIdx}`;
+
+          // Create a circle for the marker
+          const markerCircle = new Two.Circle(
+            x(eventPosition.x),
+            y(eventPosition.y),
+            x(POINT_RADIUS * 1.3), // Slightly larger than normal points
+          );
+          markerCircle.id = `event-circle-${lineIdx}-${eventIdx}`;
+          markerCircle.fill = "#8b5cf6"; // Purple color
+          markerCircle.stroke = "#ffffff";
+          markerCircle.linewidth = x(0.3);
+
+          // Create a flag/icon inside
+          const flagSize = x(1);
+          const flagPoints = [
+            new Two.Anchor(
+              x(eventPosition.x),
+              y(eventPosition.y) - flagSize / 2,
+            ),
+            new Two.Anchor(
+              x(eventPosition.x) + flagSize / 2,
+              y(eventPosition.y),
+            ),
+            new Two.Anchor(
+              x(eventPosition.x),
+              y(eventPosition.y) + flagSize / 2,
+            ),
+          ];
+          const flag = new Two.Path(flagPoints, true);
+          flag.fill = "#ffffff";
+          flag.stroke = "none";
+          flag.id = `event-flag-${lineIdx}-${eventIdx}`;
+
+          markerGroup.add(markerCircle, flag);
+          markers.push(markerGroup);
+        });
+      }
+    });
+
+    return markers;
+  })();
+
   $: (() => {
     if (!two) {
       return;
@@ -504,6 +561,7 @@
     two.add(...shapeElements);
     two.add(...path);
     two.add(...points);
+    two.add(...eventMarkers);
 
     two.update();
   })();

@@ -17,6 +17,14 @@ export async function generateJavaCode(
     tangential: "setTangentHeadingInterpolation",
   };
 
+  // Collect all unique event marker names
+  const eventMarkerNames = new Set<string>();
+  lines.forEach((line) => {
+    line.eventMarkers?.forEach((event) => {
+      eventMarkerNames.add(event.name);
+    });
+  });
+
   let pathsClass = `
   public static class Paths {
     ${lines
@@ -65,6 +73,17 @@ export async function generateJavaCode(
             ? ".setReversed(true)"
             : "";
 
+          // Add event markers to the path builder
+          let eventMarkerCode = "";
+          if (line.eventMarkers && line.eventMarkers.length > 0) {
+            eventMarkerCode = line.eventMarkers
+              .map(
+                (event) =>
+                  `\n        .addEventMarker(${event.position.toFixed(3)}, "${event.name}")`,
+              )
+              .join("");
+          }
+
           return `${variableName} = follower.pathBuilder().addPath(
           ${curveType}(
             ${start},
@@ -72,7 +91,7 @@ export async function generateJavaCode(
             new Pose(${line.endPoint.x.toFixed(3)}, ${line.endPoint.y.toFixed(3)})
           )
         ).${headingTypeToFunctionName[line.endPoint.heading]}(${headingConfig})
-        ${reverseConfig}
+        ${reverseConfig}${eventMarkerCode}
         .build();`;
         })
         .join("\n\n")}
@@ -80,9 +99,31 @@ export async function generateJavaCode(
   }
   `;
 
+  // Add NamedCommands registration instructions
+  let namedCommandsSection = "";
+  if (eventMarkerNames.size > 0) {
+    namedCommandsSection = `
+    
+    // ===== NAMED COMMANDS REGISTRATION =====
+    // In your RobotContainer class, register named commands like this:
+    // 
+    // NamedCommands.registerCommand("CommandName", yourCommand);
+    // 
+    // Example for the event markers in this path:
+    ${Array.from(eventMarkerNames)
+      .map(
+        (name) =>
+          `// NamedCommands.registerCommand("${name}", your${name.replace(/_/g, "")}Command);`,
+      )
+      .join("\n    ")}
+    
+    // Make sure to register all named commands BEFORE creating any paths or autos.
+    `;
+  }
+
   let file = "";
   if (!exportFullCode) {
-    file = pathsClass;
+    file = pathsClass + namedCommandsSection;
   } else {
     file = `
     package org.firstinspires.ftc.teamcode;
@@ -97,6 +138,7 @@ export async function generateJavaCode(
     import com.pedropathing.follower.Follower;
     import com.pedropathing.paths.PathChain;
     import com.pedropathing.geometry.Pose;
+    ${eventMarkerNames.size > 0 ? "import com.pedropathing.NamedCommands;" : ""}
     
     @Autonomous(name = "Pedro Pathing Autonomous", group = "Autonomous")
     @Configurable // Panels
@@ -135,11 +177,12 @@ export async function generateJavaCode(
       ${pathsClass}
 
       public int autonomousPathUpdate() {
-          // Add your state machine Here
-          // Access paths with paths.pathName
-          // Refer to the Pedro Pathing Docs (Auto Example) for an example state machine
+          // Event markers will automatically trigger at their positions
+          // Make sure to register NamedCommands in your RobotContainer
           return pathState;
       }
+      
+      ${namedCommandsSection}
     }
     `;
   }
@@ -200,6 +243,13 @@ export async function generateSequentialCommandCode(
   lines: Line[],
   fileName: string | null = null,
 ): Promise<string> {
+  // Collect event marker names
+  const eventMarkerNames = new Set<string>();
+  lines.forEach((line) => {
+    line.eventMarkers?.forEach((event) => {
+      eventMarkerNames.add(event.name);
+    });
+  });
   // Determine class name from file name or use default
   let className = "AutoPath";
   if (fileName) {
@@ -290,11 +340,22 @@ export async function generateSequentialCommandCode(
             ? `setLinearHeadingInterpolation(${startPoseName}.getHeading(), ${endPoseName}.getHeading())`
             : `setTangentHeadingInterpolation()`;
 
+      // Add event markers
+      let eventMarkerCode = "";
+      if (line.eventMarkers && line.eventMarkers.length > 0) {
+        eventMarkerCode = line.eventMarkers
+          .map(
+            (event) =>
+              `\n            .addEventMarker(${event.position.toFixed(3)}, "${event.name}")`,
+          )
+          .join("");
+      }
+
       return `    ${pathName} =
         follower
             .pathBuilder()
             .addPath(new ${curveType}(${curvePoints}))
-            .${headingType}
+            .${headingType}${eventMarkerCode}
             .build();`;
     })
     .join("\n\n");
@@ -308,6 +369,18 @@ export async function generateSequentialCommandCode(
       : `point${idx + 1}`;
     poseAssignments.push(`    ${endPointName} = pp.get("${endPointName}");`);
   });
+
+  const namedCommandsSection =
+    eventMarkerNames.size > 0
+      ? `
+  
+  // ===== NAMED COMMANDS =====
+  // These commands must be named in your RobotContainer:
+  ${Array.from(eventMarkerNames)
+    .map((name) => `// NamedCommands.registerCommand("${name}", yourCommand);`)
+    .join("\n  ")}
+  `
+      : "";
 
   const sequentialCommandCode = `
 package org.firstinspires.ftc.teamcode.Commands.AutoCommands;
@@ -379,6 +452,8 @@ ${pathBuilders}
             .build();
      */
   }
+
+  ${namedCommandsSection}
 }
 `;
 

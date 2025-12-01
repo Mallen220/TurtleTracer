@@ -1,6 +1,6 @@
 ## 1.1.5 (2025-12-01)
 
-- Added Icon and better install steps. Warning if attempting an unsafe manual install. 
+- Added Icon and better install steps. Warning if attempting an unsafe manual install.
 
 ## 1.1.4 (2025-12-01)
 

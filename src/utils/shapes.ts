@@ -64,3 +64,16 @@ export function createNGon(sides: number, existingShapesCount: number): Shape {
     fillColor: "#fca5a5",
   };
 }
+
+export function createEventMarker(
+  lineIndex: number,
+  position: number = 0.5,
+): EventMarker {
+  return {
+    id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    name: `Event_${lineIndex + 1}`,
+    position: Math.max(0, Math.min(1, position)), // Clamp between 0-1
+    lineIndex,
+    parameters: {},
+  };
+}
