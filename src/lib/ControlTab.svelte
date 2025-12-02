@@ -85,10 +85,9 @@
     const currentLine = lines[index];
 
     // Calculate a new point offset from the current line's end point
-    const offset = 10; // Default offset in inches
     const newPoint = {
-      x: currentLine.endPoint.x + offset,
-      y: currentLine.endPoint.y,
+      x: _.random(36, 108),
+      y: _.random(36, 108),
       heading: currentLine.endPoint.heading,
       // Copy heading properties based on type
       ...(currentLine.endPoint.heading === "linear" && {
