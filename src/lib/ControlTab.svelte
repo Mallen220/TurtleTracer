@@ -80,6 +80,52 @@
       lines = [...lines];
     }
   }
+
+  function insertLineAfter(index) {
+    const currentLine = lines[index];
+
+    // Calculate a new point offset from the current line's end point
+    const offset = 10; // Default offset in inches
+    const newPoint = {
+      x: currentLine.endPoint.x + offset,
+      y: currentLine.endPoint.y,
+      heading: currentLine.endPoint.heading,
+      // Copy heading properties based on type
+      ...(currentLine.endPoint.heading === "linear" && {
+        startDeg: currentLine.endPoint.startDeg,
+        endDeg: currentLine.endPoint.endDeg,
+      }),
+      ...(currentLine.endPoint.heading === "constant" && {
+        degrees: currentLine.endPoint.degrees,
+      }),
+      ...(currentLine.endPoint.heading === "tangential" && {
+        reverse: currentLine.endPoint.reverse,
+      }),
+    };
+
+    // Create a new line that starts where the current line ends
+    const newLine = {
+      endPoint: newPoint,
+      controlPoints: [],
+      color: getRandomColor(),
+      name: `Path ${lines.length + 1}`,
+      eventMarkers: [],
+    };
+
+    // Insert the new line after the current one
+    const newLines = [...lines];
+    newLines.splice(index + 1, 0, newLine);
+    lines = newLines;
+
+    // Also update the collapsed sections arrays to include the new line
+    collapsedSections.lines.splice(index + 1, 0, false);
+    collapsedSections.controlPoints.splice(index + 1, 0, true);
+    collapsedEventMarkers.splice(index + 1, 0, false);
+
+    // Force reactivity
+    collapsedSections = { ...collapsedSections };
+    collapsedEventMarkers = [...collapsedEventMarkers];
+  }
 </script>
 
 <div class="flex-1 flex flex-col justify-start items-center gap-2 h-full">
@@ -418,34 +464,27 @@
           </div>
 
           <div class="flex flex-row justify-end items-center gap-1">
-            {#if !collapsedSections.lines[idx]}
-              <button
-                title="Add Control Point"
-                on:click={() => {
-                  line.controlPoints = [
-                    ...line.controlPoints,
-                    {
-                      x: _.random(36, 108),
-                      y: _.random(36, 108),
-                    },
-                  ];
-                }}
+            <!-- Add Point After Button -->
+
+            <button
+              title="Add Point After This Line"
+              on:click={() => insertLineAfter(idx)}
+              class="text-blue-500 hover:text-blue-600"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width={2}
+                class="size-5 stroke-green-500"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width={2}
-                  class="size-5 stroke-green-500"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M12 4.5v15m7.5-7.5h-15"
-                  />
-                </svg>
-              </button>
-            {/if}
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+            </button>
 
             {#if lines.length > 1}
               <button
@@ -725,89 +764,154 @@ With tangential heading, the heading follows the direction of the line."
             </div>
           {/if}
 
-          <!-- Collapsible Control Points -->
-          {#if line.controlPoints.length > 0}
-            <div class="flex flex-col w-full justify-start items-start mt-2">
-              <div class="flex items-center gap-2">
-                <button
-                  on:click={() => toggleControlPoints(idx)}
-                  class="flex items-center gap-2 font-light hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-sm"
-                  title="{collapsedSections.controlPoints[idx]
-                    ? 'Expand'
-                    : 'Collapse'} control points"
+          <div class="flex flex-col w-full justify-start items-start mt-2">
+            <!-- Control Points header with toggle and add button -->
+            <div class="flex items-center justify-between w-full">
+              <button
+                on:click={() => toggleControlPoints(idx)}
+                class="flex items-center gap-2 font-light hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-sm"
+                title="{collapsedSections.controlPoints[idx]
+                  ? 'Show'
+                  : 'Hide'} control points"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width={2}
+                  stroke="currentColor"
+                  class="size-3 transition-transform {collapsedSections
+                    .controlPoints[idx]
+                    ? 'rotate-0'
+                    : 'rotate-90'}"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width={2}
-                    stroke="currentColor"
-                    class="size-3 transition-transform {collapsedSections
-                      .controlPoints[idx]
-                      ? 'rotate-0'
-                      : 'rotate-90'}"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="m8.25 4.5 7.5 7.5-7.5 7.5"
-                    />
-                  </svg>
-                  Control Points ({line.controlPoints.length})
-                </button>
-              </div>
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m8.25 4.5 7.5 7.5-7.5 7.5"
+                  />
+                </svg>
+                Control Points ({line.controlPoints.length})
+              </button>
+              <button
+                on:click={() => {
+                  line.controlPoints = [
+                    ...line.controlPoints,
+                    {
+                      x: _.random(36, 108),
+                      y: _.random(36, 108),
+                    },
+                  ];
+                }}
+                class="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1 px-2 py-1"
+                title="Add Control Point"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width={2}
+                  stroke="currentColor"
+                  class="size-4"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 4.5v15m7.5-7.5h-15"
+                  />
+                </svg>
+                Add Control Point
+              </button>
+            </div>
 
-              {#if !collapsedSections.controlPoints[idx]}
+            <!-- Control Points list (shown when expanded) -->
+            {#if !collapsedSections.controlPoints[idx] && line.controlPoints.length > 0}
+              <div class="w-full mt-2 space-y-2">
                 {#each line.controlPoints as point, idx1}
-                  <div class="flex flex-col justify-start items-start mt-1">
-                    <div class="font-light">Control Point {idx1 + 1}:</div>
-                    <div class="flex flex-row justify-start items-center gap-2">
-                      <div class="font-extralight">X:</div>
-                      <input
-                        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-28"
-                        step="0.1"
-                        type="number"
-                        bind:value={point.x}
-                        min="0"
-                        max="144"
-                      />
-                      <div class="font-extralight">Y:</div>
-                      <input
-                        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-28"
-                        step="0.1"
-                        type="number"
-                        bind:value={point.y}
-                        min="0"
-                        max="144"
-                      />
+                  <div
+                    class="flex flex-col p-2 border border-blue-300 dark:border-blue-700 rounded-md bg-blue-50 dark:bg-blue-900/20"
+                  >
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <span
+                          class="text-sm font-medium text-blue-700 dark:text-blue-300"
+                        >
+                          Control Point {idx1 + 1}
+                        </span>
+                      </div>
                       <button
-                        title="Remove Control Point"
                         on:click={() => {
                           let _pts = line.controlPoints;
                           _pts.splice(idx1, 1);
                           line.controlPoints = _pts;
                         }}
+                        class="text-red-500 hover:text-red-600"
+                        title="Remove Control Point"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke-width={2}
-                          class="size-5 stroke-red-500"
+                          class="size-4"
+                          stroke="currentColor"
                         >
                           <path
                             stroke-linecap="round"
                             stroke-linejoin="round"
-                            d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
                           />
                         </svg>
                       </button>
                     </div>
+
+                    <!-- Control Point Position Inputs -->
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="text-xs text-neutral-600 dark:text-neutral-400"
+                        >X:</span
+                      >
+                      <input
+                        bind:value={point.x}
+                        type="number"
+                        min="0"
+                        max="144"
+                        step="0.1"
+                        class="w-20 px-2 py-1 text-xs rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        on:change={() => {
+                          // Update the array to trigger reactivity
+                          line.controlPoints = [...line.controlPoints];
+                        }}
+                      />
+                      <span
+                        class="text-xs text-neutral-600 dark:text-neutral-400"
+                        >Y:</span
+                      >
+                      <input
+                        bind:value={point.y}
+                        type="number"
+                        min="0"
+                        max="144"
+                        step="0.1"
+                        class="w-20 px-2 py-1 text-xs rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        on:change={() => {
+                          // Update the array to trigger reactivity
+                          line.controlPoints = [...line.controlPoints];
+                        }}
+                      />
+                    </div>
+
+                    <div
+                      class="mt-1 text-xs text-neutral-500 dark:text-neutral-400"
+                    >
+                      Line {idx + 1}, Control Point {idx1 + 1}
+                    </div>
                   </div>
                 {/each}
-              {/if}
-            </div>
-          {/if}
+              </div>
+            {/if}
+          </div>
         {/if}
       </div>
     {/each}
