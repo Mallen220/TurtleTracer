@@ -17,7 +17,7 @@ type AnimationState = {
   playing: boolean;
   percent: number;
   accumulatedSeconds: number;
-  lastTimestamp: number | null; 
+  lastTimestamp: number | null;
   animationFrameId: number | null;
   totalDuration: number;
   loop: boolean;
@@ -273,7 +273,6 @@ export function createAnimationController(
       return state.playing;
     },
     getPercent() {
-
       updatePercentFromAccumulated();
       return state.percent;
     },
