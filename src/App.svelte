@@ -89,7 +89,7 @@
   let x: d3.ScaleLinear<number, number, number>;
 
   // Animation controller
-  let loopAnimation = false;
+  let loopAnimation = true;
   let animationController: ReturnType<typeof createAnimationController>;
   $: timePrediction = calculatePathTime(startPoint, lines, settings);
   $: animationDuration = getAnimationDuration(timePrediction.totalTime);
@@ -402,9 +402,10 @@
     animationController.setDuration(animationDuration);
   }
 
-  // Update loop setting when it changes
   $: if (animationController) {
     animationController.setLoop(loopAnimation);
+    // Sync UI state with controller
+    playing = animationController.isPlaying();
   }
 
   // Save Function

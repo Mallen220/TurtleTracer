@@ -857,10 +857,16 @@ With tangential heading, the heading follows the direction of the line."
       {/if}
     </button>
 
-    <!-- Add Loop Toggle Button -->
+    <!-- Loop Toggle Button -->
     <button
       title={loopAnimation ? "Disable Loop" : "Enable Loop"}
-      on:click={() => (loopAnimation = !loopAnimation)}
+      on:click={() => {
+        loopAnimation = !loopAnimation;
+        // Update animation controller if it exists
+        if (animationController) {
+          animationController.setLoop(loopAnimation);
+        }
+      }}
       class:opacity-100={loopAnimation}
       class:opacity-50={!loopAnimation}
     >
