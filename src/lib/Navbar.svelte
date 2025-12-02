@@ -11,7 +11,11 @@
     isUnsaved,
   } from "../stores";
   import { getRandomColor } from "../utils";
-  import { getDefaultStartPoint, getDefaultLines } from "../config";
+  import {
+    getDefaultStartPoint,
+    getDefaultLines,
+    getDefaultShapes,
+  } from "../config";
   import FileManager from "./FileManager.svelte";
   import SettingsDialog from "./components/SettingsDialog.svelte";
   import ExportCodeDialog from "./components/ExportCodeDialog.svelte";
@@ -71,7 +75,35 @@
   function resetPath() {
     startPoint = getDefaultStartPoint();
     lines = getDefaultLines();
-    shapes = [];
+    shapes = getDefaultShapes();
+  }
+
+  function handleResetPathWithConfirmation() {
+    // Check if there's unsaved work
+    const hasChanges = $isUnsaved || lines.length > 1 || shapes.length > 0;
+
+    let message = "Are you sure you want to reset the path?\n\n";
+
+    if (hasChanges) {
+      if ($currentFilePath) {
+        message += `This will reset "${$currentFilePath.split(/[\\/]/).pop()}" to the default path.`;
+      } else {
+        message += "This will reset your current work to the default path.";
+      }
+
+      if ($isUnsaved) {
+        message +=
+          "\n\n⚠ WARNING: You have unsaved changes that will be lost!";
+      }
+    } else {
+      message += "This will reset to the default starting path.";
+    }
+
+    message += "\n\nClick OK to reset, or Cancel to keep your current path.";
+
+    if (confirm(message)) {
+      resetPath();
+    }
   }
 
   $: if (settings) {
@@ -287,22 +319,7 @@
     ></div>
 
     <div class="flex items-center gap-3">
-      <a
-        target="_blank"
-        rel="norefferer"
-        title="GitHub Repo"
-        href="https://github.com/Mallen220/PedroPathingVisualizer"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 30 30"
-          class="size-6 dark:fill-white"
-        >
-          <path
-            d="M15,3C8.373,3,3,8.373,3,15c0,5.623,3.872,10.328,9.092,11.63C12.036,26.468,12,26.28,12,26.047v-2.051 c-0.487,0-1.303,0-1.508,0c-0.821,0-1.551-0.353-1.905-1.009c-0.393-0.729-0.461-1.844-1.435-2.526 c-0.289-0.227-0.069-0.486,0.264-0.451c0.615,0.174,1.125,0.596,1.605,1.222c0.478,0.627,0.703,0.769,1.596,0.769 c0.433,0,1.081-0.025,1.691-0.121c0.328-0.833,0.895-1.6,1.588-1.962c-3.996-0.411-5.903-2.399-5.903-5.098 c0-1.162,0.495-2.286,1.336-3.233C9.053,10.647,8.706,8.73,9.435,8c1.798,0,2.885,1.166,3.146,1.481C13.477,9.174,14.461,9,15.495,9 c1.036,0,2.024,0.174,2.922,0.483C18.675,9.17,19.763,8,21.565,8c0.732,0.731,0.381,2.656,0.102,3.594 c0.836,0.945,1.328,2.066,1.328,3.226c0,2.697-1.904,4.684-5.894,5.097C18.199,20.49,19,22.1,19,23.313v2.734 c0,0.104-0.023,0.179-0.035,0.268C23.641,24.676,27,20.236,27,15C27,8.373,21.627,3,15,3z"
-          ></path>
-        </svg>
-      </a>
+      <!-- Save/Load buttons -->
       <button title="Save trajectory as a file" on:click={() => saveFile()}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -346,22 +363,7 @@
           />
         </svg>
       </label>
-      <button title="Delete/Reset path" on:click={resetPath}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-6"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-          />
-        </svg>
-      </button>
+
       <div class="relative">
         <button
           title="Export path"
@@ -431,22 +433,54 @@
     ></div>
 
     <div class="flex items-center gap-3">
-      <button title="Open Settings" on:click={() => (settingsOpen = true)}>
+      <!-- Delete/Reset path -->
+      <button
+        title="Delete/Reset path"
+        on:click={handleResetPathWithConfirmation}
+        class="relative group"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
           fill="none"
-          stroke="currentColor"
+          viewBox="0 0 24 24"
           stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          ><circle cx="12" cy="12" r="3"></circle><path
-            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-          ></path></svg
+          stroke="red"
+          class="size-6 stroke-red-500 hover:stroke-red-600 transition-colors"
         >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+          />
+        </svg>
+
+        <!-- Tooltip for better UX -->
+        <div
+          class="absolute hidden group-hover:block bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-neutral-900 text-white text-xs rounded whitespace-nowrap"
+        >
+          Reset path to default (with confirmation)
+        </div>
       </button>
+
+      <!-- GitHub Repo Link -->
+      <a
+        target="_blank"
+        rel="norefferer"
+        title="GitHub Repo"
+        href="https://github.com/Mallen220/PedroPathingVisualizer"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 30 30"
+          class="size-6 dark:fill-white"
+        >
+          <path
+            d="M15,3C8.373,3,3,8.373,3,15c0,5.623,3.872,10.328,9.092,11.63C12.036,26.468,12,26.28,12,26.047v-2.051 c-0.487,0-1.303,0-1.508,0c-0.821,0-1.551-0.353-1.905-1.009c-0.393-0.729-0.461-1.844-1.435-2.526 c-0.289-0.227-0.069-0.486,0.264-0.451c0.615,0.174,1.125,0.596,1.605,1.222c0.478,0.627,0.703,0.769,1.596,0.769 c0.433,0,1.081-0.025,1.691-0.121c0.328-0.833,0.895-1.6,1.588-1.962c-3.996-0.411-5.903-2.399-5.903-5.098 c0-1.162,0.495-2.286,1.336-3.233C9.053,10.647,8.706,8.73,9.435,8c1.798,0,2.885,1.166,3.146,1.481C13.477,9.174,14.461,9,15.495,9 c1.036,0,2.024,0.174,2.922,0.483C18.675,9.17,19.763,8,21.565,8c0.732,0.731,0.381,2.656,0.102,3.594 c0.836,0.945,1.328,2.066,1.328,3.226c0,2.697-1.904,4.684-5.894,5.097C18.199,20.49,19,22.1,19,23.313v2.734 c0,0.104-0.023,0.179-0.035,0.268C23.641,24.676,27,20.236,27,15C27,8.373,21.627,3,15,3z"
+          ></path>
+        </svg>
+      </a>
+
+      <!-- Dark Mode Toggle -->
       <button
         title="Toggle Dark/Light Mode"
         on:click={() => {
@@ -485,7 +519,27 @@
           </svg>
         {/if}
       </button>
-      <input
+
+      <!-- Settings button -->
+      <button title="Open Settings" on:click={() => (settingsOpen = true)}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><circle cx="12" cy="12" r="3"></circle><path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+          ></path></svg
+        >
+      </button>
+
+      <!-- Robot Image Updaer -->
+      <!-- <input
         id="robot-input"
         type="file"
         accept="image/png"
@@ -512,7 +566,7 @@
           ></path><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"
           ></polygon></svg
         >
-      </label>
+      </label> -->
     </div>
   </div>
 </div>
