@@ -593,7 +593,9 @@ With tangential heading, the heading follows the direction of the line."
             </div>
           </div>
 
-          {#if !collapsedSections.lines[idx]}
+          <!-- FIXME: Temparily hide event markers for release until they can be tested.  -->
+          <!-- {#if !collapsedSections.lines[idx]} -->
+          {#if false}
             <!-- Event Markers section -->
             <div class="flex flex-col w-full justify-start items-start mt-2">
               <div class="flex items-center justify-between w-full">
