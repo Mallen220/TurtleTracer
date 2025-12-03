@@ -116,7 +116,7 @@
             />
           </div>
 
-          <div class="flex flex-row justify-between items-center w-full">
+          <!-- <div class="flex flex-row justify-between items-center w-full">
             <div class="font-light">Optimization Quality:</div>
             <select
               class="px-3 py-2 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border focus:outline-none focus:ring-2 focus:ring-blue-500 w-24 text-base"
@@ -126,7 +126,7 @@
               <option value={3}>Balanced</option>
               <option value={5}>High</option>
             </select>
-          </div>
+          </div> -->
         </div>
       </div>
     </div>

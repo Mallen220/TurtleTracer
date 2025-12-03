@@ -57,7 +57,7 @@ interface FPASettings {
   rWidth: number;
   rHeight: number;
   safetyMargin: number;
-  optimizationQuality: number;
+  
 }
 
 interface Shape {

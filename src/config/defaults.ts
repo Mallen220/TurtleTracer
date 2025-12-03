@@ -25,7 +25,6 @@ export const DEFAULT_FPA_SETTINGS: FPASettings = {
   rWidth: DEFAULT_ROBOT_WIDTH,
   rHeight: DEFAULT_ROBOT_HEIGHT,
   safetyMargin: 1,
-  optimizationQuality: 3,
 };
 
 /**
