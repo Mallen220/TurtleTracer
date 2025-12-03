@@ -649,37 +649,70 @@ With tangential heading, the heading follows the direction of the line."
               </select>
 
               {#if line.endPoint.heading === "linear"}
-                <input
-                  class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14"
-                  step="1"
-                  type="number"
-                  min="-180"
-                  max="180"
-                  bind:value={line.endPoint.startDeg}
-                  title="The heading the robot starts this line at (in degrees)"
-                  disabled={line.locked}
-                />
-                <input
-                  class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14"
-                  step="1"
-                  type="number"
-                  min="-180"
-                  max="180"
-                  bind:value={line.endPoint.endDeg}
-                  title="The heading the robot ends this line at (in degrees)"
-                  disabled={line.locked}
-                />
+                <div class="flex items-center gap-1">
+                  <span class="text-xs text-neutral-600 dark:text-neutral-400"
+                    >Start:</span
+                  >
+                  <input
+                    class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14"
+                    step="1"
+                    type="number"
+                    min="-180"
+                    max="180"
+                    bind:value={line.endPoint.startDeg}
+                    title="The heading the robot starts this line at (in degrees)"
+                    disabled={line.locked}
+                  />
+                  <span
+                    class="text-xs text-neutral-600 dark:text-neutral-400 ml-1"
+                    >End:</span
+                  >
+                  <input
+                    class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14"
+                    step="1"
+                    type="number"
+                    min="-180"
+                    max="180"
+                    bind:value={line.endPoint.endDeg}
+                    title="The heading the robot ends this line at (in degrees)"
+                    disabled={line.locked}
+                  />
+                </div>
               {:else if line.endPoint.heading === "constant"}
-                <input
-                  class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14"
-                  step="1"
-                  type="number"
-                  min="-180"
-                  max="180"
-                  bind:value={line.endPoint.degrees}
-                  title="The constant heading the robot maintains throughout this line (in degrees)"
-                  disabled={line.locked}
-                />
+                <div class="flex items-center gap-1">
+                  <span class="text-xs text-neutral-600 dark:text-neutral-400"
+                    >Deg:</span
+                  >
+                  <input
+                    class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14"
+                    step="1"
+                    type="number"
+                    min="-180"
+                    max="180"
+                    value={line.endPoint.degrees || 0}
+                    on:input={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (!isNaN(value)) {
+                        line.endPoint.degrees = value;
+                      } else {
+                        // If empty or invalid, set to 0
+                        line.endPoint.degrees = 0;
+                        e.target.value = "0";
+                      }
+                    }}
+                    on:blur={(e) => {
+                      if (
+                        e.target.value === "" ||
+                        isNaN(parseFloat(e.target.value))
+                      ) {
+                        line.endPoint.degrees = 0;
+                        e.target.value = "0";
+                      }
+                    }}
+                    title="The constant heading the robot maintains throughout this line (in degrees)"
+                    disabled={line.locked}
+                  />
+                </div>
               {:else if line.endPoint.heading === "tangential"}
                 <p class="text-sm font-extralight">Reverse:</p>
                 <input
