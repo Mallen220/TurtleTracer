@@ -1,6 +1,7 @@
 interface BasePoint {
   x: number;
   y: number;
+  locked?: boolean;
 }
 
 type Point = BasePoint &

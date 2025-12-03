@@ -38,6 +38,7 @@ export function getDefaultStartPoint(): Point {
     heading: "linear",
     startDeg: 90,
     endDeg: 180,
+    locked: false,
   };
 }
 

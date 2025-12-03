@@ -661,6 +661,8 @@
           const point = Number(currentElem.split("-")[2]);
 
           if (line === -1) {
+            // This is the starting point
+            if (startPoint.locked) return;
             startPoint.x = x.invert(xPos);
             startPoint.y = y.invert(yPos);
           } else {
@@ -668,6 +670,7 @@
               lines[line].endPoint.x = x.invert(xPos);
               lines[line].endPoint.y = y.invert(yPos);
             } else {
+              if (lines[line]?.locked) return;
               lines[line].controlPoints[point - 1].x = x.invert(xPos);
               lines[line].controlPoints[point - 1].y = y.invert(yPos);
             }
