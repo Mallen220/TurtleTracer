@@ -5,6 +5,7 @@ import http from "http";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
 import AppUpdater from "./updater.js";
+import rateLimit from "express-rate-limit";
 
 // Handle __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -17,6 +18,14 @@ let appUpdater;
 
 const startServer = async () => {
   const expressApp = express();
+
+  const limiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 100, // Limit to 100 requests per windowMs
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: "Too many requests from this client, please try again later.",
+  });
 
   let distPath;
 
@@ -34,7 +43,7 @@ const startServer = async () => {
   expressApp.use(express.static(distPath));
 
   // SPA fallback
-  expressApp.get("*", (req, res) => {
+  expressApp.get("*", limiter, (req, res) => {
     res.sendFile(path.join(distPath, "index.html"));
   });
 

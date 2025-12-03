@@ -47,6 +47,7 @@
     "d3": "^7.9.0",
     "electron-updater": "^6.6.2",
     "express": "^4.18.2",
+    "express-rate-limit": "^8.2.1",
     "get-port": "^7.0.0",
     "hotkeys-js": "^3.13.9",
     "lodash": "^4.17.21",
