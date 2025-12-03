@@ -120,46 +120,23 @@ async function createGitHubRelease(version, artifactPaths) {
   
 
   // Try to get changelog if it exists
-  let notes = `## 🚀 Quick Install
+  let notes = `## 🚀 Quick Update
 
-## 📦 Installation Options
+Refer to the README installation section for instructions on installing or updating Pedro Pathing Visualizer. Below is a condensed version of the instructions for quick reference. 
 
-Choose the installer for your operating system below and follow the platform-specific instructions.
+This repo is regularly updated with new features and bug fixes but tested primarily on macOS. Should an issue arise, please report it via the GitHub Issues page and revert to the previous stable version if needed.
 
 #### **macOS**
-
-**Use the one-line installer:**
+Run the following command in terminal and provide your password when prompted:
 \`\`\`bash
 curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
 \`\`\`
 
-Then enter the password when prompted to allow installation.
-
-**Or manually:**
-1. Download the \`.dmg\` file
-2. Double-click to mount it
-3. Drag to Applications folder
-4. On first run: Right-click → Open, then click "Open" if prompted
-
 #### **Windows**
-1. Download the \`.exe\` installer
-2. Open the installer
-3. Follow the installation wizard
-4. Launch from Start Menu or Desktop shortcut
+Download and install via the  \`.exe\` installer below.
 
-#### **Linux (Ubuntu/Debian)**
-1. Download the \`.deb\` file
-2. Install with:
-\`\`\`bash
-sudo dpkg -i Pedro*.deb
-\`\`\`
-
-A \`.AppImage\` is also provided. To run it make it executable and run it in terminal.
-
-## 🔧 Troubleshooting
-- **macOS "App is damaged"**: Run \`sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Visualizer.app"\`
-- **Linux AppImage won't run**: Ensure it's executable: \`chmod +x *.AppImage\`
-- **Windows security warning**: Click "More info" then "Run anyway" for first launch
+#### **Linux**
+Download the \`.deb\` or \`.AppImage\` file. Run in terminal with executable permissions.
 
 ## 📝 Release Notes
 `;
