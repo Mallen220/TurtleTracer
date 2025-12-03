@@ -1,3 +1,7 @@
+## 1.1.7 (2025-12-03)
+
+- Added lock function to paths and start point. Improved header labels. Better FPA settings. Better time calculations and no header jumping during autos.
+
 ## 1.1.6 (2025-12-03)
 
 - Attempting to add new executables
