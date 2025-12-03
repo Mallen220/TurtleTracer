@@ -120,22 +120,11 @@ async function createGitHubRelease(version, artifactPaths) {
   
 
   // Try to get changelog if it exists
-  let notes = `## 🚀 Multi-Platform Release
-
-This release includes installers for macOS, Windows, and Linux!
+  let notes = `## 🚀 Quick Install
 
 ## 📦 Installation Options
 
-### **For All Platforms:**
 Choose the installer for your operating system below and follow the platform-specific instructions.
-
-### **Platform-Specific Instructions:**
-
-To update/install on macOS or Linux, run:
-
-\`\`\`bash
-curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
-\`\`\`
 
 #### **macOS**
 
@@ -154,21 +143,18 @@ Then enter the password when prompted to allow installation.
 
 #### **Windows**
 1. Download the \`.exe\` installer
-2. Double-click to run
+2. Open the installer
 3. Follow the installation wizard
 4. Launch from Start Menu or Desktop shortcut
 
 #### **Linux (Ubuntu/Debian)**
-1. Download the \`.AppImage\` or \`.deb\` file
-2. For AppImage: Make executable and run:
-\`\`\`bash
-chmod +x Pedro*.AppImage
-./Pedro*.AppImage
-\`\`\`
-3. For DEB package: Install with:
+1. Download the \`.deb\` file
+2. Install with:
 \`\`\`bash
 sudo dpkg -i Pedro*.deb
 \`\`\`
+
+A \`.AppImage\` is also provided. To run it make it executable and run it in terminal.
 
 ## 🔧 Troubleshooting
 - **macOS "App is damaged"**: Run \`sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Visualizer.app"\`
