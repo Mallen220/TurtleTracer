@@ -280,28 +280,7 @@
         </svg>
       </button>
 
-      <!-- Protractor toggle -->
-      <button
-        title="Toggle Protractor"
-        on:click={() => showProtractor.update((v) => !v)}
-        class:text-blue-500={$showProtractor}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M12 21a9 9 0 1 1 0-18c2.52 0 4.93 1 6.74 2.74L21 8"></path>
-          <path d="M12 3v6l3.7 2.7"></path>
-        </svg>
-      </button>
-
+      <!-- Protractor lock to robot toggle -->
       {#if $showProtractor}
         <button
           title={$protractorLockToRobot
@@ -343,6 +322,29 @@
           {/if}
         </button>
       {/if}
+
+      <!-- Protractor toggle -->
+
+      <button
+        title="Toggle Protractor"
+        on:click={() => showProtractor.update((v) => !v)}
+        class:text-blue-500={$showProtractor}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 21a9 9 0 1 1 0-18c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+          <path d="M12 3v6l3.7 2.7"></path>
+        </svg>
+      </button>
     </div>
 
     <!-- Divider -->

@@ -1,6 +1,6 @@
 ## 1.1.8 (2025-12-04)
 
-- Added persistent settings memory. Backend cleanup. "FPA Settings" renamed to just "settings". Security improvements. 
+- Added persistent settings memory. Backend cleanup. "FPA Settings" renamed to just "settings". Security improvements.
 
 ## 1.1.7 (2025-12-03)
 
