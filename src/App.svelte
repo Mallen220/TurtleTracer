@@ -32,7 +32,7 @@
     LINE_WIDTH,
     DEFAULT_ROBOT_WIDTH,
     DEFAULT_ROBOT_HEIGHT,
-    DEFAULT_FPA_SETTINGS,
+    DEFAULT_SETTINGS,
     FIELD_SIZE,
     getDefaultStartPoint,
     getDefaultLines,
@@ -67,7 +67,7 @@
   let previousTime: number | null = null;
 
   // Path data
-  let settings: FPASettings = { ...DEFAULT_FPA_SETTINGS };
+  let settings: Settings = { ...DEFAULT_SETTINGS };
   let startPoint: Point = getDefaultStartPoint();
   let lines: Line[] = getDefaultLines();
   let shapes: Shape[] = getDefaultShapes();

@@ -1,7 +1,7 @@
 import type {
   Point,
   Line,
-  FPASettings,
+  Settings,
   TimePrediction,
   TimelineEvent,
 } from "../types";
@@ -70,7 +70,7 @@ function calculateMotionProfileTime(
 export function calculatePathTime(
   startPoint: Point,
   lines: Line[],
-  settings: FPASettings,
+  settings: Settings,
 ): TimePrediction {
   const useMotionProfile =
     settings.maxVelocity !== undefined &&

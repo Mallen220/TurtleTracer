@@ -28,7 +28,7 @@
   export let shapes: Shape[];
   export let robotWidth: number;
   export let robotHeight: number;
-  export let settings: FPASettings;
+  export let settings: Settings;
 
   export let saveProject: () => any;
   export let saveFileAs: () => any;

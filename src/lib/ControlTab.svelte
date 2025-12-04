@@ -14,7 +14,7 @@
   export let robotHeading: number;
   export let x: d3.ScaleLinear<number, number, number>;
   export let y: d3.ScaleLinear<number, number, number>;
-  export let settings: FPASettings;
+  export let settings: Settings;
   export let handleSeek: (percent: number) => void;
   export let loopAnimation: boolean;
 

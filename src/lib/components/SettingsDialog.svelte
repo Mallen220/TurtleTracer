@@ -3,7 +3,7 @@
   import { fade, fly } from "svelte/transition";
 
   export let isOpen = false;
-  export let settings: FPASettings;
+  export let settings: Settings;
 
   // Display value for angular velocity (user inputs this, gets multiplied by PI)
   $: angularVelocityDisplay = settings ? settings.aVelocity / Math.PI : 1;
@@ -27,7 +27,7 @@
       class="flex flex-col justify-start items-start p-6 bg-white dark:bg-neutral-900 rounded-lg w-full max-w-md gap-4"
     >
       <div class="flex flex-row justify-between items-center w-full">
-        <h2 id="settings-title" class="sr-only">FPA Settings</h2>
+        <h2 id="settings-title" class="sr-only">Settings</h2>
         <button on:click={() => (isOpen = false)} aria-label="Close settings">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -50,7 +50,7 @@
         <div
           class="flex flex-col w-full justify-start items-start gap-4 text-base"
         >
-          <div class="font-semibold text-lg">FPA Settings</div>
+          <div class="font-semibold text-lg">Settings</div>
 
           <div class="flex flex-row justify-between items-center w-full">
             <div class="font-light">X Velocity (in/s):</div>

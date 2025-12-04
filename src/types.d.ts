@@ -64,16 +64,7 @@ interface Line {
   locked?: boolean;
 }
 
-interface FPALine {
-  startPoint: Point;
-  endPoint: Point;
-  controlPoints: ControlPoint[];
-  interpolation: String;
-  color: string;
-  name?: string;
-}
-
-interface FPASettings {
+interface Settings {
   xVelocity: number;
   yVelocity: number;
   aVelocity: number;

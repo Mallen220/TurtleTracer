@@ -1,4 +1,4 @@
-import type { Point, Line, Shape, FPASettings } from "../types";
+import type { Point, Line, Shape, Settings } from "../types";
 import { getRandomColor } from "../utils";
 
 /**
@@ -15,9 +15,9 @@ export const LINE_WIDTH = 0.57;
 export const FIELD_SIZE = 144;
 
 /**
- * Default FPA settings
+ * Default settings
  */
-export const DEFAULT_FPA_SETTINGS: FPASettings = {
+export const DEFAULT_SETTINGS: Settings = {
   xVelocity: 30,
   yVelocity: 30,
   aVelocity: Math.PI,
