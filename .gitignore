@@ -25,3 +25,4 @@ dist-ssr
 .vercel
 ws_client.html
 /release
+digest.txt

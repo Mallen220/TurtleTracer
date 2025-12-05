@@ -243,14 +243,6 @@ export async function generateSequentialCommandCode(
   lines: Line[],
   fileName: string | null = null,
 ): Promise<string> {
-  // Collect event marker names
-  const eventMarkerNames = new Set<string>();
-  lines.forEach((line) => {
-    line.eventMarkers?.forEach((event) => {
-      eventMarkerNames.add(event.name);
-    });
-  });
-
   // Determine class name from file name or use default
   let className = "AutoPath";
   if (fileName) {
@@ -259,31 +251,59 @@ export async function generateSequentialCommandCode(
     if (!className) className = "AutoPath";
   }
 
-  // Generate pose declarations
-  const allPoses: string[] = [];
+  // Collect all pose names including control points
+  const allPoseDeclarations: string[] = [];
+  const allPoseInitializations: string[] = [];
+
+  // Track all pose variable names
+  const poseVariableNames: Map<string, string> = new Map();
 
   // Add start point
-  allPoses.push("  private Pose startPoint;");
+  allPoseDeclarations.push("  private Pose startPoint;");
+  poseVariableNames.set("startPoint", "startPoint");
+  allPoseInitializations.push('    startPoint = pp.get("startPoint");');
 
-  // Add end points
-  lines.forEach((line, idx) => {
+  // Process each line
+  lines.forEach((line, lineIdx) => {
     const endPointName = line.name
       ? line.name.replace(/[^a-zA-Z0-9]/g, "")
-      : `point${idx + 1}`;
-    allPoses.push(`  private Pose ${endPointName};`);
+      : `point${lineIdx + 1}`;
+
+    // Add end point declaration
+    allPoseDeclarations.push(`  private Pose ${endPointName};`);
+    poseVariableNames.set(`point${lineIdx + 1}`, endPointName);
+    allPoseInitializations.push(
+      `    ${endPointName} = pp.get(\"${endPointName}\");`,
+    );
+
+    // Add control points if they exist
+    if (line.controlPoints && line.controlPoints.length > 0) {
+      line.controlPoints.forEach((_, controlIdx) => {
+        const controlPointName = `${endPointName}_control${controlIdx + 1}`;
+        allPoseDeclarations.push(`  private Pose ${controlPointName};`);
+        allPoseInitializations.push(
+          `    ${controlPointName} = pp.get(\"${controlPointName}\");`,
+        );
+        // Store for use in path building
+        poseVariableNames.set(
+          `${endPointName}_control${controlIdx + 1}`,
+          controlPointName,
+        );
+      });
+    }
   });
 
   // Generate path chain declarations
   const pathChainDeclarations = lines
-    .map((line, idx) => {
+    .map((_, idx) => {
       const startPoseName =
         idx === 0
           ? "startPoint"
           : lines[idx - 1].name
             ? lines[idx - 1].name.replace(/[^a-zA-Z0-9]/g, "")
             : `point${idx}`;
-      const endPoseName = line.name
-        ? line.name.replace(/[^a-zA-Z0-9]/g, "")
+      const endPoseName = lines[idx].name
+        ? lines[idx].name.replace(/[^a-zA-Z0-9]/g, "")
         : `point${idx + 1}`;
       const pathName = `${startPoseName}TO${endPoseName}`;
       return `  private PathChain ${pathName};`;
@@ -294,52 +314,66 @@ export async function generateSequentialCommandCode(
   const progressTrackerField = `  private final ProgressTracker progressTracker;`;
 
   // Generate addCommands calls with event handling
-  const addCommandsCalls = lines
-    .map((line, idx) => {
-      const startPoseName =
-        idx === 0
-          ? "startPoint"
-          : lines[idx - 1].name
-            ? lines[idx - 1].name.replace(/[^a-zA-Z0-9]/g, "")
-            : `point${idx}`;
-      const endPoseName = line.name
-        ? line.name.replace(/[^a-zA-Z0-9]/g, "")
-        : `point${idx + 1}`;
-      const pathName = `${startPoseName}TO${endPoseName}`;
+  const commands: string[] = [];
 
-      if (line.eventMarkers && line.eventMarkers.length > 0) {
-        // Path has event markers - use parallel command with event checking
-        return `        new SequentialCommandGroup(
-            new InstantCommand(() -> {
-                progressTracker.setCurrentChain(${pathName});
-                ${line.eventMarkers
-                  .map(
-                    (event) =>
-                      `progressTracker.registerEvent("${event.name}", ${event.position.toFixed(3)});`,
-                  )
-                  .join("\n                ")}
+  lines.forEach((line, idx) => {
+    const startPoseName =
+      idx === 0
+        ? "startPoint"
+        : lines[idx - 1].name
+          ? lines[idx - 1].name.replace(/[^a-zA-Z0-9]/g, "")
+          : `point${idx}`;
+    const endPoseName = line.name
+      ? line.name.replace(/[^a-zA-Z0-9]/g, "")
+      : `point${idx + 1}`;
+    const pathName = `${startPoseName}TO${endPoseName}`;
+    const pathDisplayName = `${startPoseName}TO${endPoseName}`;
+
+    if (line.eventMarkers && line.eventMarkers.length > 0) {
+      // Path has event markers - use reg.java style structure
+      // First: InstantCommand to set up tracker
+      commands.push(`        new InstantCommand(
+            () -> {
+              progressTracker.setCurrentChain(${pathName});
+              progressTracker.setCurrentPathName("${pathDisplayName}");`);
+
+      // Add event registrations
+      line.eventMarkers.forEach((event) => {
+        commands[commands.length - 1] += `
+              progressTracker.registerEvent("${event.name}", ${event.position.toFixed(3)});`;
+      });
+
+      commands[commands.length - 1] += `
+            })`;
+
+      // Second: ParallelRaceGroup for following path with event handling
+      commands.push(`        new ParallelRaceGroup(
+            new FollowPathCommand(follower, ${pathName}),
+            new SequentialCommandGroup(`);
+
+      // Add WaitUntilCommand for each event
+      line.eventMarkers.forEach((event, eventIdx) => {
+        if (eventIdx > 0) commands[commands.length - 1] += ",";
+        commands[commands.length - 1] += `
+                new WaitUntilCommand(() -> progressTracker.shouldTriggerEvent("${event.name}")),
+                new InstantCommand(
+                    () -> {
+                      progressTracker.executeEvent("${event.name}");
+                    })`;
+      });
+
+      commands[commands.length - 1] += `
+            ))`;
+    } else {
+      // No event markers - simple InstantCommand + FollowPathCommand
+      commands.push(`        new InstantCommand(
+            () -> {
+              progressTracker.setCurrentChain(${pathName});
+              progressTracker.setCurrentPathName("${pathDisplayName}");
             }),
-            new ParallelCommandGroup(
-                new FollowPathCommand(follower, ${pathName}),
-                new SequentialCommandGroup(
-                    ${line.eventMarkers
-                      .map(
-                        (event, eventIdx) =>
-                          `new ParallelRaceGroup(
-                        new WaitUntilCommand(() -> progressTracker.shouldTriggerEvent("${event.name}")),
-                        new InstantCommand(() -> progressTracker.executeEvent("${event.name}"))
-                    )`,
-                      )
-                      .join(",\n                    ")}
-                )
-            )
-        )`;
-      } else {
-        // No event markers - simple follow path command
-        return `        new FollowPathCommand(follower, ${pathName})`;
-      }
-    })
-    .join(",\n");
+        new FollowPathCommand(follower, ${pathName})`);
+    }
+  });
 
   // Generate path building
   const pathBuilders = lines
@@ -358,48 +392,40 @@ export async function generateSequentialCommandCode(
       const isCurve = line.controlPoints.length > 0;
       const curveType = isCurve ? "BezierCurve" : "BezierLine";
 
-      const controlPointNames = line.controlPoints.map(
-        (_, cpIdx) => `${endPoseName}_control${cpIdx + 1}`,
-      );
+      // Build control points string
+      let controlPointsStr = "";
+      if (isCurve) {
+        const controlPoints: string[] = [];
+        line.controlPoints.forEach((_, cpIdx) => {
+          const controlPointName = `${endPoseName}_control${cpIdx + 1}`;
+          controlPoints.push(controlPointName);
+        });
+        controlPointsStr = controlPoints.join(", ") + ", ";
+      }
 
-      const curvePoints = isCurve
-        ? [startPoseName, ...controlPointNames, endPoseName].join(", ")
-        : `${startPoseName}, ${endPoseName}`;
+      // Determine heading interpolation
+      let headingConfig = "";
+      if (line.endPoint.heading === "constant") {
+        headingConfig = `setConstantHeadingInterpolation(${endPoseName}.getHeading())`;
+      } else if (line.endPoint.heading === "linear") {
+        headingConfig = `setLinearHeadingInterpolation(${startPoseName}.getHeading(), ${endPoseName}.getHeading())`;
+      } else {
+        headingConfig = `setTangentHeadingInterpolation()`;
+      }
 
-      const headingType =
-        line.endPoint.heading === "constant"
-          ? `setConstantHeadingInterpolation(${endPoseName}.getHeading())`
-          : line.endPoint.heading === "linear"
-            ? `setLinearHeadingInterpolation(${startPoseName}.getHeading(), ${endPoseName}.getHeading())`
-            : `setTangentHeadingInterpolation()`;
+      // Build reverse config
+      const reverseConfig = line.endPoint.reverse
+        ? "\n            .setReversed(true)"
+        : "";
 
-      return `    ${pathName} =
+      return `${pathName} =
         follower
             .pathBuilder()
-            .addPath(new ${curveType}(${curvePoints}))
-            .${headingType}
+            .addPath(new ${curveType}(${startPoseName}, ${controlPointsStr}${endPoseName}))
+            .${headingConfig}${reverseConfig}
             .build();`;
     })
-    .join("\n\n");
-
-  const namedCommandsSection =
-    eventMarkerNames.size > 0
-      ? `
-  
-  // ===== NAMED COMMANDS =====
-  // These commands must be registered in your RobotContainer class:
-  ${Array.from(eventMarkerNames)
-    .map(
-      (name) =>
-        `// NamedCommands.registerCommand("${name}", your${name.replace(/[^a-zA-Z0-9]/g, "")}Command);`,
-    )
-    .join("\n  ")}
-    
-  // The ProgressTracker.executeEvent() method will automatically call:
-  // NamedCommands.getCommand("${Array.from(eventMarkerNames)[0]}").schedule();
-  // when the event position is reached
-  `
-      : "";
+    .join("\n\n    ");
 
   const sequentialCommandCode = `
 package org.firstinspires.ftc.teamcode.Commands.AutoCommands;
@@ -411,13 +437,12 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.seattlesolvers.solverslib.command.SequentialCommandGroup;
-import com.seattlesolvers.solverslib.command.ParallelCommandGroup;
 import com.seattlesolvers.solverslib.command.ParallelRaceGroup;
 import com.seattlesolvers.solverslib.command.WaitUntilCommand;
 import com.seattlesolvers.solverslib.command.InstantCommand;
 import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.Utils.Pathing.ProgressTracker;
-${eventMarkerNames.size > 0 ? "import com.pedropathing.NamedCommands;" : ""}
 import java.io.IOException;
 import org.firstinspires.ftc.teamcode.Subsystems.Drivetrain;
 import org.firstinspires.ftc.teamcode.Utils.PedroPathReader;
@@ -428,83 +453,31 @@ public class ${className} extends SequentialCommandGroup {
   ${progressTrackerField}
 
   // Poses
-${allPoses.join("\n")}
+${allPoseDeclarations.join("\n")}
 
   // Path chains
 ${pathChainDeclarations}
 
-  public ${className}(final Drivetrain drive, HardwareMap hw) throws IOException {
+  public ${className}(final Drivetrain drive, HardwareMap hw, Telemetry telemetry) throws IOException {
     this.follower = drive.getFollower();
-    this.progressTracker = new ProgressTracker(follower);
+    this.progressTracker = new ProgressTracker(follower, telemetry);
 
     PedroPathReader pp = new PedroPathReader("${fileName ? fileName.split(/[\\/]/).pop() + ".pp" || "AutoPath.pp" : "AutoPath.pp"}", hw.appContext);
 
     // Load poses
-    startPoint = pp.get("startPoint");
-    ${lines
-      .map((line, idx) => {
-        const endPointName = line.name
-          ? line.name.replace(/[^a-zA-Z0-9]/g, "")
-          : `point${idx + 1}`;
-        return `${endPointName} = pp.get("${endPointName}");`;
-      })
-      .join("\n    ")}
-    
-    // Load control points if they exist
-    ${lines
-      .map((line, idx) => {
-        const endPoseName = line.name
-          ? line.name.replace(/[^a-zA-Z0-9]/g, "")
-          : `point${idx + 1}`;
-        return line.controlPoints
-          .map(
-            (_, cpIdx) =>
-              `${endPoseName}_control${cpIdx + 1} = pp.get("${endPoseName}_control${cpIdx + 1}");`,
-          )
-          .join("\n    ");
-      })
-      .filter(Boolean)
-      .join("\n    ")}
+${allPoseInitializations.join("\n")}
 
     follower.setStartingPose(startPoint);
 
     buildPaths();
 
     addCommands(
-${addCommandsCalls});
+${commands.join(",\n")});
   }
 
   public void buildPaths() {
-${pathBuilders}
-
-    /*
-    -----PATHS TEMPLATE-----
-    LINEAR PATH:
-    pathName =
-        follower
-            .pathBuilder()
-            .addPath(new BezierLine(firstPose, secondPose))
-            .setLinearHeadingInterpolation(firstPose.getHeading(), secondPose.getHeading())
-            .build();
-
-    TANGENTIAL PATH:
-    pathName =
-        follower
-            .pathBuilder()
-            .addPath(new BezierLine(firstPose, secondPose))
-            .setTangentHeadingInterpolation()
-            .build();
-
-    CURVE PATH:
-    pathName =
-        follower
-            .pathBuilder()
-            .addPath(new BezierCurve(firstPose, curveControlPoint, secondPose))
-            .setLinearHeadingInterpolation(firstPose.getHeading(), secondPose.getHeading())
-            .build();
-     */
+    ${pathBuilders}
   }
-${namedCommandsSection}
 }
 `;
 
