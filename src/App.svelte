@@ -56,8 +56,8 @@
   let height = 0;
 
   // Robot state
-  let robotWidth = DEFAULT_ROBOT_WIDTH;
-  let robotHeight = DEFAULT_ROBOT_HEIGHT;
+  $: robotWidth = settings?.rWidth || DEFAULT_ROBOT_WIDTH;
+  $: robotHeight = settings?.rHeight || DEFAULT_ROBOT_HEIGHT;
   let robotXY: BasePoint = { x: 0, y: 0 };
   let robotHeading: number = 0;
 
