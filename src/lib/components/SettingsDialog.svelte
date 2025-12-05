@@ -9,11 +9,15 @@
 
   // Track which sections are collapsed
   let collapsedSections = {
-    robot: false,
-    motion: false,
-    advanced: false,
-    field: false,
+    robot: true,
+    motion: true,
+    advanced: true,
+    field: true,
   };
+
+  // Get version from package. json
+  import packageJson from "../../../package.json";
+  let appVersion = packageJson.version;
 
   // Display value for angular velocity (user inputs this, gets multiplied by PI)
   $: angularVelocityDisplay = settings ? settings.aVelocity / Math.PI : 1;
@@ -72,6 +76,17 @@
         >
           Settings
         </h2>
+        <div class="flex items-center gap-2 mt-1">
+          <span
+            class="text-xs font-medium text-neutral-500 dark:text-neutral-400"
+          >
+            Version {appVersion}
+          </span>
+          <div class="text-xs text-neutral-400 dark:text-neutral-500">•</div>
+          <span class="text-xs text-neutral-500 dark:text-neutral-400">
+            Pedro Pathing Visualizer
+          </span>
+        </div>
         <button
           on:click={() => (isOpen = false)}
           aria-label="Close settings"

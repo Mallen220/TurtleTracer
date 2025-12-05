@@ -128,7 +128,6 @@
   <div
     class="flex flex-col justify-start items-start w-full rounded-lg bg-neutral-50 dark:bg-neutral-900 shadow-md p-4 overflow-y-scroll overflow-x-hidden h-full gap-6"
   >
-
     <!-- Collapsible Obstacles Section -->
     <div class="flex flex-col w-full justify-start items-start gap-0.5 text-sm">
       <div class="flex items-center gap-2 w-full">
