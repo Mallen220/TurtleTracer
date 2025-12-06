@@ -987,6 +987,8 @@
           console.error("Failed to load robot image:", settings.robotImage);
           e.target.src = "/robot.png"; // Fallback to default
         }}
+        on:dragstart={(e) => e.preventDefault()}
+        on:selectstart={(e) => e.preventDefault()}
       />
     </div>
   </div>

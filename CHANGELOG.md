@@ -1,3 +1,7 @@
+## 1.2.1 (2025-12-06)
+
+- Quick Fix: Hard Block all Image/Field Dragging for a better interface. 
+
 ## 1.2.0 (2025-12-05)
 
 - Added Events! (Experimental)
