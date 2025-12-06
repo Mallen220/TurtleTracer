@@ -12,7 +12,7 @@
     robot: true,
     motion: true,
     advanced: true,
-    field: true,
+    theme: true,
   };
 
   // Get version from package. json
@@ -656,9 +656,9 @@
         <div class="mb-4">
           <button
             on:click={() =>
-              (collapsedSections.field = !collapsedSections.field)}
+              (collapsedSections.theme = !collapsedSections.theme)}
             class="flex items-center justify-between w-full py-2 px-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-            aria-expanded={!collapsedSections.field}
+            aria-expanded={!collapsedSections.theme}
           >
             <div class="flex items-center gap-2">
               <svg
@@ -672,10 +672,10 @@
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z"
+                  d="M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42"
                 />
               </svg>
-              <span class="font-semibold">Field Settings</span>
+              <span class="font-semibold">Interface Settings</span>
             </div>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -684,7 +684,7 @@
               stroke-width={2}
               stroke="currentColor"
               class="size-5 transition-transform duration-200"
-              class:rotate-180={collapsedSections.field}
+              class:rotate-180={collapsedSections.theme}
             >
               <path
                 stroke-linecap="round"
@@ -694,10 +694,46 @@
             </svg>
           </button>
 
-          {#if !collapsedSections.field}
+          {#if !collapsedSections.theme}
             <div
               class="mt-2 space-y-3 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg"
             >
+              <div>
+                <label
+                  for="theme-select"
+                  class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                >
+                  Theme
+                  <div class="text-xs text-neutral-500 dark:text-neutral-400">
+                    Interface color scheme
+                  </div>
+                </label>
+                <select
+                  id="theme-select"
+                  bind:value={settings.theme}
+                  class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="auto">Auto (System Preference)</option>
+                  <option value="light">Light Mode</option>
+                  <option value="dark">Dark Mode</option>
+                </select>
+                <div
+                  class="mt-2 text-xs text-neutral-500 dark:text-neutral-400"
+                >
+                  {#if settings.theme === "auto"}
+                    {#if window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches}
+                      Currently using: Dark (from system)
+                    {:else}
+                      Currently using: Light (from system)
+                    {/if}
+                  {:else}
+                    Currently using: {settings.theme}
+                  {/if}
+                </div>
+              </div>
+
+              <!-- Field Map Section -->
+
               <div>
                 <label
                   for="field-map-select"

@@ -39,6 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   maxDeceleration: 30,
   fieldMap: "decode.webp",
   robotImage: "/robot.png",
+  theme: "auto",
 };
 
 /**
