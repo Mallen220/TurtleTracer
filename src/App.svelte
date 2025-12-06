@@ -911,6 +911,14 @@
       bind:clientWidth={width}
       bind:clientHeight={height}
       class="h-full aspect-square rounded-lg shadow-md bg-neutral-50 dark:bg-neutral-900 relative overflow-clip"
+      style="
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-drag: none;
+    -webkit-user-drag: none;
+  "
     >
       <img
         src={settings.fieldMap
@@ -918,7 +926,15 @@
           : "/fields/decode.webp"}
         alt="Field"
         class="absolute top-0 left-0 w-full h-full rounded-lg z-10 pointer-events-none"
-        style="background: transparent;"
+        style="
+    background: transparent; 
+    pointer-events: none; 
+    user-select: none; 
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  "
+        draggable="false"
         on:error={(e) => {
           console.error("Failed to load field map:", settings.fieldMap);
           e.target.src = "/fields/decode.webp"; // Fallback
@@ -928,7 +944,8 @@
       <img
         src={settings.robotImage || "/robot.png"}
         alt="Robot"
-        style={`position: absolute; top: ${robotXY.y}px; left: ${robotXY.x}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${x(robotWidth)}px; height: ${x(robotHeight)}px;`}
+        style={`position: absolute; top: ${robotXY.y}px; left: ${robotXY.x}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${x(robotWidth)}px; height: ${x(robotHeight)}px;user-select: none; -webkit-user-select: none; -moz-user-select: none;-ms-user-select: none; pointer-events: none;`}
+        draggable="false"
         on:error={(e) => {
           console.error("Failed to load robot image:", settings.robotImage);
           e.target.src = "/robot.png"; // Fallback to default
