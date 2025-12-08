@@ -11,4 +11,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("file:write", filePath, content),
   deleteFile: (filePath) => ipcRenderer.invoke("file:delete", filePath),
   fileExists: (filePath) => ipcRenderer.invoke("file:exists", filePath),
+
+  // Directory settings operations
+  getDirectorySettings: () => ipcRenderer.invoke("directory:get-settings"),
+  saveDirectorySettings: (settings) =>
+    ipcRenderer.invoke("directory:save-settings", settings),
+  getSavedDirectory: () => ipcRenderer.invoke("directory:get-saved-directory"),
+
+  // Enhanced file operations
+  createDirectory: (dirPath) =>
+    ipcRenderer.invoke("file:create-directory", dirPath),
+  getDirectoryStats: (dirPath) =>
+    ipcRenderer.invoke("file:get-directory-stats", dirPath),
 });

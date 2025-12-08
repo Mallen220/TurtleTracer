@@ -120,9 +120,58 @@ app.on("will-quit", () => {
   }
 });
 
-// Add IPC handlers for file operations
+// Add these functions at the top, after the imports
+const getDirectorySettingsPath = () => {
+  return path.join(app.getPath("userData"), "directory-settings.json");
+};
+
+const loadDirectorySettings = async () => {
+  const settingsPath = getDirectorySettingsPath();
+  try {
+    const data = await fs.readFile(settingsPath, "utf-8");
+    return JSON.parse(data);
+  } catch (error) {
+    // Return default settings if file doesn't exist
+    return { autoPathsDirectory: "" };
+  }
+};
+
+const saveDirectorySettings = async (settings) => {
+  const settingsPath = getDirectorySettingsPath();
+  try {
+    await fs.writeFile(
+      settingsPath,
+      JSON.stringify(settings, null, 2),
+      "utf-8",
+    );
+    return true;
+  } catch (error) {
+    console.error("Error saving directory settings:", error);
+    return false;
+  }
+};
+
+// Update the existing ipcMain.handle for "file:get-directory"
 ipcMain.handle("file:get-directory", async () => {
-  // Default directory - can be changed by user
+  // Load saved directory settings
+  const settings = await loadDirectorySettings();
+
+  // If we have a saved directory, use it
+  if (
+    settings.autoPathsDirectory &&
+    settings.autoPathsDirectory.trim() !== ""
+  ) {
+    try {
+      await fs.access(settings.autoPathsDirectory);
+      return settings.autoPathsDirectory;
+    } catch (error) {
+      console.log(
+        "Saved directory no longer accessible, falling back to default",
+      );
+    }
+  }
+
+  // Fallback to default directory
   const defaultDir = path.join(
     process.env.HOME,
     "Documents",
@@ -145,10 +194,7 @@ ipcMain.handle("file:get-directory", async () => {
   }
 });
 
-ipcMain.handle("app:get-app-data-path", () => {
-  return app.getPath("userData");
-});
-
+// Update the existing ipcMain.handle for "file:set-directory"
 ipcMain.handle("file:set-directory", async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ["openDirectory"],
@@ -156,9 +202,78 @@ ipcMain.handle("file:set-directory", async () => {
   });
 
   if (!result.canceled && result.filePaths.length > 0) {
-    return result.filePaths[0];
+    const selectedDir = result.filePaths[0];
+
+    // Save the directory to settings
+    const settings = await loadDirectorySettings();
+    settings.autoPathsDirectory = selectedDir;
+    await saveDirectorySettings(settings);
+
+    return selectedDir;
   }
   return null;
+});
+
+// Add new IPC handlers for directory settings
+ipcMain.handle("directory:get-settings", async () => {
+  return await loadDirectorySettings();
+});
+
+ipcMain.handle("directory:save-settings", async (event, settings) => {
+  return await saveDirectorySettings(settings);
+});
+
+// Add a handler to get the saved directory directly
+ipcMain.handle("directory:get-saved-directory", async () => {
+  const settings = await loadDirectorySettings();
+  return settings.autoPathsDirectory || "";
+});
+
+// Add to existing IPC handlers
+ipcMain.handle("file:create-directory", async (event, dirPath) => {
+  try {
+    await fs.mkdir(dirPath, { recursive: true });
+    return true;
+  } catch (error) {
+    console.error("Error creating directory:", error);
+    throw error;
+  }
+});
+
+ipcMain.handle("file:get-directory-stats", async (event, dirPath) => {
+  try {
+    const files = await fs.readdir(dirPath);
+    const ppFiles = files.filter((file) => file.endsWith(".pp"));
+
+    let totalSize = 0;
+    let latestModified = new Date(0);
+
+    for (const file of ppFiles) {
+      const filePath = path.join(dirPath, file);
+      const stats = await fs.stat(filePath);
+      totalSize += stats.size;
+      if (stats.mtime > latestModified) {
+        latestModified = stats.mtime;
+      }
+    }
+
+    return {
+      totalFiles: ppFiles.length,
+      totalSize,
+      lastModified: latestModified,
+    };
+  } catch (error) {
+    console.error("Error getting directory stats:", error);
+    return {
+      totalFiles: 0,
+      totalSize: 0,
+      lastModified: new Date(),
+    };
+  }
+});
+
+ipcMain.handle("app:get-app-data-path", () => {
+  return app.getPath("userData");
 });
 
 ipcMain.handle("file:list", async (event, directory) => {

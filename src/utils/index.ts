@@ -6,6 +6,7 @@ export * from "./geometry";
 export * from "./math";
 export * from "./shapes";
 export * from "./timeCalculator";
+export * from "./directorySettings";
 
 export const DPI = 96 / 5;
 

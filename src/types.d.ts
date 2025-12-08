@@ -123,13 +123,6 @@ interface Shape {
   fillColor: string;
 }
 
-interface FileInfo {
-  name: string;
-  path: string;
-  size: number;
-  modified: Date;
-}
-
 interface EventMarker {
   id: string;
   name: string;
@@ -142,4 +135,16 @@ interface NamedCommand {
   name: string;
   description?: string;
   parameters?: string[]; // Parameter names
+}
+
+interface DirectorySettings {
+  autoPathsDirectory: string;
+}
+
+interface FileInfo {
+  name: string;
+  path: string;
+  size: number;
+  modified: Date;
+  error?: string;
 }
