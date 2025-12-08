@@ -1,6 +1,10 @@
 <script lang="ts">
   import _ from "lodash";
   import { getRandomColor, createTriangle } from "../utils";
+  import { snapToGrid, showGrid, gridSize } from "../stores";
+
+  $: snapToGridTitle =
+    $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping";
 
   export let percent: number;
   export let playing: boolean;
@@ -273,7 +277,7 @@
                   type="number"
                   min="0"
                   max="144"
-                  step="0.1"
+                  title={snapToGridTitle}
                   class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-24 text-sm"
                 />
                 <div class="font-extralight text-sm">Y:</div>
@@ -282,9 +286,15 @@
                   type="number"
                   min="0"
                   max="144"
-                  step="0.1"
+                  step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                   class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-24 text-sm"
+                  title={snapToGridTitle}
                 />
+                {#if $snapToGrid && $showGrid}
+                  <span class="text-xs text-green-500" title="Snapping enabled"
+                    >✓</span
+                  >
+                {/if}
                 {#if shape.vertices.length > 3}
                   <button
                     title="Remove Vertex"
@@ -583,22 +593,24 @@
               <div class="font-extralight">X:</div>
               <input
                 class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-28"
-                step="0.1"
+                step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 type="number"
                 min="0"
                 max="144"
                 bind:value={line.endPoint.x}
                 disabled={line.locked}
+                title={snapToGridTitle}
               />
               <div class="font-extralight">Y:</div>
               <input
                 class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-28"
-                step="0.1"
+                step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 min="0"
                 max="144"
                 type="number"
                 bind:value={line.endPoint.y}
                 disabled={line.locked}
+                title={snapToGridTitle}
               />
 
               <select
@@ -692,9 +704,7 @@ With tangential heading, the heading follows the direction of the line."
             </div>
           </div>
 
-          <!-- FIXME: Temparily hide event markers for release until they can be tested.  -->
           {#if !collapsedSections.lines[idx]}
-            <!-- {#if false} -->
             <!-- Event Markers section -->
             <div class="flex flex-col w-full justify-start items-start mt-2">
               <div class="flex items-center justify-between w-full">
@@ -984,13 +994,14 @@ With tangential heading, the heading follows the direction of the line."
                         type="number"
                         min="0"
                         max="144"
-                        step="0.1"
+                        step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                         class="w-20 px-2 py-1 text-xs rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         on:change={() => {
                           // Update the array to trigger reactivity
                           line.controlPoints = [...line.controlPoints];
                         }}
                         disabled={line.locked}
+                        title={snapToGridTitle}
                       />
                       <span
                         class="text-xs text-neutral-600 dark:text-neutral-400"
@@ -1001,13 +1012,14 @@ With tangential heading, the heading follows the direction of the line."
                         type="number"
                         min="0"
                         max="144"
-                        step="0.1"
+                        step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                         class="w-20 px-2 py-1 text-xs rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         on:change={() => {
                           // Update the array to trigger reactivity
                           line.controlPoints = [...line.controlPoints];
                         }}
                         disabled={line.locked}
+                        title={snapToGridTitle}
                       />
                     </div>
 

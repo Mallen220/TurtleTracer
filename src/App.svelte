@@ -1,6 +1,13 @@
 <script lang="ts">
   import * as d3 from "d3";
-  import { currentFilePath, isUnsaved } from "./stores";
+  import {
+    snapToGrid,
+    gridSize,
+    currentFilePath,
+    isUnsaved,
+    showGrid,
+  } from "./stores";
+
   import Two from "two.js";
   import type { Path } from "two.js/src/path";
   import type { Line as PathLine } from "two.js/src/shapes/line";
@@ -656,6 +663,7 @@
 
     two.renderer.domElement.addEventListener("mousemove", (evt: MouseEvent) => {
       const elem = document.elementFromPoint(evt.clientX, evt.clientY);
+
       if (isDown && currentElem) {
         const line = Number(currentElem.split("-")[1]) - 1;
 
@@ -666,14 +674,33 @@
 
         const { x: xPos, y: yPos } = getMousePos(evt, two.renderer.domElement);
 
+        // Get current store values for reactivity
+        const currentGridSize = $gridSize;
+        const currentSnapToGrid = $snapToGrid;
+        const currentShowGrid = $showGrid;
+
+        // Always apply grid snapping when enabled
+        let inchX = x.invert(xPos);
+        let inchY = y.invert(yPos);
+
+        if (currentSnapToGrid && currentShowGrid && currentGridSize > 0) {
+          // Force snap to nearest grid point - ALWAYS
+          inchX = Math.round(inchX / currentGridSize) * currentGridSize;
+          inchY = Math.round(inchY / currentGridSize) * currentGridSize;
+
+          // Clamp to field boundaries
+          inchX = Math.max(0, Math.min(FIELD_SIZE, inchX));
+          inchY = Math.max(0, Math.min(FIELD_SIZE, inchY));
+        }
+
         if (currentElem.startsWith("obstacle-")) {
           // Handle obstacle vertex dragging
           const parts = currentElem.split("-");
           const shapeIdx = Number(parts[1]);
           const vertexIdx = Number(parts[2]);
 
-          shapes[shapeIdx].vertices[vertexIdx].x = x.invert(xPos);
-          shapes[shapeIdx].vertices[vertexIdx].y = y.invert(yPos);
+          shapes[shapeIdx].vertices[vertexIdx].x = inchX;
+          shapes[shapeIdx].vertices[vertexIdx].y = inchY;
         } else {
           // Handle path point dragging
           const line = Number(currentElem.split("-")[1]) - 1;
@@ -682,16 +709,16 @@
           if (line === -1) {
             // This is the starting point
             if (startPoint.locked) return;
-            startPoint.x = x.invert(xPos);
-            startPoint.y = y.invert(yPos);
+            startPoint.x = inchX;
+            startPoint.y = inchY;
           } else {
             if (point === 0) {
-              lines[line].endPoint.x = x.invert(xPos);
-              lines[line].endPoint.y = y.invert(yPos);
+              lines[line].endPoint.x = inchX;
+              lines[line].endPoint.y = inchY;
             } else {
               if (lines[line]?.locked) return;
-              lines[line].controlPoints[point - 1].x = x.invert(xPos);
-              lines[line].controlPoints[point - 1].y = y.invert(yPos);
+              lines[line].controlPoints[point - 1].x = inchX;
+              lines[line].controlPoints[point - 1].y = inchY;
             }
           }
         }

@@ -8,6 +8,7 @@
     gridSize,
     currentFilePath,
     isUnsaved,
+    snapToGrid,
   } from "../stores";
   import { getRandomColor } from "../utils";
   import {
@@ -42,7 +43,7 @@
   let saveButtonRef: HTMLElement;
 
   let selectedGridSize = 12;
-  const gridSizeOptions = [6, 12, 24, 36, 48];
+  const gridSizeOptions = [1, 3, 6, 12, 24];
 
   $: timePrediction = calculatePathTime(startPoint, lines, settings);
 
@@ -210,6 +211,43 @@
           ({timePrediction.totalDistance.toFixed(0)} in)
         </div>
       </div>
+
+      <!-- Snap to grid toggle -->
+      {#if $showGrid}
+        <button
+          title={$snapToGrid ? "Disable Snap to Grid" : "Enable Snap to Grid"}
+          on:click={() => snapToGrid.update((v) => !v)}
+          class:text-green-500={$snapToGrid && $showGrid}
+          class:text-gray-400={!$showGrid}
+          class:opacity-50={!$showGrid}
+          disabled={!$showGrid}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <!-- When snapped, show magnet icon -->
+            <path
+              d="m6 15-4-4 6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15"
+            ></path>
+            <path d="m5 8 4 4"></path>
+            <path d="m12 15 4 4"></path>
+
+            <!-- If the snap is disabled, turn the icon grey, not white -->
+            {#if !$snapToGrid}
+              <line x1="23" y1="23" x2="1" y2="1"></line>
+              class="opacity-50"
+            {/if}
+          </svg>
+        </button>
+      {/if}
 
       <!-- Grid toggle -->
       <div class="relative flex flex-col items-center justify-center">
