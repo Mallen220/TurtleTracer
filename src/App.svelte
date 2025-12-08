@@ -7,7 +7,6 @@
     isUnsaved,
     showGrid,
   } from "./stores";
-
   import Two from "two.js";
   import type { Path } from "two.js/src/path";
   import type { Line as PathLine } from "two.js/src/shapes/line";
@@ -23,7 +22,6 @@
   import {
     easeInOutQuad,
     getCurvePoint,
-    getMousePos,
     getRandomColor,
     quadraticToCubic,
     radiansToDegrees,
@@ -47,7 +45,6 @@
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { onMount, tick } from "svelte";
   import { debounce } from "lodash";
-
   // Electron API type (defined in preload.js, attached to window)
   interface ElectronAPI {
     writeFile: (filePath: string, content: string) => Promise<boolean>;
@@ -61,26 +58,22 @@
   let twoElement: HTMLDivElement;
   let width = 0;
   let height = 0;
-
   // Robot state
   $: robotWidth = settings?.rWidth || DEFAULT_ROBOT_WIDTH;
   $: robotHeight = settings?.rHeight || DEFAULT_ROBOT_HEIGHT;
   let robotXY: BasePoint = { x: 0, y: 0 };
   let robotHeading: number = 0;
-
   // Animation state
   let percent: number = 0;
   let playing = false;
   let animationFrame: number;
   let startTime: number | null = null;
   let previousTime: number | null = null;
-
   // Path data
   let settings: Settings = { ...DEFAULT_SETTINGS };
   let startPoint: Point = getDefaultStartPoint();
   let lines: Line[] = getDefaultLines();
   let shapes: Shape[] = getDefaultShapes();
-
   $: {
     // Ensure arrays are reactive when items are added/removed
     lines = lines;
@@ -94,7 +87,6 @@
   pointGroup.id = "point-group";
   let shapeGroup = new Two.Group();
   shapeGroup.id = "shape-group";
-
   // Coordinate converters
   let x: d3.ScaleLinear<number, number, number>;
 
@@ -103,7 +95,6 @@
   let animationController: ReturnType<typeof createAnimationController>;
   $: timePrediction = calculatePathTime(startPoint, lines, settings);
   $: animationDuration = getAnimationDuration(timePrediction.totalTime / 1000);
-
   /**
    * Converter for X axis from inches to pixels.
    */
@@ -111,7 +102,6 @@
     .scaleLinear()
     .domain([0, FIELD_SIZE])
     .range([0, width || FIELD_SIZE]);
-
   /**
    * Converter for Y axis from inches to pixels.
    */
@@ -119,7 +109,6 @@
     .scaleLinear()
     .domain([0, FIELD_SIZE])
     .range([height || FIELD_SIZE, 0]);
-
   $: {
     // Calculate robot state using the Timeline
     if (timePrediction && timePrediction.timeline && lines.length > 0) {
@@ -131,7 +120,6 @@
         x,
         y,
       );
-
       robotXY = { x: state.x, y: state.y };
       robotHeading = state.heading;
     } else {
@@ -199,7 +187,6 @@
         }
       });
     });
-
     // Add obstacle vertices as draggable points
     shapes.forEach((shape, shapeIdx) => {
       shape.vertices.forEach((vertex, vertexIdx) => {
@@ -229,7 +216,6 @@
         pointText.baseline = "middle";
         pointText.fill = "white";
         pointText.noStroke();
-
         pointGroup.add(pointElem, pointText);
         _points.push(pointGroup);
       });
@@ -275,7 +261,6 @@
           );
         }
         points.forEach((point) => (point.relative = false));
-
         lineElem = new Two.Path(points);
         lineElem.automatic = false;
       } else if (line.controlPoints.length > 0) {
@@ -287,7 +272,6 @@
           line.controlPoints[1] ??
           quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
             .Q2;
-
         let points = [
           new Two.Anchor(
             x(_startPoint.x),
@@ -325,7 +309,6 @@
       lineElem.stroke = line.color;
       lineElem.linewidth = x(LINE_WIDTH);
       lineElem.noFill();
-
       // Add a dashed line for locked paths
       if (line.locked) {
         lineElem.dashes = [x(2), x(2)];
@@ -340,7 +323,6 @@
 
     return _path;
   })();
-
   $: shapeElements = (() => {
     let _shapes: Path[] = [];
 
@@ -397,7 +379,7 @@
         shapeElement.stroke = shape.color;
         shapeElement.fill = shape.color;
         shapeElement.opacity = 0.4;
-        shapeElement.linewidth = x(0.8); // Make border more visible
+        shapeElement.linewidth = x(0.8);
         shapeElement.automatic = false;
 
         _shapes.push(shapeElement);
@@ -408,7 +390,6 @@
   })();
 
   let isLoaded = false;
-
   // Reactively trigger when any saveable data changes
   $: {
     if (isLoaded && (lines || shapes || startPoint || settings)) {
@@ -422,7 +403,6 @@
       isLoaded = true;
     }, 500);
   });
-
   onMount(async () => {
     // Load saved settings
     const savedSettings = await loadSettings();
@@ -432,11 +412,11 @@
     robotWidth = settings.rWidth;
     robotHeight = settings.rHeight;
   });
-
   // Debounced save function
   const debouncedSaveSettings = debounce(async (settingsToSave: Settings) => {
     await saveSettings(settingsToSave);
-  }, 1000); // Save after 1 second of inactivity
+  }, 1000);
+  // Save after 1 second of inactivity
 
   // Watch for settings changes and save
   $: {
@@ -459,7 +439,6 @@
       },
     );
   });
-
   $: if (animationController) {
     animationController.setDuration(animationDuration);
   }
@@ -497,7 +476,6 @@
     event.preventDefault();
     saveProject();
   });
-
   $: {
     // This handles both 'travel' (movement) and 'wait' (stationary rotation) events.
     if (timePrediction && timePrediction.timeline && lines.length > 0) {
@@ -509,7 +487,6 @@
         x,
         y,
       );
-
       robotXY = { x: state.x, y: state.y };
       robotHeading = state.heading;
     } else {
@@ -549,7 +526,6 @@
           markerCircle.fill = "#8b5cf6"; // Purple color
           markerCircle.stroke = "#ffffff";
           markerCircle.linewidth = x(0.3);
-
           // Create a flag/icon inside
           const flagSize = x(1);
           const flagPoints = [
@@ -601,7 +577,6 @@
 
     two.update();
   })();
-
   function saveFileAs() {
     downloadTrajectory(startPoint, lines, shapes);
   }
@@ -613,7 +588,6 @@
 
     if (previousTime !== null) {
       const deltaTime = timestamp - previousTime;
-
       if (percent >= 100) {
         percent = 0;
       } else {
@@ -660,6 +634,7 @@
 
     let currentElem: string | null = null;
     let isDown = false;
+    let dragOffset = { x: 0, y: 0 }; // Store offset to prevent snapping to center
 
     two.renderer.domElement.addEventListener("mousemove", (evt: MouseEvent) => {
       const elem = document.elementFromPoint(evt.clientX, evt.clientY);
@@ -672,21 +647,28 @@
           return;
         }
 
-        const { x: xPos, y: yPos } = getMousePos(evt, two.renderer.domElement);
+        // Use simple bounding rect math to match D3 scales which are bound to clientWidth/Height
+        const rect = two.renderer.domElement.getBoundingClientRect();
+        const xPos = evt.clientX - rect.left;
+        const yPos = evt.clientY - rect.top;
 
         // Get current store values for reactivity
         const currentGridSize = $gridSize;
         const currentSnapToGrid = $snapToGrid;
         const currentShowGrid = $showGrid;
 
-        // Always apply grid snapping when enabled
-        let inchX = x.invert(xPos);
-        let inchY = y.invert(yPos);
+        // Apply drag offset (in inches) to the raw mouse position
+        let rawInchX = x.invert(xPos) + dragOffset.x;
+        let rawInchY = y.invert(yPos) + dragOffset.y;
 
+        let inchX = rawInchX;
+        let inchY = rawInchY;
+
+        // Always apply grid snapping when enabled
         if (currentSnapToGrid && currentShowGrid && currentGridSize > 0) {
-          // Force snap to nearest grid point - ALWAYS
-          inchX = Math.round(inchX / currentGridSize) * currentGridSize;
-          inchY = Math.round(inchY / currentGridSize) * currentGridSize;
+          // Force snap to nearest grid point
+          inchX = Math.round(rawInchX / currentGridSize) * currentGridSize;
+          inchY = Math.round(rawInchY / currentGridSize) * currentGridSize;
 
           // Clamp to field boundaries
           inchX = Math.max(0, Math.min(FIELD_SIZE, inchX));
@@ -732,14 +714,59 @@
         }
       }
     });
-    two.renderer.domElement.addEventListener("mousedown", () => {
+
+    two.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
       isDown = true;
+
+      // Calculate drag offset when clicking to prevent snapping center to mouse
+      if (currentElem) {
+        const rect = two.renderer.domElement.getBoundingClientRect();
+        const mouseX = x.invert(evt.clientX - rect.left);
+        const mouseY = y.invert(evt.clientY - rect.top);
+
+        let objectX = 0;
+        let objectY = 0;
+
+        if (currentElem.startsWith("obstacle-")) {
+          const parts = currentElem.split("-");
+          const shapeIdx = Number(parts[1]);
+          const vertexIdx = Number(parts[2]);
+          if (shapes[shapeIdx]?.vertices[vertexIdx]) {
+            objectX = shapes[shapeIdx].vertices[vertexIdx].x;
+            objectY = shapes[shapeIdx].vertices[vertexIdx].y;
+          }
+        } else {
+          const line = Number(currentElem.split("-")[1]) - 1;
+          const point = Number(currentElem.split("-")[2]);
+
+          if (line === -1) {
+            objectX = startPoint.x;
+            objectY = startPoint.y;
+          } else if (lines[line]) {
+            if (point === 0) {
+              objectX = lines[line].endPoint.x;
+              objectY = lines[line].endPoint.y;
+            } else {
+              if (lines[line].controlPoints[point - 1]) {
+                objectX = lines[line].controlPoints[point - 1].x;
+                objectY = lines[line].controlPoints[point - 1].y;
+              }
+            }
+          }
+        }
+
+        dragOffset = {
+          x: objectX - mouseX,
+          y: objectY - mouseY,
+        };
+      }
     });
+
     two.renderer.domElement.addEventListener("mouseup", () => {
       isDown = false;
+      dragOffset = { x: 0, y: 0 };
     });
   });
-
   document.addEventListener("keydown", function (evt) {
     if (evt.code === "Space" && document.activeElement === document.body) {
       if (playing) {
@@ -749,7 +776,6 @@
       }
     }
   });
-
   function saveFile() {
     downloadTrajectory(startPoint, lines, shapes);
   }
@@ -791,7 +817,6 @@
     try {
       // Read the file content
       const reader = new FileReader();
-
       reader.onload = async (e) => {
         try {
           const content = e.target?.result as string;
@@ -801,13 +826,10 @@
           const currentDir = $currentFilePath
             ? $currentFilePath.substring(0, $currentFilePath.lastIndexOf("/"))
             : await electronAPI.getDirectory();
-
           // Create the destination path
           const destPath = currentDir + "/" + file.name;
-
           // Check if file already exists in the directory
           const exists = await electronAPI.fileExists(destPath);
-
           if (exists) {
             // Ask for confirmation to overwrite
             const overwrite = confirm(
@@ -822,20 +844,16 @@
 
           // Copy the file to the current directory
           await electronAPI.writeFile(destPath, content);
-
           // Load the data into the app
           loadData(data);
-
           // Update the current file path to the newly loaded file
           currentFilePath.set(destPath);
-
           console.log(`File copied to: ${destPath}`);
         } catch (error) {
           console.error("Error processing file:", error);
           alert("Error loading file: " + error.message);
         }
       };
-
       reader.onerror = () => {
         alert("Error reading file");
       };
@@ -902,22 +920,18 @@
     event.preventDefault();
     addNewLine();
   });
-
   hotkeys("a", function (event, handler) {
     event.preventDefault();
     addControlPoint();
     two.update();
   });
-
   hotkeys("s", function (event, handler) {
     event.preventDefault();
     removeControlPoint();
     two.update();
   });
-
   function applyTheme(theme: "light" | "dark" | "auto") {
     let actualTheme = theme;
-
     if (theme === "auto") {
       // Check system preference
       if (
@@ -1053,7 +1067,9 @@
       <img
         src={settings.robotImage || "/robot.png"}
         alt="Robot"
-        style={`position: absolute; top: ${robotXY.y}px; left: ${robotXY.x}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${x(robotWidth)}px; height: ${x(robotHeight)}px;user-select: none; -webkit-user-select: none; -moz-user-select: none;-ms-user-select: none; pointer-events: none;`}
+        style={`position: absolute; top: ${robotXY.y}px;
+left: ${robotXY.x}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${x(robotWidth)}px; height: ${x(robotHeight)}px;user-select: none; -webkit-user-select: none; -moz-user-select: none;-ms-user-select: none;
+pointer-events: none;`}
         draggable="false"
         on:error={(e) => {
           console.error("Failed to load robot image:", settings.robotImage);
