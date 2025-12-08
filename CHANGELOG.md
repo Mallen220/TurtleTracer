@@ -1,6 +1,6 @@
 ## 1.2.2 (2025-12-08)
 
-- Moved theme selection to settings. Enhanced file manager fixing some users directories. Add file renaming support to FileManager. Quickfix: Improve heading initialization. Updated Icon. 
+- Moved theme selection to settings. Enhanced file manager fixing some users directories. Add file renaming support to FileManager. Quickfix: Improve heading initialization. Updated Icon.
 
 ## 1.2.1 (2025-12-06)
 

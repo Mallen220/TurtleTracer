@@ -42,7 +42,7 @@
   let saveButtonRef: HTMLElement;
 
   let selectedGridSize = 12;
-  const gridSizeOptions = [12, 24, 36, 48];
+  const gridSizeOptions = [6, 12, 24, 36, 48];
 
   $: timePrediction = calculatePathTime(startPoint, lines, settings);
 
