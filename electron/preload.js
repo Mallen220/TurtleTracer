@@ -23,4 +23,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("file:create-directory", dirPath),
   getDirectoryStats: (dirPath) =>
     ipcRenderer.invoke("file:get-directory-stats", dirPath),
+
+  // Rename operation
+  renameFile: (oldPath, newPath) =>
+    ipcRenderer.invoke("file:rename", oldPath, newPath),
 });

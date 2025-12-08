@@ -276,6 +276,26 @@ ipcMain.handle("app:get-app-data-path", () => {
   return app.getPath("userData");
 });
 
+// Add to existing IPC handlers
+ipcMain.handle("file:rename", async (event, oldPath, newPath) => {
+  try {
+    // Check if new path already exists
+    const exists = await fs
+      .access(newPath)
+      .then(() => true)
+      .catch(() => false);
+    if (exists) {
+      throw new Error(`File "${path.basename(newPath)}" already exists`);
+    }
+
+    await fs.rename(oldPath, newPath);
+    return { success: true, newPath };
+  } catch (error) {
+    console.error("Error renaming file:", error);
+    throw error;
+  }
+});
+
 ipcMain.handle("file:list", async (event, directory) => {
   try {
     const files = await fs.readdir(directory);

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount, afterUpdate } from "svelte";
+  import { onMount, afterUpdate, onDestroy } from "svelte";
+
   import { cubicInOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
   import type { FileInfo, Point, Line, Shape } from "../types";
@@ -28,6 +29,10 @@
     lastModified: new Date(),
   };
 
+  // Add renaming state
+  let renamingFile: FileInfo | null = null;
+  let renameInputValue = "";
+
   // Add file type filtering
   const supportedFileTypes = [".pp"];
 
@@ -42,6 +47,10 @@
     getSavedDirectory: () => Promise<string>;
     createDirectory: (dirPath: string) => Promise<boolean>;
     getDirectoryStats: (dirPath: string) => Promise<any>;
+    renameFile: (
+      oldPath: string,
+      newPath: string,
+    ) => Promise<{ success: boolean; newPath: string }>;
   };
 
   async function loadDirectory() {
@@ -141,6 +150,82 @@
       console.error("Error changing directory:", error);
       errorMessage = `Failed to change directory: ${error.message}`;
       showToast("Failed to change directory", "error");
+    }
+  }
+
+  // NEW: Start renaming a file
+  function startRename(file: FileInfo) {
+    renamingFile = file;
+    renameInputValue = file.name.replace(/\.pp$/, "");
+  }
+
+  // NEW: Cancel renaming
+  function cancelRename() {
+    renamingFile = null;
+    renameInputValue = "";
+  }
+
+  // NEW: Rename file
+  async function renameFile() {
+    if (!renamingFile) return;
+
+    // Validate the new name
+    const newName = renameInputValue.trim();
+    if (!newName) {
+      showToast("Please enter a file name", "warning");
+      return;
+    }
+
+    const newFileName = newName.endsWith(".pp") ? newName : newName + ".pp";
+    const newFilePath = path.join(currentDirectory, newFileName);
+
+    // Don't rename if same name
+    if (newFilePath === renamingFile.path) {
+      cancelRename();
+      return;
+    }
+
+    // Validate file name format
+    if (!/^[a-zA-Z0-9_\-. ]+\.pp$/.test(newFileName)) {
+      showToast(
+        "Invalid file name. Use only letters, numbers, underscores, dashes, and spaces.",
+        "error",
+      );
+      return;
+    }
+
+    try {
+      // Check if new file already exists
+      const exists = await electronAPI.fileExists(newFilePath);
+      if (exists) {
+        showToast(`File "${newFileName}" already exists`, "error");
+        return;
+      }
+
+      // Perform the rename
+      const result = await electronAPI.renameFile(
+        renamingFile.path,
+        newFilePath,
+      );
+
+      if (result.success) {
+        // Update selected file if it was the renamed one
+        if (selectedFile && selectedFile.path === renamingFile.path) {
+          selectedFile = {
+            ...selectedFile,
+            name: newFileName,
+            path: newFilePath,
+          };
+          currentFilePath.set(newFilePath);
+        }
+
+        showToast(`Renamed to: ${newFileName}`, "success");
+        await refreshDirectory();
+        cancelRename();
+      }
+    } catch (error) {
+      console.error("Error renaming file:", error);
+      showToast(`Failed to rename: ${error.message}`, "error");
     }
   }
 
@@ -386,6 +471,7 @@
       showToast("Failed to create mirrored file", "error");
     }
   }
+
   function mirrorPointHeading(point: Point): Point {
     // For linear heading, mirror both start and end degrees
     if (point.heading === "linear") {
@@ -505,15 +591,31 @@
     );
   }
 
-  function getFileIcon(fileName: string): string {
-    if (fileName.endsWith(".pp")) {
-      return "📁"; // Folder icon for path files
+  // Handle keyboard shortcuts
+  function handleKeyDown(event: KeyboardEvent) {
+    if (!renamingFile) return;
+
+    switch (event.key) {
+      case "Enter":
+        event.preventDefault();
+        renameFile();
+        break;
+      case "Escape":
+        event.preventDefault();
+        cancelRename();
+        break;
     }
-    return "📄"; // Generic file icon
   }
 
   onMount(() => {
     loadDirectory();
+    // Add keyboard listener for renaming
+    window.addEventListener("keydown", handleKeyDown);
+  });
+
+  // Clean up event listener
+  onDestroy(() => {
+    window.removeEventListener("keydown", handleKeyDown);
   });
 
   // Mock path.join for browser context
@@ -580,13 +682,10 @@
       <div class="mb-4">
         <div class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
           <div class="font-medium mb-1">Current Directory:</div>
-
-          <!-- Add scrollable directory -->
           <div
             class="font-mono text-xs bg-neutral-100 dark:bg-neutral-800 p-2 rounded overflow-x-auto whitespace-nowrap"
             title={currentDirectory}
           >
-            <!-- Display starting after /GitHub/ for brevity -->
             {currentDirectory.includes("/GitHub/")
               ? "..." + currentDirectory.split("/GitHub/")[1]
               : currentDirectory}
@@ -752,57 +851,113 @@
 
           {#each files as file (file.path)}
             <div
-              class="p-3 border-b border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+              class="p-3 border-b border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors cursor-pointer file-item"
               on:click={() => loadFile(file)}
               class:bg-blue-50={selectedFile?.path === file.path}
               class:dark:bg-blue-900={selectedFile?.path === file.path}
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <!-- <span class="text-lg">{getFileIcon(file.name)}</span> -->
-                    <div
-                      class="font-medium text-sm truncate text-neutral-900 dark:text-white"
-                      title={file.name}
-                    >
-                      {file.name}
-                      {#if file.error}
-                        <span class="ml-2 text-xs text-red-500"
-                          >({file.error})</span
+                  {#if renamingFile?.path === file.path}
+                    <!-- Rename Input -->
+                    <div class="space-y-2">
+                      <input
+                        bind:value={renameInputValue}
+                        class="w-full px-2 py-1 text-sm border border-blue-300 dark:border-blue-600 rounded bg-white dark:bg-neutral-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        on:keydown={(e) => {
+                          if (e.key === "Enter") renameFile();
+                          if (e.key === "Escape") cancelRename();
+                        }}
+                      />
+                      <div class="flex gap-2">
+                        <button
+                          on:click|stopPropagation={renameFile}
+                          class="px-2 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
                         >
-                      {/if}
+                          Save
+                        </button>
+                        <button
+                          on:click|stopPropagation={cancelRename}
+                          class="px-2 py-1 text-xs bg-neutral-500 hover:bg-neutral-600 text-white rounded transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div
-                    class="text-xs text-neutral-500 dark:text-neutral-400 space-y-1"
-                  >
-                    <div class="flex items-center gap-2">
-                      <span>{formatFileSize(file.size)}</span>
-                      <span>•</span>
-                      <span>Modified: {formatDate(file.modified)}</span>
+                  {:else}
+                    <!-- Normal File Display -->
+                    <div class="flex items-center gap-2 mb-1">
+                      <div
+                        class="font-medium text-sm truncate text-neutral-900 dark:text-white"
+                        title={file.name}
+                      >
+                        {file.name}
+                        {#if file.error}
+                          <span class="ml-2 text-xs text-red-500"
+                            >({file.error})</span
+                          >
+                        {/if}
+                      </div>
                     </div>
-                  </div>
+                    <div
+                      class="text-xs text-neutral-500 dark:text-neutral-400 space-y-1"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span>{formatFileSize(file.size)}</span>
+                        <span>•</span>
+                        <span>Modified: {formatDate(file.modified)}</span>
+                      </div>
+                    </div>
+                  {/if}
                 </div>
-                <button
-                  on:click|stopPropagation={() => deleteFile(file)}
-                  class="p-1 rounded hover:bg-red-500 hover:text-white transition-colors ml-2 flex-shrink-0 opacity-60 hover:opacity-100"
-                  title="Delete file"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width={1.5}
-                    stroke="currentColor"
-                    class="size-4"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                    />
-                  </svg>
-                </button>
+
+                {#if renamingFile?.path !== file.path}
+                  <div class="flex items-center gap-1">
+                    <!-- Rename Button -->
+                    <button
+                      on:click|stopPropagation={() => startRename(file)}
+                      class="p-1 rounded hover:bg-blue-500 hover:text-white transition-colors flex-shrink-0 opacity-60 hover:opacity-100"
+                      title="Rename file"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width={1.5}
+                        stroke="currentColor"
+                        class="size-4"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+                        />
+                      </svg>
+                    </button>
+
+                    <!-- Delete Button -->
+                    <button
+                      on:click|stopPropagation={() => deleteFile(file)}
+                      class="p-1 rounded hover:bg-red-500 hover:text-white transition-colors ml-2 flex-shrink-0 opacity-60 hover:opacity-100"
+                      title="Delete file"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width={1.5}
+                        stroke="currentColor"
+                        class="size-4"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                {/if}
               </div>
             </div>
           {/each}
@@ -820,7 +975,7 @@
             class="text-sm font-medium text-neutral-900 dark:text-white truncate"
             title={selectedFile.name}
           >
-            📄 {selectedFile.name}
+            {selectedFile.name}
           </div>
           <div class="text-xs text-neutral-500 dark:text-neutral-400">
             {formatFileSize(selectedFile.size)} • {formatDate(
@@ -831,9 +986,9 @@
 
         <div class="grid grid-cols-2 gap-2">
           <button
-            on:click={duplicateFile}
-            class="px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-            title="Create a copy of this file"
+            on:click={() => startRename(selectedFile)}
+            class="px-3 py-2 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+            title="Rename this file"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -846,12 +1001,36 @@
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
+                d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
               />
             </svg>
-            Duplicate
+            Rename
           </button>
 
+          <button
+            on:click={() => deleteFile(selectedFile)}
+            class="px-3 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+            title="Delete this file"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width={2}
+              stroke="currentColor"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+              />
+            </svg>
+            Delete
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
           <button
             on:click={duplicateAndMirrorFile}
             class="px-3 py-2 text-sm bg-purple-500 hover:bg-purple-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
@@ -872,6 +1051,28 @@
               />
             </svg>
             Mirror
+          </button>
+
+          <button
+            on:click={duplicateFile}
+            class="px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+            title="Create a copy of this file"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width={2}
+              stroke="currentColor"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75"
+              />
+            </svg>
+            Duplicate
           </button>
         </div>
 
