@@ -4,6 +4,12 @@ interface BasePoint {
   locked?: boolean;
 }
 
+interface WaitSegment {
+  name?: string;
+  durationMs: number;
+  position?: "before" | "after";
+}
+
 export type TimelineEventType = "travel" | "wait";
 
 export interface TimelineEvent {
@@ -11,6 +17,8 @@ export interface TimelineEvent {
   duration: number;
   startTime: number;
   endTime: number;
+  name?: string;
+  waitPosition?: "before" | "after";
 
   // For 'travel' events
   lineIndex?: number;
@@ -62,6 +70,12 @@ interface Line {
   name?: string;
   eventMarkers?: EventMarker[];
   locked?: boolean;
+  waitBefore?: WaitSegment;
+  waitAfter?: WaitSegment;
+  waitBeforeMs?: number;
+  waitAfterMs?: number;
+  waitBeforeName?: string;
+  waitAfterName?: string;
 }
 
 interface Settings {

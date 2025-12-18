@@ -53,6 +53,22 @@
   // Access electron API from window (attached by preload script)
   const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
 
+  function normalizeLines(input: Line[]): Line[] {
+    return (input || []).map((line) => ({
+      ...line,
+      waitBeforeMs: Math.max(
+        0,
+        Number(line.waitBeforeMs ?? line.waitBefore?.durationMs ?? 0),
+      ),
+      waitAfterMs: Math.max(
+        0,
+        Number(line.waitAfterMs ?? line.waitAfter?.durationMs ?? 0),
+      ),
+      waitBeforeName: line.waitBeforeName ?? line.waitBefore?.name ?? "",
+      waitAfterName: line.waitAfterName ?? line.waitAfter?.name ?? "",
+    }));
+  }
+
   // Canvas state
   let two: Two;
   let twoElement: HTMLDivElement;
@@ -72,7 +88,7 @@
   // Path data
   let settings: Settings = { ...DEFAULT_SETTINGS };
   let startPoint: Point = getDefaultStartPoint();
-  let lines: Line[] = getDefaultLines();
+  let lines: Line[] = normalizeLines(getDefaultLines());
   let shapes: Shape[] = getDefaultShapes();
   $: {
     // Ensure arrays are reactive when items are added/removed
@@ -801,7 +817,7 @@
       // Use the original load function for web or when no directory is set
       loadTrajectoryFromFile(evt, (data) => {
         startPoint = data.startPoint;
-        lines = data.lines;
+        lines = normalizeLines(data.lines || []);
         if (data.shapes) {
           shapes = data.shapes;
         }
@@ -868,7 +884,7 @@
   // Helper function to load data into app state
   function loadData(data: any) {
     startPoint = data.startPoint;
-    lines = data.lines;
+    lines = normalizeLines(data.lines || []);
     if (data.shapes) {
       shapes = data.shapes;
     }
@@ -892,6 +908,10 @@
         controlPoints: [],
         color: getRandomColor(),
         locked: false,
+        waitBeforeMs: 0,
+        waitAfterMs: 0,
+        waitBeforeName: "",
+        waitAfterName: "",
       },
     ];
   }

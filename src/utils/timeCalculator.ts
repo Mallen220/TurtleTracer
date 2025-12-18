@@ -73,6 +73,12 @@ export function calculatePathTime(
   lines: Line[],
   settings: Settings,
 ): TimePrediction {
+  const msToSeconds = (value?: number | string) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+    return numeric / 1000;
+  };
+
   const useMotionProfile =
     settings.maxVelocity !== undefined &&
     settings.maxAcceleration !== undefined;
@@ -108,6 +114,25 @@ export function calculatePathTime(
 
   lines.forEach((line, idx) => {
     const prevPoint = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+
+    const waitBeforeSeconds = msToSeconds(line.waitBeforeMs);
+    if (waitBeforeSeconds > 0) {
+      timeline.push({
+        type: "wait",
+        name:
+          line.waitBeforeName ||
+          `Wait before ${line.name || `Path ${idx + 1}`}`,
+        waitPosition: "before",
+        duration: waitBeforeSeconds,
+        startTime: currentTime,
+        endTime: currentTime + waitBeforeSeconds,
+        startHeading: currentHeading,
+        targetHeading: currentHeading,
+        atPoint: prevPoint,
+      });
+
+      currentTime += waitBeforeSeconds;
+    }
 
     // --- ROTATION CHECK ---
     const requiredStartHeading = getLineStartHeading(line, prevPoint);
@@ -179,6 +204,23 @@ export function calculatePathTime(
     currentTime += segmentTime;
 
     currentHeading = getLineEndHeading(line, prevPoint);
+
+    const waitAfterSeconds = msToSeconds(line.waitAfterMs);
+    if (waitAfterSeconds > 0) {
+      timeline.push({
+        type: "wait",
+        name: line.waitAfterName || `Wait after ${line.name || `Path ${idx + 1}`}`,
+        waitPosition: "after",
+        duration: waitAfterSeconds,
+        startTime: currentTime,
+        endTime: currentTime + waitAfterSeconds,
+        startHeading: currentHeading,
+        targetHeading: currentHeading,
+        atPoint: line.endPoint,
+      });
+
+      currentTime += waitAfterSeconds;
+    }
   });
 
   const totalTime = currentTime;

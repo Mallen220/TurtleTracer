@@ -68,6 +68,10 @@ export function getDefaultLines(): Line[] {
       color: getRandomColor(),
       eventMarkers: [],
       locked: false,
+      waitBeforeMs: 0,
+      waitAfterMs: 0,
+      waitBeforeName: "",
+      waitAfterName: "",
     },
   ];
 }

@@ -152,6 +152,50 @@
     </div>
   </div>
 
+  <div
+    class="flex flex-row flex-wrap items-center gap-3 text-xs text-neutral-700 dark:text-neutral-200"
+  >
+    <div class="flex items-center gap-1">
+      <span class="font-semibold">Wait before</span>
+      <input
+        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-28"
+        type="text"
+        placeholder="Name"
+        bind:value={line.waitBeforeName}
+        disabled={line.locked}
+      />
+      <input
+        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-24"
+        type="number"
+        min="0"
+        step="50"
+        bind:value={line.waitBeforeMs}
+        disabled={line.locked}
+      />
+      <span>ms</span>
+    </div>
+
+    <div class="flex items-center gap-1">
+      <span class="font-semibold">Wait after</span>
+      <input
+        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-28"
+        type="text"
+        placeholder="Name"
+        bind:value={line.waitAfterName}
+        disabled={line.locked}
+      />
+      <input
+        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-24"
+        type="number"
+        min="0"
+        step="50"
+        bind:value={line.waitAfterMs}
+        disabled={line.locked}
+      />
+      <span>ms</span>
+    </div>
+  </div>
+
   {#if !collapsed}
     <div class={`h-[0.75px] w-full`} style={`background: ${line.color}`} />
 

@@ -62,6 +62,10 @@
       color: getRandomColor(),
       name: `Path ${lines.length + 1}`,
       eventMarkers: [],
+      waitBeforeMs: 0,
+      waitAfterMs: 0,
+      waitBeforeName: "",
+      waitAfterName: "",
     };
 
     // Insert the new line after the current one
@@ -127,6 +131,10 @@
             },
             controlPoints: [],
             color: getRandomColor(),
+            waitBeforeMs: 0,
+            waitAfterMs: 0,
+            waitBeforeName: "",
+            waitAfterName: "",
           },
         ];
         // Add new collapsed state for the new line
