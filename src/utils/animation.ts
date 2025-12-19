@@ -437,3 +437,149 @@ export function generateGhostPathPoints(
     ? result
     : robotStates.map((s) => ({ x: s.x, y: s.y }));
 }
+
+/**
+ * Generate onion layer robot bodies at regular intervals along the path
+ * Returns an array of robot states (position, heading, and corner points) for drawing
+ * @param startPoint - The starting point of the path
+ * @param lines - The path lines to trace
+ * @param robotWidth - Robot width in inches
+ * @param robotHeight - Robot height in inches
+ * @param spacing - Distance in inches between each robot trace (default 6)
+ * @returns Array of robot states with corner points for rendering
+ */
+export function generateOnionLayers(
+  startPoint: Point,
+  lines: Line[],
+  robotWidth: number,
+  robotHeight: number,
+  spacing: number = 6,
+): Array<{ x: number; y: number; heading: number; corners: BasePoint[] }> {
+  if (lines.length === 0) return [];
+
+  const layers: Array<{
+    x: number;
+    y: number;
+    heading: number;
+    corners: BasePoint[];
+  }> = [];
+
+  // Calculate total path length
+  let totalLength = 0;
+  let currentLineStart = startPoint;
+
+  for (const line of lines) {
+    const curvePoints = [
+      currentLineStart,
+      ...line.controlPoints,
+      line.endPoint,
+    ];
+
+    // Approximate line length by sampling
+    const samples = 100;
+    let lineLength = 0;
+    let prevPos = curvePoints[0];
+
+    for (let i = 1; i <= samples; i++) {
+      const t = i / samples;
+      const pos = getCurvePoint(t, curvePoints);
+      const dx = pos.x - prevPos.x;
+      const dy = pos.y - prevPos.y;
+      lineLength += Math.sqrt(dx * dx + dy * dy);
+      prevPos = pos;
+    }
+
+    totalLength += lineLength;
+    currentLineStart = line.endPoint;
+  }
+
+  // Calculate number of layers based on spacing
+  const numLayers = Math.max(1, Math.floor(totalLength / spacing));
+
+  // Sample robot positions at regular intervals
+  currentLineStart = startPoint;
+  let accumulatedLength = 0;
+  let nextLayerDistance = spacing;
+
+  for (const line of lines) {
+    const curvePoints = [
+      currentLineStart,
+      ...line.controlPoints,
+      line.endPoint,
+    ];
+    const samples = 100;
+    let prevPos = curvePoints[0];
+    let prevT = 0;
+
+    for (let i = 1; i <= samples; i++) {
+      const t = i / samples;
+      const pos = getCurvePoint(t, curvePoints);
+      const dx = pos.x - prevPos.x;
+      const dy = pos.y - prevPos.y;
+      const segmentLength = Math.sqrt(dx * dx + dy * dy);
+
+      accumulatedLength += segmentLength;
+
+      // Check if we've reached the next layer position
+      while (
+        accumulatedLength >= nextLayerDistance &&
+        nextLayerDistance <= totalLength
+      ) {
+        // Interpolate exact position for this layer
+        const overshoot = accumulatedLength - nextLayerDistance;
+        const interpolationT = 1 - overshoot / segmentLength;
+        const layerT = prevT + (t - prevT) * interpolationT;
+        const robotPosInches = getCurvePoint(layerT, curvePoints);
+
+        // Calculate heading for this position
+        let heading = 0;
+        if (line.endPoint.heading === "linear") {
+          heading = shortestRotation(
+            line.endPoint.startDeg,
+            line.endPoint.endDeg,
+            layerT,
+          );
+        } else if (line.endPoint.heading === "constant") {
+          heading = -line.endPoint.degrees;
+        } else if (line.endPoint.heading === "tangential") {
+          // Calculate tangent direction
+          const nextT = Math.min(
+            layerT + (line.endPoint.reverse ? -0.01 : 0.01),
+            1,
+          );
+          const nextPos = getCurvePoint(nextT, curvePoints);
+          const tdx = nextPos.x - robotPosInches.x;
+          const tdy = nextPos.y - robotPosInches.y;
+          if (tdx !== 0 || tdy !== 0) {
+            heading = radiansToDegrees(Math.atan2(tdy, tdx));
+          }
+        }
+
+        // Get robot corners for this position
+        const corners = getRobotCorners(
+          robotPosInches.x,
+          robotPosInches.y,
+          heading,
+          robotWidth,
+          robotHeight,
+        );
+
+        layers.push({
+          x: robotPosInches.x,
+          y: robotPosInches.y,
+          heading: heading,
+          corners: corners,
+        });
+
+        nextLayerDistance += spacing;
+      }
+
+      prevPos = pos;
+      prevT = t;
+    }
+
+    currentLineStart = line.endPoint;
+  }
+
+  return layers;
+}

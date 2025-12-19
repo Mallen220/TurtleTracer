@@ -51,6 +51,13 @@ export function getAngularDifference(start: number, end: number): number {
   return diff;
 }
 
+/**
+ * Calculates the shortest rotation from startAngle to endAngle based on a percentage.
+ * @param startAngle
+ * @param endAngle
+ * @param percentage
+ * @returns
+ */
 export function shortestRotation(
   startAngle: number,
   endAngle: number,

@@ -41,6 +41,8 @@ export const DEFAULT_SETTINGS: Settings = {
   robotImage: "/robot.png",
   theme: "auto",
   showGhostPaths: false,
+  showOnionLayers: false,
+  onionLayerSpacing: 6, // inches between each robot body trace
 };
 
 /**

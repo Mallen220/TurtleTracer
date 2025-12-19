@@ -826,6 +826,62 @@
                   title="Enable collision overlay visualization"
                 />
               </div>
+
+              <!-- Onion Layers Toggle -->
+              <div
+                class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
+              >
+                <div>
+                  <label
+                    class="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-1"
+                  >
+                    Robot Onion Layers
+                  </label>
+                  <div class="text-xs text-neutral-500 dark:text-neutral-400">
+                    Show robot body at intervals along the path
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  bind:checked={settings.showOnionLayers}
+                  class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-indigo-500 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  title="Enable robot onion layer visualization"
+                />
+              </div>
+
+              <!-- Onion Layer Spacing -->
+              {#if settings.showOnionLayers}
+                <div
+                  class="p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
+                >
+                  <label
+                    class="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-2"
+                  >
+                    Onion Layer Spacing
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min="2"
+                      max="20"
+                      step="1"
+                      bind:value={settings.onionLayerSpacing}
+                      class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                      title="Distance between each robot body trace"
+                    />
+                    <span
+                      class="text-sm font-medium text-neutral-700 dark:text-neutral-300 min-w-[3rem] text-right"
+                    >
+                      {settings.onionLayerSpacing || 6}"
+                    </span>
+                  </div>
+                  <div
+                    class="text-xs text-neutral-500 dark:text-neutral-400 mt-1"
+                  >
+                    Distance in inches between each robot body trace
+                  </div>
+                </div>
+              {/if}
             </div>
           {/if}
         </div>

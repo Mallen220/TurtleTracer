@@ -26,7 +26,11 @@
   import { createAnimationController } from "./utils/animation";
   import { calculatePathTime, getAnimationDuration } from "./utils";
 
-  import { calculateRobotState, generateGhostPathPoints } from "./utils";
+  import {
+    calculateRobotState,
+    generateGhostPathPoints,
+    generateOnionLayers,
+  } from "./utils";
   import {
     easeInOutQuad,
     getCurvePoint,
@@ -494,6 +498,80 @@
     return ghostPath;
   })();
 
+  $: onionLayerElements = (() => {
+    let onionLayers: Path[] = [];
+
+    if (settings.showOnionLayers && lines.length > 0) {
+      const spacing = settings.onionLayerSpacing || 6;
+      const layers = generateOnionLayers(
+        startPoint,
+        lines,
+        settings.rWidth,
+        settings.rHeight,
+        spacing,
+      );
+
+      layers.forEach((layer, idx) => {
+        // Create a rectangle from the robot corners
+        let vertices = [];
+
+        // Create path from corners: front-left -> front-right -> back-right -> back-left
+        vertices.push(
+          new Two.Anchor(
+            x(layer.corners[0].x),
+            y(layer.corners[0].y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.move,
+          ),
+        );
+
+        for (let i = 1; i < layer.corners.length; i++) {
+          vertices.push(
+            new Two.Anchor(
+              x(layer.corners[i].x),
+              y(layer.corners[i].y),
+              0,
+              0,
+              0,
+              0,
+              Two.Commands.line,
+            ),
+          );
+        }
+
+        // Close the shape
+        vertices.push(
+          new Two.Anchor(
+            x(layer.corners[0].x),
+            y(layer.corners[0].y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.close,
+          ),
+        );
+
+        vertices.forEach((point) => (point.relative = false));
+
+        let onionRect = new Two.Path(vertices);
+        onionRect.id = `onion-layer-${idx}`;
+        onionRect.stroke = "#818cf8"; // Indigo color
+        onionRect.fill = "#c7d2fe"; // Light indigo fill
+        onionRect.opacity = 0.2;
+        onionRect.linewidth = x(0.4);
+        onionRect.automatic = false;
+
+        onionLayers.push(onionRect);
+      });
+    }
+
+    return onionLayers;
+  })();
+
   let isLoaded = false;
   // Reactively trigger when any saveable data changes
   $: {
@@ -681,6 +759,9 @@
     two.add(...shapeElements);
     if (ghostPathElement) {
       two.add(ghostPathElement);
+    }
+    if (onionLayerElements.length > 0) {
+      two.add(...onionLayerElements);
     }
     two.add(...path);
     two.add(...points);
