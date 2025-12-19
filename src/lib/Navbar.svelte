@@ -148,6 +148,7 @@
     bind:startPoint
     bind:lines
     bind:shapes
+    bind:sequence
   />
 {/if}
 

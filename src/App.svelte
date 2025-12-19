@@ -172,6 +172,7 @@
     _points.push(startPointElem);
 
     lines.forEach((line, idx) => {
+      if (!line || !line.endPoint) return; // Skip invalid lines or lines without endPoint
       [line.endPoint, ...line.controlPoints].forEach((point, idx1) => {
         if (idx1 > 0) {
           let pointGroup = new Two.Group();
@@ -257,7 +258,9 @@
     let _path: (Path | PathLine)[] = [];
 
     lines.forEach((line, idx) => {
-      let _startPoint = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+      if (!line || !line.endPoint) return; // Skip invalid lines or lines without endPoint
+      let _startPoint = idx === 0 ? startPoint : (lines[idx - 1]?.endPoint || null);
+      if (!_startPoint) return; // Skip if previous line's endPoint is missing
 
       let lineElem: Path | PathLine;
       if (line.controlPoints.length > 2) {
@@ -534,11 +537,13 @@
     const markers = [];
 
     lines.forEach((line, lineIdx) => {
+      if (!line || !line.endPoint) return; // Skip invalid lines or lines without endPoint
       if (line.eventMarkers && line.eventMarkers.length > 0) {
         line.eventMarkers.forEach((event, eventIdx) => {
           // Get the correct start point for this line
           const lineStart =
-            lineIdx === 0 ? startPoint : lines[lineIdx - 1].endPoint;
+            lineIdx === 0 ? startPoint : (lines[lineIdx - 1]?.endPoint || null);
+          if (!lineStart) return; // Skip if previous line's endPoint is missing
           const curvePoints = [lineStart, ...line.controlPoints, line.endPoint];
           const eventPosition = getCurvePoint(event.position, curvePoints);
 
@@ -723,8 +728,8 @@
             if (startPoint.locked) return;
             startPoint.x = inchX;
             startPoint.y = inchY;
-          } else {
-            if (point === 0) {
+          } else if (lines[line]) {
+            if (point === 0 && lines[line].endPoint) {
               lines[line].endPoint.x = inchX;
               lines[line].endPoint.y = inchY;
             } else {
@@ -773,7 +778,7 @@
             objectX = startPoint.x;
             objectY = startPoint.y;
           } else if (lines[line]) {
-            if (point === 0) {
+            if (point === 0 && lines[line].endPoint) {
               objectX = lines[line].endPoint.x;
               objectY = lines[line].endPoint.y;
             } else {

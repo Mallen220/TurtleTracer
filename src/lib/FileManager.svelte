@@ -1,9 +1,32 @@
+<script lang="ts" context="module">
+  declare global {
+    interface Window {
+      electronAPI: {
+        getDirectory: () => Promise<string>;
+        setDirectory: () => Promise<string | null>;
+        listFiles: (directory: string) => Promise<FileInfo[]>;
+        readFile: (filePath: string) => Promise<string>;
+        writeFile: (filePath: string, content: string) => Promise<boolean>;
+        deleteFile: (filePath: string) => Promise<boolean>;
+        fileExists: (filePath: string) => Promise<boolean>;
+        getSavedDirectory: () => Promise<string>;
+        createDirectory: (dirPath: string) => Promise<boolean>;
+        getDirectoryStats: (dirPath: string) => Promise<any>;
+        renameFile: (
+          oldPath: string,
+          newPath: string,
+        ) => Promise<{ success: boolean; newPath: string }>;
+      };
+    }
+  }
+</script>
+
 <script lang="ts">
   import { onMount, afterUpdate, onDestroy } from "svelte";
 
   import { cubicInOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
-  import type { FileInfo, Point, Line, Shape } from "../types";
+  import type { FileInfo, Point, Line, Shape, SequenceItem } from "../types";
   import { currentFilePath, isUnsaved } from "../stores";
   import { getRandomColor } from "../utils";
   import {
@@ -15,6 +38,7 @@
   export let startPoint: Point;
   export let lines: Line[];
   export let shapes: Shape[];
+  export let sequence: SequenceItem[];
 
   let currentDirectory = "";
   let files: FileInfo[] = [];
@@ -36,24 +60,34 @@
   // Add file type filtering
   const supportedFileTypes = [".pp"];
 
-  declare const electronAPI: {
-    getDirectory: () => Promise<string>;
-    setDirectory: () => Promise<string | null>;
-    listFiles: (directory: string) => Promise<FileInfo[]>;
-    readFile: (filePath: string) => Promise<string>;
-    writeFile: (filePath: string, content: string) => Promise<boolean>;
-    deleteFile: (filePath: string) => Promise<boolean>;
-    fileExists: (filePath: string) => Promise<boolean>;
-    getSavedDirectory: () => Promise<string>;
-    createDirectory: (dirPath: string) => Promise<boolean>;
-    getDirectoryStats: (dirPath: string) => Promise<any>;
-    renameFile: (
-      oldPath: string,
-      newPath: string,
-    ) => Promise<{ success: boolean; newPath: string }>;
-  };
+  // Access electronAPI from window
+  const electronAPI = window.electronAPI;
+
+  // Helper to get error message from unknown error type
+  function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    return String(error);
+  }
+
+  // Normalize sequence data, falling back to path-only sequence if waits are missing
+  function deriveSequence(data: any): SequenceItem[] {
+    if (Array.isArray(data?.sequence) && data.sequence.length) {
+      return data.sequence as SequenceItem[];
+    }
+
+    const srcLines = Array.isArray(data?.lines) ? data.lines : [];
+    return srcLines.map((ln: any) => ({
+      kind: "path",
+      lineId: ln?.id || `line-${Math.random().toString(36).slice(2)}`,
+    }));
+  }
+
+  // Debug logging
+  console.log('[FileManager] Component initialized');
+  console.log('[FileManager] electronAPI available:', !!electronAPI);
 
   async function loadDirectory() {
+    console.log('[FileManager] loadDirectory called');
     loading = true;
     errorMessage = "";
 
@@ -76,7 +110,7 @@
       await refreshDirectory();
     } catch (error) {
       console.error("Error loading directory:", error);
-      errorMessage = `Failed to load directory: ${error.message}`;
+      errorMessage = `Failed to load directory: ${getErrorMessage(error)}`;
 
       // Try to create a default directory
       try {
@@ -130,7 +164,7 @@
       errorMessage = "";
     } catch (error) {
       console.error("Error refreshing directory:", error);
-      errorMessage = `Error accessing directory: ${error.message}`;
+      errorMessage = `Error accessing directory: ${getErrorMessage(error)}`;
       files = [];
     }
   }
@@ -148,7 +182,7 @@
       }
     } catch (error) {
       console.error("Error changing directory:", error);
-      errorMessage = `Failed to change directory: ${error.message}`;
+      errorMessage = `Failed to change directory: ${getErrorMessage(error)}`;
       showToast("Failed to change directory", "error");
     }
   }
@@ -225,7 +259,7 @@
       }
     } catch (error) {
       console.error("Error renaming file:", error);
-      showToast(`Failed to rename: ${error.message}`, "error");
+      showToast(`Failed to rename: ${getErrorMessage(error)}`, "error");
     }
   }
 
@@ -248,6 +282,7 @@
       startPoint = data.startPoint;
       lines = data.lines;
       shapes = data.shapes || [];
+      sequence = deriveSequence(data);
 
       // Update Global Store State
       currentFilePath.set(file.path);
@@ -258,9 +293,10 @@
       showToast(`Loaded: ${file.name}`, "success");
     } catch (error) {
       console.error("Error loading file:", error);
-      const message = error.message.includes("Invalid file format")
+      const errMsg = getErrorMessage(error);
+      const message = errMsg.includes("Invalid file format")
         ? "Invalid file format. This may not be a valid path file."
-        : `Error loading file: ${error.message}`;
+        : `Error loading file: ${errMsg}`;
 
       showToast(message, "error");
       errorMessage = message;
@@ -278,6 +314,7 @@
         startPoint,
         lines,
         shapes,
+        sequence,
         version: "1.2.1", // Add version for compatibility
         timestamp: new Date().toISOString(),
       });
@@ -289,7 +326,7 @@
       showToast(`Saved: ${selectedFile.name}`, "success");
     } catch (error) {
       console.error("Error saving file:", error);
-      errorMessage = `Failed to save file: ${error.message}`;
+      errorMessage = `Failed to save file: ${getErrorMessage(error)}`;
       showToast("Failed to save file", "error");
     }
   }
@@ -327,6 +364,7 @@
         startPoint,
         lines,
         shapes,
+        sequence,
         version: "1.2.1",
         timestamp: new Date().toISOString(),
       });
@@ -346,7 +384,7 @@
       }
     } catch (error) {
       console.error("Error creating file:", error);
-      errorMessage = `Failed to create file: ${error.message}`;
+      errorMessage = `Failed to create file: ${getErrorMessage(error)}`;
       showToast("Failed to create file", "error");
     }
   }
@@ -372,7 +410,7 @@
       showToast(`Deleted: ${file.name}`, "success");
     } catch (error) {
       console.error("Error deleting file:", error);
-      errorMessage = `Failed to delete file: ${error.message}`;
+      errorMessage = `Failed to delete file: ${getErrorMessage(error)}`;
       showToast("Failed to delete file", "error");
     }
   }
@@ -405,7 +443,12 @@
       }
 
       const newFilePath = path.join(currentDirectory, newFileName);
-      await electronAPI.writeFile(newFilePath, JSON.stringify(data, null, 2));
+
+      const sequenceData = deriveSequence(data);
+      await electronAPI.writeFile(
+        newFilePath,
+        JSON.stringify({ ...data, sequence: sequenceData }, null, 2),
+      );
       await refreshDirectory();
 
       // Select the new file
@@ -419,7 +462,7 @@
       showToast(`Duplicated: ${newFileName}`, "success");
     } catch (error) {
       console.error("Error duplicating file:", error);
-      errorMessage = `Failed to duplicate file: ${error.message}`;
+      errorMessage = `Failed to duplicate file: ${getErrorMessage(error)}`;
       showToast("Failed to duplicate file", "error");
     }
   }
@@ -436,6 +479,7 @@
 
       // Mirror the path data
       const mirroredData = mirrorPathData(data);
+      mirroredData.sequence = deriveSequence(mirroredData);
 
       const baseName = selectedFile.name.replace(/\.pp$/, "");
       let newFileName = `${baseName}_mirrored.pp`;
@@ -467,7 +511,7 @@
       showToast(`Created mirrored: ${newFileName}`, "success");
     } catch (error) {
       console.error("Error duplicating and mirroring file:", error);
-      errorMessage = `Failed to create mirrored file: ${error.message}`;
+      errorMessage = `Failed to create mirrored file: ${getErrorMessage(error)}`;
       showToast("Failed to create mirrored file", "error");
     }
   }
@@ -608,9 +652,15 @@
   }
 
   onMount(() => {
-    loadDirectory();
-    // Add keyboard listener for renaming
-    window.addEventListener("keydown", handleKeyDown);
+    console.log('[FileManager] onMount called');
+    try {
+      loadDirectory();
+      // Add keyboard listener for renaming
+      window.addEventListener("keydown", handleKeyDown);
+      console.log('[FileManager] onMount completed successfully');
+    } catch (error) {
+      console.error('[FileManager] Error in onMount:', error);
+    }
   });
 
   // Clean up event listener
@@ -986,7 +1036,7 @@
 
         <div class="grid grid-cols-2 gap-2">
           <button
-            on:click={() => startRename(selectedFile)}
+            on:click={() => selectedFile && startRename(selectedFile)}
             class="px-3 py-2 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
             title="Rename this file"
           >
@@ -1008,7 +1058,7 @@
           </button>
 
           <button
-            on:click={() => deleteFile(selectedFile)}
+            on:click={() => selectedFile && deleteFile(selectedFile)}
             class="px-3 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
             title="Delete this file"
           >
