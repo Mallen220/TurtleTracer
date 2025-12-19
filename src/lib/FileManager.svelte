@@ -69,25 +69,43 @@
     return String(error);
   }
 
+  // Normalize lines to ensure ids and wait fields exist
+  function normalizeLines(input: Line[] = []): Line[] {
+    return (input || []).map((line) => ({
+      ...line,
+      id: line.id || `line-${Math.random().toString(36).slice(2)}`,
+      waitBeforeMs: Math.max(
+        0,
+        Number(line.waitBeforeMs ?? (line as any).waitBefore?.durationMs ?? 0),
+      ),
+      waitAfterMs: Math.max(
+        0,
+        Number(line.waitAfterMs ?? (line as any).waitAfter?.durationMs ?? 0),
+      ),
+      waitBeforeName:
+        line.waitBeforeName ?? (line as any).waitBefore?.name ?? "",
+      waitAfterName: line.waitAfterName ?? (line as any).waitAfter?.name ?? "",
+    }));
+  }
+
   // Normalize sequence data, falling back to path-only sequence if waits are missing
-  function deriveSequence(data: any): SequenceItem[] {
+  function deriveSequence(data: any, normalizedLines: Line[]): SequenceItem[] {
     if (Array.isArray(data?.sequence) && data.sequence.length) {
       return data.sequence as SequenceItem[];
     }
 
-    const srcLines = Array.isArray(data?.lines) ? data.lines : [];
-    return srcLines.map((ln: any) => ({
+    return normalizedLines.map((ln) => ({
       kind: "path",
-      lineId: ln?.id || `line-${Math.random().toString(36).slice(2)}`,
+      lineId: ln.id!,
     }));
   }
 
   // Debug logging
-  console.log('[FileManager] Component initialized');
-  console.log('[FileManager] electronAPI available:', !!electronAPI);
+  console.log("[FileManager] Component initialized");
+  console.log("[FileManager] electronAPI available:", !!electronAPI);
 
   async function loadDirectory() {
-    console.log('[FileManager] loadDirectory called');
+    console.log("[FileManager] loadDirectory called");
     loading = true;
     errorMessage = "";
 
@@ -280,9 +298,10 @@
 
       // Update the application state
       startPoint = data.startPoint;
-      lines = data.lines;
+      const normalizedLines = normalizeLines(data.lines || []);
+      lines = normalizedLines;
       shapes = data.shapes || [];
-      sequence = deriveSequence(data);
+      sequence = deriveSequence(data, normalizedLines);
 
       // Update Global Store State
       currentFilePath.set(file.path);
@@ -360,9 +379,10 @@
         }
       }
 
+      const normalizedLines = normalizeLines(lines);
       const content = JSON.stringify({
         startPoint,
-        lines,
+        lines: normalizedLines,
         shapes,
         sequence,
         version: "1.2.1",
@@ -444,10 +464,19 @@
 
       const newFilePath = path.join(currentDirectory, newFileName);
 
-      const sequenceData = deriveSequence(data);
+      const normalizedLines = normalizeLines(data.lines || []);
+      const sequenceData = deriveSequence(data, normalizedLines);
       await electronAPI.writeFile(
         newFilePath,
-        JSON.stringify({ ...data, sequence: sequenceData }, null, 2),
+        JSON.stringify(
+          {
+            ...data,
+            lines: normalizedLines,
+            sequence: sequenceData,
+          },
+          null,
+          2,
+        ),
       );
       await refreshDirectory();
 
@@ -479,7 +508,8 @@
 
       // Mirror the path data
       const mirroredData = mirrorPathData(data);
-      mirroredData.sequence = deriveSequence(mirroredData);
+      mirroredData.lines = normalizeLines(mirroredData.lines || []);
+      mirroredData.sequence = deriveSequence(mirroredData, mirroredData.lines);
 
       const baseName = selectedFile.name.replace(/\.pp$/, "");
       let newFileName = `${baseName}_mirrored.pp`;
@@ -652,14 +682,14 @@
   }
 
   onMount(() => {
-    console.log('[FileManager] onMount called');
+    console.log("[FileManager] onMount called");
     try {
       loadDirectory();
       // Add keyboard listener for renaming
       window.addEventListener("keydown", handleKeyDown);
-      console.log('[FileManager] onMount completed successfully');
+      console.log("[FileManager] onMount completed successfully");
     } catch (error) {
-      console.error('[FileManager] Error in onMount:', error);
+      console.error("[FileManager] Error in onMount:", error);
     }
   });
 

@@ -259,7 +259,8 @@
 
     lines.forEach((line, idx) => {
       if (!line || !line.endPoint) return; // Skip invalid lines or lines without endPoint
-      let _startPoint = idx === 0 ? startPoint : (lines[idx - 1]?.endPoint || null);
+      let _startPoint =
+        idx === 0 ? startPoint : lines[idx - 1]?.endPoint || null;
       if (!_startPoint) return; // Skip if previous line's endPoint is missing
 
       let lineElem: Path | PathLine;
@@ -542,7 +543,7 @@
         line.eventMarkers.forEach((event, eventIdx) => {
           // Get the correct start point for this line
           const lineStart =
-            lineIdx === 0 ? startPoint : (lines[lineIdx - 1]?.endPoint || null);
+            lineIdx === 0 ? startPoint : lines[lineIdx - 1]?.endPoint || null;
           if (!lineStart) return; // Skip if previous line's endPoint is missing
           const curvePoints = [lineStart, ...line.controlPoints, line.endPoint];
           const eventPosition = getCurvePoint(event.position, curvePoints);
