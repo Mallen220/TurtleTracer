@@ -806,11 +806,11 @@
               class="mt-2 space-y-3 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg"
             >
               <!-- Ghost Paths Toggle -->
-              <div
+              <!-- <div
                 class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
               >
-                <div>
-                  <label
+                <div> -->
+                  <!-- <label
                     class="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-1"
                   >
                     Collision Overlays
@@ -825,7 +825,7 @@
                   class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-purple-500 focus:ring-2 focus:ring-purple-500 cursor-pointer"
                   title="Enable collision overlay visualization"
                 />
-              </div>
+              </div> -->
 
               <!-- Onion Layers Toggle -->
               <div

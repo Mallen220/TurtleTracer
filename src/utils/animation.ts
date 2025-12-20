@@ -328,27 +328,29 @@ export function createAnimationController(
 
 /**
  * Generate ghost path points that trace the robot's body along its path
- * Uses an "onion skin" approach - traces the robot outline at each point along the path
- * and connects them to form the swept envelope
+ * Creates swept area by connecting consecutive robot corners properly
  * @param startPoint - The starting point of the path
  * @param lines - The path lines to trace
  * @param robotWidth - Robot width in inches
  * @param robotHeight - Robot height in inches
  * @param samples - Number of samples along the path (default 50)
- * @returns Array of points forming the envelope of the robot's swept path
+ * @returns Array of points forming the boundary of the robot's swept path
  */
 export function generateGhostPathPoints(
   startPoint: Point,
   lines: Line[],
   robotWidth: number,
   robotHeight: number,
-  samples: number = 50,
+  samples: number = 200, // Higher default for smoother turns
 ): BasePoint[] {
-  // Collect all robot positions and headings along the path
+  if (lines.length === 0) return [];
+
+  // Collect robot states with center, heading, and offset rails
   const robotStates: Array<{
-    x: number;
-    y: number;
+    center: BasePoint;
     heading: number;
+    left: BasePoint;
+    right: BasePoint;
   }> = [];
 
   let currentLineStart = startPoint;
@@ -362,8 +364,8 @@ export function generateGhostPathPoints(
       line.endPoint,
     ];
 
-    // Sample along this line segment
-    const samplesPerLine = Math.ceil(samples / lines.length);
+    // Sample along this line segment with a minimum to better capture curves
+    const samplesPerLine = Math.max(10, Math.ceil(samples / lines.length));
     for (let i = 0; i <= samplesPerLine; i++) {
       const t = i / samplesPerLine;
       const robotPosInches = getCurvePoint(t, curvePoints);
@@ -389,53 +391,106 @@ export function generateGhostPathPoints(
         }
       }
 
+      // Build left/right rails directly from center + normal offsets
+      const headingRad = (heading * Math.PI) / 180;
+      const nx = -Math.sin(headingRad);
+      const ny = Math.cos(headingRad);
+      const halfW = robotWidth / 2;
+
+      const leftPoint = {
+        x: robotPosInches.x + nx * halfW,
+        y: robotPosInches.y + ny * halfW,
+      };
+      const rightPoint = {
+        x: robotPosInches.x - nx * halfW,
+        y: robotPosInches.y - ny * halfW,
+      };
+
       robotStates.push({
-        x: robotPosInches.x,
-        y: robotPosInches.y,
-        heading: heading,
+        center: { x: robotPosInches.x, y: robotPosInches.y },
+        heading,
+        left: leftPoint,
+        right: rightPoint,
       });
     }
 
     currentLineStart = line.endPoint;
   }
 
-  // Build the onion skin envelope by tracing the robot's outline
-  // We trace around the robot: front-left → front-right → back-right → back-left → back to start
-  // corners: [front-left, front-right, back-right, back-left]
-
-  const frontLeftEdge: BasePoint[] = [];
-  const frontRightEdge: BasePoint[] = [];
-  const backRightEdge: BasePoint[] = [];
-  const backLeftEdge: BasePoint[] = [];
-
-  for (const state of robotStates) {
+  if (robotStates.length === 0) return [];
+  if (robotStates.length === 1) {
+    // Single pose: return rectangle corners
+    const single = robotStates[0];
+    const heading = single.heading;
     const corners = getRobotCorners(
-      state.x,
-      state.y,
-      state.heading,
+      single.center.x,
+      single.center.y,
+      heading,
       robotWidth,
       robotHeight,
     );
-
-    // Trace each edge of the robot as it moves along the path
-    frontLeftEdge.push(corners[0]); // front-left
-    frontRightEdge.push(corners[1]); // front-right
-    backRightEdge.push(corners[2]); // back-right
-    backLeftEdge.push(corners[3]); // back-left
+    return corners;
   }
 
-  // Combine all edges to form the complete envelope
-  // Go around the robot: left side forward, then right side backward
-  const result = [
-    ...frontLeftEdge, // Left side from front to back
-    ...backLeftEdge.reverse(), // Back edge going right
-    ...backRightEdge.reverse(), // Right side from back to front
-    ...frontRightEdge, // Front edge going left (closes the polygon)
-  ];
+  // Build swept boundary by tracing left rail forward and right rail backward
+  const leftRail: BasePoint[] = [];
+  const rightRail: BasePoint[] = [];
 
-  return result.length >= 3
-    ? result
-    : robotStates.map((s) => ({ x: s.x, y: s.y }));
+  for (let i = 0; i < robotStates.length; i++) {
+    leftRail.push(robotStates[i].left);
+  }
+
+  for (let i = robotStates.length - 1; i >= 0; i--) {
+    rightRail.push(robotStates[i].right);
+  }
+
+  // Build boundary: start bridge (right->left), left rail, end bridge (left->right), right rail
+  const boundary: BasePoint[] = [];
+
+  // Bridge at start from right to left (simple straight connector)
+  const start = robotStates[0];
+  boundary.push(start.right);
+  boundary.push(start.left);
+
+  // Left rail
+  boundary.push(...leftRail);
+
+  // Bridge at end from left to right (simple straight connector)
+  const end = robotStates[robotStates.length - 1];
+  boundary.push(end.right);
+
+  // Right rail
+  boundary.push(...rightRail);
+
+  // Remove consecutive duplicates and ensure closure
+  const result: BasePoint[] = [];
+  const threshold = 1e-4;
+
+  for (let i = 0; i < boundary.length; i++) {
+    const curr = boundary[i];
+    const prev = result[result.length - 1];
+
+    if (
+      !prev ||
+      Math.abs(curr.x - prev.x) > threshold ||
+      Math.abs(curr.y - prev.y) > threshold
+    ) {
+      result.push(curr);
+    }
+  }
+
+  if (result.length >= 3) {
+    const first = result[0];
+    const last = result[result.length - 1];
+    if (
+      Math.abs(first.x - last.x) > threshold ||
+      Math.abs(first.y - last.y) > threshold
+    ) {
+      result.push({ ...first });
+    }
+  }
+
+  return result.length >= 3 ? result : [];
 }
 
 /**

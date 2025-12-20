@@ -146,3 +146,66 @@ export function getRobotCorners(
     y: y + corner.dx * sin + corner.dy * cos,
   }));
 }
+
+/**
+ * Compute the convex hull of a set of points using Graham scan algorithm
+ * @param points - Array of points to compute convex hull for
+ * @returns Array of points forming the convex hull in counter-clockwise order
+ */
+export function convexHull(points: BasePoint[]): BasePoint[] {
+  if (points.length < 3) return points;
+
+  // Create a copy to avoid modifying the input
+  const pts = [...points];
+
+  // Find the point with the lowest y-coordinate (and leftmost if tie)
+  let minIdx = 0;
+  for (let i = 1; i < pts.length; i++) {
+    if (
+      pts[i].y < pts[minIdx].y ||
+      (pts[i].y === pts[minIdx].y && pts[i].x < pts[minIdx].x)
+    ) {
+      minIdx = i;
+    }
+  }
+
+  // Swap the bottom-most point to the first position
+  [pts[0], pts[minIdx]] = [pts[minIdx], pts[0]];
+  const pivot = pts[0];
+
+  // Sort points by polar angle with respect to pivot
+  const sorted = pts.slice(1).sort((a, b) => {
+    const angleA = Math.atan2(a.y - pivot.y, a.x - pivot.x);
+    const angleB = Math.atan2(b.y - pivot.y, b.x - pivot.x);
+
+    if (angleA !== angleB) {
+      return angleA - angleB;
+    }
+
+    // If angles are equal, sort by distance
+    const distA = (a.x - pivot.x) ** 2 + (a.y - pivot.y) ** 2;
+    const distB = (b.x - pivot.x) ** 2 + (b.y - pivot.y) ** 2;
+    return distA - distB;
+  });
+
+  // Helper function to compute cross product
+  const cross = (o: BasePoint, a: BasePoint, b: BasePoint): number => {
+    return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  };
+
+  // Build the convex hull
+  const hull: BasePoint[] = [pivot];
+
+  for (const point of sorted) {
+    // Remove points that would create a right turn
+    while (
+      hull.length >= 2 &&
+      cross(hull[hull.length - 2], hull[hull.length - 1], point) <= 0
+    ) {
+      hull.pop();
+    }
+    hull.push(point);
+  }
+
+  return hull;
+}
