@@ -10,11 +10,10 @@
   "type": "module",
   "scripts": {
     "version:bump": "node scripts/bump-version.js",
-    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
-    "electron:dev": "npm run format && npm run build && electron .",
+    "dev": "npm run format && npm run build && electron .",
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder --mac --arm64 --publish=never",
     "dist:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --publish=never",
