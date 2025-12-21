@@ -1,9 +1,15 @@
 import { dialog, app, shell } from "electron";
+import * as fs from "fs";
+import * as path from "path";
 
 class AppUpdater {
   constructor(mainWindow) {
     this.mainWindow = mainWindow;
     this.currentVersion = app.getVersion();
+    this.updaterSettingsPath = path.join(
+      app.getPath("userData"),
+      "updater-settings.json",
+    );
   }
 
   async checkForUpdates() {
@@ -24,6 +30,13 @@ class AppUpdater {
       const latestVersion = releaseData.tag_name.replace("v", "");
 
       console.log(`Current: ${this.currentVersion}, Latest: ${latestVersion}`);
+
+      // Check if this version was skipped
+      const skippedVersions = this.loadSkippedVersions();
+      if (skippedVersions.includes(latestVersion)) {
+        console.log(`Version ${latestVersion} was previously skipped.`);
+        return;
+      }
 
       if (this.isNewerVersion(latestVersion, this.currentVersion)) {
         this.showUpdateAvailableDialog(releaseData);
@@ -55,6 +68,34 @@ class AppUpdater {
     return false;
   }
 
+  loadSkippedVersions() {
+    try {
+      if (fs.existsSync(this.updaterSettingsPath)) {
+        const data = fs.readFileSync(this.updaterSettingsPath, "utf8");
+        const settings = JSON.parse(data);
+        return settings.skippedVersions || [];
+      }
+    } catch (error) {
+      console.error("Error loading updater settings:", error);
+    }
+    return [];
+  }
+
+  saveSkippedVersions(skippedVersions) {
+    try {
+      const settings = {
+        skippedVersions: skippedVersions,
+        lastUpdated: new Date().toISOString(),
+      };
+      fs.writeFileSync(
+        this.updaterSettingsPath,
+        JSON.stringify(settings, null, 2),
+      );
+    } catch (error) {
+      console.error("Error saving updater settings:", error);
+    }
+  }
+
   async showUpdateAvailableDialog(releaseData) {
     // Wait a bit for the main window to be fully ready
     setTimeout(() => {
@@ -73,8 +114,13 @@ class AppUpdater {
           shell.openExternal(releaseData.html_url);
           break;
         case 1: // Skip This Version
-          // You could store this in settings to skip future notifications for this version
-          console.log(`User skipped version ${releaseData.tag_name}`);
+          const skippedVersions = this.loadSkippedVersions();
+          const versionToSkip = releaseData.tag_name.replace("v", "");
+          if (!skippedVersions.includes(versionToSkip)) {
+            skippedVersions.push(versionToSkip);
+            this.saveSkippedVersions(skippedVersions);
+            console.log(`User skipped version ${versionToSkip}`);
+          }
           break;
         case 2: // Remind Me Later
           // Do nothing, will check again on next startup

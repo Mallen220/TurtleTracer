@@ -1,6 +1,6 @@
 ## 1.2.6 (2025-12-21)
 
-- Fixed file importer and wait header. 
+- Fixed file importer and wait header.
 
 ## 1.2.5 (2025-12-21)
 
