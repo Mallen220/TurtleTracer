@@ -56,6 +56,16 @@
         placeholder="Path {idx + 1}"
         class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none text-sm font-semibold"
         disabled={line.locked}
+        on:input={() => {
+          // Force parent reactivity so other components (like exporters)
+          // pick up the updated name immediately.
+          lines = [...lines];
+        }}
+        on:blur={() => {
+          // Commit the change for history/undo
+          lines = [...lines];
+          if (recordChange) recordChange();
+        }}
       />
       <div
         class="relative size-5 rounded-full overflow-hidden shadow-sm border border-neutral-300 dark:border-neutral-600 shrink-0"

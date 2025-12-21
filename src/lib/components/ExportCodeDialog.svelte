@@ -58,6 +58,17 @@
         exportedCode = generatePointsArray(startPoint, lines);
         currentLanguage = plaintext;
       } else if (format === "sequential") {
+        // Initialize the editable class name from the current file path
+        // so the user sees the file-derived class name, but keep the
+        // field editable for manual overrides.
+        if ($currentFilePath) {
+          const fileName = $currentFilePath.split(/[\\/]/).pop();
+          if (fileName) {
+            sequentialClassName = fileName
+              .replace(".pp", "")
+              .replace(/[^a-zA-Z0-9]/g, "_");
+          }
+        }
         exportedCode = await generateSequentialCommandCode(
           startPoint,
           lines,
@@ -79,6 +90,7 @@
   async function refreshSequentialCode() {
     if (exportFormat === "sequential" && isOpen) {
       try {
+        // Use the user-editable `sequentialClassName` so manual edits are respected
         exportedCode = await generateSequentialCommandCode(
           startPoint,
           lines,
