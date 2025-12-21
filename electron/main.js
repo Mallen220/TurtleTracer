@@ -376,6 +376,30 @@ ipcMain.handle("file:write", async (event, filePath, content) => {
   }
 });
 
+// Save dialog (returns file path or null if cancelled)
+ipcMain.handle("file:show-save-dialog", async (event, options) => {
+  try {
+    const result = await dialog.showSaveDialog(mainWindow, options || {});
+    if (result.canceled) return null;
+    return result.filePath;
+  } catch (error) {
+    console.error("Error showing save dialog:", error);
+    throw error;
+  }
+});
+
+// Write base64-encoded content to disk (binary)
+ipcMain.handle("file:write-base64", async (event, filePath, base64Content) => {
+  try {
+    const buffer = Buffer.from(base64Content, "base64");
+    await fs.writeFile(filePath, buffer);
+    return true;
+  } catch (error) {
+    console.error("Error writing base64 file:", error);
+    throw error;
+  }
+});
+
 ipcMain.handle("file:delete", async (event, filePath) => {
   try {
     await fs.unlink(filePath);

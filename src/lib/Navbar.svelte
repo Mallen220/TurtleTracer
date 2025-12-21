@@ -34,6 +34,7 @@
 
   export let saveProject: () => any;
   export let saveFileAs: () => any;
+  export let exportGif: () => any;
   export let undoAction: () => any;
   export let redoAction: () => any;
   export let recordChange: () => any;
@@ -656,6 +657,15 @@
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
             >
               Sequential Command
+            </button>
+            <button
+              on:click={() => {
+                exportMenuOpen = false;
+                exportGif && exportGif();
+              }}
+              class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            >
+              Export GIF
             </button>
           </div>
         {/if}

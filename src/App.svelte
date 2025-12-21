@@ -55,12 +55,20 @@
     getDefaultShapes,
   } from "./config";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
+  import { exportPathToGif } from "./utils/exportGif";
   import { onMount, tick } from "svelte";
   import { debounce } from "lodash";
   import { createHistory, type AppState } from "./utils/history";
   // Electron API type (defined in preload.js, attached to window)
   interface ElectronAPI {
     writeFile: (filePath: string, content: string) => Promise<boolean>;
+    writeFileBase64?: (
+      filePath: string,
+      base64Content: string,
+    ) => Promise<boolean>;
+    showSaveDialog?: (options: any) => Promise<string | null>;
+    getDirectory?: () => Promise<string>;
+    fileExists?: (filePath: string) => Promise<boolean>;
   }
 
   // Access electron API from window (attached by preload script)
@@ -823,6 +831,112 @@
     downloadTrajectory(startPoint, lines, shapes, sequence);
   }
 
+  // Export GIF
+  async function exportGif() {
+    try {
+      const durationSec = animationController.getDuration();
+      const fps = 15; // reasonable default
+
+      // Simple UI feedback
+      const notif = document.createElement("div");
+      notif.textContent = "Exporting GIF...";
+      notif.style.position = "fixed";
+      notif.style.right = "16px";
+      notif.style.top = "16px";
+      notif.style.background = "rgba(0,0,0,0.8)";
+      notif.style.color = "white";
+      notif.style.padding = "8px 12px";
+      notif.style.borderRadius = "6px";
+      document.body.appendChild(notif);
+
+      const fieldImageSrc = settings.fieldMap
+        ? `/fields/${settings.fieldMap}`
+        : "/fields/decode.webp";
+
+      const blob = await exportPathToGif({
+        two,
+        animationController,
+        durationSec,
+        fps,
+        backgroundImageSrc: fieldImageSrc,
+        // Robot overlay options
+        robotImageSrc: settings.robotImage || "/robot.png",
+        robotWidthPx: x(robotWidth),
+        robotHeightPx: x(robotHeight),
+        getRobotState: (p: number) =>
+          calculateRobotState(
+            p,
+            timePrediction.timeline,
+            lines,
+            startPoint,
+            x,
+            y,
+          ),
+        onProgress: (p: number) => {
+          notif.textContent = `Exporting GIF... ${Math.round(p * 100)}%`;
+        },
+      });
+
+      if (
+        electronAPI &&
+        (electronAPI as any).showSaveDialog &&
+        (electronAPI as any).writeFileBase64
+      ) {
+        // Ask user where to save
+        try {
+          const destPath = await (electronAPI as any).showSaveDialog({
+            defaultPath: "path.gif",
+            filters: [{ name: "GIF", extensions: ["gif"] }],
+          });
+
+          if (destPath) {
+            // Convert blob to base64
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const dataUrl = reader.result as string;
+                const comma = dataUrl.indexOf(",");
+                resolve(dataUrl.slice(comma + 1));
+              };
+              reader.onerror = () =>
+                reject(new Error("Failed to read blob as data URL"));
+              reader.readAsDataURL(blob);
+            });
+
+            await (electronAPI as any).writeFileBase64(destPath, base64);
+            notif.textContent = `GIF saved to ${destPath}`;
+            setTimeout(() => notif.remove(), 2000);
+            return;
+          } else {
+            notif.textContent = "Save canceled";
+            setTimeout(() => notif.remove(), 1500);
+            return;
+          }
+        } catch (err) {
+          console.error("Error saving GIF via Electron:", err);
+          alert("Failed to save GIF: " + (err as Error).message);
+          notif.remove();
+          return;
+        }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "path.gif";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        notif.textContent = "GIF export complete";
+        setTimeout(() => notif.remove(), 2000);
+      }
+    } catch (err) {
+      alert("Failed to export GIF: " + (err as Error).message);
+      console.error(err);
+    }
+  }
+
   function animate(timestamp: number) {
     if (!startTime) {
       startTime = timestamp;
@@ -1253,6 +1367,25 @@
       };
     }
   });
+
+  // Auto-export for CI/testing: if the app is loaded with URL hash #export-gif-test, automatically run GIF export once mounted
+  onMount(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.location &&
+      window.location.hash === "#export-gif-test"
+    ) {
+      // Delay slightly to allow initial rendering and Two.js to initialize
+      setTimeout(async () => {
+        try {
+          await exportGif();
+          console.log("Auto GIF export attempted");
+        } catch (err) {
+          console.error("Auto GIF export failed:", err);
+        }
+      }, 1500);
+    }
+  });
 </script>
 
 <Navbar
@@ -1267,6 +1400,7 @@
   {saveFileAs}
   {loadFile}
   {loadRobot}
+  {exportGif}
   {undoAction}
   {redoAction}
   {recordChange}

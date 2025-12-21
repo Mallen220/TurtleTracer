@@ -56,7 +56,8 @@
     "svelte-dnd-action": "^0.9.67",
     "svelte-highlight": "^7.7.0",
     "two.js": "^0.8.14",
-    "update-electron-app": "^3.1.1"
+    "update-electron-app": "^3.1.1",
+    "gif.js": "^0.2.0"
   },
   "build": {
     "appId": "com.pedropathing.visualizer",

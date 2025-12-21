@@ -27,4 +27,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Rename operation
   renameFile: (oldPath, newPath) =>
     ipcRenderer.invoke("file:rename", oldPath, newPath),
+
+  // Show native save dialog. Options follow Electron's showSaveDialog options
+  showSaveDialog: (options) =>
+    ipcRenderer.invoke("file:show-save-dialog", options),
+
+  // Write binary content encoded as base64 to disk
+  writeFileBase64: (filePath, base64Content) =>
+    ipcRenderer.invoke("file:write-base64", filePath, base64Content),
 });
