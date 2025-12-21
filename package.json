@@ -17,11 +17,6 @@
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder --mac --arm64 --publish=never",
     "dist:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --publish=never",
-    "dist:linux": "npm run build && electron-builder --linux --x64 --publish=never",
-    "dist:linux:arm64": "npm run build && electron-builder --linux --arm64 --publish=never",
-    "dist:linux:all": "npm run build && electron-builder --linux --publish=never",
-    "dist:win": "npm run build && electron-builder --win --x64 --publish=never",
-    "dist:mac": "npm run build && electron-builder --mac --publish=never",
     "dist:all": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --win --linux --publish=never",
     "dist:publish": "node scripts/publish.js",
     "format": "prettier --write ."
@@ -112,40 +107,12 @@
     },
     "linux": {
       "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "deb",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "rpm",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "tar.gz",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
+        "AppImage",
+        "deb"
       ],
       "icon": "build/icon.png",
       "category": "Development",
-      "maintainer": "Matthew Allen <allenmc220@gmail.com>",
-      "synopsis": "A better alternative to pedro pathing visualizer",
-      "description": "A tool for visualizing pathing algorithms with an improved user interface and additional features."
+      "maintainer": "Matthew Allen <allenmc220@gmail.com>"
     },
     "publish": {
       "provider": "github",
