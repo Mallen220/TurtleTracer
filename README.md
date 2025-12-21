@@ -2,9 +2,9 @@
 
 A powerful, intuitive desktop application for visualizing and planning autonomous robot paths for FIRST Robotics Competition. Built with Electron and Svelte, this tool provides a modern alternative to traditional path planning software.
 
-This repo is designed and maintained primarily on MacOS. While Windows and Linux executables are created function as this is an electron app, they may become unexpectidly unstable. Please report platform issues as they are discovered. The best temporary fix is to revert to a previous version.
+This repo is designed and maintained primarily on MacOS. While Windows and Linux executables are created (as this is an Electron app), they may become unexpectedly unstable. Please report platform issues as they are discovered. The best temporary fix is to revert to a previous version.
 
-![Version](https://img.shields.io/badge/version-1.1.6-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)
 ![Platform](https://img.shields.io/badge/platform-macOS%20|%20Windows%20|%20Linux-lightgrey.svg)
 
@@ -12,16 +12,20 @@ This repo is designed and maintained primarily on MacOS. While Windows and Linux
 
 ## ✨ Features
 
-- **Visual Path Editing**: Intuitive drag-and-drop interface for creating bezier curves, straight lines, and complex paths
-- **Robot Simulation**: Real-time animation of robot movement along paths with accurate kinematics
-- **Obstacle Management**: Add and edit field obstacles with custom shapes and collision detection
+- **Visual Path Editing**: Intuitive drag-and-drop interface for creating bezier curves, straight lines, and complex paths with snap-to-grid precision
+- **Robot Simulation**: Timeline-based animation of robot movement along paths with accurate kinematics and velocity/acceleration settings
+- **Sequence-Based Routines**: Create complex autonomous sequences with integrated wait times between path segments
+- **Obstacle Management**: Add and edit field obstacles with custom shapes, colors, and collision awareness
 - **Multiple Heading Modes**: Constant, linear, and tangential heading interpolation
 - **Event Markers**: Place event triggers at specific positions along paths for autonomous routines
-- **Cross-Platform**: Native applications for macOS, Windows, and Linux
-- **Code Export**: Generate ready-to-use Java code for Pedro Pathing library
-- **File Management**: Integrated file browser with save/load functionality
-- **Measurement Tools**: Built-in ruler, protractor, and grid for precise measurements
-- **Dark/Light Mode**: Choose your preferred theme
+- **Cross-Platform**: Native applications for macOS, Windows, and Linux with auto-update support
+- **Code Export**: Generate ready-to-use Java code for Pedro Pathing library, including sequential commands for FTC SDK
+- **Integrated File Management**: Built-in file browser with save/load, duplicate, mirror, rename, and directory statistics
+- **Measurement Tools**: Built-in ruler, protractor, and adjustable grid (12", 24", 36", 48", 6" options)
+- **Customizable Appearance**: Choose between light and dark themes, and customize colors for paths and obstacles
+- **Field and Robot Customization**: Upload custom field maps and robot images for accurate visualization
+- **Locking Functionality**: Prevent accidental modification of critical path segments and starting points
+- **Persistent Settings**: All configurations are saved between sessions and can be reset to defaults
 - **And so much more!**
 
 ## 📦 Installation Options
@@ -51,7 +55,7 @@ Enter your password when prompted to complete installation.
 
 ### **Linux (Ubuntu/Debian)**
 
-Download either .deb (for Debian/Ubuntu) or .AppImage of other distros.
+Download either .deb (for Debian/Ubuntu) or .AppImage for other distros.
 
 **Using .deb package:**
 
@@ -69,18 +73,21 @@ chmod +x Pedro*.AppImage
 ## 🎯 Getting Started
 
 1. **Launch the Application**: Open Pedro Pathing Visualizer from your applications menu
-2. **Create a Path**: Click "Add Line" to start creating your autonomous path
-3. **Adjust Points**: Drag start points, end points, and control points to shape your path
-4. **Set Headings**: Configure robot heading for each segment (constant, linear, or tangential)
-5. **Add Obstacles**: Define field obstacles that the robot should avoid
-6. **Simulate**: Play the animation to see your robot follow the path
-7. **Export**: Generate Java code for use with Pedro Pathing library
+2. **Configure Settings**: Set up your robot dimensions, field map, and preferences in the Settings dialog
+3. **Create a Path**: Click "Add Line" to start creating your autonomous path, or use the sequence editor for complex routines
+4. **Adjust Points**: Drag start points, end points, and control points to shape your path (enable snap-to-grid for precision)
+5. **Set Headings**: Configure robot heading for each segment (constant, linear, or tangential)
+6. **Add Obstacles**: Define field obstacles with custom shapes and colors
+7. **Create Sequences**: Build complex autonomous routines with paths and timed waits
+8. **Simulate**: Use the animation controller to see your robot follow the path with accurate timing
+9. **Export**: Generate Java code for use with Pedro Pathing library
 
 ## 🛠️ Tool Overview
 
 ### Canvas Tools
 
-- **Grid**: Toggle measurement grid with adjustable spacing (12", 24", 36", 48")
+- **Grid**: Toggle measurement grid with adjustable spacing (6", 12", 24", 36", 48")
+- **Snap-to-Grid**: Align points and obstacles to grid for precise placement
 - **Ruler**: Measure distances between points on the field
 - **Protractor**: Measure angles with lock-to-robot functionality
 
@@ -88,14 +95,22 @@ chmod +x Pedro*.AppImage
 
 - **Multiple Path Segments**: Create complex paths with multiple connected segments
 - **Control Points**: Add bezier control points for smooth curves
+- **Lock Segments**: Prevent accidental modification of critical path segments
+- **Sequence Editor**: Create complex autonomous routines with paths and wait times
 - **Event Markers**: Place named events at specific positions for autonomous routines
-- **Obstacle System**: Define custom polygons as field obstacles
+- **Obstacle System**: Define custom polygons as field obstacles with collision awareness
+
+### Animation & Simulation
+
+- **Timeline Controller**: Play, pause, and scrub through path execution
+- **Time Prediction**: Accurate path timing based on robot kinematics
+- **Velocity/Acceleration Settings**: Configure robot motion constraints for realistic simulation
 
 ### Export Options
 
 - **Java Code**: Full Pedro Pathing library integration code
+- **Sequential Commands**: FTC SDK SequentialCommandGroup code with event markers
 - **Points Array**: Raw coordinate arrays for custom implementations
-- **Sequential Commands**: FTC SDK SequentialCommandGroup code
 
 ## 🔧 Troubleshooting
 
@@ -131,18 +146,22 @@ The application includes a built-in file manager for organizing your path files 
 - **Auto-save Directory**: Defaults to your Pedro Pathing project directory
 - **Duplicate Files**: Create copies of existing paths
 - **Mirror Paths**: Automatically create horizontally mirrored versions of paths
-- **File Organization**: Browse, create, and delete .pp files directly within the app
+- **File Organization**: Browse, create, rename, and delete .pp files directly within the app
+- **Directory Statistics**: View file counts and sizes at a glance
 
 ## 📝 Keyboard Shortcuts
 
-| Shortcut       | Action               |
-| -------------- | -------------------- |
-| `Cmd/Ctrl + S` | Save current project |
-| `Space`        | Play/Pause animation |
-| `W`            | Add new line         |
-| `A`            | Add control point    |
-| `S`            | Remove control point |
-| `Escape`       | Close dialogs        |
+| Shortcut               | Action               |
+| ---------------------- | -------------------- |
+| `Cmd/Ctrl + S`         | Save current project |
+| `Cmd/Ctrl + Shift + S` | Save As              |
+| `Space`                | Play/Pause animation |
+| `W`                    | Add new line         |
+| `A`                    | Add control point    |
+| `S`                    | Remove control point |
+| `Escape`               | Close dialogs        |
+| `Cmd/Ctrl + Z`         | Undo                 |
+| `Cmd/Ctrl + Shift + Z` | Redo                 |
 
 ## 🏗️ Project Structure
 
@@ -150,11 +169,12 @@ The application includes a built-in file manager for organizing your path files 
 mallen220-pedropathingvisualizer/
 ├── electron/           # Electron main process
 ├── src/               # Svelte frontend
-│   ├── lib/          # Reusable components
-│   ├── utils/        # Utility functions
-│   └── config/       # Default configurations
+│   ├── lib/          # Reusable components and stores
+│   ├── utils/        # Utility functions and classes
+│   ├── config/       # Application configurations and defaults
+│   └── types/        # TypeScript type definitions
 ├── public/           # Static assets
-├── scripts/          # Build and release scripts
+├── scripts/          # Build, release, and development scripts
 └── .github/         # GitHub Actions workflows
 ```
 
@@ -176,7 +196,7 @@ cd PedroPathingVisualizer
 npm install
 
 # Start development server
-npm run electron:dev
+npm run dev
 ```
 
 ### Building
@@ -202,6 +222,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ### Development Guidelines
 
 - Follow existing code style and structure
+- Use Prettier for code formatting (configured to run on build)
 - Add appropriate TypeScript types
 - Test changes on multiple platforms if possible
 - Update documentation as needed
