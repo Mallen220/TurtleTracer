@@ -5,6 +5,10 @@
   export let onRemove: () => void;
   export let onInsertAfter: () => void;
   export let onAddPathAfter: () => void;
+  export let onMoveUp: () => void;
+  export let onMoveDown: () => void;
+  export let canMoveUp: boolean = true;
+  export let canMoveDown: boolean = true;
 
   function handleNameChange(e: Event) {
     const target = e.currentTarget as HTMLInputElement;
@@ -44,6 +48,50 @@
     <span>ms</span>
   </div>
   <div class="flex items-center gap-2">
+    <div class="flex flex-col gap-0.5 mr-1">
+      <button
+        title="Move up"
+        on:click={onMoveUp}
+        class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled={!canMoveUp}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="size-4"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="m5 15 7-7 7 7"
+          />
+        </svg>
+      </button>
+      <button
+        title="Move down"
+        on:click={onMoveDown}
+        class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled={!canMoveDown}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="size-4"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="m19 9-7 7-7-7"
+          />
+        </svg>
+      </button>
+    </div>
     <button
       title="Add path after"
       on:click={onAddPathAfter}

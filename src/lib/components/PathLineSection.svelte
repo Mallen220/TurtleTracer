@@ -15,6 +15,10 @@
   export let onInsertAfter: () => void;
   export let onAddWaitAfter: () => void;
   export let recordChange: () => void;
+  export let onMoveUp: () => void;
+  export let onMoveDown: () => void;
+  export let canMoveUp: boolean = true;
+  export let canMoveDown: boolean = true;
 
   $: snapToGridTitle =
     $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping";
@@ -120,6 +124,51 @@
           </svg>
         {/if}
       </button>
+
+      <div class="flex flex-row gap-0.5 ml-1">
+        <button
+          title="Move up"
+          on:click|stopPropagation={onMoveUp}
+          class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={!canMoveUp}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="size-4"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m5 15 7-7 7 7"
+            />
+          </svg>
+        </button>
+        <button
+          title="Move down"
+          on:click|stopPropagation={onMoveDown}
+          class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={!canMoveDown}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="size-4"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m19 9-7 7-7-7"
+            />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div class="flex flex-row justify-end items-center gap-1">

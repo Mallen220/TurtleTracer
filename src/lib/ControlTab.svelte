@@ -267,6 +267,54 @@
     collapsedEventMarkers = [...collapsedEventMarkers];
     recordChange();
   }
+
+  function syncLinesToSequence(newSeq: SequenceItem[]) {
+    const pathOrder = newSeq
+      .filter((item) => item.kind === "path")
+      .map((item) => item.lineId);
+
+    const indexedLines = lines.map((line, idx) => ({
+      line,
+      collapsed: collapsedSections.lines[idx],
+      control: collapsedSections.controlPoints[idx],
+      markers: collapsedEventMarkers[idx],
+    }));
+
+    const byId = new Map(indexedLines.map((entry) => [entry.line.id, entry]));
+    const reordered: typeof indexedLines = [];
+
+    pathOrder.forEach((id) => {
+      const entry = byId.get(id);
+      if (entry) {
+        reordered.push(entry);
+        byId.delete(id);
+      }
+    });
+
+    // Append any lines that are not currently in the sequence to preserve data
+    reordered.push(...byId.values());
+
+    lines = reordered.map((entry) => entry.line);
+    collapsedSections = {
+      ...collapsedSections,
+      lines: reordered.map((entry) => entry.collapsed ?? false),
+      controlPoints: reordered.map((entry) => entry.control ?? true),
+    };
+    collapsedEventMarkers = reordered.map((entry) => entry.markers ?? false);
+  }
+
+  function moveSequenceItem(seqIndex: number, delta: number) {
+    const targetIndex = seqIndex + delta;
+    if (targetIndex < 0 || targetIndex >= sequence.length) return;
+
+    const newSeq = [...sequence];
+    const [item] = newSeq.splice(seqIndex, 1);
+    newSeq.splice(targetIndex, 0, item);
+    sequence = newSeq;
+
+    syncLinesToSequence(newSeq);
+    recordChange?.();
+  }
 </script>
 
 <div class="flex-1 flex flex-col justify-start items-center gap-2 h-full">
@@ -284,60 +332,71 @@
 
     <!-- Unified sequence render: paths and waits -->
     {#each sequence as item, sIdx}
-      {#if item.kind === "path"}
-        {#each lines.filter((l) => l.id === item.lineId) as ln (ln.id)}
-          <PathLineSection
-            bind:line={ln}
-            idx={lines.findIndex((l) => l.id === ln.id)}
-            bind:lines
-            bind:collapsed={
-              collapsedSections.lines[lines.findIndex((l) => l.id === ln.id)]
-            }
-            bind:collapsedEventMarkers={
-              collapsedEventMarkers[lines.findIndex((l) => l.id === ln.id)]
-            }
-            bind:collapsedControlPoints={
-              collapsedSections.controlPoints[
-                lines.findIndex((l) => l.id === ln.id)
-              ]
-            }
-            onRemove={() => removeLine(lines.findIndex((l) => l.id === ln.id))}
-            onInsertAfter={() => insertLineAfter(sIdx)}
-            onAddWaitAfter={() => insertWaitAfter(sIdx)}
-            {recordChange}
+      <div class="w-full">
+        {#if item.kind === "path"}
+          {#each lines.filter((l) => l.id === item.lineId) as ln (ln.id)}
+            <PathLineSection
+              bind:line={ln}
+              idx={lines.findIndex((l) => l.id === ln.id)}
+              bind:lines
+              bind:collapsed={
+                collapsedSections.lines[lines.findIndex((l) => l.id === ln.id)]
+              }
+              bind:collapsedEventMarkers={
+                collapsedEventMarkers[lines.findIndex((l) => l.id === ln.id)]
+              }
+              bind:collapsedControlPoints={
+                collapsedSections.controlPoints[
+                  lines.findIndex((l) => l.id === ln.id)
+                ]
+              }
+              onRemove={() =>
+                removeLine(lines.findIndex((l) => l.id === ln.id))}
+              onInsertAfter={() => insertLineAfter(sIdx)}
+              onAddWaitAfter={() => insertWaitAfter(sIdx)}
+              onMoveUp={() => moveSequenceItem(sIdx, -1)}
+              onMoveDown={() => moveSequenceItem(sIdx, 1)}
+              canMoveUp={sIdx !== 0}
+              canMoveDown={sIdx !== sequence.length - 1}
+              {recordChange}
+            />
+          {/each}
+        {:else}
+          <WaitRow
+            name={getWait(item).name}
+            durationMs={getWait(item).durationMs}
+            onChange={(newName, newDuration) => {
+              const newSeq = [...sequence];
+              newSeq[sIdx] = {
+                ...getWait(item),
+                name: newName,
+                durationMs: Math.max(0, Number(newDuration) || 0),
+              };
+              sequence = newSeq;
+            }}
+            onRemove={() => {
+              const newSeq = [...sequence];
+              newSeq.splice(sIdx, 1);
+              sequence = newSeq;
+            }}
+            onInsertAfter={() => {
+              const newSeq = [...sequence];
+              newSeq.splice(sIdx + 1, 0, {
+                kind: "wait",
+                id: makeId(),
+                name: "Wait",
+                durationMs: 0,
+              });
+              sequence = newSeq;
+            }}
+            onAddPathAfter={() => insertPathAfter(sIdx)}
+            onMoveUp={() => moveSequenceItem(sIdx, -1)}
+            onMoveDown={() => moveSequenceItem(sIdx, 1)}
+            canMoveUp={sIdx !== 0}
+            canMoveDown={sIdx !== sequence.length - 1}
           />
-        {/each}
-      {:else}
-        <WaitRow
-          name={getWait(item).name}
-          durationMs={getWait(item).durationMs}
-          onChange={(newName, newDuration) => {
-            const newSeq = [...sequence];
-            newSeq[sIdx] = {
-              ...getWait(item),
-              name: newName,
-              durationMs: Math.max(0, Number(newDuration) || 0),
-            };
-            sequence = newSeq;
-          }}
-          onRemove={() => {
-            const newSeq = [...sequence];
-            newSeq.splice(sIdx, 1);
-            sequence = newSeq;
-          }}
-          onInsertAfter={() => {
-            const newSeq = [...sequence];
-            newSeq.splice(sIdx + 1, 0, {
-              kind: "wait",
-              id: makeId(),
-              name: "Wait",
-              durationMs: 0,
-            });
-            sequence = newSeq;
-          }}
-          onAddPathAfter={() => insertPathAfter(sIdx)}
-        />
-      {/if}
+        {/if}
+      </div>
     {/each}
 
     <!-- Add Line Button -->
