@@ -1,3 +1,7 @@
+## 1.2.7 (2025-12-21)
+
+- Skip version feature now works. Added ability to create paths after the starting point. Added sequence reordering. Double-click to create paths. Bug Fixes. 
+
 ## 1.2.6 (2025-12-21)
 
 - Fixed file importer and wait header.
