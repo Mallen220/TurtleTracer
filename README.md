@@ -151,17 +151,18 @@ The application includes a built-in file manager for organizing your path files 
 
 ## 📝 Keyboard Shortcuts
 
-| Shortcut               | Action               |
-| ---------------------- | -------------------- |
-| `Cmd/Ctrl + S`         | Save current project |
-| `Cmd/Ctrl + Shift + S` | Save As              |
-| `Space`                | Play/Pause animation |
-| `W`                    | Add new line         |
-| `A`                    | Add control point    |
-| `S`                    | Remove control point |
-| `Escape`               | Close dialogs        |
-| `Cmd/Ctrl + Z`         | Undo                 |
-| `Cmd/Ctrl + Shift + Z` | Redo                 |
+| Shortcut               | Action                   |
+| ---------------------- | ------------------------ |
+| `Double Click`         | Create new path to point |
+| `Cmd/Ctrl + S`         | Save current project     |
+| `Cmd/Ctrl + Shift + S` | Save As                  |
+| `Space`                | Play/Pause animation     |
+| `W`                    | Add new line             |
+| `A`                    | Add control point        |
+| `S`                    | Remove control point     |
+| `Escape`               | Close dialogs            |
+| `Cmd/Ctrl + Z`         | Undo                     |
+| `Cmd/Ctrl + Shift + Z` | Redo                     |
 
 ## 🏗️ Project Structure
 
