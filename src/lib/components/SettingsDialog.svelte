@@ -2,7 +2,10 @@
   import { cubicInOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
   import { resetSettings } from "../../utils/settingsPersistence";
-  import { AVAILABLE_FIELD_MAPS } from "../../config/defaults";
+  import {
+    AVAILABLE_FIELD_MAPS,
+    DEFAULT_SETTINGS,
+  } from "../../config/defaults";
   import type { Settings } from "../../types";
 
   export let isOpen = false;
@@ -48,12 +51,20 @@
     property: keyof Settings,
     min?: number,
     max?: number,
+    restoreDefaultIfEmpty = false,
   ) {
+    if (value === "" && restoreDefaultIfEmpty) {
+      settings[property] = DEFAULT_SETTINGS[property];
+      // Force reactivity
+      settings = { ...settings };
+      return;
+    }
     let num = parseFloat(value);
     if (isNaN(num)) num = 0;
     if (min !== undefined) num = Math.max(min, num);
     if (max !== undefined) num = Math.min(max, num);
     settings[property] = num;
+    settings = { ...settings };
   }
 
   // Helper function to convert file to base64
@@ -222,6 +233,15 @@
                   step="0.5"
                   on:input={(e) =>
                     handleNumberInput(e.target.value, "rWidth", 1, 36)}
+                  on:change={(e) =>
+                    handleNumberInput(
+                      e.target.value,
+                      "rWidth",
+                      1,
+                      36,
+                      false,
+                      true,
+                    )}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -245,6 +265,15 @@
                   step="0.5"
                   on:input={(e) =>
                     handleNumberInput(e.target.value, "rHeight", 1, 36)}
+                  on:change={(e) =>
+                    handleNumberInput(
+                      e.target.value,
+                      "rHeight",
+                      1,
+                      36,
+                      false,
+                      true,
+                    )}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -268,6 +297,15 @@
                   step="0.5"
                   on:input={(e) =>
                     handleNumberInput(e.target.value, "safetyMargin", 0, 24)}
+                  on:change={(e) =>
+                    handleNumberInput(
+                      e.target.value,
+                      "safetyMargin",
+                      0,
+                      24,
+                      false,
+                      true,
+                    )}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -899,6 +937,14 @@
                     max="1000"
                     step="1"
                     bind:value={settings.optimizationIterations}
+                    on:change={(e) =>
+                      handleNumberInput(
+                        e.target.value,
+                        "optimizationIterations",
+                        10,
+                        1000,
+                        true,
+                      )}
                     class="w-24 h-8 px-2 rounded border border-neutral-300 dark:border-neutral-600 text-purple-700 dark:text-purple-300 bg-neutral-50 dark:bg-neutral-900 focus:ring-2 focus:ring-purple-500"
                     title="Number of generations for path optimization"
                   />
@@ -911,6 +957,122 @@
                 >
                   Controls how many generations the optimizer will run. Higher
                   values may improve results but take longer.
+                </div>
+              </div>
+              <!-- Optimization Population Size -->
+              <div
+                class="p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
+              >
+                <div
+                  class="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-2"
+                >
+                  Population Size
+                </div>
+                <div class="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="10"
+                    max="200"
+                    step="1"
+                    bind:value={settings.optimizationPopulationSize}
+                    on:change={(e) =>
+                      handleNumberInput(
+                        e.target.value,
+                        "optimizationPopulationSize",
+                        10,
+                        200,
+                        true,
+                      )}
+                    class="w-24 h-8 px-2 rounded border border-neutral-300 dark:border-neutral-600 text-blue-700 dark:text-blue-300 bg-neutral-50 dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500"
+                    title="Number of candidate paths per generation"
+                  />
+                  <span class="text-xs text-neutral-500 dark:text-neutral-400"
+                    >Candidates</span
+                  >
+                </div>
+                <div
+                  class="text-xs text-neutral-500 dark:text-neutral-400 mt-1"
+                >
+                  Controls how many candidate paths are considered per
+                  generation. Higher values may improve results but take longer.
+                </div>
+              </div>
+              <!-- Optimization Mutation Rate -->
+              <div
+                class="p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
+              >
+                <div
+                  class="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-2"
+                >
+                  Mutation Rate
+                </div>
+                <div class="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0.01"
+                    max="1"
+                    step="0.01"
+                    bind:value={settings.optimizationMutationRate}
+                    on:change={(e) =>
+                      handleNumberInput(
+                        e.target.value,
+                        "optimizationMutationRate",
+                        0.01,
+                        1,
+                        true,
+                      )}
+                    class="w-24 h-8 px-2 rounded border border-neutral-300 dark:border-neutral-600 text-green-700 dark:text-green-300 bg-neutral-50 dark:bg-neutral-900 focus:ring-2 focus:ring-green-500"
+                    title="Fraction of control points mutated per generation"
+                  />
+                  <span class="text-xs text-neutral-500 dark:text-neutral-400"
+                    >Rate</span
+                  >
+                </div>
+                <div
+                  class="text-xs text-neutral-500 dark:text-neutral-400 mt-1"
+                >
+                  Fraction of control points mutated per generation. Higher
+                  values increase randomness, lower values make optimization
+                  more stable.
+                </div>
+              </div>
+              <!-- Optimization Mutation Strength -->
+              <div
+                class="p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
+              >
+                <div
+                  class="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-2"
+                >
+                  Mutation Strength
+                </div>
+                <div class="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0.1"
+                    max="20"
+                    step="0.1"
+                    bind:value={settings.optimizationMutationStrength}
+                    on:change={(e) =>
+                      handleNumberInput(
+                        e.target.value,
+                        "optimizationMutationStrength",
+                        0.1,
+                        20,
+                        true,
+                      )}
+                    class="w-24 h-8 px-2 rounded border border-neutral-300 dark:border-neutral-600 text-orange-700 dark:text-orange-300 bg-neutral-50 dark:bg-neutral-900 focus:ring-2 focus:ring-orange-500"
+                    title="Maximum distance (inches) a control point can move per mutation"
+                  />
+                  <span class="text-xs text-neutral-500 dark:text-neutral-400"
+                    >Inches</span
+                  >
+                </div>
+                <div
+                  class="text-xs text-neutral-500 dark:text-neutral-400 mt-1"
+                >
+                  Maximum distance (in inches) a control point can move per
+                  mutation. Higher values allow more exploration, lower values
+                  make optimization more precise.
                 </div>
               </div>
 

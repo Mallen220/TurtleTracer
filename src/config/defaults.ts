@@ -44,6 +44,9 @@ export const DEFAULT_SETTINGS: Settings = {
   showOnionLayers: false,
   onionLayerSpacing: 6, // inches between each robot body trace
   optimizationIterations: 100,
+  optimizationPopulationSize: 50,
+  optimizationMutationRate: 0.4,
+  optimizationMutationStrength: 6.0,
 };
 
 /**
