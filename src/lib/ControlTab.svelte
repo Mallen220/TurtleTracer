@@ -15,6 +15,7 @@
   import PathLineSection from "./components/PathLineSection.svelte";
   import PlaybackControls from "./components/PlaybackControls.svelte";
   import WaitRow from "./components/WaitRow.svelte";
+  import OptimizationDialog from "./components/OptimizationDialog.svelte";
   import { calculatePathTime } from "../utils";
 
   export let percent: number;
@@ -37,6 +38,8 @@
   export let shapes: Shape[];
   export let recordChange: () => void;
   export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
+
+  let optimizationOpen = false;
 
   // Reference exported but unused props to silence Svelte unused-export warnings
   $: robotWidth;
@@ -389,13 +392,26 @@
       {robotHeading}
       {x}
       {y}
-      {startPoint}
-      {lines}
-      {settings}
-      {sequence}
-      onApply={handleOptimizationApply}
-      {onPreviewChange}
+      onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
     />
+
+    {#if optimizationOpen}
+      <div
+        class="w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-100 dark:bg-neutral-800 p-4"
+      >
+        <OptimizationDialog
+          isOpen={true}
+          useModal={false}
+          {startPoint}
+          {lines}
+          {settings}
+          {sequence}
+          onApply={handleOptimizationApply}
+          {onPreviewChange}
+          onClose={() => (optimizationOpen = false)}
+        />
+      </div>
+    {/if}
 
     <StartingPointSection bind:startPoint {addPathAtStart} {addWaitAtStart} />
 

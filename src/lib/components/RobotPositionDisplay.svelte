@@ -1,25 +1,11 @@
 <script lang="ts">
-  import OptimizationDialog from "./OptimizationDialog.svelte";
-  import type {
-    Line,
-    Point,
-    SequenceItem,
-    Settings,
-    BasePoint,
-  } from "../../types";
+  import type { BasePoint } from "../../types";
 
   export let robotXY: BasePoint;
   export let robotHeading: number;
   export let x: d3.ScaleLinear<number, number, number>;
   export let y: d3.ScaleLinear<number, number, number>;
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let settings: Settings;
-  export let sequence: SequenceItem[];
-  export let onApply: (newLines: Line[]) => void;
-  export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
-
-  let optimizationOpen = false;
+  export let onToggleOptimization: (() => void) | null = null;
 </script>
 
 <div class="flex flex-col w-full justify-start items-start gap-0.5 text-sm">
@@ -39,7 +25,7 @@
     <div class="flex items-center gap-2">
       <button
         title="Optimize Path"
-        on:click={() => (optimizationOpen = true)}
+        on:click={() => onToggleOptimization && onToggleOptimization()}
         class="hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-purple-500"
       >
         <svg
@@ -57,16 +43,6 @@
           />
         </svg>
       </button>
-
-      <OptimizationDialog
-        bind:isOpen={optimizationOpen}
-        {startPoint}
-        {lines}
-        {settings}
-        {sequence}
-        {onApply}
-        {onPreviewChange}
-      />
     </div>
   </div>
 </div>
