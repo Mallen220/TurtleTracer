@@ -1,3 +1,7 @@
+## 1.2.8 (2025-12-23)
+
+- Added timeline markers. Added path optimizer based on PathPlanner algorithm. Optimization settings exist in the settings section.
+
 ## 1.2.7 (2025-12-21)
 
 - Skip version feature now works. Added ability to create paths after the starting point. Added sequence reordering. Double-click to create paths. Bug Fixes.
