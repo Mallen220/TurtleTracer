@@ -95,6 +95,7 @@ export interface Settings {
   showGhostPaths?: boolean; // Show collision overlays via ghost paths
   showOnionLayers?: boolean; // Show robot body at intervals along the path
   onionLayerSpacing?: number; // Distance in inches between onion layers
+  optimizationIterations?: number; // Number of optimization generations
 }
 
 export interface Shape {

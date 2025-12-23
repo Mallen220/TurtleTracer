@@ -12,7 +12,7 @@ export interface OptimizationResult {
 
 export class PathOptimizer {
   private populationSize = 50;
-  private generations = 100;
+  private generations: number;
   private mutationRate = 0.4;
   private mutationStrength = 6.0; // Max inches to move a point
 
@@ -31,6 +31,8 @@ export class PathOptimizer {
     this.originalLines = _.cloneDeep(lines);
     this.settings = settings;
     this.sequence = sequence;
+    // Use settings.optimizationIterations if provided, else default to 100
+    this.generations = settings.optimizationIterations ?? 100;
   }
 
   // Generate a mutated version of the lines

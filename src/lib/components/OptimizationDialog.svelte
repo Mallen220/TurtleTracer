@@ -16,7 +16,6 @@
   export let onApply: (newLines: Line[]) => void;
   export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
   export let onClose: (() => void) | null = null;
-  export let useModal = true; // Default to modal for backward compatibility
 
   let isRunning = false;
   let progress = 0;
@@ -116,7 +115,8 @@
 
   <p class="text-sm text-neutral-600 dark:text-neutral-400">
     The optimizer uses a genetic algorithm to adjust control points to minimize
-    total travel time.
+    total travel time. Locking paths and adjusting settings can help guide the
+    optimization process.
   </p>
 
   <div

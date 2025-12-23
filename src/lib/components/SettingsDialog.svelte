@@ -883,6 +883,37 @@
                 </div>
               {/if}
 
+              <!-- Optimization Iterations -->
+              <div
+                class="p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
+              >
+                <div
+                  class="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-2"
+                >
+                  Optimization Iterations
+                </div>
+                <div class="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="10"
+                    max="1000"
+                    step="1"
+                    bind:value={settings.optimizationIterations}
+                    class="w-24 h-8 px-2 rounded border border-neutral-300 dark:border-neutral-600 text-purple-700 dark:text-purple-300 bg-neutral-50 dark:bg-neutral-900 focus:ring-2 focus:ring-purple-500"
+                    title="Number of generations for path optimization"
+                  />
+                  <span class="text-xs text-neutral-500 dark:text-neutral-400"
+                    >Generations</span
+                  >
+                </div>
+                <div
+                  class="text-xs text-neutral-500 dark:text-neutral-400 mt-1"
+                >
+                  Controls how many generations the optimizer will run. Higher
+                  values may improve results but take longer.
+                </div>
+              </div>
+
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -901,7 +932,7 @@
                 More advanced settings will be added here in future updates
               </p>
               <p class="text-xs mt-1">
-                Path optimization, collision detection, export options, and so,
+                Collision detection, export options, start/end states, and so,
                 so much more!
               </p>
             </div>
