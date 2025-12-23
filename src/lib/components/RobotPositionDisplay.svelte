@@ -26,8 +26,9 @@
       <button
         title="Optimize Path"
         on:click={() => onToggleOptimization && onToggleOptimization()}
-        class="hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-purple-500"
+        class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-purple-500"
       >
+        <span>Optimize</span>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
