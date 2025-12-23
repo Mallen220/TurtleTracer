@@ -23,7 +23,7 @@
   let currentBestTime = 0;
   let logs: string[] = [];
   let optimizedLines: Line[] | null = null;
-  let showPreview = false;
+  let showPreview = true;
 
   async function startOptimization() {
     isRunning = true;
@@ -51,6 +51,11 @@
 
     logs = [...logs, "Optimization Complete!"];
     isRunning = false;
+    // Automatically show preview of optimized path
+    showPreview = true;
+    if (onPreviewChange) {
+      onPreviewChange(optimizedLines);
+    }
   }
 
   function handleApply() {
