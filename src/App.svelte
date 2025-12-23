@@ -120,6 +120,7 @@
     lineId: ln.id!,
   }));
   let shapes: Shape[] = getDefaultShapes();
+  let previewOptimizedLines: Line[] | null = null;
 
   const history = createHistory();
   const { canUndoStore, canRedoStore } = history;
@@ -633,6 +634,109 @@
     return onionLayers;
   })();
 
+  $: previewPathElements = (() => {
+    let _previewPaths: Path[] = [];
+
+    if (previewOptimizedLines && previewOptimizedLines.length > 0) {
+      previewOptimizedLines.forEach((line, idx) => {
+        if (!line || !line.endPoint) return;
+        let _startPoint =
+          idx === 0
+            ? startPoint
+            : previewOptimizedLines[idx - 1]?.endPoint || null;
+        if (!_startPoint) return;
+
+        let lineElem: Path | PathLine;
+        if (line.controlPoints.length > 2) {
+          const samples = 100;
+          const cps = [_startPoint, ...line.controlPoints, line.endPoint];
+          let points = [
+            new Two.Anchor(
+              x(_startPoint.x),
+              y(_startPoint.y),
+              0,
+              0,
+              0,
+              0,
+              Two.Commands.move,
+            ),
+          ];
+          for (let i = 1; i <= samples; ++i) {
+            const point = getCurvePoint(i / samples, cps);
+            points.push(
+              new Two.Anchor(
+                x(point.x),
+                y(point.y),
+                0,
+                0,
+                0,
+                0,
+                Two.Commands.line,
+              ),
+            );
+          }
+          points.forEach((point) => (point.relative = false));
+          lineElem = new Two.Path(points);
+          lineElem.automatic = false;
+        } else if (line.controlPoints.length > 0) {
+          let cp1 = line.controlPoints[1]
+            ? line.controlPoints[0]
+            : quadraticToCubic(
+                _startPoint,
+                line.controlPoints[0],
+                line.endPoint,
+              ).Q1;
+          let cp2 =
+            line.controlPoints[1] ??
+            quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
+              .Q2;
+          let points = [
+            new Two.Anchor(
+              x(_startPoint.x),
+              y(_startPoint.y),
+              x(_startPoint.x),
+              y(_startPoint.y),
+              x(cp1.x),
+              y(cp1.y),
+              Two.Commands.move,
+            ),
+            new Two.Anchor(
+              x(line.endPoint.x),
+              y(line.endPoint.y),
+              x(cp2.x),
+              y(cp2.y),
+              x(line.endPoint.x),
+              y(line.endPoint.y),
+              Two.Commands.curve,
+            ),
+          ];
+          points.forEach((point) => (point.relative = false));
+
+          lineElem = new Two.Path(points);
+          lineElem.automatic = false;
+        } else {
+          lineElem = new Two.Line(
+            x(_startPoint.x),
+            y(_startPoint.y),
+            x(line.endPoint.x),
+            y(line.endPoint.y),
+          );
+        }
+
+        lineElem.id = `preview-line-${idx + 1}`;
+        lineElem.stroke = "#60a5fa"; // Blue for preview
+        lineElem.linewidth = x(LINE_WIDTH);
+        lineElem.noFill();
+        lineElem.dashes = [x(4), x(4)]; // Dashed to show it's a preview
+        lineElem.opacity = 0.7;
+
+        _previewPaths.push(lineElem);
+      });
+    }
+
+    return _previewPaths;
+  })();
+
   let isLoaded = false;
   // Reactively trigger when any saveable data changes
   $: {
@@ -824,6 +928,9 @@
     }
     if (onionLayerElements.length > 0) {
       two.add(...onionLayerElements);
+    }
+    if (previewPathElements.length > 0) {
+      two.add(...previewPathElements);
     }
     two.add(...path);
     two.add(...points);
@@ -1494,6 +1601,9 @@
   {recordChange}
   {canUndo}
   {canRedo}
+  onPreviewOptimizedLines={(newLines) => {
+    previewOptimizedLines = newLines;
+  }}
 />
 <!--   {saveFile} -->
 <div
@@ -1592,5 +1702,8 @@ pointer-events: none;`}
     bind:loopAnimation
     {resetAnimation}
     {recordChange}
+    onPreviewChange={(newLines) => {
+      previewOptimizedLines = newLines;
+    }}
   />
 </div>

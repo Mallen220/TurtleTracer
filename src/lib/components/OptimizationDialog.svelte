@@ -14,12 +14,14 @@
   export let settings: Settings;
   export let sequence: SequenceItem[];
   export let onApply: (newLines: Line[]) => void;
+  export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
 
   let isRunning = false;
   let progress = 0;
   let currentBestTime = 0;
   let logs: string[] = [];
   let optimizedLines: Line[] | null = null;
+  let showPreview = false;
 
   async function startOptimization() {
     isRunning = true;
@@ -62,6 +64,15 @@
     logs = [];
     progress = 0;
     optimizedLines = null;
+    showPreview = false;
+    if (onPreviewChange) onPreviewChange(null);
+  }
+
+  function togglePreview() {
+    showPreview = !showPreview;
+    if (onPreviewChange) {
+      onPreviewChange(showPreview ? optimizedLines : null);
+    }
   }
 </script>
 
@@ -138,6 +149,36 @@
             <div class="text-neutral-600 dark:text-neutral-400">{log}</div>
           {/each}
         </div>
+
+        {#if !isRunning && optimizedLines}
+          <div
+            class="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md border border-blue-200 dark:border-blue-800"
+          >
+            <button
+              on:click={togglePreview}
+              class="flex items-center gap-2 flex-1 text-sm text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="size-4 transition-transform"
+                class:rotate-90={showPreview}
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="m8.25 4.5 7.5 7.5-7.5 7.5"
+                />
+              </svg>
+              <span class="font-medium"
+                >{showPreview ? "Hide" : "Show"} Preview</span
+              >
+            </button>
+          </div>
+        {/if}
       </div>
 
       <div

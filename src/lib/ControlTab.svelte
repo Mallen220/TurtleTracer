@@ -36,6 +36,7 @@
 
   export let shapes: Shape[];
   export let recordChange: () => void;
+  export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
 
   // Reference exported but unused props to silence Svelte unused-export warnings
   $: robotWidth;
@@ -251,6 +252,11 @@
     recordChange();
   }
 
+  function handleOptimizationApply(newLines: Line[]) {
+    lines = newLines;
+    recordChange?.();
+  }
+
   function insertWaitAfter(seqIndex: number) {
     const newSeq = [...sequence];
     newSeq.splice(seqIndex + 1, 0, {
@@ -378,7 +384,18 @@
       bind:collapsedObstacles={collapsedSections.obstacles}
     />
 
-    <RobotPositionDisplay {robotXY} {robotHeading} {x} {y} />
+    <RobotPositionDisplay
+      {robotXY}
+      {robotHeading}
+      {x}
+      {y}
+      {startPoint}
+      {lines}
+      {settings}
+      {sequence}
+      onApply={handleOptimizationApply}
+      {onPreviewChange}
+    />
 
     <StartingPointSection bind:startPoint {addPathAtStart} {addWaitAtStart} />
 
