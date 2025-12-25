@@ -724,7 +724,6 @@
         </svg>
       </a>
 
-
       <!-- Settings button -->
       <button
         title="Open Settings"

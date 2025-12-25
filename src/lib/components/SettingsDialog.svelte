@@ -39,6 +39,12 @@
       return;
     }
 
+    // Check if the key pressed is a modifier key (ignore if it is)
+    const modifierKeys = ["Control", "Alt", "Shift", "Meta", "Command"];
+    if (modifierKeys.includes(event.key)) {
+      return; // Wait for a non-modifier key to be pressed
+    }
+
     // Build the key string
     let key = "";
     if (event.ctrlKey) key += "ctrl+";
@@ -739,117 +745,6 @@
           {/if}
         </div>
 
-        <!-- Keyboard Shortcuts Section -->
-        <div class="mb-4">
-          <button
-            on:click={() =>
-              (collapsedSections.shortcuts = !collapsedSections.shortcuts)}
-            class="flex items-center justify-between w-full py-2 px-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-            aria-expanded={!collapsedSections.shortcuts}
-          >
-            <div class="flex items-center gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width={1.5}
-                stroke="currentColor"
-                class="size-5"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"
-                />
-              </svg>
-              <span class="font-semibold">Keyboard Shortcuts</span>
-            </div>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width={2}
-              stroke="currentColor"
-              class="size-5 transition-transform duration-200"
-              class:rotate-180={collapsedSections.shortcuts}
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="m19.5 8.25-7.5 7.5-7.5-7.5"
-              />
-            </svg>
-          </button>
-
-          {#if !collapsedSections.shortcuts}
-            <div
-              class="mt-2 space-y-2 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg"
-            >
-              {#if settings.keyBindings}
-                {#each settings.keyBindings as binding}
-                  <div
-                    class="flex items-center justify-between p-2 rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
-                  >
-                    <span
-                      class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
-                    >
-                      {binding.description}
-                    </span>
-                    <button
-                      class="px-3 py-1 text-xs font-mono rounded border transition-colors min-w-[80px] text-center"
-                      class:bg-blue-100={recordingKeyFor === binding.id}
-                      class:text-blue-700={recordingKeyFor === binding.id}
-                      class:border-blue-300={recordingKeyFor === binding.id}
-                      class:bg-neutral-100={recordingKeyFor !== binding.id}
-                      class:text-neutral-600={recordingKeyFor !== binding.id}
-                      class:border-neutral-200={recordingKeyFor !== binding.id}
-                      class:dark:bg-blue-900={recordingKeyFor === binding.id}
-                      class:dark:text-blue-100={recordingKeyFor === binding.id}
-                      class:dark:border-blue-700={recordingKeyFor === binding.id}
-                      class:dark:bg-neutral-800={recordingKeyFor !== binding.id}
-                      class:dark:text-neutral-400={recordingKeyFor !== binding.id}
-                      class:dark:border-neutral-600={recordingKeyFor !==
-                        binding.id}
-                      on:click={() => startRecordingKey(binding.id)}
-                      on:keydown={(e) => handleKeyDown(e, binding)}
-                    >
-                      {recordingKeyFor === binding.id
-                        ? "Press Key..."
-                        : binding.key}
-                    </button>
-                  </div>
-                {/each}
-              {:else}
-                <div class="text-sm text-neutral-500 text-center py-2">
-                  No key bindings available
-                </div>
-              {/if}
-
-              <div class="mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-                <p
-                  class="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="2"
-                    stroke="currentColor"
-                    class="size-4 mt-0.5 shrink-0"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"
-                    />
-                  </svg>
-                  Click a button to record a new shortcut. Press Escape to cancel recording.
-                </p>
-              </div>
-            </div>
-          {/if}
-        </div>
-
         <!-- Field Settings Section -->
         <div class="mb-4">
           <button
@@ -951,6 +846,120 @@
                     <option value={field.value}>{field.label}</option>
                   {/each}
                 </select>
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        <!-- Keyboard Shortcuts Section -->
+        <div class="mb-4">
+          <button
+            on:click={() =>
+              (collapsedSections.shortcuts = !collapsedSections.shortcuts)}
+            class="flex items-center justify-between w-full py-2 px-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+            aria-expanded={!collapsedSections.shortcuts}
+          >
+            <div class="flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width={1.5}
+                stroke="currentColor"
+                class="size-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"
+                />
+              </svg>
+              <span class="font-semibold">Keyboard Shortcuts</span>
+            </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width={2}
+              stroke="currentColor"
+              class="size-5 transition-transform duration-200"
+              class:rotate-180={collapsedSections.shortcuts}
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m19.5 8.25-7.5 7.5-7.5-7.5"
+              />
+            </svg>
+          </button>
+
+          {#if !collapsedSections.shortcuts}
+            <div
+              class="mt-2 space-y-2 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg"
+            >
+              {#if settings.keyBindings}
+                {#each settings.keyBindings as binding}
+                  <div
+                    class="flex items-center justify-between p-2 rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                  >
+                    <span
+                      class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+                    >
+                      {binding.description}
+                    </span>
+                    <button
+                      class="px-3 py-1 text-xs font-mono rounded border transition-colors min-w-[80px] text-center"
+                      class:bg-blue-100={recordingKeyFor === binding.id}
+                      class:text-blue-700={recordingKeyFor === binding.id}
+                      class:border-blue-300={recordingKeyFor === binding.id}
+                      class:bg-neutral-100={recordingKeyFor !== binding.id}
+                      class:text-neutral-600={recordingKeyFor !== binding.id}
+                      class:border-neutral-200={recordingKeyFor !== binding.id}
+                      class:dark:bg-blue-900={recordingKeyFor === binding.id}
+                      class:dark:text-blue-100={recordingKeyFor === binding.id}
+                      class:dark:border-blue-700={recordingKeyFor ===
+                        binding.id}
+                      class:dark:bg-neutral-800={recordingKeyFor !== binding.id}
+                      class:dark:text-neutral-400={recordingKeyFor !==
+                        binding.id}
+                      class:dark:border-neutral-600={recordingKeyFor !==
+                        binding.id}
+                      on:click={() => startRecordingKey(binding.id)}
+                      on:keydown={(e) => handleKeyDown(e, binding)}
+                    >
+                      {recordingKeyFor === binding.id
+                        ? "Press Key..."
+                        : binding.key}
+                    </button>
+                  </div>
+                {/each}
+              {:else}
+                <div class="text-sm text-neutral-500 text-center py-2">
+                  No key bindings available
+                </div>
+              {/if}
+
+              <div class="mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                <p
+                  class="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="2"
+                    stroke="currentColor"
+                    class="size-4 mt-0.5 shrink-0"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"
+                    />
+                  </svg>
+                  Click a button to record a new shortcut. Press Escape to cancel
+                  recording.
+                </p>
               </div>
             </div>
           {/if}
