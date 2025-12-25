@@ -851,8 +851,9 @@
   }
 
   $: eventMarkers = (() => {
-    const markers = [];
+    const markers: any[] = [];
 
+    // Path-based markers
     lines.forEach((line, lineIdx) => {
       if (!line || !line.endPoint) return; // Skip invalid lines or lines without endPoint
       if (line.eventMarkers && line.eventMarkers.length > 0) {
@@ -904,6 +905,60 @@
         });
       }
     });
+
+    // Wait-based markers: draw at the wait's point
+    if (
+      timePrediction &&
+      timePrediction.timeline &&
+      sequence &&
+      sequence.length > 0
+    ) {
+      const waitById = new Map<string, any>();
+      sequence.forEach((it) => {
+        if (it.kind === "wait") waitById.set(it.id, it);
+      });
+
+      timePrediction.timeline.forEach((ev, tIdx) => {
+        if (ev.type !== "wait" || !ev.waitId || !ev.atPoint) return;
+        const seqWait = waitById.get(ev.waitId);
+        if (
+          !seqWait ||
+          !seqWait.eventMarkers ||
+          seqWait.eventMarkers.length === 0
+        )
+          return;
+
+        const point = ev.atPoint;
+        seqWait.eventMarkers.forEach((event: any, eventIdx: number) => {
+          const markerGroup = new Two.Group();
+          markerGroup.id = `wait-event-${ev.waitId}-${eventIdx}`;
+
+          const markerCircle = new Two.Circle(
+            x(point.x),
+            y(point.y),
+            x(POINT_RADIUS * 1.3),
+          );
+          markerCircle.id = `wait-event-circle-${ev.waitId}-${eventIdx}`;
+          markerCircle.fill = "#8b5cf6";
+          markerCircle.stroke = "#ffffff";
+          markerCircle.linewidth = x(0.3);
+
+          const flagSize = x(1);
+          const flagPoints = [
+            new Two.Anchor(x(point.x), y(point.y) - flagSize / 2),
+            new Two.Anchor(x(point.x) + flagSize / 2, y(point.y)),
+            new Two.Anchor(x(point.x), y(point.y) + flagSize / 2),
+          ];
+          const flag = new Two.Path(flagPoints, true);
+          flag.fill = "#ffffff";
+          flag.stroke = "none";
+          flag.id = `wait-event-flag-${ev.waitId}-${eventIdx}`;
+
+          markerGroup.add(markerCircle, flag);
+          markers.push(markerGroup);
+        });
+      });
+    }
 
     return markers;
   })();

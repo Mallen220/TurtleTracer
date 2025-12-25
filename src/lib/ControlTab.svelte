@@ -15,6 +15,7 @@
   import PathLineSection from "./components/PathLineSection.svelte";
   import PlaybackControls from "./components/PlaybackControls.svelte";
   import WaitRow from "./components/WaitRow.svelte";
+  import WaitMarkersSection from "./components/WaitMarkersSection.svelte";
   import OptimizationDialog from "./components/OptimizationDialog.svelte";
   import { calculatePathTime } from "../utils";
 
@@ -491,6 +492,7 @@
             canMoveUp={sIdx !== 0}
             canMoveDown={sIdx !== sequence.length - 1}
           />
+          <WaitMarkersSection wait={getWait(item)} />
         {/if}
       </div>
     {/each}

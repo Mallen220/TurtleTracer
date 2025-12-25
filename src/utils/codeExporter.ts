@@ -24,6 +24,15 @@ export async function generateJavaCode(
       eventMarkerNames.add(event.name);
     });
   });
+  if (sequence) {
+    sequence.forEach((item) => {
+      if ((item as any).kind === "wait" && (item as any).eventMarkers) {
+        (item as any).eventMarkers.forEach((event: any) => {
+          eventMarkerNames.add(event.name);
+        });
+      }
+    });
+  }
 
   let pathsClass = `
   public static class Paths {
@@ -325,7 +334,41 @@ export async function generateSequentialCommandCode(
 
   seq.forEach((item, idx) => {
     if (item.kind === "wait") {
-      commands.push(`        new WaitCommand(${(item as any).durationMs})`);
+      const waitItem: any = item as any;
+      const waitDuration = waitItem.durationMs || 0;
+      const markers: any[] = Array.isArray(waitItem.eventMarkers)
+        ? [...waitItem.eventMarkers]
+        : [];
+
+      if (markers.length === 0) {
+        commands.push(`        new WaitCommand(${waitDuration})`);
+        return;
+      }
+
+      // Sort markers by position (0-1) to schedule in order
+      markers.sort((a, b) => (a.position || 0) - (b.position || 0));
+
+      let scheduled = 0;
+      const markerCommandParts: string[] = [];
+      markers.forEach((marker) => {
+        const targetMs =
+          Math.max(0, Math.min(1, marker.position || 0)) * waitDuration;
+        const delta = Math.max(0, targetMs - scheduled);
+        scheduled = targetMs;
+        markerCommandParts.push(`
+                new WaitCommand(${delta.toFixed(0)}),
+                new InstantCommand(() -> progressTracker.executeEvent("${marker.name}"))`);
+      });
+
+      const remaining = Math.max(0, waitDuration - scheduled);
+      markerCommandParts.push(`
+                new WaitCommand(${remaining.toFixed(0)})`);
+
+      commands.push(`        new ParallelRaceGroup(
+            new WaitCommand(${waitDuration}),
+            new SequentialCommandGroup(${markerCommandParts.join(",")}
+            )
+        )`);
       return;
     }
     const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);

@@ -139,6 +139,7 @@ export function calculatePathTime(
           duration: waitSeconds,
           startTime: currentTime,
           endTime: currentTime + waitSeconds,
+          waitId: item.id,
           startHeading: currentHeading,
           targetHeading: currentHeading,
           atPoint: lastPoint,

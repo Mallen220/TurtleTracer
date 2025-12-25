@@ -37,7 +37,10 @@ export interface EventMarker {
   id: string;
   name: string;
   position: number; // 0-1 within the path segment
-  lineIndex: number;
+  // For path-based markers, the index of the line in `lines`
+  lineIndex?: number;
+  // For wait-based markers, the id of the wait in `sequence`
+  waitId?: string;
   parameters?: Record<string, any>;
 }
 
@@ -74,6 +77,7 @@ export type SequenceWaitItem = {
   name: string;
   durationMs: number;
   locked?: boolean;
+  eventMarkers?: EventMarker[];
 };
 
 export type SequenceItem = SequencePathItem | SequenceWaitItem;
@@ -119,6 +123,8 @@ export interface TimelineEvent {
   name?: string;
   waitPosition?: "before" | "after";
   lineIndex?: number; // for travel
+  // If this wait came from a sequence wait item, reference it here
+  waitId?: string;
   startHeading?: number;
   targetHeading?: number;
   atPoint?: BasePoint;
