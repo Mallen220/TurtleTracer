@@ -440,9 +440,7 @@ export async function generateSequentialCommandCode(
 
       // Add event registrations
       line.eventMarkers.forEach((event) => {
-        commands[
-          commands.length - 1
-        ] += `
+        commands[commands.length - 1] += `
                         progressTracker.registerEvent("${event.name}", ${event.position.toFixed(3)});`;
       });
 
