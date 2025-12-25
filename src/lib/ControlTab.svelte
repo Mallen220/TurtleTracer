@@ -424,17 +424,17 @@
     aria-labelledby={activeTab === "path" ? "path-tab" : "field-tab"}
   >
     {#if activeTab === "field"}
-      <ObstaclesSection
-        bind:shapes
-        bind:collapsedObstacles={collapsedSections.obstacles}
-      />
-
       <RobotPositionDisplay
         {robotXY}
         {robotHeading}
         {x}
         {y}
         onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
+      />
+
+      <ObstaclesSection
+        bind:shapes
+        bind:collapsedObstacles={collapsedSections.obstacles}
       />
 
       {#if optimizationOpen}
@@ -457,11 +457,7 @@
     {/if}
 
     {#if activeTab === "path"}
-      <StartingPointSection
-        bind:startPoint
-        {addPathAtStart}
-        {addWaitAtStart}
-      />
+      <StartingPointSection bind:startPoint {addPathAtStart} {addWaitAtStart} />
 
       <!-- Unified sequence render: paths and waits -->
       {#each sequence as item, sIdx}
@@ -472,15 +468,19 @@
                 bind:line={ln}
                 idx={lines.findIndex((l) => l.id === ln.id)}
                 bind:lines
-                bind:collapsed={collapsedSections.lines[
-                  lines.findIndex((l) => l.id === ln.id)
-                ]}
-                bind:collapsedEventMarkers={collapsedEventMarkers[
-                  lines.findIndex((l) => l.id === ln.id)
-                ]}
-                bind:collapsedControlPoints={collapsedSections.controlPoints[
-                  lines.findIndex((l) => l.id === ln.id)
-                ]}
+                bind:collapsed={
+                  collapsedSections.lines[
+                    lines.findIndex((l) => l.id === ln.id)
+                  ]
+                }
+                bind:collapsedEventMarkers={
+                  collapsedEventMarkers[lines.findIndex((l) => l.id === ln.id)]
+                }
+                bind:collapsedControlPoints={
+                  collapsedSections.controlPoints[
+                    lines.findIndex((l) => l.id === ln.id)
+                  ]
+                }
                 onRemove={() =>
                   removeLine(lines.findIndex((l) => l.id === ln.id))}
                 onInsertAfter={() => insertLineAfter(sIdx)}
