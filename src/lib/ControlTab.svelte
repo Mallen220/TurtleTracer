@@ -41,6 +41,7 @@
   export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
 
   let optimizationOpen = false;
+  let activeTab: "path" | "field" = "path";
 
   // Reference exported but unused props to silence Svelte unused-export warnings
   $: robotWidth;
@@ -380,168 +381,215 @@
 </script>
 
 <div class="flex-1 flex flex-col justify-start items-center gap-2 h-full">
+  <!-- Tab Switcher -->
+  <div class="w-full px-4 pt-2">
+    <div
+      class="flex flex-row w-full bg-neutral-200 dark:bg-neutral-800 rounded-lg p-1 gap-1"
+      role="tablist"
+      aria-label="Editor View Selection"
+    >
+      <button
+        role="tab"
+        aria-selected={activeTab === "path"}
+        aria-controls="path-panel"
+        id="path-tab"
+        class="flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 {activeTab ===
+        'path'
+          ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white'
+          : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
+        on:click={() => (activeTab = "path")}
+      >
+        Path
+      </button>
+      <button
+        role="tab"
+        aria-selected={activeTab === "field"}
+        aria-controls="field-panel"
+        id="field-tab"
+        class="flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 {activeTab ===
+        'field'
+          ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white'
+          : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
+        on:click={() => (activeTab = "field")}
+      >
+        Field & Tools
+      </button>
+    </div>
+  </div>
+
   <div
     class="flex flex-col justify-start items-start w-full rounded-lg bg-neutral-50 dark:bg-neutral-900 shadow-md p-4 overflow-y-scroll overflow-x-hidden h-full gap-6"
+    role="tabpanel"
+    id={activeTab === "path" ? "path-panel" : "field-panel"}
+    aria-labelledby={activeTab === "path" ? "path-tab" : "field-tab"}
   >
-    <ObstaclesSection
-      bind:shapes
-      bind:collapsedObstacles={collapsedSections.obstacles}
-    />
+    {#if activeTab === "field"}
+      <RobotPositionDisplay
+        {robotXY}
+        {robotHeading}
+        {x}
+        {y}
+        onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
+      />
 
-    <RobotPositionDisplay
-      {robotXY}
-      {robotHeading}
-      {x}
-      {y}
-      onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
-    />
+      <ObstaclesSection
+        bind:shapes
+        bind:collapsedObstacles={collapsedSections.obstacles}
+      />
 
-    {#if optimizationOpen}
-      <div
-        class="w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-100 dark:bg-neutral-800 p-4"
-      >
-        <OptimizationDialog
-          isOpen={true}
-          useModal={false}
-          {startPoint}
-          {lines}
-          {settings}
-          {sequence}
-          onApply={handleOptimizationApply}
-          {onPreviewChange}
-          onClose={() => (optimizationOpen = false)}
-        />
-      </div>
+      {#if optimizationOpen}
+        <div
+          class="w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-100 dark:bg-neutral-800 p-4"
+        >
+          <OptimizationDialog
+            isOpen={true}
+            useModal={false}
+            {startPoint}
+            {lines}
+            {settings}
+            {sequence}
+            onApply={handleOptimizationApply}
+            {onPreviewChange}
+            onClose={() => (optimizationOpen = false)}
+          />
+        </div>
+      {/if}
     {/if}
 
-    <StartingPointSection bind:startPoint {addPathAtStart} {addWaitAtStart} />
+    {#if activeTab === "path"}
+      <StartingPointSection bind:startPoint {addPathAtStart} {addWaitAtStart} />
 
-    <!-- Unified sequence render: paths and waits -->
-    {#each sequence as item, sIdx}
-      <div class="w-full">
-        {#if item.kind === "path"}
-          {#each lines.filter((l) => l.id === item.lineId) as ln (ln.id)}
-            <PathLineSection
-              bind:line={ln}
-              idx={lines.findIndex((l) => l.id === ln.id)}
-              bind:lines
-              bind:collapsed={
-                collapsedSections.lines[lines.findIndex((l) => l.id === ln.id)]
-              }
-              bind:collapsedEventMarkers={
-                collapsedEventMarkers[lines.findIndex((l) => l.id === ln.id)]
-              }
-              bind:collapsedControlPoints={
-                collapsedSections.controlPoints[
-                  lines.findIndex((l) => l.id === ln.id)
-                ]
-              }
-              onRemove={() =>
-                removeLine(lines.findIndex((l) => l.id === ln.id))}
-              onInsertAfter={() => insertLineAfter(sIdx)}
-              onAddWaitAfter={() => insertWaitAfter(sIdx)}
+      <!-- Unified sequence render: paths and waits -->
+      {#each sequence as item, sIdx}
+        <div class="w-full">
+          {#if item.kind === "path"}
+            {#each lines.filter((l) => l.id === item.lineId) as ln (ln.id)}
+              <PathLineSection
+                bind:line={ln}
+                idx={lines.findIndex((l) => l.id === ln.id)}
+                bind:lines
+                bind:collapsed={
+                  collapsedSections.lines[
+                    lines.findIndex((l) => l.id === ln.id)
+                  ]
+                }
+                bind:collapsedEventMarkers={
+                  collapsedEventMarkers[lines.findIndex((l) => l.id === ln.id)]
+                }
+                bind:collapsedControlPoints={
+                  collapsedSections.controlPoints[
+                    lines.findIndex((l) => l.id === ln.id)
+                  ]
+                }
+                onRemove={() =>
+                  removeLine(lines.findIndex((l) => l.id === ln.id))}
+                onInsertAfter={() => insertLineAfter(sIdx)}
+                onAddWaitAfter={() => insertWaitAfter(sIdx)}
+                onMoveUp={() => moveSequenceItem(sIdx, -1)}
+                onMoveDown={() => moveSequenceItem(sIdx, 1)}
+                canMoveUp={sIdx !== 0}
+                canMoveDown={sIdx !== sequence.length - 1}
+                {recordChange}
+              />
+            {/each}
+          {:else}
+            <WaitRow
+              name={getWait(item).name}
+              durationMs={getWait(item).durationMs}
+              locked={getWait(item).locked ?? false}
+              onToggleLock={() => {
+                const newSeq = [...sequence];
+                newSeq[sIdx] = {
+                  ...getWait(item),
+                  locked: !(getWait(item).locked ?? false),
+                };
+                sequence = newSeq;
+                recordChange?.();
+              }}
+              onChange={(newName, newDuration) => {
+                const newSeq = [...sequence];
+                newSeq[sIdx] = {
+                  ...getWait(item),
+                  name: newName,
+                  durationMs: Math.max(0, Number(newDuration) || 0),
+                };
+                sequence = newSeq;
+              }}
+              onRemove={() => {
+                const newSeq = [...sequence];
+                newSeq.splice(sIdx, 1);
+                sequence = newSeq;
+              }}
+              onInsertAfter={() => {
+                const newSeq = [...sequence];
+                newSeq.splice(sIdx + 1, 0, {
+                  kind: "wait",
+                  id: makeId(),
+                  name: "Wait",
+                  durationMs: 0,
+                  locked: false,
+                });
+                sequence = newSeq;
+              }}
+              onAddPathAfter={() => insertPathAfter(sIdx)}
               onMoveUp={() => moveSequenceItem(sIdx, -1)}
               onMoveDown={() => moveSequenceItem(sIdx, 1)}
               canMoveUp={sIdx !== 0}
               canMoveDown={sIdx !== sequence.length - 1}
-              {recordChange}
             />
-          {/each}
-        {:else}
-          <WaitRow
-            name={getWait(item).name}
-            durationMs={getWait(item).durationMs}
-            locked={getWait(item).locked ?? false}
-            onToggleLock={() => {
-              const newSeq = [...sequence];
-              newSeq[sIdx] = {
-                ...getWait(item),
-                locked: !(getWait(item).locked ?? false),
-              };
-              sequence = newSeq;
-              recordChange?.();
-            }}
-            onChange={(newName, newDuration) => {
-              const newSeq = [...sequence];
-              newSeq[sIdx] = {
-                ...getWait(item),
-                name: newName,
-                durationMs: Math.max(0, Number(newDuration) || 0),
-              };
-              sequence = newSeq;
-            }}
-            onRemove={() => {
-              const newSeq = [...sequence];
-              newSeq.splice(sIdx, 1);
-              sequence = newSeq;
-            }}
-            onInsertAfter={() => {
-              const newSeq = [...sequence];
-              newSeq.splice(sIdx + 1, 0, {
-                kind: "wait",
-                id: makeId(),
-                name: "Wait",
-                durationMs: 0,
-                locked: false,
-              });
-              sequence = newSeq;
-            }}
-            onAddPathAfter={() => insertPathAfter(sIdx)}
-            onMoveUp={() => moveSequenceItem(sIdx, -1)}
-            onMoveDown={() => moveSequenceItem(sIdx, 1)}
-            canMoveUp={sIdx !== 0}
-            canMoveDown={sIdx !== sequence.length - 1}
-          />
-          <WaitMarkersSection wait={getWait(item)} />
-        {/if}
+            <WaitMarkersSection wait={getWait(item)} />
+          {/if}
+        </div>
+      {/each}
+
+      <!-- Add Line Button -->
+      <div class="flex flex-row items-center gap-4">
+        <button
+          on:click={addLine}
+          class="font-semibold text-green-500 text-sm flex flex-row justify-start items-center gap-1 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 rounded px-1"
+          aria-label="Add new path segment"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width={2}
+            stroke="currentColor"
+            class="size-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 4.5v15m7.5-7.5h-15"
+            />
+          </svg>
+          <p>Add Path</p>
+        </button>
+
+        <button
+          on:click={addWait}
+          class="font-semibold text-amber-500 text-sm flex flex-row justify-start items-center gap-1 hover:text-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 rounded px-1"
+          aria-label="Add wait command"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="size-5"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 7v5l3 2"
+            />
+          </svg>
+          <p>Add Wait</p>
+        </button>
       </div>
-    {/each}
-
-    <!-- Add Line Button -->
-    <div class="flex flex-row items-center gap-4">
-      <button
-        on:click={addLine}
-        class="font-semibold text-green-500 text-sm flex flex-row justify-start items-center gap-1"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width={2}
-          stroke="currentColor"
-          class="size-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 4.5v15m7.5-7.5h-15"
-          />
-        </svg>
-        <p>Add Path</p>
-      </button>
-
-      <button
-        on:click={addWait}
-        class="font-semibold text-amber-500 text-sm flex flex-row justify-start items-center gap-1"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="size-5"
-        >
-          <circle cx="12" cy="12" r="9" />
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 7v5l3 2"
-          />
-        </svg>
-        <p>Add Wait</p>
-      </button>
-    </div>
+    {/if}
   </div>
 
   <PlaybackControls
