@@ -210,7 +210,7 @@
       kind: "wait",
       id: makeId(),
       name: "Wait",
-      durationMs: 0,
+      durationMs: 1000,
       locked: false,
     } as SequenceItem;
     sequence = [...sequence, wait];
@@ -221,7 +221,7 @@
       kind: "wait",
       id: makeId(),
       name: "Wait",
-      durationMs: 0,
+      durationMs: 1000,
       locked: false,
     } as SequenceItem;
     sequence = [wait, ...sequence];
