@@ -118,6 +118,12 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     description: "Toggle protractor",
     action: "toggleProtractor",
   },
+  {
+    id: "show-help",
+    key: "shift+/",
+    description: "Show keyboard shortcuts",
+    action: "showHelp",
+  },
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
