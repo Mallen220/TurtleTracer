@@ -14,6 +14,7 @@
     currentFilePath,
     isUnsaved,
     showGrid,
+    showProtractor,
   } from "./stores";
   import Two from "two.js";
   import type { Path } from "two.js/src/path";
@@ -53,6 +54,7 @@
     getDefaultStartPoint,
     getDefaultLines,
     getDefaultShapes,
+    DEFAULT_KEY_BINDINGS,
   } from "./config";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { exportPathToGif } from "./utils/exportGif";
@@ -757,9 +759,8 @@
     const savedSettings = await loadSettings();
     settings = { ...savedSettings };
 
-    // Update robot dimensions from loaded settings
-    robotWidth = settings.rWidth;
-    robotHeight = settings.rHeight;
+    // Robot dimensions come from reactive declarations; no explicit assignment required
+    // (avoids cyclical reactive dependency)
   });
   // Debounced save function
   const debouncedSaveSettings = debounce(async (settingsToSave: Settings) => {
@@ -821,11 +822,109 @@
     }
   }
 
-  // Keyboard shortcut for save
-  hotkeys("cmd+s, ctrl+s", function (event, handler) {
-    event.preventDefault();
-    saveProject();
-  });
+  // Helper: return true if user is typing in an input-like element
+  function isUIElementFocused(): boolean {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el) return false;
+    const tag = el.tagName;
+    return (
+      ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(tag) ||
+      el.getAttribute("role") === "button" ||
+      (el as any).isContentEditable
+    );
+  }
+
+  function stepForward() {
+    if (isUIElementFocused()) return;
+    percent = Math.min(100, percent + 1);
+    handleSeek(percent);
+  }
+
+  function stepBackward() {
+    if (isUIElementFocused()) return;
+    percent = Math.max(0, percent - 1);
+    handleSeek(percent);
+  }
+
+  // Hotkey management
+  function getKey(action: string): string {
+    const bindings = settings?.keyBindings || DEFAULT_KEY_BINDINGS;
+    const binding = bindings.find((b) => b.action === action);
+    return binding ? binding.key : "";
+  }
+
+  // Register hotkeys dynamically
+  $: {
+    if (settings && settings.keyBindings) {
+      // Unbind all previous keys (simplification: we just unbind all we know)
+      // Since hotkeys-js doesn't have a "unbind all", we rely on rebinding overriding
+      // or explicit unbind if we track them. For now, we'll just register.
+      // A better approach in Svelte is to use a reactive block that manages binding/unbinding.
+
+      // Unbind everything first to avoid duplicates if keys change
+      hotkeys.unbind();
+
+      // Helper to safely bind
+      const bind = (action: string, handler: (e: KeyboardEvent) => void) => {
+        const key = getKey(action);
+        if (key) {
+          hotkeys(key, (e) => {
+            e.preventDefault();
+            handler(e);
+          });
+        }
+      };
+
+      bind("saveProject", () => saveProject());
+      bind("saveFileAs", () => saveFileAs());
+      bind("exportGif", () => exportGif());
+      bind("addNewLine", () => addNewLine());
+      bind("addControlPoint", () => {
+        addControlPoint();
+      });
+      bind("removeControlPoint", () => {
+        removeControlPoint();
+      });
+      bind("undo", () => undoAction());
+      bind("redo", () => redoAction());
+
+      bind("resetAnimation", () => resetAnimation());
+      bind("stepForward", () => stepForward());
+      bind("stepBackward", () => stepBackward());
+
+      bind("toggleOnion", () => {
+        settings.showOnionLayers = !settings.showOnionLayers;
+        settings = { ...settings };
+      });
+
+      bind("toggleGrid", () => showGrid.update((v) => !v));
+      bind("toggleSnap", () => snapToGrid.update((v) => !v));
+      bind("toggleProtractor", () => showProtractor.update((v) => !v));
+
+      // Toggle play needs special handling to avoid conflict with spacebar scrolling?
+      // hotkeys-js usually handles space well.
+      // But we had a document listener for Space before. Let's move it here.
+      const playKey = getKey("togglePlay");
+      if (playKey) {
+        hotkeys(playKey, (e) => {
+          // Avoid toggling play when the user is interacting with UI elements
+          if (
+            document.activeElement &&
+            (document.activeElement.tagName === "INPUT" ||
+              document.activeElement.tagName === "TEXTAREA" ||
+              document.activeElement.tagName === "SELECT" ||
+              document.activeElement.tagName === "BUTTON" ||
+              document.activeElement.getAttribute("role") === "button")
+          ) {
+            return;
+          }
+          e.preventDefault();
+          if (playing) pause();
+          else play();
+        });
+      }
+    }
+  }
   $: {
     // This handles both 'travel' (movement) and 'wait' (stationary rotation) events.
     if (timePrediction && timePrediction.timeline && lines.length > 0) {
@@ -1348,15 +1447,6 @@
       two.update();
     });
   });
-  document.addEventListener("keydown", function (evt) {
-    if (evt.code === "Space" && document.activeElement === document.body) {
-      if (playing) {
-        pause();
-      } else {
-        play();
-      }
-    }
-  });
   function saveFile() {
     downloadTrajectory(startPoint, lines, shapes, sequence);
   }
@@ -1551,29 +1641,6 @@
     }
   }
 
-  // Keyboard shortcuts for quick path editing
-  hotkeys("w", function (event, handler) {
-    event.preventDefault();
-    addNewLine();
-  });
-  hotkeys("a", function (event, handler) {
-    event.preventDefault();
-    addControlPoint();
-    two.update();
-  });
-  hotkeys("s", function (event, handler) {
-    event.preventDefault();
-    removeControlPoint();
-    two.update();
-  });
-  hotkeys("cmd+z, ctrl+z", function (event) {
-    event.preventDefault();
-    undoAction();
-  });
-  hotkeys("cmd+shift+z, ctrl+shift+z, ctrl+y", function (event) {
-    event.preventDefault();
-    redoAction();
-  });
   function applyTheme(theme: "light" | "dark" | "auto") {
     let actualTheme = theme;
     if (theme === "auto") {

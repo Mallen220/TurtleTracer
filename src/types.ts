@@ -82,6 +82,13 @@ export type SequenceWaitItem = {
 
 export type SequenceItem = SequencePathItem | SequenceWaitItem;
 
+export interface KeyBinding {
+  id: string;
+  key: string;
+  description: string;
+  action: string; // Identifier for the action
+}
+
 export interface Settings {
   xVelocity: number;
   yVelocity: number;
@@ -103,6 +110,7 @@ export interface Settings {
   optimizationPopulationSize?: number; // Population size for optimizer
   optimizationMutationRate?: number; // Mutation rate for optimizer
   optimizationMutationStrength?: number; // Mutation strength for optimizer
+  keyBindings?: KeyBinding[];
 }
 
 export interface Shape {

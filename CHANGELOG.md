@@ -1,6 +1,7 @@
 ## 1.2.9 (2025-12-25)
 
 - Add event markers for wait steps with SolversLib support.
+- Added customizable Keyboard Shortcuts in the Settings menu.
 
 ## 1.2.8 (2025-12-23)
 

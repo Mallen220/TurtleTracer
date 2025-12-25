@@ -47,8 +47,32 @@ function migrateSettings(stored: Partial<StoredSettings>): Settings {
   // Copy only the properties that exist in both objects
   Object.keys(stored.settings).forEach((key) => {
     if (key in migrated) {
-      // @ts-ignore - We know the key exists in Settings
-      migrated[key] = stored.settings[key];
+      // Special-case merging for keyBindings so newly added defaults appear
+      if (key === "keyBindings" && Array.isArray(stored.settings.keyBindings)) {
+        const defaultBindings = defaults.keyBindings || [];
+        const storedBindings = stored.settings.keyBindings as any[];
+
+        // Map stored bindings by id for quick lookup
+        const storedMap = new Map<string, any>();
+        storedBindings.forEach((b) => storedMap.set(b.id, b));
+
+        // Start with defaults, override with stored values when ids match
+        const merged = defaultBindings.map((d) => {
+          const s = storedMap.get(d.id);
+          return s ? { ...d, ...s } : d;
+        });
+
+        // Append any stored-only bindings (user added) that aren't in defaults
+        storedBindings.forEach((b) => {
+          if (!defaultBindings.find((d) => d.id === b.id)) merged.push(b);
+        });
+
+        // @ts-ignore
+        migrated.keyBindings = merged;
+      } else {
+        // @ts-ignore - We know the key exists in Settings
+        migrated[key] = stored.settings[key];
+      }
     }
   });
 
