@@ -22,6 +22,8 @@
   let exportFullCode = false;
   let exportFormat: "java" | "points" | "sequential" = "java";
   let sequentialClassName = "AutoPath";
+  let targetLibrary: "SolversLib" | "NextFTC" = "SolversLib";
+
   let exportedCode = "";
   let currentLanguage: typeof java | typeof plaintext = java;
 
@@ -45,7 +47,6 @@
     format: "java" | "points" | "sequential",
   ) {
     exportFormat = format;
-
     try {
       if (format === "java") {
         exportedCode = await generateJavaCode(
@@ -58,9 +59,6 @@
         exportedCode = generatePointsArray(startPoint, lines);
         currentLanguage = plaintext;
       } else if (format === "sequential") {
-        // Initialize the editable class name from the current file path
-        // so the user sees the file-derived class name, but keep the
-        // field editable for manual overrides.
         if ($currentFilePath) {
           const fileName = $currentFilePath.split(/[\\/]/).pop();
           if (fileName) {
@@ -69,11 +67,13 @@
               .replace(/[^a-zA-Z0-9]/g, "_");
           }
         }
+        // - Pass targetLibrary
         exportedCode = await generateSequentialCommandCode(
           startPoint,
           lines,
           sequentialClassName,
           sequence,
+          targetLibrary,
         );
         currentLanguage = java;
       }
@@ -87,15 +87,16 @@
     }
   }
 
+  // - Update refresh function
   async function refreshSequentialCode() {
     if (exportFormat === "sequential" && isOpen) {
       try {
-        // Use the user-editable `sequentialClassName` so manual edits are respected
         exportedCode = await generateSequentialCommandCode(
           startPoint,
           lines,
           sequentialClassName,
           sequence,
+          targetLibrary,
         );
       } catch (error) {
         console.error("Refresh failed:", error);
@@ -142,55 +143,54 @@
           {/if}
         </p>
         <div class="flex items-center gap-2">
-          {#if exportFormat === "java"}
-            <label
-              for="export-full-code"
-              class="text-sm font-light text-neutral-700 dark:text-neutral-400"
-              >Export Full Code</label
-            >
-            <input
-              id="export-full-code"
-              type="checkbox"
-              bind:checked={exportFullCode}
-              on:change={handleExportFullCodeChange}
-              class="cursor-pointer"
-            />
-          {:else if exportFormat === "sequential"}
-            <div class="flex items-center gap-2">
-              <label
-                for="class-name"
-                class="text-sm font-light text-neutral-700 dark:text-neutral-400"
-                >Class Name:</label
+          {#if exportFormat === "java"}{:else if exportFormat === "sequential"}
+            <div class="flex items-center gap-4">
+              <div
+                class="flex bg-neutral-100 dark:bg-neutral-800 rounded-md p-0.5 border border-neutral-300 dark:border-neutral-600"
               >
-              <input
-                id="class-name"
-                type="text"
-                bind:value={sequentialClassName}
-                on:input={refreshSequentialCode}
-                class="px-2 py-1 text-sm rounded-md bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500 w-32"
-                placeholder="AutoPath"
-              />
+                <button
+                  class="px-3 py-1 text-xs rounded-sm transition-colors {targetLibrary ===
+                  'SolversLib'
+                    ? 'bg-white dark:bg-neutral-600 shadow-sm text-blue-600 dark:text-blue-300 font-medium'
+                    : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
+                  on:click={() => {
+                    targetLibrary = "SolversLib";
+                    refreshSequentialCode();
+                  }}
+                >
+                  SolversLib
+                </button>
+                <button
+                  class="px-3 py-1 text-xs rounded-sm transition-colors {targetLibrary ===
+                  'NextFTC'
+                    ? 'bg-white dark:bg-neutral-600 shadow-sm text-purple-600 dark:text-purple-300 font-medium'
+                    : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
+                  on:click={() => {
+                    targetLibrary = "NextFTC";
+                    refreshSequentialCode();
+                  }}
+                >
+                  NextFTC
+                </button>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <label
+                  for="class-name"
+                  class="text-sm font-light text-neutral-700 dark:text-neutral-400"
+                  >Class Name:</label
+                >
+                <input
+                  id="class-name"
+                  type="text"
+                  bind:value={sequentialClassName}
+                  on:input={refreshSequentialCode}
+                  class="px-2 py-1 text-sm rounded-md bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500 w-32"
+                  placeholder="AutoPath"
+                />
+              </div>
             </div>
           {/if}
-          <button
-            on:click={() => (isOpen = false)}
-            aria-label="Close export dialog"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="size-6 text-neutral-700 dark:text-neutral-400"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M6 18 18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
         </div>
       </div>
 
