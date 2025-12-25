@@ -14,6 +14,7 @@
     currentFilePath,
     isUnsaved,
     showGrid,
+    showProtractor,
   } from "./stores";
   import Two from "two.js";
   import type { Path } from "two.js/src/path";
@@ -758,9 +759,8 @@
     const savedSettings = await loadSettings();
     settings = { ...savedSettings };
 
-    // Update robot dimensions from loaded settings
-    robotWidth = settings.rWidth;
-    robotHeight = settings.rHeight;
+    // Robot dimensions come from reactive declarations; no explicit assignment required
+    // (avoids cyclical reactive dependency)
   });
   // Debounced save function
   const debouncedSaveSettings = debounce(async (settingsToSave: Settings) => {
@@ -822,6 +822,30 @@
     }
   }
 
+  // Helper: return true if user is typing in an input-like element
+  function isUIElementFocused(): boolean {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el) return false;
+    const tag = el.tagName;
+    return (
+      ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(tag) ||
+      el.getAttribute("role") === "button" ||
+      (el as any).isContentEditable
+    );
+  }
+
+  function stepForward() {
+    if (isUIElementFocused()) return;
+    percent = Math.min(100, percent + 1);
+    handleSeek(percent);
+  }
+
+  function stepBackward() {
+    if (isUIElementFocused()) return;
+    percent = Math.max(0, percent - 1);
+    handleSeek(percent);
+  }
+
   // Hotkey management
   function getKey(action: string): string {
     const bindings = settings?.keyBindings || DEFAULT_KEY_BINDINGS;
@@ -852,17 +876,30 @@
       };
 
       bind("saveProject", () => saveProject());
+      bind("saveFileAs", () => saveFileAs());
+      bind("exportGif", () => exportGif());
       bind("addNewLine", () => addNewLine());
       bind("addControlPoint", () => {
         addControlPoint();
-        two.update();
       });
       bind("removeControlPoint", () => {
         removeControlPoint();
-        two.update();
       });
       bind("undo", () => undoAction());
       bind("redo", () => redoAction());
+
+      bind("resetAnimation", () => resetAnimation());
+      bind("stepForward", () => stepForward());
+      bind("stepBackward", () => stepBackward());
+
+      bind("toggleOnion", () => {
+        settings.showOnionLayers = !settings.showOnionLayers;
+        settings = { ...settings };
+      });
+
+      bind("toggleGrid", () => showGrid.update((v) => !v));
+      bind("toggleSnap", () => snapToGrid.update((v) => !v));
+      bind("toggleProtractor", () => showProtractor.update((v) => !v));
 
       // Toggle play needs special handling to avoid conflict with spacebar scrolling?
       // hotkeys-js usually handles space well.

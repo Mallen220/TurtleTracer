@@ -64,6 +64,60 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     description: "Redo",
     action: "redo",
   },
+  {
+    id: "save-file-as",
+    key: "cmd+shift+s, ctrl+shift+s",
+    description: "Save As (download trajectory)",
+    action: "saveFileAs",
+  },
+  {
+    id: "export-gif",
+    key: "cmd+shift+e, ctrl+shift+e",
+    description: "Export GIF",
+    action: "exportGif",
+  },
+  {
+    id: "reset-animation",
+    key: "r",
+    description: "Reset animation",
+    action: "resetAnimation",
+  },
+  {
+    id: "step-back",
+    key: "left",
+    description: "Step animation backward",
+    action: "stepBackward",
+  },
+  {
+    id: "step-forward",
+    key: "right",
+    description: "Step animation forward",
+    action: "stepForward",
+  },
+  {
+    id: "toggle-onion",
+    key: "o",
+    description: "Toggle onion layers",
+    action: "toggleOnion",
+  },
+  {
+    id: "toggle-grid",
+    key: "g",
+    description: "Toggle grid",
+    action: "toggleGrid",
+  },
+  {
+    id: "toggle-snap",
+    key: "n",
+    description: "Toggle snap to grid",
+    action: "toggleSnap",
+  },
+  {
+    id: "toggle-protractor",
+    key: "p",
+    description: "Toggle protractor",
+    action: "toggleProtractor",
+  },
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
