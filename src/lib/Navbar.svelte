@@ -19,8 +19,10 @@
   } from "../config";
   import FileManager from "./FileManager.svelte";
   import SettingsDialog from "./components/SettingsDialog.svelte";
+  import KeyboardShortcutsDialog from "./components/KeyboardShortcutsDialog.svelte";
   import ExportCodeDialog from "./components/ExportCodeDialog.svelte";
   import { calculatePathTime, formatTime } from "../utils";
+  import { showShortcuts } from "../stores";
 
   export let loadFile: (evt: any) => any;
 
@@ -43,6 +45,7 @@
 
   let fileManagerOpen = false;
   let settingsOpen = false;
+  let shortcutsOpen = false;
   let exportMenuOpen = false;
   let exportDialog: ExportCodeDialog;
 
@@ -64,6 +67,20 @@
       unsubscribeGridSize();
     };
   });
+
+  // Sync local state with global store for shortcuts
+  onMount(() => {
+    const unsubscribeShortcuts = showShortcuts.subscribe((value) => {
+      shortcutsOpen = value;
+    });
+
+    return () => {
+      unsubscribeShortcuts();
+    };
+  });
+
+  // Update store when local state changes (from closing dialog)
+  $: showShortcuts.set(shortcutsOpen);
 
   function handleGridSizeChange(event: Event) {
     const value = Number((event.target as HTMLSelectElement).value);
@@ -167,6 +184,7 @@
 />
 
 <SettingsDialog bind:isOpen={settingsOpen} bind:settings />
+<KeyboardShortcutsDialog bind:isOpen={shortcutsOpen} bind:settings />
 <div
   class="absolute top-0 left-0 w-full bg-neutral-50 dark:bg-neutral-900 shadow-md flex flex-row justify-between items-center px-6 py-4 border-b-[0.75px] border-[#b300e6]"
 >
@@ -723,6 +741,28 @@
           ></path>
         </svg>
       </a>
+
+      <!-- Shortcuts button -->
+      <button
+        title="Keyboard Shortcuts (?)"
+        on:click={() => (shortcutsOpen = true)}
+        aria-label="Keyboard Shortcuts"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-6 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
+          />
+        </svg>
+      </button>
 
       <!-- Settings button -->
       <button

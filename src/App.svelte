@@ -15,6 +15,7 @@
     isUnsaved,
     showGrid,
     showProtractor,
+    showShortcuts,
   } from "./stores";
   import Two from "two.js";
   import type { Path } from "two.js/src/path";
@@ -900,6 +901,7 @@
       bind("toggleGrid", () => showGrid.update((v) => !v));
       bind("toggleSnap", () => snapToGrid.update((v) => !v));
       bind("toggleProtractor", () => showProtractor.update((v) => !v));
+      bind("showHelp", () => showShortcuts.update((v) => !v));
 
       // Toggle play needs special handling to avoid conflict with spacebar scrolling?
       // hotkeys-js usually handles space well.
