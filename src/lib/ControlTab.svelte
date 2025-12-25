@@ -432,11 +432,6 @@
         onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
       />
 
-      <ObstaclesSection
-        bind:shapes
-        bind:collapsedObstacles={collapsedSections.obstacles}
-      />
-
       {#if optimizationOpen}
         <div
           class="w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-100 dark:bg-neutral-800 p-4"
@@ -454,6 +449,11 @@
           />
         </div>
       {/if}
+
+      <ObstaclesSection
+        bind:shapes
+        bind:collapsedObstacles={collapsedSections.obstacles}
+      />
     {/if}
 
     {#if activeTab === "path"}
