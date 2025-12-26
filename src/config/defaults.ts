@@ -149,6 +149,7 @@ export const DEFAULT_SETTINGS: Settings = {
   optimizationMutationRate: 0.4,
   optimizationMutationStrength: 6.0,
   keyBindings: DEFAULT_KEY_BINDINGS,
+  recentFiles: [],
 };
 
 /**

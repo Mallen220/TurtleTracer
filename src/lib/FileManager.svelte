@@ -26,7 +26,14 @@
 
   import { cubicInOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
-  import type { FileInfo, Point, Line, Shape, SequenceItem } from "../types";
+  import type {
+    FileInfo,
+    Point,
+    Line,
+    Shape,
+    SequenceItem,
+    Settings,
+  } from "../types";
   import { currentFilePath, isUnsaved } from "../stores";
   import { getRandomColor } from "../utils";
   import {
@@ -39,7 +46,10 @@
   export let lines: Line[];
   export let shapes: Shape[];
   export let sequence: SequenceItem[];
+  export let settings: Settings;
 
+  let viewMode: "directory" | "recent" = "directory";
+  let sortMode: "recent" | "name" = "recent";
   let currentDirectory = "";
   let files: FileInfo[] = [];
   let loading = false;
@@ -100,12 +110,7 @@
     }));
   }
 
-  // Debug logging
-  console.log("[FileManager] Component initialized");
-  console.log("[FileManager] electronAPI available:", !!electronAPI);
-
   async function loadDirectory() {
-    console.log("[FileManager] loadDirectory called");
     loading = true;
     errorMessage = "";
 
@@ -152,6 +157,11 @@
   }
 
   async function refreshDirectory() {
+    if (viewMode === "recent") {
+      refreshRecentFiles();
+      return;
+    }
+
     try {
       // Get directory stats
       const stats = await electronAPI.getDirectoryStats(currentDirectory);
@@ -185,6 +195,38 @@
       errorMessage = `Error accessing directory: ${getErrorMessage(error)}`;
       files = [];
     }
+  }
+
+  function refreshRecentFiles() {
+    errorMessage = "";
+    const recentPaths = settings?.recentFiles || [];
+    files = recentPaths.map((filePath) => ({
+      name: path.basename(filePath),
+      path: filePath,
+      size: 0, // Unknown size without checking file system
+      modified: new Date(), // Unknown modification time
+    }));
+
+    if (sortMode === "name") {
+      files.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    // Else keep recent order (which is preserved from settings.recentFiles array)
+  }
+
+  // React to view/sort mode changes
+  $: {
+    if (viewMode === "recent") {
+      refreshRecentFiles();
+    } else {
+      if (currentDirectory) {
+        refreshDirectory(); // This is async but okay
+      }
+    }
+  }
+
+  // React to sort mode changes specifically for recent files
+  $: if (viewMode === "recent" && sortMode) {
+    refreshRecentFiles();
   }
 
   async function changeDirectory() {
@@ -288,6 +330,25 @@
     }
 
     try {
+      // Check if file exists (especially for recent files)
+      if (viewMode === "recent") {
+        const exists = await electronAPI.fileExists(file.path);
+        if (!exists) {
+          if (
+            confirm(
+              `File not found: ${file.path}\nDo you want to remove it from recent files?`,
+            )
+          ) {
+            settings.recentFiles = settings.recentFiles?.filter(
+              (p) => p !== file.path,
+            );
+            settings = { ...settings }; // Trigger reactivity
+            // refreshRecentFiles(); // Reactivity will trigger this
+          }
+          return;
+        }
+      }
+
       const content = await electronAPI.readFile(file.path);
       const data = JSON.parse(content);
 
@@ -308,6 +369,16 @@
       isUnsaved.set(false);
 
       selectedFile = file;
+
+      // Update recent files list (move to top) if in recent mode
+      if (viewMode === "recent" && settings.recentFiles) {
+        const idx = settings.recentFiles.indexOf(file.path);
+        if (idx !== -1) {
+          settings.recentFiles.splice(idx, 1);
+          settings.recentFiles.unshift(file.path);
+          settings = { ...settings };
+        }
+      }
 
       showToast(`Loaded: ${file.name}`, "success");
     } catch (error) {
@@ -682,12 +753,10 @@
   }
 
   onMount(() => {
-    console.log("[FileManager] onMount called");
     try {
       loadDirectory();
       // Add keyboard listener for renaming
       window.addEventListener("keydown", handleKeyDown);
-      console.log("[FileManager] onMount completed successfully");
     } catch (error) {
       console.error("[FileManager] Error in onMount:", error);
     }
@@ -766,20 +835,71 @@
         </button>
       </div>
 
-      <!-- Directory Info with Stats -->
-      <div class="mb-4">
-        <div class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
-          <div class="font-medium mb-1">Current Directory:</div>
-          <div
-            class="font-mono text-xs bg-neutral-100 dark:bg-neutral-800 p-2 rounded overflow-x-auto whitespace-nowrap"
-            title={currentDirectory}
-          >
-            {currentDirectory.includes("/GitHub/")
-              ? "..." + currentDirectory.split("/GitHub/")[1]
-              : currentDirectory}
+      <!-- View Toggle -->
+      <div class="flex gap-2 mb-4">
+        <button
+          on:click={() => (viewMode = "directory")}
+          class="flex-1 py-1 text-sm rounded-md transition-colors {viewMode ===
+          'directory'
+            ? 'bg-blue-500 text-white'
+            : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'}"
+        >
+          Directory
+        </button>
+        <button
+          on:click={() => (viewMode = "recent")}
+          class="flex-1 py-1 text-sm rounded-md transition-colors {viewMode ===
+          'recent'
+            ? 'bg-blue-500 text-white'
+            : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'}"
+        >
+          Recent
+        </button>
+      </div>
+
+      <!-- Directory Info with Stats (Only in Directory Mode) -->
+      {#if viewMode === "directory"}
+        <div class="mb-4">
+          <div class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
+            <div class="font-medium mb-1">Current Directory:</div>
+            <div
+              class="font-mono text-xs bg-neutral-100 dark:bg-neutral-800 p-2 rounded overflow-x-auto whitespace-nowrap"
+              title={currentDirectory}
+            >
+              {currentDirectory.includes("/GitHub/")
+                ? "..." + currentDirectory.split("/GitHub/")[1]
+                : currentDirectory}
+            </div>
           </div>
         </div>
-      </div>
+      {:else}
+        <!-- Sorting Options (Only in Recent Mode) -->
+        <div class="mb-4 flex items-center justify-between">
+          <span class="text-sm text-neutral-600 dark:text-neutral-400"
+            >Sort by:</span
+          >
+          <div class="flex bg-neutral-100 dark:bg-neutral-800 rounded p-1">
+            <button
+              on:click={() => (sortMode = "recent")}
+              class="px-2 py-0.5 text-xs rounded transition-colors {sortMode ===
+              'recent'
+                ? 'bg-white dark:bg-neutral-700 shadow text-blue-600 dark:text-blue-400'
+                : 'text-neutral-500 dark:text-neutral-400'}"
+            >
+              Recent
+            </button>
+            <button
+              on:click={() => (sortMode = "name")}
+              class="px-2 py-0.5 text-xs rounded transition-colors {sortMode ===
+              'name'
+                ? 'bg-white dark:bg-neutral-700 shadow text-blue-600 dark:text-blue-400'
+                : 'text-neutral-500 dark:text-neutral-400'}"
+            >
+              Name
+            </button>
+          </div>
+        </div>
+      {/if}
 
       <!-- Error Message -->
       {#if errorMessage}
@@ -790,65 +910,13 @@
         </div>
       {/if}
 
-      <button
-        on:click={changeDirectory}
-        class="w-full px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-      >
-        <svg
-          xmlns="http://www.w3.org2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width={2}
-          stroke="currentColor"
-          class="size-4"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"
-          />
-        </svg>
-        Change Directory
-      </button>
-    </div>
-
-    <!-- New File Section -->
-    <div
-      class="flex-shrink-0 p-4 border-b border-neutral-200 dark:border-neutral-700"
-    >
-      {#if creatingNewFile}
-        <div class="space-y-2">
-          <input
-            bind:value={newFileName}
-            placeholder="Enter file name (e.g., my_path.pp)..."
-            class="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            on:keydown={(e) => e.key === "Enter" && createNewFile()}
-          />
-          <div class="flex gap-2">
-            <button
-              on:click={createNewFile}
-              class="flex-1 px-3 py-2 text-sm bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors"
-            >
-              Create
-            </button>
-            <button
-              on:click={() => {
-                creatingNewFile = false;
-                newFileName = "";
-              }}
-              class="flex-1 px-3 py-2 text-sm bg-neutral-500 hover:bg-neutral-600 text-white rounded-md transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      {:else}
+      {#if viewMode === "directory"}
         <button
-          on:click={() => (creatingNewFile = true)}
-          class="w-full px-3 py-2 text-sm bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+          on:click={changeDirectory}
+          class="w-full px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
         >
           <svg
-            xmlns="http://www.w3.org/2000/svg"
+            xmlns="http://www.w3.org2000/svg"
             fill="none"
             viewBox="0 0 24 24"
             stroke-width={2}
@@ -858,13 +926,69 @@
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
+              d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"
             />
           </svg>
-          New Path File
+          Change Directory
         </button>
       {/if}
     </div>
+
+    <!-- New File Section (Only in Directory Mode) -->
+    {#if viewMode === "directory"}
+      <div
+        class="flex-shrink-0 p-4 border-b border-neutral-200 dark:border-neutral-700"
+      >
+        {#if creatingNewFile}
+          <div class="space-y-2">
+            <input
+              bind:value={newFileName}
+              placeholder="Enter file name (e.g., my_path.pp)..."
+              class="w-full px-3 py-2 text-sm border border-neutral-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              on:keydown={(e) => e.key === "Enter" && createNewFile()}
+            />
+            <div class="flex gap-2">
+              <button
+                on:click={createNewFile}
+                class="flex-1 px-3 py-2 text-sm bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors"
+              >
+                Create
+              </button>
+              <button
+                on:click={() => {
+                  creatingNewFile = false;
+                  newFileName = "";
+                }}
+                class="flex-1 px-3 py-2 text-sm bg-neutral-500 hover:bg-neutral-600 text-white rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        {:else}
+          <button
+            on:click={() => (creatingNewFile = true)}
+            class="w-full px-3 py-2 text-sm bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width={2}
+              stroke="currentColor"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 4.5v15m7.5-7.5h-15"
+              />
+            </svg>
+            New Path File
+          </button>
+        {/if}
+      </div>
+    {/if}
 
     <!-- File List -->
     <div class="flex-1 overflow-hidden">

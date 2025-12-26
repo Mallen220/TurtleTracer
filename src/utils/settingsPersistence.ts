@@ -10,22 +10,28 @@ interface StoredSettings {
   lastUpdated: string;
 }
 
-declare const electronAPI: {
-  getAppDataPath: () => Promise<string>;
-  readFile: (filePath: string) => Promise<string>;
-  writeFile: (filePath: string, content: string) => Promise<boolean>;
-  fileExists: (filePath: string) => Promise<boolean>;
-};
+// Helper to get electronAPI safely (allows mocking in tests)
+function getElectronAPI() {
+  return (
+    ((window as any).electronAPI as {
+      getAppDataPath: () => Promise<string>;
+      readFile: (filePath: string) => Promise<string>;
+      writeFile: (filePath: string, content: string) => Promise<boolean>;
+      fileExists: (filePath: string) => Promise<boolean>;
+    }) || undefined
+  );
+}
 
 // Get the settings file path
 async function getSettingsFilePath(): Promise<string> {
-  if (!electronAPI) {
+  const api = getElectronAPI();
+  if (!api) {
     console.warn("Electron API not available, using default settings");
     return "";
   }
 
   try {
-    const appDataPath = await electronAPI.getAppDataPath();
+    const appDataPath = await api.getAppDataPath();
     return `${appDataPath}/pedro-settings.json`;
   } catch (error) {
     console.error("Error getting app data path:", error);
@@ -81,7 +87,18 @@ function migrateSettings(stored: Partial<StoredSettings>): Settings {
 
 // Load settings from file
 export async function loadSettings(): Promise<Settings> {
-  if (!electronAPI) {
+  const api = getElectronAPI();
+  if (!api) {
+    // Try localStorage if Electron API is not available (browser mode)
+    try {
+      const local = localStorage.getItem("pedro-settings");
+      if (local) {
+        const stored: StoredSettings = JSON.parse(local);
+        return migrateSettings(stored);
+      }
+    } catch (e) {
+      console.error("Error loading settings from localStorage:", e);
+    }
     console.warn("Electron API not available, returning default settings");
     return { ...DEFAULT_SETTINGS };
   }
@@ -89,12 +106,12 @@ export async function loadSettings(): Promise<Settings> {
   try {
     const filePath = await getSettingsFilePath();
 
-    if (!filePath || !(await electronAPI.fileExists(filePath))) {
+    if (!filePath || !(await api.fileExists(filePath))) {
       console.log("Settings file does not exist, using defaults");
       return { ...DEFAULT_SETTINGS };
     }
 
-    const fileContent = await electronAPI.readFile(filePath);
+    const fileContent = await api.readFile(filePath);
     const stored: StoredSettings = JSON.parse(fileContent);
 
     // Migrate if version differs
@@ -113,7 +130,20 @@ export async function loadSettings(): Promise<Settings> {
 
 // Save settings to file
 export async function saveSettings(settings: Settings): Promise<boolean> {
-  if (!electronAPI) {
+  const api = getElectronAPI();
+  if (!api) {
+    // Try localStorage if Electron API is not available (browser mode)
+    try {
+      const stored: StoredSettings = {
+        version: SETTINGS_VERSION,
+        settings: { ...settings },
+        lastUpdated: new Date().toISOString(),
+      };
+      localStorage.setItem("pedro-settings", JSON.stringify(stored));
+      return true;
+    } catch (e) {
+      console.error("Error saving settings to localStorage:", e);
+    }
     console.warn("Electron API not available, cannot save settings");
     return false;
   }
@@ -132,8 +162,7 @@ export async function saveSettings(settings: Settings): Promise<boolean> {
       lastUpdated: new Date().toISOString(),
     };
 
-    await electronAPI.writeFile(filePath, JSON.stringify(stored, null, 2));
-    console.log("Settings saved successfully");
+    await api.writeFile(filePath, JSON.stringify(stored, null, 2));
     return true;
   } catch (error) {
     console.error("Error saving settings:", error);
@@ -150,11 +179,12 @@ export async function resetSettings(): Promise<Settings> {
 
 // Check if settings file exists
 export async function settingsFileExists(): Promise<boolean> {
-  if (!electronAPI) return false;
+  const api = getElectronAPI();
+  if (!api) return false;
 
   try {
     const filePath = await getSettingsFilePath();
-    return filePath ? await electronAPI.fileExists(filePath) : false;
+    return filePath ? await api.fileExists(filePath) : false;
   } catch (error) {
     console.error("Error checking settings file:", error);
     return false;

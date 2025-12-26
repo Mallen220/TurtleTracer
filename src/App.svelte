@@ -72,6 +72,7 @@
     showSaveDialog?: (options: any) => Promise<string | null>;
     getDirectory?: () => Promise<string>;
     fileExists?: (filePath: string) => Promise<boolean>;
+    readFile?: (filePath: string) => Promise<string>;
   }
 
   // Access electron API from window (attached by preload script)
@@ -833,6 +834,61 @@
     playing = animationController.isPlaying();
   }
 
+  // Helper to manage recent files
+  function addToRecentFiles(path: string) {
+    if (!settings.recentFiles) {
+      settings.recentFiles = [];
+    }
+
+    // Remove if already exists (to move to top)
+    const existingIndex = settings.recentFiles.indexOf(path);
+    if (existingIndex !== -1) {
+      settings.recentFiles.splice(existingIndex, 1);
+    }
+
+    // Add to top
+    settings.recentFiles.unshift(path);
+
+    // Cap at 10
+    if (settings.recentFiles.length > 10) {
+      settings.recentFiles = settings.recentFiles.slice(0, 10);
+    }
+
+    // Trigger reactivity
+    settings = { ...settings };
+  }
+
+  async function loadRecentFile(path: string) {
+    if (!electronAPI || !electronAPI.readFile) {
+      alert("Cannot load files in this environment");
+      return;
+    }
+
+    try {
+      // Check if file exists
+      if (electronAPI.fileExists && !(await electronAPI.fileExists(path))) {
+        if (
+          confirm(
+            `File not found: ${path}\nDo you want to remove it from recent files?`,
+          )
+        ) {
+          settings.recentFiles = settings.recentFiles?.filter((p) => p !== path);
+          settings = { ...settings };
+        }
+        return;
+      }
+
+      const content = await electronAPI.readFile(path);
+      const data = JSON.parse(content);
+      loadData(data);
+      currentFilePath.set(path);
+      addToRecentFiles(path);
+    } catch (err) {
+      console.error("Error loading recent file:", err);
+      alert("Failed to load file: " + (err as Error).message);
+    }
+  }
+
   // Save Function
   async function saveProject() {
     if ($currentFilePath && electronAPI) {
@@ -846,6 +902,7 @@
         });
         await electronAPI.writeFile($currentFilePath, jsonString);
         isUnsaved.set(false);
+        addToRecentFiles($currentFilePath);
         console.log("Saved to", $currentFilePath);
       } catch (e) {
         console.error("Failed to save", e);
@@ -1594,6 +1651,7 @@
           loadData(data);
           // Update the current file path to the newly loaded file
           currentFilePath.set(destPath);
+          addToRecentFiles(destPath);
           console.log(`File copied to: ${destPath}`);
         } catch (error) {
           console.error("Error processing file:", error);
