@@ -207,7 +207,7 @@
           {:else if item.kind === "wait"}
             <!-- Wait Item -->
             <tr
-              class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-neutral-50/50 dark:bg-neutral-900/50"
+              class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-amber-50 dark:bg-amber-900/20"
             >
               <td class="px-3 py-2">
                 <input

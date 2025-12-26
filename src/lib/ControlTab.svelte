@@ -446,12 +446,7 @@
         : "table-tab"}
   >
     {#if activeTab === "table"}
-      <WaypointTable
-        bind:startPoint
-        bind:lines
-        bind:sequence
-        {recordChange}
-      />
+      <WaypointTable bind:startPoint bind:lines bind:sequence {recordChange} />
     {/if}
 
     {#if activeTab === "field"}
