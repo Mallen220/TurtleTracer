@@ -17,7 +17,9 @@
   import WaitRow from "./components/WaitRow.svelte";
   import WaitMarkersSection from "./components/WaitMarkersSection.svelte";
   import OptimizationDialog from "./components/OptimizationDialog.svelte";
+  import WaypointTable from "./components/WaypointTable.svelte";
   import { calculatePathTime } from "../utils";
+  import { selectedLineId } from "../stores";
 
   export let percent: number;
   export let playing: boolean;
@@ -41,7 +43,7 @@
   export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
 
   let optimizationOpen = false;
-  let activeTab: "path" | "field" = "path";
+  let activeTab: "path" | "field" | "table" = "path";
 
   // Reference exported but unused props to silence Svelte unused-export warnings
   $: robotWidth;
@@ -90,6 +92,14 @@
       lines: lines.map(() => false),
       controlPoints: lines.map(() => true),
     };
+  }
+
+  // Respond to global toggle collapse all trigger from hotkey
+  import { toggleCollapseAllTrigger } from "../stores";
+  let _lastToggleCollapse = $toggleCollapseAllTrigger;
+  $: if ($toggleCollapseAllTrigger !== _lastToggleCollapse) {
+    _lastToggleCollapse = $toggleCollapseAllTrigger;
+    toggleCollapseAll();
   }
 
   $: if (shapes.length !== collapsedSections.obstacles.length) {
@@ -175,6 +185,8 @@
       sequence = sequence.filter(
         (s) => s.kind === "wait" || s.lineId !== removedId,
       );
+      // Clear selection if the removed line was selected
+      if ($selectedLineId === removedId) selectedLineId.set(null);
     }
     collapsedSections.lines.splice(idx, 1);
     collapsedSections.controlPoints.splice(idx, 1);
@@ -203,7 +215,43 @@
     sequence = [...sequence, { kind: "path", lineId: newLine.id! }];
     collapsedSections.lines.push(false);
     collapsedSections.controlPoints.push(true);
+    // Select the newly created line
+    selectedLineId.set(newLine.id!);
     recordChange();
+  }
+
+  // Collapse all UI sections (lines, control points, event markers, obstacles)
+  function collapseAll() {
+    collapsedSections.lines = lines.map(() => true);
+    collapsedSections.controlPoints = lines.map(() => true);
+    collapsedEventMarkers = lines.map(() => true);
+    collapsedSections.obstacles = shapes.map(() => true);
+    // Force reactivity
+    collapsedSections = { ...collapsedSections };
+    collapsedEventMarkers = [...collapsedEventMarkers];
+  }
+
+  // Expand all UI sections
+  function expandAll() {
+    collapsedSections.lines = lines.map(() => false);
+    collapsedSections.controlPoints = lines.map(() => false);
+    collapsedEventMarkers = lines.map(() => false);
+    collapsedSections.obstacles = shapes.map(() => false);
+    collapsedSections = { ...collapsedSections };
+    collapsedEventMarkers = [...collapsedEventMarkers];
+  }
+
+  // Toggle collapse/expand all depending on current state
+  $: allCollapsed =
+    collapsedSections.lines.length > 0 &&
+    collapsedSections.lines.every((v) => v) &&
+    collapsedSections.controlPoints.every((v) => v) &&
+    collapsedEventMarkers.every((v) => v) &&
+    collapsedSections.obstacles.every((v) => v);
+
+  function toggleCollapseAll() {
+    if (allCollapsed) expandAll();
+    else collapseAll();
   }
 
   function addWait() {
@@ -254,6 +302,8 @@
       ...collapsedSections.controlPoints,
     ];
     collapsedEventMarkers = [false, ...collapsedEventMarkers];
+    // Select the new starting path
+    selectedLineId.set(newLine.id!);
     recordChange();
   }
 
@@ -414,15 +464,52 @@
       >
         Field & Tools
       </button>
+      <button
+        role="tab"
+        aria-selected={activeTab === "table"}
+        aria-controls="table-panel"
+        id="table-tab"
+        class="flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 {activeTab ===
+        'table'
+          ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white'
+          : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
+        on:click={() => (activeTab = "table")}
+      >
+        Table
+      </button>
     </div>
   </div>
 
   <div
     class="flex flex-col justify-start items-start w-full rounded-lg bg-neutral-50 dark:bg-neutral-900 shadow-md p-4 overflow-y-scroll overflow-x-hidden h-full gap-6"
     role="tabpanel"
-    id={activeTab === "path" ? "path-panel" : "field-panel"}
-    aria-labelledby={activeTab === "path" ? "path-tab" : "field-tab"}
+    id={activeTab === "path"
+      ? "path-panel"
+      : activeTab === "field"
+        ? "field-panel"
+        : "table-panel"}
+    aria-labelledby={activeTab === "path"
+      ? "path-tab"
+      : activeTab === "field"
+        ? "field-tab"
+        : "table-tab"}
   >
+    {#if activeTab === "table"}
+      <WaypointTable
+        bind:startPoint
+        bind:lines
+        bind:sequence
+        {recordChange}
+        onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
+        {optimizationOpen}
+        {handleOptimizationApply}
+        {onPreviewChange}
+        bind:shapes
+        bind:collapsedObstacles={collapsedSections.obstacles}
+        {settings}
+      />
+    {/if}
+
     {#if activeTab === "field"}
       <RobotPositionDisplay
         {robotXY}
@@ -457,7 +544,24 @@
     {/if}
 
     {#if activeTab === "path"}
-      <StartingPointSection bind:startPoint {addPathAtStart} {addWaitAtStart} />
+      <div class="flex items-center justify-between gap-4 w-full mb-2">
+        <StartingPointSection
+          bind:startPoint
+          {addPathAtStart}
+          {addWaitAtStart}
+        />
+        <button
+          on:click={toggleCollapseAll}
+          class="text-sm px-2 py-2 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+          aria-label="Toggle collapse/expand all"
+        >
+          {#if allCollapsed}
+            <span class="whitespace-nowrap">Expand All</span>
+          {:else}
+            <span class="whitespace-nowrap">Collapse All</span>
+          {/if}
+        </button>
+      </div>
 
       <!-- Unified sequence render: paths and waits -->
       {#each sequence as item, sIdx}

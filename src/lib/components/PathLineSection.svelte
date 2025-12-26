@@ -4,6 +4,7 @@
   import EventMarkersSection from "./EventMarkersSection.svelte";
   import ControlPointsSection from "./ControlPointsSection.svelte";
   import HeadingControls from "./HeadingControls.svelte";
+  import { selectedLineId } from "../../stores";
 
   export let line: Line;
   export let idx: number;
@@ -20,6 +21,8 @@
   export let canMoveUp: boolean = true;
   export let canMoveDown: boolean = true;
 
+  $: isSelected = $selectedLineId === line.id;
+
   $: snapToGridTitle =
     $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping";
 
@@ -28,7 +31,10 @@
   }
 </script>
 
-<div class="flex flex-col w-full justify-start items-start gap-1">
+<div
+  class={`flex flex-col w-full justify-start items-start gap-1 ${isSelected ? "border-l-4 border-amber-400 pl-2" : ""}`}
+  on:click={() => selectedLineId.set(line.id)}
+>
   <div class="flex flex-row w-full justify-between items-center">
     <div class="flex flex-row items-center gap-2">
       <button

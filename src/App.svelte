@@ -1002,6 +1002,7 @@
       bind("saveFileAs", () => saveFileAs());
       bind("exportGif", () => exportGif());
       bind("addNewLine", () => addNewLine());
+      bind("addWait", () => addWait());
       bind("addControlPoint", () => {
         addControlPoint();
       });
@@ -1023,6 +1024,9 @@
       bind("toggleGrid", () => showGrid.update((v) => !v));
       bind("toggleSnap", () => snapToGrid.update((v) => !v));
       bind("toggleProtractor", () => showProtractor.update((v) => !v));
+      bind("toggleCollapseAll", () =>
+        toggleCollapseAllTrigger.update((v) => v + 1),
+      );
       bind("showHelp", () => showShortcuts.update((v) => !v));
 
       // Toggle play needs special handling to avoid conflict with spacebar scrolling?
@@ -1492,6 +1496,26 @@
     two.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
       isDown = true;
 
+      // Select a line when clicking a point on the field
+      if (currentElem) {
+        if (currentElem.startsWith("point-")) {
+          const parts = currentElem.split("-");
+          const lineNum = Number(parts[1]);
+          if (!isNaN(lineNum) && lineNum > 0) {
+            const lineIndex = lineNum - 1;
+            const line = lines[lineIndex];
+            if (line) selectedLineId.set(line.id);
+          } else {
+            // starting point or invalid -> clear selection
+            selectedLineId.set(null);
+          }
+        } else if (currentElem.startsWith("obstacle-")) {
+          selectedLineId.set(null);
+        }
+      } else {
+        selectedLineId.set(null);
+      }
+
       // Calculate drag offset when clicking to prevent snapping center to mouse
       if (currentElem) {
         const rect = two.renderer.domElement.getBoundingClientRect();
@@ -1793,15 +1817,37 @@
     recordChange();
   }
 
+  function addWait() {
+    const wait = {
+      kind: "wait",
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      name: "Wait",
+      durationMs: 1000,
+      locked: false,
+    } as SequenceItem;
+    sequence = [...sequence, wait];
+    recordChange();
+  }
+
+  import { selectedLineId, toggleCollapseAllTrigger } from "./stores";
+
   function addControlPoint() {
-    if (lines.length > 0) {
-      const lastLine = lines[lines.length - 1];
-      lastLine.controlPoints.push({
-        x: _.random(36, 108),
-        y: _.random(36, 108),
-      });
-      recordChange();
-    }
+    if (lines.length === 0) return;
+
+    // Prefer the selected line if available, otherwise fallback to the last line
+    const targetId = $selectedLineId || lines[lines.length - 1].id;
+    const targetLine =
+      lines.find((l) => l.id === targetId) || lines[lines.length - 1];
+    if (!targetLine) return;
+
+    targetLine.controlPoints.push({
+      x: _.random(36, 108),
+      y: _.random(36, 108),
+    });
+
+    // Force reactivity
+    lines = [...lines];
+    recordChange();
   }
 
   function removeControlPoint() {
