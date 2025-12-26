@@ -173,6 +173,7 @@
     bind:lines
     bind:shapes
     bind:sequence
+    bind:settings
   />
 {/if}
 
@@ -480,7 +481,7 @@
       <label
         for="file-input"
         title="Load trajectory from a .pp file"
-        class="cursor-pointer"
+        class="cursor-pointer hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

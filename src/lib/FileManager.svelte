@@ -26,7 +26,14 @@
 
   import { cubicInOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
-  import type { FileInfo, Point, Line, Shape, SequenceItem } from "../types";
+  import type {
+    FileInfo,
+    Point,
+    Line,
+    Shape,
+    SequenceItem,
+    Settings,
+  } from "../types";
   import { currentFilePath, isUnsaved } from "../stores";
   import { getRandomColor } from "../utils";
   import {
@@ -39,7 +46,10 @@
   export let lines: Line[];
   export let shapes: Shape[];
   export let sequence: SequenceItem[];
+  export let settings: Settings;
 
+  type SortOption = "name" | "date";
+  let sortMode: SortOption = "name";
   let currentDirectory = "";
   let files: FileInfo[] = [];
   let loading = false;
@@ -67,6 +77,11 @@
   function getErrorMessage(error: unknown): string {
     if (error instanceof Error) return error.message;
     return String(error);
+  }
+
+  // Watch for sortMode changes (user clicks Name/Recent button) and save to settings
+  $: if (sortMode && settings) {
+    settings.fileManagerSortMode = sortMode;
   }
 
   // Normalize lines to ensure ids and wait fields exist
@@ -100,12 +115,7 @@
     }));
   }
 
-  // Debug logging
-  console.log("[FileManager] Component initialized");
-  console.log("[FileManager] electronAPI available:", !!electronAPI);
-
   async function loadDirectory() {
-    console.log("[FileManager] loadDirectory called");
     loading = true;
     errorMessage = "";
 
@@ -152,6 +162,8 @@
   }
 
   async function refreshDirectory() {
+    errorMessage = "";
+
     try {
       // Get directory stats
       const stats = await electronAPI.getDirectoryStats(currentDirectory);
@@ -179,11 +191,28 @@
           supportedFileTypes.includes(path.extname(file.name).toLowerCase()),
         );
 
+      // Sort files
+      if (sortMode === "name") {
+        files.sort((a, b) => a.name.localeCompare(b.name));
+      } else if (sortMode === "date") {
+        files.sort(
+          (a, b) =>
+            new Date(b.modified).getTime() - new Date(a.modified).getTime(),
+        );
+      }
+
       errorMessage = "";
     } catch (error) {
       console.error("Error refreshing directory:", error);
       errorMessage = `Error accessing directory: ${getErrorMessage(error)}`;
       files = [];
+    }
+  }
+
+  // React to sort mode or directory changes
+  $: {
+    if (currentDirectory || sortMode) {
+      refreshDirectory();
     }
   }
 
@@ -682,12 +711,14 @@
   }
 
   onMount(() => {
-    console.log("[FileManager] onMount called");
     try {
+      // Load saved sort mode from settings
+      if (settings?.fileManagerSortMode) {
+        sortMode = settings.fileManagerSortMode;
+      }
       loadDirectory();
       // Add keyboard listener for renaming
       window.addEventListener("keydown", handleKeyDown);
-      console.log("[FileManager] onMount completed successfully");
     } catch (error) {
       console.error("[FileManager] Error in onMount:", error);
     }
@@ -766,7 +797,37 @@
         </button>
       </div>
 
-      <!-- Directory Info with Stats -->
+      <!-- View/Sort Toggle -->
+      <div class="mb-4">
+        <div class="flex items-center justify-between mb-2">
+          <span
+            class="text-sm font-medium text-neutral-600 dark:text-neutral-400"
+            >Sort by:</span
+          >
+        </div>
+        <div class="flex bg-neutral-100 dark:bg-neutral-800 p-1 rounded-md">
+          <button
+            on:click={() => (sortMode = "name")}
+            class="flex-1 py-1.5 text-xs font-medium rounded transition-all {sortMode ===
+            'name'
+              ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400'
+              : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}"
+          >
+            Name
+          </button>
+          <button
+            on:click={() => (sortMode = "date")}
+            class="flex-1 py-1.5 text-xs font-medium rounded transition-all {sortMode ===
+            'date'
+              ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400'
+              : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}"
+          >
+            Recent
+          </button>
+        </div>
+      </div>
+
+      <!-- Directory Info -->
       <div class="mb-4">
         <div class="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
           <div class="font-medium mb-1">Current Directory:</div>

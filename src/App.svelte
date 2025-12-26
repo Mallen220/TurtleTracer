@@ -73,6 +73,7 @@
     showSaveDialog?: (options: any) => Promise<string | null>;
     getDirectory?: () => Promise<string>;
     fileExists?: (filePath: string) => Promise<boolean>;
+    readFile?: (filePath: string) => Promise<string>;
   }
 
   // Access electron API from window (attached by preload script)
@@ -184,6 +185,10 @@
 
   function recordChange() {
     history.record(getAppState());
+    // Mark as unsaved when a change is recorded
+    if (isLoaded) {
+      isUnsaved.set(true);
+    }
   }
 
   function undoAction() {
@@ -194,7 +199,13 @@
       shapes = prev.shapes;
       sequence = prev.sequence;
       settings = prev.settings;
-      isUnsaved.set(true);
+      // Check if we're back to the saved state
+      const currentState = getCurrentState();
+      if (currentState === lastSavedState) {
+        isUnsaved.set(false);
+      } else {
+        isUnsaved.set(true);
+      }
       two && two.update();
     }
   }
@@ -207,7 +218,13 @@
       shapes = next.shapes;
       sequence = next.sequence;
       settings = next.settings;
-      isUnsaved.set(true);
+      // Check if we're back to the saved state
+      const currentState = getCurrentState();
+      if (currentState === lastSavedState) {
+        isUnsaved.set(false);
+      } else {
+        isUnsaved.set(true);
+      }
       two && two.update();
     }
   }
@@ -781,11 +798,17 @@
   })();
 
   let isLoaded = false;
-  // Reactively trigger when any saveable data changes
-  $: {
-    if (isLoaded && (lines || shapes || startPoint || settings)) {
-      isUnsaved.set(true);
-    }
+  let lastSavedState: string = "";
+
+  // Function to get current state as JSON
+  function getCurrentState(): string {
+    return JSON.stringify({
+      startPoint,
+      lines,
+      shapes,
+      sequence,
+      settings,
+    });
   }
 
   // Allow the app to stabilize before tracking changes
@@ -840,6 +863,63 @@
     playing = animationController.isPlaying();
   }
 
+  // Helper to manage recent files
+  function addToRecentFiles(path: string) {
+    if (!settings.recentFiles) {
+      settings.recentFiles = [];
+    }
+
+    // Remove if already exists (to move to top)
+    const existingIndex = settings.recentFiles.indexOf(path);
+    if (existingIndex !== -1) {
+      settings.recentFiles.splice(existingIndex, 1);
+    }
+
+    // Add to top
+    settings.recentFiles.unshift(path);
+
+    // Cap at 10
+    if (settings.recentFiles.length > 10) {
+      settings.recentFiles = settings.recentFiles.slice(0, 10);
+    }
+
+    // Trigger reactivity
+    settings = { ...settings };
+  }
+
+  async function loadRecentFile(path: string) {
+    if (!electronAPI || !electronAPI.readFile) {
+      alert("Cannot load files in this environment");
+      return;
+    }
+
+    try {
+      // Check if file exists
+      if (electronAPI.fileExists && !(await electronAPI.fileExists(path))) {
+        if (
+          confirm(
+            `File not found: ${path}\nDo you want to remove it from recent files?`,
+          )
+        ) {
+          settings.recentFiles = settings.recentFiles?.filter(
+            (p) => p !== path,
+          );
+          settings = { ...settings };
+        }
+        return;
+      }
+
+      const content = await electronAPI.readFile(path);
+      const data = JSON.parse(content);
+      loadData(data);
+      currentFilePath.set(path);
+      addToRecentFiles(path);
+    } catch (err) {
+      console.error("Error loading recent file:", err);
+      alert("Failed to load file: " + (err as Error).message);
+    }
+  }
+
   // Save Function
   async function saveProject() {
     if ($currentFilePath && electronAPI) {
@@ -852,7 +932,9 @@
           settings,
         });
         await electronAPI.writeFile($currentFilePath, jsonString);
+        lastSavedState = getCurrentState();
         isUnsaved.set(false);
+        addToRecentFiles($currentFilePath);
         console.log("Saved to", $currentFilePath);
       } catch (e) {
         console.error("Failed to save", e);
@@ -1554,6 +1636,12 @@
     } else {
       // Use the original load function for web or when no directory is set
       loadTrajectoryFromFile(evt, (data) => {
+        // Add to recent files if path is available (Electron)
+        if ((file as any).path) {
+          addToRecentFiles((file as any).path);
+          currentFilePath.set((file as any).path);
+        }
+
         // Ensure startPoint has all required fields
         startPoint = data.startPoint || {
           x: 72,
@@ -1624,6 +1712,7 @@
           loadData(data);
           // Update the current file path to the newly loaded file
           currentFilePath.set(destPath);
+          addToRecentFiles(destPath);
           console.log(`File copied to: ${destPath}`);
         } catch (error) {
           console.error("Error processing file:", error);
@@ -1668,6 +1757,7 @@
     // Load shapes with defaults
     shapes = data.shapes || [];
 
+    lastSavedState = getCurrentState();
     isUnsaved.set(false);
     recordChange();
   }
