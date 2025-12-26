@@ -1493,6 +1493,26 @@
     two.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
       isDown = true;
 
+      // Select a line when clicking a point on the field
+      if (currentElem) {
+        if (currentElem.startsWith("point-")) {
+          const parts = currentElem.split("-");
+          const lineNum = Number(parts[1]);
+          if (!isNaN(lineNum) && lineNum > 0) {
+            const lineIndex = lineNum - 1;
+            const line = lines[lineIndex];
+            if (line) selectedLineId.set(line.id);
+          } else {
+            // starting point or invalid -> clear selection
+            selectedLineId.set(null);
+          }
+        } else if (currentElem.startsWith("obstacle-")) {
+          selectedLineId.set(null);
+        }
+      } else {
+        selectedLineId.set(null);
+      }
+
       // Calculate drag offset when clicking to prevent snapping center to mouse
       if (currentElem) {
         const rect = two.renderer.domElement.getBoundingClientRect();
