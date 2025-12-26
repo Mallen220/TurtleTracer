@@ -855,6 +855,34 @@
                   {/each}
                 </select>
               </div>
+
+              <!-- Field Rotation -->
+              <div>
+                <label
+                  class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                >
+                  Field Orientation
+                  <div class="text-xs text-neutral-500 dark:text-neutral-400">
+                    Rotate the view of the field
+                  </div>
+                </label>
+                <div class="grid grid-cols-4 gap-2">
+                  {#each [0, 90, 180, 270] as rotation}
+                    <button
+                      class="px-3 py-2 text-sm rounded-md border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 {settings.fieldRotation ===
+                      rotation
+                        ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500'
+                        : 'bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+                      on:click={() => {
+                        settings.fieldRotation = rotation;
+                        settings = { ...settings }; // Force reactivity
+                      }}
+                    >
+                      {rotation}°
+                    </button>
+                  {/each}
+                </div>
+              </div>
             </div>
           {/if}
         </div>

@@ -101,6 +101,7 @@ export interface Settings {
   maxAcceleration: number; // inches/sec²
   maxDeceleration?: number; // inches/sec²
   fieldMap: string;
+  fieldRotation?: number; // 0, 90, 180, 270
   robotImage?: string;
   theme: "light" | "dark" | "auto";
   showGhostPaths?: boolean; // Show collision overlays via ghost paths

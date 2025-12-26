@@ -142,6 +142,39 @@
   $: canUndo = $canUndoStore;
   $: canRedo = $canRedoStore;
 
+  // Helper to transform mouse coordinates based on rotation
+  function getTransformedCoordinates(
+    clientX: number,
+    clientY: number,
+    rect: DOMRect,
+    rotation: number,
+  ) {
+    // 1. Get coordinates relative to the bounding box (Top-Left of visual box)
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
+
+    // 2. Center them
+    const w = rect.width;
+    const h = rect.height;
+    const cx = px - w / 2;
+    const cy = py - h / 2;
+
+    // 3. Rotate BACKWARDS (undo the container rotation)
+    // If container is rotated by R, we rotate by -R to find original coords
+    const rad = (-rotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    const nx = cx * cos - cy * sin;
+    const ny = cx * sin + cy * cos;
+
+    // 4. Un-center (relative to original Top-Left)
+    const newPx = nx + w / 2;
+    const newPy = ny + h / 2;
+
+    return { x: newPx, y: newPy };
+  }
+
   function recordChange() {
     history.record(getAppState());
   }
@@ -1272,8 +1305,14 @@
 
         // Use simple bounding rect math to match D3 scales which are bound to clientWidth/Height
         const rect = two.renderer.domElement.getBoundingClientRect();
-        const xPos = evt.clientX - rect.left;
-        const yPos = evt.clientY - rect.top;
+        const transformed = getTransformedCoordinates(
+          evt.clientX,
+          evt.clientY,
+          rect,
+          settings.fieldRotation || 0,
+        );
+        const xPos = transformed.x;
+        const yPos = transformed.y;
 
         // Get current store values for reactivity
         const currentGridSize = $gridSize;
@@ -1344,8 +1383,14 @@
       // Calculate drag offset when clicking to prevent snapping center to mouse
       if (currentElem) {
         const rect = two.renderer.domElement.getBoundingClientRect();
-        const mouseX = x.invert(evt.clientX - rect.left);
-        const mouseY = y.invert(evt.clientY - rect.top);
+        const transformed = getTransformedCoordinates(
+          evt.clientX,
+          evt.clientY,
+          rect,
+          settings.fieldRotation || 0,
+        );
+        const mouseX = x.invert(transformed.x);
+        const mouseY = y.invert(transformed.y);
 
         let objectX = 0;
         let objectY = 0;
@@ -1405,8 +1450,14 @@
       }
 
       const rect = two.renderer.domElement.getBoundingClientRect();
-      const rawInchX = x.invert(evt.clientX - rect.left);
-      const rawInchY = y.invert(evt.clientY - rect.top);
+      const transformed = getTransformedCoordinates(
+        evt.clientX,
+        evt.clientY,
+        rect,
+        settings.fieldRotation || 0,
+      );
+      const rawInchX = x.invert(transformed.x);
+      const rawInchY = y.invert(transformed.y);
 
       // Apply grid snapping if enabled
       const currentGridSize = $gridSize;
@@ -1758,6 +1809,8 @@
       on:dragstart={(e) => e.preventDefault()}
       on:selectstart={(e) => e.preventDefault()}
       tabindex="-1"
+      style:transform={`rotate(${settings.fieldRotation || 0}deg)`}
+      style:transition="transform 0.3s ease-in-out"
     >
       <img
         src={settings.fieldMap
