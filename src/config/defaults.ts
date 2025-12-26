@@ -125,6 +125,12 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "toggleProtractor",
   },
   {
+    id: "toggle-collapse-all",
+    key: "shift+c",
+    description: "Toggle collapse/expand all",
+    action: "toggleCollapseAll",
+  },
+  {
     id: "show-help",
     key: "shift+/",
     description: "Show keyboard shortcuts",

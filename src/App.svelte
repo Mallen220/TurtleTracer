@@ -1024,6 +1024,9 @@
       bind("toggleGrid", () => showGrid.update((v) => !v));
       bind("toggleSnap", () => snapToGrid.update((v) => !v));
       bind("toggleProtractor", () => showProtractor.update((v) => !v));
+      bind("toggleCollapseAll", () =>
+        toggleCollapseAllTrigger.update((v) => v + 1),
+      );
       bind("showHelp", () => showShortcuts.update((v) => !v));
 
       // Toggle play needs special handling to avoid conflict with spacebar scrolling?
@@ -1826,7 +1829,7 @@
     recordChange();
   }
 
-  import { selectedLineId } from "./stores";
+  import { selectedLineId, toggleCollapseAllTrigger } from "./stores";
 
   function addControlPoint() {
     if (lines.length === 0) return;

@@ -94,6 +94,14 @@
     };
   }
 
+  // Respond to global toggle collapse all trigger from hotkey
+  import { toggleCollapseAllTrigger } from "../stores";
+  let _lastToggleCollapse = $toggleCollapseAllTrigger;
+  $: if ($toggleCollapseAllTrigger !== _lastToggleCollapse) {
+    _lastToggleCollapse = $toggleCollapseAllTrigger;
+    toggleCollapseAll();
+  }
+
   $: if (shapes.length !== collapsedSections.obstacles.length) {
     collapsedSections.obstacles = shapes.map(() => true);
   }
@@ -210,6 +218,40 @@
     // Select the newly created line
     selectedLineId.set(newLine.id!);
     recordChange();
+  }
+
+  // Collapse all UI sections (lines, control points, event markers, obstacles)
+  function collapseAll() {
+    collapsedSections.lines = lines.map(() => true);
+    collapsedSections.controlPoints = lines.map(() => true);
+    collapsedEventMarkers = lines.map(() => true);
+    collapsedSections.obstacles = shapes.map(() => true);
+    // Force reactivity
+    collapsedSections = { ...collapsedSections };
+    collapsedEventMarkers = [...collapsedEventMarkers];
+  }
+
+  // Expand all UI sections
+  function expandAll() {
+    collapsedSections.lines = lines.map(() => false);
+    collapsedSections.controlPoints = lines.map(() => false);
+    collapsedEventMarkers = lines.map(() => false);
+    collapsedSections.obstacles = shapes.map(() => false);
+    collapsedSections = { ...collapsedSections };
+    collapsedEventMarkers = [...collapsedEventMarkers];
+  }
+
+  // Toggle collapse/expand all depending on current state
+  $: allCollapsed =
+    collapsedSections.lines.length > 0 &&
+    collapsedSections.lines.every((v) => v) &&
+    collapsedSections.controlPoints.every((v) => v) &&
+    collapsedEventMarkers.every((v) => v) &&
+    collapsedSections.obstacles.every((v) => v);
+
+  function toggleCollapseAll() {
+    if (allCollapsed) expandAll();
+    else collapseAll();
   }
 
   function addWait() {
@@ -502,7 +544,24 @@
     {/if}
 
     {#if activeTab === "path"}
-      <StartingPointSection bind:startPoint {addPathAtStart} {addWaitAtStart} />
+      <div class="flex items-center justify-between gap-4 w-full mb-2">
+        <StartingPointSection
+          bind:startPoint
+          {addPathAtStart}
+          {addWaitAtStart}
+        />
+        <button
+          on:click={toggleCollapseAll}
+          class="text-sm px-2 py-2 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+          aria-label="Toggle collapse/expand all"
+        >
+          {#if allCollapsed}
+            <span class="whitespace-nowrap">Expand All</span>
+          {:else}
+            <span class="whitespace-nowrap">Collapse All</span>
+          {/if}
+        </button>
+      </div>
 
       <!-- Unified sequence render: paths and waits -->
       {#each sequence as item, sIdx}
