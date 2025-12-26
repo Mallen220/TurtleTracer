@@ -34,6 +34,12 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "addNewLine",
   },
   {
+    id: "add-wait",
+    key: "q",
+    description: "Add wait",
+    action: "addWait",
+  },
+  {
     id: "add-control-point",
     key: "a",
     description: "Add control point",
@@ -117,6 +123,12 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     key: "p",
     description: "Toggle protractor",
     action: "toggleProtractor",
+  },
+  {
+    id: "toggle-collapse-all",
+    key: "shift+c",
+    description: "Toggle collapse/expand all",
+    action: "toggleCollapseAll",
   },
   {
     id: "show-help",
