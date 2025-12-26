@@ -399,7 +399,7 @@
           : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
         on:click={() => (activeTab = "path")}
       >
-        Path
+        Paths
       </button>
       <button
         role="tab"

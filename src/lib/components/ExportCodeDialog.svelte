@@ -195,6 +195,36 @@
                   class="px-2 py-1 text-sm rounded-md bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500 w-32"
                   placeholder="AutoPath"
                 />
+
+                {#if targetLibrary === "NextFTC"}
+                  <div
+                    class="mt-1 text-xs text-yellow-800 bg-yellow-50 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-1 rounded"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="inline-block mr-1"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      ><path
+                        d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                      ></path><line x1="12" y1="9" x2="12" y2="13"></line><line
+                        x1="12"
+                        y1="17"
+                        x2="12.01"
+                        y2="17"
+                      ></line></svg
+                    >
+                    <strong>Warning:</strong>
+                    <span class="font-medium">NextFTC</span> output is untested —
+                    use with caution.
+                  </div>
+                {/if}
               </div>
             </div>
           {/if}
