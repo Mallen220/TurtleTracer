@@ -183,7 +183,7 @@
     });
 
     // Append any lines that are not currently in the sequence to preserve data
-    reordered.push(...byId.values() as Iterable<Line>);
+    reordered.push(...(byId.values() as Iterable<Line>));
 
     lines = reordered;
   }
@@ -210,11 +210,11 @@
 
     let insertIndex = toIndex;
     if (fromIndex < toIndex) {
-        insertIndex--;
+      insertIndex--;
     }
 
     if (dragPosition === "bottom") {
-        insertIndex++;
+      insertIndex++;
     }
 
     // Safety clamp
@@ -281,7 +281,9 @@
   <div
     class="w-full overflow-x-auto border rounded-md border-neutral-200 dark:border-neutral-700"
   >
-    <table class="w-full text-left bg-white dark:bg-neutral-900 border-collapse">
+    <table
+      class="w-full text-left bg-white dark:bg-neutral-900 border-collapse"
+    >
       <thead
         class="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-semibold"
       >
@@ -310,9 +312,11 @@
           class:border-blue-500={dragOverIndex === -1}
           class:dark:border-blue-400={dragOverIndex === -1}
         >
-          <td class="w-8 px-2 py-2 text-center text-neutral-300 dark:text-neutral-600">
+          <td
+            class="w-8 px-2 py-2 text-center text-neutral-300 dark:text-neutral-600"
+          >
             <!-- No drag handle for Start Point -->
-             ●
+            ●
           </td>
           <td
             class="px-3 py-2 font-medium text-neutral-800 dark:text-neutral-200"
@@ -347,7 +351,7 @@
         </tr>
 
         <!-- Sequence Items -->
-        {#each sequence as item, seqIdx (item.kind === 'path' ? item.lineId : item.id)}
+        {#each sequence as item, seqIdx (item.kind === "path" ? item.lineId : item.id)}
           {#if item.kind === "path"}
             {#each lines.filter((l) => l.id === item.lineId) as line (line.id)}
               {@const lineIdx = lines.findIndex((l) => l === line)}
@@ -361,8 +365,10 @@
                 on:drop={(e) => handleDrop(e, seqIdx)}
                 on:dragend={handleDragEnd}
                 class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150`}
-                class:border-t-2={dragOverIndex === seqIdx && dragPosition === "top"}
-                class:border-b-2={dragOverIndex === seqIdx && dragPosition === "bottom"}
+                class:border-t-2={dragOverIndex === seqIdx &&
+                  dragPosition === "top"}
+                class:border-b-2={dragOverIndex === seqIdx &&
+                  dragPosition === "bottom"}
                 class:border-blue-500={dragOverIndex === seqIdx}
                 class:dark:border-blue-400={dragOverIndex === seqIdx}
                 class:opacity-50={draggingIndex === seqIdx}
@@ -371,10 +377,21 @@
                   selectedPointId.set(endPointId);
                 }}
               >
-                <td class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300">
-                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mx-auto">
-                      <path fill-rule="evenodd" d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" />
-                   </svg>
+                <td
+                  class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="w-4 h-4 mx-auto"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
                 </td>
                 <td class="px-3 py-2">
                   <input
@@ -471,7 +488,7 @@
                   on:drop={(e) => handleDrop(e, seqIdx)}
                 >
                   <td class="w-8 px-2 py-2">
-                     <!-- No drag handle for control points, but they are drop targets for the parent seqIdx -->
+                    <!-- No drag handle for control points, but they are drop targets for the parent seqIdx -->
                   </td>
                   <td
                     class="px-3 py-2 pl-8 text-neutral-500 dark:text-neutral-400 text-xs"
@@ -515,16 +532,29 @@
               on:drop={(e) => handleDrop(e, seqIdx)}
               on:dragend={handleDragEnd}
               class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-amber-50 dark:bg-amber-900/20 transition-colors duration-150"
-              class:border-t-2={dragOverIndex === seqIdx && dragPosition === "top"}
-              class:border-b-2={dragOverIndex === seqIdx && dragPosition === "bottom"}
+              class:border-t-2={dragOverIndex === seqIdx &&
+                dragPosition === "top"}
+              class:border-b-2={dragOverIndex === seqIdx &&
+                dragPosition === "bottom"}
               class:border-blue-500={dragOverIndex === seqIdx}
               class:dark:border-blue-400={dragOverIndex === seqIdx}
               class:opacity-50={draggingIndex === seqIdx}
             >
-              <td class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mx-auto">
-                      <path fill-rule="evenodd" d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" />
-                   </svg>
+              <td
+                class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  class="w-4 h-4 mx-auto"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
               </td>
               <td class="px-3 py-2">
                 <input
