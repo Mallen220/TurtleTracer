@@ -1,3 +1,7 @@
+## 1.3.0 (2025-12-26)
+
+- Added keyboard shortcuts menu and updater. Added support for NextFTC (still being tested). Better layout of control tab. Uses PedroPathingPlus gradle library. 
+
 ## 1.2.9 (2025-12-25)
 
 - Add event markers for wait steps with SolversLib support.
