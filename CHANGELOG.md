@@ -1,3 +1,7 @@
+## 1.3.1 (2025-12-26)
+
+- Added field rotate feature. Add field cordinate mouse display. Add recent view in File manager. Added waypoint tab for a different path making experience. Added selected path for optimized keybind shortcuts. Collapse/expand all option.
+
 ## 1.3.0 (2025-12-26)
 
 - Added keyboard shortcuts menu and updater. Added support for NextFTC (still being tested). Better layout of control tab. Uses PedroPathingPlus gradle library.

@@ -116,17 +116,117 @@
       const pointId = cp
         ? `point-${lineIdx + 1}-${cpIndex}`
         : `point-${lineIdx + 1}-0`;
-      console.debug("[WaypointTable] render row", {
+      /* console.debug("[WaypointTable] render row", {
         lineId: line.id,
         lineIdx,
         cpIndex,
         pointId,
         seqCount: sequence.length,
-      });
+      }); */
     } catch (e) {
       console.debug("[WaypointTable] debugPointRow error", e);
     }
     return "";
+  }
+
+  // Drag and drop state
+  let draggingIndex: number | null = null;
+  let dragOverIndex: number | null = null;
+  let dragPosition: "top" | "bottom" | null = null;
+
+  function handleDragStart(e: DragEvent, index: number) {
+    draggingIndex = index;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      // e.dataTransfer.setDragImage(e.target as Element, 0, 0); // Optional
+    }
+  }
+
+  function handleDragOver(e: DragEvent, index: number) {
+    if (draggingIndex === null) return;
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const position = e.clientY < midY ? "top" : "bottom";
+
+    // Start Point special case: cannot drop before it (index -1, top)
+    if (index === -1 && position === "top") return;
+
+    e.preventDefault(); // Necessary to allow dropping
+
+    if (dragOverIndex !== index || dragPosition !== position) {
+      dragOverIndex = index;
+      dragPosition = position;
+    }
+  }
+
+  function handleDragEnd() {
+    draggingIndex = null;
+    dragOverIndex = null;
+    dragPosition = null;
+  }
+
+  function syncLinesToSequence(newSeq: SequenceItem[]) {
+    const pathOrder = newSeq
+      .filter((item) => item.kind === "path")
+      .map((item) => item.lineId);
+
+    const byId = new Map(lines.map((l) => [l.id, l]));
+    const reordered: Line[] = [];
+
+    pathOrder.forEach((id) => {
+      const l = byId.get(id);
+      if (l) {
+        reordered.push(l);
+        byId.delete(id);
+      }
+    });
+
+    // Append any lines that are not currently in the sequence to preserve data
+    reordered.push(...(byId.values() as Iterable<Line>));
+
+    lines = reordered;
+  }
+
+  function handleDrop(e: DragEvent, index: number) {
+    e.preventDefault();
+    if (draggingIndex === null || draggingIndex === index) {
+      handleDragEnd();
+      return;
+    }
+
+    const fromIndex = draggingIndex;
+    let toIndex = index;
+
+    // Logic to reorder sequence
+    const item = sequence[fromIndex];
+    const newSequence = [...sequence];
+
+    // Remove from old position
+    newSequence.splice(fromIndex, 1);
+
+    // Calculate new position
+    // If we removed from before the target, the target index shifts down by 1
+
+    let insertIndex = toIndex;
+    if (fromIndex < toIndex) {
+      insertIndex--;
+    }
+
+    if (dragPosition === "bottom") {
+      insertIndex++;
+    }
+
+    // Safety clamp
+    if (insertIndex < 0) insertIndex = 0;
+    if (insertIndex > newSequence.length) insertIndex = newSequence.length;
+
+    newSequence.splice(insertIndex, 0, item);
+    sequence = newSequence;
+    syncLinesToSequence(newSequence);
+    recordChange();
+
+    handleDragEnd();
   }
 </script>
 
@@ -181,11 +281,14 @@
   <div
     class="w-full overflow-x-auto border rounded-md border-neutral-200 dark:border-neutral-700"
   >
-    <table class="w-full text-left bg-white dark:bg-neutral-900">
+    <table
+      class="w-full text-left bg-white dark:bg-neutral-900 border-collapse"
+    >
       <thead
         class="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-semibold"
       >
         <tr>
+          <th class="w-8 px-2 py-2 border-b dark:border-neutral-700"></th>
           <th class="px-3 py-2 border-b dark:border-neutral-700">Name</th>
           <th class="px-3 py-2 border-b dark:border-neutral-700"
             >X (in) / Dur (ms)</th
@@ -197,13 +300,24 @@
       <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
         <!-- Start Point -->
         <tr
-          class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+          class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors duration-150"
           class:selected={$selectedPointId === "point-0-0"}
           on:click={() => {
             selectedLineId.set(null);
             selectedPointId.set("point-0-0");
           }}
+          on:dragover={(e) => handleDragOver(e, -1)}
+          on:drop={(e) => handleDrop(e, -1)}
+          class:border-b-2={dragOverIndex === -1 && dragPosition === "bottom"}
+          class:border-blue-500={dragOverIndex === -1}
+          class:dark:border-blue-400={dragOverIndex === -1}
         >
+          <td
+            class="w-8 px-2 py-2 text-center text-neutral-300 dark:text-neutral-600"
+          >
+            <!-- No drag handle for Start Point -->
+            ●
+          </td>
           <td
             class="px-3 py-2 font-medium text-neutral-800 dark:text-neutral-200"
           >
@@ -237,7 +351,7 @@
         </tr>
 
         <!-- Sequence Items -->
-        {#each sequence as item, seqIdx}
+        {#each sequence as item, seqIdx (item.kind === "path" ? item.lineId : item.id)}
           {#if item.kind === "path"}
             {#each lines.filter((l) => l.id === item.lineId) as line (line.id)}
               {@const lineIdx = lines.findIndex((l) => l === line)}
@@ -245,12 +359,40 @@
               {@html debugPointRow(line, undefined)}
               {@const endPointId = `point-${lineIdx + 1}-0`}
               <tr
-                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId ? "bg-green-100 dark:bg-green-800/40" : ""}`}
+                draggable={!line.locked}
+                on:dragstart={(e) => handleDragStart(e, seqIdx)}
+                on:dragover={(e) => handleDragOver(e, seqIdx)}
+                on:drop={(e) => handleDrop(e, seqIdx)}
+                on:dragend={handleDragEnd}
+                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150`}
+                class:border-t-2={dragOverIndex === seqIdx &&
+                  dragPosition === "top"}
+                class:border-b-2={dragOverIndex === seqIdx &&
+                  dragPosition === "bottom"}
+                class:border-blue-500={dragOverIndex === seqIdx}
+                class:dark:border-blue-400={dragOverIndex === seqIdx}
+                class:opacity-50={draggingIndex === seqIdx}
                 on:click={() => {
                   selectedLineId.set(line.id);
                   selectedPointId.set(endPointId);
                 }}
               >
+                <td
+                  class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    class="w-4 h-4 mx-auto"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </td>
                 <td class="px-3 py-2">
                   <input
                     class="w-full max-w-[160px] px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
@@ -342,7 +484,12 @@
                     selectedLineId.set(line.id);
                     selectedPointId.set(pointId);
                   }}
+                  on:dragover={(e) => handleDragOver(e, seqIdx)}
+                  on:drop={(e) => handleDrop(e, seqIdx)}
                 >
+                  <td class="w-8 px-2 py-2">
+                    <!-- No drag handle for control points, but they are drop targets for the parent seqIdx -->
+                  </td>
                   <td
                     class="px-3 py-2 pl-8 text-neutral-500 dark:text-neutral-400 text-xs"
                   >
@@ -379,8 +526,36 @@
           {:else if item.kind === "wait"}
             <!-- Wait Item -->
             <tr
-              class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-amber-50 dark:bg-amber-900/20"
+              draggable={!item.locked}
+              on:dragstart={(e) => handleDragStart(e, seqIdx)}
+              on:dragover={(e) => handleDragOver(e, seqIdx)}
+              on:drop={(e) => handleDrop(e, seqIdx)}
+              on:dragend={handleDragEnd}
+              class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-amber-50 dark:bg-amber-900/20 transition-colors duration-150"
+              class:border-t-2={dragOverIndex === seqIdx &&
+                dragPosition === "top"}
+              class:border-b-2={dragOverIndex === seqIdx &&
+                dragPosition === "bottom"}
+              class:border-blue-500={dragOverIndex === seqIdx}
+              class:dark:border-blue-400={dragOverIndex === seqIdx}
+              class:opacity-50={draggingIndex === seqIdx}
             >
+              <td
+                class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  class="w-4 h-4 mx-auto"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </td>
               <td class="px-3 py-2">
                 <input
                   class="w-full max-w-[160px] px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-amber-500 focus:outline-none text-xs"
@@ -420,6 +595,6 @@
     </table>
   </div>
   <div class="text-xs text-neutral-500 dark:text-neutral-500 px-1">
-    * Coordinates in inches. 0,0 is bottom-left.
+    * Coordinates in inches. 0,0 is bottom-left. Drag handle to reorder.
   </div>
 </div>
