@@ -113,6 +113,7 @@ export interface Settings {
   optimizationMutationStrength?: number; // Mutation strength for optimizer
   keyBindings?: KeyBinding[];
   recentFiles?: string[];
+  fileManagerSortMode?: "name" | "date"; // File manager sort preference
 }
 
 export interface Shape {

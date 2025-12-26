@@ -79,6 +79,11 @@
     return String(error);
   }
 
+  // Watch for sortMode changes (user clicks Name/Recent button) and save to settings
+  $: if (sortMode && settings) {
+    settings.fileManagerSortMode = sortMode;
+  }
+
   // Normalize lines to ensure ids and wait fields exist
   function normalizeLines(input: Line[] = []): Line[] {
     return (input || []).map((line) => ({
@@ -707,6 +712,10 @@
 
   onMount(() => {
     try {
+      // Load saved sort mode from settings
+      if (settings?.fileManagerSortMode) {
+        sortMode = settings.fileManagerSortMode;
+      }
       loadDirectory();
       // Add keyboard listener for renaming
       window.addEventListener("keydown", handleKeyDown);
