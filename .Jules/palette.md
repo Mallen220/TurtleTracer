@@ -7,3 +7,8 @@
 
 **Learning:** When a user workflow involves both "Setup" (configuring environment/tools) and "Execution" (creating the sequence), splitting these into separate Tabs significantly reduces cognitive load and clutter compared to a single long scrollable list.
 **Action:** Identify distinct phases of user activity and separate them into tabs or views, rather than relying solely on collapsible sections.
+
+## 2025-01-20 - [Clear Copy Feedback]
+
+**Learning:** Users lack confidence when copying code/content if the only feedback is a subtle tooltip or icon change. A dedicated text change ("Copy" -> "Copied!") provides much clearer confirmation of success.
+**Action:** When implementing copy-to-clipboard functionality, change the button text or state visibly for a few seconds to confirm the action.
