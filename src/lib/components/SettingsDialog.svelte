@@ -222,17 +222,17 @@
           >
             Version {appVersion}
           </span>
-          <div class="text-xs text-neutral-400 dark:text-neutral-500">•</div>
+          <!-- <div class="text-xs text-neutral-400 dark:text-neutral-500">•</div>
           <span class="text-xs text-neutral-500 dark:text-neutral-400">
             Pedro Pathing Visualizer
-          </span>
+          </span> -->
           {#if downloadCount !== null}
             <div class="text-xs text-neutral-400 dark:text-neutral-500">•</div>
             <span
               class="text-xs text-neutral-500 dark:text-neutral-400"
               title="Total Downloads from GitHub"
             >
-              {downloadCount.toLocaleString()} Downloads
+              {downloadCount.toLocaleString()} Downloads!
             </span>
           {/if}
         </div>
