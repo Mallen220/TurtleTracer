@@ -52,11 +52,21 @@ export class PathOptimizer {
   }
 
   // Generate a mutated version of the lines
-  private mutate(lines: Line[]): Line[] {
+  private mutate(lines: Line[], isColliding: boolean = false): Line[] {
     const newLines = _.cloneDeep(lines);
     const MIN_DIST = 10; // Minimum distance in inches for control points
 
     let prevPoint = this.startPoint;
+
+    // Adaptive parameters based on collision state
+    const adaptiveMutationRate = isColliding
+      ? Math.min(0.8, this.mutationRate * 2)
+      : this.mutationRate;
+    // Drastically increase strength if colliding to jump over obstacles
+    const adaptiveMutationStrength = isColliding
+      ? this.mutationStrength * 5
+      : this.mutationStrength;
+    const structuralMutationChance = isColliding ? 0.3 : 0.05;
 
     newLines.forEach((line) => {
       // Don't mutate locked lines
@@ -66,36 +76,40 @@ export class PathOptimizer {
       }
 
       // Structural Mutation: Add/Remove Control Points
-      // Only do this with low probability to maintain stability
-      if (Math.random() < 0.05) { // 5% chance per line
-        if (line.controlPoints.length < 2 && Math.random() < 0.5) {
-            // Add a control point at the midpoint of start/end
-            const midX = (prevPoint.x + line.endPoint.x) / 2;
-            const midY = (prevPoint.y + line.endPoint.y) / 2;
-            // Add jitter
-            const jitterX = (Math.random() - 0.5) * this.mutationStrength * 2;
-            const jitterY = (Math.random() - 0.5) * this.mutationStrength * 2;
+      // Only do this with low probability to maintain stability, unless colliding
+      if (Math.random() < structuralMutationChance) {
+        if (line.controlPoints.length < 3 && Math.random() < 0.6) { // Allow up to 3 points
+          // Add a control point at the midpoint of start/end
+          const midX = (prevPoint.x + line.endPoint.x) / 2;
+          const midY = (prevPoint.y + line.endPoint.y) / 2;
 
-            const newCP: ControlPoint = {
-                x: Math.max(0, Math.min(FIELD_SIZE, midX + jitterX)),
-                y: Math.max(0, Math.min(FIELD_SIZE, midY + jitterY))
-            };
+          // Add massive jitter if colliding
+          const jitterMult = isColliding ? 4 : 2;
+          const jitterX = (Math.random() - 0.5) * adaptiveMutationStrength * jitterMult;
+          const jitterY = (Math.random() - 0.5) * adaptiveMutationStrength * jitterMult;
 
-            // Insert in middle
-            const insertIdx = Math.floor(line.controlPoints.length / 2);
-            line.controlPoints.splice(insertIdx, 0, newCP);
+          const newCP: ControlPoint = {
+            x: Math.max(0, Math.min(FIELD_SIZE, midX + jitterX)),
+            y: Math.max(0, Math.min(FIELD_SIZE, midY + jitterY)),
+          };
+
+          // Insert in middle
+          const insertIdx = Math.floor(line.controlPoints.length / 2);
+          line.controlPoints.splice(insertIdx, 0, newCP);
         } else if (line.controlPoints.length > 0 && Math.random() < 0.3) {
-            // Remove a random control point
-            const removeIdx = Math.floor(Math.random() * line.controlPoints.length);
-            line.controlPoints.splice(removeIdx, 1);
+          // Remove a random control point
+          const removeIdx = Math.floor(
+            Math.random() * line.controlPoints.length,
+          );
+          line.controlPoints.splice(removeIdx, 1);
         }
       }
 
       // Mutate control points
       line.controlPoints.forEach((cp) => {
-        if (Math.random() < this.mutationRate) {
-          cp.x += (Math.random() - 0.5) * this.mutationStrength;
-          cp.y += (Math.random() - 0.5) * this.mutationStrength;
+        if (Math.random() < adaptiveMutationRate) {
+          cp.x += (Math.random() - 0.5) * adaptiveMutationStrength;
+          cp.y += (Math.random() - 0.5) * adaptiveMutationStrength;
 
           // Clamp to field bounds
           cp.x = Math.max(0, Math.min(FIELD_SIZE, cp.x));
@@ -223,6 +237,37 @@ export class PathOptimizer {
     return result.totalTime;
   }
 
+  private findValidPathSeeds(): { lines: Line[]; time: number }[] {
+    if (!this.shapes || this.shapes.length === 0) return [];
+
+    const validSeeds: { lines: Line[]; time: number }[] = [];
+    const gridSize = 8; // 8x8 grid for better coverage (step ~18in)
+    const step = FIELD_SIZE / gridSize;
+
+    // Iterate through grid points
+    for (let x = step/2; x < FIELD_SIZE; x += step) {
+        for (let y = step/2; y < FIELD_SIZE; y += step) {
+             const seedLines = _.cloneDeep(this.originalLines);
+             let modified = false;
+             seedLines.forEach(line => {
+                 if (!line.locked && line.controlPoints.length < 1) {
+                     line.controlPoints.push({ x, y });
+                     modified = true;
+                 }
+             });
+
+             if (modified) {
+                 const fitness = this.calculateFitness(seedLines);
+                 if (fitness < 10000) {
+                     validSeeds.push({ lines: seedLines, time: fitness });
+                 }
+             }
+        }
+    }
+
+    return validSeeds;
+  }
+
   public async optimize(
     onUpdate: (result: OptimizationResult) => void,
   ): Promise<Line[]> {
@@ -235,43 +280,46 @@ export class PathOptimizer {
       time: this.calculateFitness(this.originalLines),
     });
 
+    // Try to find valid seeds via grid search
+    const validSeeds = this.findValidPathSeeds();
+    // Add valid seeds to population
+    if (validSeeds.length > 0) {
+        population.push(...validSeeds);
+    }
+
     // Smart Initialization: Seed with variants that have extra control points
-    // pushed in different directions to help find a path around obstacles
     if (this.shapes && this.shapes.length > 0) {
-        for (let i = 0; i < Math.min(10, this.populationSize / 2); i++) {
-            const seedLines = _.cloneDeep(this.originalLines);
-            let prevPoint = this.startPoint;
+      for (let i = 0; i < Math.min(20, this.populationSize); i++) {
+        const seedLines = _.cloneDeep(this.originalLines);
+        let prevPoint = this.startPoint;
 
-            seedLines.forEach(line => {
-                if (!line.locked && line.controlPoints.length < 2) {
-                    // Inject a control point
-                    const midX = (prevPoint.x + line.endPoint.x) / 2;
-                    const midY = (prevPoint.y + line.endPoint.y) / 2;
+        seedLines.forEach((line) => {
+          if (!line.locked && line.controlPoints.length < 2) {
+            const midX = (prevPoint.x + line.endPoint.x) / 2;
+            const midY = (prevPoint.y + line.endPoint.y) / 2;
 
-                    // Push massively in a random direction (up to 24 inches)
-                    // This creates diverse topologies (left, right, up, down)
-                    const pushX = (Math.random() - 0.5) * 48;
-                    const pushY = (Math.random() - 0.5) * 48;
+            const pushX = (Math.random() - 0.5) * 96;
+            const pushY = (Math.random() - 0.5) * 96;
 
-                    const newCP: ControlPoint = {
-                        x: Math.max(0, Math.min(FIELD_SIZE, midX + pushX)),
-                        y: Math.max(0, Math.min(FIELD_SIZE, midY + pushY))
-                    };
-                    line.controlPoints.push(newCP);
-                }
-                prevPoint = line.endPoint;
-            });
+            const newCP: ControlPoint = {
+              x: Math.max(0, Math.min(FIELD_SIZE, midX + pushX)),
+              y: Math.max(0, Math.min(FIELD_SIZE, midY + pushY)),
+            };
+            line.controlPoints.push(newCP);
+          }
+          prevPoint = line.endPoint;
+        });
 
-            population.push({
-                lines: seedLines,
-                time: this.calculateFitness(seedLines)
-            });
-        }
+        population.push({
+          lines: seedLines,
+          time: this.calculateFitness(seedLines),
+        });
+      }
     }
 
     // Fill rest of population
     while (population.length < this.populationSize) {
-      const mutated = this.mutate(this.originalLines);
+      const mutated = this.mutate(this.originalLines, true);
       population.push({
         lines: mutated,
         time: this.calculateFitness(mutated),
@@ -292,9 +340,7 @@ export class PathOptimizer {
         bestLines: population[0].lines,
       });
 
-      // Allow UI to update - throttle to keep UI responsive without killing performance
-      // Yield every 15ms or so (approx 60fps) to let the main thread breathe,
-      // instead of every generation which is too aggressive.
+      // Allow UI to update
       const now = performance.now();
       if (now - lastYieldTime > 15) {
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -320,7 +366,10 @@ export class PathOptimizer {
           parent = parentPool[Math.floor(Math.random() * parentPool.length)];
         }
 
-        const childLines = this.mutate(parent.lines);
+        // Determine if parent is colliding to adjust mutation aggression
+        const isParentColliding = parent.time > 10000;
+
+        const childLines = this.mutate(parent.lines, isParentColliding);
         nextGen.push({
           lines: childLines,
           time: this.calculateFitness(childLines),
