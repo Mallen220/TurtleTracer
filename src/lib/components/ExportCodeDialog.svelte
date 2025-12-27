@@ -200,35 +200,29 @@
 
 <svelte:head>
   {@html codeStyle}
-  <style>
-    /* Ensure the highlightjs background is transparent so our line highlights show through */
-    :global(.hljs) {
-      background: transparent !important;
-      padding: 0 !important; /* Remove padding from hljs container */
-      margin: 0 !important; /* Remove margin */
-      overflow: visible !important; /* Prevent double scrollbars */
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-        "Liberation Mono", "Courier New", monospace !important;
-      font-size: 0.875rem !important; /* text-sm */
-      line-height: 1.625 !important; /* leading-relaxed */
-    }
-
-    /* Force the pre tag to also not scroll or add spacing */
-    :global(pre) {
-      margin: 0 !important;
-      padding: 0 !important;
-      overflow: visible !important;
-      background: transparent !important;
-    }
-
-    :global(code) {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-        "Liberation Mono", "Courier New", monospace !important;
-    }
-  </style>
 </svelte:head>
 
 <svelte:window on:keydown={handleKeydown} />
+
+<style>
+  /* Ensure the highlightjs background is transparent so our line highlights show through */
+  :global(.highlight-wrapper) {
+    background: transparent !important;
+    padding: 0 !important; /* Remove padding from hljs container */
+    margin: 0 !important; /* Remove margin */
+    overflow: visible !important; /* Prevent double scrollbars */
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace !important;
+    font-size: 0.875rem !important; /* text-sm */
+    line-height: 1.625 !important; /* leading-relaxed */
+  }
+
+  :global(.highlight-wrapper code) {
+    overflow: visible !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace !important;
+  }
+</style>
 
 {#if isOpen}
   <!-- Backdrop -->
@@ -554,7 +548,7 @@
           <Highlight
             language={currentLanguage}
             code={exportedCode}
-            class="text-sm font-mono leading-relaxed relative z-10"
+            class="highlight-wrapper text-sm font-mono leading-relaxed relative z-10"
           />
         </div>
       </div>
