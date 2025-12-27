@@ -193,7 +193,11 @@
   <div class="font-semibold flex flex-col justify-start items-start">
     <div class="flex flex-row items-center gap-2">
       <!-- File manager button -->
-      <button title="File Manager" on:click={() => (fileManagerOpen = true)}>
+      <button
+        title="File Manager"
+        aria-label="Open File Manager"
+        on:click={() => (fileManagerOpen = true)}
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -243,6 +247,7 @@
       <div class="flex items-center gap-2">
         <button
           title="Undo"
+          aria-label="Undo last action"
           on:click={undoAction}
           disabled={!canUndo}
           class:opacity-50={!canUndo}
@@ -264,6 +269,7 @@
         </button>
         <button
           title="Redo"
+          aria-label="Redo last action"
           on:click={redoAction}
           disabled={!canRedo}
           class:opacity-50={!canRedo}
@@ -296,6 +302,10 @@
     {#if $showGrid}
       <button
         title={$snapToGrid ? "Disable Snap to Grid" : "Enable Snap to Grid"}
+        aria-label={$snapToGrid
+          ? "Disable Snap to Grid"
+          : "Enable Snap to Grid"}
+        aria-pressed={$snapToGrid}
         on:click={() => snapToGrid.update((v) => !v)}
         class:text-green-500={$snapToGrid && $showGrid}
         class:text-gray-400={!$showGrid}
@@ -333,6 +343,8 @@
     <div class="relative flex flex-col items-center justify-center">
       <button
         title="Toggle Grid"
+        aria-label="Toggle Grid"
+        aria-pressed={$showGrid}
         on:click={() => showGrid.update((v) => !v)}
         class:text-blue-500={$showGrid}
       >
@@ -373,6 +385,8 @@
     <!-- Ruler toggle -->
     <button
       title="Toggle Ruler"
+      aria-label="Toggle Ruler"
+      aria-pressed={$showRuler}
       on:click={() => showRuler.update((v) => !v)}
       class:text-blue-500={$showRuler}
     >
@@ -403,6 +417,10 @@
         title={$protractorLockToRobot
           ? "Unlock Protractor from Robot"
           : "Lock Protractor to Robot"}
+        aria-label={$protractorLockToRobot
+          ? "Unlock Protractor from Robot"
+          : "Lock Protractor to Robot"}
+        aria-pressed={$protractorLockToRobot}
         on:click={() => protractorLockToRobot.update((v) => !v)}
         class:text-amber-500={$protractorLockToRobot}
       >
@@ -444,6 +462,8 @@
 
     <button
       title="Toggle Protractor"
+      aria-label="Toggle Protractor"
+      aria-pressed={$showProtractor}
       on:click={() => showProtractor.update((v) => !v)}
       class:text-blue-500={$showProtractor}
     >
@@ -481,6 +501,7 @@
       <label
         for="file-input"
         title="Load trajectory from a .pp file"
+        aria-label="Load trajectory from a .pp file"
         class="cursor-pointer hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
       >
         <svg
@@ -621,6 +642,9 @@
       <div class="relative">
         <button
           title="Export path"
+          aria-label="Export path"
+          aria-haspopup="true"
+          aria-expanded={exportMenuOpen}
           on:click={() => (exportMenuOpen = !exportMenuOpen)}
           class="flex items-center gap-1"
         >
@@ -699,6 +723,7 @@
       <!-- Delete/Reset path -->
       <button
         title="Delete/Reset path"
+        aria-label="Delete or Reset path"
         on:click={handleResetPathWithConfirmation}
         class="relative group"
       >
@@ -730,6 +755,7 @@
         target="_blank"
         rel="norefferer"
         title="GitHub Repo"
+        aria-label="GitHub Repository"
         href="https://github.com/Mallen220/PedroPathingVisualizer"
       >
         <svg

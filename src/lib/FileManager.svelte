@@ -808,6 +808,7 @@
         <div class="flex bg-neutral-100 dark:bg-neutral-800 p-1 rounded-md">
           <button
             on:click={() => (sortMode = "name")}
+            aria-pressed={sortMode === "name"}
             class="flex-1 py-1.5 text-xs font-medium rounded transition-all {sortMode ===
             'name'
               ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400'
@@ -817,6 +818,7 @@
           </button>
           <button
             on:click={() => (sortMode = "date")}
+            aria-pressed={sortMode === "date"}
             class="flex-1 py-1.5 text-xs font-medium rounded transition-all {sortMode ===
             'date'
               ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400'
@@ -1073,6 +1075,7 @@
                       on:click|stopPropagation={() => startRename(file)}
                       class="p-1 rounded hover:bg-blue-500 hover:text-white transition-colors flex-shrink-0 opacity-60 hover:opacity-100"
                       title="Rename file"
+                      aria-label="Rename file {file.name}"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1095,6 +1098,7 @@
                       on:click|stopPropagation={() => deleteFile(file)}
                       class="p-1 rounded hover:bg-red-500 hover:text-white transition-colors ml-2 flex-shrink-0 opacity-60 hover:opacity-100"
                       title="Delete file"
+                      aria-label="Delete file {file.name}"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1144,6 +1148,7 @@
             on:click={() => selectedFile && startRename(selectedFile)}
             class="px-3 py-2 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
             title="Rename this file"
+            aria-label="Rename selected file"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1166,6 +1171,7 @@
             on:click={() => selectedFile && deleteFile(selectedFile)}
             class="px-3 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
             title="Delete this file"
+            aria-label="Delete selected file"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1190,6 +1196,7 @@
             on:click={duplicateAndMirrorFile}
             class="px-3 py-2 text-sm bg-purple-500 hover:bg-purple-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
             title="Create a mirrored copy of this file (flipped horizontally)"
+            aria-label="Create a mirrored copy of this file"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1212,6 +1219,7 @@
             on:click={duplicateFile}
             class="px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
             title="Create a copy of this file"
+            aria-label="Duplicate selected file"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
