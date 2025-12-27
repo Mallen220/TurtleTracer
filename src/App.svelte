@@ -18,6 +18,8 @@
     showShortcuts,
     selectedLineId,
     toggleCollapseAllTrigger
+    showSettings,
+    exportDialogState,
   } from "./stores";
   import Two from "two.js";
   import type { Path } from "two.js/src/path";
@@ -76,6 +78,7 @@
     getDirectory?: () => Promise<string>;
     fileExists?: (filePath: string) => Promise<boolean>;
     readFile?: (filePath: string) => Promise<string>;
+    onMenuAction?: (callback: (action: string) => void) => void;
   }
 
   // Access electron API from window (attached by preload script)
@@ -263,6 +266,9 @@
   }
 
   function recordChange() {
+    // Hide optimization preview when a manual change is made
+    previewOptimizedLines = null;
+
     history.record(getAppState());
     // Mark as unsaved when a change is recorded
     if (isLoaded) {
@@ -1840,6 +1846,115 @@
       ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(tag) ||
       el.getAttribute("role") === "button" ||
       (el as any).isContentEditable
+  // Helper function to load data into app state
+  function loadData(data: any) {
+    // Ensure startPoint has all required fields
+    startPoint = data.startPoint || {
+      x: 72,
+      y: 72,
+      heading: "tangential",
+      reverse: false,
+    };
+
+    // Normalize lines with all required fields
+    const normalizedLines = normalizeLines(data.lines || []);
+    lines = normalizedLines;
+
+    // Derive sequence from data or create default
+    sequence = (
+      data.sequence && data.sequence.length
+        ? data.sequence
+        : normalizedLines.map((ln) => ({
+            kind: "path",
+            lineId: ln.id!,
+          }))
+    ) as SequenceItem[];
+
+    // Load shapes with defaults
+    shapes = data.shapes || [];
+
+    lastSavedState = getCurrentState();
+    isUnsaved.set(false);
+    recordChange();
+  }
+
+  function loadRobot(evt: Event) {
+    loadRobotImage(evt, () => updateRobotImageDisplay());
+  }
+
+  function addNewLine() {
+    lines = [
+      ...lines,
+      {
+        id: `line-${Math.random().toString(36).slice(2)}`,
+        endPoint: {
+          x: _.random(36, 108),
+          y: _.random(36, 108),
+          heading: "tangential",
+          reverse: false,
+        } as Point,
+        controlPoints: [],
+        color: getRandomColor(),
+        locked: false,
+        waitBeforeMs: 0,
+        waitAfterMs: 0,
+        waitBeforeName: "",
+        waitAfterName: "",
+      },
+    ];
+    sequence = [
+      ...sequence,
+      { kind: "path", lineId: lines[lines.length - 1].id! },
+    ];
+    recordChange();
+  }
+
+  function addWait() {
+    const wait = {
+      kind: "wait",
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      name: "Wait",
+      durationMs: 1000,
+      locked: false,
+    } as SequenceItem;
+    sequence = [...sequence, wait];
+    recordChange();
+  }
+
+  import { selectedLineId, toggleCollapseAllTrigger } from "./stores";
+
+  function addControlPoint() {
+    if (lines.length === 0) return;
+
+    // Prefer the selected line if available, otherwise fallback to the last line
+    const targetId = $selectedLineId || lines[lines.length - 1].id;
+    const targetLine =
+      lines.find((l) => l.id === targetId) || lines[lines.length - 1];
+    if (!targetLine) return;
+
+    console.log(
+      "[addControlPoint] selectedLine:",
+      $selectedLineId,
+      "targetId:",
+      targetId,
+      "targetLineId:",
+      targetLine.id,
+      "lineIndex:",
+      lines.findIndex((l) => l.id === targetLine.id),
+      "lines.length:",
+      lines.length,
+    );
+
+    targetLine.controlPoints.push({
+      x: _.random(36, 108),
+      y: _.random(36, 108),
+    });
+
+    console.log(
+      "[addControlPoint] after push controlCount:",
+      targetLine.controlPoints.length,
+      "controlPoints:",
+      targetLine.controlPoints.map((p) => ({ x: p.x, y: p.y })),
     );
   }
 
@@ -1854,6 +1969,126 @@
     percent = Math.max(0, percent - 1);
     handleSeek(percent);
   }
+
+  // Watch for system theme changes if auto mode is enabled
+  let mediaQuery: MediaQueryList;
+  onMount(() => {
+    if (settings?.theme === "auto") {
+      mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleSystemThemeChange = () => {
+        if (settings.theme === "auto") {
+          applyTheme("auto");
+        }
+      };
+      mediaQuery.addEventListener("change", handleSystemThemeChange);
+
+      return () => {
+        mediaQuery.removeEventListener("change", handleSystemThemeChange);
+      };
+    }
+  });
+
+  // Listen for menu actions from Electron
+  onMount(() => {
+    if (electronAPI && electronAPI.onMenuAction) {
+      electronAPI.onMenuAction((action) => {
+        switch (action) {
+          case "new-path":
+            // Prompt to save if needed? For now, just new line
+            // Or maybe clear everything?
+            // "New Path" usually means create a new file or clear current state.
+            // Since we have `addNewLine` which adds to current, maybe "New Project" is better?
+            // But let's assume it clears or creates new.
+            // Actually, based on existing functionality, maybe just reset to default.
+            if (confirm("Create new project? Unsaved changes will be lost.")) {
+              startPoint = getDefaultStartPoint();
+              lines = normalizeLines(getDefaultLines());
+              sequence = lines.map((ln) => ({
+                kind: "path",
+                lineId: ln.id!,
+              }));
+              shapes = getDefaultShapes();
+              currentFilePath.set(null);
+              recordChange();
+            }
+            break;
+          case "open-file":
+            // We need to trigger the file input.
+            // Since we don't have direct access to the hidden input, we can check if we can invoke `loadFile` differently.
+            // `loadFile` takes an event.
+            // But `ipcMain` has `file:set-directory`...
+            // Actually, we can just trigger a click on the file input if we had a ref to it.
+            // Or use electronAPI to showOpenDialog if we wanted to be purely native.
+            // The existing `loadFile` uses an `<input type="file">`.
+            // Let's use `electronAPI` to open a file if possible, or trigger the input.
+            // The Navbar has the input.
+            // But we can also implement `openProject` here using `electronAPI`.
+            // Let's implement a native open dialog call.
+            openProjectNative();
+            break;
+          case "save-project":
+            saveProject();
+            break;
+          case "save-as":
+            saveFileAs();
+            break;
+          case "export-gif":
+            exportGif();
+            break;
+          case "export-java":
+            exportDialogState.set({ isOpen: true, format: "java" });
+            break;
+          case "export-points":
+            exportDialogState.set({ isOpen: true, format: "points" });
+            break;
+          case "export-sequential":
+            exportDialogState.set({ isOpen: true, format: "sequential" });
+            break;
+          case "open-settings":
+            showSettings.set(true);
+            break;
+          case "open-shortcuts":
+            showShortcuts.set(true);
+            break;
+          case "undo":
+            if (canUndo) undoAction();
+            break;
+          case "redo":
+            if (canRedo) redoAction();
+            break;
+        }
+      });
+    }
+  });
+
+  async function openProjectNative() {
+    // We try to find the input element in DOM.
+    const input = document.getElementById("file-upload");
+    if (input) {
+      input.click();
+    } else {
+      console.warn("File input not found.");
+    }
+  }
+
+  // Auto-export for CI/testing: if the app is loaded with URL hash #export-gif-test, automatically run GIF export once mounted
+  onMount(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.location &&
+      window.location.hash === "#export-gif-test"
+    ) {
+      // Delay slightly to allow initial rendering and Two.js to initialize
+      setTimeout(async () => {
+        try {
+          await exportGif();
+          console.log("Auto GIF export attempted");
+        } catch (err) {
+          console.error("Auto GIF export failed:", err);
+        }
+      }, 1500);
+    }
+  });
 </script>
 
 <svelte:window

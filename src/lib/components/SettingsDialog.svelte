@@ -232,7 +232,7 @@
               class="text-xs text-neutral-500 dark:text-neutral-400"
               title="Total Downloads from GitHub"
             >
-              {downloadCount.toLocaleString()} Downloads!
+              {downloadCount.toLocaleString()} App Downloads
             </span>
           {/if}
         </div>
@@ -1204,7 +1204,7 @@
                   <input
                     type="number"
                     min="10"
-                    max="1000"
+                    max="3000"
                     step="1"
                     bind:value={settings.optimizationIterations}
                     on:change={(e) =>
@@ -1212,7 +1212,7 @@
                         e.target.value,
                         "optimizationIterations",
                         10,
-                        1000,
+                        3000,
                         true,
                       )}
                     class="w-24 h-8 px-2 rounded border border-neutral-300 dark:border-neutral-600 text-purple-700 dark:text-purple-300 bg-neutral-50 dark:bg-neutral-900 focus:ring-2 focus:ring-purple-500"

@@ -35,4 +35,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Write binary content encoded as base64 to disk
   writeFileBase64: (filePath, base64Content) =>
     ipcRenderer.invoke("file:write-base64", filePath, base64Content),
+
+  // Menu action listener
+  onMenuAction: (callback) =>
+    ipcRenderer.on("menu-action", (_event, action) => callback(action)),
 });

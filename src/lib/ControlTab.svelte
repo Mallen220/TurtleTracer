@@ -530,6 +530,7 @@
             {lines}
             {settings}
             {sequence}
+            {shapes}
             onApply={handleOptimizationApply}
             {onPreviewChange}
             onClose={() => (optimizationOpen = false)}

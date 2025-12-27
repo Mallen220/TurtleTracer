@@ -13,6 +13,7 @@
   export let sequence: SequenceItem[];
   import OptimizationDialog from "./OptimizationDialog.svelte";
   import ObstaclesSection from "./ObstaclesSection.svelte";
+  import TrashIcon from "./icons/TrashIcon.svelte";
 
   export let recordChange: () => void;
   // Handler passed from parent to toggle optimization dialog
@@ -188,6 +189,52 @@
     lines = reordered;
   }
 
+  // Delete helpers
+  function deleteLine(lineId: string) {
+    // Prevent deleting the last remaining path
+    if (lines.length <= 1) return;
+
+    const idx = lines.findIndex((l) => l.id === lineId);
+    if (idx >= 0) {
+      lines.splice(idx, 1);
+      lines = [...lines];
+    }
+
+    // Remove sequence entries that reference this line
+    const newSeq = sequence.filter(
+      (item) => !(item.kind === "path" && item.lineId === lineId),
+    );
+    sequence = newSeq;
+    syncLinesToSequence(newSeq);
+
+    // Clear selection if it referenced the deleted line
+    selectedLineId.set(null);
+    selectedPointId.set(null);
+
+    if (recordChange) recordChange();
+  }
+
+  function deleteControlPoint(line: Line, cpIndex: number) {
+    if (line.locked) return;
+    if (cpIndex >= 0 && cpIndex < line.controlPoints.length) {
+      line.controlPoints.splice(cpIndex, 1);
+      lines = [...lines];
+      if (recordChange) recordChange();
+      selectedPointId.set(null);
+    }
+  }
+
+  function deleteWait(index: number) {
+    const item = sequence[index];
+    if (!item) return;
+    if (item.locked) return;
+
+    sequence.splice(index, 1);
+    sequence = [...sequence];
+    syncLinesToSequence(sequence);
+    if (recordChange) recordChange();
+    selectedPointId.set(null);
+  }
   function handleDrop(e: DragEvent, index: number) {
     e.preventDefault();
     if (draggingIndex === null || draggingIndex === index) {
@@ -271,6 +318,7 @@
         {lines}
         {settings}
         {sequence}
+        {shapes}
         onApply={handleOptimizationApply}
         {onPreviewChange}
         onClose={() => onToggleOptimization && onToggleOptimization()}
@@ -424,7 +472,9 @@
                     disabled={line.locked}
                   />
                 </td>
-                <td class="px-3 py-2 text-center">
+                <td
+                  class="px-3 py-2 text-center flex items-center justify-center gap-1"
+                >
                   <button
                     title={line.locked ? "Unlock Path" : "Lock Path"}
                     on:click|stopPropagation={() => {
@@ -467,6 +517,16 @@
                       </svg>
                     {/if}
                   </button>
+
+                  {#if !line.locked && lines.length > 1}
+                    <button
+                      on:click|stopPropagation={() => deleteLine(line.id)}
+                      title="Delete path"
+                      class="p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    >
+                      <TrashIcon className="size-4" strokeWidth={2} />
+                    </button>
+                  {/if}
                 </td>
               </tr>
 
@@ -518,6 +578,15 @@
                   <td class="px-3 py-2 text-center">
                     {#if line.locked}
                       <span title="Locked">🔒</span>
+                    {:else}
+                      <button
+                        on:click|stopPropagation={() =>
+                          deleteControlPoint(line, j)}
+                        title="Delete control point"
+                        class="p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                      >
+                        <TrashIcon className="size-4" strokeWidth={2} />
+                      </button>
                     {/if}
                   </td>
                 </tr>
@@ -586,6 +655,14 @@
               <td class="px-3 py-2 text-center">
                 {#if item.locked}
                   <span title="Locked">🔒</span>
+                {:else}
+                  <button
+                    on:click|stopPropagation={() => deleteWait(seqIdx)}
+                    title="Delete wait"
+                    class="p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  >
+                    <TrashIcon className="size-4" strokeWidth={2} />
+                  </button>
                 {/if}
               </td>
             </tr>

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from "electron";
 import path from "path";
 import express from "express";
 import http from "http";
@@ -130,6 +130,172 @@ const createWindow = () => {
     mainWindow = null;
     app.quit();
   });
+
+  createMenu(mainWindow);
+};
+
+const createMenu = (mainWindow) => {
+  const isMac = process.platform === "darwin";
+
+  const template = [
+    // App Menu (macOS only)
+    ...(isMac
+      ? [
+          {
+            label: app.name,
+            submenu: [
+              { role: "about" },
+              { type: "separator" },
+              { role: "services" },
+              { type: "separator" },
+              { role: "hide" },
+              { role: "hideOthers" },
+              { role: "unhide" },
+              { type: "separator" },
+              { role: "quit" },
+            ],
+          },
+        ]
+      : []),
+    // File Menu
+    {
+      label: "File",
+      submenu: [
+        {
+          label: "New Path",
+          accelerator: "CmdOrCtrl+N",
+          click: () => mainWindow.webContents.send("menu-action", "new-path"),
+        },
+        {
+          label: "Open...",
+          accelerator: "CmdOrCtrl+O",
+          click: () => mainWindow.webContents.send("menu-action", "open-file"),
+        },
+        { type: "separator" },
+        {
+          label: "Save",
+          accelerator: "CmdOrCtrl+S",
+          click: () =>
+            mainWindow.webContents.send("menu-action", "save-project"),
+        },
+        {
+          label: "Save As...",
+          accelerator: "CmdOrCtrl+Shift+S",
+          click: () => mainWindow.webContents.send("menu-action", "save-as"),
+        },
+        { type: "separator" },
+        {
+          label: "Export",
+          submenu: [
+            {
+              label: "Export as Java Code...",
+              click: () =>
+                mainWindow.webContents.send("menu-action", "export-java"),
+            },
+            {
+              label: "Export as Points Array...",
+              click: () =>
+                mainWindow.webContents.send("menu-action", "export-points"),
+            },
+            {
+              label: "Export as Sequential Command...",
+              click: () =>
+                mainWindow.webContents.send("menu-action", "export-sequential"),
+            },
+            { type: "separator" },
+            {
+              label: "Export GIF...",
+              click: () =>
+                mainWindow.webContents.send("menu-action", "export-gif"),
+            },
+          ],
+        },
+        { type: "separator" },
+        { role: isMac ? "close" : "quit" },
+      ],
+    },
+    // Edit Menu
+    {
+      label: "Edit",
+      submenu: [
+        {
+          label: "Undo",
+          accelerator: "CmdOrCtrl+Z",
+          click: () => mainWindow.webContents.send("menu-action", "undo"),
+        },
+        {
+          label: "Redo",
+          accelerator: "CmdOrCtrl+Y", // or Cmd+Shift+Z depending on OS preference, but Y is common
+          click: () => mainWindow.webContents.send("menu-action", "redo"),
+        },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" },
+      ],
+    },
+    // View Menu
+    {
+      label: "View",
+      submenu: [
+        { role: "reload" },
+        { role: "forceReload" },
+        { role: "toggleDevTools" },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { type: "separator" },
+        { role: "togglefullscreen" },
+        { type: "separator" },
+        {
+          label: "Settings",
+          accelerator: "CmdOrCtrl+,",
+          click: () =>
+            mainWindow.webContents.send("menu-action", "open-settings"),
+        },
+      ],
+    },
+    // Window Menu
+    {
+      label: "Window",
+      submenu: [
+        { role: "minimize" },
+        { role: "zoom" },
+        ...(isMac
+          ? [
+              { type: "separator" },
+              { role: "front" },
+              { type: "separator" },
+              { role: "window" },
+            ]
+          : [{ role: "close" }]),
+      ],
+    },
+    // Help Menu
+    {
+      role: "help",
+      submenu: [
+        {
+          label: "Keyboard Shortcuts",
+          accelerator: "CmdOrCtrl+/",
+          click: () =>
+            mainWindow.webContents.send("menu-action", "open-shortcuts"),
+        },
+        { type: "separator" },
+        {
+          label: "See Project on GitHub",
+          click: async () => {
+            await shell.openExternal(
+              "https://github.com/Mallen220/PedroPathingVisualizer",
+            );
+          },
+        },
+      ],
+    },
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 };
 
 app.on("ready", async () => {

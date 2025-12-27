@@ -1,8 +1,18 @@
 // src/utils/pathOptimizer.ts
 import _ from "lodash";
-import type { Line, Point, SequenceItem, Settings } from "../types";
-import { calculatePathTime } from "./timeCalculator"; // Assuming this is where it's exported
+import type {
+  Line,
+  Point,
+  SequenceItem,
+  Settings,
+  Shape,
+  TimelineEvent,
+  ControlPoint,
+} from "../types";
+import { calculatePathTime } from "./timeCalculator";
 import { FIELD_SIZE } from "../config";
+import { calculateRobotState } from "./animation";
+import { pointInPolygon, getRobotCorners } from "./geometry";
 
 export interface OptimizationResult {
   generation: number;
@@ -15,35 +25,57 @@ export class PathOptimizer {
   private generations: number;
   private mutationRate: number;
   private mutationStrength: number; // Max inches to move a point
-
+  // Cancellation request flag
+  private stopRequested: boolean;
   private startPoint: Point;
   private originalLines: Line[];
   private settings: Settings;
   private sequence: SequenceItem[];
+  private shapes: Shape[];
 
   constructor(
     startPoint: Point,
     lines: Line[],
     settings: Settings,
     sequence: SequenceItem[],
+    shapes: Shape[] = [],
   ) {
     this.startPoint = _.cloneDeep(startPoint);
     this.originalLines = _.cloneDeep(lines);
     this.settings = settings;
     this.sequence = sequence;
+    this.shapes = shapes;
     // Use settings values if provided, else defaults
     this.generations = settings.optimizationIterations ?? 100;
     this.populationSize = settings.optimizationPopulationSize ?? 50;
     this.mutationRate = settings.optimizationMutationRate ?? 0.4;
     this.mutationStrength = settings.optimizationMutationStrength ?? 6.0;
+
+    // Cancellation flag
+    this.stopRequested = false;
+  }
+
+  // Request the optimizer to stop at the next convenient point
+  public stop() {
+    this.stopRequested = true;
   }
 
   // Generate a mutated version of the lines
-  private mutate(lines: Line[]): Line[] {
+  private mutate(lines: Line[], isColliding: boolean = false): Line[] {
     const newLines = _.cloneDeep(lines);
     const MIN_DIST = 10; // Minimum distance in inches for control points
 
     let prevPoint = this.startPoint;
+
+    // Adaptive parameters based on collision state
+    const adaptiveMutationRate = isColliding
+      ? Math.min(0.8, this.mutationRate * 2)
+      : this.mutationRate;
+    // Drastically increase strength if colliding to jump over obstacles
+    const adaptiveMutationStrength = isColliding
+      ? this.mutationStrength * 5
+      : this.mutationStrength;
+    const structuralMutationChance = isColliding ? 0.3 : 0.05;
 
     newLines.forEach((line) => {
       // Don't mutate locked lines
@@ -52,11 +84,44 @@ export class PathOptimizer {
         return;
       }
 
+      // Structural Mutation: Add/Remove Control Points
+      // Only do this with low probability to maintain stability, unless colliding
+      if (Math.random() < structuralMutationChance) {
+        if (line.controlPoints.length < 3 && Math.random() < 0.6) {
+          // Allow up to 3 points
+          // Add a control point at the midpoint of start/end
+          const midX = (prevPoint.x + line.endPoint.x) / 2;
+          const midY = (prevPoint.y + line.endPoint.y) / 2;
+
+          // Add massive jitter if colliding
+          const jitterMult = isColliding ? 4 : 2;
+          const jitterX =
+            (Math.random() - 0.5) * adaptiveMutationStrength * jitterMult;
+          const jitterY =
+            (Math.random() - 0.5) * adaptiveMutationStrength * jitterMult;
+
+          const newCP: ControlPoint = {
+            x: Math.max(0, Math.min(FIELD_SIZE, midX + jitterX)),
+            y: Math.max(0, Math.min(FIELD_SIZE, midY + jitterY)),
+          };
+
+          // Insert in middle
+          const insertIdx = Math.floor(line.controlPoints.length / 2);
+          line.controlPoints.splice(insertIdx, 0, newCP);
+        } else if (line.controlPoints.length > 0 && Math.random() < 0.3) {
+          // Remove a random control point
+          const removeIdx = Math.floor(
+            Math.random() * line.controlPoints.length,
+          );
+          line.controlPoints.splice(removeIdx, 1);
+        }
+      }
+
       // Mutate control points
       line.controlPoints.forEach((cp) => {
-        if (Math.random() < this.mutationRate) {
-          cp.x += (Math.random() - 0.5) * this.mutationStrength;
-          cp.y += (Math.random() - 0.5) * this.mutationStrength;
+        if (Math.random() < adaptiveMutationRate) {
+          cp.x += (Math.random() - 0.5) * adaptiveMutationStrength;
+          cp.y += (Math.random() - 0.5) * adaptiveMutationStrength;
 
           // Clamp to field bounds
           cp.x = Math.max(0, Math.min(FIELD_SIZE, cp.x));
@@ -101,18 +166,67 @@ export class PathOptimizer {
         }
       }
 
-      /*
-      if (!line.locked && Math.random() < 0.1) {
-         line.endPoint.x += (Math.random() - 0.5) * 2;
-         line.endPoint.y += (Math.random() - 0.5) * 2;
-         // Clamp...
-      }
-      */
-
       prevPoint = line.endPoint;
     });
 
     return newLines;
+  }
+
+  // Returns number of collision checks that failed
+  private getCollisionCount(timeline: TimelineEvent[], lines: Line[]): number {
+    if (!this.shapes || this.shapes.length === 0) return 0;
+
+    // Filter out shapes with fewer than 3 vertices
+    const activeShapes = this.shapes.filter((s) => s.vertices.length >= 3);
+    if (activeShapes.length === 0) return 0;
+
+    const totalTime = timeline[timeline.length - 1].endTime;
+    const step = 0.2; // Check every 0.2 seconds for performance
+    const identityScale: any = (x: number) => x;
+    let collisions = 0;
+
+    for (let t = 0; t <= totalTime; t += step) {
+      const percent = (t / totalTime) * 100;
+      const state = calculateRobotState(
+        percent,
+        timeline,
+        lines,
+        this.startPoint,
+        identityScale,
+        identityScale,
+      );
+
+      const corners = getRobotCorners(
+        state.x,
+        state.y,
+        state.heading,
+        this.settings.rWidth,
+        this.settings.rHeight,
+      );
+
+      let isColliding = false;
+      for (const shape of activeShapes) {
+        // Check if any robot corner is in shape
+        for (const corner of corners) {
+          if (pointInPolygon([corner.x, corner.y], shape.vertices)) {
+            isColliding = true;
+            break;
+          }
+        }
+        if (isColliding) break;
+
+        // Also check if any shape vertex is inside the robot
+        for (const v of shape.vertices) {
+          if (pointInPolygon([v.x, v.y], corners)) {
+            isColliding = true;
+            break;
+          }
+        }
+        if (isColliding) break;
+      }
+      if (isColliding) collisions++;
+    }
+    return collisions;
   }
 
   private calculateFitness(lines: Line[]): number {
@@ -122,12 +236,56 @@ export class PathOptimizer {
       this.settings,
       this.sequence,
     );
+
+    const collisionCount = this.getCollisionCount(result.timeline, lines);
+
+    if (collisionCount > 0) {
+      // Return a large penalty plus the collision count to prioritize fewer collisions
+      // Base penalty 10,000 ensures it's much larger than any realistic path time
+      // We assume max path time < 100s usually.
+      return 10000 + collisionCount;
+    }
+
     return result.totalTime;
+  }
+
+  private findValidPathSeeds(): { lines: Line[]; time: number }[] {
+    if (!this.shapes || this.shapes.length === 0) return [];
+
+    const validSeeds: { lines: Line[]; time: number }[] = [];
+    const gridSize = 8; // 8x8 grid for better coverage (step ~18in)
+    const step = FIELD_SIZE / gridSize;
+
+    // Iterate through grid points
+    for (let x = step / 2; x < FIELD_SIZE; x += step) {
+      for (let y = step / 2; y < FIELD_SIZE; y += step) {
+        const seedLines = _.cloneDeep(this.originalLines);
+        let modified = false;
+        seedLines.forEach((line) => {
+          if (!line.locked && line.controlPoints.length < 1) {
+            line.controlPoints.push({ x, y });
+            modified = true;
+          }
+        });
+
+        if (modified) {
+          const fitness = this.calculateFitness(seedLines);
+          if (fitness < 10000) {
+            validSeeds.push({ lines: seedLines, time: fitness });
+          }
+        }
+      }
+    }
+
+    return validSeeds;
   }
 
   public async optimize(
     onUpdate: (result: OptimizationResult) => void,
-  ): Promise<Line[]> {
+  ): Promise<{ lines: Line[]; bestTime: number; stopped?: boolean }> {
+    // Reset cancellation request
+    this.stopRequested = false;
+
     // Initialize population
     let population: { lines: Line[]; time: number }[] = [];
 
@@ -137,9 +295,46 @@ export class PathOptimizer {
       time: this.calculateFitness(this.originalLines),
     });
 
+    // Try to find valid seeds via grid search
+    const validSeeds = this.findValidPathSeeds();
+    // Add valid seeds to population
+    if (validSeeds.length > 0) {
+      population.push(...validSeeds);
+    }
+
+    // Smart Initialization: Seed with variants that have extra control points
+    if (this.shapes && this.shapes.length > 0) {
+      for (let i = 0; i < Math.min(20, this.populationSize); i++) {
+        const seedLines = _.cloneDeep(this.originalLines);
+        let prevPoint = this.startPoint;
+
+        seedLines.forEach((line) => {
+          if (!line.locked && line.controlPoints.length < 2) {
+            const midX = (prevPoint.x + line.endPoint.x) / 2;
+            const midY = (prevPoint.y + line.endPoint.y) / 2;
+
+            const pushX = (Math.random() - 0.5) * 96;
+            const pushY = (Math.random() - 0.5) * 96;
+
+            const newCP: ControlPoint = {
+              x: Math.max(0, Math.min(FIELD_SIZE, midX + pushX)),
+              y: Math.max(0, Math.min(FIELD_SIZE, midY + pushY)),
+            };
+            line.controlPoints.push(newCP);
+          }
+          prevPoint = line.endPoint;
+        });
+
+        population.push({
+          lines: seedLines,
+          time: this.calculateFitness(seedLines),
+        });
+      }
+    }
+
     // Fill rest of population
-    for (let i = 1; i < this.populationSize; i++) {
-      const mutated = this.mutate(this.originalLines);
+    while (population.length < this.populationSize) {
+      const mutated = this.mutate(this.originalLines, true);
       population.push({
         lines: mutated,
         time: this.calculateFitness(mutated),
@@ -160,13 +355,16 @@ export class PathOptimizer {
         bestLines: population[0].lines,
       });
 
-      // Allow UI to update - throttle to keep UI responsive without killing performance
-      // Yield every 15ms or so (approx 60fps) to let the main thread breathe,
-      // instead of every generation which is too aggressive.
+      // Allow UI to update
       const now = performance.now();
       if (now - lastYieldTime > 15) {
         await new Promise((resolve) => setTimeout(resolve, 0));
         lastYieldTime = performance.now();
+      }
+
+      // If stop was requested, break out early
+      if (this.stopRequested) {
+        break;
       }
 
       // Create next generation
@@ -183,9 +381,15 @@ export class PathOptimizer {
       );
 
       while (nextGen.length < this.populationSize) {
-        const parent =
-          parentPool[Math.floor(Math.random() * parentPool.length)];
-        const childLines = this.mutate(parent.lines);
+        let parent = parentPool[0]; // Default to best
+        if (parentPool.length > 0) {
+          parent = parentPool[Math.floor(Math.random() * parentPool.length)];
+        }
+
+        // Determine if parent is colliding to adjust mutation aggression
+        const isParentColliding = parent.time > 10000;
+
+        const childLines = this.mutate(parent.lines, isParentColliding);
         nextGen.push({
           lines: childLines,
           time: this.calculateFitness(childLines),
@@ -195,8 +399,12 @@ export class PathOptimizer {
       population = nextGen;
     }
 
-    // Return best path
+    // Return best path and best time (include stopped flag if cancellation requested)
     population.sort((a, b) => a.time - b.time);
-    return population[0].lines;
+    return {
+      lines: population[0].lines,
+      bestTime: population[0].time,
+      stopped: this.stopRequested,
+    };
   }
 }
