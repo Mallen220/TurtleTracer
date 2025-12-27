@@ -187,6 +187,9 @@
   }
 
   function recordChange() {
+    // Hide optimization preview when a manual change is made
+    previewOptimizedLines = null;
+
     history.record(getAppState());
     // Mark as unsaved when a change is recorded
     if (isLoaded) {
