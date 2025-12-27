@@ -29,6 +29,14 @@
   let currentLanguage: typeof java | typeof plaintext = java;
   let copied = false;
   let dialogRef: HTMLDivElement;
+  let scrollContainer: HTMLDivElement;
+
+  // Search State
+  let showSearch = false;
+  let searchQuery = "";
+  let searchMatches: number[] = []; // Array of line numbers (0-indexed)
+  let currentMatchIndex = -1;
+  let searchInputRef: HTMLInputElement;
 
   // Update sequential class name when file changes
   $: if ($currentFilePath) {
@@ -51,6 +59,11 @@
   ) {
     exportFormat = format;
     copied = false;
+    showSearch = false;
+    searchQuery = "";
+    searchMatches = [];
+    currentMatchIndex = -1;
+
     try {
       if (format === "java") {
         exportedCode = await generateJavaCode(
@@ -106,6 +119,10 @@
           sequence,
           targetLibrary,
         );
+        // Re-run search if active
+        if (searchQuery) {
+          performSearch();
+        }
       } catch (error) {
         console.error("Refresh failed:", error);
         exportedCode =
@@ -123,7 +140,77 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
-      isOpen = false;
+      if (showSearch) {
+        showSearch = false;
+        searchQuery = "";
+        searchMatches = [];
+        dialogRef?.focus();
+      } else {
+        isOpen = false;
+      }
+    }
+    // Ctrl+F or Cmd+F to toggle search
+    if ((e.ctrlKey || e.metaKey) && e.key === "f" && isOpen) {
+      e.preventDefault();
+      showSearch = true;
+      tick().then(() => searchInputRef?.focus());
+    }
+  }
+
+  function performSearch() {
+    if (!searchQuery) {
+      searchMatches = [];
+      currentMatchIndex = -1;
+      return;
+    }
+
+    const lines = exportedCode.split("\n");
+    const matches: number[] = [];
+    const query = searchQuery.toLowerCase();
+
+    lines.forEach((line, index) => {
+      if (line.toLowerCase().includes(query)) {
+        matches.push(index);
+      }
+    });
+
+    searchMatches = matches;
+    if (matches.length > 0) {
+      currentMatchIndex = 0;
+      scrollToMatch(matches[0]);
+    } else {
+      currentMatchIndex = -1;
+    }
+  }
+
+  function nextMatch() {
+    if (searchMatches.length === 0) return;
+    currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
+    scrollToMatch(searchMatches[currentMatchIndex]);
+  }
+
+  function prevMatch() {
+    if (searchMatches.length === 0) return;
+    currentMatchIndex =
+      (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+    scrollToMatch(searchMatches[currentMatchIndex]);
+  }
+
+  function scrollToMatch(lineIndex: number) {
+    if (scrollContainer) {
+      // Assuming line height is approx 20px (text-sm + leading-relaxed) -> 14px * 1.625 ≈ 22.75px
+      // A safer bet is to use ems if we knew the exact px conversion, but approx is fine for "scroll into view" logic
+      // Or we can just calculate percentage.
+      // Better: Use a simple calculation.
+      const lineHeight = 24; // Approximation
+      const targetTop = lineIndex * lineHeight;
+
+      // Center the match
+      const containerHeight = scrollContainer.clientHeight;
+      scrollContainer.scrollTo({
+        top: Math.max(0, targetTop - containerHeight / 2),
+        behavior: "smooth",
+      });
     }
   }
 
@@ -133,6 +220,12 @@
 
 <svelte:head>
   {@html codeStyle}
+  <style>
+    /* Ensure the highlightjs background is transparent so our line highlights show through */
+    :global(.hljs) {
+      background: transparent !important;
+    }
+  </style>
 </svelte:head>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -179,26 +272,141 @@
           </p>
         </div>
 
-        <button
-          on:click={() => (isOpen = false)}
-          class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-          aria-label="Close export dialog"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-5"
+        <div class="flex items-center gap-2">
+          <!-- Search Toggle -->
+          {#if !showSearch}
+            <button
+              on:click={() => {
+                showSearch = true;
+                tick().then(() => searchInputRef?.focus());
+              }}
+              class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Search code"
+              title="Search (Ctrl+F)"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="size-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                />
+              </svg>
+            </button>
+          {:else}
+            <!-- Search Bar -->
+            <div
+              class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1 animate-in slide-in-from-right duration-200"
+            >
+              <input
+                bind:this={searchInputRef}
+                type="text"
+                placeholder="Find..."
+                bind:value={searchQuery}
+                on:input={performSearch}
+                class="bg-transparent border-none text-sm px-2 py-1 w-32 focus:ring-0 focus:outline-none text-neutral-900 dark:text-white placeholder-neutral-500"
+              />
+              <span class="text-xs text-neutral-400 min-w-[3rem] text-center">
+                {#if searchMatches.length > 0}
+                  {currentMatchIndex + 1}/{searchMatches.length}
+                {:else if searchQuery}
+                  0/0
+                {/if}
+              </span>
+              <button
+                on:click={prevMatch}
+                disabled={searchMatches.length === 0}
+                class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-30"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                  class="size-4"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m4.5 15.75 7.5-7.5 7.5 7.5"
+                  />
+                </svg>
+              </button>
+              <button
+                on:click={nextMatch}
+                disabled={searchMatches.length === 0}
+                class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-30"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                  class="size-4"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m19.5 8.25-7.5 7.5-7.5-7.5"
+                  />
+                </svg>
+              </button>
+              <button
+                on:click={() => {
+                  showSearch = false;
+                  searchQuery = "";
+                  searchMatches = [];
+                }}
+                class="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 rounded text-neutral-500 transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                  class="size-4"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M6 18 18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          {/if}
+
+          <!-- Close Button -->
+          <button
+            on:click={() => (isOpen = false)}
+            class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Close export dialog"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M6 18 18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="size-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18 18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Settings Toolbar (Sequential Only) -->
@@ -296,11 +504,31 @@
 
       <!-- Code Content -->
       <div class="relative flex-1 min-h-0 bg-[#282b2e] overflow-hidden group">
-        <div class="absolute inset-0 overflow-auto custom-scrollbar p-4">
+        <div
+          bind:this={scrollContainer}
+          class="absolute inset-0 overflow-auto custom-scrollbar p-4 pb-20"
+        >
+          <!-- Highlight Layer for Search Results -->
+          <!-- We render invisible text that matches layout, but with highlighted backgrounds -->
+          <div
+            class="absolute top-4 left-4 right-4 bottom-20 pointer-events-none select-none font-mono text-sm leading-relaxed"
+            aria-hidden="true"
+          >
+            {#each exportedCode.split("\n") as line, i}
+              <div
+                class="w-full {searchMatches.includes(i)
+                  ? 'bg-yellow-500/30'
+                  : 'bg-transparent'}"
+                style="height: 1.625em;"
+              ></div>
+            {/each}
+          </div>
+
+          <!-- Actual Code Layer -->
           <Highlight
             language={currentLanguage}
             code={exportedCode}
-            class="text-sm font-mono leading-relaxed"
+            class="text-sm font-mono leading-relaxed relative z-10"
           />
         </div>
       </div>
