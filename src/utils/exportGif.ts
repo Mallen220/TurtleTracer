@@ -5,7 +5,6 @@ import GIF from "gif.js";
 // Vite: import worker script URL so gif.js can spawn workers correctly
 import gifWorkerUrl from "gif.js/dist/gif.worker.js?url";
 import type Two from "two.js";
-import type { ReturnType as ControllerType } from "./animation"; // not a real export but we only need the runtime shape
 
 export interface ExportGifOptions {
   two: Two; // Two.js instance

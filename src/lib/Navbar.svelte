@@ -36,6 +36,8 @@
   export let robotHeight: number;
   export let settings: Settings;
 
+  export let showSidebar = true;
+
   export let saveProject: () => any;
   export let saveFileAs: () => any;
   export let exportGif: () => any;
@@ -196,7 +198,7 @@
 <SettingsDialog bind:isOpen={$showSettings} bind:settings />
 <KeyboardShortcutsDialog bind:isOpen={shortcutsOpen} bind:settings />
 <div
-  class="absolute top-0 left-0 w-full bg-neutral-50 dark:bg-neutral-900 shadow-md flex flex-row justify-between items-center px-6 py-4 border-b-[0.75px] border-[#b300e6]"
+  class="w-full z-50 bg-neutral-50 dark:bg-neutral-900 shadow-md flex flex-wrap justify-between items-center px-4 md:px-6 py-4 border-b-[0.75px] border-[#b300e6] gap-y-4"
 >
   <!-- Title -->
   <div class="font-semibold flex flex-col justify-start items-start">
