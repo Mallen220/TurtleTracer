@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { cubicInOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
   import { resetSettings } from "../../utils/settingsPersistence";
@@ -84,6 +85,55 @@
   // Get version from package. json
   import packageJson from "../../../package.json";
   let appVersion = packageJson.version;
+
+  let downloadCount: number | null = null;
+
+  onMount(async () => {
+    try {
+      let page = 1;
+      let count = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await fetch(
+          `https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases?per_page=100&page=${page}`,
+        );
+
+        if (response.ok) {
+          const releases = await response.json();
+          if (releases.length === 0) {
+            hasMore = false;
+          } else {
+            releases.forEach((release: any) => {
+              release.assets.forEach((asset: any) => {
+                // Filter for application binaries to avoid counting metadata files (like latest.yml)
+                // which might be downloaded automatically by updaters.
+                const name = asset.name.toLowerCase();
+                if (
+                  name.endsWith(".exe") ||
+                  name.endsWith(".dmg") ||
+                  name.endsWith(".deb") ||
+                  name.endsWith(".rpm") ||
+                  name.endsWith(".appimage") ||
+                  name.endsWith(".pkg") ||
+                  name.endsWith(".zip") ||
+                  name.endsWith(".tar.gz")
+                ) {
+                  count += asset.download_count;
+                }
+              });
+            });
+            page++;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+      downloadCount = count;
+    } catch (e) {
+      console.error("Failed to fetch download count", e);
+    }
+  });
 
   // Display value for angular velocity (user inputs this, gets multiplied by PI)
   $: angularVelocityDisplay = settings ? settings.aVelocity / Math.PI : 1;
@@ -172,10 +222,19 @@
           >
             Version {appVersion}
           </span>
-          <div class="text-xs text-neutral-400 dark:text-neutral-500">•</div>
+          <!-- <div class="text-xs text-neutral-400 dark:text-neutral-500">•</div>
           <span class="text-xs text-neutral-500 dark:text-neutral-400">
             Pedro Pathing Visualizer
-          </span>
+          </span> -->
+          {#if downloadCount !== null}
+            <div class="text-xs text-neutral-400 dark:text-neutral-500">•</div>
+            <span
+              class="text-xs text-neutral-500 dark:text-neutral-400"
+              title="Total Downloads from GitHub"
+            >
+              {downloadCount.toLocaleString()} Downloads!
+            </span>
+          {/if}
         </div>
         <button
           on:click={() => (isOpen = false)}
