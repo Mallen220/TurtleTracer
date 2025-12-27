@@ -33,6 +33,7 @@
   export let robotWidth: number;
   export let robotHeight: number;
   export let settings: Settings;
+  export let showSidebar: boolean = true;
 
   export let saveProject: () => any;
   export let saveFileAs: () => any;
@@ -193,12 +194,13 @@
   <div
     class="font-semibold flex flex-col justify-start items-start flex-shrink-0 mr-2"
   >
-    <div class="flex flex-row items-center gap-2">
+    <div class="flex flex-row items-center gap-2 overflow-hidden">
       <!-- File manager button -->
       <button
         title="File Manager"
         aria-label="Open File Manager"
         on:click={() => (fileManagerOpen = true)}
+        class="flex-shrink-0"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -216,12 +218,12 @@
         </svg>
       </button>
 
-      <span class="hidden md:inline">Pedro Pathing Visualizer</span>
-      <span class="md:hidden">Pedro Pathing</span>
+      <span class="hidden md:inline whitespace-nowrap flex-shrink-0">Pedro Pathing Visualizer</span>
+      <span class="md:hidden whitespace-nowrap flex-shrink-0">Pedro Pathing</span>
       {#if $currentFilePath}
-        <span class="text-neutral-400 font-light text-sm mx-2">/</span>
+        <span class="text-neutral-400 font-light text-sm mx-1 flex-shrink-0">/</span>
         <span
-          class="text-sm font-normal text-neutral-600 dark:text-neutral-300 truncate max-w-[100px] md:max-w-xs"
+          class="text-sm font-normal text-neutral-600 dark:text-neutral-300 truncate min-w-0"
         >
           {$currentFilePath.split(/[\\/]/).pop()}
           {#if $isUnsaved}
@@ -236,11 +238,11 @@
 
   <!-- Actions -->
   <div
-    class="flex flex-row justify-end items-center gap-4 overflow-x-auto no-scrollbar pr-2"
+    class="flex flex-row justify-end items-center gap-2 md:gap-4 flex-shrink-0"
   >
     <div class="flex items-center gap-3 flex-shrink-0">
       <!-- time estimate -->
-      <div class="hidden md:flex items-center gap-2 text-sm">
+      <div class="hidden lg:flex items-center gap-2 text-sm">
         <div class="text-neutral-600 dark:text-neutral-300">
           Est: {formatTime(timePrediction.totalTime)}
         </div>
@@ -249,7 +251,7 @@
         </div>
       </div>
       <!-- Undo / Redo -->
-      <div class="flex items-center gap-2">
+      <div class="hidden sm:flex items-center gap-2">
         <button
           title="Undo"
           aria-label="Undo last action"
@@ -299,137 +301,59 @@
 
     <!-- Divider -->
     <div
-      class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4"
+      class="hidden sm:block h-6 border-l border-neutral-300 dark:border-neutral-700 mx-1 md:mx-2"
       aria-hidden="true"
     ></div>
 
-    <!-- Snap to grid toggle -->
-    {#if $showGrid}
-      <button
-        title={$snapToGrid ? "Disable Snap to Grid" : "Enable Snap to Grid"}
-        aria-label={$snapToGrid
-          ? "Disable Snap to Grid"
-          : "Enable Snap to Grid"}
-        aria-pressed={$snapToGrid}
-        on:click={() => snapToGrid.update((v) => !v)}
-        class:text-green-500={$snapToGrid && $showGrid}
-        class:text-gray-400={!$showGrid}
-        class:opacity-50={!$showGrid}
-        disabled={!$showGrid}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <!-- When snapped, show magnet icon -->
-          <path
-            d="m6 15-4-4 6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15"
-          ></path>
-          <path d="m5 8 4 4"></path>
-          <path d="m12 15 4 4"></path>
-
-          <!-- If the snap is disabled, turn the icon grey, not white -->
-          {#if !$snapToGrid}
-            <line x1="23" y1="23" x2="1" y2="1"></line>
-            class="opacity-50"
-          {/if}
-        </svg>
-      </button>
-    {/if}
-
-    <!-- Grid toggle -->
-    <div class="relative flex flex-col items-center justify-center">
-      <button
-        title="Toggle Grid"
-        aria-label="Toggle Grid"
-        aria-pressed={$showGrid}
-        on:click={() => showGrid.update((v) => !v)}
-        class:text-blue-500={$showGrid}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="3" y1="9" x2="21" y2="9"></line>
-          <line x1="3" y1="15" x2="21" y2="15"></line>
-          <line x1="9" y1="3" x2="9" y2="21"></line>
-          <line x1="15" y1="3" x2="15" y2="21"></line>
-        </svg>
-      </button>
+    <!-- Desktop Tools: Grid, Ruler, Protractor -->
+    <div class="hidden md:flex items-center gap-2">
+      <!-- Snap to grid toggle -->
       {#if $showGrid}
-        <div class="absolute top-full left-1/2 mt-2 -translate-x-1/2">
-          <select
-            class="px-2 py-1 text-sm rounded-md border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
-            bind:value={selectedGridSize}
-            on:change={handleGridSizeChange}
-            aria-label="Select grid spacing"
+        <button
+          title={$snapToGrid ? "Disable Snap to Grid" : "Enable Snap to Grid"}
+          aria-label={$snapToGrid
+            ? "Disable Snap to Grid"
+            : "Enable Snap to Grid"}
+          aria-pressed={$snapToGrid}
+          on:click={() => snapToGrid.update((v) => !v)}
+          class:text-green-500={$snapToGrid && $showGrid}
+          class:text-gray-400={!$showGrid}
+          class:opacity-50={!$showGrid}
+          disabled={!$showGrid}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
           >
-            {#each gridSizeOptions as option}
-              <option value={option}>{option}" grid</option>
-            {/each}
-          </select>
-        </div>
+            <path
+              d="m6 15-4-4 6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15"
+            ></path>
+            <path d="m5 8 4 4"></path>
+            <path d="m12 15 4 4"></path>
+            {#if !$snapToGrid}
+              <line x1="23" y1="23" x2="1" y2="1"></line>
+              class="opacity-50"
+            {/if}
+          </svg>
+        </button>
       {/if}
-    </div>
 
-    <!-- Ruler toggle -->
-    <button
-      title="Toggle Ruler"
-      aria-label="Toggle Ruler"
-      aria-pressed={$showRuler}
-      on:click={() => showRuler.update((v) => !v)}
-      class:text-blue-500={$showRuler}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path
-          d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0z"
-        ></path>
-        <path d="m14.5 12.5 2-2"></path>
-        <path d="m11.5 9.5 2-2"></path>
-        <path d="m8.5 6.5 2-2"></path>
-        <path d="m17.5 15.5 2-2"></path>
-      </svg>
-    </button>
-
-    <!-- Protractor lock to robot toggle -->
-    {#if $showProtractor}
-      <button
-        title={$protractorLockToRobot
-          ? "Unlock Protractor from Robot"
-          : "Lock Protractor to Robot"}
-        aria-label={$protractorLockToRobot
-          ? "Unlock Protractor from Robot"
-          : "Lock Protractor to Robot"}
-        aria-pressed={$protractorLockToRobot}
-        on:click={() => protractorLockToRobot.update((v) => !v)}
-        class:text-amber-500={$protractorLockToRobot}
-      >
-        {#if $protractorLockToRobot}
+      <!-- Grid toggle -->
+      <div class="relative flex flex-col items-center justify-center">
+        <button
+          title="Toggle Grid"
+          aria-label="Toggle Grid"
+          aria-pressed={$showGrid}
+          on:click={() => showGrid.update((v) => !v)}
+          class:text-blue-500={$showGrid}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -441,58 +365,147 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="3" y1="15" x2="21" y2="15"></line>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
           </svg>
-        {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-          </svg>
+        </button>
+        {#if $showGrid}
+          <div class="absolute top-full left-1/2 mt-2 -translate-x-1/2">
+            <select
+              class="px-2 py-1 text-sm rounded-md border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+              bind:value={selectedGridSize}
+              on:change={handleGridSizeChange}
+              aria-label="Select grid spacing"
+            >
+              {#each gridSizeOptions as option}
+                <option value={option}>{option}" grid</option>
+              {/each}
+            </select>
+          </div>
         {/if}
-      </button>
-    {/if}
+      </div>
 
-    <!-- Protractor toggle -->
-
-    <button
-      title="Toggle Protractor"
-      aria-label="Toggle Protractor"
-      aria-pressed={$showProtractor}
-      on:click={() => showProtractor.update((v) => !v)}
-      class:text-blue-500={$showProtractor}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
+      <!-- Ruler toggle -->
+      <button
+        title="Toggle Ruler"
+        aria-label="Toggle Ruler"
+        aria-pressed={$showRuler}
+        on:click={() => showRuler.update((v) => !v)}
+        class:text-blue-500={$showRuler}
       >
-        <path d="M12 21a9 9 0 1 1 0-18c2.52 0 4.93 1 6.74 2.74L21 8"></path>
-        <path d="M12 3v6l3.7 2.7"></path>
-      </svg>
-    </button>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0z"
+          ></path>
+          <path d="m14.5 12.5 2-2"></path>
+          <path d="m11.5 9.5 2-2"></path>
+          <path d="m8.5 6.5 2-2"></path>
+          <path d="m17.5 15.5 2-2"></path>
+        </svg>
+      </button>
+
+      <!-- Protractor toggle + lock -->
+      {#if $showProtractor}
+        <button
+          title={$protractorLockToRobot
+            ? "Unlock Protractor from Robot"
+            : "Lock Protractor to Robot"}
+          aria-label={$protractorLockToRobot
+            ? "Unlock Protractor from Robot"
+            : "Lock Protractor to Robot"}
+          aria-pressed={$protractorLockToRobot}
+          on:click={() => protractorLockToRobot.update((v) => !v)}
+          class:text-amber-500={$protractorLockToRobot}
+        >
+          {#if $protractorLockToRobot}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          {:else}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+            </svg>
+          {/if}
+        </button>
+      {/if}
+
+      <button
+        title="Toggle Protractor"
+        aria-label="Toggle Protractor"
+        aria-pressed={$showProtractor}
+        on:click={() => showProtractor.update((v) => !v)}
+        class:text-blue-500={$showProtractor}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 21a9 9 0 1 1 0-18c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+          <path d="M12 3v6l3.7 2.7"></path>
+        </svg>
+      </button>
+    </div>
 
     <!-- Divider -->
     <div
-      class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4"
+      class="hidden md:block h-6 border-l border-neutral-300 dark:border-neutral-700 mx-1 md:mx-2"
       aria-hidden="true"
     ></div>
+
+    <!-- Toggle Sidebar (Desktop) -->
+    <button
+      class="hidden lg:block p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors"
+      on:click={() => showSidebar = !showSidebar}
+      title={showSidebar ? "Collapse Sidebar" : "Expand Sidebar"}
+      aria-label={showSidebar ? "Collapse Sidebar" : "Expand Sidebar"}
+      aria-expanded={showSidebar}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6 transform transition-transform" class:rotate-180={!showSidebar}>
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125Z" />
+      </svg>
+    </button>
 
     <div class="flex items-center gap-3">
       <!-- Load trajectory from file -->

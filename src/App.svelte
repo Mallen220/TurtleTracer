@@ -110,10 +110,17 @@
   let innerHeight = 0;
 
   // Calculate field size dynamically for all screens to ensure it fits and remains square
+  let showSidebar = true;
+
   $: isLargeScreen = innerWidth >= 1024; // lg breakpoint
+  $: isXLargeScreen = innerWidth >= 1280; // xl breakpoint
+
+  // Calculate sidebar width based on screen size and visibility
+  $: sidebarWidth = !showSidebar ? 0 : (isXLargeScreen ? 512 : 448); // 32rem or 28rem
+
   $: fieldSize = isLargeScreen
     ? Math.min(
-        innerWidth - 448 - 48, // 28rem (sidebar) + gaps/padding roughly
+        innerWidth - sidebarWidth - 48, // Dynamic sidebar width + gaps/padding roughly
         innerHeight - 80 - 48, // 5rem (navbar) + padding roughly
       )
     : Math.min(
@@ -1963,6 +1970,7 @@
   bind:settings
   bind:robotWidth
   bind:robotHeight
+  bind:showSidebar
   {saveProject}
   {saveFileAs}
   {loadFile}
@@ -2069,7 +2077,14 @@ pointer-events: none;`}
       />
     </div>
   </div>
-  <div class="w-full h-auto lg:w-[28rem] lg:h-full flex-shrink-0 min-h-0">
+  <div
+    class="w-full h-auto lg:h-full flex-shrink-0 min-h-0 transition-all duration-300 ease-in-out"
+    class:lg:w-[28rem]={showSidebar}
+    class:xl:w-[32rem]={showSidebar}
+    class:lg:w-0={!showSidebar}
+    class:hidden={!showSidebar && isLargeScreen}
+    class:overflow-hidden={!showSidebar}
+  >
     <ControlTab
       bind:playing
       {play}
