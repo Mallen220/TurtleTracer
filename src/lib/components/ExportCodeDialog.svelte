@@ -5,7 +5,6 @@
   import { java } from "svelte-highlight/languages";
   import plaintext from "svelte-highlight/languages/plaintext";
   import codeStyle from "svelte-highlight/styles/androidstudio";
-  import { cubicInOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
   import { currentFilePath } from "../../stores";
   import {
@@ -13,7 +12,7 @@
     generatePointsArray,
     generateSequentialCommandCode,
   } from "../../utils";
-  import { onMount, tick } from "svelte";
+  import { tick } from "svelte";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -54,6 +53,42 @@
     }
   }
 
+  async function refreshCode() {
+    try {
+      if (exportFormat === "java") {
+        exportedCode = await generateJavaCode(
+          startPoint,
+          lines,
+          exportFullCode,
+          sequence,
+        );
+        currentLanguage = java;
+      } else if (exportFormat === "points") {
+        exportedCode = generatePointsArray(startPoint, lines);
+        currentLanguage = plaintext;
+      } else if (exportFormat === "sequential") {
+        exportedCode = await generateSequentialCommandCode(
+          startPoint,
+          lines,
+          sequentialClassName,
+          sequence,
+          targetLibrary,
+        );
+        currentLanguage = java;
+      }
+
+      // Re-run search if active
+      if (searchQuery) {
+        performSearch();
+      }
+    } catch (error) {
+      console.error("Refresh failed:", error);
+      exportedCode =
+        "// Error refreshing code. Please check the console for details.";
+      currentLanguage = plaintext;
+    }
+  }
+
   export async function openWithFormat(
     format: "java" | "points" | "sequential",
   ) {
@@ -64,70 +99,22 @@
     searchMatches = [];
     currentMatchIndex = -1;
 
-    try {
-      if (format === "java") {
-        exportedCode = await generateJavaCode(
-          startPoint,
-          lines,
-          exportFullCode,
-          sequence,
-        );
-        currentLanguage = java;
-      } else if (format === "points") {
-        exportedCode = generatePointsArray(startPoint, lines);
-        currentLanguage = plaintext;
-      } else if (format === "sequential") {
-        if ($currentFilePath) {
-          const fileName = $currentFilePath.split(/[\\/]/).pop();
-          if (fileName) {
-            sequentialClassName = fileName
-              .replace(".pp", "")
-              .replace(/[^a-zA-Z0-9]/g, "_");
-          }
-        }
-        exportedCode = await generateSequentialCommandCode(
-          startPoint,
-          lines,
-          sequentialClassName,
-          sequence,
-          targetLibrary,
-        );
-        currentLanguage = java;
+    // Initialize sequential class name if needed
+    if (format === "sequential" && $currentFilePath) {
+      const fileName = $currentFilePath.split(/[\\/]/).pop();
+      if (fileName) {
+        sequentialClassName = fileName
+          .replace(".pp", "")
+          .replace(/[^a-zA-Z0-9]/g, "_");
       }
-      isOpen = true;
-      // Focus management
-      await tick();
-      if (dialogRef) {
-        dialogRef.focus();
-      }
-    } catch (error) {
-      console.error("Export failed:", error);
-      exportedCode =
-        "// Error generating code. Please check the console for details.";
-      currentLanguage = plaintext;
-      isOpen = true;
     }
-  }
 
-  async function refreshSequentialCode() {
-    if (exportFormat === "sequential" && isOpen) {
-      try {
-        exportedCode = await generateSequentialCommandCode(
-          startPoint,
-          lines,
-          sequentialClassName,
-          sequence,
-          targetLibrary,
-        );
-        // Re-run search if active
-        if (searchQuery) {
-          performSearch();
-        }
-      } catch (error) {
-        console.error("Refresh failed:", error);
-        exportedCode =
-          "// Error refreshing code. Please check the console for details.";
-      }
+    await refreshCode();
+
+    isOpen = true;
+    await tick();
+    if (dialogRef) {
+      dialogRef.focus();
     }
   }
 
@@ -198,19 +185,12 @@
 
   function scrollToMatch(lineIndex: number) {
     if (scrollContainer) {
-      // Assuming line height is approx 20px (text-sm + leading-relaxed) -> 14px * 1.625 ≈ 22.75px
-      // A safer bet is to use ems if we knew the exact px conversion, but approx is fine for "scroll into view" logic
-      // Or we can just calculate percentage.
-      // Better: Use a simple calculation.
-      const lineHeight = 24; // Approximation
-      const targetTop = lineIndex * lineHeight;
-
-      // Center the match
-      const containerHeight = scrollContainer.clientHeight;
-      scrollContainer.scrollTo({
-        top: Math.max(0, targetTop - containerHeight / 2),
-        behavior: "smooth",
-      });
+      const el = scrollContainer.querySelector(
+        `[data-line-index="${lineIndex}"]`,
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     }
   }
 
@@ -224,6 +204,26 @@
     /* Ensure the highlightjs background is transparent so our line highlights show through */
     :global(.hljs) {
       background: transparent !important;
+      padding: 0 !important; /* Remove padding from hljs container */
+      margin: 0 !important; /* Remove margin */
+      overflow: visible !important; /* Prevent double scrollbars */
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace !important;
+      font-size: 0.875rem !important; /* text-sm */
+      line-height: 1.625 !important; /* leading-relaxed */
+    }
+
+    /* Force the pre tag to also not scroll or add spacing */
+    :global(pre) {
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      background: transparent !important;
+    }
+
+    :global(code) {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace !important;
     }
   </style>
 </svelte:head>
@@ -323,6 +323,7 @@
                 on:click={prevMatch}
                 disabled={searchMatches.length === 0}
                 class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-30"
+                aria-label="Previous match"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -343,6 +344,7 @@
                 on:click={nextMatch}
                 disabled={searchMatches.length === 0}
                 class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-30"
+                aria-label="Next match"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -366,6 +368,7 @@
                   searchMatches = [];
                 }}
                 class="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 rounded text-neutral-500 transition-colors"
+                aria-label="Close search"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -409,95 +412,116 @@
         </div>
       </div>
 
-      <!-- Settings Toolbar (Sequential Only) -->
-      {#if exportFormat === "sequential"}
+      <!-- Settings Toolbar -->
+      {#if exportFormat === "sequential" || exportFormat === "java"}
         <div
           class="px-6 py-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-800 flex flex-wrap gap-6 items-end shrink-0"
         >
-          <!-- Target Library Selector -->
-          <div class="flex flex-col gap-1.5">
-            <span
-              class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
-            >
-              Target Library
-            </span>
-            <div
-              class="flex p-1 bg-neutral-200 dark:bg-neutral-900 rounded-lg self-start"
-              role="tablist"
-            >
-              <button
-                role="tab"
-                aria-selected={targetLibrary === "SolversLib"}
-                class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 {targetLibrary ===
-                'SolversLib'
-                  ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-300 shadow-sm'
-                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
-                on:click={() => {
-                  targetLibrary = "SolversLib";
-                  refreshSequentialCode();
-                }}
+          <!-- Sequential Controls -->
+          {#if exportFormat === "sequential"}
+            <!-- Target Library Selector -->
+            <div class="flex flex-col gap-1.5">
+              <span
+                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
               >
-                SolversLib
-              </button>
-              <button
-                role="tab"
-                aria-selected={targetLibrary === "NextFTC"}
-                class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {targetLibrary ===
-                'NextFTC'
-                  ? 'bg-white dark:bg-neutral-700 text-purple-600 dark:text-purple-300 shadow-sm'
-                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
-                on:click={() => {
-                  targetLibrary = "NextFTC";
-                  refreshSequentialCode();
-                }}
+                Target Library
+              </span>
+              <div
+                class="flex p-1 bg-neutral-200 dark:bg-neutral-900 rounded-lg self-start"
+                role="tablist"
               >
-                NextFTC
-              </button>
+                <button
+                  role="tab"
+                  aria-selected={targetLibrary === "SolversLib"}
+                  class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 {targetLibrary ===
+                  'SolversLib'
+                    ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-300 shadow-sm'
+                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
+                  on:click={() => {
+                    targetLibrary = "SolversLib";
+                    refreshCode();
+                  }}
+                >
+                  SolversLib
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={targetLibrary === "NextFTC"}
+                  class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {targetLibrary ===
+                  'NextFTC'
+                    ? 'bg-white dark:bg-neutral-700 text-purple-600 dark:text-purple-300 shadow-sm'
+                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
+                  on:click={() => {
+                    targetLibrary = "NextFTC";
+                    refreshCode();
+                  }}
+                >
+                  NextFTC
+                </button>
+              </div>
             </div>
-          </div>
 
-          <!-- Class Name Input -->
-          <div class="flex flex-col gap-1.5">
+            <!-- Class Name Input -->
+            <div class="flex flex-col gap-1.5">
+              <label
+                for="class-name-input"
+                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+              >
+                Class Name
+              </label>
+              <input
+                id="class-name-input"
+                type="text"
+                bind:value={sequentialClassName}
+                on:input={refreshCode}
+                class="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+                placeholder="AutoPath"
+              />
+            </div>
+
+            <!-- NextFTC Warning -->
+            {#if targetLibrary === "NextFTC"}
+              <div
+                class="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-lg border border-yellow-200 dark:border-yellow-800/50"
+                role="alert"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="size-4 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                  ></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>NextFTC output is <strong>experimental</strong>.</span>
+              </div>
+            {/if}
+          {/if}
+
+          <!-- Java Controls -->
+          {#if exportFormat === "java"}
             <label
-              for="class-name-input"
-              class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+              class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer select-none"
+              aria-label="Export full Java class with imports"
             >
-              Class Name
+              <div class="relative flex items-center">
+                <input
+                  type="checkbox"
+                  bind:checked={exportFullCode}
+                  on:change={refreshCode}
+                  class="peer h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-700 dark:ring-offset-neutral-800"
+                />
+              </div>
+              <span>Generate Full Class</span>
             </label>
-            <input
-              id="class-name-input"
-              type="text"
-              bind:value={sequentialClassName}
-              on:input={refreshSequentialCode}
-              class="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
-              placeholder="AutoPath"
-            />
-          </div>
-
-          <!-- NextFTC Warning -->
-          {#if targetLibrary === "NextFTC"}
-            <div
-              class="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-lg border border-yellow-200 dark:border-yellow-800/50"
-              role="alert"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="size-4 shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path
-                  d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                ></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-              </svg>
-              <span>NextFTC output is <strong>experimental</strong>.</span>
-            </div>
           {/if}
         </div>
       {/if}
@@ -515,7 +539,9 @@
             aria-hidden="true"
           >
             {#each exportedCode.split("\n") as line, i}
+              <!-- Data attribute used for scrolling to this line -->
               <div
+                data-line-index={i}
                 class="w-full {searchMatches.includes(i)
                   ? 'bg-yellow-500/30'
                   : 'bg-transparent'}"

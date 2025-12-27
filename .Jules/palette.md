@@ -12,3 +12,8 @@
 
 **Learning:** Users lack confidence when copying code/content if the only feedback is a subtle tooltip or icon change. A dedicated text change ("Copy" -> "Copied!") provides much clearer confirmation of success.
 **Action:** When implementing copy-to-clipboard functionality, change the button text or state visibly for a few seconds to confirm the action.
+
+## 2025-01-26 - [Icon-Only Button Accessibility]
+
+**Learning:** Icon-only buttons (like Next/Previous arrows) are often invisible to screen readers and automated testing tools if they lack `aria-label` attributes. This also makes programmatic verification difficult.
+**Action:** Always audit icon-only buttons for `aria-label` or `title` attributes during implementation.
