@@ -518,18 +518,15 @@
                     {/if}
                   </button>
 
-                  <button
-                    on:click|stopPropagation={() => deleteLine(line.id)}
-                    title={line.locked
-                      ? "Locked"
-                      : lines.length <= 1
-                        ? "Cannot delete last path"
-                        : "Delete path"}
-                    class="p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                    disabled={line.locked || lines.length <= 1}
-                  >
-                    <TrashIcon className="size-4" strokeWidth={2} />
-                  </button>
+                  {#if !line.locked && lines.length > 1}
+                    <button
+                      on:click|stopPropagation={() => deleteLine(line.id)}
+                      title="Delete path"
+                      class="p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    >
+                      <TrashIcon className="size-4" strokeWidth={2} />
+                    </button>
+                  {/if}
                 </td>
               </tr>
 
