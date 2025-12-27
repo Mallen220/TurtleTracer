@@ -12,7 +12,15 @@
 
   // Group bindings by category for better layout (optional, or just list them)
   // For now, simple list is fine, maybe 2 columns
+
+  function handleKeyDown(event: KeyboardEvent) {
+    if (isOpen && event.key === "Escape") {
+      isOpen = false;
+    }
+  }
 </script>
+
+<svelte:window on:keydown={handleKeyDown} />
 
 {#if isOpen}
   <!-- svelte-ignore a11y-click-events-have-key-events -->

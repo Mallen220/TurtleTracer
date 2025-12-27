@@ -797,7 +797,6 @@
       </button>
 
       <!-- Shortcuts button -->
-
       <!-- <button
         title="Keyboard Shortcuts (?)"
         on:click={() => (shortcutsOpen = true)}
