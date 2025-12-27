@@ -149,7 +149,7 @@
     <div
       bind:this={dialogRef}
       transition:fly={{ y: 20, duration: 300 }}
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[85vh] border border-neutral-200 dark:border-neutral-800 outline-none"
+      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-5xl flex flex-col h-[85vh] border border-neutral-200 dark:border-neutral-800 outline-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby="export-dialog-title"
