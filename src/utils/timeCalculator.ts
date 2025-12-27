@@ -15,27 +15,69 @@ import {
 } from "./math";
 
 /**
- * Calculate the length of a curve by sampling points
+ * Calculate the length of a curve by sampling points, and estimate the minimum turn radius.
  */
-function calculateCurveLength(
+function analyzeCurve(
   start: BasePoint,
   controlPoints: BasePoint[],
   end: BasePoint,
   samples: number = 100,
-): number {
+): { length: number; minRadius: number } {
   let length = 0;
   let prevPoint: BasePoint = start;
 
+  // We need at least 3 points to calculate curvature (Menger curvature or circumcircle).
+  // We will keep a sliding window of points.
+  // P0, P1, P2.
+  // Curvature k = 4 * Area / (a * b * c).
+  // Radius R = 1 / k.
+  // Area = 0.5 * |x1(y2-y3) + x2(y3-y1) + x3(y1-y2)|
+  // Side lengths a, b, c.
+
+  const points: BasePoint[] = [start];
   for (let i = 1; i <= samples; i++) {
     const t = i / samples;
-    const point = getCurvePoint(t, [start, ...controlPoints, end]);
-    const dx = point.x - prevPoint.x;
-    const dy = point.y - prevPoint.y;
-    length += Math.sqrt(dx * dx + dy * dy);
-    prevPoint = point;
+    const p = getCurvePoint(t, [start, ...controlPoints, end]);
+    points.push(p);
   }
 
-  return length;
+  let minRadius = Infinity;
+
+  for (let i = 0; i < points.length; i++) {
+    if (i > 0) {
+      const dx = points[i].x - points[i - 1].x;
+      const dy = points[i].y - points[i - 1].y;
+      length += Math.sqrt(dx * dx + dy * dy);
+    }
+
+    if (i >= 1 && i < points.length - 1) {
+      const p1 = points[i - 1];
+      const p2 = points[i];
+      const p3 = points[i + 1];
+
+      // Side lengths
+      const a = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+      const b = Math.hypot(p2.x - p3.x, p2.y - p3.y);
+      const c = Math.hypot(p3.x - p1.x, p3.y - p1.y);
+
+      // Area of triangle using shoelace formula
+      const area =
+        0.5 *
+        Math.abs(
+          p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y),
+        );
+
+      if (area > 1e-6) {
+        // Avoid division by zero for collinear points
+        const radius = (a * b * c) / (4 * area);
+        if (radius < minRadius) {
+          minRadius = radius;
+        }
+      }
+    }
+  }
+
+  return { length, minRadius };
 }
 
 /**
@@ -48,6 +90,8 @@ function calculateMotionProfileTime(
   maxDec?: number,
 ): number {
   const deceleration = maxDec || maxAcc;
+  // If maxVel is very small, return dist / maxVel (assume no acc time or negligible)
+  if (maxVel < 0.001) return distance / 0.001; // Avoid infinity
 
   const accDist = (maxVel * maxVel) / (2 * maxAcc);
   const decDist = (maxVel * maxVel) / (2 * deceleration);
@@ -179,17 +223,37 @@ export function calculatePathTime(
     }
 
     // --- TRAVEL ---
-    const length = calculateCurveLength(
+    // Analyze curve for length and curvature
+    const { length, minRadius } = analyzeCurve(
       prevPoint,
       line.controlPoints as any,
       line.endPoint as any,
     );
     segmentLengths.push(length);
+
     let segmentTime = 0;
     if (useMotionProfile) {
+      let maxVel = settings.maxVelocity!;
+
+      // Limit velocity based on curvature
+      // v = w * r. We use aVelocity as max w.
+      // If minRadius is small, maxVel should be small.
+      if (minRadius < Infinity && minRadius > 0.1) {
+        const curvatureLimitedVel = settings.aVelocity * minRadius;
+        // Apply a "cornering stiffness" factor? Or raw physics?
+        // Raw physics: v <= w_max * r.
+        if (curvatureLimitedVel < maxVel) {
+          maxVel = curvatureLimitedVel;
+        }
+      } else if (minRadius <= 0.1 && length > 0.1) {
+        // Extremely sharp turn (effectively a point turn while moving)
+        // Limit to very slow speed
+        maxVel = Math.min(maxVel, settings.aVelocity * 0.1);
+      }
+
       segmentTime = calculateMotionProfileTime(
         length,
-        settings.maxVelocity!,
+        maxVel,
         settings.maxAcceleration!,
         settings.maxDeceleration,
       );
