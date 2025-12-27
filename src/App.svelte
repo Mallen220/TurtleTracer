@@ -1980,10 +1980,10 @@
 />
 <!--   {saveFile} -->
 <div
-  class="w-screen h-screen pt-20 p-2 flex flex-col lg:flex-row justify-center items-center gap-2 overflow-hidden bg-neutral-200 dark:bg-neutral-950"
+  class="w-full min-h-screen lg:h-screen pt-20 p-2 flex flex-col lg:flex-row justify-start lg:justify-center items-center gap-2 lg:overflow-hidden bg-neutral-200 dark:bg-neutral-950"
 >
-  <div class="flex-1 flex justify-center items-center min-h-[30vh] lg:min-h-0 min-w-0 w-full lg:h-full relative">
-    <div class="relative max-w-full max-h-full aspect-square" bind:this={wrapperDiv}>
+  <div class="w-full lg:flex-1 flex justify-center items-center lg:h-full relative shrink-0">
+    <div class="relative w-full aspect-square lg:w-auto lg:h-auto lg:max-w-full lg:max-h-full lg:aspect-square" bind:this={wrapperDiv}>
       <div
         bind:this={twoElement}
         bind:clientWidth={width}
@@ -2064,7 +2064,7 @@ pointer-events: none;`}
       />
     </div>
   </div>
-  <div class="w-full h-[45%] lg:w-[28rem] lg:h-full flex-shrink-0 min-h-0">
+  <div class="w-full h-auto lg:w-[28rem] lg:h-full flex-shrink-0 min-h-0">
     <ControlTab
       bind:playing
       {play}
