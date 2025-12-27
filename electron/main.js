@@ -442,6 +442,35 @@ ipcMain.handle("file:create-directory", async (event, dirPath) => {
 });
 
 ipcMain.handle("file:get-directory-stats", async (event, dirPath) => {
+  // Validate input
+  if (!dirPath || typeof dirPath !== "string" || dirPath.trim() === "") {
+    console.warn(
+      "file:get-directory-stats called with empty or invalid dirPath:",
+      JSON.stringify(dirPath),
+    );
+    return {
+      totalFiles: 0,
+      totalSize: 0,
+      lastModified: new Date(0),
+    };
+  }
+
+  try {
+    // Ensure directory exists and is accessible
+    await fs.access(dirPath);
+  } catch (err) {
+    console.warn(
+      "Directory not accessible in file:get-directory-stats:",
+      dirPath,
+      err && err.code,
+    );
+    return {
+      totalFiles: 0,
+      totalSize: 0,
+      lastModified: new Date(0),
+    };
+  }
+
   try {
     const files = await fs.readdir(dirPath);
     const ppFiles = files.filter((file) => file.endsWith(".pp"));
@@ -464,11 +493,11 @@ ipcMain.handle("file:get-directory-stats", async (event, dirPath) => {
       lastModified: latestModified,
     };
   } catch (error) {
-    console.error("Error getting directory stats:", error);
+    console.error("Error getting directory stats for path", dirPath, error);
     return {
       totalFiles: 0,
       totalSize: 0,
-      lastModified: new Date(),
+      lastModified: new Date(0),
     };
   }
 });
@@ -498,6 +527,27 @@ ipcMain.handle("file:rename", async (event, oldPath, newPath) => {
 });
 
 ipcMain.handle("file:list", async (event, directory) => {
+  // Validate input
+  if (!directory || typeof directory !== "string" || directory.trim() === "") {
+    console.warn(
+      "file:list called with empty or invalid directory:",
+      JSON.stringify(directory),
+    );
+    return [];
+  }
+
+  try {
+    // Ensure directory exists
+    await fs.access(directory);
+  } catch (err) {
+    console.warn(
+      "Directory not accessible in file:list:",
+      directory,
+      err && err.code,
+    );
+    return [];
+  }
+
   try {
     const files = await fs.readdir(directory);
     const ppFiles = files.filter((file) => file.endsWith(".pp"));
@@ -517,7 +567,7 @@ ipcMain.handle("file:list", async (event, directory) => {
 
     return fileDetails;
   } catch (error) {
-    console.error("Error reading directory:", error);
+    console.error("Error reading directory:", directory, error);
     return [];
   }
 });

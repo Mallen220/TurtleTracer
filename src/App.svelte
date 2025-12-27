@@ -130,7 +130,7 @@
 
   // Initialize defaults once content is loaded
   $: if (userFieldLimit === null && mainContentWidth > 0 && isLargeScreen) {
-    userFieldLimit = mainContentWidth * 0.55; // Default to ~55% width
+    userFieldLimit = mainContentWidth * 0.49; // Default to ~50% width so control tab is larger
   }
 
   $: if (
