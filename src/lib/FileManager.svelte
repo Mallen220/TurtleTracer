@@ -593,11 +593,11 @@
       };
     }
 
-    // For tangential heading, toggle the reverse flag to maintain the same visual direction
+    // For tangential heading: do NOT invert the reverse flag when mirroring.
     if (point.heading === "tangential") {
       return {
         ...point,
-        reverse: !point.reverse,
+        reverse: point.reverse,
       };
     }
 
