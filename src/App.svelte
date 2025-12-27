@@ -116,18 +116,30 @@
   let showSidebar = true;
   let mainContentHeight = 0;
   let mainContentWidth = 0;
+  let mainContentDiv: HTMLDivElement;
 
   // Initial field width constraint (pixel value)
   let userFieldLimit: number | null = null;
+  // Initial field height constraint (pixel value) for mobile
+  let userFieldHeightLimit: number | null = null;
 
   // Drag State
-  let isResizing = false;
+  let resizeMode: "horizontal" | "vertical" | null = null;
 
   $: isLargeScreen = innerWidth >= 1024; // lg breakpoint
 
   // Initialize defaults once content is loaded
   $: if (userFieldLimit === null && mainContentWidth > 0 && isLargeScreen) {
     userFieldLimit = mainContentWidth * 0.55; // Default to ~55% width
+  }
+
+  $: if (
+    userFieldHeightLimit === null &&
+    mainContentHeight > 0 &&
+    !isLargeScreen
+  ) {
+    // Default to roughly 60% of available height
+    userFieldHeightLimit = mainContentHeight * 0.6;
   }
 
   // Minimum sidebar width in pixels
@@ -156,7 +168,8 @@
   $: fieldDrawSize = (() => {
     if (!isLargeScreen) {
       // Mobile
-      return Math.min(innerWidth - 32, (innerHeight - 80) * 0.6);
+      const heightLimit = userFieldHeightLimit ?? mainContentHeight * 0.6;
+      return Math.min(innerWidth - 32, heightLimit - 16);
     }
 
     // Desktop
@@ -166,20 +179,50 @@
     return Math.max(100, Math.min(availableW, availableH));
   })();
 
-  function startResize(e: MouseEvent) {
+  function startHorizontalResize(e: MouseEvent | TouchEvent) {
     if (!isLargeScreen || !showSidebar) return;
-    isResizing = true;
-    e.preventDefault();
+    resizeMode = "horizontal";
   }
 
-  function handleResize(e: MouseEvent) {
-    if (!isResizing) return;
-    let newWidth = e.clientX;
-    userFieldLimit = newWidth;
+  function startVerticalResize(e: MouseEvent | TouchEvent) {
+    if (isLargeScreen || !showSidebar) return;
+    resizeMode = "vertical";
+  }
+
+  function handleResize(clientX: number, clientY: number) {
+    if (!resizeMode) return;
+
+    if (resizeMode === "horizontal") {
+      userFieldLimit = clientX;
+    } else if (resizeMode === "vertical" && mainContentDiv) {
+      const rect = mainContentDiv.getBoundingClientRect();
+      // Calculate height relative to the top of the main content area
+      const newHeight = clientY - rect.top;
+      // Clamp values
+      const minHeight = 200;
+      const maxHeight = rect.height - 100; // Keep at least 100px for control tab
+      userFieldHeightLimit = Math.max(
+        minHeight,
+        Math.min(newHeight, maxHeight),
+      );
+    }
+  }
+
+  function onMouseMove(e: MouseEvent) {
+    if (!resizeMode) return;
+    e.preventDefault();
+    handleResize(e.clientX, e.clientY);
+  }
+
+  function onTouchMove(e: TouchEvent) {
+    if (!resizeMode) return;
+    if (e.cancelable) e.preventDefault();
+    const touch = e.touches[0];
+    handleResize(touch.clientX, touch.clientY);
   }
 
   function stopResize() {
-    isResizing = false;
+    resizeMode = null;
   }
 
   // Robot state
@@ -2040,7 +2083,11 @@
     recordChange();
   }
 
-  import { selectedLineId, toggleCollapseAllTrigger } from "./stores";
+  import {
+    selectedLineId,
+    selectedPointId,
+    toggleCollapseAllTrigger,
+  } from "./stores";
 
   function addControlPoint() {
     if (lines.length === 0) return;
@@ -2223,7 +2270,9 @@
   bind:innerWidth
   bind:innerHeight
   on:mouseup={stopResize}
-  on:mousemove={handleResize}
+  on:mousemove={onMouseMove}
+  on:touchend={stopResize}
+  on:touchmove={onTouchMove}
 />
 
 <div
@@ -2260,14 +2309,15 @@
     class="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch lg:overflow-hidden relative p-2 gap-2"
     bind:clientHeight={mainContentHeight}
     bind:clientWidth={mainContentWidth}
+    bind:this={mainContentDiv}
   >
     <!-- Field Container (Left Pane) -->
     <div
       class="flex-none flex justify-center items-center relative transition-all duration-75 ease-linear"
       style={`
         width: ${isLargeScreen && showSidebar ? leftPaneWidth + "px" : "100%"};
-        height: ${isLargeScreen ? "100%" : "auto"};
-        min-height: ${!isLargeScreen ? "60vh" : "0"};
+        height: ${isLargeScreen ? "100%" : userFieldHeightLimit ? userFieldHeightLimit + "px" : "auto"};
+        min-height: ${!isLargeScreen ? (userFieldHeightLimit ? "0" : "60vh") : "0"};
       `}
     >
       <div
@@ -2360,13 +2410,29 @@ pointer-events: none;`}
     {#if isLargeScreen && showSidebar}
       <div
         class="w-2 cursor-col-resize flex justify-center items-center hover:bg-purple-500/50 active:bg-purple-600 transition-colors rounded-sm select-none z-40"
-        on:mousedown={startResize}
+        on:mousedown={startHorizontalResize}
         role="separator"
         aria-label="Resize Sidebar"
         tabindex="0"
       >
         <div
           class="w-[2px] h-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+        ></div>
+      </div>
+    {/if}
+
+    <!-- Resizer Handle (Mobile/Tablet only) -->
+    {#if !isLargeScreen && showSidebar}
+      <div
+        class="h-2 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/50 active:bg-purple-600 transition-colors rounded-sm select-none z-40"
+        on:mousedown={startVerticalResize}
+        on:touchstart={startVerticalResize}
+        role="separator"
+        aria-label="Resize Tab"
+        tabindex="0"
+      >
+        <div
+          class="h-[2px] w-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
         ></div>
       </div>
     {/if}
