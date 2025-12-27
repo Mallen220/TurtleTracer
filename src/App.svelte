@@ -1867,30 +1867,12 @@
       lines.find((l) => l.id === targetId) || lines[lines.length - 1];
     if (!targetLine) return;
 
-    console.log(
-      "[addControlPoint] selectedLine:",
-      $selectedLineId,
-      "targetId:",
-      targetId,
-      "targetLineId:",
-      targetLine.id,
-      "lineIndex:",
-      lines.findIndex((l) => l.id === targetLine.id),
-      "lines.length:",
-      lines.length,
-    );
 
     targetLine.controlPoints.push({
       x: _.random(36, 108),
       y: _.random(36, 108),
     });
 
-    console.log(
-      "[addControlPoint] after push controlCount:",
-      targetLine.controlPoints.length,
-      "controlPoints:",
-      targetLine.controlPoints.map((p) => ({ x: p.x, y: p.y })),
-    );
 
     // Force reactivity
     lines = [...lines];

@@ -481,7 +481,7 @@
   </div>
 
   <div
-    class="flex flex-col justify-start items-start w-full rounded-lg bg-neutral-50 dark:bg-neutral-900 shadow-md p-4 overflow-y-scroll overflow-x-hidden h-full gap-6"
+    class="flex flex-col justify-start items-start w-full rounded-lg bg-neutral-50 dark:bg-neutral-900 shadow-md p-4 overflow-y-scroll overflow-x-hidden flex-1 min-h-0 gap-6"
     role="tabpanel"
     id={activeTab === "path"
       ? "path-panel"
