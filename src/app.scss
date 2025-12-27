@@ -67,12 +67,3 @@ img[alt="Robot"] {
   user-drag: none !important;
   -webkit-user-drag: none !important;
 }
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}

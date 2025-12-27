@@ -763,7 +763,7 @@
 
   <!-- Sidebar -->
   <div
-    class="w-full sm:w-96 h-full bg-white dark:bg-neutral-900 shadow-xl transform transition-transform duration-300 ease-in-out flex flex-col"
+    class="w-96 h-full bg-white dark:bg-neutral-900 shadow-xl transform transition-transform duration-300 ease-in-out flex flex-col"
     class:translate-x-0={isOpen}
     class:-translate-x-full={!isOpen}
   >

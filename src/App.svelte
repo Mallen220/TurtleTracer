@@ -16,6 +16,8 @@
     showGrid,
     showProtractor,
     showShortcuts,
+    selectedLineId,
+    toggleCollapseAllTrigger
   } from "./stores";
   import Two from "two.js";
   import type { Path } from "two.js/src/path";
@@ -109,24 +111,79 @@
   let innerWidth = 0;
   let innerHeight = 0;
 
-  // Calculate field size dynamically for all screens to ensure it fits and remains square
+  // Layout State
   let showSidebar = true;
+  let mainContentHeight = 0;
+  let mainContentWidth = 0;
+
+  // Initial field width constraint (pixel value)
+  let userFieldLimit: number | null = null;
+
+  // Drag State
+  let isResizing = false;
 
   $: isLargeScreen = innerWidth >= 1024; // lg breakpoint
-  $: isXLargeScreen = innerWidth >= 1280; // xl breakpoint
 
-  // Calculate sidebar width based on screen size and visibility
-  $: sidebarWidth = !showSidebar ? 0 : (isXLargeScreen ? 512 : 448); // 32rem or 28rem
+  // Initialize defaults once content is loaded
+  $: if (userFieldLimit === null && mainContentWidth > 0 && isLargeScreen) {
+      userFieldLimit = mainContentWidth * 0.55; // Default to ~55% width
+  }
 
-  $: fieldSize = isLargeScreen
-    ? Math.min(
-        innerWidth - sidebarWidth - 48, // Dynamic sidebar width + gaps/padding roughly
-        innerHeight - 80 - 48, // 5rem (navbar) + padding roughly
-      )
-    : Math.min(
-        innerWidth - 32, // Full width minus padding
-        (innerHeight - 80) * 0.6, // Max 60% of available height
+  // Minimum sidebar width in pixels
+  const MIN_SIDEBAR_WIDTH = 320;
+  const MIN_FIELD_PANE_WIDTH = 300;
+
+  // --- Split Pane Logic ---
+
+  // 1. Calculate the width of the Left Pane (Field Container)
+  $: leftPaneWidth = (() => {
+    if (!isLargeScreen) return mainContentWidth; // Full width on mobile
+    if (!showSidebar) return mainContentWidth;   // Full width if sidebar hidden
+
+    let targetWidth = userFieldLimit ?? (mainContentWidth * 0.55);
+
+    // Clamp values
+    const maxWidth = mainContentWidth - MIN_SIDEBAR_WIDTH;
+    const minWidth = MIN_FIELD_PANE_WIDTH;
+
+    if (maxWidth < minWidth) return mainContentWidth * 0.5;
+
+    return Math.max(minWidth, Math.min(targetWidth, maxWidth));
+  })();
+
+  // 2. Calculate the size of the actual Field Square
+  $: fieldDrawSize = (() => {
+    if (!isLargeScreen) {
+      // Mobile
+      return Math.min(
+        innerWidth - 32,
+        (innerHeight - 80) * 0.6
       );
+    }
+
+    // Desktop
+    const availableW = leftPaneWidth - 16;
+    const availableH = mainContentHeight - 16;
+
+    return Math.max(100, Math.min(availableW, availableH));
+  })();
+
+
+  function startResize(e: MouseEvent) {
+    if (!isLargeScreen || !showSidebar) return;
+    isResizing = true;
+    e.preventDefault();
+  }
+
+  function handleResize(e: MouseEvent) {
+    if (!isResizing) return;
+    let newWidth = e.clientX;
+    userFieldLimit = newWidth;
+  }
+
+  function stopResize() {
+    isResizing = false;
+  }
 
   // Robot state
   $: robotWidth = settings?.rWidth || DEFAULT_ROBOT_WIDTH;
@@ -294,8 +351,8 @@
         timePrediction.timeline,
         lines,
         startPoint,
-        x,
-        y,
+        x as any,
+        y as any,
       );
       robotXY = { x: state.x, y: state.y };
       robotHeading = state.heading;
@@ -447,12 +504,15 @@
       } else if (line.controlPoints.length > 0) {
         let cp1 = line.controlPoints[1]
           ? line.controlPoints[0]
-          : quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
-              .Q1;
+          : quadraticToCubic(
+                _startPoint,
+                line.controlPoints[0],
+                line.endPoint,
+              ).Q1;
         let cp2 =
           line.controlPoints[1] ??
           quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
-            .Q2;
+              .Q2;
         let points = [
           new Two.Anchor(
             x(_startPoint.x),
@@ -967,711 +1027,12 @@
     }
   }
 
-  // Helper: return true if user is typing in an input-like element
-  function isUIElementFocused(): boolean {
-    const el = document.activeElement as HTMLElement | null;
-    if (!el) return false;
-    const tag = el.tagName;
-    return (
-      ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(tag) ||
-      el.getAttribute("role") === "button" ||
-      (el as any).isContentEditable
-    );
-  }
-
-  function stepForward() {
-    if (isUIElementFocused()) return;
-    percent = Math.min(100, percent + 1);
-    handleSeek(percent);
-  }
-
-  function stepBackward() {
-    if (isUIElementFocused()) return;
-    percent = Math.max(0, percent - 1);
-    handleSeek(percent);
-  }
-
-  // Hotkey management
-  function getKey(action: string): string {
-    const bindings = settings?.keyBindings || DEFAULT_KEY_BINDINGS;
-    const binding = bindings.find((b) => b.action === action);
-    return binding ? binding.key : "";
-  }
-
-  // Register hotkeys dynamically
-  $: {
-    if (settings && settings.keyBindings) {
-      // Unbind all previous keys (simplification: we just unbind all we know)
-      // Since hotkeys-js doesn't have a "unbind all", we rely on rebinding overriding
-      // or explicit unbind if we track them. For now, we'll just register.
-      // A better approach in Svelte is to use a reactive block that manages binding/unbinding.
-
-      // Unbind everything first to avoid duplicates if keys change
-      hotkeys.unbind();
-
-      // Helper to safely bind
-      const bind = (action: string, handler: (e: KeyboardEvent) => void) => {
-        const key = getKey(action);
-        if (key) {
-          hotkeys(key, (e) => {
-            e.preventDefault();
-            handler(e);
-          });
-        }
-      };
-
-      bind("saveProject", () => saveProject());
-      bind("saveFileAs", () => saveFileAs());
-      bind("exportGif", () => exportGif());
-      bind("addNewLine", () => addNewLine());
-      bind("addWait", () => addWait());
-      bind("addControlPoint", () => {
-        addControlPoint();
-      });
-      bind("removeControlPoint", () => {
-        removeControlPoint();
-      });
-      bind("undo", () => undoAction());
-      bind("redo", () => redoAction());
-
-      bind("resetAnimation", () => resetAnimation());
-      bind("stepForward", () => stepForward());
-      bind("stepBackward", () => stepBackward());
-
-      bind("toggleOnion", () => {
-        settings.showOnionLayers = !settings.showOnionLayers;
-        settings = { ...settings };
-      });
-
-      bind("toggleGrid", () => showGrid.update((v) => !v));
-      bind("toggleSnap", () => snapToGrid.update((v) => !v));
-      bind("toggleProtractor", () => showProtractor.update((v) => !v));
-      bind("toggleCollapseAll", () =>
-        toggleCollapseAllTrigger.update((v) => v + 1),
-      );
-      bind("showHelp", () => showShortcuts.update((v) => !v));
-
-      // Toggle play needs special handling to avoid conflict with spacebar scrolling?
-      // hotkeys-js usually handles space well.
-      // But we had a document listener for Space before. Let's move it here.
-      const playKey = getKey("togglePlay");
-      if (playKey) {
-        hotkeys(playKey, (e) => {
-          // Avoid toggling play when the user is interacting with UI elements
-          if (
-            document.activeElement &&
-            (document.activeElement.tagName === "INPUT" ||
-              document.activeElement.tagName === "TEXTAREA" ||
-              document.activeElement.tagName === "SELECT" ||
-              document.activeElement.tagName === "BUTTON" ||
-              document.activeElement.getAttribute("role") === "button")
-          ) {
-            return;
-          }
-          e.preventDefault();
-          if (playing) pause();
-          else play();
-        });
-      }
-    }
-  }
-  $: {
-    // This handles both 'travel' (movement) and 'wait' (stationary rotation) events.
-    if (timePrediction && timePrediction.timeline && lines.length > 0) {
-      const state = calculateRobotState(
-        percent,
-        timePrediction.timeline,
-        lines,
-        startPoint,
-        x,
-        y,
-      );
-      robotXY = { x: state.x, y: state.y };
-      robotHeading = state.heading;
-    } else {
-      // Fallback for initialization or empty state
-      robotXY = { x: x(startPoint.x), y: y(startPoint.y) };
-      // Calculate initial heading based on start point settings
-      if (startPoint.heading === "linear") robotHeading = -startPoint.startDeg;
-      else if (startPoint.heading === "constant")
-        robotHeading = -startPoint.degrees;
-      else robotHeading = 0;
-    }
-  }
-
-  $: eventMarkers = (() => {
-    const markers: any[] = [];
-
-    // Path-based markers
-    lines.forEach((line, lineIdx) => {
-      if (!line || !line.endPoint) return; // Skip invalid lines or lines without endPoint
-      if (line.eventMarkers && line.eventMarkers.length > 0) {
-        line.eventMarkers.forEach((event, eventIdx) => {
-          // Get the correct start point for this line
-          const lineStart =
-            lineIdx === 0 ? startPoint : lines[lineIdx - 1]?.endPoint || null;
-          if (!lineStart) return; // Skip if previous line's endPoint is missing
-          const curvePoints = [lineStart, ...line.controlPoints, line.endPoint];
-          const eventPosition = getCurvePoint(event.position, curvePoints);
-
-          // Create marker visualization
-          const markerGroup = new Two.Group();
-          markerGroup.id = `event-${lineIdx}-${eventIdx}`;
-
-          // Create a circle for the marker
-          const markerCircle = new Two.Circle(
-            x(eventPosition.x),
-            y(eventPosition.y),
-            x(POINT_RADIUS * 1.3), // Slightly larger than normal points
-          );
-          markerCircle.id = `event-circle-${lineIdx}-${eventIdx}`;
-          markerCircle.fill = "#8b5cf6"; // Purple color
-          markerCircle.stroke = "#ffffff";
-          markerCircle.linewidth = x(0.3);
-          // Create a flag/icon inside
-          const flagSize = x(1);
-          const flagPoints = [
-            new Two.Anchor(
-              x(eventPosition.x),
-              y(eventPosition.y) - flagSize / 2,
-            ),
-            new Two.Anchor(
-              x(eventPosition.x) + flagSize / 2,
-              y(eventPosition.y),
-            ),
-            new Two.Anchor(
-              x(eventPosition.x),
-              y(eventPosition.y) + flagSize / 2,
-            ),
-          ];
-          const flag = new Two.Path(flagPoints, true);
-          flag.fill = "#ffffff";
-          flag.stroke = "none";
-          flag.id = `event-flag-${lineIdx}-${eventIdx}`;
-
-          markerGroup.add(markerCircle, flag);
-          markers.push(markerGroup);
-        });
-      }
-    });
-
-    // Wait-based markers: draw at the wait's point
-    if (
-      timePrediction &&
-      timePrediction.timeline &&
-      sequence &&
-      sequence.length > 0
-    ) {
-      const waitById = new Map<string, any>();
-      sequence.forEach((it) => {
-        if (it.kind === "wait") waitById.set(it.id, it);
-      });
-
-      timePrediction.timeline.forEach((ev, tIdx) => {
-        if (ev.type !== "wait" || !ev.waitId || !ev.atPoint) return;
-        const seqWait = waitById.get(ev.waitId);
-        if (
-          !seqWait ||
-          !seqWait.eventMarkers ||
-          seqWait.eventMarkers.length === 0
-        )
-          return;
-
-        const point = ev.atPoint;
-        seqWait.eventMarkers.forEach((event: any, eventIdx: number) => {
-          const markerGroup = new Two.Group();
-          markerGroup.id = `wait-event-${ev.waitId}-${eventIdx}`;
-
-          const markerCircle = new Two.Circle(
-            x(point.x),
-            y(point.y),
-            x(POINT_RADIUS * 1.3),
-          );
-          markerCircle.id = `wait-event-circle-${ev.waitId}-${eventIdx}`;
-          markerCircle.fill = "#8b5cf6";
-          markerCircle.stroke = "#ffffff";
-          markerCircle.linewidth = x(0.3);
-
-          const flagSize = x(1);
-          const flagPoints = [
-            new Two.Anchor(x(point.x), y(point.y) - flagSize / 2),
-            new Two.Anchor(x(point.x) + flagSize / 2, y(point.y)),
-            new Two.Anchor(x(point.x), y(point.y) + flagSize / 2),
-          ];
-          const flag = new Two.Path(flagPoints, true);
-          flag.fill = "#ffffff";
-          flag.stroke = "none";
-          flag.id = `wait-event-flag-${ev.waitId}-${eventIdx}`;
-
-          markerGroup.add(markerCircle, flag);
-          markers.push(markerGroup);
-        });
-      });
-    }
-
-    return markers;
-  })();
-
-  $: (() => {
-    if (!two) {
-      return;
-    }
-
-    two.renderer.domElement.style["z-index"] = "30";
-    two.renderer.domElement.style["position"] = "absolute";
-    two.renderer.domElement.style["top"] = "0px";
-    two.renderer.domElement.style["left"] = "0px";
-    two.renderer.domElement.style["width"] = "100%";
-    two.renderer.domElement.style["height"] = "100%";
-
-    two.clear();
-
-    two.add(...shapeElements);
-    if (ghostPathElement) {
-      two.add(ghostPathElement);
-    }
-    if (onionLayerElements.length > 0) {
-      two.add(...onionLayerElements);
-    }
-    if (previewPathElements.length > 0) {
-      two.add(...previewPathElements);
-    }
-    two.add(...path);
-    two.add(...points);
-    two.add(...eventMarkers);
-
-    two.update();
-  })();
-  function saveFileAs() {
-    downloadTrajectory(startPoint, lines, shapes, sequence);
-  }
-
-  // Export GIF
-  async function exportGif() {
-    try {
-      const durationSec = animationController.getDuration();
-      const fps = 15; // reasonable default
-
-      // Simple UI feedback
-      const notif = document.createElement("div");
-      notif.textContent = "Exporting GIF...";
-      notif.style.position = "fixed";
-      notif.style.right = "16px";
-      notif.style.top = "16px";
-      notif.style.background = "rgba(0,0,0,0.8)";
-      notif.style.color = "white";
-      notif.style.padding = "8px 12px";
-      notif.style.borderRadius = "6px";
-      document.body.appendChild(notif);
-
-      const fieldImageSrc = settings.fieldMap
-        ? `/fields/${settings.fieldMap}`
-        : "/fields/decode.webp";
-
-      const blob = await exportPathToGif({
-        two,
-        animationController,
-        durationSec,
-        fps,
-        backgroundImageSrc: fieldImageSrc,
-        // Robot overlay options
-        robotImageSrc: settings.robotImage || "/robot.png",
-        robotWidthPx: x(robotWidth),
-        robotHeightPx: x(robotHeight),
-        getRobotState: (p: number) =>
-          calculateRobotState(
-            p,
-            timePrediction.timeline,
-            lines,
-            startPoint,
-            x,
-            y,
-          ),
-        onProgress: (p: number) => {
-          notif.textContent = `Exporting GIF... ${Math.round(p * 100)}%`;
-        },
-      });
-
-      if (
-        electronAPI &&
-        (electronAPI as any).showSaveDialog &&
-        (electronAPI as any).writeFileBase64
-      ) {
-        // Ask user where to save
-        try {
-          const destPath = await (electronAPI as any).showSaveDialog({
-            defaultPath: "path.gif",
-            filters: [{ name: "GIF", extensions: ["gif"] }],
-          });
-
-          if (destPath) {
-            // Convert blob to base64
-            const base64 = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => {
-                const dataUrl = reader.result as string;
-                const comma = dataUrl.indexOf(",");
-                resolve(dataUrl.slice(comma + 1));
-              };
-              reader.onerror = () =>
-                reject(new Error("Failed to read blob as data URL"));
-              reader.readAsDataURL(blob);
-            });
-
-            await (electronAPI as any).writeFileBase64(destPath, base64);
-            notif.textContent = `GIF saved to ${destPath}`;
-            setTimeout(() => notif.remove(), 2000);
-            return;
-          } else {
-            notif.textContent = "Save canceled";
-            setTimeout(() => notif.remove(), 1500);
-            return;
-          }
-        } catch (err) {
-          console.error("Error saving GIF via Electron:", err);
-          alert("Failed to save GIF: " + (err as Error).message);
-          notif.remove();
-          return;
-        }
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "path.gif";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        notif.textContent = "GIF export complete";
-        setTimeout(() => notif.remove(), 2000);
-      }
-    } catch (err) {
-      alert("Failed to export GIF: " + (err as Error).message);
-      console.error(err);
-    }
-  }
-
-  function animate(timestamp: number) {
-    if (!startTime) {
-      startTime = timestamp;
-    }
-
-    if (previousTime !== null) {
-      const deltaTime = timestamp - previousTime;
-      if (percent >= 100) {
-        percent = 0;
-      } else {
-        percent += (0.65 / lines.length) * (deltaTime * 0.1);
-      }
-    }
-
-    previousTime = timestamp;
-
-    if (playing) {
-      requestAnimationFrame(animate);
-    }
-  }
-
-  function play() {
-    animationController.play();
-    playing = true;
-  }
-
-  function pause() {
-    animationController.pause();
-    playing = false;
-  }
-
-  function resetAnimation() {
-    animationController.reset();
-    playing = false;
-  }
-
-  // Handle slider changes
-  function handleSeek(newPercent: number) {
-    if (animationController) {
-      animationController.seekToPercent(newPercent);
-    }
-  }
-
-  onMount(() => {
-    two = new Two({
-      fitted: true,
-      type: Two.Types.svg,
-    }).appendTo(twoElement);
-
-    updateRobotImageDisplay();
-
-    let currentElem: string | null = null;
-    let isDown = false;
-    let dragOffset = { x: 0, y: 0 }; // Store offset to prevent snapping to center
-
-    two.renderer.domElement.addEventListener("mouseleave", () => {
-      isMouseOverField = false;
-    });
-
-    two.renderer.domElement.addEventListener("mousemove", (evt: MouseEvent) => {
-      const rect = two.renderer.domElement.getBoundingClientRect();
-      const transformed = getTransformedCoordinates(
-        evt.clientX,
-        evt.clientY,
-        rect,
-        settings.fieldRotation || 0,
-      );
-      const xPos = transformed.x;
-      const yPos = transformed.y;
-      const rawInchXForDisplay = x.invert(xPos);
-      const rawInchYForDisplay = y.invert(yPos);
-
-      // Update coordinates display
-      currentMouseX = Math.max(0, Math.min(FIELD_SIZE, rawInchXForDisplay));
-      currentMouseY = Math.max(0, Math.min(FIELD_SIZE, rawInchYForDisplay));
-      isMouseOverField = true;
-
-      // Determine if mouse is visually obstructing the HUD (bottom-left corner)
-      if (wrapperDiv) {
-        const wrapperRect = wrapperDiv.getBoundingClientRect();
-        const visualX = evt.clientX - wrapperRect.left;
-        const visualY = evt.clientY - wrapperRect.top;
-        const w = wrapperRect.width;
-        const h = wrapperRect.height;
-
-        // Check if mouse is in the bottom-left region
-        // Define a safe zone: Left 35% and Bottom 20%
-        isObstructingHUD = visualX < w * 0.35 && visualY > h * 0.8;
-      }
-
-      const elem = document.elementFromPoint(evt.clientX, evt.clientY);
-
-      if (isDown && currentElem) {
-        const line = Number(currentElem.split("-")[1]) - 1;
-
-        // Skip dragging if the line is locked
-        if (line >= 0 && lines[line]?.locked) {
-          return;
-        }
-
-        // Get current store values for reactivity
-        const currentGridSize = $gridSize;
-        const currentSnapToGrid = $snapToGrid;
-        const currentShowGrid = $showGrid;
-
-        // Apply drag offset (in inches) to the raw mouse position
-        let rawInchX = x.invert(xPos) + dragOffset.x;
-        let rawInchY = y.invert(yPos) + dragOffset.y;
-
-        let inchX = rawInchX;
-        let inchY = rawInchY;
-
-        // Always apply grid snapping when enabled
-        if (currentSnapToGrid && currentShowGrid && currentGridSize > 0) {
-          // Force snap to nearest grid point
-          inchX = Math.round(rawInchX / currentGridSize) * currentGridSize;
-          inchY = Math.round(rawInchY / currentGridSize) * currentGridSize;
-
-          // Clamp to field boundaries
-          inchX = Math.max(0, Math.min(FIELD_SIZE, inchX));
-          inchY = Math.max(0, Math.min(FIELD_SIZE, inchY));
-        }
-
-        if (currentElem.startsWith("obstacle-")) {
-          // Handle obstacle vertex dragging
-          const parts = currentElem.split("-");
-          const shapeIdx = Number(parts[1]);
-          const vertexIdx = Number(parts[2]);
-
-          shapes[shapeIdx].vertices[vertexIdx].x = inchX;
-          shapes[shapeIdx].vertices[vertexIdx].y = inchY;
-        } else {
-          // Handle path point dragging
-          const line = Number(currentElem.split("-")[1]) - 1;
-          const point = Number(currentElem.split("-")[2]);
-
-          if (line === -1) {
-            // This is the starting point
-            if (startPoint.locked) return;
-            startPoint.x = inchX;
-            startPoint.y = inchY;
-          } else if (lines[line]) {
-            if (point === 0 && lines[line].endPoint) {
-              lines[line].endPoint.x = inchX;
-              lines[line].endPoint.y = inchY;
-            } else {
-              if (lines[line]?.locked) return;
-              lines[line].controlPoints[point - 1].x = inchX;
-              lines[line].controlPoints[point - 1].y = inchY;
-            }
-          }
-        }
-      } else {
-        if (elem?.id.startsWith("point") || elem?.id.startsWith("obstacle")) {
-          two.renderer.domElement.style.cursor = "pointer";
-          currentElem = elem.id;
-        } else {
-          two.renderer.domElement.style.cursor = "auto";
-          currentElem = null;
-        }
-      }
-    });
-
-    two.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
-      isDown = true;
-
-      // Select a line when clicking a point on the field
-      if (currentElem) {
-        if (currentElem.startsWith("point-")) {
-          const parts = currentElem.split("-");
-          const lineNum = Number(parts[1]);
-          const pointIdx = Number(parts[2]);
-          if (!isNaN(lineNum) && lineNum > 0) {
-            const lineIndex = lineNum - 1;
-            const line = lines[lineIndex];
-            if (line) {
-              selectedLineId.set(line.id);
-              selectedPointId.set(currentElem);
-            }
-          } else {
-            // starting point or invalid -> clear selection or select start
-            if (currentElem === "point-0-0") {
-              selectedLineId.set(null);
-              selectedPointId.set(currentElem);
-            } else {
-              selectedLineId.set(null);
-              selectedPointId.set(null);
-            }
-          }
-        } else if (currentElem.startsWith("obstacle-")) {
-          selectedLineId.set(null);
-          selectedPointId.set(null);
-        }
-      } else {
-        selectedLineId.set(null);
-        selectedPointId.set(null);
-      }
-
-      // Calculate drag offset when clicking to prevent snapping center to mouse
-      if (currentElem) {
-        const rect = two.renderer.domElement.getBoundingClientRect();
-        const transformed = getTransformedCoordinates(
-          evt.clientX,
-          evt.clientY,
-          rect,
-          settings.fieldRotation || 0,
-        );
-        const mouseX = x.invert(transformed.x);
-        const mouseY = y.invert(transformed.y);
-
-        let objectX = 0;
-        let objectY = 0;
-
-        if (currentElem.startsWith("obstacle-")) {
-          const parts = currentElem.split("-");
-          const shapeIdx = Number(parts[1]);
-          const vertexIdx = Number(parts[2]);
-          if (shapes[shapeIdx]?.vertices[vertexIdx]) {
-            objectX = shapes[shapeIdx].vertices[vertexIdx].x;
-            objectY = shapes[shapeIdx].vertices[vertexIdx].y;
-          }
-        } else {
-          const line = Number(currentElem.split("-")[1]) - 1;
-          const point = Number(currentElem.split("-")[2]);
-
-          if (line === -1) {
-            objectX = startPoint.x;
-            objectY = startPoint.y;
-          } else if (lines[line]) {
-            if (point === 0 && lines[line].endPoint) {
-              objectX = lines[line].endPoint.x;
-              objectY = lines[line].endPoint.y;
-            } else {
-              if (lines[line].controlPoints[point - 1]) {
-                objectX = lines[line].controlPoints[point - 1].x;
-                objectY = lines[line].controlPoints[point - 1].y;
-              }
-            }
-          }
-        }
-
-        dragOffset = {
-          x: objectX - mouseX,
-          y: objectY - mouseY,
-        };
-      }
-    });
-
-    two.renderer.domElement.addEventListener("mouseup", () => {
-      isDown = false;
-      dragOffset = { x: 0, y: 0 };
-      recordChange();
-    });
-
-    // Double-click on the field to create a new path at that position
-    two.renderer.domElement.addEventListener("dblclick", (evt: MouseEvent) => {
-      // Ignore dblclicks on existing points/obstacles/lines
-      const elem = document.elementFromPoint(evt.clientX, evt.clientY);
-      if (
-        elem?.id &&
-        (elem.id.startsWith("point") ||
-          elem.id.startsWith("obstacle") ||
-          elem.id.startsWith("line"))
-      ) {
-        return;
-      }
-
-      const rect = two.renderer.domElement.getBoundingClientRect();
-      const transformed = getTransformedCoordinates(
-        evt.clientX,
-        evt.clientY,
-        rect,
-        settings.fieldRotation || 0,
-      );
-      const rawInchX = x.invert(transformed.x);
-      const rawInchY = y.invert(transformed.y);
-
-      // Apply grid snapping if enabled
-      const currentGridSize = $gridSize;
-      const currentSnapToGrid = $snapToGrid;
-      const currentShowGrid = $showGrid;
-
-      let inchX = rawInchX;
-      let inchY = rawInchY;
-
-      if (currentSnapToGrid && currentShowGrid && currentGridSize > 0) {
-        inchX = Math.round(rawInchX / currentGridSize) * currentGridSize;
-        inchY = Math.round(rawInchY / currentGridSize) * currentGridSize;
-      }
-
-      // Clamp to field boundaries
-      inchX = Math.max(0, Math.min(FIELD_SIZE, inchX));
-      inchY = Math.max(0, Math.min(FIELD_SIZE, inchY));
-
-      // Create a new line with endPoint at the clicked position
-      const newLine: Line = {
-        id: `line-${Math.random().toString(36).slice(2)}`,
-        endPoint: {
-          x: inchX,
-          y: inchY,
-          heading: "tangential",
-          reverse: false,
-        },
-        controlPoints: [],
-        color: getRandomColor(),
-        locked: false,
-        waitBeforeMs: 0,
-        waitAfterMs: 0,
-        waitBeforeName: "",
-        waitAfterName: "",
-      };
-
-      lines = [...lines, newLine];
-      sequence = [...sequence, { kind: "path", lineId: newLine.id! }];
-      recordChange();
-      two.update();
-    });
-  });
   function saveFile() {
     downloadTrajectory(startPoint, lines, shapes, sequence);
+  }
+
+  function saveFileAs() {
+    saveFile();
   }
 
   async function loadFile(evt: Event) {
@@ -1821,7 +1182,10 @@
   }
 
   function loadRobot(evt: Event) {
-    loadRobotImage(evt, () => updateRobotImageDisplay());
+    const target = evt.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+      loadRobotImage(target.files[0], () => updateRobotImageDisplay());
+    }
   }
 
   function addNewLine() {
@@ -1863,8 +1227,6 @@
     recordChange();
   }
 
-  import { selectedLineId, toggleCollapseAllTrigger } from "./stores";
-
   function addControlPoint() {
     if (lines.length === 0) return;
 
@@ -1874,12 +1236,10 @@
       lines.find((l) => l.id === targetId) || lines[lines.length - 1];
     if (!targetLine) return;
 
-
     targetLine.controlPoints.push({
       x: _.random(36, 108),
       y: _.random(36, 108),
     });
-
 
     // Force reactivity
     lines = [...lines];
@@ -1958,49 +1318,595 @@
       }, 1500);
     }
   });
+
+  // Export GIF
+  async function exportGif() {
+    try {
+      const durationSec = animationController.getDuration();
+      const fps = 15; // reasonable default
+
+      // Simple UI feedback
+      const notif = document.createElement("div");
+      notif.textContent = "Exporting GIF...";
+      notif.style.position = "fixed";
+      notif.style.right = "16px";
+      notif.style.top = "16px";
+      notif.style.background = "rgba(0,0,0,0.8)";
+      notif.style.color = "white";
+      notif.style.padding = "8px 12px";
+      notif.style.borderRadius = "6px";
+      document.body.appendChild(notif);
+
+      const fieldImageSrc = settings.fieldMap
+        ? `/fields/${settings.fieldMap}`
+        : "/fields/decode.webp";
+
+      const blob = await exportPathToGif({
+        two,
+        animationController,
+        durationSec,
+        fps,
+        backgroundImageSrc: fieldImageSrc,
+        // Robot overlay options
+        robotImageSrc: settings.robotImage || "/robot.png",
+        robotWidthPx: x(robotWidth),
+        robotHeightPx: x(robotHeight),
+        getRobotState: (p: number) =>
+          calculateRobotState(
+            p,
+            timePrediction.timeline,
+            lines,
+            startPoint,
+            x as any,
+            y as any,
+          ),
+        onProgress: (p: number) => {
+          notif.textContent = `Exporting GIF... ${Math.round(p * 100)}%`;
+        },
+      });
+
+      if (
+        electronAPI &&
+        (electronAPI as any).showSaveDialog &&
+        (electronAPI as any).writeFileBase64
+      ) {
+        // Ask user where to save
+        try {
+          const destPath = await (electronAPI as any).showSaveDialog({
+            defaultPath: "path.gif",
+            filters: [{ name: "GIF", extensions: ["gif"] }],
+          });
+
+          if (destPath) {
+            // Convert blob to base64
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const dataUrl = reader.result as string;
+                const comma = dataUrl.indexOf(",");
+                resolve(dataUrl.slice(comma + 1));
+              };
+              reader.onerror = () =>
+                reject(new Error("Failed to read blob as data URL"));
+              reader.readAsDataURL(blob);
+            });
+
+            await (electronAPI as any).writeFileBase64(destPath, base64);
+            notif.textContent = `GIF saved to ${destPath}`;
+            setTimeout(() => notif.remove(), 2000);
+            return;
+          } else {
+            notif.textContent = "Save canceled";
+            setTimeout(() => notif.remove(), 1500);
+            return;
+          }
+        } catch (err) {
+          console.error("Error saving GIF via Electron:", err);
+          alert("Failed to save GIF: " + (err as Error).message);
+          notif.remove();
+          return;
+        }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "path.gif";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        notif.textContent = "GIF export complete";
+        setTimeout(() => notif.remove(), 2000);
+      }
+    } catch (err) {
+      alert("Failed to export GIF: " + (err as Error).message);
+      console.error(err);
+    }
+  }
+
+  function animate(timestamp: number) {
+    if (!startTime) {
+      startTime = timestamp;
+    }
+
+    if (previousTime !== null) {
+      const deltaTime = timestamp - previousTime;
+      if (percent >= 100) {
+        percent = 0;
+      } else {
+        percent += (0.65 / lines.length) * (deltaTime * 0.1);
+      }
+    }
+
+    previousTime = timestamp;
+
+    if (playing) {
+      requestAnimationFrame(animate);
+    }
+  }
+
+  function play() {
+    animationController.play();
+    playing = true;
+  }
+
+  function pause() {
+    animationController.pause();
+    playing = false;
+  }
+
+  function resetAnimation() {
+    animationController.reset();
+    playing = false;
+  }
+
+  // Handle slider changes
+  function handleSeek(newPercent: number) {
+    if (animationController) {
+      animationController.seekToPercent(newPercent);
+    }
+  }
+
+  // Hotkey management
+  function getKey(action: string): string {
+    const bindings = settings?.keyBindings || DEFAULT_KEY_BINDINGS;
+    const binding = bindings.find((b) => b.action === action);
+    return binding ? binding.key : "";
+  }
+
+  // Register hotkeys dynamically
+  $: {
+    if (settings && settings.keyBindings) {
+      // Unbind all previous keys (simplification: we just unbind all we know)
+      // Since hotkeys-js doesn't have a "unbind all", we rely on rebinding overriding
+      // or explicit unbind if we track them. For now, we'll just register.
+      // A better approach in Svelte is to use a reactive block that manages binding/unbinding.
+
+      // Unbind everything first to avoid duplicates if keys change
+      hotkeys.unbind();
+
+      // Helper to safely bind
+      const bind = (action: string, handler: (e: KeyboardEvent) => void) => {
+        const key = getKey(action);
+        if (key) {
+          hotkeys(key, (e) => {
+            e.preventDefault();
+            handler(e);
+          });
+        }
+      };
+
+      bind("saveProject", () => saveProject());
+      bind("saveFileAs", () => saveFileAs());
+      bind("exportGif", () => exportGif());
+      bind("addNewLine", () => addNewLine());
+      bind("addWait", () => addWait());
+      bind("addControlPoint", () => {
+        addControlPoint();
+      });
+      bind("removeControlPoint", () => {
+        removeControlPoint();
+      });
+      bind("undo", () => undoAction());
+      bind("redo", () => redoAction());
+
+      bind("resetAnimation", () => resetAnimation());
+      bind("stepForward", () => stepForward());
+      bind("stepBackward", () => stepBackward());
+
+      bind("toggleOnion", () => {
+        settings.showOnionLayers = !settings.showOnionLayers;
+        settings = { ...settings };
+      });
+
+      bind("toggleGrid", () => showGrid.update((v) => !v));
+      bind("toggleSnap", () => snapToGrid.update((v) => !v));
+      bind("toggleProtractor", () => showProtractor.update((v) => !v));
+      bind("toggleCollapseAll", () =>
+        toggleCollapseAllTrigger.update((v) => v + 1),
+      );
+      bind("showHelp", () => showShortcuts.update((v) => !v));
+
+      // Toggle play needs special handling to avoid conflict with spacebar scrolling?
+      // hotkeys-js usually handles space well.
+      // But we had a document listener for Space before. Let's move it here.
+      const playKey = getKey("togglePlay");
+      if (playKey) {
+        hotkeys(playKey, (e) => {
+          // Avoid toggling play when the user is interacting with UI elements
+          if (
+            document.activeElement &&
+            (document.activeElement.tagName === "INPUT" ||
+              document.activeElement.tagName === "TEXTAREA" ||
+              document.activeElement.tagName === "SELECT" ||
+              document.activeElement.tagName === "BUTTON" ||
+              document.activeElement.getAttribute("role") === "button")
+          ) {
+            return;
+          }
+          e.preventDefault();
+          if (playing) pause();
+          else play();
+        });
+      }
+    }
+  }
+
+  onMount(() => {
+    two = new Two({
+      fitted: true,
+      type: Two.Types.svg,
+    }).appendTo(twoElement);
+
+    updateRobotImageDisplay();
+
+    let currentElem: string | null = null;
+    let isDown = false;
+    let dragOffset = { x: 0, y: 0 }; // Store offset to prevent snapping to center
+
+    two.renderer.domElement.addEventListener("mouseleave", () => {
+      isMouseOverField = false;
+    });
+
+    two.renderer.domElement.addEventListener("mousemove", (evt: MouseEvent) => {
+      const rect = two.renderer.domElement.getBoundingClientRect();
+      const transformed = getTransformedCoordinates(
+        evt.clientX,
+        evt.clientY,
+        rect,
+        settings.fieldRotation || 0,
+      );
+      const xPos = transformed.x;
+      const yPos = transformed.y;
+      const rawInchXForDisplay = x.invert(xPos);
+      const rawInchYForDisplay = y.invert(yPos);
+
+      // Update coordinates display
+      currentMouseX = Math.max(0, Math.min(FIELD_SIZE, rawInchXForDisplay));
+      currentMouseY = Math.max(0, Math.min(FIELD_SIZE, rawInchYForDisplay));
+      isMouseOverField = true;
+
+      // Determine if mouse is visually obstructing the HUD (bottom-left corner)
+      if (wrapperDiv) {
+        const wrapperRect = wrapperDiv.getBoundingClientRect();
+        const visualX = evt.clientX - wrapperRect.left;
+        const visualY = evt.clientY - wrapperRect.top;
+        const w = wrapperRect.width;
+        const h = wrapperRect.height;
+
+        // Check if mouse is in the bottom-left region
+        // Define a safe zone: Left 35% and Bottom 20%
+        isObstructingHUD = visualX < w * 0.35 && visualY > h * 0.8;
+      }
+
+      const elem = document.elementFromPoint(evt.clientX, evt.clientY);
+
+      if (isDown && currentElem) {
+        const line = Number(currentElem.split("-")[1]) - 1;
+
+        // Skip dragging if the line is locked
+        if (line >= 0 && lines[line]?.locked) {
+          return;
+        }
+
+        // Get current store values for reactivity
+        const currentGridSize = $gridSize;
+        const currentSnapToGrid = $snapToGrid;
+        const currentShowGrid = $showGrid;
+
+        // Apply drag offset (in inches) to the raw mouse position
+        let rawInchX = x.invert(xPos) + dragOffset.x;
+        let rawInchY = y.invert(yPos) + dragOffset.y;
+
+        let inchX = rawInchX;
+        let inchY = rawInchY;
+
+        // Always apply grid snapping when enabled
+        if (currentSnapToGrid && currentShowGrid && currentGridSize > 0) {
+          // Force snap to nearest grid point
+          inchX = Math.round(rawInchX / currentGridSize) * currentGridSize;
+          inchY = Math.round(rawInchY / currentGridSize) * currentGridSize;
+
+          // Clamp to field boundaries
+          inchX = Math.max(0, Math.min(FIELD_SIZE, inchX));
+          inchY = Math.max(0, Math.min(FIELD_SIZE, inchY));
+        }
+
+        if (currentElem.startsWith("obstacle-")) {
+          // Handle obstacle vertex dragging
+          const parts = currentElem.split("-");
+          const shapeIdx = Number(parts[1]);
+          const vertexIdx = Number(parts[2]);
+
+          shapes[shapeIdx].vertices[vertexIdx].x = inchX;
+          shapes[shapeIdx].vertices[vertexIdx].y = inchY;
+        } else {
+          // Handle path point dragging
+          const line = Number(currentElem.split("-")[1]) - 1;
+          const point = Number(currentElem.split("-")[2]);
+
+          if (line === -1) {
+            // This is the starting point
+            if (startPoint.locked) return;
+            startPoint.x = inchX;
+            startPoint.y = inchY;
+          } else if (lines[line]) {
+            if (point === 0 && lines[line].endPoint) {
+              lines[line].endPoint.x = inchX;
+              lines[line].endPoint.y = inchY;
+            } else {
+              if (lines[line]?.locked) return;
+              lines[line].controlPoints[point - 1].x = inchX;
+              lines[line].controlPoints[point - 1].y = inchY;
+            }
+          }
+        }
+      } else {
+        if (elem?.id.startsWith("point") || elem?.id.startsWith("obstacle")) {
+          two.renderer.domElement.style.cursor = "pointer";
+          currentElem = elem.id;
+        } else {
+          two.renderer.domElement.style.cursor = "auto";
+          currentElem = null;
+        }
+      }
+    });
+
+    two.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
+      isDown = true;
+
+      // Select a line when clicking a point on the field
+      if (currentElem) {
+        if (currentElem.startsWith("point-")) {
+          const parts = currentElem.split("-");
+          const lineNum = Number(parts[1]);
+          const pointIdx = Number(parts[2]);
+          if (!isNaN(lineNum) && lineNum > 0) {
+            const lineIndex = lineNum - 1;
+            const line = lines[lineIndex];
+            if (line) {
+              selectedLineId.set(line.id);
+            }
+          } else {
+            // starting point or invalid -> clear selection or select start
+            if (currentElem === "point-0-0") {
+              selectedLineId.set(null);
+            } else {
+              selectedLineId.set(null);
+            }
+          }
+        } else if (currentElem.startsWith("obstacle-")) {
+          selectedLineId.set(null);
+        }
+      } else {
+        selectedLineId.set(null);
+      }
+
+      // Calculate drag offset when clicking to prevent snapping center to mouse
+      if (currentElem) {
+        const rect = two.renderer.domElement.getBoundingClientRect();
+        const transformed = getTransformedCoordinates(
+          evt.clientX,
+          evt.clientY,
+          rect,
+          settings.fieldRotation || 0,
+        );
+        const mouseX = x.invert(transformed.x);
+        const mouseY = y.invert(transformed.y);
+
+        let objectX = 0;
+        let objectY = 0;
+
+        if (currentElem.startsWith("obstacle-")) {
+          const parts = currentElem.split("-");
+          const shapeIdx = Number(parts[1]);
+          const vertexIdx = Number(parts[2]);
+          if (shapes[shapeIdx]?.vertices[vertexIdx]) {
+            objectX = shapes[shapeIdx].vertices[vertexIdx].x;
+            objectY = shapes[shapeIdx].vertices[vertexIdx].y;
+          }
+        } else {
+          const line = Number(currentElem.split("-")[1]) - 1;
+          const point = Number(currentElem.split("-")[2]);
+
+          if (line === -1) {
+            objectX = startPoint.x;
+            objectY = startPoint.y;
+          } else if (lines[line]) {
+            if (point === 0 && lines[line].endPoint) {
+              objectX = lines[line].endPoint.x;
+              objectY = lines[line].endPoint.y;
+            } else {
+              if (lines[line].controlPoints[point - 1]) {
+                objectX = lines[line].controlPoints[point - 1].x;
+                objectY = lines[line].controlPoints[point - 1].y;
+              }
+            }
+          }
+        }
+
+        dragOffset = {
+          x: objectX - mouseX,
+          y: objectY - mouseY,
+        };
+      }
+    });
+
+    two.renderer.domElement.addEventListener("mouseup", () => {
+      isDown = false;
+      dragOffset = { x: 0, y: 0 };
+      recordChange();
+    });
+
+    // Double-click on the field to create a new path at that position
+    two.renderer.domElement.addEventListener("dblclick", (evt: MouseEvent) => {
+      // Ignore dblclicks on existing points/obstacles/lines
+      const elem = document.elementFromPoint(evt.clientX, evt.clientY);
+      if (
+        elem?.id &&
+        (elem.id.startsWith("point") ||
+          elem.id.startsWith("obstacle") ||
+          elem.id.startsWith("line"))
+      ) {
+        return;
+      }
+
+      const rect = two.renderer.domElement.getBoundingClientRect();
+      const transformed = getTransformedCoordinates(
+        evt.clientX,
+        evt.clientY,
+        rect,
+        settings.fieldRotation || 0,
+      );
+      const rawInchX = x.invert(transformed.x);
+      const rawInchY = y.invert(transformed.y);
+
+      // Apply grid snapping if enabled
+      const currentGridSize = $gridSize;
+      const currentSnapToGrid = $snapToGrid;
+      const currentShowGrid = $showGrid;
+
+      let inchX = rawInchX;
+      let inchY = rawInchY;
+
+      if (currentSnapToGrid && currentShowGrid && currentGridSize > 0) {
+        inchX = Math.round(rawInchX / currentGridSize) * currentGridSize;
+        inchY = Math.round(rawInchY / currentGridSize) * currentGridSize;
+      }
+
+      // Clamp to field boundaries
+      inchX = Math.max(0, Math.min(FIELD_SIZE, inchX));
+      inchY = Math.max(0, Math.min(FIELD_SIZE, inchY));
+
+      // Create a new line with endPoint at the clicked position
+      const newLine: Line = {
+        id: `line-${Math.random().toString(36).slice(2)}`,
+        endPoint: {
+          x: inchX,
+          y: inchY,
+          heading: "tangential",
+          reverse: false,
+        },
+        controlPoints: [],
+        color: getRandomColor(),
+        locked: false,
+        waitBeforeMs: 0,
+        waitAfterMs: 0,
+        waitBeforeName: "",
+        waitAfterName: "",
+      };
+
+      lines = [...lines, newLine];
+      sequence = [...sequence, { kind: "path", lineId: newLine.id! }];
+      recordChange();
+      two.update();
+    });
+  });
+
+  // Helper: return true if user is typing in an input-like element
+  function isUIElementFocused(): boolean {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el) return false;
+    const tag = el.tagName;
+    return (
+      ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(tag) ||
+      el.getAttribute("role") === "button" ||
+      (el as any).isContentEditable
+    );
+  }
+
+  function stepForward() {
+    if (isUIElementFocused()) return;
+    percent = Math.min(100, percent + 1);
+    handleSeek(percent);
+  }
+
+  function stepBackward() {
+    if (isUIElementFocused()) return;
+    percent = Math.max(0, percent - 1);
+    handleSeek(percent);
+  }
 </script>
 
-<svelte:window bind:innerWidth bind:innerHeight />
-
-<Navbar
-  bind:lines
-  bind:startPoint
-  bind:shapes
-  bind:sequence
-  bind:settings
-  bind:robotWidth
-  bind:robotHeight
-  bind:showSidebar
-  {saveProject}
-  {saveFileAs}
-  {loadFile}
-  {loadRobot}
-  {exportGif}
-  {undoAction}
-  {redoAction}
-  {recordChange}
-  {canUndo}
-  {canRedo}
-  onPreviewOptimizedLines={(newLines) => {
-    previewOptimizedLines = newLines;
-  }}
+<svelte:window
+  bind:innerWidth
+  bind:innerHeight
+  on:mouseup={stopResize}
+  on:mousemove={handleResize}
 />
-<!--   {saveFile} -->
-<div
-  class="w-full min-h-screen lg:h-screen pt-20 p-2 flex flex-col lg:flex-row justify-start lg:justify-center items-center gap-2 lg:overflow-hidden bg-neutral-200 dark:bg-neutral-950"
->
+
+<div class="h-screen w-full flex flex-col overflow-hidden bg-neutral-200 dark:bg-neutral-950">
+  <!-- Navbar (flex-none) -->
+  <div class="flex-none z-50">
+    <Navbar
+      bind:lines
+      bind:startPoint
+      bind:shapes
+      bind:sequence
+      bind:settings
+      bind:robotWidth
+      bind:robotHeight
+      bind:showSidebar
+      {saveProject}
+      {saveFileAs}
+      {loadFile}
+      {exportGif}
+      {undoAction}
+      {redoAction}
+      {recordChange}
+      {canUndo}
+      {canRedo}
+      onPreviewOptimizedLines={(newLines) => {
+        previewOptimizedLines = newLines;
+      }}
+    />
+  </div>
+
+  <!-- Main Content (flex-1) -->
   <div
-    class="w-full lg:flex-1 flex justify-center items-center lg:h-full relative shrink-0"
+    class="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch lg:overflow-hidden relative p-2 gap-2"
+    bind:clientHeight={mainContentHeight}
+    bind:clientWidth={mainContentWidth}
   >
+    <!-- Field Container (Left Pane) -->
     <div
-      class="relative aspect-square"
-      style={`width: ${Math.max(100, fieldSize)}px; height: ${Math.max(100, fieldSize)}px;`}
-      bind:this={wrapperDiv}
+      class="flex-none flex justify-center items-center relative transition-all duration-75 ease-linear"
+      style={`
+        width: ${isLargeScreen && showSidebar ? leftPaneWidth + 'px' : '100%'};
+        height: ${isLargeScreen ? '100%' : 'auto'};
+        min-height: ${!isLargeScreen ? '60vh' : '0'};
+      `}
     >
       <div
-        bind:this={twoElement}
-        bind:clientWidth={width}
-        bind:clientHeight={height}
+        class="relative aspect-square"
+        style={`width: ${fieldDrawSize}px; height: ${fieldDrawSize}px;`}
+        bind:this={wrapperDiv}
+      >
+        <div
+          bind:this={twoElement}
+          bind:clientWidth={width}
+          bind:clientHeight={height}
         class="w-full h-full rounded-lg shadow-md bg-neutral-50 dark:bg-neutral-900 relative overflow-clip"
         role="application"
         style="
@@ -2077,16 +1983,29 @@ pointer-events: none;`}
       />
     </div>
   </div>
-  <div
-    class="w-full h-auto lg:h-full flex-shrink-0 min-h-0 transition-all duration-300 ease-in-out"
-    class:lg:w-[28rem]={showSidebar}
-    class:xl:w-[32rem]={showSidebar}
-    class:lg:w-0={!showSidebar}
-    class:hidden={!showSidebar && isLargeScreen}
-    class:overflow-hidden={!showSidebar}
-  >
-    <ControlTab
-      bind:playing
+
+    <!-- Resizer Handle (Desktop only) -->
+    {#if isLargeScreen && showSidebar}
+      <div
+        class="w-2 cursor-col-resize flex justify-center items-center hover:bg-purple-500/50 active:bg-purple-600 transition-colors rounded-sm select-none z-40"
+        on:mousedown={startResize}
+        role="separator"
+        aria-label="Resize Sidebar"
+        tabindex="0"
+      >
+        <div class="w-[2px] h-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"></div>
+      </div>
+    {/if}
+
+    <!-- Control Tab (Right Pane) -->
+    <div
+      class="flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-all duration-300 ease-in-out"
+      class:lg:w-0={!showSidebar && isLargeScreen}
+      class:hidden={!showSidebar && isLargeScreen}
+      class:overflow-hidden={!showSidebar && isLargeScreen}
+    >
+      <ControlTab
+        bind:playing
       {play}
       {pause}
       bind:startPoint
@@ -2101,7 +2020,6 @@ pointer-events: none;`}
       bind:shapes
       {x}
       {y}
-      {animationDuration}
       {handleSeek}
       bind:loopAnimation
       {resetAnimation}
@@ -2110,5 +2028,6 @@ pointer-events: none;`}
         previewOptimizedLines = newLines;
       }}
     />
+  </div>
   </div>
 </div>
