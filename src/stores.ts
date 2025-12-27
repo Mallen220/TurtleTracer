@@ -10,6 +10,11 @@ export const currentFilePath = writable<string | null>(null);
 export const isUnsaved = writable(false);
 export const snapToGrid = writable(true);
 export const showShortcuts = writable(false);
+export const showSettings = writable(false);
+export const exportDialogState = writable<{
+  isOpen: boolean;
+  format: "java" | "points" | "sequential";
+}>({ isOpen: false, format: "java" });
 
 // Currently selected line id (used to add control points to selected path)
 export const selectedLineId = writable<string | null>(null);

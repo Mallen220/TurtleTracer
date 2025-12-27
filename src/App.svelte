@@ -16,6 +16,8 @@
     showGrid,
     showProtractor,
     showShortcuts,
+    showSettings,
+    exportDialogState,
   } from "./stores";
   import Two from "two.js";
   import type { Path } from "two.js/src/path";
@@ -74,6 +76,7 @@
     getDirectory?: () => Promise<string>;
     fileExists?: (filePath: string) => Promise<boolean>;
     readFile?: (filePath: string) => Promise<string>;
+    onMenuAction?: (callback: (action: string) => void) => void;
   }
 
   // Access electron API from window (attached by preload script)
@@ -1935,6 +1938,89 @@
       };
     }
   });
+
+  // Listen for menu actions from Electron
+  onMount(() => {
+    if (electronAPI && electronAPI.onMenuAction) {
+      electronAPI.onMenuAction((action) => {
+        switch (action) {
+          case "new-path":
+            // Prompt to save if needed? For now, just new line
+            // Or maybe clear everything?
+            // "New Path" usually means create a new file or clear current state.
+            // Since we have `addNewLine` which adds to current, maybe "New Project" is better?
+            // But let's assume it clears or creates new.
+            // Actually, based on existing functionality, maybe just reset to default.
+            if (confirm("Create new project? Unsaved changes will be lost.")) {
+              startPoint = getDefaultStartPoint();
+              lines = normalizeLines(getDefaultLines());
+              sequence = lines.map((ln) => ({
+                kind: "path",
+                lineId: ln.id!,
+              }));
+              shapes = getDefaultShapes();
+              currentFilePath.set(null);
+              recordChange();
+            }
+            break;
+          case "open-file":
+            // We need to trigger the file input.
+            // Since we don't have direct access to the hidden input, we can check if we can invoke `loadFile` differently.
+            // `loadFile` takes an event.
+            // But `ipcMain` has `file:set-directory`...
+            // Actually, we can just trigger a click on the file input if we had a ref to it.
+            // Or use electronAPI to showOpenDialog if we wanted to be purely native.
+            // The existing `loadFile` uses an `<input type="file">`.
+            // Let's use `electronAPI` to open a file if possible, or trigger the input.
+            // The Navbar has the input.
+            // But we can also implement `openProject` here using `electronAPI`.
+            // Let's implement a native open dialog call.
+            openProjectNative();
+            break;
+          case "save-project":
+            saveProject();
+            break;
+          case "save-as":
+            saveFileAs();
+            break;
+          case "export-gif":
+            exportGif();
+            break;
+          case "export-java":
+            exportDialogState.set({ isOpen: true, format: "java" });
+            break;
+          case "export-points":
+            exportDialogState.set({ isOpen: true, format: "points" });
+            break;
+          case "export-sequential":
+            exportDialogState.set({ isOpen: true, format: "sequential" });
+            break;
+          case "open-settings":
+            showSettings.set(true);
+            break;
+          case "open-shortcuts":
+            showShortcuts.set(true);
+            break;
+          case "undo":
+            if (canUndo) undoAction();
+            break;
+          case "redo":
+            if (canRedo) redoAction();
+            break;
+        }
+      });
+    }
+  });
+
+  async function openProjectNative() {
+    // We try to find the input element in DOM.
+    const input = document.getElementById("file-upload");
+    if (input) {
+      input.click();
+    } else {
+      console.warn("File input not found.");
+    }
+  }
 
   // Auto-export for CI/testing: if the app is loaded with URL hash #export-gif-test, automatically run GIF export once mounted
   onMount(() => {
