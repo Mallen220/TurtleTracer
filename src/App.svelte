@@ -106,6 +106,21 @@
   let wrapperDiv: HTMLDivElement;
   let width = 0;
   let height = 0;
+  let innerWidth = 0;
+  let innerHeight = 0;
+
+  // Calculate field size dynamically for all screens to ensure it fits and remains square
+  $: isLargeScreen = innerWidth >= 1024; // lg breakpoint
+  $: fieldSize = isLargeScreen
+    ? Math.min(
+        innerWidth - 448 - 48, // 28rem (sidebar) + gaps/padding roughly
+        innerHeight - 80 - 48, // 5rem (navbar) + padding roughly
+      )
+    : Math.min(
+        innerWidth - 32, // Full width minus padding
+        (innerHeight - 80) * 0.6, // Max 60% of available height
+      );
+
   // Robot state
   $: robotWidth = settings?.rWidth || DEFAULT_ROBOT_WIDTH;
   $: robotHeight = settings?.rHeight || DEFAULT_ROBOT_HEIGHT;
@@ -1956,6 +1971,8 @@
   });
 </script>
 
+<svelte:window bind:innerWidth bind:innerHeight />
+
 <Navbar
   bind:lines
   bind:startPoint
@@ -1982,8 +1999,14 @@
 <div
   class="w-full min-h-screen lg:h-screen pt-20 p-2 flex flex-col lg:flex-row justify-start lg:justify-center items-center gap-2 lg:overflow-hidden bg-neutral-200 dark:bg-neutral-950"
 >
-  <div class="w-full lg:flex-1 flex justify-center items-center lg:h-full relative shrink-0">
-    <div class="relative w-full aspect-square lg:w-auto lg:h-auto lg:max-w-full lg:max-h-full lg:aspect-square" bind:this={wrapperDiv}>
+  <div
+    class="w-full lg:flex-1 flex justify-center items-center lg:h-full relative shrink-0"
+  >
+    <div
+      class="relative aspect-square"
+      style={`width: ${Math.max(100, fieldSize)}px; height: ${Math.max(100, fieldSize)}px;`}
+      bind:this={wrapperDiv}
+    >
       <div
         bind:this={twoElement}
         bind:clientWidth={width}
@@ -2070,25 +2093,25 @@ pointer-events: none;`}
       {play}
       {pause}
       bind:startPoint
-    bind:lines
-    bind:sequence
-    bind:robotWidth
-    bind:robotHeight
-    bind:settings
-    bind:percent
-    bind:robotXY
-    bind:robotHeading
-    bind:shapes
-    {x}
-    {y}
-    {animationDuration}
-    {handleSeek}
-    bind:loopAnimation
-    {resetAnimation}
-    {recordChange}
-    onPreviewChange={(newLines) => {
-      previewOptimizedLines = newLines;
-    }}
-  />
+      bind:lines
+      bind:sequence
+      bind:robotWidth
+      bind:robotHeight
+      bind:settings
+      bind:percent
+      bind:robotXY
+      bind:robotHeading
+      bind:shapes
+      {x}
+      {y}
+      {animationDuration}
+      {handleSeek}
+      bind:loopAnimation
+      {resetAnimation}
+      {recordChange}
+      onPreviewChange={(newLines) => {
+        previewOptimizedLines = newLines;
+      }}
+    />
   </div>
 </div>

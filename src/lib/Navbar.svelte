@@ -190,7 +190,9 @@
   class="fixed top-0 left-0 w-full z-50 bg-neutral-50 dark:bg-neutral-900 shadow-md flex flex-row justify-between items-center px-4 md:px-6 py-4 border-b-[0.75px] border-[#b300e6]"
 >
   <!-- Title -->
-  <div class="font-semibold flex flex-col justify-start items-start flex-shrink-0 mr-2">
+  <div
+    class="font-semibold flex flex-col justify-start items-start flex-shrink-0 mr-2"
+  >
     <div class="flex flex-row items-center gap-2">
       <!-- File manager button -->
       <button
@@ -233,7 +235,9 @@
   </div>
 
   <!-- Actions -->
-  <div class="flex flex-row justify-end items-center gap-4 overflow-x-auto no-scrollbar pr-2">
+  <div
+    class="flex flex-row justify-end items-center gap-4 overflow-x-auto no-scrollbar pr-2"
+  >
     <div class="flex items-center gap-3 flex-shrink-0">
       <!-- time estimate -->
       <div class="hidden md:flex items-center gap-2 text-sm">
