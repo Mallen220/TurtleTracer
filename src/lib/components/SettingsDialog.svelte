@@ -232,7 +232,7 @@
               class="text-xs text-neutral-500 dark:text-neutral-400"
               title="Total Downloads from GitHub"
             >
-              {downloadCount.toLocaleString()} Downloads!
+              {downloadCount.toLocaleString()} App Downloads
             </span>
           {/if}
         </div>
