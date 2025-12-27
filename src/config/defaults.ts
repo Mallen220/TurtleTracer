@@ -156,10 +156,10 @@ export const DEFAULT_SETTINGS: Settings = {
   showGhostPaths: false,
   showOnionLayers: false,
   onionLayerSpacing: 6, // inches between each robot body trace
-  optimizationIterations: 100,
-  optimizationPopulationSize: 50,
+  optimizationIterations: 300,
+  optimizationPopulationSize: 100,
   optimizationMutationRate: 0.4,
-  optimizationMutationStrength: 6.0,
+  optimizationMutationStrength: 3.0,
   keyBindings: DEFAULT_KEY_BINDINGS,
   recentFiles: [],
 };
