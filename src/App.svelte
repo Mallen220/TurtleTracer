@@ -62,7 +62,8 @@
   } from "./config";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { exportPathToGif } from "./utils/exportGif";
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, onDestroy } from "svelte";
+  import { get } from "svelte/store";
   import { debounce } from "lodash";
   import { createHistory, type AppState } from "./utils/history";
   // Electron API type (defined in preload.js, attached to window)
@@ -264,6 +265,33 @@
       settings,
     };
   }
+
+  // Clicking anywhere outside a wait row/marker should clear wait selection highlight
+  function handleDocClick(e: MouseEvent) {
+    const sel = get(selectedPointId);
+    if (!sel || !sel.startsWith("wait-")) return;
+
+    let el = e.target as Element | null;
+    while (el) {
+      // Keep selection if clicking inside a sidebar WaitRow
+      if (el.classList && el.classList.contains("wait-row")) return;
+      // Keep selection if clicking a wait marker on the canvas
+      if (
+        el.id &&
+        (el.id.startsWith("wait-") || el.id.startsWith("wait-event-"))
+      )
+        return;
+      el = el.parentElement;
+    }
+
+    // Click was outside wait UI -> clear wait selection
+    selectedPointId.set(null);
+  }
+
+  // Ensure we remove document handlers when component is destroyed
+  onDestroy(() => {
+    document.removeEventListener("click", handleDocClick);
+  });
 
   // Use the stores for reactivity
   $: canUndo = $canUndoStore;
@@ -1262,6 +1290,10 @@
       bind("removeControlPoint", () => {
         removeControlPoint();
       });
+
+      bind("removeSelected", () => {
+        removeSelected();
+      });
       bind("undo", () => undoAction());
       bind("redo", () => redoAction());
 
@@ -1435,9 +1467,18 @@
             x(POINT_RADIUS * 1.3),
           );
           markerCircle.id = `wait-event-circle-${ev.waitId}-${eventIdx}`;
-          markerCircle.fill = "#8b5cf6";
-          markerCircle.stroke = "#ffffff";
-          markerCircle.linewidth = x(0.3);
+
+          // If this wait is selected, apply a visual highlight
+          const waitSelected = $selectedPointId === `wait-${ev.waitId}`;
+          if (waitSelected) {
+            markerCircle.fill = "#f97316"; // orange
+            markerCircle.stroke = "#fffbeb";
+            markerCircle.linewidth = x(0.6);
+          } else {
+            markerCircle.fill = "#8b5cf6";
+            markerCircle.stroke = "#ffffff";
+            markerCircle.linewidth = x(0.3);
+          }
 
           const flagSize = x(1);
           const flagPoints = [
@@ -1446,7 +1487,7 @@
             new Two.Anchor(x(point.x), y(point.y) + flagSize / 2),
           ];
           const flag = new Two.Path(flagPoints, true);
-          flag.fill = "#ffffff";
+          flag.fill = waitSelected ? "#fffbeb" : "#ffffff";
           flag.stroke = "none";
           flag.id = `wait-event-flag-${ev.waitId}-${eventIdx}`;
 
@@ -1810,6 +1851,23 @@
           } else {
             currentElem = elem.id;
           }
+        } else if (
+          elem?.id &&
+          (elem.id.startsWith("wait-event-") ||
+            elem.id.startsWith("wait-event-circle-") ||
+            elem.id.startsWith("wait-event-flag-"))
+        ) {
+          // Normalize wait event element ids to a common selection id: wait-event-<waitId>-<eventIdx>
+          two.renderer.domElement.style.cursor = "pointer";
+          const idParts = elem.id.split("-");
+          // id can be 'wait-event-<waitId>-<eventIdx>' or 'wait-event-circle-<waitId>-<eventIdx>'
+          if (idParts.length >= 4) {
+            const waitId = idParts[idParts.length - 2];
+            const evIdx = idParts[idParts.length - 1];
+            currentElem = `wait-event-${waitId}-${evIdx}`;
+          } else {
+            currentElem = elem.id;
+          }
         } else {
           two.renderer.domElement.style.cursor = "auto";
           currentElem = null;
@@ -1817,8 +1875,47 @@
       }
     });
 
+    document.addEventListener("click", handleDocClick);
+
     two.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
       isDown = true;
+
+      // If we don't have a currentElem (no prior mousemove), determine element under cursor now
+      if (!currentElem) {
+        const el = document.elementFromPoint(evt.clientX, evt.clientY);
+        if (el?.id) {
+          if (el.id.startsWith("point")) currentElem = el.id;
+          else if (
+            el.id.startsWith("event-") ||
+            el.id.startsWith("event-circle-") ||
+            el.id.startsWith("event-flag-")
+          ) {
+            const idParts = el.id.split("-");
+            if (idParts.length >= 3) {
+              const lineIdx = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              currentElem = `event-${lineIdx}-${evIdx}`;
+            } else {
+              currentElem = el.id;
+            }
+          } else if (
+            el.id.startsWith("wait-event-") ||
+            el.id.startsWith("wait-event-circle-") ||
+            el.id.startsWith("wait-event-flag-")
+          ) {
+            const idParts = el.id.split("-");
+            if (idParts.length >= 4) {
+              const waitId = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              currentElem = `wait-event-${waitId}-${evIdx}`;
+            } else {
+              currentElem = el.id;
+            }
+          } else if (el.id.startsWith("obstacle-")) {
+            currentElem = el.id;
+          }
+        }
+      }
 
       // Select a line when clicking a point on the field
       if (currentElem) {
@@ -1852,11 +1949,32 @@
             selectedLineId.set(lines[lineIdx].id);
             selectedPointId.set(currentElem);
           }
+        } else if (currentElem.startsWith("wait-event-")) {
+          // Select wait event marker: map to wait selection using waitId
+          const parts = currentElem.split("-");
+          const waitId = parts[2];
+          const evIdx = Number(parts[3]);
+          if (waitId) {
+            selectedPointId.set(`wait-${waitId}`);
+            selectedLineId.set(null);
+          }
         }
 
+        let objectX = 0;
         let objectY = 0;
 
-        if (currentElem.startsWith("obstacle-")) {
+        // Compute mouse coordinates in inches for drag offset (handles clicks without prior mousemove)
+        const rectForMouse = two.renderer.domElement.getBoundingClientRect();
+        const transformedForMouse = getTransformedCoordinates(
+          evt.clientX,
+          evt.clientY,
+          rectForMouse,
+          settings.fieldRotation || 0,
+        );
+        const mouseX = x.invert(transformedForMouse.x);
+        const mouseY = y.invert(transformedForMouse.y);
+
+        if (currentElem && currentElem.startsWith("obstacle-")) {
           const parts = currentElem.split("-");
           const shapeIdx = Number(parts[1]);
           const vertexIdx = Number(parts[2]);
@@ -1891,7 +2009,7 @@
       }
     });
 
-    two.renderer.domElement.addEventListener("mouseup", () => {
+    two.renderer.domElement.addEventListener("mouseup", (evt?: MouseEvent) => {
       isDown = false;
       dragOffset = { x: 0, y: 0 };
       recordChange();
@@ -1957,6 +2075,12 @@
 
       lines = [...lines, newLine];
       sequence = [...sequence, { kind: "path", lineId: newLine.id! }];
+
+      // Select the newly created line and its end point
+      selectedLineId.set(newLine.id!);
+      const newIdx = lines.findIndex((l) => l.id === newLine.id!);
+      selectedPointId.set(`point-${newIdx + 1}-0`);
+
       recordChange();
       two.update();
     });
@@ -2116,29 +2240,31 @@
   }
 
   function addNewLine() {
-    lines = [
-      ...lines,
-      {
-        id: `line-${Math.random().toString(36).slice(2)}`,
-        endPoint: {
-          x: _.random(36, 108),
-          y: _.random(36, 108),
-          heading: "tangential",
-          reverse: false,
-        } as Point,
-        controlPoints: [],
-        color: getRandomColor(),
-        locked: false,
-        waitBeforeMs: 0,
-        waitAfterMs: 0,
-        waitBeforeName: "",
-        waitAfterName: "",
-      },
-    ];
-    sequence = [
-      ...sequence,
-      { kind: "path", lineId: lines[lines.length - 1].id! },
-    ];
+    const newLine: Line = {
+      id: `line-${Math.random().toString(36).slice(2)}`,
+      endPoint: {
+        x: _.random(36, 108),
+        y: _.random(36, 108),
+        heading: "tangential",
+        reverse: false,
+      } as Point,
+      controlPoints: [],
+      color: getRandomColor(),
+      locked: false,
+      waitBeforeMs: 0,
+      waitAfterMs: 0,
+      waitBeforeName: "",
+      waitAfterName: "",
+    };
+
+    lines = [...lines, newLine];
+    sequence = [...sequence, { kind: "path", lineId: newLine.id! }];
+
+    // Select newly created line and its endpoint
+    selectedLineId.set(newLine.id!);
+    const newIndex = lines.findIndex((l) => l.id === newLine.id!);
+    selectedPointId.set(`point-${newIndex + 1}-0`);
+
     recordChange();
   }
 
@@ -2151,6 +2277,11 @@
       locked: false,
     } as SequenceItem;
     sequence = [...sequence, wait];
+
+    // Select newly created wait
+    selectedPointId.set(`wait-${wait.id}`);
+    selectedLineId.set(null);
+
     recordChange();
   }
 
@@ -2176,6 +2307,13 @@
 
     // Force reactivity
     lines = [...lines];
+
+    // Select the newly created control point
+    const lineIndex = lines.findIndex((l) => l.id === targetLine.id);
+    const cpIndex = targetLine.controlPoints.length; // 1-based in point ID scheme
+    selectedLineId.set(targetLine.id);
+    selectedPointId.set(`point-${lineIndex + 1}-${cpIndex}`);
+
     recordChange();
   }
 
@@ -2188,8 +2326,87 @@
 
       if (targetLine && targetLine.controlPoints.length > 0) {
         targetLine.controlPoints.pop();
+        // Force reactivity and record change
+        lines = [...lines];
         recordChange();
       }
+    }
+  }
+
+  // Remove the currently selected point, or remove a selected wait. If the selected point is an end-point,
+  // remove the entire line (and any attached wait after it).
+  function removeSelected() {
+    if (isUIElementFocused()) return;
+    const sel = $selectedPointId;
+    if (!sel) return;
+
+    // Remove wait selection: remove the wait from sequence
+    if (sel.startsWith("wait-")) {
+      const waitId = sel.substring(5);
+      const idx = sequence.findIndex(
+        (s) => s.kind === "wait" && s.id === waitId,
+      );
+      if (idx !== -1) {
+        const newSeq = [...sequence];
+        newSeq.splice(idx, 1);
+        sequence = newSeq;
+        selectedPointId.set(null);
+        recordChange();
+      }
+      return;
+    }
+
+    // Remove point selection
+    if (sel.startsWith("point-")) {
+      const parts = sel.split("-");
+      const lineNum = Number(parts[1]);
+      const ptIdx = Number(parts[2]);
+
+      // Start point cannot be removed
+      if (lineNum === 0 && ptIdx === 0) {
+        return;
+      }
+
+      const lineIndex = lineNum - 1;
+      const line = lines[lineIndex];
+      if (!line) return;
+
+      // If end point selected (ptIdx === 0) -> remove line and attached wait (like removeLine)
+      if (ptIdx === 0) {
+        // Protect against removing the last remaining path
+        if (lines.length <= 1) return;
+
+        const removedId = line.id;
+        if (!removedId) return;
+
+        // Remove line
+        const newLines = [...lines];
+        newLines.splice(lineIndex, 1);
+        lines = newLines;
+
+        // Remove path from the sequence but preserve any waits that follow it
+        if (removedId) {
+          sequence = sequence.filter(
+            (item) => !(item.kind === "path" && item.lineId === removedId),
+          );
+        }
+
+        selectedPointId.set(null);
+        selectedLineId.set(null);
+        recordChange();
+        return;
+      }
+
+      // Control point removal (ptIdx >= 1)
+      const cpIndex = ptIdx - 1;
+      if (line.controlPoints && line.controlPoints[cpIndex] !== undefined) {
+        if (line.locked) return; // protect locked lines
+        line.controlPoints.splice(cpIndex, 1);
+        lines = [...lines];
+        selectedPointId.set(null);
+        recordChange();
+      }
+      return;
     }
   }
 

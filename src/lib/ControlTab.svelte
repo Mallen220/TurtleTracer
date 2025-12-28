@@ -19,7 +19,7 @@
   import OptimizationDialog from "./components/OptimizationDialog.svelte";
   import WaypointTable from "./components/WaypointTable.svelte";
   import { calculatePathTime } from "../utils";
-  import { selectedLineId } from "../stores";
+  import { selectedLineId, selectedPointId } from "../stores";
 
   export let percent: number;
   export let playing: boolean;
@@ -181,17 +181,25 @@
   }
 
   function removeLine(idx: number) {
+    // Protect against deleting the last remaining path
+    if (lines.length <= 1) return;
+
     const removedId = lines[idx]?.id;
-    let _lns = lines;
-    lines.splice(idx, 1);
-    lines = _lns;
+    // Remove the line from lines array
+    const newLines = [...lines];
+    newLines.splice(idx, 1);
+    lines = newLines;
+
+    // If we removed a line, remove its path entry but preserve waits that follow it
     if (removedId) {
       sequence = sequence.filter(
-        (s) => s.kind === "wait" || s.lineId !== removedId,
+        (item) => !(item.kind === "path" && item.lineId === removedId),
       );
+
       // Clear selection if the removed line was selected
       if ($selectedLineId === removedId) selectedLineId.set(null);
     }
+
     collapsedSections.lines.splice(idx, 1);
     collapsedSections.controlPoints.splice(idx, 1);
     collapsedEventMarkers.splice(idx, 1);
@@ -219,8 +227,10 @@
     sequence = [...sequence, { kind: "path", lineId: newLine.id! }];
     collapsedSections.lines.push(false);
     collapsedSections.controlPoints.push(true);
-    // Select the newly created line
+    // Select the newly created line and its endpoint
     selectedLineId.set(newLine.id!);
+    const newIndex = lines.findIndex((l) => l.id === newLine.id!);
+    selectedPointId.set(`point-${newIndex + 1}-0`);
     recordChange();
   }
 
@@ -267,6 +277,11 @@
       locked: false,
     } as SequenceItem;
     sequence = [...sequence, wait];
+
+    // Select newly created wait
+    selectedPointId.set(`wait-${wait.id}`);
+    selectedLineId.set(null);
+    recordChange();
   }
 
   function addWaitAtStart() {
@@ -278,6 +293,11 @@
       locked: false,
     } as SequenceItem;
     sequence = [wait, ...sequence];
+
+    // Select newly created wait
+    selectedPointId.set(`wait-${wait.id}`);
+    selectedLineId.set(null);
+    recordChange();
   }
 
   function addPathAtStart() {
@@ -594,6 +614,7 @@
             {/each}
           {:else}
             <WaitRow
+              id={getWait(item).id}
               name={getWait(item).name}
               durationMs={getWait(item).durationMs}
               locked={getWait(item).locked ?? false}

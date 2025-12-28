@@ -58,6 +58,12 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "removeControlPoint",
   },
   {
+    id: "remove-selected",
+    key: "backspace, delete",
+    description: "Remove selected point or wait",
+    action: "removeSelected",
+  },
+  {
     id: "save-project",
     key: "cmd+s, ctrl+s",
     description: "Save project",
