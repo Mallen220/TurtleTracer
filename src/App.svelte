@@ -469,7 +469,7 @@
     >
         <FieldRenderer
             bind:this={fieldRenderer}
-            {width} {height}
+            width={fieldDrawSize} height={fieldDrawSize}
             {timePrediction}
             {previewOptimizedLines}
             {onRecordChange}

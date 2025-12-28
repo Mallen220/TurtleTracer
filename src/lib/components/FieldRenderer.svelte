@@ -443,6 +443,13 @@
 
   // Render Loop
   $: if (two) {
+    // Update dimensions if changed
+    if (width && height && (two.width !== width || two.height !== height)) {
+        if (two.renderer) two.renderer.setSize(width, height);
+        two.width = width;
+        two.height = height;
+    }
+
     const shapeGroup = new Two.Group(); shapeGroup.id = "shape-group";
     const lineGroup = new Two.Group(); lineGroup.id = "line-group";
     const pointGroup = new Two.Group(); pointGroup.id = "point-group";
