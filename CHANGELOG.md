@@ -1,3 +1,7 @@
+## 1.3.4 (2025-12-28)
+
+- Fixing intel mac support. 
+
 ## 1.3.3 (2025-12-28)
 
 - Sidebar toggle. Greatly enhanced keybind features. Playback speed controller. Major backend reformatting. 
