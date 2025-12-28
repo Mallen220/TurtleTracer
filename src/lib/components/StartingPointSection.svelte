@@ -2,10 +2,12 @@
   export let startPoint: Point;
   export let addPathAtStart: () => void;
   export let addWaitAtStart: () => void;
+  export let toggleCollapseAll: () => void;
+  export let allCollapsed: boolean;
 </script>
 
 <div class="flex flex-col w-full justify-start items-start gap-0.5">
-  <div class="flex items-center justify-between w-full">
+  <div class="flex items-center justify-between w-full flex-wrap gap-2">
     <div class="font-semibold flex items-center gap-2">
       Starting Point
       <button
@@ -51,6 +53,18 @@
         {/if}
       </button>
     </div>
+
+    <button
+      on:click={toggleCollapseAll}
+      class="text-sm px-2 py-1 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700"
+      aria-label="Toggle collapse/expand all"
+    >
+      {#if allCollapsed}
+        <span class="whitespace-nowrap">Expand All</span>
+      {:else}
+        <span class="whitespace-nowrap">Collapse All</span>
+      {/if}
+    </button>
   </div>
   <div class="flex flex-wrap justify-start items-center gap-x-4 gap-y-2">
     <div class="flex items-center gap-2">
