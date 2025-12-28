@@ -44,6 +44,11 @@ get_latest_version() {
     head -1 | cut -d'"' -f4 | sed 's/^v//' || true
 }
 
+# Return HTTP status code for the latest release API (diagnostics only)
+github_api_status() {
+    curl -s -o /dev/null -w "%{http_code}" "https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases/latest" 2>/dev/null || echo "000"
+}
+
 # Interactive asset selector: prefers local machine architecture if possible
 # Compatible with older bash (avoids 'mapfile') and prints a clear numbered list
 select_asset_by_pattern() {
@@ -51,8 +56,16 @@ select_asset_by_pattern() {
 
     # Read output into an array in a portable way
     urls=()
+    print_info "Querying GitHub API for assets (pattern: $pattern) ..."
     url_output=$(get_download_urls "$pattern")
+    # Diagnostic: API status
+    local status
+    status=$(github_api_status)
+    if [ "$status" != "200" ]; then
+        print_warning "GitHub API returned HTTP $status. Network or rate-limit issue?"
+    fi
     if [ -z "$url_output" ]; then
+        print_warning "No assets matched pattern: $pattern"
         echo ""; return
     fi
     while IFS= read -r line; do
@@ -62,7 +75,17 @@ select_asset_by_pattern() {
     done <<< "$url_output"
 
     if [ ${#urls[@]} -eq 0 ]; then
+        print_warning "Found 0 URLs after parsing JSON for pattern: $pattern"
         echo ""; return
+    fi
+
+    print_info "Found ${#urls[@]} asset(s) for pattern: $pattern"
+    if [ -n "$PEDRO_INSTALL_VERBOSE" ]; then
+        local i=1
+        for u in "${urls[@]}"; do
+            printf "  [%d] %s\n" "$i" "$(basename "$u")"
+            ((i++))
+        done
     fi
 
     if [ ${#urls[@]} -eq 1 ]; then
@@ -83,6 +106,7 @@ select_asset_by_pattern() {
         for u in "${urls[@]}"; do
             fname=$(basename "$u")
             if echo "$fname" | grep -iq "$a"; then
+                print_status "Auto-selected asset for arch '$a': $fname"
                 echo "$u"
                 return
             fi
@@ -133,6 +157,14 @@ install_mac() {
     fi
 
     print_status "Looking for DMG assets in the latest release..."
+    print_info "Checking GitHub API reachability..."
+    api_status=$(github_api_status)
+    if [ "$api_status" = "200" ]; then
+        print_status "GitHub API reachable (HTTP 200)."
+    else
+        print_warning "GitHub API returned HTTP $api_status. If this persists, try again later or provide a direct URL."
+    fi
+    print_info "Searching assets with pattern: .dmg"
     DOWNLOAD_URL=$(select_asset_by_pattern "\.dmg")
 
     # Fallback for Intel macs: if no DMG found via the general selector, try explicit conventional names
@@ -173,6 +205,7 @@ install_mac() {
 
     DMG_PATH="/tmp/pedro-installer.dmg"
     print_status "Downloading $(basename "$DOWNLOAD_URL")..."
+    print_info "From URL: $DOWNLOAD_URL"
     curl -L -o "$DMG_PATH" "$DOWNLOAD_URL"
     
     print_status "Mounting and Installing..."
