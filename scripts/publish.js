@@ -265,7 +265,10 @@ async function main() {
         let newName = fname.replace(/\s+/g, "-");
 
         // Windows specific: make 'Setup' filename consistent
-        if (newName.toLowerCase().includes("setup") && newName.toLowerCase().includes(version)) {
+        if (
+          newName.toLowerCase().includes("setup") &&
+          newName.toLowerCase().includes(version)
+        ) {
           // Prefer: Pedro-Pathing-Visualizer-Setup-<version>.exe
           const ext = path.extname(newName);
           newName = `Pedro-Pathing-Visualizer-Setup-${version}${ext}`;
@@ -277,7 +280,9 @@ async function main() {
           // Only rename if target does not already exist
           try {
             await fs.access(newPath);
-            console.log(`⚠ Target name ${newName} already exists, skipping rename of ${fname}`);
+            console.log(
+              `⚠ Target name ${newName} already exists, skipping rename of ${fname}`,
+            );
           } catch (e) {
             await fs.rename(oldPath, newPath);
             console.log(`🔁 Renamed ${fname} -> ${newName}`);

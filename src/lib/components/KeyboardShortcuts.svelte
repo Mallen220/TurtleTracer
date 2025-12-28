@@ -19,6 +19,7 @@
     settingsStore,
     playingStore,
     playbackSpeedStore,
+    renumberDefaultPathNames,
   } from "../projectStore";
   import type { Line, SequenceItem } from "../../types";
   import { DEFAULT_KEY_BINDINGS, FIELD_SIZE } from "../../config";
@@ -68,6 +69,34 @@
 
   // --- Logic Extracted from App.svelte ---
 
+  // Helper: get the sequence index corresponding to the current selection
+  function getSelectedSequenceIndex(): number | null {
+    const sel = $selectedPointId;
+    const seq = $sequenceStore;
+    if (!sel) return null;
+
+    // Selected item is a wait
+    if (sel.startsWith("wait-")) {
+      const wid = sel.substring(5);
+      const idx = seq.findIndex(
+        (s) => s.kind === "wait" && (s as any).id === wid,
+      );
+      return idx >= 0 ? idx : null;
+    }
+
+    // Selected item is a point/control point; map to the selected line id
+    if (sel.startsWith("point-")) {
+      const targetId = $selectedLineId || null;
+      if (!targetId) return null;
+      const idx = seq.findIndex(
+        (s) => s.kind === "path" && (s as any).lineId === targetId,
+      );
+      return idx >= 0 ? idx : null;
+    }
+
+    return null;
+  }
+
   function addNewLine() {
     const newLine: Line = {
       id: `line-${Math.random().toString(36).slice(2)}`,
@@ -81,11 +110,35 @@
       color: getRandomColor(),
       locked: false,
     };
-    linesStore.update((l) => [...l, newLine]);
-    sequenceStore.update((s) => [...s, { kind: "path", lineId: newLine.id! }]);
-    selectedLineId.set(newLine.id!);
-    const newIndex = $linesStore.length - 1;
-    selectedPointId.set(`point-${newIndex + 1}-0`);
+
+    // Determine where to insert: after selected sequence item if applicable
+    const insertIdx = getSelectedSequenceIndex();
+    if (insertIdx === null) {
+      // Append to end
+      linesStore.update((l) => renumberDefaultPathNames([...l, newLine]));
+      sequenceStore.update((s) => [
+        ...s,
+        { kind: "path", lineId: newLine.id! },
+      ]);
+      selectedLineId.set(newLine.id!);
+      const newIndex = $linesStore.length - 1;
+      selectedPointId.set(`point-${newIndex + 1}-0`);
+    } else {
+      // Append the new line to lines array and renumber
+      linesStore.update((l) => renumberDefaultPathNames([...l, newLine]));
+      // Insert into sequence after insertIdx
+      sequenceStore.update((s) => {
+        const s2 = [...s];
+        s2.splice(insertIdx + 1, 0, { kind: "path", lineId: newLine.id! });
+        return s2;
+      });
+      // Select the newly created line
+      selectedLineId.set(newLine.id!);
+      // After insertion, the new line will be at the end of lines array
+      const newIndex = $linesStore.length - 1;
+      selectedPointId.set(`point-${newIndex + 1}-0`);
+    }
+
     recordChange();
   }
 
@@ -97,7 +150,18 @@
       durationMs: 1000,
       locked: false,
     };
-    sequenceStore.update((s) => [...s, wait]);
+
+    const insertIdx = getSelectedSequenceIndex();
+    if (insertIdx === null) {
+      sequenceStore.update((s) => [...s, wait]);
+    } else {
+      sequenceStore.update((s) => {
+        const s2 = [...s];
+        s2.splice(insertIdx + 1, 0, wait);
+        return s2;
+      });
+    }
+
     selectedPointId.set(`wait-${wait.id}`);
     selectedLineId.set(null);
     recordChange();
