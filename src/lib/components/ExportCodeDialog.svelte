@@ -204,26 +204,6 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<style>
-  /* Ensure the highlightjs background is transparent so our line highlights show through */
-  :global(.highlight-wrapper) {
-    background: transparent !important;
-    padding: 0 !important; /* Remove padding from hljs container */
-    margin: 0 !important; /* Remove margin */
-    overflow: visible !important; /* Prevent double scrollbars */
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-      "Liberation Mono", "Courier New", monospace !important;
-    font-size: 0.875rem !important; /* text-sm */
-    line-height: 1.625 !important; /* leading-relaxed */
-  }
-
-  :global(.highlight-wrapper code) {
-    overflow: visible !important;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-      "Liberation Mono", "Courier New", monospace !important;
-  }
-</style>
-
 {#if isOpen}
   <!-- Backdrop -->
   <div
@@ -612,3 +592,25 @@
     </div>
   </div>
 {/if}
+
+<style>
+  /* Ensure the highlightjs background is transparent so our line highlights show through */
+  :global(.highlight-wrapper) {
+    background: transparent !important;
+    padding: 0 !important; /* Remove padding from hljs container */
+    margin: 0 !important; /* Remove margin */
+    overflow: visible !important; /* Prevent double scrollbars */
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace !important;
+    font-size: 0.875rem !important; /* text-sm */
+    line-height: 1.625 !important; /* leading-relaxed */
+  }
+
+  :global(.highlight-wrapper code) {
+    overflow: visible !important;
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace !important;
+  }
+</style>
