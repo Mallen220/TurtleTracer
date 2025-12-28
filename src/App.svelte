@@ -1793,6 +1793,23 @@
         if (elem?.id.startsWith("point") || elem?.id.startsWith("obstacle")) {
           two.renderer.domElement.style.cursor = "pointer";
           currentElem = elem.id;
+        } else if (
+          elem?.id &&
+          (elem.id.startsWith("event-") ||
+            elem.id.startsWith("event-circle-") ||
+            elem.id.startsWith("event-flag-"))
+        ) {
+          // Normalize event element ids to a common selection id: event-<lineIdx>-<eventIdx>
+          two.renderer.domElement.style.cursor = "pointer";
+          const idParts = elem.id.split("-");
+          // id can be 'event-2-1' (group) or 'event-circle-2-1' or 'event-flag-2-1'
+          if (idParts.length >= 3) {
+            const lineIdx = idParts[idParts.length - 2];
+            const evIdx = idParts[idParts.length - 1];
+            currentElem = `event-${lineIdx}-${evIdx}`;
+          } else {
+            currentElem = elem.id;
+          }
         } else {
           two.renderer.domElement.style.cursor = "auto";
           currentElem = null;
@@ -1826,28 +1843,17 @@
               selectedPointId.set(null);
             }
           }
-        } else if (currentElem.startsWith("obstacle-")) {
-          selectedLineId.set(null);
-          selectedPointId.set(null);
+        } else if (currentElem.startsWith("event-")) {
+          // Select event marker and set line selection
+          const parts = currentElem.split("-");
+          const lineIdx = Number(parts[1]);
+          const evIdx = Number(parts[2]);
+          if (!isNaN(lineIdx) && !isNaN(evIdx) && lines[lineIdx]) {
+            selectedLineId.set(lines[lineIdx].id);
+            selectedPointId.set(currentElem);
+          }
         }
-      } else {
-        selectedLineId.set(null);
-        selectedPointId.set(null);
-      }
 
-      // Calculate drag offset when clicking to prevent snapping center to mouse
-      if (currentElem) {
-        const rect = two.renderer.domElement.getBoundingClientRect();
-        const transformed = getTransformedCoordinates(
-          evt.clientX,
-          evt.clientY,
-          rect,
-          settings.fieldRotation || 0,
-        );
-        const mouseX = x.invert(transformed.x);
-        const mouseY = y.invert(transformed.y);
-
-        let objectX = 0;
         let objectY = 0;
 
         if (currentElem.startsWith("obstacle-")) {
@@ -2503,10 +2509,54 @@
       const item = sequence.find((s) => s.kind === "wait" && s.id === waitId);
       if (item && item.kind === "wait") {
         // Modify duration
-        const change = delta * 100; // 100ms steps?
+        const change = delta * 100; // 100ms steps
         item.durationMs = Math.max(0, item.durationMs + change);
         sequence = [...sequence]; // Trigger reactivity
         recordChange();
+      }
+      return;
+    }
+
+    // If selection is an event marker (event-<lineIdx>-<evIdx>), modify its position (0..1)
+    if (current.startsWith("event-")) {
+      const parts = current.split("-");
+      if (parts.length >= 3) {
+        const lineIdx = Number(parts[1]);
+        const evIdx = Number(parts[2]);
+        const line = lines[lineIdx];
+        if (line && line.eventMarkers && line.eventMarkers[evIdx]) {
+          // Move closer to 1 for positive delta ('=') or closer to 0 for negative delta ('-')
+          // Step size: 0.01 per press
+          const step = 0.01 * Math.sign(delta || 1);
+          let newPos = line.eventMarkers[evIdx].position + step;
+
+          // Clamp between 0 and 1
+          newPos = Math.max(0, Math.min(1, newPos));
+
+          line.eventMarkers[evIdx].position = newPos;
+          lines = lines; // Trigger reactivity
+          recordChange();
+        }
+      }
+      return;
+    }
+
+    // If a line is selected but no specific event is selected, modify the last event on that line
+    if ($selectedLineId) {
+      const selLineId = $selectedLineId;
+      const lineIdx = lines.findIndex((l) => l.id === selLineId);
+      if (lineIdx !== -1) {
+        const line = lines[lineIdx];
+        if (line && line.eventMarkers && line.eventMarkers.length > 0) {
+          const lastIdx = line.eventMarkers.length - 1;
+          const step = 0.01 * Math.sign(delta || 1);
+          let newPos = line.eventMarkers[lastIdx].position + step;
+          newPos = Math.max(0, Math.min(1, newPos));
+          line.eventMarkers[lastIdx].position = newPos;
+          lines = lines; // Trigger reactivity
+          recordChange();
+          return;
+        }
       }
     }
   }
