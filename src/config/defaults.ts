@@ -318,6 +318,8 @@ export const DEFAULT_SETTINGS: Settings = {
   optimizationMutationStrength: 3.0,
   keyBindings: DEFAULT_KEY_BINDINGS,
   recentFiles: [],
+  // Developer/debugging aids
+  showDebugSequence: false,
 };
 
 /**

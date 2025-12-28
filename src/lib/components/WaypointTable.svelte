@@ -150,31 +150,80 @@
     cp: ControlPoint | Point | undefined,
     j?: number,
   ) {
-    try {
-      const lineIdx = lines.findIndex((l) => l === line);
-      const cpIndex = cp
-        ? [line.endPoint, ...line.controlPoints].findIndex((p) => p === cp)
-        : -1;
-      const pointId = cp
-        ? `point-${lineIdx + 1}-${cpIndex}`
-        : `point-${lineIdx + 1}-0`;
-      /* console.debug("[WaypointTable] render row", {
-        lineId: line.id,
-        lineIdx,
-        cpIndex,
-        pointId,
-        seqCount: sequence.length,
-      }); */
-    } catch (e) {
-      console.debug("[WaypointTable] debugPointRow error", e);
-    }
     return "";
+  }
+
+  // Helper to find the index in the real `sequence` array for a display item
+  function findSequenceIndex(item: any) {
+    if (!Array.isArray(sequence)) return -1;
+    return sequence.findIndex((s) => {
+      if ((s as any).kind !== (item as any).kind) return false;
+      if ((s as any).kind === "path")
+        return (s as any).lineId === (item as any).lineId;
+      return (s as any).id === (item as any).id;
+    });
+  }
+
+  // Ensure UI shows any lines that might be missing from the sequence (robustness)
+  $: displaySequence = (() => {
+    try {
+      // Keep original sequence order and append any missing path items for lines
+      const seqCopy = Array.isArray(sequence) ? [...sequence] : [];
+      const pathIds = new Set(
+        seqCopy
+          .filter((s) => (s as any).kind === "path")
+          .map((s) => (s as any).lineId),
+      );
+      lines.forEach((l) => {
+        if (!pathIds.has(l.id)) {
+          seqCopy.push({ kind: "path", lineId: l.id });
+        }
+      });
+      return seqCopy;
+    } catch (e) {
+      return sequence || [];
+    }
+  })();
+
+  // Computed debug values to keep template expressions simple
+  $: debugLinesIds = Array.isArray(lines) ? lines.map((l) => l.id) : [];
+  $: debugSequenceIds = Array.isArray(sequence)
+    ? sequence.map((s) =>
+        s.kind === "path" ? (s as any).lineId : (s as any).id,
+      )
+    : [];
+  $: debugDisplayIds = Array.isArray(displaySequence)
+    ? displaySequence.map((d) =>
+        d.kind === "path" ? (d as any).lineId : (d as any).id,
+      )
+    : [];
+  $: debugMissing = debugLinesIds.filter(
+    (id) => !debugSequenceIds.includes(id),
+  );
+  $: debugInvalidRefs = debugSequenceIds.filter(
+    (id) => id && !debugLinesIds.includes(id),
+  );
+
+  $: {
+    // Optional console logs for development convenience
+    try {
+      console.info("[WaypointTable] debugLinesIds", debugLinesIds);
+      console.info("[WaypointTable] debugSequenceIds", debugSequenceIds);
+      console.info("[WaypointTable] debugDisplayIds", debugDisplayIds);
+      console.info("[WaypointTable] missing", debugMissing);
+      console.info("[WaypointTable] invalidRefs", debugInvalidRefs);
+    } catch (err) {
+      /* no-op */
+    }
   }
 
   // Drag and drop state
   let draggingIndex: number | null = null;
   let dragOverIndex: number | null = null;
   let dragPosition: "top" | "bottom" | null = null;
+
+  // One-time repair flag for missing sequence items
+  let repairedOnce = false;
 
   function handleDragStart(e: DragEvent, index: number) {
     draggingIndex = index;
@@ -228,6 +277,34 @@
     reordered.push(...(byId.values() as Iterable<Line>));
 
     lines = reordered;
+
+    // Renumber default path names to match the new order
+    const renamed = lines.map((l, idx) => {
+      if (!l.name || /^Path \d+$/.test(l.name))
+        return { ...l, name: `Path ${idx + 1}` };
+      return l;
+    });
+    lines = renamed;
+  }
+
+  // Watch for missing sequence entries and repair once to keep UI in sync
+  $: if (Array.isArray(lines) && Array.isArray(sequence) && !repairedOnce) {
+    const missing = lines.filter(
+      (l) =>
+        !sequence.some((s) => s.kind === "path" && (s as any).lineId === l.id),
+    );
+    if (missing.length) {
+      console.warn(
+        "[WaypointTable] repairing missing sequence items:",
+        missing.map((m) => m.id),
+      );
+      sequence = [
+        ...sequence,
+        ...missing.map((l) => ({ kind: "path", lineId: l.id })),
+      ];
+      repairedOnce = true;
+      if (recordChange) recordChange();
+    }
   }
 
   // Delete helpers
@@ -348,6 +425,18 @@
     </div>
   </div>
 
+  {#if settings?.showDebugSequence}
+    <div class="p-2 text-xs text-neutral-500">
+      <div>
+        <strong>DEBUG</strong> — lines: {lines.length}, sequence: {(
+          sequence || []
+        ).length}, display: {(displaySequence || []).length}
+      </div>
+      <div>Missing: {JSON.stringify(debugMissing)}</div>
+      <div>Invalid refs: {JSON.stringify(debugInvalidRefs)}</div>
+    </div>
+  {/if}
+
   {#if optimizationOpen}
     <div
       class="w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-100 dark:bg-neutral-800 p-4"
@@ -443,8 +532,9 @@
           </td>
         </tr>
 
-        <!-- Sequence Items -->
-        {#each sequence as item, seqIdx (item.kind === "path" ? item.lineId : item.id)}
+        <!-- Sequence Items (displaySequence ensures missing lines are shown) -->
+        {#each displaySequence as item, seqIdx (item.kind === "path" ? item.lineId : item.id)}
+          {@const seqIndex = findSequenceIndex(item)}
           {#if item.kind === "path"}
             {#each lines.filter((l) => l.id === item.lineId) as line (line.id)}
               {@const lineIdx = lines.findIndex((l) => l === line)}
@@ -453,18 +543,18 @@
               {@const endPointId = `point-${lineIdx + 1}-0`}
               <tr
                 draggable={!line.locked}
-                on:dragstart={(e) => handleDragStart(e, seqIdx)}
-                on:dragover={(e) => handleDragOver(e, seqIdx)}
-                on:drop={(e) => handleDrop(e, seqIdx)}
+                on:dragstart={(e) => handleDragStart(e, seqIndex)}
+                on:dragover={(e) => handleDragOver(e, seqIndex)}
+                on:drop={(e) => handleDrop(e, seqIndex)}
                 on:dragend={handleDragEnd}
                 class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150`}
-                class:border-t-2={dragOverIndex === seqIdx &&
+                class:border-t-2={dragOverIndex === seqIndex &&
                   dragPosition === "top"}
-                class:border-b-2={dragOverIndex === seqIdx &&
+                class:border-b-2={dragOverIndex === seqIndex &&
                   dragPosition === "bottom"}
-                class:border-blue-500={dragOverIndex === seqIdx}
-                class:dark:border-blue-400={dragOverIndex === seqIdx}
-                class:opacity-50={draggingIndex === seqIdx}
+                class:border-blue-500={dragOverIndex === seqIndex}
+                class:dark:border-blue-400={dragOverIndex === seqIndex}
+                class:opacity-50={draggingIndex === seqIndex}
                 on:click={() => {
                   selectedLineId.set(line.id);
                   selectedPointId.set(endPointId);
@@ -498,14 +588,20 @@
                   />
                 </td>
                 <td class="px-3 py-2">
-                  <input
-                    type="number"
-                    class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    step={stepSize}
-                    value={line.endPoint.x}
-                    on:input={(e) => handleInput(e, line.endPoint, "x")}
-                    disabled={line.locked}
-                  />
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="number"
+                      class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      step={stepSize}
+                      value={line.endPoint.x}
+                      on:input={(e) => handleInput(e, line.endPoint, "x")}
+                      disabled={line.locked}
+                    />
+                    <span class="text-xs text-neutral-400">/</span>
+                    <span class="text-xs text-neutral-500"
+                      >{line.waitBeforeName || line.waitBeforeMs || ""}</span
+                    >
+                  </div>
                 </td>
                 <td class="px-3 py-2">
                   <input
@@ -589,8 +685,8 @@
                     selectedLineId.set(line.id);
                     selectedPointId.set(pointId);
                   }}
-                  on:dragover={(e) => handleDragOver(e, seqIdx)}
-                  on:drop={(e) => handleDrop(e, seqIdx)}
+                  on:dragover={(e) => handleDragOver(e, seqIndex)}
+                  on:drop={(e) => handleDrop(e, seqIndex)}
                 >
                   <td class="w-8 px-2 py-2">
                     <!-- No drag handle for control points, but they are drop targets for the parent seqIdx -->
@@ -639,20 +735,21 @@
             {/each}
           {:else if item.kind === "wait"}
             <!-- Wait Item -->
+            {@const seqIndex = findSequenceIndex(item)}
             <tr
               draggable={!item.locked}
-              on:dragstart={(e) => handleDragStart(e, seqIdx)}
-              on:dragover={(e) => handleDragOver(e, seqIdx)}
-              on:drop={(e) => handleDrop(e, seqIdx)}
+              on:dragstart={(e) => handleDragStart(e, seqIndex)}
+              on:dragover={(e) => handleDragOver(e, seqIndex)}
+              on:drop={(e) => handleDrop(e, seqIndex)}
               on:dragend={handleDragEnd}
               class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-amber-50 dark:bg-amber-900/20 transition-colors duration-150"
-              class:border-t-2={dragOverIndex === seqIdx &&
+              class:border-t-2={dragOverIndex === seqIndex &&
                 dragPosition === "top"}
-              class:border-b-2={dragOverIndex === seqIdx &&
+              class:border-b-2={dragOverIndex === seqIndex &&
                 dragPosition === "bottom"}
-              class:border-blue-500={dragOverIndex === seqIdx}
-              class:dark:border-blue-400={dragOverIndex === seqIdx}
-              class:opacity-50={draggingIndex === seqIdx}
+              class:border-blue-500={dragOverIndex === seqIndex}
+              class:dark:border-blue-400={dragOverIndex === seqIndex}
+              class:opacity-50={draggingIndex === seqIndex}
             >
               <td
                 class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
@@ -702,7 +799,7 @@
                   <span title="Locked">🔒</span>
                 {:else}
                   <button
-                    on:click|stopPropagation={() => deleteWait(seqIdx)}
+                    on:click|stopPropagation={() => deleteWait(seqIndex)}
                     title="Delete wait"
                     class="p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                   >

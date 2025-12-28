@@ -29,6 +29,38 @@ export function normalizeLines(input: Line[]): Line[] {
   }));
 }
 
+// Helper: sanitize sequence to remove references to non-existent lines and append any missing lines
+export function sanitizeSequence(
+  lines: Line[],
+  seq: SequenceItem[] | undefined,
+): SequenceItem[] {
+  const candidate = Array.isArray(seq) ? [...seq] : [];
+  const lineIds = new Set(lines.map((l) => l.id));
+
+  // Remove path entries that reference lines not present
+  const pruned = candidate.filter(
+    (s) => s.kind !== "path" || lineIds.has((s as any).lineId),
+  );
+
+  // Append any lines that are missing from the sequence
+  const presentIds = new Set(
+    pruned.filter((s) => s.kind === "path").map((s) => (s as any).lineId),
+  );
+  const missing = lines.filter((l) => !presentIds.has(l.id));
+
+  return [...pruned, ...missing.map((l) => ({ kind: "path", lineId: l.id }))];
+}
+
+// Helper: renumber default path names to match display order
+export function renumberDefaultPathNames(lines: Line[]): Line[] {
+  return lines.map((l, idx) => {
+    if (!l.name || /^Path \d+$/.test(l.name)) {
+      return { ...l, name: `Path ${idx + 1}` };
+    }
+    return l;
+  });
+}
+
 // Create writable stores for the project state
 export const startPointStore = writable<Point>(getDefaultStartPoint());
 export const linesStore = writable<Line[]>(normalizeLines(getDefaultLines()));
@@ -41,7 +73,7 @@ export const sequenceStore = writable<SequenceItem[]>(
   initialLines.map((ln) => ({
     kind: "path",
     lineId: ln.id!,
-  }))
+  })),
 );
 export const settingsStore = writable<Settings>({ ...DEFAULT_SETTINGS });
 
@@ -64,7 +96,7 @@ export function resetProject() {
     newLines.map((ln) => ({
       kind: "path",
       lineId: ln.id!,
-    }))
+    })),
   );
   // We don't reset settings usually, or maybe we do?
   // The original App.svelte reset code:
@@ -76,29 +108,54 @@ export function resetProject() {
 }
 
 export function loadProjectData(data: any) {
-    const sp = data.startPoint || {
-      x: 72,
-      y: 72,
-      heading: "tangential",
-      reverse: false,
-    };
-    startPointStore.set(sp);
+  const sp = data.startPoint || {
+    x: 72,
+    y: 72,
+    heading: "tangential",
+    reverse: false,
+  };
+  startPointStore.set(sp);
 
-    const normLines = normalizeLines(data.lines || []);
-    linesStore.set(normLines);
+  const normLines = normalizeLines(data.lines || []);
 
-    shapesStore.set(data.shapes || []);
+  // Sanitize sequence with respect to normalized lines and set both stores
+  const seqCandidate = (
+    data.sequence && data.sequence.length
+      ? data.sequence
+      : normLines.map((ln) => ({ kind: "path", lineId: ln.id! }))
+  ) as SequenceItem[];
 
-    const seq = (data.sequence && data.sequence.length
-        ? data.sequence
-        : normLines.map((ln) => ({
-            kind: "path",
-            lineId: ln.id!,
-          }))) as SequenceItem[];
-    sequenceStore.set(seq);
+  const sanitized = sanitizeSequence(normLines, seqCandidate);
 
-    // settings are usually loaded separately or merged?
-    // In App.svelte loadData does NOT load settings from the file data usually,
-    // except if it's a full project save.
-    // The App.svelte `loadData` function DOES NOT update settings.
+  // Renumber default names to match displayed order
+  const renamedLines = renumberDefaultPathNames(normLines);
+
+  linesStore.set(renamedLines);
+  shapesStore.set(data.shapes || []);
+  sequenceStore.set(sanitized);
+
+  // settings are usually loaded separately or merged?
+  // In App.svelte loadData does NOT load settings from the file data usually,
+  // except if it's a full project save.
 }
+
+// Public repair function: ensure sequence and line names are consistent at runtime
+export function ensureSequenceConsistency() {
+  const lines = get(linesStore);
+  const seq = get(sequenceStore);
+  const sanitized = sanitizeSequence(lines, seq);
+
+  if (JSON.stringify(sanitized) !== JSON.stringify(seq)) {
+    console.warn("[projectStore] ensureSequenceConsistency: updating sequence");
+    sequenceStore.set(sanitized);
+  }
+
+  const renamed = renumberDefaultPathNames(lines);
+  if (JSON.stringify(renamed) !== JSON.stringify(lines)) {
+    console.warn(
+      "[projectStore] ensureSequenceConsistency: renaming default path names",
+    );
+    linesStore.set(renamed);
+  }
+}
+// The App.svelte `loadData` function DOES NOT update settings.

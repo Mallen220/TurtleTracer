@@ -72,8 +72,14 @@
   let isDown = false;
 
   // D3 Scales
-  $: x = d3.scaleLinear().domain([0, FIELD_SIZE]).range([0, width || FIELD_SIZE]);
-  $: y = d3.scaleLinear().domain([0, FIELD_SIZE]).range([height || FIELD_SIZE, 0]);
+  $: x = d3
+    .scaleLinear()
+    .domain([0, FIELD_SIZE])
+    .range([0, width || FIELD_SIZE]);
+  $: y = d3
+    .scaleLinear()
+    .domain([0, FIELD_SIZE])
+    .range([height || FIELD_SIZE, 0]);
 
   // Derived Values from Stores
   $: startPoint = $startPointStore;
@@ -89,7 +95,7 @@
     clientX: number,
     clientY: number,
     rect: DOMRect,
-    rotation: number
+    rotation: number,
   ) {
     const px = clientX - rect.left;
     const py = clientY - rect.top;
@@ -115,7 +121,7 @@
     let startPointElem = new Two.Circle(
       x(startPoint.x),
       y(startPoint.y),
-      x(POINT_RADIUS)
+      x(POINT_RADIUS),
     );
     startPointElem.id = `point-0-0`;
     startPointElem.fill = lines[0]?.color || "#000000"; // Fallback color if lines empty
@@ -128,7 +134,11 @@
         if (idx1 > 0) {
           let pointGroup = new Two.Group();
           pointGroup.id = `point-${idx + 1}-${idx1}`;
-          let pointElem = new Two.Circle(x(point.x), y(point.y), x(POINT_RADIUS));
+          let pointElem = new Two.Circle(
+            x(point.x),
+            y(point.y),
+            x(POINT_RADIUS),
+          );
           pointElem.id = `point-${idx + 1}-${idx1}-background`;
           pointElem.fill = line.color;
           pointElem.noStroke();
@@ -136,7 +146,7 @@
             `${idx1}`,
             x(point.x),
             y(point.y - 0.15),
-            x(POINT_RADIUS)
+            x(POINT_RADIUS),
           );
           pointText.id = `point-${idx + 1}-${idx1}-text`;
           pointText.size = x(1.55);
@@ -149,7 +159,11 @@
           pointGroup.add(pointElem, pointText);
           _points.push(pointGroup);
         } else {
-          let pointElem = new Two.Circle(x(point.x), y(point.y), x(POINT_RADIUS));
+          let pointElem = new Two.Circle(
+            x(point.x),
+            y(point.y),
+            x(POINT_RADIUS),
+          );
           pointElem.id = `point-${idx + 1}-${idx1}`;
           pointElem.fill = line.color;
           pointElem.noStroke();
@@ -162,7 +176,11 @@
       shape.vertices.forEach((vertex, vertexIdx) => {
         let pointGroup = new Two.Group();
         pointGroup.id = `obstacle-${shapeIdx}-${vertexIdx}`;
-        let pointElem = new Two.Circle(x(vertex.x), y(vertex.y), x(POINT_RADIUS));
+        let pointElem = new Two.Circle(
+          x(vertex.x),
+          y(vertex.y),
+          x(POINT_RADIUS),
+        );
         pointElem.id = `obstacle-${shapeIdx}-${vertexIdx}-background`;
         pointElem.fill = "#991b1b";
         pointElem.noStroke();
@@ -170,7 +188,7 @@
           `${vertexIdx + 1}`,
           x(vertex.x),
           y(vertex.y - 0.15),
-          x(POINT_RADIUS)
+          x(POINT_RADIUS),
         );
         pointText.id = `obstacle-${shapeIdx}-${vertexIdx}-text`;
         pointText.size = x(1.55);
@@ -192,7 +210,8 @@
     let _path: (Path | PathLine)[] = [];
     lines.forEach((line, idx) => {
       if (!line || !line.endPoint) return;
-      let _startPoint = idx === 0 ? startPoint : lines[idx - 1]?.endPoint || null;
+      let _startPoint =
+        idx === 0 ? startPoint : lines[idx - 1]?.endPoint || null;
       if (!_startPoint) return;
 
       let lineElem: Path | PathLine;
@@ -200,11 +219,29 @@
         const samples = 100;
         const cps = [_startPoint, ...line.controlPoints, line.endPoint];
         let points = [
-          new Two.Anchor(x(_startPoint.x), y(_startPoint.y), 0, 0, 0, 0, Two.Commands.move),
+          new Two.Anchor(
+            x(_startPoint.x),
+            y(_startPoint.y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.move,
+          ),
         ];
         for (let i = 1; i <= samples; ++i) {
           const point = getCurvePoint(i / samples, cps);
-          points.push(new Two.Anchor(x(point.x), y(point.y), 0, 0, 0, 0, Two.Commands.line));
+          points.push(
+            new Two.Anchor(
+              x(point.x),
+              y(point.y),
+              0,
+              0,
+              0,
+              0,
+              Two.Commands.line,
+            ),
+          );
         }
         points.forEach((point) => (point.relative = false));
         lineElem = new Two.Path(points);
@@ -212,19 +249,42 @@
       } else if (line.controlPoints.length > 0) {
         let cp1 = line.controlPoints[1]
           ? line.controlPoints[0]
-          : quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint).Q1;
+          : quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
+              .Q1;
         let cp2 =
           line.controlPoints[1] ??
-          quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint).Q2;
+          quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
+            .Q2;
         let points = [
-          new Two.Anchor(x(_startPoint.x), y(_startPoint.y), x(_startPoint.x), y(_startPoint.y), x(cp1.x), y(cp1.y), Two.Commands.move),
-          new Two.Anchor(x(line.endPoint.x), y(line.endPoint.y), x(cp2.x), y(cp2.y), x(line.endPoint.x), y(line.endPoint.y), Two.Commands.curve),
+          new Two.Anchor(
+            x(_startPoint.x),
+            y(_startPoint.y),
+            x(_startPoint.x),
+            y(_startPoint.y),
+            x(cp1.x),
+            y(cp1.y),
+            Two.Commands.move,
+          ),
+          new Two.Anchor(
+            x(line.endPoint.x),
+            y(line.endPoint.y),
+            x(cp2.x),
+            y(cp2.y),
+            x(line.endPoint.x),
+            y(line.endPoint.y),
+            Two.Commands.curve,
+          ),
         ];
         points.forEach((point) => (point.relative = false));
         lineElem = new Two.Path(points);
         lineElem.automatic = false;
       } else {
-        lineElem = new Two.Line(x(_startPoint.x), y(_startPoint.y), x(line.endPoint.x), y(line.endPoint.y));
+        lineElem = new Two.Line(
+          x(_startPoint.x),
+          y(_startPoint.y),
+          x(line.endPoint.x),
+          y(line.endPoint.y),
+        );
       }
       lineElem.id = `line-${idx + 1}`;
       lineElem.stroke = line.color;
@@ -248,11 +308,41 @@
     shapes.forEach((shape, idx) => {
       if (shape.vertices.length >= 3) {
         let vertices = [];
-        vertices.push(new Two.Anchor(x(shape.vertices[0].x), y(shape.vertices[0].y), 0, 0, 0, 0, Two.Commands.move));
+        vertices.push(
+          new Two.Anchor(
+            x(shape.vertices[0].x),
+            y(shape.vertices[0].y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.move,
+          ),
+        );
         for (let i = 1; i < shape.vertices.length; i++) {
-          vertices.push(new Two.Anchor(x(shape.vertices[i].x), y(shape.vertices[i].y), 0, 0, 0, 0, Two.Commands.line));
+          vertices.push(
+            new Two.Anchor(
+              x(shape.vertices[i].x),
+              y(shape.vertices[i].y),
+              0,
+              0,
+              0,
+              0,
+              Two.Commands.line,
+            ),
+          );
         }
-        vertices.push(new Two.Anchor(x(shape.vertices[0].x), y(shape.vertices[0].y), 0, 0, 0, 0, Two.Commands.close));
+        vertices.push(
+          new Two.Anchor(
+            x(shape.vertices[0].x),
+            y(shape.vertices[0].y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.close,
+          ),
+        );
         vertices.forEach((point) => (point.relative = false));
         let shapeElement = new Two.Path(vertices);
         shapeElement.id = `shape-${idx}`;
@@ -271,14 +361,50 @@
   $: ghostPathElement = (() => {
     let ghostPath: Path | null = null;
     if (settings.showGhostPaths && lines.length > 0) {
-      const ghostPoints = generateGhostPathPoints(startPoint, lines, settings.rWidth, settings.rHeight, 50);
+      const ghostPoints = generateGhostPathPoints(
+        startPoint,
+        lines,
+        settings.rWidth,
+        settings.rHeight,
+        50,
+      );
       if (ghostPoints.length >= 3) {
         let vertices = [];
-        vertices.push(new Two.Anchor(x(ghostPoints[0].x), y(ghostPoints[0].y), 0, 0, 0, 0, Two.Commands.move));
+        vertices.push(
+          new Two.Anchor(
+            x(ghostPoints[0].x),
+            y(ghostPoints[0].y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.move,
+          ),
+        );
         for (let i = 1; i < ghostPoints.length; i++) {
-          vertices.push(new Two.Anchor(x(ghostPoints[i].x), y(ghostPoints[i].y), 0, 0, 0, 0, Two.Commands.line));
+          vertices.push(
+            new Two.Anchor(
+              x(ghostPoints[i].x),
+              y(ghostPoints[i].y),
+              0,
+              0,
+              0,
+              0,
+              Two.Commands.line,
+            ),
+          );
         }
-        vertices.push(new Two.Anchor(x(ghostPoints[0].x), y(ghostPoints[0].y), 0, 0, 0, 0, Two.Commands.close));
+        vertices.push(
+          new Two.Anchor(
+            x(ghostPoints[0].x),
+            y(ghostPoints[0].y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.close,
+          ),
+        );
         vertices.forEach((point) => (point.relative = false));
         ghostPath = new Two.Path(vertices);
         ghostPath.id = "ghost-path";
@@ -297,14 +423,50 @@
     let onionLayers: Path[] = [];
     if (settings.showOnionLayers && lines.length > 0) {
       const spacing = settings.onionLayerSpacing || 6;
-      const layers = generateOnionLayers(startPoint, lines, settings.rWidth, settings.rHeight, spacing);
+      const layers = generateOnionLayers(
+        startPoint,
+        lines,
+        settings.rWidth,
+        settings.rHeight,
+        spacing,
+      );
       layers.forEach((layer, idx) => {
         let vertices = [];
-        vertices.push(new Two.Anchor(x(layer.corners[0].x), y(layer.corners[0].y), 0, 0, 0, 0, Two.Commands.move));
+        vertices.push(
+          new Two.Anchor(
+            x(layer.corners[0].x),
+            y(layer.corners[0].y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.move,
+          ),
+        );
         for (let i = 1; i < layer.corners.length; i++) {
-          vertices.push(new Two.Anchor(x(layer.corners[i].x), y(layer.corners[i].y), 0, 0, 0, 0, Two.Commands.line));
+          vertices.push(
+            new Two.Anchor(
+              x(layer.corners[i].x),
+              y(layer.corners[i].y),
+              0,
+              0,
+              0,
+              0,
+              Two.Commands.line,
+            ),
+          );
         }
-        vertices.push(new Two.Anchor(x(layer.corners[0].x), y(layer.corners[0].y), 0, 0, 0, 0, Two.Commands.close));
+        vertices.push(
+          new Two.Anchor(
+            x(layer.corners[0].x),
+            y(layer.corners[0].y),
+            0,
+            0,
+            0,
+            0,
+            Two.Commands.close,
+          ),
+        );
         vertices.forEach((point) => (point.relative = false));
         let onionRect = new Two.Path(vertices);
         onionRect.id = `onion-layer-${idx}`;
@@ -325,37 +487,86 @@
     if (previewOptimizedLines && previewOptimizedLines.length > 0) {
       previewOptimizedLines.forEach((line, idx) => {
         if (!line || !line.endPoint) return;
-        let _startPoint = idx === 0 ? startPoint : previewOptimizedLines[idx - 1]?.endPoint || null;
+        let _startPoint =
+          idx === 0
+            ? startPoint
+            : previewOptimizedLines[idx - 1]?.endPoint || null;
         if (!_startPoint) return;
 
         let lineElem: Path | PathLine;
         if (line.controlPoints.length > 2) {
           const samples = 100;
           const cps = [_startPoint, ...line.controlPoints, line.endPoint];
-          let points = [new Two.Anchor(x(_startPoint.x), y(_startPoint.y), 0, 0, 0, 0, Two.Commands.move)];
+          let points = [
+            new Two.Anchor(
+              x(_startPoint.x),
+              y(_startPoint.y),
+              0,
+              0,
+              0,
+              0,
+              Two.Commands.move,
+            ),
+          ];
           for (let i = 1; i <= samples; ++i) {
             const point = getCurvePoint(i / samples, cps);
-            points.push(new Two.Anchor(x(point.x), y(point.y), 0, 0, 0, 0, Two.Commands.line));
+            points.push(
+              new Two.Anchor(
+                x(point.x),
+                y(point.y),
+                0,
+                0,
+                0,
+                0,
+                Two.Commands.line,
+              ),
+            );
           }
           points.forEach((point) => (point.relative = false));
           lineElem = new Two.Path(points);
           lineElem.automatic = false;
         } else if (line.controlPoints.length > 0) {
-           let cp1 = line.controlPoints[1]
+          let cp1 = line.controlPoints[1]
             ? line.controlPoints[0]
-            : quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint).Q1;
+            : quadraticToCubic(
+                _startPoint,
+                line.controlPoints[0],
+                line.endPoint,
+              ).Q1;
           let cp2 =
             line.controlPoints[1] ??
-            quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint).Q2;
+            quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
+              .Q2;
           let points = [
-            new Two.Anchor(x(_startPoint.x), y(_startPoint.y), x(_startPoint.x), y(_startPoint.y), x(cp1.x), y(cp1.y), Two.Commands.move),
-            new Two.Anchor(x(line.endPoint.x), y(line.endPoint.y), x(cp2.x), y(cp2.y), x(line.endPoint.x), y(line.endPoint.y), Two.Commands.curve),
+            new Two.Anchor(
+              x(_startPoint.x),
+              y(_startPoint.y),
+              x(_startPoint.x),
+              y(_startPoint.y),
+              x(cp1.x),
+              y(cp1.y),
+              Two.Commands.move,
+            ),
+            new Two.Anchor(
+              x(line.endPoint.x),
+              y(line.endPoint.y),
+              x(cp2.x),
+              y(cp2.y),
+              x(line.endPoint.x),
+              y(line.endPoint.y),
+              Two.Commands.curve,
+            ),
           ];
           points.forEach((point) => (point.relative = false));
           lineElem = new Two.Path(points);
           lineElem.automatic = false;
         } else {
-          lineElem = new Two.Line(x(_startPoint.x), y(_startPoint.y), x(line.endPoint.x), y(line.endPoint.y));
+          lineElem = new Two.Line(
+            x(_startPoint.x),
+            y(_startPoint.y),
+            x(line.endPoint.x),
+            y(line.endPoint.y),
+          );
         }
         lineElem.id = `preview-line-${idx + 1}`;
         lineElem.stroke = "#60a5fa";
@@ -373,8 +584,15 @@
   $: eventMarkerElements = (() => {
     let markers: Two.Group[] = [];
     lines.forEach((line, idx) => {
-      if (!line || !line.endPoint || !line.eventMarkers || line.eventMarkers.length === 0) return;
-      const _startPoint = idx === 0 ? startPoint : lines[idx - 1]?.endPoint || null;
+      if (
+        !line ||
+        !line.endPoint ||
+        !line.eventMarkers ||
+        line.eventMarkers.length === 0
+      )
+        return;
+      const _startPoint =
+        idx === 0 ? startPoint : lines[idx - 1]?.endPoint || null;
       if (!_startPoint) return;
 
       line.eventMarkers.forEach((ev, evIdx) => {
@@ -383,7 +601,8 @@
         if (line.controlPoints.length > 0) {
           const cps = [_startPoint, ...line.controlPoints, line.endPoint];
           const pt = getCurvePoint(t, cps);
-          pos.x = pt.x; pos.y = pt.y;
+          pos.x = pt.x;
+          pos.y = pt.y;
         } else {
           pos.x = _startPoint.x + (line.endPoint.x - _startPoint.x) * t;
           pos.y = _startPoint.y + (line.endPoint.y - _startPoint.y) * t;
@@ -400,18 +619,34 @@
       });
     });
 
-    if (timePrediction && timePrediction.timeline && sequence && sequence.length > 0) {
+    if (
+      timePrediction &&
+      timePrediction.timeline &&
+      sequence &&
+      sequence.length > 0
+    ) {
       const waitById = new Map<string, any>();
-      sequence.forEach((it) => { if (it.kind === "wait") waitById.set(it.id, it); });
+      sequence.forEach((it) => {
+        if (it.kind === "wait") waitById.set(it.id, it);
+      });
       timePrediction.timeline.forEach((ev) => {
         if (ev.type !== "wait" || !ev.waitId || !ev.atPoint) return;
         const seqWait = waitById.get(ev.waitId);
-        if (!seqWait || !seqWait.eventMarkers || seqWait.eventMarkers.length === 0) return;
+        if (
+          !seqWait ||
+          !seqWait.eventMarkers ||
+          seqWait.eventMarkers.length === 0
+        )
+          return;
         const point = ev.atPoint;
         seqWait.eventMarkers.forEach((event: any, eventIdx: number) => {
           const markerGroup = new Two.Group();
           markerGroup.id = `wait-event-${ev.waitId}-${eventIdx}`;
-          const markerCircle = new Two.Circle(x(point.x), y(point.y), x(POINT_RADIUS * 1.3));
+          const markerCircle = new Two.Circle(
+            x(point.x),
+            y(point.y),
+            x(POINT_RADIUS * 1.3),
+          );
           markerCircle.id = `wait-event-circle-${ev.waitId}-${eventIdx}`;
           const waitSelected = $selectedPointId === `wait-${ev.waitId}`;
           if (waitSelected) {
@@ -445,19 +680,24 @@
   $: if (two) {
     // Update dimensions if changed
     if (width && height && (two.width !== width || two.height !== height)) {
-        if (two.renderer) two.renderer.setSize(width, height);
-        two.width = width;
-        two.height = height;
+      if (two.renderer) two.renderer.setSize(width, height);
+      two.width = width;
+      two.height = height;
     }
 
-    const shapeGroup = new Two.Group(); shapeGroup.id = "shape-group";
-    const lineGroup = new Two.Group(); lineGroup.id = "line-group";
-    const pointGroup = new Two.Group(); pointGroup.id = "point-group";
-    const eventGroup = new Two.Group(); eventGroup.id = "event-group";
+    const shapeGroup = new Two.Group();
+    shapeGroup.id = "shape-group";
+    const lineGroup = new Two.Group();
+    lineGroup.id = "line-group";
+    const pointGroup = new Two.Group();
+    pointGroup.id = "point-group";
+    const eventGroup = new Two.Group();
+    eventGroup.id = "event-group";
 
     two.clear();
 
-    if (Array.isArray(shapeElements)) shapeElements.forEach((el) => shapeGroup.add(el));
+    if (Array.isArray(shapeElements))
+      shapeElements.forEach((el) => shapeGroup.add(el));
     if (ghostPathElement) shapeGroup.add(ghostPathElement);
     onionLayerElements.forEach((el) => shapeGroup.add(el));
 
@@ -498,7 +738,12 @@
 
     two.renderer.domElement.addEventListener("mousemove", (evt: MouseEvent) => {
       const rect = two.renderer.domElement.getBoundingClientRect();
-      const transformed = getTransformedCoordinates(evt.clientX, evt.clientY, rect, settings.fieldRotation || 0);
+      const transformed = getTransformedCoordinates(
+        evt.clientX,
+        evt.clientY,
+        rect,
+        settings.fieldRotation || 0,
+      );
       const xPos = transformed.x;
       const yPos = transformed.y;
       const rawInchXForDisplay = x.invert(xPos);
@@ -563,43 +808,47 @@
               lines[line].endPoint.y = inchY;
             } else {
               if (!lines[line]?.locked) {
-                 lines[line].controlPoints[point - 1].x = inchX;
-                 lines[line].controlPoints[point - 1].y = inchY;
+                lines[line].controlPoints[point - 1].x = inchX;
+                lines[line].controlPoints[point - 1].y = inchY;
               }
             }
             linesStore.set(lines);
           }
         }
       } else {
-         // Cursor Update
-         if (elem?.id.startsWith("point") || elem?.id.startsWith("obstacle")) {
+        // Cursor Update
+        if (elem?.id.startsWith("point") || elem?.id.startsWith("obstacle")) {
           two.renderer.domElement.style.cursor = "pointer";
           currentElem = elem.id;
         } else if (
           elem?.id &&
-          (elem.id.startsWith("event-") || elem.id.startsWith("event-circle-") || elem.id.startsWith("event-flag-") ||
-           elem.id.startsWith("wait-event-") || elem.id.startsWith("wait-event-circle-") || elem.id.startsWith("wait-event-flag-"))
+          (elem.id.startsWith("event-") ||
+            elem.id.startsWith("event-circle-") ||
+            elem.id.startsWith("event-flag-") ||
+            elem.id.startsWith("wait-event-") ||
+            elem.id.startsWith("wait-event-circle-") ||
+            elem.id.startsWith("wait-event-flag-"))
         ) {
-           two.renderer.domElement.style.cursor = "pointer";
-           // Normalize ID logic
-            const idParts = elem.id.split("-");
-             if (elem.id.startsWith("wait-event-")) {
-                 if (idParts.length >= 4) {
-                    const waitId = idParts[idParts.length - 2];
-                    const evIdx = idParts[idParts.length - 1];
-                    currentElem = `wait-event-${waitId}-${evIdx}`;
-                 } else {
-                     currentElem = elem.id;
-                 }
-             } else {
-                  if (idParts.length >= 3) {
-                    const lineIdx = idParts[idParts.length - 2];
-                    const evIdx = idParts[idParts.length - 1];
-                    currentElem = `event-${lineIdx}-${evIdx}`;
-                  } else {
-                    currentElem = elem.id;
-                  }
-             }
+          two.renderer.domElement.style.cursor = "pointer";
+          // Normalize ID logic
+          const idParts = elem.id.split("-");
+          if (elem.id.startsWith("wait-event-")) {
+            if (idParts.length >= 4) {
+              const waitId = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              currentElem = `wait-event-${waitId}-${evIdx}`;
+            } else {
+              currentElem = elem.id;
+            }
+          } else {
+            if (idParts.length >= 3) {
+              const lineIdx = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              currentElem = `event-${lineIdx}-${evIdx}`;
+            } else {
+              currentElem = elem.id;
+            }
+          }
         } else {
           two.renderer.domElement.style.cursor = "auto";
           currentElem = null;
@@ -613,95 +862,104 @@
       if (!currentElem) {
         const el = document.elementFromPoint(evt.clientX, evt.clientY);
         if (el?.id) {
-           if (el.id.startsWith("point") || el.id.startsWith("obstacle-")) currentElem = el.id;
-           else if (el.id.includes("event-")) {
-             // Logic to normalize ID
-             // Copy-pasted from above logic for simplicity or extract helper
-             const idParts = el.id.split("-");
-             if (el.id.startsWith("wait-event-")) {
-                  if (idParts.length >= 4) {
-                    const waitId = idParts[idParts.length - 2];
-                    const evIdx = idParts[idParts.length - 1];
-                    currentElem = `wait-event-${waitId}-${evIdx}`;
-                 } else currentElem = el.id;
-             } else {
-                  if (idParts.length >= 3) {
-                    const lineIdx = idParts[idParts.length - 2];
-                    const evIdx = idParts[idParts.length - 1];
-                    currentElem = `event-${lineIdx}-${evIdx}`;
-                  } else currentElem = el.id;
-             }
-           }
+          if (el.id.startsWith("point") || el.id.startsWith("obstacle-"))
+            currentElem = el.id;
+          else if (el.id.includes("event-")) {
+            // Logic to normalize ID
+            // Copy-pasted from above logic for simplicity or extract helper
+            const idParts = el.id.split("-");
+            if (el.id.startsWith("wait-event-")) {
+              if (idParts.length >= 4) {
+                const waitId = idParts[idParts.length - 2];
+                const evIdx = idParts[idParts.length - 1];
+                currentElem = `wait-event-${waitId}-${evIdx}`;
+              } else currentElem = el.id;
+            } else {
+              if (idParts.length >= 3) {
+                const lineIdx = idParts[idParts.length - 2];
+                const evIdx = idParts[idParts.length - 1];
+                currentElem = `event-${lineIdx}-${evIdx}`;
+              } else currentElem = el.id;
+            }
+          }
         }
       }
 
       if (currentElem) {
-         if (currentElem.startsWith("point-")) {
-            const parts = currentElem.split("-");
-            const lineNum = Number(parts[1]);
-            const pointIdx = Number(parts[2]);
-            if (!isNaN(lineNum) && lineNum > 0) {
-              const lineIndex = lineNum - 1;
-              const line = lines[lineIndex];
-              if (line) {
-                selectedLineId.set(line.id);
-                selectedPointId.set(currentElem);
-              }
-            } else {
-              if (currentElem === "point-0-0") {
-                selectedLineId.set(null);
-                selectedPointId.set(currentElem);
-              } else {
-                selectedLineId.set(null);
-                selectedPointId.set(null);
-              }
-            }
-         } else if (currentElem.startsWith("event-")) {
-            const parts = currentElem.split("-");
-            const lineIdx = Number(parts[1]);
-            if (!isNaN(lineIdx) && lines[lineIdx]) {
-              selectedLineId.set(lines[lineIdx].id);
+        if (currentElem.startsWith("point-")) {
+          const parts = currentElem.split("-");
+          const lineNum = Number(parts[1]);
+          const pointIdx = Number(parts[2]);
+          if (!isNaN(lineNum) && lineNum > 0) {
+            const lineIndex = lineNum - 1;
+            const line = lines[lineIndex];
+            if (line) {
+              selectedLineId.set(line.id);
               selectedPointId.set(currentElem);
             }
-         } else if (currentElem.startsWith("wait-event-")) {
-            const parts = currentElem.split("-");
-            const waitId = parts[2];
-            if (waitId) {
-              selectedPointId.set(`wait-${waitId}`);
+          } else {
+            if (currentElem === "point-0-0") {
               selectedLineId.set(null);
+              selectedPointId.set(currentElem);
+            } else {
+              selectedLineId.set(null);
+              selectedPointId.set(null);
             }
-         }
+          }
+        } else if (currentElem.startsWith("event-")) {
+          const parts = currentElem.split("-");
+          const lineIdx = Number(parts[1]);
+          if (!isNaN(lineIdx) && lines[lineIdx]) {
+            selectedLineId.set(lines[lineIdx].id);
+            selectedPointId.set(currentElem);
+          }
+        } else if (currentElem.startsWith("wait-event-")) {
+          const parts = currentElem.split("-");
+          const waitId = parts[2];
+          if (waitId) {
+            selectedPointId.set(`wait-${waitId}`);
+            selectedLineId.set(null);
+          }
+        }
 
-         // Calculate drag offset
-         let objectX = 0; let objectY = 0;
-         const rectForMouse = two.renderer.domElement.getBoundingClientRect();
-         const transformedForMouse = getTransformedCoordinates(evt.clientX, evt.clientY, rectForMouse, settings.fieldRotation || 0);
-         const mouseX = x.invert(transformedForMouse.x);
-         const mouseY = y.invert(transformedForMouse.y);
+        // Calculate drag offset
+        let objectX = 0;
+        let objectY = 0;
+        const rectForMouse = two.renderer.domElement.getBoundingClientRect();
+        const transformedForMouse = getTransformedCoordinates(
+          evt.clientX,
+          evt.clientY,
+          rectForMouse,
+          settings.fieldRotation || 0,
+        );
+        const mouseX = x.invert(transformedForMouse.x);
+        const mouseY = y.invert(transformedForMouse.y);
 
-         if (currentElem.startsWith("obstacle-")) {
-            const parts = currentElem.split("-");
-            const shapeIdx = Number(parts[1]);
-            const vertexIdx = Number(parts[2]);
-            if (shapes[shapeIdx]?.vertices[vertexIdx]) {
-                objectX = shapes[shapeIdx].vertices[vertexIdx].x;
-                objectY = shapes[shapeIdx].vertices[vertexIdx].y;
+        if (currentElem.startsWith("obstacle-")) {
+          const parts = currentElem.split("-");
+          const shapeIdx = Number(parts[1]);
+          const vertexIdx = Number(parts[2]);
+          if (shapes[shapeIdx]?.vertices[vertexIdx]) {
+            objectX = shapes[shapeIdx].vertices[vertexIdx].x;
+            objectY = shapes[shapeIdx].vertices[vertexIdx].y;
+          }
+        } else if (currentElem.startsWith("point-")) {
+          const line = Number(currentElem.split("-")[1]) - 1;
+          const point = Number(currentElem.split("-")[2]);
+          if (line === -1) {
+            objectX = startPoint.x;
+            objectY = startPoint.y;
+          } else if (lines[line]) {
+            if (point === 0 && lines[line].endPoint) {
+              objectX = lines[line].endPoint.x;
+              objectY = lines[line].endPoint.y;
+            } else if (lines[line].controlPoints[point - 1]) {
+              objectX = lines[line].controlPoints[point - 1].x;
+              objectY = lines[line].controlPoints[point - 1].y;
             }
-         } else if (currentElem.startsWith("point-")) {
-            const line = Number(currentElem.split("-")[1]) - 1;
-            const point = Number(currentElem.split("-")[2]);
-            if (line === -1) {
-                objectX = startPoint.x; objectY = startPoint.y;
-            } else if (lines[line]) {
-                if (point === 0 && lines[line].endPoint) {
-                    objectX = lines[line].endPoint.x; objectY = lines[line].endPoint.y;
-                } else if (lines[line].controlPoints[point - 1]) {
-                    objectX = lines[line].controlPoints[point - 1].x;
-                    objectY = lines[line].controlPoints[point - 1].y;
-                }
-            }
-         }
-         dragOffset = { x: objectX - mouseX, y: objectY - mouseY };
+          }
+        }
+        dragOffset = { x: objectX - mouseX, y: objectY - mouseY };
       }
     });
 
@@ -715,45 +973,59 @@
 
     // Double Click to Add Line
     two.renderer.domElement.addEventListener("dblclick", (evt: MouseEvent) => {
-        const elem = document.elementFromPoint(evt.clientX, evt.clientY);
-        if (elem?.id && (elem.id.startsWith("point") || elem.id.startsWith("obstacle") || elem.id.startsWith("line"))) return;
+      const elem = document.elementFromPoint(evt.clientX, evt.clientY);
+      if (
+        elem?.id &&
+        (elem.id.startsWith("point") ||
+          elem.id.startsWith("obstacle") ||
+          elem.id.startsWith("line"))
+      )
+        return;
 
-        const rect = two.renderer.domElement.getBoundingClientRect();
-        const transformed = getTransformedCoordinates(evt.clientX, evt.clientY, rect, settings.fieldRotation || 0);
-        let inchX = x.invert(transformed.x);
-        let inchY = y.invert(transformed.y);
+      const rect = two.renderer.domElement.getBoundingClientRect();
+      const transformed = getTransformedCoordinates(
+        evt.clientX,
+        evt.clientY,
+        rect,
+        settings.fieldRotation || 0,
+      );
+      let inchX = x.invert(transformed.x);
+      let inchY = y.invert(transformed.y);
 
-        if ($snapToGrid && $showGrid && $gridSize > 0) {
-            inchX = Math.round(inchX / $gridSize) * $gridSize;
-            inchY = Math.round(inchY / $gridSize) * $gridSize;
-        }
-        inchX = Math.max(0, Math.min(FIELD_SIZE, inchX));
-        inchY = Math.max(0, Math.min(FIELD_SIZE, inchY));
+      if ($snapToGrid && $showGrid && $gridSize > 0) {
+        inchX = Math.round(inchX / $gridSize) * $gridSize;
+        inchY = Math.round(inchY / $gridSize) * $gridSize;
+      }
+      inchX = Math.max(0, Math.min(FIELD_SIZE, inchX));
+      inchY = Math.max(0, Math.min(FIELD_SIZE, inchY));
 
-        const newLine: Line = {
-            id: `line-${Math.random().toString(36).slice(2)}`,
-            endPoint: { x: inchX, y: inchY, heading: "tangential", reverse: false },
-            controlPoints: [],
-            color: getRandomColor(),
-            locked: false,
-        };
+      const newLine: Line = {
+        id: `line-${Math.random().toString(36).slice(2)}`,
+        endPoint: { x: inchX, y: inchY, heading: "tangential", reverse: false },
+        controlPoints: [],
+        color: getRandomColor(),
+        locked: false,
+      };
 
-        linesStore.update(l => [...l, newLine]);
-        sequenceStore.update(s => [...s, { kind: "path", lineId: newLine.id! }]);
+      linesStore.update((l) => [...l, newLine]);
+      sequenceStore.update((s) => [
+        ...s,
+        { kind: "path", lineId: newLine.id! },
+      ]);
 
-        selectedLineId.set(newLine.id!);
-        // We can't know the index easily without recounting, but we can assume it's last
-        // lines is reactive, so we can just wait or calc index
-        const newIdx = $linesStore.length - 1;
-        selectedPointId.set(`point-${newIdx + 1}-0`);
+      selectedLineId.set(newLine.id!);
+      // We can't know the index easily without recounting, but we can assume it's last
+      // lines is reactive, so we can just wait or calc index
+      const newIdx = $linesStore.length - 1;
+      selectedPointId.set(`point-${newIdx + 1}-0`);
 
-        onRecordChange();
+      onRecordChange();
     });
   });
 
   // Public accessor for exportGif
   export function getTwoInstance() {
-      return two;
+    return two;
   }
 </script>
 

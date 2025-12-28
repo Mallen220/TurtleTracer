@@ -31,6 +31,7 @@
     playingStore,
     loopAnimationStore,
     playbackSpeedStore,
+    ensureSequenceConsistency,
   } from "./lib/projectStore";
 
   // Utils
@@ -52,7 +53,12 @@
 
   // Types
   import type { Settings } from "./types";
-  import { DEFAULT_SETTINGS, FIELD_SIZE, DEFAULT_ROBOT_WIDTH, DEFAULT_ROBOT_HEIGHT } from "./config";
+  import {
+    DEFAULT_SETTINGS,
+    FIELD_SIZE,
+    DEFAULT_ROBOT_WIDTH,
+    DEFAULT_ROBOT_HEIGHT,
+  } from "./config";
 
   // Electron API
   interface ElectronAPI {
@@ -91,8 +97,14 @@
   $: playbackSpeed = $playbackSpeedStore;
 
   // --- D3 Scales (Used for resizing logic / math) ---
-  $: x = d3.scaleLinear().domain([0, FIELD_SIZE]).range([0, fieldDrawSize || FIELD_SIZE]);
-  $: y = d3.scaleLinear().domain([0, FIELD_SIZE]).range([fieldDrawSize || FIELD_SIZE, 0]);
+  $: x = d3
+    .scaleLinear()
+    .domain([0, FIELD_SIZE])
+    .range([0, fieldDrawSize || FIELD_SIZE]);
+  $: y = d3
+    .scaleLinear()
+    .domain([0, FIELD_SIZE])
+    .range([fieldDrawSize || FIELD_SIZE, 0]);
 
   // --- Preview Optimization ---
   let previewOptimizedLines: any[] | null = null;
@@ -174,28 +186,48 @@
       isLoaded = true;
       lastSavedState = getCurrentState(); // Assume fresh start is "saved" unless loaded
       recordChange();
+      // Ensure sequence/line consistency once initial load is stabilized
+      try {
+        ensureSequenceConsistency();
+      } catch (err) {
+        console.warn("ensureSequenceConsistency failed", err);
+      }
     }, 500);
 
     // Electron Menu Action Listener
     if (electronAPI && electronAPI.onMenuAction) {
       electronAPI.onMenuAction((action) => {
-         // Some actions are handled in KeyboardShortcuts via props or bindings,
-         // but menu clicks come here.
-         // We can invoke the functions directly.
-         switch(action) {
-             case "save-project": saveProject(); break;
-             case "save-as": saveFileAs(); break;
-             case "open-file":
-                const input = document.getElementById("file-upload");
-                if (input) input.click();
-                break;
-             case "export-gif": exportGif(); break;
-             case "undo": if (canUndo) undoAction(); break;
-             case "redo": if (canRedo) redoAction(); break;
-             case "open-settings": showSettings.set(true); break;
-             case "open-shortcuts": showShortcuts.set(true); break;
-             // ... other cases ...
-         }
+        // Some actions are handled in KeyboardShortcuts via props or bindings,
+        // but menu clicks come here.
+        // We can invoke the functions directly.
+        switch (action) {
+          case "save-project":
+            saveProject();
+            break;
+          case "save-as":
+            saveFileAs();
+            break;
+          case "open-file":
+            const input = document.getElementById("file-upload");
+            if (input) input.click();
+            break;
+          case "export-gif":
+            exportGif();
+            break;
+          case "undo":
+            if (canUndo) undoAction();
+            break;
+          case "redo":
+            if (canRedo) redoAction();
+            break;
+          case "open-settings":
+            showSettings.set(true);
+            break;
+          case "open-shortcuts":
+            showShortcuts.set(true);
+            break;
+          // ... other cases ...
+        }
       });
     }
   });
@@ -208,7 +240,10 @@
 
   // --- Animation Logic ---
   $: timePrediction = calculatePathTime(startPoint, lines, settings, sequence);
-  $: animationDuration = getAnimationDuration(timePrediction.totalTime / 1000, playbackSpeed);
+  $: animationDuration = getAnimationDuration(
+    timePrediction.totalTime / 1000,
+    playbackSpeed,
+  );
 
   onMount(() => {
     animationController = createAnimationController(
@@ -216,7 +251,7 @@
       (newPercent) => percentStore.set(newPercent),
       () => {
         playingStore.set(false);
-      }
+      },
     );
   });
 
@@ -229,53 +264,75 @@
 
   // Sync playing store -> controller
   $: if (animationController) {
-      if (playing && !animationController.isPlaying()) animationController.play();
-      if (!playing && animationController.isPlaying()) animationController.pause();
+    if (playing && !animationController.isPlaying()) animationController.play();
+    if (!playing && animationController.isPlaying())
+      animationController.pause();
   }
 
   // Sync controller updates to Robot State
   $: {
-     if (timePrediction && timePrediction.timeline && lines.length > 0) {
-        const state = calculateRobotState(percent, timePrediction.timeline, lines, startPoint, x, y);
-        robotXYStore.set({ x: state.x, y: state.y });
-        robotHeadingStore.set(state.heading);
-     } else {
-        robotXYStore.set({ x: x(startPoint.x), y: y(startPoint.y) });
-        robotHeadingStore.set(startPoint.heading === 'constant' ? -startPoint.degrees : 0);
-     }
+    if (timePrediction && timePrediction.timeline && lines.length > 0) {
+      const state = calculateRobotState(
+        percent,
+        timePrediction.timeline,
+        lines,
+        startPoint,
+        x,
+        y,
+      );
+      robotXYStore.set({ x: state.x, y: state.y });
+      robotHeadingStore.set(state.heading);
+    } else {
+      robotXYStore.set({ x: x(startPoint.x), y: y(startPoint.y) });
+      robotHeadingStore.set(
+        startPoint.heading === "constant" ? -startPoint.degrees : 0,
+      );
+    }
   }
 
-  function play() { playingStore.set(true); }
-  function pause() { playingStore.set(false); }
+  function play() {
+    playingStore.set(true);
+  }
+  function pause() {
+    playingStore.set(false);
+  }
   function resetAnimation() {
-      if (animationController) animationController.reset();
-      playingStore.set(false);
+    if (animationController) animationController.reset();
+    playingStore.set(false);
   }
   function handleSeek(val: number) {
-      if (animationController) animationController.seekToPercent(val);
+    if (animationController) animationController.seekToPercent(val);
   }
   function stepForward() {
-      const p = Math.min(100, percent + 1);
-      percentStore.set(p);
-      handleSeek(p);
+    const p = Math.min(100, percent + 1);
+    percentStore.set(p);
+    handleSeek(p);
   }
   function stepBackward() {
-      const p = Math.max(0, percent - 1);
-      percentStore.set(p);
-      handleSeek(p);
+    const p = Math.max(0, percent - 1);
+    percentStore.set(p);
+    handleSeek(p);
   }
   function changePlaybackSpeedBy(delta: number) {
-     const val = Math.max(0.25, Math.min(3.0, playbackSpeed + delta));
-     playbackSpeedStore.set(val);
+    const val = Math.max(0.25, Math.min(3.0, playbackSpeed + delta));
+    playbackSpeedStore.set(val);
   }
-  function resetPlaybackSpeed() { playbackSpeedStore.set(1.0); }
-  function setPlaybackSpeed(val: number) { playbackSpeedStore.set(val); }
+  function resetPlaybackSpeed() {
+    playbackSpeedStore.set(1.0);
+  }
+  function setPlaybackSpeed(val: number) {
+    playbackSpeedStore.set(val);
+  }
 
   // --- Resizing Logic ---
   $: if (userFieldLimit === null && mainContentWidth > 0 && isLargeScreen) {
     userFieldLimit = mainContentWidth * 0.49;
   }
-  $: if (userFieldHeightLimit === null && mainContentHeight > 0 && !isLargeScreen) {
+  $: if (
+    userFieldHeightLimit === null &&
+    mainContentHeight > 0 &&
+    !isLargeScreen
+  ) {
     userFieldHeightLimit = mainContentHeight * 0.6;
   }
   $: leftPaneWidth = (() => {
@@ -298,21 +355,26 @@
   })();
 
   function startResize(mode: "horizontal" | "vertical") {
-     if ((mode === "horizontal" && (!isLargeScreen || !showSidebar)) ||
-         (mode === "vertical" && (isLargeScreen || !showSidebar))) return;
-     resizeMode = mode;
+    if (
+      (mode === "horizontal" && (!isLargeScreen || !showSidebar)) ||
+      (mode === "vertical" && (isLargeScreen || !showSidebar))
+    )
+      return;
+    resizeMode = mode;
   }
   function handleResize(cx: number, cy: number) {
-     if (!resizeMode) return;
-     if (resizeMode === "horizontal") userFieldLimit = cx;
-     else if (resizeMode === "vertical" && mainContentDiv) {
-         const rect = mainContentDiv.getBoundingClientRect();
-         const nh = cy - rect.top;
-         const max = rect.height - 100;
-         userFieldHeightLimit = Math.max(200, Math.min(nh, max));
-     }
+    if (!resizeMode) return;
+    if (resizeMode === "horizontal") userFieldLimit = cx;
+    else if (resizeMode === "vertical" && mainContentDiv) {
+      const rect = mainContentDiv.getBoundingClientRect();
+      const nh = cy - rect.top;
+      const max = rect.height - 100;
+      userFieldHeightLimit = Math.max(200, Math.min(nh, max));
+    }
   }
-  function stopResize() { resizeMode = null; }
+  function stopResize() {
+    resizeMode = null;
+  }
 
   // --- Document Click Handler (Wait Selection) ---
   function handleDocClick(e: MouseEvent) {
@@ -321,83 +383,113 @@
     let el = e.target as Element | null;
     while (el) {
       if (el.classList && el.classList.contains("wait-row")) return;
-      if (el.id && (el.id.startsWith("wait-") || el.id.startsWith("wait-event-"))) return;
+      if (
+        el.id &&
+        (el.id.startsWith("wait-") || el.id.startsWith("wait-event-"))
+      )
+        return;
       el = el.parentElement;
     }
     selectedPointId.set(null);
   }
-  onDestroy(() => { if (typeof document !== 'undefined') document.removeEventListener("click", handleDocClick); });
-  if (typeof document !== 'undefined') document.addEventListener("click", handleDocClick);
+  onDestroy(() => {
+    if (typeof document !== "undefined")
+      document.removeEventListener("click", handleDocClick);
+  });
+  if (typeof document !== "undefined")
+    document.addEventListener("click", handleDocClick);
 
   // --- Export GIF ---
   // Need reference to Two instance from FieldRenderer
   let fieldRenderer: FieldRenderer;
   async function exportGif() {
-      if (!fieldRenderer) return;
-      const twoInstance = fieldRenderer.getTwoInstance();
-      if (!twoInstance) return;
+    if (!fieldRenderer) return;
+    const twoInstance = fieldRenderer.getTwoInstance();
+    if (!twoInstance) return;
 
-      try {
-        const durationSec = animationController.getDuration();
-        const fps = 15;
-        const notif = document.createElement("div");
-        notif.textContent = "Exporting GIF...";
-        notif.style.cssText = "position:fixed;right:16px;top:16px;background:rgba(0,0,0,0.8);color:white;padding:8px 12px;border-radius:6px;z-index:9999";
-        document.body.appendChild(notif);
+    try {
+      const durationSec = animationController.getDuration();
+      const fps = 15;
+      const notif = document.createElement("div");
+      notif.textContent = "Exporting GIF...";
+      notif.style.cssText =
+        "position:fixed;right:16px;top:16px;background:rgba(0,0,0,0.8);color:white;padding:8px 12px;border-radius:6px;z-index:9999";
+      document.body.appendChild(notif);
 
-        const blob = await exportPathToGif({
-           two: twoInstance,
-           animationController,
-           durationSec,
-           fps,
-           backgroundImageSrc: settings.fieldMap ? `/fields/${settings.fieldMap}` : "/fields/decode.webp",
-           robotImageSrc: settings.robotImage || "/robot.png",
-           robotWidthPx: x(robotWidth),
-           robotHeightPx: x(robotHeight),
-           getRobotState: (p) => calculateRobotState(p, timePrediction.timeline, lines, startPoint, x, y),
-           onProgress: (p) => { notif.textContent = `Exporting GIF... ${Math.round(p * 100)}%`; }
+      const blob = await exportPathToGif({
+        two: twoInstance,
+        animationController,
+        durationSec,
+        fps,
+        backgroundImageSrc: settings.fieldMap
+          ? `/fields/${settings.fieldMap}`
+          : "/fields/decode.webp",
+        robotImageSrc: settings.robotImage || "/robot.png",
+        robotWidthPx: x(robotWidth),
+        robotHeightPx: x(robotHeight),
+        getRobotState: (p) =>
+          calculateRobotState(
+            p,
+            timePrediction.timeline,
+            lines,
+            startPoint,
+            x,
+            y,
+          ),
+        onProgress: (p) => {
+          notif.textContent = `Exporting GIF... ${Math.round(p * 100)}%`;
+        },
+      });
+
+      if (
+        electronAPI &&
+        electronAPI.showSaveDialog &&
+        electronAPI.writeFileBase64
+      ) {
+        const dest = await electronAPI.showSaveDialog({
+          defaultPath: "path.gif",
+          filters: [{ name: "GIF", extensions: ["gif"] }],
         });
-
-        if (electronAPI && electronAPI.showSaveDialog && electronAPI.writeFileBase64) {
-             const dest = await electronAPI.showSaveDialog({
-                 defaultPath: "path.gif",
-                 filters: [{ name: "GIF", extensions: ["gif"] }]
-             });
-             if (dest) {
-                 const reader = new FileReader();
-                 reader.onload = async () => {
-                     const b64 = (reader.result as string).split(',')[1];
-                     await electronAPI.writeFileBase64!(dest, b64);
-                     notif.textContent = "Saved!";
-                     setTimeout(() => notif.remove(), 2000);
-                 };
-                 reader.readAsDataURL(blob);
-             } else {
-                 notif.remove();
-             }
+        if (dest) {
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const b64 = (reader.result as string).split(",")[1];
+            await electronAPI.writeFileBase64!(dest, b64);
+            notif.textContent = "Saved!";
+            setTimeout(() => notif.remove(), 2000);
+          };
+          reader.readAsDataURL(blob);
         } else {
-             const url = URL.createObjectURL(blob);
-             const a = document.createElement("a");
-             a.href = url; a.download = "path.gif";
-             document.body.appendChild(a); a.click(); document.body.removeChild(a);
-             URL.revokeObjectURL(url);
-             notif.remove();
+          notif.remove();
         }
-      } catch (err) {
-          alert("Export failed: " + err);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "path.gif";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        notif.remove();
       }
+    } catch (err) {
+      alert("Export failed: " + err);
+    }
   }
 
   // --- Apply Theme ---
   $: {
-      if (settings?.theme) {
-          let t = settings.theme;
-          if (t === 'auto') {
-              t = window.matchMedia("(prefers-color-scheme: dark)").matches ? 'dark' : 'light';
-          }
-          if (t === 'dark') document.documentElement.classList.add('dark');
-          else document.documentElement.classList.remove('dark');
+    if (settings?.theme) {
+      let t = settings.theme;
+      if (t === "auto") {
+        t = window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
       }
+      if (t === "dark") document.documentElement.classList.add("dark");
+      else document.documentElement.classList.remove("dark");
+    }
   }
 </script>
 
@@ -406,26 +498,39 @@
   bind:innerHeight
   on:mouseup={stopResize}
   on:mousemove={(e) => {
-     if(resizeMode) { e.preventDefault(); handleResize(e.clientX, e.clientY); }
+    if (resizeMode) {
+      e.preventDefault();
+      handleResize(e.clientX, e.clientY);
+    }
   }}
   on:touchend={stopResize}
   on:touchmove={(e) => {
-     if(resizeMode) {
-         const t = e.touches[0];
-         handleResize(t.clientX, t.clientY);
-     }
+    if (resizeMode) {
+      const t = e.touches[0];
+      handleResize(t.clientX, t.clientY);
+    }
   }}
 />
 
 <KeyboardShortcuts
-  {saveProject} {saveFileAs} {exportGif} {undoAction} {redoAction}
-  {play} {pause} {resetAnimation} {stepForward} {stepBackward}
+  {saveProject}
+  {saveFileAs}
+  {exportGif}
+  {undoAction}
+  {redoAction}
+  {play}
+  {pause}
+  {resetAnimation}
+  {stepForward}
+  {stepBackward}
   {recordChange}
   bind:controlTabRef
   bind:activeControlTab
 />
 
-<div class="h-screen w-full flex flex-col overflow-hidden bg-neutral-200 dark:bg-neutral-950">
+<div
+  class="h-screen w-full flex flex-col overflow-hidden bg-neutral-200 dark:bg-neutral-950"
+>
   <div class="flex-none z-50">
     <Navbar
       bind:lines={$linesStore}
@@ -446,7 +551,7 @@
       {recordChange}
       {canUndo}
       {canRedo}
-      on:previewOptimizedLines={(e) => previewOptimizedLines = e.detail}
+      on:previewOptimizedLines={(e) => (previewOptimizedLines = e.detail)}
     />
   </div>
 
@@ -465,23 +570,26 @@
         min-height: ${!isLargeScreen ? (userFieldHeightLimit ? "0" : "60vh") : "0"};
       `}
     >
-        <FieldRenderer
-            bind:this={fieldRenderer}
-            width={fieldDrawSize} height={fieldDrawSize}
-            {timePrediction}
-            {previewOptimizedLines}
-            {onRecordChange}
-        />
+      <FieldRenderer
+        bind:this={fieldRenderer}
+        width={fieldDrawSize}
+        height={fieldDrawSize}
+        {timePrediction}
+        {previewOptimizedLines}
+        {onRecordChange}
+      />
     </div>
 
     <!-- Resizer Handle (Desktop) -->
     {#if isLargeScreen && showSidebar}
       <button
         class="w-2 cursor-col-resize flex justify-center items-center hover:bg-purple-500/50 active:bg-purple-600 transition-colors rounded-sm select-none z-40 border-none bg-transparent p-0 m-0"
-        on:mousedown={() => startResize('horizontal')}
+        on:mousedown={() => startResize("horizontal")}
         aria-label="Resize Sidebar"
       >
-        <div class="w-[2px] h-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"></div>
+        <div
+          class="w-[2px] h-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+        ></div>
       </button>
     {/if}
 
@@ -489,11 +597,13 @@
     {#if !isLargeScreen && showSidebar}
       <button
         class="h-2 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/50 active:bg-purple-600 transition-colors rounded-sm select-none z-40 border-none bg-transparent p-0 m-0"
-        on:mousedown={() => startResize('vertical')}
-        on:touchstart={() => startResize('vertical')}
+        on:mousedown={() => startResize("vertical")}
+        on:touchstart={() => startResize("vertical")}
         aria-label="Resize Tab"
       >
-        <div class="h-[2px] w-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"></div>
+        <div
+          class="h-[2px] w-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+        ></div>
       </button>
     {/if}
 
@@ -507,8 +617,8 @@
       <ControlTab
         bind:this={controlTabRef}
         bind:playing={$playingStore}
-        play={play}
-        pause={pause}
+        {play}
+        {pause}
         bind:startPoint={$startPointStore}
         bind:lines={$linesStore}
         bind:sequence={$sequenceStore}

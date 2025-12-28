@@ -133,6 +133,62 @@
     controlPoints: lines.map(() => true), // Start with control points collapsed
   };
 
+  // Debug helpers (kept simple so template expressions stay small)
+  $: debugLinesIds = Array.isArray(lines) ? lines.map((l) => l.id) : [];
+  $: debugSequenceIds = Array.isArray(sequence)
+    ? sequence.filter((s) => s.kind === "path").map((s: any) => s.lineId)
+    : [];
+  $: debugMissing = debugLinesIds.filter(
+    (id) => !debugSequenceIds.includes(id),
+  );
+  $: debugInvalidRefs = debugSequenceIds.filter(
+    (id) => !debugLinesIds.includes(id),
+  );
+
+  // One-time repair flag in case sequence misses lines (keeps Paths view consistent)
+  let repairedSequenceOnce = false;
+
+  // If any sequence entries reference unknown lines or lines are missing from sequence,
+  // fix the sequence once to keep UI consistent. This removes invalid path refs and
+  // appends any real lines that are missing.
+  $: if (
+    Array.isArray(lines) &&
+    Array.isArray(sequence) &&
+    !repairedSequenceOnce
+  ) {
+    const lineIds = new Set(lines.map((l) => l.id));
+
+    // Remove sequence entries that reference non-existent lines
+    const pruned = sequence.filter(
+      (s) => s.kind !== "path" || lineIds.has((s as any).lineId),
+    );
+
+    // Find any existing lines not present in sequence (append them)
+    const presentIds = new Set(
+      pruned.filter((s) => s.kind === "path").map((s) => (s as any).lineId),
+    );
+    const missing = lines.filter((l) => !presentIds.has(l.id));
+
+    if (missing.length || pruned.length !== sequence.length) {
+      if (missing.length) {
+        console.warn(
+          "[ControlTab] appending missing sequence items:",
+          missing.map((m) => m.id),
+        );
+      }
+      if (pruned.length !== sequence.length) {
+        console.warn("[ControlTab] removing invalid sequence items");
+      }
+
+      sequence = [
+        ...pruned,
+        ...missing.map((l) => ({ kind: "path", lineId: l.id })),
+      ];
+      repairedSequenceOnce = true;
+      recordChange?.();
+    }
+  }
+
   // Reactive statements to update UI state when lines or shapes change from file load
   $: if (lines.length !== collapsedSections.lines.length) {
     collapsedEventMarkers = lines.map(() => false);
@@ -164,6 +220,19 @@
 
   const makeId = () =>
     `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+  // Ensure default named paths are renumbered to match the displayed order when
+  // new paths are inserted at the beginning/middle/end of the list.
+  function renumberDefaultPathNames() {
+    const renamed = lines.map((l, idx) => {
+      if (!l.name || /^Path \d+$/.test(l.name)) {
+        return { ...l, name: `Path ${idx + 1}` };
+      }
+      return l;
+    });
+    lines = renamed;
+  }
+
   function getWait(i: any) {
     return i as any;
   }
@@ -375,6 +444,8 @@
       waitAfterName: "",
     };
     lines = [newLine, ...lines];
+    // Renumber default path names to match new ordering
+    renumberDefaultPathNames();
     sequence = [{ kind: "path", lineId: newLine.id! }, ...sequence];
     collapsedSections.lines = [
       allCollapsed ? true : false,
@@ -432,6 +503,8 @@
 
     // Add the new line to the lines array
     lines = [...lines, newLine];
+    // Renumber default path names now that the order will be reflected by sequence
+    renumberDefaultPathNames();
 
     // Insert the new path in the sequence after the wait
     const newSeq = [...sequence];
@@ -476,6 +549,14 @@
     reordered.push(...byId.values());
 
     lines = reordered.map((entry) => entry.line);
+    // Re-number default names after reordering so Path 1..N matches current order
+    const renamed = lines.map((l, idx) => {
+      if (!l.name || /^Path \d+$/.test(l.name))
+        return { ...l, name: `Path ${idx + 1}` };
+      return l;
+    });
+    lines = renamed;
+
     collapsedSections = {
       ...collapsedSections,
       lines: reordered.map((entry) => entry.collapsed ?? false),
@@ -622,6 +703,21 @@
           {allCollapsed}
         />
       </div>
+
+      {#if settings?.showDebugSequence}
+        <div class="p-2 text-xs text-neutral-500">
+          <div>
+            <strong>DEBUG (ControlTab)</strong> — lines: {lines.length},
+            sequence: {(sequence || []).length}
+          </div>
+          <div>
+            Missing: {JSON.stringify(debugMissing)}
+          </div>
+          <div>
+            Invalid refs: {JSON.stringify(debugInvalidRefs)}
+          </div>
+        </div>
+      {/if}
 
       <!-- Unified sequence render: paths and waits -->
       {#each sequence as item, sIdx}
