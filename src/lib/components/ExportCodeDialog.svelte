@@ -511,6 +511,7 @@
           <div
             class="absolute top-4 left-4 right-4 bottom-20 pointer-events-none select-none font-mono text-sm leading-relaxed"
             aria-hidden="true"
+            style="transform: translateY(1.0em);"
           >
             {#each exportedCode.split("\n") as line, i}
               <!-- Data attribute used for scrolling to this line -->
@@ -605,6 +606,15 @@
       "Courier New", monospace !important;
     font-size: 0.875rem !important; /* text-sm */
     line-height: 1.625 !important; /* leading-relaxed */
+  }
+
+  /* Ensure inner pre/code elements also match (some highlight styles add padding on the pre element) */
+  :global(.highlight-wrapper pre),
+  :global(.highlight-wrapper pre.hljs) {
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1.625 !important;
+    overflow: visible !important;
   }
 
   :global(.highlight-wrapper code) {
