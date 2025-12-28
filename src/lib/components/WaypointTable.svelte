@@ -12,6 +12,7 @@
   export let lines: Line[];
   export let sequence: SequenceItem[];
   import OptimizationDialog from "./OptimizationDialog.svelte";
+  import { tick } from "svelte";
   import ObstaclesSection from "./ObstaclesSection.svelte";
   import TrashIcon from "./icons/TrashIcon.svelte";
 
@@ -42,6 +43,46 @@
   $: _collapsedObstaclesCount = Array.isArray(collapsedObstacles)
     ? collapsedObstacles.length
     : 0;
+
+  // Optimization dialog refs and programmatic control
+  let optDialogRef: any = null;
+  let optIsRunning: boolean = false;
+  let optOptimizedLines: Line[] | null = null;
+  let optFailed: boolean = false;
+
+  export async function openAndStartOptimization() {
+    optimizationOpen = true;
+    await tick();
+    if (optDialogRef && optDialogRef.startOptimization)
+      optDialogRef.startOptimization();
+  }
+
+  export function stopOptimization() {
+    if (optDialogRef && optDialogRef.stopOptimization)
+      optDialogRef.stopOptimization();
+  }
+
+  export function applyOptimization() {
+    if (optDialogRef && optDialogRef.handleApply) optDialogRef.handleApply();
+  }
+
+  export function discardOptimization() {
+    if (optDialogRef && optDialogRef.handleClose) optDialogRef.handleClose();
+  }
+
+  export function retryOptimization() {
+    if (optDialogRef && optDialogRef.startOptimization)
+      optDialogRef.startOptimization();
+  }
+
+  export function getOptimizationStatus() {
+    return {
+      isOpen: optimizationOpen,
+      isRunning: optIsRunning,
+      optimizedLines: optOptimizedLines,
+      optimizationFailed: optFailed,
+    };
+  }
 
   // Use snap stores to determine step size for inputs
   $: stepSize = $snapToGrid && $showGrid ? $gridSize : 0.1;
@@ -312,6 +353,10 @@
       class="w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-100 dark:bg-neutral-800 p-4"
     >
       <OptimizationDialog
+        bind:this={optDialogRef}
+        bind:isRunning={optIsRunning}
+        bind:optimizedLines={optOptimizedLines}
+        bind:optimizationFailed={optFailed}
         isOpen={true}
         useModal={false}
         {startPoint}

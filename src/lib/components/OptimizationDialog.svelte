@@ -18,20 +18,20 @@
   export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
   export let onClose: (() => void) | null = null;
 
-  let isRunning = false;
+  export let isRunning = false;
   let progress = 0;
   let currentBestTime = 0;
   let logs: string[] = [];
-  let optimizedLines: Line[] | null = null;
+  export let optimizedLines: Line[] | null = null;
   let showPreview = true;
   // True if optimizer finished but best candidate still has collision penalty
-  let optimizationFailed = false;
+  export let optimizationFailed = false;
 
   // Runtime optimizer instance (allows us to request stop)
   let optimizer: PathOptimizer | null = null;
   let isStopping = false;
 
-  async function startOptimization() {
+  export async function startOptimization() {
     isRunning = true;
     progress = 0;
     logs = [];
@@ -99,7 +99,7 @@
     }
   }
 
-  function handleApply() {
+  export function handleApply() {
     if (optimizationFailed) return; // Do not allow applying a path if optimizer couldn't find a collision-free candidate
     if (optimizedLines) {
       onApply(optimizedLines);
@@ -108,7 +108,7 @@
     }
   }
 
-  function handleClose() {
+  export function handleClose() {
     if (isRunning) return; // Prevent closing while running
     isOpen = false;
     logs = [];
@@ -119,7 +119,7 @@
     if (onClose) onClose();
   }
 
-  function stopOptimization() {
+  export function stopOptimization() {
     if (!optimizer) return;
     // Mark that user requested a stop and ask the optimizer to stop at next opportunity
     isStopping = true;
@@ -127,7 +127,7 @@
     optimizer.stop();
   }
 
-  function togglePreview() {
+  export function togglePreview() {
     showPreview = !showPreview;
     if (onPreviewChange) {
       onPreviewChange(showPreview ? optimizedLines : null);

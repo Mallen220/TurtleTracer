@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { selectedPointId, selectedLineId } from "../../stores";
+
+  export let id: string;
   export let name: string;
   export let durationMs: number;
   export let locked: boolean = false;
@@ -25,7 +28,23 @@
 </script>
 
 <div
-  class="flex w-full items-center justify-between gap-2 px-2 py-1 rounded border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900"
+  role="button"
+  tabindex="0"
+  class="wait-row flex w-full items-center justify-between gap-2 px-2 py-1 rounded border border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900"
+  on:click|stopPropagation={() => {
+    if (!locked && id) {
+      selectedPointId.set(`wait-${id}`);
+      selectedLineId.set(null);
+    }
+  }}
+  on:keydown|stopPropagation={(e) => {
+    if ((e.key === "Enter" || e.key === " ") && !locked && id) {
+      selectedPointId.set(`wait-${id}`);
+      selectedLineId.set(null);
+    }
+  }}
+  class:ring-2={$selectedPointId === `wait-${id}`}
+  class:ring-amber-400={$selectedPointId === `wait-${id}`}
 >
   <div class="flex items-center gap-2">
     <span

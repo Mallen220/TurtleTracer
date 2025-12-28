@@ -6,6 +6,10 @@
   export let handleSeek: (percent: number) => void;
   export let loopAnimation: boolean;
   export let markers: { percent: number; color: string; name: string }[] = [];
+  export let playbackSpeed: number = 1.0;
+  // export let changePlaybackSpeedBy: (delta: number) => void;
+  export let resetPlaybackSpeed: () => void;
+  export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
 </script>
 
 <div
@@ -78,6 +82,47 @@
       />
     </svg>
   </button>
+
+  <!-- Playback Speed Indicator -->
+  <div class="ml-2">
+    <button
+      title="Cycle playback speed (0.25x - 3x). Press '1' to reset to 1x."
+      aria-label="Playback speed"
+      on:click={() => {
+        // cycle by +0.25 and wrap to 0.25 after 3.0
+        const curr = playbackSpeed || 1.0;
+        const next = Math.round((curr + 0.25) * 100) / 100;
+        if (next > 3.0) {
+          setPlaybackSpeed(0.25, true);
+        } else {
+          setPlaybackSpeed(next, true);
+        }
+      }}
+      on:keydown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          const curr = playbackSpeed || 1.0;
+          const next = Math.round((curr + 0.25) * 100) / 100;
+          if (next > 3.0) {
+            setPlaybackSpeed(0.25, true);
+          } else {
+            setPlaybackSpeed(next, true);
+          }
+        } else if (e.key === "1") {
+          e.preventDefault();
+          resetPlaybackSpeed();
+        }
+      }}
+      class="px-2 py-1 rounded bg-neutral-100 dark:bg-neutral-800 text-xs text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+      tabindex="0"
+    >
+      {#if playbackSpeed}
+        <span>{playbackSpeed.toFixed(2)}x</span>
+      {:else}
+        <span>1.00x</span>
+      {/if}
+    </button>
+  </div>
 
   <div class="w-full relative">
     <!-- markers: small colored dots positioned by percent -->

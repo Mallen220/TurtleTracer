@@ -62,7 +62,8 @@
   } from "./config";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { exportPathToGif } from "./utils/exportGif";
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, onDestroy } from "svelte";
+  import { get } from "svelte/store";
   import { debounce } from "lodash";
   import { createHistory, type AppState } from "./utils/history";
   // Electron API type (defined in preload.js, attached to window)
@@ -114,6 +115,10 @@
 
   // Layout State
   let showSidebar = true;
+  // Active tab for ControlTab (path | field | table)
+  let activeControlTab: "path" | "field" | "table" = "path";
+  // Reference to ControlTab component instance so we can programmatically control optimization
+  let controlTabRef: any = null;
   let mainContentHeight = 0;
   let mainContentWidth = 0;
   let mainContentDiv: HTMLDivElement;
@@ -265,6 +270,33 @@
     };
   }
 
+  // Clicking anywhere outside a wait row/marker should clear wait selection highlight
+  function handleDocClick(e: MouseEvent) {
+    const sel = get(selectedPointId);
+    if (!sel || !sel.startsWith("wait-")) return;
+
+    let el = e.target as Element | null;
+    while (el) {
+      // Keep selection if clicking inside a sidebar WaitRow
+      if (el.classList && el.classList.contains("wait-row")) return;
+      // Keep selection if clicking a wait marker on the canvas
+      if (
+        el.id &&
+        (el.id.startsWith("wait-") || el.id.startsWith("wait-event-"))
+      )
+        return;
+      el = el.parentElement;
+    }
+
+    // Click was outside wait UI -> clear wait selection
+    selectedPointId.set(null);
+  }
+
+  // Ensure we remove document handlers when component is destroyed
+  onDestroy(() => {
+    document.removeEventListener("click", handleDocClick);
+  });
+
   // Use the stores for reactivity
   $: canUndo = $canUndoStore;
   $: canRedo = $canRedoStore;
@@ -374,7 +406,11 @@
   let loopAnimation = true;
   let animationController: ReturnType<typeof createAnimationController>;
   $: timePrediction = calculatePathTime(startPoint, lines, settings, sequence);
-  $: animationDuration = getAnimationDuration(timePrediction.totalTime / 1000);
+  let playbackSpeed = 1.0; // 1x by default
+  $: animationDuration = getAnimationDuration(
+    timePrediction.totalTime / 1000,
+    playbackSpeed,
+  );
   /**
    * Converter for X axis from inches to pixels.
    */
@@ -1199,6 +1235,22 @@
     handleSeek(percent);
   }
 
+  function cycleGridSize() {
+    const options = [1, 3, 6, 12, 24];
+    const current = $gridSize || options[0];
+    const idx = options.indexOf(current);
+    const next = options[(idx + 1) % options.length];
+    gridSize.set(next);
+  }
+
+  function cycleGridSizeReverse() {
+    const options = [1, 3, 6, 12, 24];
+    const current = $gridSize || options[0];
+    const idx = options.indexOf(current);
+    const prev = options[(idx - 1 + options.length) % options.length];
+    gridSize.set(prev);
+  }
+
   // Hotkey management
   function getKey(action: string): string {
     const bindings = settings?.keyBindings || DEFAULT_KEY_BINDINGS;
@@ -1222,6 +1274,8 @@
         const key = getKey(action);
         if (key) {
           hotkeys(key, (e) => {
+            // Avoid acting when a UI element (input/select/textarea/button) is focused
+            if (isUIElementFocused()) return;
             e.preventDefault();
             handler(e);
           });
@@ -1233,11 +1287,16 @@
       bind("exportGif", () => exportGif());
       bind("addNewLine", () => addNewLine());
       bind("addWait", () => addWait());
+      bind("addEventMarker", () => addEventMarker());
       bind("addControlPoint", () => {
         addControlPoint();
       });
       bind("removeControlPoint", () => {
         removeControlPoint();
+      });
+
+      bind("removeSelected", () => {
+        removeSelected();
       });
       bind("undo", () => undoAction());
       bind("redo", () => redoAction());
@@ -1246,14 +1305,111 @@
       bind("stepForward", () => stepForward());
       bind("stepBackward", () => stepBackward());
 
+      bind("movePointUp", () => movePoint(0, 1));
+      bind("movePointDown", () => movePoint(0, -1));
+      bind("movePointLeft", () => movePoint(-1, 0));
+      bind("movePointRight", () => movePoint(1, 0));
+
+      bind("selectNext", () => cycleSelection(1));
+      bind("selectPrev", () => cycleSelection(-1));
+
+      bind("increaseValue", () => modifyValue(1));
+      bind("decreaseValue", () => modifyValue(-1));
+
       bind("toggleOnion", () => {
         settings.showOnionLayers = !settings.showOnionLayers;
         settings = { ...settings };
       });
 
       bind("toggleGrid", () => showGrid.update((v) => !v));
+      bind("cycleGridSize", () => cycleGridSize());
+      bind("cycleGridSizeReverse", () => cycleGridSizeReverse());
       bind("toggleSnap", () => snapToGrid.update((v) => !v));
+      bind("increasePlaybackSpeed", () => changePlaybackSpeedBy(0.25));
+      bind("decreasePlaybackSpeed", () => changePlaybackSpeedBy(-0.25));
+      bind("resetPlaybackSpeed", () => resetPlaybackSpeed());
       bind("toggleProtractor", () => showProtractor.update((v) => !v));
+
+      bind("toggleSidebar", () => {
+        showSidebar = !showSidebar;
+      });
+
+      // Optimization hotkeys
+      bind("optimizeStart", () => {
+        if (isUIElementFocused()) return;
+        // If user is in Paths tab, switch to Table tab per request
+        if (activeControlTab === "path") activeControlTab = "table";
+        // Ensure we have a ControlTab reference and open & start optimization
+        if (controlTabRef && controlTabRef.openAndStartOptimization) {
+          controlTabRef.openAndStartOptimization();
+        }
+      });
+
+      bind("optimizeStop", () => {
+        if (isUIElementFocused()) return;
+        if (controlTabRef && controlTabRef.getOptimizationStatus) {
+          const status = controlTabRef.getOptimizationStatus();
+          if (status.isRunning) controlTabRef.stopOptimization();
+        }
+      });
+
+      bind("optimizeApply", () => {
+        if (isUIElementFocused()) return;
+        if (controlTabRef && controlTabRef.getOptimizationStatus) {
+          const status = controlTabRef.getOptimizationStatus();
+          if (status.optimizedLines && !status.optimizationFailed) {
+            controlTabRef.applyOptimization();
+          }
+        }
+      });
+
+      bind("optimizeDiscard", () => {
+        if (isUIElementFocused()) return;
+        if (controlTabRef && controlTabRef.getOptimizationStatus) {
+          const status = controlTabRef.getOptimizationStatus();
+          if (status.optimizedLines || status.optimizationFailed) {
+            controlTabRef.discardOptimization();
+          }
+        }
+      });
+
+      bind("optimizeRetry", () => {
+        if (isUIElementFocused()) return;
+        if (controlTabRef && controlTabRef.getOptimizationStatus) {
+          const status = controlTabRef.getOptimizationStatus();
+          // Allow retry when finished or when failed
+          if (
+            !status.isRunning &&
+            (status.optimizedLines || status.optimizationFailed)
+          ) {
+            controlTabRef.retryOptimization();
+          }
+        }
+      });
+
+      bind("selectTabPaths", () => (activeControlTab = "path"));
+      bind("selectTabField", () => (activeControlTab = "field"));
+      bind("selectTabTable", () => (activeControlTab = "table"));
+
+      bind("cycleTabNext", () => {
+        const order: ("path" | "field" | "table")[] = [
+          "path",
+          "field",
+          "table",
+        ];
+        const idx = order.indexOf(activeControlTab);
+        activeControlTab = order[(idx + 1) % order.length];
+      });
+
+      bind("cycleTabPrev", () => {
+        const order: ("path" | "field" | "table")[] = [
+          "path",
+          "field",
+          "table",
+        ];
+        const idx = order.indexOf(activeControlTab);
+        activeControlTab = order[(idx - 1 + order.length) % order.length];
+      });
       bind("toggleCollapseAll", () =>
         toggleCollapseAllTrigger.update((v) => v + 1),
       );
@@ -1396,9 +1552,18 @@
             x(POINT_RADIUS * 1.3),
           );
           markerCircle.id = `wait-event-circle-${ev.waitId}-${eventIdx}`;
-          markerCircle.fill = "#8b5cf6";
-          markerCircle.stroke = "#ffffff";
-          markerCircle.linewidth = x(0.3);
+
+          // If this wait is selected, apply a visual highlight
+          const waitSelected = $selectedPointId === `wait-${ev.waitId}`;
+          if (waitSelected) {
+            markerCircle.fill = "#f97316"; // orange
+            markerCircle.stroke = "#fffbeb";
+            markerCircle.linewidth = x(0.6);
+          } else {
+            markerCircle.fill = "#8b5cf6";
+            markerCircle.stroke = "#ffffff";
+            markerCircle.linewidth = x(0.3);
+          }
 
           const flagSize = x(1);
           const flagPoints = [
@@ -1407,7 +1572,7 @@
             new Two.Anchor(x(point.x), y(point.y) + flagSize / 2),
           ];
           const flag = new Two.Path(flagPoints, true);
-          flag.fill = "#ffffff";
+          flag.fill = waitSelected ? "#fffbeb" : "#ffffff";
           flag.stroke = "none";
           flag.id = `wait-event-flag-${ev.waitId}-${eventIdx}`;
 
@@ -1582,18 +1747,44 @@
   }
 
   function play() {
-    animationController.play();
+    if (animationController) animationController.play();
     playing = true;
   }
 
   function pause() {
-    animationController.pause();
+    if (animationController) animationController.pause();
     playing = false;
   }
 
   function resetAnimation() {
-    animationController.reset();
+    if (animationController) animationController.reset();
     playing = false;
+  }
+
+  function setPlaybackSpeed(factor: number, autoPlay: boolean = true) {
+    // Clamp and round to 2 decimals
+    const clamped = Math.max(
+      0.25,
+      Math.min(3.0, Math.round(factor * 100) / 100),
+    );
+    playbackSpeed = clamped;
+    // Recalculate animationDuration and apply to controller if ready
+    const newDuration = getAnimationDuration(
+      timePrediction.totalTime / 1000,
+      playbackSpeed,
+    );
+    if (animationController) {
+      animationController.setDuration(newDuration);
+    }
+    if (autoPlay) play();
+  }
+
+  function changePlaybackSpeedBy(delta: number) {
+    setPlaybackSpeed((playbackSpeed || 1.0) + delta, true);
+  }
+
+  function resetPlaybackSpeed() {
+    setPlaybackSpeed(1.0, false);
   }
 
   // Handle slider changes
@@ -1728,6 +1919,40 @@
         if (elem?.id.startsWith("point") || elem?.id.startsWith("obstacle")) {
           two.renderer.domElement.style.cursor = "pointer";
           currentElem = elem.id;
+        } else if (
+          elem?.id &&
+          (elem.id.startsWith("event-") ||
+            elem.id.startsWith("event-circle-") ||
+            elem.id.startsWith("event-flag-"))
+        ) {
+          // Normalize event element ids to a common selection id: event-<lineIdx>-<eventIdx>
+          two.renderer.domElement.style.cursor = "pointer";
+          const idParts = elem.id.split("-");
+          // id can be 'event-2-1' (group) or 'event-circle-2-1' or 'event-flag-2-1'
+          if (idParts.length >= 3) {
+            const lineIdx = idParts[idParts.length - 2];
+            const evIdx = idParts[idParts.length - 1];
+            currentElem = `event-${lineIdx}-${evIdx}`;
+          } else {
+            currentElem = elem.id;
+          }
+        } else if (
+          elem?.id &&
+          (elem.id.startsWith("wait-event-") ||
+            elem.id.startsWith("wait-event-circle-") ||
+            elem.id.startsWith("wait-event-flag-"))
+        ) {
+          // Normalize wait event element ids to a common selection id: wait-event-<waitId>-<eventIdx>
+          two.renderer.domElement.style.cursor = "pointer";
+          const idParts = elem.id.split("-");
+          // id can be 'wait-event-<waitId>-<eventIdx>' or 'wait-event-circle-<waitId>-<eventIdx>'
+          if (idParts.length >= 4) {
+            const waitId = idParts[idParts.length - 2];
+            const evIdx = idParts[idParts.length - 1];
+            currentElem = `wait-event-${waitId}-${evIdx}`;
+          } else {
+            currentElem = elem.id;
+          }
         } else {
           two.renderer.domElement.style.cursor = "auto";
           currentElem = null;
@@ -1735,8 +1960,47 @@
       }
     });
 
+    document.addEventListener("click", handleDocClick);
+
     two.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
       isDown = true;
+
+      // If we don't have a currentElem (no prior mousemove), determine element under cursor now
+      if (!currentElem) {
+        const el = document.elementFromPoint(evt.clientX, evt.clientY);
+        if (el?.id) {
+          if (el.id.startsWith("point")) currentElem = el.id;
+          else if (
+            el.id.startsWith("event-") ||
+            el.id.startsWith("event-circle-") ||
+            el.id.startsWith("event-flag-")
+          ) {
+            const idParts = el.id.split("-");
+            if (idParts.length >= 3) {
+              const lineIdx = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              currentElem = `event-${lineIdx}-${evIdx}`;
+            } else {
+              currentElem = el.id;
+            }
+          } else if (
+            el.id.startsWith("wait-event-") ||
+            el.id.startsWith("wait-event-circle-") ||
+            el.id.startsWith("wait-event-flag-")
+          ) {
+            const idParts = el.id.split("-");
+            if (idParts.length >= 4) {
+              const waitId = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              currentElem = `wait-event-${waitId}-${evIdx}`;
+            } else {
+              currentElem = el.id;
+            }
+          } else if (el.id.startsWith("obstacle-")) {
+            currentElem = el.id;
+          }
+        }
+      }
 
       // Select a line when clicking a point on the field
       if (currentElem) {
@@ -1761,31 +2025,41 @@
               selectedPointId.set(null);
             }
           }
-        } else if (currentElem.startsWith("obstacle-")) {
-          selectedLineId.set(null);
-          selectedPointId.set(null);
+        } else if (currentElem.startsWith("event-")) {
+          // Select event marker and set line selection
+          const parts = currentElem.split("-");
+          const lineIdx = Number(parts[1]);
+          const evIdx = Number(parts[2]);
+          if (!isNaN(lineIdx) && !isNaN(evIdx) && lines[lineIdx]) {
+            selectedLineId.set(lines[lineIdx].id);
+            selectedPointId.set(currentElem);
+          }
+        } else if (currentElem.startsWith("wait-event-")) {
+          // Select wait event marker: map to wait selection using waitId
+          const parts = currentElem.split("-");
+          const waitId = parts[2];
+          const evIdx = Number(parts[3]);
+          if (waitId) {
+            selectedPointId.set(`wait-${waitId}`);
+            selectedLineId.set(null);
+          }
         }
-      } else {
-        selectedLineId.set(null);
-        selectedPointId.set(null);
-      }
-
-      // Calculate drag offset when clicking to prevent snapping center to mouse
-      if (currentElem) {
-        const rect = two.renderer.domElement.getBoundingClientRect();
-        const transformed = getTransformedCoordinates(
-          evt.clientX,
-          evt.clientY,
-          rect,
-          settings.fieldRotation || 0,
-        );
-        const mouseX = x.invert(transformed.x);
-        const mouseY = y.invert(transformed.y);
 
         let objectX = 0;
         let objectY = 0;
 
-        if (currentElem.startsWith("obstacle-")) {
+        // Compute mouse coordinates in inches for drag offset (handles clicks without prior mousemove)
+        const rectForMouse = two.renderer.domElement.getBoundingClientRect();
+        const transformedForMouse = getTransformedCoordinates(
+          evt.clientX,
+          evt.clientY,
+          rectForMouse,
+          settings.fieldRotation || 0,
+        );
+        const mouseX = x.invert(transformedForMouse.x);
+        const mouseY = y.invert(transformedForMouse.y);
+
+        if (currentElem && currentElem.startsWith("obstacle-")) {
           const parts = currentElem.split("-");
           const shapeIdx = Number(parts[1]);
           const vertexIdx = Number(parts[2]);
@@ -1820,7 +2094,7 @@
       }
     });
 
-    two.renderer.domElement.addEventListener("mouseup", () => {
+    two.renderer.domElement.addEventListener("mouseup", (evt?: MouseEvent) => {
       isDown = false;
       dragOffset = { x: 0, y: 0 };
       recordChange();
@@ -1886,6 +2160,12 @@
 
       lines = [...lines, newLine];
       sequence = [...sequence, { kind: "path", lineId: newLine.id! }];
+
+      // Select the newly created line and its end point
+      selectedLineId.set(newLine.id!);
+      const newIdx = lines.findIndex((l) => l.id === newLine.id!);
+      selectedPointId.set(`point-${newIdx + 1}-0`);
+
       recordChange();
       two.update();
     });
@@ -2045,29 +2325,31 @@
   }
 
   function addNewLine() {
-    lines = [
-      ...lines,
-      {
-        id: `line-${Math.random().toString(36).slice(2)}`,
-        endPoint: {
-          x: _.random(36, 108),
-          y: _.random(36, 108),
-          heading: "tangential",
-          reverse: false,
-        } as Point,
-        controlPoints: [],
-        color: getRandomColor(),
-        locked: false,
-        waitBeforeMs: 0,
-        waitAfterMs: 0,
-        waitBeforeName: "",
-        waitAfterName: "",
-      },
-    ];
-    sequence = [
-      ...sequence,
-      { kind: "path", lineId: lines[lines.length - 1].id! },
-    ];
+    const newLine: Line = {
+      id: `line-${Math.random().toString(36).slice(2)}`,
+      endPoint: {
+        x: _.random(36, 108),
+        y: _.random(36, 108),
+        heading: "tangential",
+        reverse: false,
+      } as Point,
+      controlPoints: [],
+      color: getRandomColor(),
+      locked: false,
+      waitBeforeMs: 0,
+      waitAfterMs: 0,
+      waitBeforeName: "",
+      waitAfterName: "",
+    };
+
+    lines = [...lines, newLine];
+    sequence = [...sequence, { kind: "path", lineId: newLine.id! }];
+
+    // Select newly created line and its endpoint
+    selectedLineId.set(newLine.id!);
+    const newIndex = lines.findIndex((l) => l.id === newLine.id!);
+    selectedPointId.set(`point-${newIndex + 1}-0`);
+
     recordChange();
   }
 
@@ -2080,6 +2362,11 @@
       locked: false,
     } as SequenceItem;
     sequence = [...sequence, wait];
+
+    // Select newly created wait
+    selectedPointId.set(`wait-${wait.id}`);
+    selectedLineId.set(null);
+
     recordChange();
   }
 
@@ -2098,42 +2385,480 @@
       lines.find((l) => l.id === targetId) || lines[lines.length - 1];
     if (!targetLine) return;
 
-    console.log(
-      "[addControlPoint] selectedLine:",
-      $selectedLineId,
-      "targetId:",
-      targetId,
-      "targetLineId:",
-      targetLine.id,
-      "lineIndex:",
-      lines.findIndex((l) => l.id === targetLine.id),
-      "lines.length:",
-      lines.length,
-    );
-
     targetLine.controlPoints.push({
       x: _.random(36, 108),
       y: _.random(36, 108),
     });
 
-    console.log(
-      "[addControlPoint] after push controlCount:",
-      targetLine.controlPoints.length,
-      "controlPoints:",
-      targetLine.controlPoints.map((p) => ({ x: p.x, y: p.y })),
-    );
-
     // Force reactivity
     lines = [...lines];
+
+    // Select the newly created control point
+    const lineIndex = lines.findIndex((l) => l.id === targetLine.id);
+    const cpIndex = targetLine.controlPoints.length; // 1-based in point ID scheme
+    selectedLineId.set(targetLine.id);
+    selectedPointId.set(`point-${lineIndex + 1}-${cpIndex}`);
+
     recordChange();
   }
 
   function removeControlPoint() {
     if (lines.length > 0) {
-      const lastLine = lines[lines.length - 1];
-      if (lastLine.controlPoints.length > 0) {
-        lastLine.controlPoints.pop();
+      // Prefer selected line
+      const targetId = $selectedLineId || lines[lines.length - 1].id;
+      const targetLine =
+        lines.find((l) => l.id === targetId) || lines[lines.length - 1];
+
+      if (targetLine && targetLine.controlPoints.length > 0) {
+        targetLine.controlPoints.pop();
+        // Force reactivity and record change
+        lines = [...lines];
         recordChange();
+      }
+    }
+  }
+
+  // Remove the currently selected point, or remove a selected wait. If the selected point is an end-point,
+  // remove the entire line (and any attached wait after it).
+  function removeSelected() {
+    if (isUIElementFocused()) return;
+    const sel = $selectedPointId;
+    if (!sel) return;
+
+    // Remove wait selection: remove the wait from sequence
+    if (sel.startsWith("wait-")) {
+      const waitId = sel.substring(5);
+      const idx = sequence.findIndex(
+        (s) => s.kind === "wait" && s.id === waitId,
+      );
+      if (idx !== -1) {
+        const newSeq = [...sequence];
+        newSeq.splice(idx, 1);
+        sequence = newSeq;
+        selectedPointId.set(null);
+        recordChange();
+      }
+      return;
+    }
+
+    // Remove point selection
+    if (sel.startsWith("point-")) {
+      const parts = sel.split("-");
+      const lineNum = Number(parts[1]);
+      const ptIdx = Number(parts[2]);
+
+      // Start point cannot be removed
+      if (lineNum === 0 && ptIdx === 0) {
+        return;
+      }
+
+      const lineIndex = lineNum - 1;
+      const line = lines[lineIndex];
+      if (!line) return;
+
+      // If end point selected (ptIdx === 0) -> remove line and attached wait (like removeLine)
+      if (ptIdx === 0) {
+        // Protect against removing the last remaining path
+        if (lines.length <= 1) return;
+
+        const removedId = line.id;
+        if (!removedId) return;
+
+        // Remove line
+        const newLines = [...lines];
+        newLines.splice(lineIndex, 1);
+        lines = newLines;
+
+        // Remove path from the sequence but preserve any waits that follow it
+        if (removedId) {
+          sequence = sequence.filter(
+            (item) => !(item.kind === "path" && item.lineId === removedId),
+          );
+        }
+
+        selectedPointId.set(null);
+        selectedLineId.set(null);
+        recordChange();
+        return;
+      }
+
+      // Control point removal (ptIdx >= 1)
+      const cpIndex = ptIdx - 1;
+      if (line.controlPoints && line.controlPoints[cpIndex] !== undefined) {
+        if (line.locked) return; // protect locked lines
+        line.controlPoints.splice(cpIndex, 1);
+        lines = [...lines];
+        selectedPointId.set(null);
+        recordChange();
+      }
+      return;
+    }
+  }
+
+  function addEventMarker() {
+    // Determine target line: selected line or last line
+    const targetId =
+      $selectedLineId || (lines.length > 0 ? lines[lines.length - 1].id : null);
+    const targetLine = targetId ? lines.find((l) => l.id === targetId) : null;
+
+    if (targetLine) {
+      if (!targetLine.eventMarkers) targetLine.eventMarkers = [];
+      targetLine.eventMarkers = [
+        ...targetLine.eventMarkers,
+        {
+          id: `event-${Date.now()}`,
+          name: "Event",
+          position: 0.5, // Default to middle
+        },
+      ];
+      lines = [...lines];
+      recordChange();
+    }
+  }
+
+  function movePoint(dx: number, dy: number) {
+    if (isUIElementFocused()) return;
+    const currentSel = $selectedPointId;
+    if (!currentSel) return;
+
+    // Default move amount when not snapping
+    const defaultStep = 1;
+    const snapMode = $snapToGrid && $showGrid;
+    const gridStep = $gridSize || 1;
+
+    // Helper to compute next grid-aligned coordinate in a direction
+    const eps = 1e-8;
+    const nextGridCoord = (current: number, direction: number) => {
+      if (direction > 0) {
+        // move right/up -> next gridline above current
+        return Math.min(
+          FIELD_SIZE,
+          Math.ceil((current + eps) / gridStep) * gridStep,
+        );
+      } else if (direction < 0) {
+        // move left/down -> previous gridline below current
+        return Math.max(0, Math.floor((current - eps) / gridStep) * gridStep);
+      }
+      return current;
+    };
+
+    // dx/dy are directions (-1, 0, 1).
+    const moveX = dx * defaultStep;
+    const moveY = dy * defaultStep;
+
+    if (currentSel.startsWith("point-")) {
+      const parts = currentSel.split("-");
+      const lineNum = Number(parts[1]); // 0 for start, 1+ for lines
+      const ptIdx = Number(parts[2]);
+
+      // Handle Start Point
+      if (lineNum === 0 && ptIdx === 0) {
+        if (!startPoint.locked) {
+          if (snapMode) {
+            // Snap on grid in the requested direction
+            if (dx !== 0) startPoint.x = nextGridCoord(startPoint.x, dx);
+            if (dy !== 0) startPoint.y = nextGridCoord(startPoint.y, dy);
+          } else {
+            startPoint.x = Math.max(
+              0,
+              Math.min(FIELD_SIZE, startPoint.x + moveX),
+            );
+            startPoint.y = Math.max(
+              0,
+              Math.min(FIELD_SIZE, startPoint.y + moveY),
+            );
+          }
+
+          // Ensure values are within bounds and rounded sensibly
+          startPoint.x = Number(
+            Math.max(0, Math.min(FIELD_SIZE, startPoint.x)).toFixed(3),
+          );
+          startPoint.y = Number(
+            Math.max(0, Math.min(FIELD_SIZE, startPoint.y)).toFixed(3),
+          );
+
+          startPoint = startPoint; // Trigger reactivity
+          recordChange();
+        }
+        return;
+      }
+
+      // Handle Line Points
+      const lineIndex = lineNum - 1;
+      const line = lines[lineIndex];
+      if (line && !line.locked) {
+        if (ptIdx === 0) {
+          // End Point
+          if (line.endPoint) {
+            if (snapMode) {
+              if (dx !== 0)
+                line.endPoint.x = nextGridCoord(line.endPoint.x, dx);
+              if (dy !== 0)
+                line.endPoint.y = nextGridCoord(line.endPoint.y, dy);
+            } else {
+              line.endPoint.x = Math.max(
+                0,
+                Math.min(FIELD_SIZE, line.endPoint.x + moveX),
+              );
+              line.endPoint.y = Math.max(
+                0,
+                Math.min(FIELD_SIZE, line.endPoint.y + moveY),
+              );
+            }
+
+            line.endPoint.x = Number(
+              Math.max(0, Math.min(FIELD_SIZE, line.endPoint.x)).toFixed(3),
+            );
+            line.endPoint.y = Number(
+              Math.max(0, Math.min(FIELD_SIZE, line.endPoint.y)).toFixed(3),
+            );
+
+            lines = lines; // Trigger reactivity
+            recordChange();
+          }
+        } else {
+          // Control Point (ptIdx 1..N)
+          const cpIndex = ptIdx - 1;
+          if (line.controlPoints[cpIndex]) {
+            if (snapMode) {
+              if (dx !== 0)
+                line.controlPoints[cpIndex].x = nextGridCoord(
+                  line.controlPoints[cpIndex].x,
+                  dx,
+                );
+              if (dy !== 0)
+                line.controlPoints[cpIndex].y = nextGridCoord(
+                  line.controlPoints[cpIndex].y,
+                  dy,
+                );
+            } else {
+              line.controlPoints[cpIndex].x = Math.max(
+                0,
+                Math.min(FIELD_SIZE, line.controlPoints[cpIndex].x + moveX),
+              );
+              line.controlPoints[cpIndex].y = Math.max(
+                0,
+                Math.min(FIELD_SIZE, line.controlPoints[cpIndex].y + moveY),
+              );
+            }
+
+            line.controlPoints[cpIndex].x = Number(
+              Math.max(
+                0,
+                Math.min(FIELD_SIZE, line.controlPoints[cpIndex].x),
+              ).toFixed(3),
+            );
+            line.controlPoints[cpIndex].y = Number(
+              Math.max(
+                0,
+                Math.min(FIELD_SIZE, line.controlPoints[cpIndex].y),
+              ).toFixed(3),
+            );
+
+            lines = lines; // Trigger reactivity
+            recordChange();
+          }
+        }
+      }
+    } else if (currentSel.startsWith("obstacle-")) {
+      const parts = currentSel.split("-");
+      const shapeIdx = Number(parts[1]);
+      const vertexIdx = Number(parts[2]);
+      if (shapes[shapeIdx] && shapes[shapeIdx].vertices[vertexIdx]) {
+        const v = shapes[shapeIdx].vertices[vertexIdx];
+        if (snapMode) {
+          if (dx !== 0) v.x = nextGridCoord(v.x, dx);
+          if (dy !== 0) v.y = nextGridCoord(v.y, dy);
+        } else {
+          v.x = Math.max(0, Math.min(FIELD_SIZE, v.x + moveX));
+          v.y = Math.max(0, Math.min(FIELD_SIZE, v.y + moveY));
+        }
+        v.x = Number(Math.max(0, Math.min(FIELD_SIZE, v.x)).toFixed(3));
+        v.y = Number(Math.max(0, Math.min(FIELD_SIZE, v.y)).toFixed(3));
+        shapes = shapes; // Trigger reactivity
+        recordChange();
+      }
+    } else if (currentSel.startsWith("event-")) {
+      // event-<lineIdx>-<evIdx>
+      const parts = currentSel.split("-");
+      const lineIdx = Number(parts[1]);
+      const evIdx = Number(parts[2]);
+      const line = lines[lineIdx];
+
+      if (line && line.eventMarkers && line.eventMarkers[evIdx]) {
+        // Move event along path position (0-1)
+        // Map dx to a small increment.
+        // e.g. dx=1 (right) -> +0.01
+        // dy (up/down) -> also adjust or maybe bigger steps?
+        const delta = (dx + dy) * 0.01;
+        let newPos = line.eventMarkers[evIdx].position + delta;
+        newPos = Math.max(0, Math.min(1, newPos));
+        line.eventMarkers[evIdx].position = newPos;
+        lines = lines; // Trigger reactivity
+        recordChange();
+      }
+    }
+  }
+
+  function getSelectableItems() {
+    const items: string[] = [];
+
+    // Start Point
+    items.push("point-0-0");
+
+    // Sequence Items
+    // We traverse sequence to be logical with the order of execution
+    // But for visual selection, we usually select points.
+    // If a sequence item is a Path, we add its points.
+    // If a sequence item is a Wait, we add a "wait-<id>" item.
+
+    // NOTE: The lines array is the source of truth for geometry indices.
+    // The sequence array points to line IDs.
+    // To match visual order (Line 1, Line 2...), we might just iterate lines?
+    // But if we want to select Waits, we need the sequence.
+    // Let's use sequence order.
+
+    sequence.forEach((item, seqIdx) => {
+      if (item.kind === "path") {
+        const lineIdx = lines.findIndex((l) => l.id === item.lineId);
+        if (lineIdx !== -1) {
+          const line = lines[lineIdx];
+          // Add Control Points first? Or Start?
+          // Visual path: Start -> CP1 -> CP2 -> End.
+          // Start is usually the end of previous.
+          // We only select the points belonging to THIS line object: ControlPoints and EndPoint.
+          // Control Points come before EndPoint in the curve definition, but user might view EndPoint as the main target.
+          // Let's follow drawing order: CPs then EndPoint.
+          line.controlPoints.forEach((_, cpIdx) => {
+            items.push(`point-${lineIdx + 1}-${cpIdx + 1}`);
+          });
+          items.push(`point-${lineIdx + 1}-0`); // EndPoint is index 0 in our ID scheme from field rendering
+        }
+      } else if (item.kind === "wait") {
+        items.push(`wait-${item.id}`);
+      }
+    });
+
+    // Event Markers
+    lines.forEach((line, lineIdx) => {
+      if (line.eventMarkers) {
+        line.eventMarkers.forEach((_, evIdx) => {
+          items.push(`event-${lineIdx}-${evIdx}`);
+        });
+      }
+    });
+
+    // Obstacles? Maybe after everything?
+    shapes.forEach((_, sIdx) => {
+      shapes[sIdx].vertices.forEach((_, vIdx) => {
+        items.push(`obstacle-${sIdx}-${vIdx}`);
+      });
+    });
+
+    return items;
+  }
+
+  function cycleSelection(dir: number) {
+    if (isUIElementFocused()) return;
+    const items = getSelectableItems();
+    if (items.length === 0) return;
+
+    let current = $selectedPointId;
+
+    // If selection is a wait but stored differently, handle that?
+    // We will use selectedPointId to store "wait-ID" as well for now,
+    // assuming other components handle it gracefully or ignore it.
+
+    let idx = items.indexOf(current || "");
+    if (idx === -1) {
+      idx = 0;
+    } else {
+      idx = (idx + dir + items.length) % items.length;
+    }
+
+    const newId = items[idx];
+    selectedPointId.set(newId);
+
+    // Update selectedLineId if applicable
+    if (newId.startsWith("point-")) {
+      const parts = newId.split("-");
+      const lineNum = Number(parts[1]);
+      if (lineNum > 0) {
+        const lineId = lines[lineNum - 1].id;
+        selectedLineId.set(lineId || null);
+      } else {
+        selectedLineId.set(null);
+      }
+    } else if (newId.startsWith("wait-")) {
+      // Clear line selection so Wait is focused in sidebar?
+      selectedLineId.set(null);
+      // We might want a way to indicate selection in sidebar.
+      // selectedPointId is used by WaypointTable to highlight rows?
+      // We'll need to check WaypointTable later.
+    } else {
+      selectedLineId.set(null);
+    }
+  }
+
+  function modifyValue(delta: number) {
+    if (isUIElementFocused()) return;
+    const current = $selectedPointId;
+    if (!current) return;
+
+    // Check if it is a wait
+    if (current.startsWith("wait-")) {
+      const waitId = current.substring(5);
+      const item = sequence.find((s) => s.kind === "wait" && s.id === waitId);
+      if (item && item.kind === "wait") {
+        // Modify duration
+        const change = delta * 100; // 100ms steps
+        item.durationMs = Math.max(0, item.durationMs + change);
+        sequence = [...sequence]; // Trigger reactivity
+        recordChange();
+      }
+      return;
+    }
+
+    // If selection is an event marker (event-<lineIdx>-<evIdx>), modify its position (0..1)
+    if (current.startsWith("event-")) {
+      const parts = current.split("-");
+      if (parts.length >= 3) {
+        const lineIdx = Number(parts[1]);
+        const evIdx = Number(parts[2]);
+        const line = lines[lineIdx];
+        if (line && line.eventMarkers && line.eventMarkers[evIdx]) {
+          // Move closer to 1 for positive delta ('=') or closer to 0 for negative delta ('-')
+          // Step size: 0.01 per press
+          const step = 0.01 * Math.sign(delta || 1);
+          let newPos = line.eventMarkers[evIdx].position + step;
+
+          // Clamp between 0 and 1
+          newPos = Math.max(0, Math.min(1, newPos));
+
+          line.eventMarkers[evIdx].position = newPos;
+          lines = lines; // Trigger reactivity
+          recordChange();
+        }
+      }
+      return;
+    }
+
+    // If a line is selected but no specific event is selected, modify the last event on that line
+    if ($selectedLineId) {
+      const selLineId = $selectedLineId;
+      const lineIdx = lines.findIndex((l) => l.id === selLineId);
+      if (lineIdx !== -1) {
+        const line = lines[lineIdx];
+        if (line && line.eventMarkers && line.eventMarkers.length > 0) {
+          const lastIdx = line.eventMarkers.length - 1;
+          const step = 0.01 * Math.sign(delta || 1);
+          let newPos = line.eventMarkers[lastIdx].position + step;
+          newPos = Math.max(0, Math.min(1, newPos));
+          line.eventMarkers[lastIdx].position = newPos;
+          lines = lines; // Trigger reactivity
+          recordChange();
+          return;
+        }
       }
     }
   }
@@ -2299,8 +3024,8 @@
       {recordChange}
       {canUndo}
       {canRedo}
-      onPreviewOptimizedLines={(newLines) => {
-        previewOptimizedLines = newLines;
+      on:previewOptimizedLines={(e) => {
+        previewOptimizedLines = e.detail;
       }}
     />
   </div>
@@ -2444,6 +3169,7 @@ pointer-events: none;`}
       class:overflow-hidden={!showSidebar}
     >
       <ControlTab
+        bind:this={controlTabRef}
         bind:playing
         {play}
         {pause}
@@ -2463,6 +3189,11 @@ pointer-events: none;`}
         bind:loopAnimation
         {resetAnimation}
         {recordChange}
+        {playbackSpeed}
+        {changePlaybackSpeedBy}
+        {resetPlaybackSpeed}
+        {setPlaybackSpeed}
+        bind:activeTab={activeControlTab}
         onPreviewChange={(newLines) => {
           previewOptimizedLines = newLines;
         }}

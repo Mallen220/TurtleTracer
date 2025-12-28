@@ -29,15 +29,21 @@ export const AVAILABLE_FIELD_MAPS = [
 export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
   {
     id: "add-path",
-    key: "w",
+    key: "p",
     description: "Add new path",
     action: "addNewLine",
   },
   {
     id: "add-wait",
-    key: "q",
+    key: "w",
     description: "Add wait",
     action: "addWait",
+  },
+  {
+    id: "add-event-marker",
+    key: "e",
+    description: "Add event marker",
+    action: "addEventMarker",
   },
   {
     id: "add-control-point",
@@ -52,6 +58,12 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "removeControlPoint",
   },
   {
+    id: "remove-selected",
+    key: "backspace, delete",
+    description: "Remove selected point or wait",
+    action: "removeSelected",
+  },
+  {
     id: "save-project",
     key: "cmd+s, ctrl+s",
     description: "Save project",
@@ -62,6 +74,24 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     key: "space",
     description: "Play / Pause",
     action: "togglePlay",
+  },
+  {
+    id: "increase-speed",
+    key: "up",
+    description: "Increase playback speed by 0.25x",
+    action: "increasePlaybackSpeed",
+  },
+  {
+    id: "decrease-speed",
+    key: "down",
+    description: "Decrease playback speed by 0.25x",
+    action: "decreasePlaybackSpeed",
+  },
+  {
+    id: "reset-playback-speed",
+    key: "1",
+    description: "Reset playback speed to 1x",
+    action: "resetPlaybackSpeed",
   },
   { id: "undo", key: "cmd+z, ctrl+z", description: "Undo", action: "undo" },
   {
@@ -101,6 +131,54 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "stepForward",
   },
   {
+    id: "move-point-up",
+    key: "i",
+    description: "Move selected point up",
+    action: "movePointUp",
+  },
+  {
+    id: "move-point-down",
+    key: "k",
+    description: "Move selected point down",
+    action: "movePointDown",
+  },
+  {
+    id: "move-point-left",
+    key: "j",
+    description: "Move selected point left",
+    action: "movePointLeft",
+  },
+  {
+    id: "move-point-right",
+    key: "l",
+    description: "Move selected point right",
+    action: "movePointRight",
+  },
+  {
+    id: "select-next",
+    key: "tab",
+    description: "Select next item",
+    action: "selectNext",
+  },
+  {
+    id: "select-prev",
+    key: "shift+tab",
+    description: "Select previous item",
+    action: "selectPrev",
+  },
+  {
+    id: "increase-val",
+    key: "=",
+    description: "Increase value (e.g. wait time)",
+    action: "increaseValue",
+  },
+  {
+    id: "decrease-val",
+    key: "-",
+    description: "Decrease value (e.g. wait time)",
+    action: "decreaseValue",
+  },
+  {
     id: "toggle-onion",
     key: "o",
     description: "Toggle onion layers",
@@ -113,6 +191,18 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "toggleGrid",
   },
   {
+    id: "cycle-grid-size",
+    key: "]",
+    description: "Cycle grid spacing",
+    action: "cycleGridSize",
+  },
+  {
+    id: "cycle-grid-size-prev",
+    key: "[",
+    description: "Cycle grid spacing backward",
+    action: "cycleGridSizeReverse",
+  },
+  {
     id: "toggle-snap",
     key: "n",
     description: "Toggle snap to grid",
@@ -120,7 +210,7 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
   },
   {
     id: "toggle-protractor",
-    key: "p",
+    key: "shift+p",
     description: "Toggle protractor",
     action: "toggleProtractor",
   },
@@ -129,6 +219,72 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     key: "shift+c",
     description: "Toggle collapse/expand all",
     action: "toggleCollapseAll",
+  },
+  {
+    id: "toggle-sidebar",
+    key: "b",
+    description: "Toggle sidebar / control tab",
+    action: "toggleSidebar",
+  },
+  {
+    id: "select-paths-tab",
+    key: "alt+1",
+    description: "Switch to Paths tab",
+    action: "selectTabPaths",
+  },
+  {
+    id: "select-field-tab",
+    key: "alt+2",
+    description: "Switch to Field & Tools tab",
+    action: "selectTabField",
+  },
+  {
+    id: "select-table-tab",
+    key: "alt+3",
+    description: "Switch to Table tab",
+    action: "selectTabTable",
+  },
+  {
+    id: "optimize-start",
+    key: "ctrl+shift+o",
+    description: "Open optimization panel and start optimization",
+    action: "optimizeStart",
+  },
+  {
+    id: "optimize-stop",
+    key: "ctrl+.",
+    description: "Stop running optimization",
+    action: "optimizeStop",
+  },
+  {
+    id: "optimize-apply",
+    key: "ctrl+enter",
+    description: "Apply optimized path",
+    action: "optimizeApply",
+  },
+  {
+    id: "optimize-discard",
+    key: "ctrl+backspace",
+    description: "Discard optimization results",
+    action: "optimizeDiscard",
+  },
+  {
+    id: "optimize-retry",
+    key: "ctrl+shift+r",
+    description: "Retry optimization",
+    action: "optimizeRetry",
+  },
+  {
+    id: "cycle-tabs-next",
+    key: "ctrl+tab",
+    description: "Cycle tabs forward",
+    action: "cycleTabNext",
+  },
+  {
+    id: "cycle-tabs-prev",
+    key: "ctrl+shift+tab",
+    description: "Cycle tabs backward",
+    action: "cycleTabPrev",
   },
   {
     id: "show-help",
