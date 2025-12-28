@@ -2289,6 +2289,7 @@
       bind:robotWidth
       bind:robotHeight
       bind:showSidebar
+      bind:isLargeScreen
       {saveProject}
       {saveFileAs}
       {loadFile}
@@ -2435,12 +2436,12 @@ pointer-events: none;`}
       </button>
     {/if}
 
-    <!-- Control Tab (Right Pane) -->
+    <!-- Control Tab (Right Pane / Bottom Tab) with directional hide animation -->
     <div
-      class="flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-all duration-300 ease-in-out"
-      class:lg:w-0={!showSidebar && isLargeScreen}
-      class:hidden={!showSidebar && isLargeScreen}
-      class:overflow-hidden={!showSidebar && isLargeScreen}
+      class="flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-transform duration-300 ease-in-out transform"
+      class:translate-x-full={!showSidebar && isLargeScreen}
+      class:translate-y-full={!showSidebar && !isLargeScreen}
+      class:overflow-hidden={!showSidebar}
     >
       <ControlTab
         bind:playing

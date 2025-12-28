@@ -36,7 +36,8 @@
   export let robotHeight: number;
   export let settings: Settings;
 
-  // export let showSidebar = true;
+  export let showSidebar = true;
+  export let isLargeScreen = true;
 
   export let saveProject: () => any;
   export let saveFileAs: () => any;
@@ -308,6 +309,65 @@
       class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4"
       aria-hidden="true"
     ></div>
+
+    <!-- Sidebar toggle -->
+    <div class="flex items-center">
+      <button
+        title={showSidebar
+          ? "Hide Sidebar"
+          : isLargeScreen
+            ? "Show Sidebar (Right)"
+            : "Show Tab (Bottom)"}
+        aria-label={showSidebar
+          ? "Hide Sidebar"
+          : isLargeScreen
+            ? "Show Sidebar"
+            : "Show Tab"}
+        aria-pressed={showSidebar}
+        on:click={() => (showSidebar = !showSidebar)}
+        class="p-2 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+      >
+        {#if showSidebar && isLargeScreen}
+          <!-- Sidebar visible: show icon with left pane -->
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="size-5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
+            <rect x="12" y="4" width="9" height="16"></rect>
+          </svg>
+        {:else if showSidebar && !isLargeScreen}
+          <!-- Shown on vertical: icon with bottom pane -->
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="size-5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
+            <rect x="3" y="12" width="18" height="8"></rect>
+          </svg>
+        {:else}
+          <!-- Hidden: Empty Box -->
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="size-5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
+          </svg>
+        {/if}
+      </button>
+    </div>
 
     <!-- Snap to grid toggle -->
     {#if $showGrid}
