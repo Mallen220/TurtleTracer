@@ -53,7 +53,7 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
   },
   {
     id: "remove-control-point",
-    key: "s",
+    key: "d",
     description: "Remove control point",
     action: "removeControlPoint",
   },
