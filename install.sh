@@ -90,19 +90,22 @@ select_asset_by_pattern() {
     done
 
     # No auto-match; present interactive choices
-    echo "Multiple assets found for pattern: $pattern"
+    echo "" >&2
+    echo "Multiple assets found for pattern: $pattern" >&2
+    echo "" >&2
     local i=1
     for u in "${urls[@]}"; do
-        printf "[%d] %s\n" "$i" "$(basename "$u")"
+        printf "  [%d] %s\n" "$i" "$(basename "$u")" >&2
         ((i++))
     done
-    printf "[0] Enter URL manually\n"
+    printf "  [0] Enter URL manually\n" >&2
+    echo "" >&2
 
     while true; do
-        read -p "Select an asset number to download [1-$((i-1))] or 0: " sel
+        read -p "Select an asset number to download [1-$((i-1))] or 0: " sel < /dev/tty
         if printf "%s" "$sel" | grep -Eq "^[0-9]+$"; then
             if [ "$sel" -eq 0 ]; then
-                read -p "Enter full download URL: " manual
+                read -p "Enter full download URL: " manual < /dev/tty
                 echo "$manual"
                 return
             elif [ "$sel" -ge 1 ] && [ "$sel" -lt "$i" ]; then
@@ -164,7 +167,7 @@ install_mac() {
 
     if [ -z "$DOWNLOAD_URL" ]; then
         print_error "No DMG found in latest release. You can manually provide a direct download URL."
-        read -p "Enter a direct .dmg download URL: " DOWNLOAD_URL
+        read -p "Enter a direct .dmg download URL: " DOWNLOAD_URL < /dev/tty
         if [ -z "$DOWNLOAD_URL" ]; then
             print_error "No URL provided. Aborting."
             exit 1
@@ -213,7 +216,7 @@ install_linux() {
 
     if [ -z "$candidate_url" ]; then
         print_error "No Linux assets found in latest release. You can manually provide a direct download URL."
-        read -p "Enter a direct download URL (AppImage, .deb, or .tar.gz): " candidate_url
+        read -p "Enter a direct download URL (AppImage, .deb, or .tar.gz): " candidate_url < /dev/tty
         if [ -z "$candidate_url" ]; then
             print_error "No URL provided. Aborting."
             exit 1
@@ -295,7 +298,7 @@ echo "1) macOS (DMG)"
 echo "2) Linux (AppImage)"
 echo "3) Windows (Info)"
 echo ""
-read -p "Enter choice [1-3] (Default: Auto-detect): " CHOICE
+read -p "Enter choice [1-3] (Default: Auto-detect): " CHOICE < /dev/tty
 
 if [ -z "$CHOICE" ]; then
     case "$DETECTED_OS" in
