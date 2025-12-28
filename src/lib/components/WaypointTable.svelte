@@ -525,10 +525,17 @@
               disabled={startPoint.locked}
             />
           </td>
-          <td class="px-3 py-2 text-center">
+          <td class="px-3 py-2 text-right flex items-center justify-end gap-1">
             {#if startPoint.locked}
-              <span title="Locked">🔒</span>
+              <span
+                title="Locked"
+                class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
+                >🔒</span
+              >
+            {:else}
+              <span class="h-6 w-6" aria-hidden="true"></span>
             {/if}
+            <span class="h-6 w-6" aria-hidden="true"></span>
           </td>
         </tr>
 
@@ -614,7 +621,7 @@
                   />
                 </td>
                 <td
-                  class="px-3 py-2 text-center flex items-center justify-center gap-1"
+                  class="px-3 py-2 text-right flex items-center justify-end gap-1"
                 >
                   <button
                     title={line.locked ? "Unlock Path" : "Lock Path"}
@@ -623,7 +630,7 @@
                       lines = [...lines];
                       if (recordChange) recordChange();
                     }}
-                    class="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                    class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                     aria-pressed={line.locked}
                   >
                     {#if line.locked}
@@ -663,7 +670,7 @@
                     <button
                       on:click|stopPropagation={() => deleteLine(line.id)}
                       title="Delete path"
-                      class="p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                      class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                     >
                       <TrashIcon className="size-4" strokeWidth={2} />
                     </button>
@@ -716,15 +723,23 @@
                       disabled={line.locked}
                     />
                   </td>
-                  <td class="px-3 py-2 text-center">
+                  <td
+                    class="px-3 py-2 text-right flex items-center justify-end gap-1"
+                  >
                     {#if line.locked}
-                      <span title="Locked">🔒</span>
+                      <span
+                        title="Locked"
+                        class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
+                        >🔒</span
+                      >
+                      <span class="h-6 w-6" aria-hidden="true"></span>
                     {:else}
+                      <span class="h-6 w-6" aria-hidden="true"></span>
                       <button
                         on:click|stopPropagation={() =>
                           deleteControlPoint(line, j)}
                         title="Delete control point"
-                        class="p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                        class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                       >
                         <TrashIcon className="size-4" strokeWidth={2} />
                       </button>
@@ -794,14 +809,16 @@
                 />
               </td>
               <td class="px-3 py-2 text-neutral-400 text-xs italic"> - </td>
-              <td class="px-3 py-2 text-center">
+              <td class="px-3 py-2 text-right flex items-center justify-end gap-1">
                 {#if item.locked}
-                  <span title="Locked">🔒</span>
+                  <span title="Locked" class="inline-flex items-center justify-center h-6 w-6 text-neutral-400">🔒</span>
+                  <span class="h-6 w-6" aria-hidden="true"></span>
                 {:else}
+                  <span class="h-6 w-6" aria-hidden="true"></span>
                   <button
                     on:click|stopPropagation={() => deleteWait(seqIndex)}
                     title="Delete wait"
-                    class="p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                   >
                     <TrashIcon className="size-4" strokeWidth={2} />
                   </button>
