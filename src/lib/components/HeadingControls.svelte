@@ -82,13 +82,15 @@ With tangential heading, the heading follows the direction of the line."
     />
   </div>
 {:else if endPoint.heading === "tangential"}
-  <p class="text-sm font-extralight">Reverse:</p>
-  <input
-    type="checkbox"
-    bind:checked={endPoint.reverse}
-    on:change={() => dispatch("change")}
-    on:blur={() => dispatch("commit")}
-    title="Reverse the direction the robot faces along the tangential path"
-    disabled={locked}
-  />
+  <div class="flex items-center gap-2">
+    <p class="text-sm font-extralight">Reverse:</p>
+    <input
+      type="checkbox"
+      bind:checked={endPoint.reverse}
+      on:change={() => dispatch("change")}
+      on:blur={() => dispatch("commit")}
+      title="Reverse the direction the robot faces along the tangential path"
+      disabled={locked}
+    />
+  </div>
 {/if}
