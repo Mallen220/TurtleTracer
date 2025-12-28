@@ -1,3 +1,7 @@
+## 1.3.2 (2025-12-28)
+
+-  add ARIA labels. Add number of downloads. Fix mirror of tangential points. Add application help on mac's header. Add resize option for Control tag and many dynamic reformatting changes. Path Optimization avoids obstacles and various enhancements. Table includes delete option. Overhaul Export Dialog UI. Security enhancements.
+
 ## 1.3.1 (2025-12-26)
 
 - Added field rotate feature. Add field cordinate mouse display. Add recent view in File manager. Added waypoint tab for a different path making experience. Added selected path for optimized keybind shortcuts. Collapse/expand all option.
