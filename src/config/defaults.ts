@@ -343,7 +343,7 @@ export function getDefaultLines(): Line[] {
   return [
     {
       id: `line-${Math.random().toString(36).slice(2)}`,
-      name: "Path 1",
+      name: "",
       endPoint: { x: 56, y: 36, heading: "linear", startDeg: 90, endDeg: 180 },
       controlPoints: [],
       color: getRandomColor(),
