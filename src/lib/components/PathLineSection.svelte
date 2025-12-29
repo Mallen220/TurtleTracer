@@ -4,6 +4,7 @@
   import EventMarkersSection from "./EventMarkersSection.svelte";
   import ControlPointsSection from "./ControlPointsSection.svelte";
   import HeadingControls from "./HeadingControls.svelte";
+  import ColorPicker from "./ColorPicker.svelte";
   import { selectedLineId } from "../../stores";
 
   export let line: Line;
@@ -90,17 +91,12 @@
           if (recordChange) recordChange();
         }}
       />
-      <div
-        class="relative size-5 rounded-full overflow-hidden shadow-sm border border-neutral-300 dark:border-neutral-600 shrink-0"
-        style="background-color: {line.color}"
-      >
-        <input
-          type="color"
-          bind:value={line.color}
-          class="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-          title="Change Path Color"
-        />
-      </div>
+
+      <ColorPicker
+        bind:color={line.color}
+        title="Change Path Color"
+        disabled={line.locked}
+      />
 
       <!-- Lock/Unlock Button -->
       <button
