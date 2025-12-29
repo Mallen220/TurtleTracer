@@ -1,6 +1,12 @@
 <script lang="ts">
   import type { Point, Line, ControlPoint, SequenceItem } from "../../types";
   import {
+    calculateDragPosition,
+    reorderSequence,
+    getClosestTarget,
+    type DragPosition,
+  } from "../../utils/dragDrop";
+  import {
     snapToGrid,
     showGrid,
     gridSize,
@@ -230,7 +236,7 @@
   // Drag and drop state
   let draggingIndex: number | null = null;
   let dragOverIndex: number | null = null;
-  let dragPosition: "top" | "bottom" | null = null;
+  let dragPosition: DragPosition | null = null;
 
   // One-time repair flag for missing sequence items
   let repairedOnce = false;
@@ -243,22 +249,52 @@
     }
   }
 
-  function handleDragOver(e: DragEvent, index: number) {
+  function handleWindowDragOver(e: DragEvent) {
     if (draggingIndex === null) return;
+    e.preventDefault();
 
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    const position = e.clientY < midY ? "top" : "bottom";
+    // Use a custom selector for rows that have sequence data
+    // We target tr elements that have data-seq-index
+    const target = getClosestTarget(e, "tr[data-seq-index]", document.body);
+
+    if (!target) return;
+
+    const index = parseInt(target.element.getAttribute("data-seq-index") || "");
+    if (isNaN(index)) return;
 
     // Start Point special case: cannot drop before it (index -1, top)
-    if (index === -1 && position === "top") return;
+    if (index === -1 && target.position === "top") return;
 
-    e.preventDefault(); // Necessary to allow dropping
-
-    if (dragOverIndex !== index || dragPosition !== position) {
+    if (dragOverIndex !== index || dragPosition !== target.position) {
       dragOverIndex = index;
-      dragPosition = position;
+      dragPosition = target.position;
     }
+  }
+
+  function handleWindowDrop(e: DragEvent) {
+    if (draggingIndex === null) return;
+    e.preventDefault();
+
+    if (
+      dragOverIndex === null ||
+      dragPosition === null ||
+      draggingIndex === dragOverIndex
+    ) {
+      handleDragEnd();
+      return;
+    }
+
+    const newSequence = reorderSequence(
+      sequence,
+      draggingIndex,
+      dragOverIndex,
+      dragPosition,
+    );
+    sequence = newSequence;
+    syncLinesToSequence(newSequence);
+    recordChange();
+
+    handleDragEnd();
   }
 
   function handleDragEnd() {
@@ -362,47 +398,9 @@
     if (recordChange) recordChange();
     selectedPointId.set(null);
   }
-  function handleDrop(e: DragEvent, index: number) {
-    e.preventDefault();
-    if (draggingIndex === null || draggingIndex === index) {
-      handleDragEnd();
-      return;
-    }
-
-    const fromIndex = draggingIndex;
-    let toIndex = index;
-
-    // Logic to reorder sequence
-    const item = sequence[fromIndex];
-    const newSequence = [...sequence];
-
-    // Remove from old position
-    newSequence.splice(fromIndex, 1);
-
-    // Calculate new position
-    // If we removed from before the target, the target index shifts down by 1
-
-    let insertIndex = toIndex;
-    if (fromIndex < toIndex) {
-      insertIndex--;
-    }
-
-    if (dragPosition === "bottom") {
-      insertIndex++;
-    }
-
-    // Safety clamp
-    if (insertIndex < 0) insertIndex = 0;
-    if (insertIndex > newSequence.length) insertIndex = newSequence.length;
-
-    newSequence.splice(insertIndex, 0, item);
-    sequence = newSequence;
-    syncLinesToSequence(newSequence);
-    recordChange();
-
-    handleDragEnd();
-  }
 </script>
+
+<svelte:window on:dragover={handleWindowDragOver} on:drop={handleWindowDrop} />
 
 <div class="w-full flex flex-col gap-4 text-sm p-1">
   <div class="flex justify-between items-center">
@@ -491,14 +489,13 @@
       <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
         <!-- Start Point -->
         <tr
+          data-seq-index="-1"
           class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors duration-150"
           class:selected={$selectedPointId === "point-0-0"}
           on:click={() => {
             selectedLineId.set(null);
             selectedPointId.set("point-0-0");
           }}
-          on:dragover={(e) => handleDragOver(e, -1)}
-          on:drop={(e) => handleDrop(e, -1)}
           class:border-b-2={dragOverIndex === -1 && dragPosition === "bottom"}
           class:border-blue-500={dragOverIndex === -1}
           class:dark:border-blue-400={dragOverIndex === -1}
@@ -558,10 +555,9 @@
               {@html debugPointRow(line, undefined)}
               {@const endPointId = `point-${lineIdx + 1}-0`}
               <tr
+                data-seq-index={seqIndex}
                 draggable={!line.locked}
                 on:dragstart={(e) => handleDragStart(e, seqIndex)}
-                on:dragover={(e) => handleDragOver(e, seqIndex)}
-                on:drop={(e) => handleDrop(e, seqIndex)}
                 on:dragend={handleDragEnd}
                 class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150`}
                 class:border-t-2={dragOverIndex === seqIndex &&
@@ -712,8 +708,6 @@
                     selectedLineId.set(line.id);
                     selectedPointId.set(pointId);
                   }}
-                  on:dragover={(e) => handleDragOver(e, seqIndex)}
-                  on:drop={(e) => handleDrop(e, seqIndex)}
                 >
                   <td class="w-8 px-2 py-2">
                     <!-- No drag handle for control points, but they are drop targets for the parent seqIdx -->
@@ -770,10 +764,9 @@
             <!-- Wait Item -->
             {@const seqIndex = findSequenceIndex(item)}
             <tr
+              data-seq-index={seqIndex}
               draggable={!item.locked}
               on:dragstart={(e) => handleDragStart(e, seqIndex)}
-              on:dragover={(e) => handleDragOver(e, seqIndex)}
-              on:drop={(e) => handleDrop(e, seqIndex)}
               on:dragend={handleDragEnd}
               class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-amber-50 dark:bg-amber-900/20 transition-colors duration-150"
               class:border-t-2={dragOverIndex === seqIndex &&

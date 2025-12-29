@@ -8,6 +8,12 @@
     SequenceItem,
   } from "../types";
   import _ from "lodash";
+  import {
+    calculateDragPosition,
+    reorderSequence,
+    getClosestTarget,
+    type DragPosition,
+  } from "../utils/dragDrop";
   import { getRandomColor } from "../utils";
   import ObstaclesSection from "./components/ObstaclesSection.svelte";
   import RobotPositionDisplay from "./components/RobotPositionDisplay.svelte";
@@ -344,6 +350,95 @@
 
   const makeId = () =>
     `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+  // Drag and drop state
+  let draggingIndex: number | null = null;
+  let dragOverIndex: number | null = null;
+  let dragPosition: DragPosition | null = null;
+
+  function handleDragStart(e: DragEvent, index: number) {
+    // Ignore drag gestures that originate from event marker sliders so the parent list item does not move
+    const originElem = document.elementFromPoint(
+      e.clientX,
+      e.clientY,
+    ) as HTMLElement | null;
+    if (originElem?.closest("[data-event-marker-slider]")) {
+      e.preventDefault();
+      return;
+    }
+
+    // Check if item is locked
+    const item = sequence[index];
+    let isLocked = false;
+    if (item.kind === "path") {
+      const line = lines.find((l) => l.id === item.lineId);
+      isLocked = line?.locked ?? false;
+    } else {
+      isLocked = item.locked ?? false;
+    }
+
+    if (isLocked) {
+      e.preventDefault();
+      return;
+    }
+
+    draggingIndex = index;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      // Optional: set custom drag image if needed
+    }
+  }
+
+  function handleWindowDragOver(e: DragEvent) {
+    if (draggingIndex === null || activeTab !== "path") return;
+    e.preventDefault();
+
+    // Use document.body to search globally for the list items
+    // Since we are in the Path tab, we look for our specific list items
+    const target = getClosestTarget(e, '[role="listitem"]', document.body);
+
+    if (!target) return;
+
+    const index = parseInt(target.element.getAttribute("data-index") || "-1");
+    if (index === -1) return;
+
+    if (dragOverIndex !== index || dragPosition !== target.position) {
+      dragOverIndex = index;
+      dragPosition = target.position;
+    }
+  }
+
+  function handleWindowDrop(e: DragEvent) {
+    if (draggingIndex === null || activeTab !== "path") return;
+    e.preventDefault();
+
+    if (
+      dragOverIndex === null ||
+      dragPosition === null ||
+      draggingIndex === dragOverIndex
+    ) {
+      handleDragEnd();
+      return;
+    }
+
+    const newSequence = reorderSequence(
+      sequence,
+      draggingIndex,
+      dragOverIndex,
+      dragPosition,
+    );
+    sequence = newSequence;
+    syncLinesToSequence(newSequence);
+    recordChange?.();
+
+    handleDragEnd();
+  }
+
+  function handleDragEnd() {
+    draggingIndex = null;
+    dragOverIndex = null;
+    dragPosition = null;
+  }
 
   // Ensure default named paths are renumbered to match the displayed order when
   // new paths are inserted at the beginning/middle/end of the list.
@@ -867,7 +962,23 @@
 
       <!-- Unified sequence render: paths and waits -->
       {#each sequence as item, sIdx}
-        <div class="w-full">
+        {@const isLocked =
+          item.kind === "path"
+            ? (lines.find((l) => l.id === item.lineId)?.locked ?? false)
+            : (item.locked ?? false)}
+        <div
+          role="listitem"
+          data-index={sIdx}
+          class="w-full transition-all duration-200 rounded-lg"
+          draggable={!isLocked}
+          on:dragstart={(e) => handleDragStart(e, sIdx)}
+          on:dragend={handleDragEnd}
+          class:border-t-4={dragOverIndex === sIdx && dragPosition === "top"}
+          class:border-b-4={dragOverIndex === sIdx && dragPosition === "bottom"}
+          class:border-blue-500={dragOverIndex === sIdx}
+          class:dark:border-blue-400={dragOverIndex === sIdx}
+          class:opacity-50={draggingIndex === sIdx}
+        >
           {#if item.kind === "path"}
             {#each lines.filter((l) => l.id === item.lineId) as ln (ln.id)}
               <PathLineSection
@@ -1013,3 +1124,5 @@
     {setPlaybackSpeed}
   />
 </div>
+
+<svelte:window on:dragover={handleWindowDragOver} on:drop={handleWindowDrop} />
