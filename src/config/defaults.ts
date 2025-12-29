@@ -301,7 +301,7 @@ export const DEFAULT_SETTINGS: Settings = {
   kFriction: 0.4,
   rWidth: DEFAULT_ROBOT_WIDTH,
   rHeight: DEFAULT_ROBOT_HEIGHT,
-  safetyMargin: 1,
+  safetyMargin: 6,
   maxVelocity: 40,
   maxAcceleration: 30,
   maxDeceleration: 30,
