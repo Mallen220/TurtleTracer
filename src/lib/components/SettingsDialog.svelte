@@ -143,6 +143,16 @@
     settings.aVelocity = parseFloat(target.value) * Math.PI;
   }
 
+  function handleAngularVelocityChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    if (target.value === "") {
+      settings.aVelocity = DEFAULT_SETTINGS.aVelocity;
+      settings = { ...settings };
+    } else {
+      handleAngularVelocityInput(e);
+    }
+  }
+
   async function handleReset() {
     if (
       confirm(
@@ -348,21 +358,12 @@
                 <input
                   id="robot-width"
                   type="number"
-                  value={settings.rWidth}
+                  bind:value={settings.rWidth}
                   min="1"
                   max="36"
                   step="0.5"
-                  on:input={(e) =>
-                    handleNumberInput(e.target.value, "rWidth", 1, 36)}
                   on:change={(e) =>
-                    handleNumberInput(
-                      e.target.value,
-                      "rWidth",
-                      1,
-                      36,
-                      false,
-                      true,
-                    )}
+                    handleNumberInput(e.target.value, "rWidth", 1, 36, true)}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -380,21 +381,12 @@
                 <input
                   id="robot-height"
                   type="number"
-                  value={settings.rHeight}
+                  bind:value={settings.rHeight}
                   min="1"
                   max="36"
                   step="0.5"
-                  on:input={(e) =>
-                    handleNumberInput(e.target.value, "rHeight", 1, 36)}
                   on:change={(e) =>
-                    handleNumberInput(
-                      e.target.value,
-                      "rHeight",
-                      1,
-                      36,
-                      false,
-                      true,
-                    )}
+                    handleNumberInput(e.target.value, "rHeight", 1, 36, true)}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -412,19 +404,16 @@
                 <input
                   id="safety-margin"
                   type="number"
-                  value={settings.safetyMargin}
+                  bind:value={settings.safetyMargin}
                   min="0"
                   max="24"
                   step="0.5"
-                  on:input={(e) =>
-                    handleNumberInput(e.target.value, "safetyMargin", 0, 24)}
                   on:change={(e) =>
                     handleNumberInput(
                       e.target.value,
                       "safetyMargin",
                       0,
                       24,
-                      false,
                       true,
                     )}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -674,11 +663,17 @@
                   <input
                     id="x-velocity"
                     type="number"
-                    value={settings.xVelocity}
+                    bind:value={settings.xVelocity}
                     min="0"
                     step="1"
-                    on:input={(e) =>
-                      handleNumberInput(e.target.value, "xVelocity", 0)}
+                    on:change={(e) =>
+                      handleNumberInput(
+                        e.target.value,
+                        "xVelocity",
+                        0,
+                        undefined,
+                        true,
+                      )}
                     class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -693,11 +688,17 @@
                   <input
                     id="y-velocity"
                     type="number"
-                    value={settings.yVelocity}
+                    bind:value={settings.yVelocity}
                     min="0"
                     step="1"
-                    on:input={(e) =>
-                      handleNumberInput(e.target.value, "yVelocity", 0)}
+                    on:change={(e) =>
+                      handleNumberInput(
+                        e.target.value,
+                        "yVelocity",
+                        0,
+                        undefined,
+                        true,
+                      )}
                     class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -721,6 +722,7 @@
                   min="0"
                   step="0.1"
                   on:input={handleAngularVelocityInput}
+                  on:change={handleAngularVelocityChange}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -736,11 +738,17 @@
                 <input
                   id="max-velocity"
                   type="number"
-                  value={settings.maxVelocity}
+                  bind:value={settings.maxVelocity}
                   min="0"
                   step="1"
-                  on:input={(e) =>
-                    handleNumberInput(e.target.value, "maxVelocity", 0)}
+                  on:change={(e) =>
+                    handleNumberInput(
+                      e.target.value,
+                      "maxVelocity",
+                      0,
+                      undefined,
+                      true,
+                    )}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -757,11 +765,17 @@
                   <input
                     id="max-acceleration"
                     type="number"
-                    value={settings.maxAcceleration}
+                    bind:value={settings.maxAcceleration}
                     min="0"
                     step="1"
-                    on:input={(e) =>
-                      handleNumberInput(e.target.value, "maxAcceleration", 0)}
+                    on:change={(e) =>
+                      handleNumberInput(
+                        e.target.value,
+                        "maxAcceleration",
+                        0,
+                        undefined,
+                        true,
+                      )}
                     class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -776,11 +790,17 @@
                   <input
                     id="max-deceleration"
                     type="number"
-                    value={settings.maxDeceleration || settings.maxAcceleration}
+                    bind:value={settings.maxDeceleration}
                     min="0"
                     step="1"
-                    on:input={(e) =>
-                      handleNumberInput(e.target.value, "maxDeceleration", 0)}
+                    on:change={(e) =>
+                      handleNumberInput(
+                        e.target.value,
+                        "maxDeceleration",
+                        0,
+                        undefined,
+                        true,
+                      )}
                     class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -800,11 +820,17 @@
                 <input
                   id="friction-coefficient"
                   type="number"
-                  value={settings.kFriction}
+                  bind:value={settings.kFriction}
                   min="0"
                   step="0.1"
-                  on:input={(e) =>
-                    handleNumberInput(e.target.value, "kFriction", 0)}
+                  on:change={(e) =>
+                    handleNumberInput(
+                      e.target.value,
+                      "kFriction",
+                      0,
+                      undefined,
+                      true,
+                    )}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
