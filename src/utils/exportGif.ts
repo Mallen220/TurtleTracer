@@ -11,12 +11,14 @@ export interface ExportGifOptions {
   animationController: any; // controller from createAnimationController
   durationSec: number; // total duration in seconds
   fps?: number; // frames per second
+  scale?: number; // resolution scale (0.1 to 1.0+)
+  quality?: number; // gif.js quality parameter (1=best, 30=worst)
   filename?: string; // suggested filename
   onProgress?: (progress: number) => void; // 0..1
   /** Optional background image URL to draw under the SVG frames (e.g., field map) */
   backgroundImageSrc?: string; /** Optional robot overlay image to draw on top of frames */
   robotImageSrc?: string;
-  /** Robot display size in pixels */
+  /** Robot display size in pixels (unscaled) */
   robotLengthPx?: number;
   robotWidthPx?: number;
   /** Function to compute robot state (x,y in pixels and heading in degrees) for a given percent (0..100) */
@@ -35,6 +37,8 @@ export async function exportPathToGif(
     animationController,
     durationSec,
     fps = 15,
+    scale = 1,
+    quality = 20,
     filename,
     onProgress,
     backgroundImageSrc,
@@ -51,9 +55,13 @@ export async function exportPathToGif(
   const svgEl = (two.renderer as any).domElement as SVGElement;
   const rect = svgEl.getBoundingClientRect();
   const canvas = document.createElement("canvas");
-  canvas.width = Math.round(rect.width);
-  canvas.height = Math.round(rect.height);
+  canvas.width = Math.round(rect.width * scale);
+  canvas.height = Math.round(rect.height * scale);
   const ctx = canvas.getContext("2d")!;
+
+  // Optional: Enable better image smoothing
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
 
   // Optionally preload a background image (field map) so it can be drawn under each frame
   let backgroundImage: HTMLImageElement | null = null;
@@ -121,7 +129,7 @@ export async function exportPathToGif(
   // Setup GIF encoder
   const gif = new GIF({
     workers: 2,
-    quality: 20, // trade quality for speed to keep export responsive
+    quality: quality,
     width: canvas.width,
     height: canvas.height,
     workerScript: gifWorkerUrl,
@@ -170,6 +178,7 @@ export async function exportPathToGif(
         }
 
         // Draw the rasterized SVG on top
+        // Scale is handled by drawing into the scaled canvas dimensions
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         // Draw robot overlay (if provided) on top of SVG
@@ -178,13 +187,16 @@ export async function exportPathToGif(
             const state = options.getRobotState(percent);
             if (state && !Number.isNaN(state.x) && !Number.isNaN(state.y)) {
               ctx.save();
-              // Translate to robot center
-              ctx.translate(state.x, state.y);
+              // Translate to robot center (scaled)
+              ctx.translate(state.x * scale, state.y * scale);
               // Rotate by heading (convert deg -> rad)
               ctx.rotate((state.heading * Math.PI) / 180);
 
-              const rw = options.robotLengthPx ?? (robotImage.width || 0);
-              const rh = options.robotWidthPx ?? (robotImage.height || 0);
+              // Scale robot dimensions
+              const rw =
+                (options.robotLengthPx ?? (robotImage.width || 0)) * scale;
+              const rh =
+                (options.robotWidthPx ?? (robotImage.height || 0)) * scale;
 
               // Draw centered
               // rw (Length) corresponds to X-local, rh (Width) corresponds to Y-local
@@ -263,7 +275,7 @@ export async function exportPathToGif(
           // Main-thread fallback using stored frames
           const gif2 = new GIF({
             workers: 0,
-            quality: 20,
+            quality: quality,
             width: canvas.width,
             height: canvas.height,
           });

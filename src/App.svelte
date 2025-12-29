@@ -9,12 +9,14 @@
   import Navbar from "./lib/Navbar.svelte";
   import FieldRenderer from "./lib/components/FieldRenderer.svelte";
   import KeyboardShortcuts from "./lib/components/KeyboardShortcuts.svelte";
+  import ExportGifDialog from "./lib/components/ExportGifDialog.svelte";
 
   // Stores
   import {
     currentFilePath,
     isUnsaved,
     showSettings,
+    showExportGif,
     showShortcuts,
     exportDialogState,
     selectedPointId,
@@ -42,7 +44,6 @@
     calculateRobotState,
   } from "./utils";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
-  import { exportPathToGif } from "./utils/exportGif";
   import { createHistory, type AppState } from "./utils/history";
   import {
     saveProject,
@@ -430,80 +431,8 @@
   // --- Export GIF ---
   // Need reference to Two instance from FieldRenderer
   let fieldRenderer: FieldRenderer;
-  async function exportGif() {
-    if (!fieldRenderer) return;
-    const twoInstance = fieldRenderer.getTwoInstance();
-    if (!twoInstance) return;
-
-    try {
-      const durationSec = animationController.getDuration();
-      const fps = 15;
-      const notif = document.createElement("div");
-      notif.textContent = "Exporting GIF...";
-      notif.style.cssText =
-        "position:fixed;right:16px;top:16px;background:rgba(0,0,0,0.8);color:white;padding:8px 12px;border-radius:6px;z-index:9999";
-      document.body.appendChild(notif);
-
-      const blob = await exportPathToGif({
-        two: twoInstance,
-        animationController,
-        durationSec,
-        fps,
-        backgroundImageSrc: settings.fieldMap
-          ? `/fields/${settings.fieldMap}`
-          : "/fields/decode.webp",
-        robotImageSrc: settings.robotImage || "/robot.png",
-        robotLengthPx: x(robotLength),
-        robotWidthPx: x(robotWidth),
-        getRobotState: (p) =>
-          calculateRobotState(
-            p,
-            timePrediction.timeline,
-            lines,
-            startPoint,
-            x,
-            y,
-          ),
-        onProgress: (p) => {
-          notif.textContent = `Exporting GIF... ${Math.round(p * 100)}%`;
-        },
-      });
-
-      if (
-        electronAPI &&
-        electronAPI.showSaveDialog &&
-        electronAPI.writeFileBase64
-      ) {
-        const dest = await electronAPI.showSaveDialog({
-          defaultPath: "path.gif",
-          filters: [{ name: "GIF", extensions: ["gif"] }],
-        });
-        if (dest) {
-          const reader = new FileReader();
-          reader.onload = async () => {
-            const b64 = (reader.result as string).split(",")[1];
-            await electronAPI.writeFileBase64!(dest, b64);
-            notif.textContent = "Saved!";
-            setTimeout(() => notif.remove(), 2000);
-          };
-          reader.readAsDataURL(blob);
-        } else {
-          notif.remove();
-        }
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "path.gif";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        notif.remove();
-      }
-    } catch (err) {
-      alert("Export failed: " + err);
-    }
+  function exportGif() {
+    showExportGif.set(true);
   }
 
   // --- Apply Theme ---
@@ -555,6 +484,21 @@
   bind:controlTabRef
   bind:activeControlTab
 />
+
+{#if $showExportGif && fieldRenderer}
+  <ExportGifDialog
+    bind:show={$showExportGif}
+    twoInstance={fieldRenderer.getTwoInstance()}
+    {animationController}
+    {settings}
+    robotLengthPx={x(robotLength)}
+    robotWidthPx={x(robotWidth)}
+    robotStateFunction={(p) =>
+      calculateRobotState(p, timePrediction.timeline, lines, startPoint, x, y)}
+    {electronAPI}
+    on:close={() => showExportGif.set(false)}
+  />
+{/if}
 
 <div
   class="h-screen w-full flex flex-col overflow-hidden bg-neutral-200 dark:bg-neutral-950"
