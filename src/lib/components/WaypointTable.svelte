@@ -290,8 +290,7 @@
 
     // Renumber default path names to match the new order
     const renamed = lines.map((l, idx) => {
-      if (!l.name || /^Path \d+$/.test(l.name))
-        return { ...l, name: `Path ${idx + 1}` };
+      if (/^Path \d+$/.test(l.name)) return { ...l, name: `Path ${idx + 1}` };
       return l;
     });
     lines = renamed;
@@ -605,12 +604,12 @@
                     />
                     <input
                       class="w-full max-w-[140px] px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
-                      value={line.name || `Path ${lineIdx + 1}`}
+                      value={line.name}
                       on:input={(e) =>
                         // @ts-ignore
                         updateLineName(item.lineId, e.target.value)}
                       disabled={line.locked}
-                      placeholder="Path Name"
+                      placeholder="Path {lineIdx + 1}"
                     />
                   </div>
                 </td>

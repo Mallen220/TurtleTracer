@@ -349,7 +349,7 @@
   // new paths are inserted at the beginning/middle/end of the list.
   function renumberDefaultPathNames() {
     const renamed = lines.map((l, idx) => {
-      if (!l.name || /^Path \d+$/.test(l.name)) {
+      if (/^Path \d+$/.test(l.name)) {
         return { ...l, name: `Path ${idx + 1}` };
       }
       return l;
@@ -399,7 +399,7 @@
       endPoint: newPoint,
       controlPoints: [],
       color: getRandomColor(),
-      name: `Path ${lines.length + 1}`,
+      name: "",
       eventMarkers: [],
       waitBeforeMs: 0,
       waitAfterMs: 0,
@@ -458,7 +458,7 @@
   function addLine() {
     const newLine: Line = {
       id: makeId(),
-      name: `Path ${lines.length + 1}`,
+      name: "",
       endPoint: {
         x: _.random(0, 144),
         y: _.random(0, 144),
@@ -552,7 +552,7 @@
   function addPathAtStart() {
     const newLine: Line = {
       id: makeId(),
-      name: `Path ${lines.length + 1}`,
+      name: "",
       endPoint: {
         x: _.random(0, 144),
         y: _.random(0, 144),
@@ -609,7 +609,7 @@
     // Create a new line with default settings
     const newLine: Line = {
       id: makeId(),
-      name: `Path ${lines.length + 1}`,
+      name: "",
       endPoint: {
         x: _.random(36, 108),
         y: _.random(36, 108),
@@ -675,8 +675,7 @@
     lines = reordered.map((entry) => entry.line);
     // Re-number default names after reordering so Path 1..N matches current order
     const renamed = lines.map((l, idx) => {
-      if (!l.name || /^Path \d+$/.test(l.name))
-        return { ...l, name: `Path ${idx + 1}` };
+      if (/^Path \d+$/.test(l.name)) return { ...l, name: `Path ${idx + 1}` };
       return l;
     });
     lines = renamed;

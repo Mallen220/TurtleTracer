@@ -54,7 +54,7 @@ export function sanitizeSequence(
 // Helper: renumber default path names to match display order
 export function renumberDefaultPathNames(lines: Line[]): Line[] {
   return lines.map((l, idx) => {
-    if (!l.name || /^Path \d+$/.test(l.name)) {
+    if (/^Path \d+$/.test(l.name)) {
       return { ...l, name: `Path ${idx + 1}` };
     }
     return l;

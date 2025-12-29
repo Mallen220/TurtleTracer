@@ -1004,6 +1004,7 @@
 
       const newLine: Line = {
         id: `line-${Math.random().toString(36).slice(2)}`,
+        name: "",
         endPoint: { x: inchX, y: inchY, heading: "tangential", reverse: false },
         controlPoints: [],
         color: getRandomColor(),
