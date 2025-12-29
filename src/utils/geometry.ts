@@ -141,9 +141,9 @@ export function getRobotCorners(
 
   const corners = [
     { dx: -hl, dy: -hw }, // front-left
-    { dx: hl, dy: -hw },  // front-right
-    { dx: hl, dy: hw },   // back-right
-    { dx: -hl, dy: hw },  // back-left
+    { dx: hl, dy: -hw }, // front-right
+    { dx: hl, dy: hw }, // back-right
+    { dx: -hl, dy: hw }, // back-left
   ];
 
   // Rotate and translate corners
