@@ -357,6 +357,16 @@
   let dragPosition: DragPosition | null = null;
 
   function handleDragStart(e: DragEvent, index: number) {
+    // Ignore drag gestures that originate from event marker sliders so the parent list item does not move
+    const originElem = document.elementFromPoint(
+      e.clientX,
+      e.clientY,
+    ) as HTMLElement | null;
+    if (originElem?.closest("[data-event-marker-slider]")) {
+      e.preventDefault();
+      return;
+    }
+
     // Check if item is locked
     const item = sequence[index];
     let isLocked = false;

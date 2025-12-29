@@ -1,9 +1,8 @@
-
 export type DragPosition = "top" | "bottom";
 
 export function calculateDragPosition(
   e: DragEvent,
-  currentTarget: HTMLElement
+  currentTarget: HTMLElement,
 ): DragPosition {
   const rect = currentTarget.getBoundingClientRect();
   const midY = rect.top + rect.height / 2;

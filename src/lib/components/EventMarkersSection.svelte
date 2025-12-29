@@ -135,7 +135,9 @@
                 step="0.01"
                 value={event.position}
                 class="flex-1 slider"
+                data-event-marker-slider
                 disabled={line.locked}
+                on:dragstart|preventDefault|stopPropagation
                 on:input={(e) => {
                   const value = parseFloat(e.target.value);
                   if (!isNaN(value)) {
