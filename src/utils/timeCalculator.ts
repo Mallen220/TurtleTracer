@@ -122,6 +122,9 @@ function analyzePathSegment(
   end: BasePoint,
   samples: number = 50,
 ): PathAnalysis {
+  // Safe access to control points
+  const cps = controlPoints || [];
+
   let length = 0;
   let minRadius = Infinity;
   let prevPoint = start;
@@ -129,13 +132,13 @@ function analyzePathSegment(
   let prevAngle: number | null = null;
 
   // Determine curve type
-  const isLine = controlPoints.length === 0;
-  const isQuadratic = controlPoints.length === 1;
-  const isCubic = controlPoints.length === 2; // Or more (clamped to cubic logic for now if 2+)
+  const isLine = cps.length === 0;
+  const isQuadratic = cps.length === 1;
+  const isCubic = cps.length >= 2;
 
   for (let i = 0; i <= samples; i++) {
     const t = i / samples;
-    const point = getCurvePoint(t, [start, ...controlPoints, end]);
+    const point = getCurvePoint(t, [start, ...cps, end]);
 
     // Length
     if (i > 0) {
@@ -153,23 +156,12 @@ function analyzePathSegment(
       d1 = { x: end.x - start.x, y: end.y - start.y };
       d2 = { x: 0, y: 0 }; // Zero curvature
     } else if (isQuadratic) {
-      d1 = getQuadraticDerivative(t, start, controlPoints[0], end);
-      d2 = getQuadraticSecondDerivative(t, start, controlPoints[0], end);
+      d1 = getQuadraticDerivative(t, start, cps[0], end);
+      d2 = getQuadraticSecondDerivative(t, start, cps[0], end);
     } else if (isCubic) {
-      d1 = getCubicDerivative(
-        t,
-        start,
-        controlPoints[0],
-        controlPoints[1],
-        end,
-      );
-      d2 = getCubicSecondDerivative(
-        t,
-        start,
-        controlPoints[0],
-        controlPoints[1],
-        end,
-      );
+      // Use the first two control points for cubic logic
+      d1 = getCubicDerivative(t, start, cps[0], cps[1], end);
+      d2 = getCubicSecondDerivative(t, start, cps[0], cps[1], end);
     }
 
     // Curvature Radius
@@ -177,15 +169,18 @@ function analyzePathSegment(
     if (radius < minRadius) minRadius = radius;
 
     // Tangent Angle
-    const angle = Math.atan2(d1.y, d1.x) * (180 / Math.PI);
-    if (prevAngle !== null) {
-      const diff = Math.abs(getAngularDifference(prevAngle, angle));
-      // Filter out tiny noise which might accumulate
-      if (diff > 0.01) {
-        tangentRotation += diff;
+    // Ensure d1 is not zero vector to avoid undefined atan2
+    if (Math.abs(d1.x) > 1e-9 || Math.abs(d1.y) > 1e-9) {
+      const angle = Math.atan2(d1.y, d1.x) * (180 / Math.PI);
+      if (prevAngle !== null) {
+        const diff = Math.abs(getAngularDifference(prevAngle, angle));
+        // Accumulate all rotation to be safe, filtering only extreme noise
+        if (diff > 0.001) {
+          tangentRotation += diff;
+        }
       }
+      prevAngle = angle;
     }
-    prevAngle = angle;
   }
 
   return { length, minRadius, tangentRotation };
