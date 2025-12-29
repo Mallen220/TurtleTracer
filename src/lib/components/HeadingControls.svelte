@@ -7,6 +7,27 @@
 
 <select
   bind:value={endPoint.heading}
+  on:change={() => {
+    // Notify parent that a change occurred and commit it so timeline and
+    // playback recalculate immediately.
+    // Also ensure required numeric fields exist when switching types so
+    // calculateRobotState doesn't encounter undefined values.
+    if (endPoint.heading === "linear") {
+      // Initialize linear-specific fields if missing
+      if (typeof endPoint.startDeg !== "number")
+        endPoint.startDeg = endPoint.degrees ?? 0;
+      if (typeof endPoint.endDeg !== "number")
+        endPoint.endDeg = endPoint.degrees ?? 0;
+    } else if (endPoint.heading === "constant") {
+      // Ensure constant degree exists (prefer endDeg/startDeg if present)
+      if (typeof endPoint.degrees !== "number") {
+        endPoint.degrees = endPoint.endDeg ?? endPoint.startDeg ?? 0;
+      }
+    }
+
+    dispatch("change");
+    dispatch("commit");
+  }}
   class=" rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-28 text-sm"
   title="The heading style of the robot. 
 With constant heading, the robot maintains the same heading throughout the line. 
