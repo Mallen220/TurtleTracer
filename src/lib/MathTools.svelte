@@ -325,7 +325,7 @@
           x={protractorRadius}
           y="4"
           class="fill-white text-xs font-bold pointer-events-none"
-          text-anchor="middle">↻</text
+          text-anchor="middle">➜</text
         >
       </g>
 
