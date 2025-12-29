@@ -153,7 +153,18 @@
       linesStore.set(prev.lines);
       shapesStore.set(prev.shapes);
       sequenceStore.set(prev.sequence);
-      settingsStore.set(prev.settings);
+
+      // Preserve the current onion layer visibility when undoing so that
+      // toggling onion layers isn't overwritten by history operations.
+      const currentShowOnion = get(settingsStore).showOnionLayers;
+      const preservedShowOnion =
+        typeof currentShowOnion === "boolean"
+          ? currentShowOnion
+          : prev.settings?.showOnionLayers;
+      settingsStore.set({
+        ...prev.settings,
+        showOnionLayers: preservedShowOnion,
+      });
 
       const currentState = getCurrentState();
       isUnsaved.set(currentState !== lastSavedState);
@@ -168,7 +179,17 @@
       linesStore.set(next.lines);
       shapesStore.set(next.shapes);
       sequenceStore.set(next.sequence);
-      settingsStore.set(next.settings);
+
+      // Preserve onion layer visibility when redoing as well.
+      const currentShowOnion = get(settingsStore).showOnionLayers;
+      const preservedShowOnion =
+        typeof currentShowOnion === "boolean"
+          ? currentShowOnion
+          : next.settings?.showOnionLayers;
+      settingsStore.set({
+        ...next.settings,
+        showOnionLayers: preservedShowOnion,
+      });
 
       const currentState = getCurrentState();
       isUnsaved.set(currentState !== lastSavedState);
