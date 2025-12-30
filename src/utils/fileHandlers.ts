@@ -8,11 +8,7 @@ import {
   settingsStore,
   loadProjectData,
 } from "../lib/projectStore";
-import {
-  loadTrajectoryFromFile,
-  downloadTrajectory,
-  downloadTrajectoryAsText,
-} from "./index";
+import { loadTrajectoryFromFile, downloadTrajectory } from "./index";
 
 interface ExtendedElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<boolean>;
@@ -109,30 +105,6 @@ export function saveFileAs() {
     get(linesStore),
     get(shapesStore),
     get(sequenceStore),
-  );
-}
-
-export function exportProjectAsText() {
-  const currentPath = get(currentFilePath);
-  let filename = "trajectory.txt";
-
-  if (currentPath) {
-    const name = currentPath.split(/[\\/]/).pop();
-    if (name) {
-      filename = name.replace(/\.pp$/, ".txt");
-      if (!filename.endsWith(".txt")) {
-        filename += ".txt";
-      }
-    }
-  }
-
-  downloadTrajectoryAsText(
-    get(startPointStore),
-    get(linesStore),
-    get(shapesStore),
-    get(sequenceStore),
-    get(settingsStore),
-    filename,
   );
 }
 

@@ -20,9 +20,10 @@ export function downloadTrajectory(
   lines: Line[],
   shapes: Shape[],
   sequence?: SequenceItem[],
+  settings?: Settings,
 ): void {
   const jsonString = JSON.stringify(
-    { startPoint, lines, shapes, sequence },
+    { startPoint, lines, shapes, sequence, settings },
     null,
     2,
   );

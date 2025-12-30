@@ -1,8 +1,9 @@
 <script lang="ts">
-  import type { Point, Line, SequenceItem } from "../../types";
+  import type { Point, Line, SequenceItem, Shape, Settings } from "../../types";
   import { copy } from "svelte-copy";
   import Highlight from "svelte-highlight";
   import { java } from "svelte-highlight/languages";
+  import json from "svelte-highlight/languages/json";
   import plaintext from "svelte-highlight/languages/plaintext";
   import codeStyle from "svelte-highlight/styles/androidstudio";
   import { fade, fly } from "svelte/transition";
@@ -11,6 +12,7 @@
     generateJavaCode,
     generatePointsArray,
     generateSequentialCommandCode,
+    downloadTrajectory,
   } from "../../utils";
   import { tick, onMount } from "svelte";
   import { loadSettings, saveSettings } from "../../utils/settingsPersistence";
@@ -19,9 +21,11 @@
   export let startPoint: Point;
   export let lines: Line[];
   export let sequence: SequenceItem[];
+  export let shapes: Shape[] = [];
+  export let settings: Settings | undefined = undefined;
 
   let exportFullCode = false;
-  let exportFormat: "java" | "points" | "sequential" = "java";
+  let exportFormat: "java" | "points" | "sequential" | "json" = "java";
   let sequentialClassName = "AutoPath";
   let targetLibrary: "SolversLib" | "NextFTC" = "SolversLib";
   const DEFAULT_PACKAGE =
@@ -29,7 +33,7 @@
   let packageName = DEFAULT_PACKAGE;
 
   let exportedCode = "";
-  let currentLanguage: typeof java | typeof plaintext = java;
+  let currentLanguage: typeof java | typeof plaintext | typeof json = java;
   let copied = false;
   let dialogRef: HTMLDivElement;
   let scrollContainer: HTMLDivElement;
@@ -117,6 +121,13 @@
           packageName,
         );
         currentLanguage = java;
+      } else if (exportFormat === "json") {
+        exportedCode = JSON.stringify(
+          { startPoint, lines, shapes, sequence, settings },
+          null,
+          2,
+        );
+        currentLanguage = json;
       }
 
       // Re-run search if active
@@ -132,7 +143,7 @@
   }
 
   export async function openWithFormat(
-    format: "java" | "points" | "sequential",
+    format: "java" | "points" | "sequential" | "json",
   ) {
     exportFormat = format;
     copied = false;
@@ -275,6 +286,7 @@
           >
             {#if exportFormat === "java"}Export Java Code
             {:else if exportFormat === "points"}Export Points
+            {:else if exportFormat === "json"}Project Data
             {:else}Sequential Command{/if}
           </h2>
           <p class="text-xs text-neutral-500 dark:text-neutral-400">
@@ -282,6 +294,8 @@
               Standard Java code for your path.
             {:else if exportFormat === "points"}
               Raw array of points for processing.
+            {:else if exportFormat === "json"}
+              Raw JSON data for the project.
             {:else}
               Command-based sequence for {targetLibrary}.
             {/if}
@@ -610,6 +624,35 @@
           >
             Close
           </button>
+          {#if exportFormat === "json"}
+            <button
+              class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+              on:click={() =>
+                downloadTrajectory(
+                  startPoint,
+                  lines,
+                  shapes,
+                  sequence,
+                  settings,
+                )}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="size-4"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 12.75l-3-3m3 3 3-3m-3 3V3"
+                />
+              </svg>
+              Download as .pp
+            </button>
+          {/if}
           <button
             class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
             use:copy={exportedCode}

@@ -14,7 +14,7 @@ export const showSettings = writable(false);
 export const showExportGif = writable(false);
 export const exportDialogState = writable<{
   isOpen: boolean;
-  format: "java" | "points" | "sequential";
+  format: "java" | "points" | "sequential" | "json";
 }>({ isOpen: false, format: "java" });
 
 // Currently selected line id (used to add control points to selected path)

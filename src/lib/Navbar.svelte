@@ -24,7 +24,6 @@
   import KeyboardShortcutsDialog from "./components/KeyboardShortcutsDialog.svelte";
   import ExportCodeDialog from "./components/ExportCodeDialog.svelte";
   import { calculatePathTime, formatTime } from "../utils";
-  import { exportProjectAsText } from "../utils/fileHandlers";
   import { showShortcuts } from "../stores";
 
   export let loadFile: (evt: any) => any;
@@ -103,7 +102,7 @@
     gridSize.set(value);
   }
 
-  function handleExport(format: "java" | "points" | "sequential") {
+  function handleExport(format: "java" | "points" | "sequential" | "json") {
     exportMenuOpen = false;
     exportDialogState.set({ isOpen: true, format });
   }
@@ -210,6 +209,8 @@
   bind:startPoint
   bind:lines
   bind:sequence
+  bind:shapes
+  bind:settings
 />
 
 <SettingsDialog bind:isOpen={$showSettings} bind:settings />
@@ -790,10 +791,7 @@
               Sequential Command
             </button>
             <button
-              on:click={() => {
-                exportMenuOpen = false;
-                exportProjectAsText();
-              }}
+              on:click={() => handleExport("json")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
             >
               Text File
