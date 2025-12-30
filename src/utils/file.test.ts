@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { downloadTrajectoryAsText, downloadTrajectory, loadTrajectoryFromFile } from "./file";
+import {
+  downloadTrajectoryAsText,
+  downloadTrajectory,
+  loadTrajectoryFromFile,
+} from "./file";
 import type { Point, Line, Shape, SequenceItem, Settings } from "../types";
 
 describe("File Utils", () => {
@@ -41,8 +45,12 @@ describe("File Utils", () => {
     createElementSpy = vi
       .spyOn(document, "createElement")
       .mockReturnValue(linkMock);
-    appendChildSpy = vi.spyOn(document.body, "appendChild").mockImplementation(() => linkMock);
-    removeChildSpy = vi.spyOn(document.body, "removeChild").mockImplementation(() => linkMock);
+    appendChildSpy = vi
+      .spyOn(document.body, "appendChild")
+      .mockImplementation(() => linkMock);
+    removeChildSpy = vi
+      .spyOn(document.body, "removeChild")
+      .mockImplementation(() => linkMock);
     createObjectURLSpy = vi
       .spyOn(URL, "createObjectURL")
       .mockReturnValue("blob:url");
@@ -80,12 +88,7 @@ describe("File Utils", () => {
 
   describe("downloadTrajectory", () => {
     it("should create a .pp file download with correct parameters", () => {
-      downloadTrajectory(
-        mockStartPoint,
-        mockLines,
-        mockShapes,
-        mockSequence
-      );
+      downloadTrajectory(mockStartPoint, mockLines, mockShapes, mockSequence);
 
       expect(createElementSpy).toHaveBeenCalledWith("a");
       expect(linkMock.download).toBe("trajectory.pp");
@@ -95,39 +98,41 @@ describe("File Utils", () => {
       expect(removeChildSpy).toHaveBeenCalledWith(linkMock);
       expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:url");
 
-       // Verify content type
-       const blobCall = createObjectURLSpy.mock.calls[0][0];
-       expect(blobCall.type).toBe("application/json");
+      // Verify content type
+      const blobCall = createObjectURLSpy.mock.calls[0][0];
+      expect(blobCall.type).toBe("application/json");
     });
   });
 
   describe("loadTrajectoryFromFile", () => {
     it("should parse a valid .pp file correctly", () => {
-        const fileContent = JSON.stringify({
-            startPoint: mockStartPoint,
-            lines: mockLines,
-            shapes: mockShapes,
-            sequence: mockSequence,
-            settings: mockSettings
-        });
+      const fileContent = JSON.stringify({
+        startPoint: mockStartPoint,
+        lines: mockLines,
+        shapes: mockShapes,
+        sequence: mockSequence,
+        settings: mockSettings,
+      });
 
-        const file = new File([fileContent], "test.pp", { type: "application/json" });
-        const event = {
-            target: {
-                files: [file],
-                value: "C:\\fakepath\\test.pp"
-            }
-        } as unknown as Event;
+      const file = new File([fileContent], "test.pp", {
+        type: "application/json",
+      });
+      const event = {
+        target: {
+          files: [file],
+          value: "C:\\fakepath\\test.pp",
+        },
+      } as unknown as Event;
 
-        const onSuccess = vi.fn();
-        const onError = vi.fn();
+      const onSuccess = vi.fn();
+      const onError = vi.fn();
 
-        loadTrajectoryFromFile(event, onSuccess, onError);
+      loadTrajectoryFromFile(event, onSuccess, onError);
 
-        // Note: In a real environment FileReader is async.
-        // In this test setup, assuming FileReader mock (if implicit) or jsdom handles it.
-        // If it fails, we might need to await something.
-        // But the previous run passed, so it should be fine.
+      // Note: In a real environment FileReader is async.
+      // In this test setup, assuming FileReader mock (if implicit) or jsdom handles it.
+      // If it fails, we might need to await something.
+      // But the previous run passed, so it should be fine.
     });
   });
 });

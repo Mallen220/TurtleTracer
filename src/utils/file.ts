@@ -21,6 +21,7 @@ export function downloadTrajectory(
   shapes: Shape[],
   sequence?: SequenceItem[],
   settings?: Settings,
+  filename: string = "trajectory.pp",
 ): void {
   const jsonString = JSON.stringify(
     { startPoint, lines, shapes, sequence, settings },
@@ -32,7 +33,7 @@ export function downloadTrajectory(
   const url = URL.createObjectURL(blob);
 
   linkObj.href = url;
-  linkObj.download = "trajectory.pp";
+  linkObj.download = filename.endsWith(".pp") ? filename : `${filename}.pp`;
 
   document.body.appendChild(linkObj);
   linkObj.click();

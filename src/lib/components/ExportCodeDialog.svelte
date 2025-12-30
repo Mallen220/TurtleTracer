@@ -627,14 +627,22 @@
           {#if exportFormat === "json"}
             <button
               class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-              on:click={() =>
+              on:click={() => {
+                const filePath = $currentFilePath;
+                let filename = "trajectory";
+                if (filePath) {
+                  const baseName = filePath.split(/[\\/]/).pop() || "";
+                  filename = baseName.replace(".pp", "");
+                }
                 downloadTrajectory(
                   startPoint,
                   lines,
                   shapes,
                   sequence,
                   settings,
-                )}
+                  `${filename}.pp`,
+                );
+              }}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
