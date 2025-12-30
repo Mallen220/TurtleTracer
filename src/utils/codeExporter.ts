@@ -24,6 +24,7 @@ export async function generateJavaCode(
   lines: Line[],
   exportFullCode: boolean,
   sequence?: SequenceItem[],
+  packageName: string = "org.firstinspires.ftc.teamcode",
 ): Promise<string> {
   const headingTypeToFunctionName = {
     constant: "setConstantHeadingInterpolation",
@@ -152,7 +153,7 @@ export async function generateJavaCode(
     file = `
     ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
-    package org.firstinspires.ftc.teamcode;
+    package ${packageName};
     import com.qualcomm.robotcore.eventloop.opmode.OpMode;
     import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
     import com.bylazar.configurables.annotations.Configurable;
@@ -270,6 +271,7 @@ export async function generateSequentialCommandCode(
   fileName: string | null = null,
   sequence?: SequenceItem[],
   targetLibrary: "SolversLib" | "NextFTC" = "SolversLib", // - Added parameter
+  packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
 ): Promise<string> {
   // Determine class name from file name or use default
   let className = "AutoPath";
@@ -569,7 +571,7 @@ import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
   const sequentialCommandCode = `
 ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
-package org.firstinspires.ftc.teamcode.Commands.AutoCommands;
+package ${packageName};
     
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
@@ -583,7 +585,7 @@ import com.pedropathingplus.PedroPathReader;
 import com.pedropathingplus.pathing.ProgressTracker;
 import com.pedropathingplus.pathing.NamedCommands;
 import java.io.IOException;
-import org.firstinspires.ftc.teamcode.Subsystems.Drivetrain;
+import ${packageName.split(".").slice(0, 4).join(".")}.Subsystems.Drivetrain;
 
 public class ${className} extends ${SequentialGroupClass} {
 

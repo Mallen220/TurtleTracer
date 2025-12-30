@@ -103,6 +103,7 @@ export interface Settings {
   fieldMap: string;
   fieldRotation?: number; // 0, 90, 180, 270
   robotImage?: string;
+  javaPackageName?: string;
   theme: "light" | "dark" | "auto";
   showGhostPaths?: boolean; // Show collision overlays via ghost paths
   showOnionLayers?: boolean; // Show robot body at intervals along the path

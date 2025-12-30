@@ -3,6 +3,12 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 
 export default defineConfig({
   plugins: [svelte()],
+  resolve: {
+    alias: {
+      "prettier/doc": "prettier/doc.js",
+      prettier: "prettier/standalone.js",
+    },
+  },
   css: {
     preprocessorOptions: {
       scss: {

@@ -11,8 +11,12 @@
     generateJavaCode,
     generatePointsArray,
     generateSequentialCommandCode,
+    loadSettings,
+    saveSettings,
   } from "../../utils";
-  import { tick } from "svelte";
+  import { tick, onMount } from "svelte";
+  import type { Settings } from "../../types";
+  import { DEFAULT_SETTINGS } from "../../config/defaults";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -23,6 +27,7 @@
   let exportFormat: "java" | "points" | "sequential" = "java";
   let sequentialClassName = "AutoPath";
   let targetLibrary: "SolversLib" | "NextFTC" = "SolversLib";
+  let packageName = "org.firstinspires.ftc.teamcode";
 
   let exportedCode = "";
   let currentLanguage: typeof java | typeof plaintext = java;
@@ -53,6 +58,21 @@
     }
   }
 
+  // Load settings on mount
+  onMount(async () => {
+    const settings = await loadSettings();
+    if (settings.javaPackageName) {
+      packageName = settings.javaPackageName;
+    }
+  });
+
+  // Save package name to settings
+  async function savePackageName() {
+    const settings = await loadSettings();
+    settings.javaPackageName = packageName;
+    await saveSettings(settings);
+  }
+
   async function refreshCode() {
     try {
       if (exportFormat === "java") {
@@ -61,18 +81,29 @@
           lines,
           exportFullCode,
           sequence,
+          packageName,
         );
         currentLanguage = java;
       } else if (exportFormat === "points") {
         exportedCode = generatePointsArray(startPoint, lines);
         currentLanguage = plaintext;
       } else if (exportFormat === "sequential") {
+        // For sequential, we might want to append .Commands.AutoCommands if the user
+        // just provides the base package, or let them type the full thing.
+        // The default implementation in codeExporter assumed a suffix.
+        // Let's assume the user types the full package they want for the file.
+        // But the previous default was 'org.firstinspires.ftc.teamcode.Commands.AutoCommands'
+        // If the user's input is just 'org.firstinspires.ftc.teamcode', maybe we should suggest or default?
+        // For now, let's just pass what they typed, but maybe we initialize packageName differently for sequential?
+        // Actually, shared packageName is fine, but sequential often goes in a specific subpackage.
+        // Users can edit the input.
         exportedCode = await generateSequentialCommandCode(
           startPoint,
           lines,
           sequentialClassName,
           sequence,
           targetLibrary,
+          packageName,
         );
         currentLanguage = java;
       }
@@ -391,6 +422,25 @@
         <div
           class="px-6 py-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-800 flex flex-wrap gap-6 items-end shrink-0"
         >
+          <!-- Package Name Input -->
+          <div class="flex flex-col gap-1.5 grow max-w-sm">
+            <label
+              for="package-name-input"
+              class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+            >
+              Package Name
+            </label>
+            <input
+              id="package-name-input"
+              type="text"
+              bind:value={packageName}
+              on:change={savePackageName}
+              on:input={refreshCode}
+              class="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full font-mono"
+              placeholder="org.firstinspires.ftc.teamcode"
+            />
+          </div>
+
           <!-- Sequential Controls -->
           {#if exportFormat === "sequential"}
             <!-- Target Library Selector -->

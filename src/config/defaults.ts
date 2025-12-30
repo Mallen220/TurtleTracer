@@ -308,6 +308,7 @@ export const DEFAULT_SETTINGS: Settings = {
   fieldMap: "decode.webp",
   fieldRotation: 0,
   robotImage: "/robot.png",
+  javaPackageName: "org.firstinspires.ftc.teamcode",
   theme: "auto",
   showGhostPaths: false,
   showOnionLayers: false,
