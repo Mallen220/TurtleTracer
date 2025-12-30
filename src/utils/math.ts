@@ -33,7 +33,7 @@ export function getMousePos(evt: MouseEvent, canvas: any) {
 }
 
 export function transformAngle(angle: number) {
-  return ((angle + 180) % 360) - 180;
+  return ((((angle + 180) % 360) + 360) % 360) - 180;
 }
 
 /**

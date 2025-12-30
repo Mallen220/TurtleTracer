@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculatePathTime, formatTime } from "./timeCalculator";
+import { calculatePathTime, formatTime } from "../utils/timeCalculator";
 import type { Point, Line, Settings, SequenceItem } from "../types";
 
 describe("Time Calculator", () => {

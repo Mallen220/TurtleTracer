@@ -3,7 +3,7 @@ import {
   downloadTrajectoryAsText,
   downloadTrajectory,
   loadTrajectoryFromFile,
-} from "./file";
+} from "../utils/file";
 import type { Point, Line, Shape, SequenceItem, Settings } from "../types";
 
 describe("File Utils", () => {
