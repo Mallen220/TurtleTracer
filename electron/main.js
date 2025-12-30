@@ -45,7 +45,7 @@ if (!gotTheLock) {
         // Use the first available window
         const firstWindow = windows.values().next().value;
         if (!appUpdater) {
-            appUpdater = new AppUpdater(firstWindow);
+          appUpdater = new AppUpdater(firstWindow);
         }
         appUpdater.checkForUpdates();
       }
@@ -192,35 +192,35 @@ const updateDockMenu = () => {
 };
 
 const updateJumpList = () => {
-    if (process.platform === 'win32') {
-        app.setUserTasks([
-            {
-                program: process.execPath,
-                arguments: '', // Just launching again triggers second-instance -> createWindow
-                iconPath: process.execPath,
-                iconIndex: 0,
-                title: 'New Window',
-                description: 'Create a new window'
-            }
-        ]);
-    }
-}
+  if (process.platform === "win32") {
+    app.setUserTasks([
+      {
+        program: process.execPath,
+        arguments: "", // Just launching again triggers second-instance -> createWindow
+        iconPath: process.execPath,
+        iconIndex: 0,
+        title: "New Window",
+        description: "Create a new window",
+      },
+    ]);
+  }
+};
 
 // Helper to send menu action to the focused window
 const sendToFocusedWindow = (channel, ...args) => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win) {
-        win.webContents.send(channel, ...args);
-    } else {
-        // Fallback: if only one window, send to it?
-        // Or if no window is focused (rare when clicking menu), send to most recently created?
-        // Usually Menu click focuses the app, so a window should be focused or last active.
-        // Let's try to find the last active one if getFocusedWindow is null.
-        if (windows.size === 1) {
-            const first = windows.values().next().value;
-            if(first) first.webContents.send(channel, ...args);
-        }
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) {
+    win.webContents.send(channel, ...args);
+  } else {
+    // Fallback: if only one window, send to it?
+    // Or if no window is focused (rare when clicking menu), send to most recently created?
+    // Usually Menu click focuses the app, so a window should be focused or last active.
+    // Let's try to find the last active one if getFocusedWindow is null.
+    if (windows.size === 1) {
+      const first = windows.values().next().value;
+      if (first) first.webContents.send(channel, ...args);
     }
+  }
 };
 
 const createMenu = () => {
@@ -256,9 +256,9 @@ const createMenu = () => {
           click: () => sendToFocusedWindow("menu-action", "new-path"),
         },
         {
-            label: "New Window",
-            accelerator: "CmdOrCtrl+Shift+N",
-            click: () => createWindow()
+          label: "New Window",
+          accelerator: "CmdOrCtrl+Shift+N",
+          click: () => createWindow(),
         },
         {
           label: "Open...",
@@ -269,8 +269,7 @@ const createMenu = () => {
         {
           label: "Save",
           accelerator: "CmdOrCtrl+S",
-          click: () =>
-            sendToFocusedWindow("menu-action", "save-project"),
+          click: () => sendToFocusedWindow("menu-action", "save-project"),
         },
         {
           label: "Save As...",
@@ -283,13 +282,11 @@ const createMenu = () => {
           submenu: [
             {
               label: "Export as Java Code...",
-              click: () =>
-                sendToFocusedWindow("menu-action", "export-java"),
+              click: () => sendToFocusedWindow("menu-action", "export-java"),
             },
             {
               label: "Export as Points Array...",
-              click: () =>
-                sendToFocusedWindow("menu-action", "export-points"),
+              click: () => sendToFocusedWindow("menu-action", "export-points"),
             },
             {
               label: "Export as Sequential Command...",
@@ -299,8 +296,7 @@ const createMenu = () => {
             { type: "separator" },
             {
               label: "Export GIF...",
-              click: () =>
-                sendToFocusedWindow("menu-action", "export-gif"),
+              click: () => sendToFocusedWindow("menu-action", "export-gif"),
             },
           ],
         },
@@ -344,8 +340,7 @@ const createMenu = () => {
         {
           label: "Settings",
           accelerator: "CmdOrCtrl+,",
-          click: () =>
-            sendToFocusedWindow("menu-action", "open-settings"),
+          click: () => sendToFocusedWindow("menu-action", "open-settings"),
         },
       ],
     },
@@ -372,8 +367,7 @@ const createMenu = () => {
         {
           label: "Keyboard Shortcuts",
           accelerator: "CmdOrCtrl+/",
-          click: () =>
-            sendToFocusedWindow("menu-action", "open-shortcuts"),
+          click: () => sendToFocusedWindow("menu-action", "open-shortcuts"),
         },
         { type: "separator" },
         {
