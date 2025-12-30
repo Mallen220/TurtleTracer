@@ -11,10 +11,47 @@ import rateLimit from "express-rate-limit";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let mainWindow;
+// Replace single mainWindow with a Set of windows
+const windows = new Set();
 let server;
 let serverPort = 34567;
 let appUpdater;
+
+// Single Instance Lock
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should create a new window
+    createWindow();
+  });
+
+  // App initialization
+  app.on("ready", async () => {
+    await startServer();
+    createWindow();
+    createMenu();
+    updateDockMenu();
+    updateJumpList();
+
+    // Check for updates (only once)
+    // We pass the first window for dialogs if needed, or handle it inside AppUpdater
+    // Since AppUpdater takes a window in constructor, let's defer it or pick the first one.
+    // For now, let's attach it to the first window created.
+    setTimeout(() => {
+      if (windows.size > 0) {
+        // Use the first available window
+        const firstWindow = windows.values().next().value;
+        if (!appUpdater) {
+            appUpdater = new AppUpdater(firstWindow);
+        }
+        appUpdater.checkForUpdates();
+      }
+    }, 3000);
+  });
+}
 
 /**
  * Try to start the HTTP server on `serverPort`, and if it's already in use
@@ -93,7 +130,7 @@ const startServer = async () => {
 };
 
 const createWindow = () => {
-  mainWindow = new BrowserWindow({
+  let newWindow = new BrowserWindow({
     width: 1360,
     height: 800,
     title: "Pedro Pathing Visualizer",
@@ -104,20 +141,19 @@ const createWindow = () => {
     },
   });
 
-  // Force clear the cache to ensure we load the latest build
-  mainWindow.webContents.session.clearCache();
-  mainWindow.webContents.session.clearStorageData();
+  windows.add(newWindow);
 
-  appUpdater = new AppUpdater(mainWindow);
+  // Force clear the cache to ensure we load the latest build
+  newWindow.webContents.session.clearCache();
+  newWindow.webContents.session.clearStorageData();
 
   // Load the app from the local server
-  mainWindow.loadURL(`http://localhost:${serverPort}`);
+  newWindow.loadURL(`http://localhost:${serverPort}`);
 
   // Handle "Save As" dialog native behavior
-  mainWindow.webContents.session.on(
+  newWindow.webContents.session.on(
     "will-download",
     (event, item, webContents) => {
-      // item.setSavePathDialog(true);
       item.on("updated", (event, state) => {
         if (state === "interrupted") {
           console.log("Download is interrupted but can be resumed");
@@ -126,15 +162,68 @@ const createWindow = () => {
     },
   );
 
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-    app.quit();
+  newWindow.on("closed", () => {
+    windows.delete(newWindow);
+    newWindow = null;
+    // Quit if no windows are left, unless on macOS (optional, but typical for this app structure is to quit)
+    // However, the original code had `app.quit()` on closed.
+    // If we want multiple windows, we should only quit when all are closed.
+    // But on macOS, traditionally apps stay open.
+    // Let's mimic the original behavior: "when the project closes it should auto close" was a comment.
+    // But standard behavior:
+    // If not Mac, quit when all windows closed.
+    // `app.on("window-all-closed", ...)` handles this.
   });
-
-  createMenu(mainWindow);
 };
 
-const createMenu = (mainWindow) => {
+const updateDockMenu = () => {
+  if (process.platform === "darwin") {
+    app.dock.setMenu(
+      Menu.buildFromTemplate([
+        {
+          label: "New Window",
+          click() {
+            createWindow();
+          },
+        },
+      ]),
+    );
+  }
+};
+
+const updateJumpList = () => {
+    if (process.platform === 'win32') {
+        app.setUserTasks([
+            {
+                program: process.execPath,
+                arguments: '', // Just launching again triggers second-instance -> createWindow
+                iconPath: process.execPath,
+                iconIndex: 0,
+                title: 'New Window',
+                description: 'Create a new window'
+            }
+        ]);
+    }
+}
+
+// Helper to send menu action to the focused window
+const sendToFocusedWindow = (channel, ...args) => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win) {
+        win.webContents.send(channel, ...args);
+    } else {
+        // Fallback: if only one window, send to it?
+        // Or if no window is focused (rare when clicking menu), send to most recently created?
+        // Usually Menu click focuses the app, so a window should be focused or last active.
+        // Let's try to find the last active one if getFocusedWindow is null.
+        if (windows.size === 1) {
+            const first = windows.values().next().value;
+            if(first) first.webContents.send(channel, ...args);
+        }
+    }
+};
+
+const createMenu = () => {
   const isMac = process.platform === "darwin";
 
   const template = [
@@ -164,24 +253,29 @@ const createMenu = (mainWindow) => {
         {
           label: "New Path",
           accelerator: "CmdOrCtrl+N",
-          click: () => mainWindow.webContents.send("menu-action", "new-path"),
+          click: () => sendToFocusedWindow("menu-action", "new-path"),
+        },
+        {
+            label: "New Window",
+            accelerator: "CmdOrCtrl+Shift+N",
+            click: () => createWindow()
         },
         {
           label: "Open...",
           accelerator: "CmdOrCtrl+O",
-          click: () => mainWindow.webContents.send("menu-action", "open-file"),
+          click: () => sendToFocusedWindow("menu-action", "open-file"),
         },
         { type: "separator" },
         {
           label: "Save",
           accelerator: "CmdOrCtrl+S",
           click: () =>
-            mainWindow.webContents.send("menu-action", "save-project"),
+            sendToFocusedWindow("menu-action", "save-project"),
         },
         {
           label: "Save As...",
           accelerator: "CmdOrCtrl+Shift+S",
-          click: () => mainWindow.webContents.send("menu-action", "save-as"),
+          click: () => sendToFocusedWindow("menu-action", "save-as"),
         },
         { type: "separator" },
         {
@@ -190,23 +284,23 @@ const createMenu = (mainWindow) => {
             {
               label: "Export as Java Code...",
               click: () =>
-                mainWindow.webContents.send("menu-action", "export-java"),
+                sendToFocusedWindow("menu-action", "export-java"),
             },
             {
               label: "Export as Points Array...",
               click: () =>
-                mainWindow.webContents.send("menu-action", "export-points"),
+                sendToFocusedWindow("menu-action", "export-points"),
             },
             {
               label: "Export as Sequential Command...",
               click: () =>
-                mainWindow.webContents.send("menu-action", "export-sequential"),
+                sendToFocusedWindow("menu-action", "export-sequential"),
             },
             { type: "separator" },
             {
               label: "Export GIF...",
               click: () =>
-                mainWindow.webContents.send("menu-action", "export-gif"),
+                sendToFocusedWindow("menu-action", "export-gif"),
             },
           ],
         },
@@ -221,12 +315,12 @@ const createMenu = (mainWindow) => {
         {
           label: "Undo",
           accelerator: "CmdOrCtrl+Z",
-          click: () => mainWindow.webContents.send("menu-action", "undo"),
+          click: () => sendToFocusedWindow("menu-action", "undo"),
         },
         {
           label: "Redo",
           accelerator: "CmdOrCtrl+Y", // or Cmd+Shift+Z depending on OS preference, but Y is common
-          click: () => mainWindow.webContents.send("menu-action", "redo"),
+          click: () => sendToFocusedWindow("menu-action", "redo"),
         },
         { type: "separator" },
         { role: "cut" },
@@ -251,7 +345,7 @@ const createMenu = (mainWindow) => {
           label: "Settings",
           accelerator: "CmdOrCtrl+,",
           click: () =>
-            mainWindow.webContents.send("menu-action", "open-settings"),
+            sendToFocusedWindow("menu-action", "open-settings"),
         },
       ],
     },
@@ -279,7 +373,7 @@ const createMenu = (mainWindow) => {
           label: "Keyboard Shortcuts",
           accelerator: "CmdOrCtrl+/",
           click: () =>
-            mainWindow.webContents.send("menu-action", "open-shortcuts"),
+            sendToFocusedWindow("menu-action", "open-shortcuts"),
         },
         { type: "separator" },
         {
@@ -297,18 +391,6 @@ const createMenu = (mainWindow) => {
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 };
-
-app.on("ready", async () => {
-  await startServer();
-  createWindow();
-
-  // Check for updates after a short delay to ensure window is ready
-  setTimeout(() => {
-    if (appUpdater) {
-      appUpdater.checkForUpdates();
-    }
-  }, 3000);
-});
 
 // CRITICAL: Satisfies "when the project closes it should auto close"
 app.on("window-all-closed", () => {
@@ -396,8 +478,9 @@ ipcMain.handle("file:get-directory", async () => {
 });
 
 // Update the existing ipcMain.handle for "file:set-directory"
-ipcMain.handle("file:set-directory", async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+ipcMain.handle("file:set-directory", async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showOpenDialog(win, {
     properties: ["openDirectory"],
     title: "Select AutoPaths Directory",
   });
@@ -599,7 +682,8 @@ ipcMain.handle("file:write", async (event, filePath, content) => {
 // Save dialog (returns file path or null if cancelled)
 ipcMain.handle("file:show-save-dialog", async (event, options) => {
   try {
-    const result = await dialog.showSaveDialog(mainWindow, options || {});
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showSaveDialog(win, options || {});
     if (result.canceled) return null;
     return result.filePath;
   } catch (error) {
