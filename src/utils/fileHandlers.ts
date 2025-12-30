@@ -81,7 +81,6 @@ export async function saveProject() {
           lines: get(linesStore),
           sequence: get(sequenceStore),
           shapes: get(shapesStore),
-          settings: get(settingsStore),
         },
         null,
         2,
@@ -113,7 +112,6 @@ export function saveFileAs() {
     get(linesStore),
     get(shapesStore),
     get(sequenceStore),
-    get(settingsStore),
     `${filename}.pp`,
   );
 }
@@ -133,7 +131,6 @@ export async function exportAsPP() {
       lines: get(linesStore),
       shapes: get(shapesStore),
       sequence: get(sequenceStore),
-      settings: get(settingsStore),
     },
     null,
     2,
@@ -174,7 +171,6 @@ export async function exportAsPP() {
     get(linesStore),
     get(shapesStore),
     get(sequenceStore),
-    get(settingsStore),
     defaultName,
   );
 }

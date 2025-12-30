@@ -123,7 +123,7 @@
         currentLanguage = java;
       } else if (exportFormat === "json") {
         exportedCode = JSON.stringify(
-          { startPoint, lines, shapes, sequence, settings },
+          { startPoint, lines, shapes, sequence },
           null,
           2,
         );
@@ -639,7 +639,6 @@
                   lines,
                   shapes,
                   sequence,
-                  settings,
                   `${filename}.pp`,
                 );
               }}

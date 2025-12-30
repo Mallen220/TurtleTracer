@@ -20,11 +20,10 @@ export function downloadTrajectory(
   lines: Line[],
   shapes: Shape[],
   sequence?: SequenceItem[],
-  settings?: Settings,
   filename: string = "trajectory.pp",
 ): void {
   const jsonString = JSON.stringify(
-    { startPoint, lines, shapes, sequence, settings },
+    { startPoint, lines, shapes, sequence },
     null,
     2,
   );
@@ -49,11 +48,10 @@ export function downloadTrajectoryAsText(
   lines: Line[],
   shapes: Shape[],
   sequence: SequenceItem[],
-  settings: Settings,
   filename: string = "trajectory.txt",
 ): void {
   const jsonString = JSON.stringify(
-    { startPoint, lines, shapes, sequence, settings },
+    { startPoint, lines, shapes, sequence },
     null,
     2,
   );
