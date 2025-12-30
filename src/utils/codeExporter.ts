@@ -24,6 +24,7 @@ export async function generateJavaCode(
   lines: Line[],
   exportFullCode: boolean,
   sequence?: SequenceItem[],
+  packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
 ): Promise<string> {
   const headingTypeToFunctionName = {
     constant: "setConstantHeadingInterpolation",

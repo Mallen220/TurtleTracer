@@ -12,7 +12,8 @@
     generatePointsArray,
     generateSequentialCommandCode,
   } from "../../utils";
-  import { tick } from "svelte";
+  import { tick, onMount } from "svelte";
+  import { loadSettings, saveSettings } from "../../utils/settingsPersistence";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -23,6 +24,9 @@
   let exportFormat: "java" | "points" | "sequential" = "java";
   let sequentialClassName = "AutoPath";
   let targetLibrary: "SolversLib" | "NextFTC" = "SolversLib";
+  const DEFAULT_PACKAGE =
+    "org.firstinspires.ftc.teamcode.Commands.AutoCommands";
+  let packageName = DEFAULT_PACKAGE;
 
   let exportedCode = "";
   let currentLanguage: typeof java | typeof plaintext = java;
@@ -51,6 +55,33 @@
         sequentialClassName = baseName;
       }
     }
+  }
+
+  // Load settings on mount
+  onMount(async () => {
+    const settings = await loadSettings();
+    if (settings.javaPackageName) {
+      packageName = settings.javaPackageName;
+    } else {
+      packageName = DEFAULT_PACKAGE;
+    }
+  });
+
+  async function handlePackageKeydown(event: KeyboardEvent) {
+    if (event.key !== "Enter") return;
+
+    if (!packageName.trim()) {
+      packageName = DEFAULT_PACKAGE;
+      await refreshCode();
+      await savePackageName();
+    }
+  }
+
+  // Save package name to settings
+  async function savePackageName() {
+    const settings = await loadSettings();
+    settings.javaPackageName = packageName;
+    await saveSettings(settings);
   }
 
   async function refreshCode() {
@@ -391,6 +422,26 @@
         <div
           class="px-6 py-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-800 flex flex-wrap gap-6 items-end shrink-0"
         >
+          <!-- Package Name Input -->
+          <div class="flex flex-col gap-1.5 grow max-w-xl">
+            <label
+              for="package-name-input"
+              class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+            >
+              Package Name
+            </label>
+            <input
+              id="package-name-input"
+              type="text"
+              bind:value={packageName}
+              on:keydown={handlePackageKeydown}
+              on:change={savePackageName}
+              on:input={refreshCode}
+              class="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full font-mono"
+              placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
+            />
+          </div>
+
           <!-- Sequential Controls -->
           {#if exportFormat === "sequential"}
             <!-- Target Library Selector -->
