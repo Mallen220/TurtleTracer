@@ -295,7 +295,7 @@
             {:else if exportFormat === "points"}
               Raw array of points for processing.
             {:else if exportFormat === "json"}
-              Raw JSON data for the project.
+              Raw PP data for the project.
             {:else}
               Command-based sequence for {targetLibrary}.
             {/if}
