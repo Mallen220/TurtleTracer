@@ -3,9 +3,29 @@
   export let endPoint: any;
   export let locked: boolean = false;
   const dispatch = createEventDispatcher();
+
+  // Helper to handle constant heading input safely
+  function handleConstantInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const value = parseFloat(target.value);
+    if (!isNaN(value)) {
+      endPoint.degrees = value;
+    }
+    dispatch("change");
+  }
+
+  function handleConstantBlur(e: Event) {
+    const target = e.target as HTMLInputElement;
+    if (target.value === "" || isNaN(parseFloat(target.value))) {
+      endPoint.degrees = 0;
+      target.value = "0";
+    }
+    dispatch("commit");
+  }
 </script>
 
 <select
+  aria-label="Heading style"
   bind:value={endPoint.heading}
   on:change={() => {
     // Notify parent that a change occurred and commit it so timeline and
@@ -42,69 +62,64 @@ With tangential heading, the heading follows the direction of the line."
 
 {#if endPoint.heading === "linear"}
   <div class="flex items-center gap-1">
-    <span class="text-xs text-neutral-600 dark:text-neutral-400">Start:</span>
-    <input
-      class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14"
-      step="1"
-      type="number"
-      min="-180"
-      max="180"
-      bind:value={endPoint.startDeg}
-      on:input={() => dispatch("change")}
-      on:blur={() => dispatch("commit")}
-      title="The heading the robot starts this line at (in degrees)"
-      disabled={locked}
-    />
-    <span class="text-xs text-neutral-600 dark:text-neutral-400 ml-1">End:</span
+    <label
+      class="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400"
     >
-    <input
-      class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14"
-      step="1"
-      type="number"
-      min="-180"
-      max="180"
-      bind:value={endPoint.endDeg}
-      on:input={() => dispatch("change")}
-      on:blur={() => dispatch("commit")}
-      title="The heading the robot ends this line at (in degrees)"
-      disabled={locked}
-    />
+      Start:
+      <input
+        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14 text-black dark:text-white"
+        step="1"
+        type="number"
+        min="-180"
+        max="180"
+        bind:value={endPoint.startDeg}
+        on:input={() => dispatch("change")}
+        on:blur={() => dispatch("commit")}
+        title="The heading the robot starts this line at (in degrees)"
+        disabled={locked}
+      />
+    </label>
+    <label
+      class="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400 ml-1"
+    >
+      End:
+      <input
+        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14 text-black dark:text-white"
+        step="1"
+        type="number"
+        min="-180"
+        max="180"
+        bind:value={endPoint.endDeg}
+        on:input={() => dispatch("change")}
+        on:blur={() => dispatch("commit")}
+        title="The heading the robot ends this line at (in degrees)"
+        disabled={locked}
+      />
+    </label>
   </div>
 {:else if endPoint.heading === "constant"}
   <div class="flex items-center gap-1">
-    <span class="text-xs text-neutral-600 dark:text-neutral-400">Deg:</span>
-    <input
-      class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14"
-      step="1"
-      type="number"
-      min="-180"
-      max="180"
-      value={endPoint.degrees || 0}
-      on:input={(e) => {
-        const value = parseFloat(e.target.value);
-        if (!isNaN(value)) {
-          endPoint.degrees = value;
-        } else {
-          // If empty or invalid, set to 0
-          endPoint.degrees = 0;
-          e.target.value = "0";
-        }
-        dispatch("change");
-      }}
-      on:blur={(e) => {
-        if (e.target.value === "" || isNaN(parseFloat(e.target.value))) {
-          endPoint.degrees = 0;
-          e.target.value = "0";
-        }
-        dispatch("commit");
-      }}
-      title="The constant heading the robot maintains throughout this line (in degrees)"
-      disabled={locked}
-    />
+    <label
+      class="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400"
+    >
+      Deg:
+      <input
+        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14 text-black dark:text-white"
+        step="1"
+        type="number"
+        min="-180"
+        max="180"
+        value={endPoint.degrees || 0}
+        on:input={handleConstantInput}
+        on:blur={handleConstantBlur}
+        title="The constant heading the robot maintains throughout this line (in degrees)"
+        disabled={locked}
+      />
+    </label>
   </div>
 {:else if endPoint.heading === "tangential"}
-  <div class="flex items-center gap-2">
-    <p class="text-sm font-extralight">Reverse:</p>
+  <label class="flex items-center gap-2 cursor-pointer">
+    <span class="text-sm font-extralight select-none">Reverse:</span>
     <input
       type="checkbox"
       bind:checked={endPoint.reverse}
@@ -113,5 +128,5 @@ With tangential heading, the heading follows the direction of the line."
       title="Reverse the direction the robot faces along the tangential path"
       disabled={locked}
     />
-  </div>
+  </label>
 {/if}
