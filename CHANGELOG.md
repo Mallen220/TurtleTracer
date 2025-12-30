@@ -1,3 +1,7 @@
+## 1.4.1 (2025-12-30)
+
+- Optimized optimization and field logic that caused laggy behavior. allow opening multiple app windows easily. export .pp file. Decouple settings from project files. Better code testing. implement.pp  file association. 
+
 ## 1.3.5 (2025-12-30)
 
 - Better new line/wait ordering. Lined up trash cans in table view. Added wait lock toggle in table. Added visual indication for selected path in field view. Add color picker to table. Initialize paths to empty name. Added drag and drop support to paths tab. Updated settings icon for light mode support. Fix for safety margin in optimization code. Standardize delete buttons to use trash can icon. improve path time calculation fixing angular momentum calculation. Better setting reset capabilities. Added App Loading Animation on boot. Added copy markdown table option to table view. Fix robot dimensions naming discrepancy. Preserve onion layer visibility on undo/redo. Fixed visualizer on heading changes. Update protractor icon from ↻ to ➜ for clarify. Prettied the json in the .pp files. Revamp GIF export with preview and quality settings. Fix for Issue 50: Add generated-code warning header. Security fixes. Added configurable Java package name. Double clicking resizer defaults to 50% scale. Code exporter dropdown auto closes.
