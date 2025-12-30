@@ -50,6 +50,7 @@
     saveFileAs,
     loadFile,
     loadRecentFile,
+    exportAsPP,
   } from "./utils/fileHandlers";
 
   // Types
@@ -242,6 +243,19 @@
             break;
           case "export-gif":
             exportGif();
+            break;
+          case "export-pp":
+            // Open the Export Code dialog pre-selected to JSON (.pp) format
+            exportDialogState.set({ isOpen: true, format: "json" });
+            break;
+          case "export-java":
+            exportDialogState.set({ isOpen: true, format: "java" });
+            break;
+          case "export-points":
+            exportDialogState.set({ isOpen: true, format: "points" });
+            break;
+          case "export-sequential":
+            exportDialogState.set({ isOpen: true, format: "sequential" });
             break;
           case "undo":
             if (canUndo) undoAction();

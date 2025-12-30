@@ -293,6 +293,10 @@ const createMenu = () => {
               click: () =>
                 sendToFocusedWindow("menu-action", "export-sequential"),
             },
+            {
+              label: "Export as .pp File...",
+              click: () => sendToFocusedWindow("menu-action", "export-pp"),
+            },
             { type: "separator" },
             {
               label: "Export GIF...",
@@ -698,6 +702,30 @@ ipcMain.handle("file:write-base64", async (event, filePath, base64Content) => {
   }
 });
 
+// Export a .pp file using native save dialog and write via main process
+ipcMain.handle(
+  "export:pp",
+  async (event, { content, defaultName = "trajectory.pp" } = {}) => {
+    try {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      const options = {
+        title: "Export .pp File",
+        defaultPath:
+          defaultName && defaultName.endsWith(".pp")
+            ? defaultName
+            : `${defaultName}.pp`,
+        filters: [{ name: "Pedro Path", extensions: ["pp"] }],
+      };
+      const result = await dialog.showSaveDialog(win, options);
+      if (result.canceled || !result.filePath) return null;
+      await fs.writeFile(result.filePath, content, "utf-8");
+      return result.filePath;
+    } catch (error) {
+      console.error("Error exporting .pp file:", error);
+      throw error;
+    }
+  },
+);
 ipcMain.handle("file:delete", async (event, filePath) => {
   try {
     await fs.unlink(filePath);

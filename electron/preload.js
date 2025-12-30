@@ -36,6 +36,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   writeFileBase64: (filePath, base64Content) =>
     ipcRenderer.invoke("file:write-base64", filePath, base64Content),
 
+  // Export .pp convenience wrapper
+  exportPP: (content, defaultName) =>
+    ipcRenderer.invoke("export:pp", { content, defaultName }),
+
   // Menu action listener
   onMenuAction: (callback) =>
     ipcRenderer.on("menu-action", (_event, action) => callback(action)),

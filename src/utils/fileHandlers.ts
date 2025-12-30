@@ -117,7 +117,67 @@ export function saveFileAs() {
     `${filename}.pp`,
   );
 }
+export async function exportAsPP() {
+  const filePath = get(currentFilePath);
+  // Extract just the filename without the path and .pp extension
+  let filename = "trajectory";
+  if (filePath) {
+    const baseName = filePath.split(/[\\\/]/).pop() || "";
+    filename = baseName.replace(".pp", "");
+  }
+  const defaultName = `${filename}.pp`;
 
+  const jsonString = JSON.stringify(
+    {
+      startPoint: get(startPointStore),
+      lines: get(linesStore),
+      shapes: get(shapesStore),
+      sequence: get(sequenceStore),
+      settings: get(settingsStore),
+    },
+    null,
+    2,
+  );
+
+  if (electronAPI) {
+    // Prefer the exported convenience method if available
+    if ((electronAPI as any).exportPP) {
+      try {
+        const exportedPath = await (electronAPI as any).exportPP(
+          jsonString,
+          defaultName,
+        );
+        if (exportedPath) console.log("Exported to", exportedPath);
+        return;
+      } catch (err) {
+        console.error("exportPP failed, falling back:", err);
+      }
+    }
+
+    // Fallback: use save dialog + writeFile
+    if (electronAPI.showSaveDialog && electronAPI.writeFile) {
+      const filePath = await electronAPI.showSaveDialog({
+        title: "Export .pp File",
+        defaultPath: defaultName,
+        filters: [{ name: "Pedro Path", extensions: ["pp"] }],
+      });
+      if (!filePath) return;
+      await electronAPI.writeFile(filePath, jsonString);
+      console.log("Exported to", filePath);
+      return;
+    }
+  }
+
+  // Browser fallback
+  downloadTrajectory(
+    get(startPointStore),
+    get(linesStore),
+    get(shapesStore),
+    get(sequenceStore),
+    get(settingsStore),
+    defaultName,
+  );
+}
 export async function loadFile(evt: Event) {
   const elem = evt.target as HTMLInputElement;
   const file = elem.files?.[0];
