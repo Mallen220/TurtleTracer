@@ -100,11 +100,21 @@ export async function saveProject() {
 }
 
 export function saveFileAs() {
+  const filePath = get(currentFilePath);
+  // Extract just the filename without the path and .pp extension
+  let filename = "trajectory";
+  if (filePath) {
+    const baseName = filePath.split(/[\\/]/).pop() || "";
+    filename = baseName.replace(".pp", "");
+  }
+
   downloadTrajectory(
     get(startPointStore),
     get(linesStore),
     get(shapesStore),
     get(sequenceStore),
+    get(settingsStore),
+    `${filename}.pp`,
   );
 }
 

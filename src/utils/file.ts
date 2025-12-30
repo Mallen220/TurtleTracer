@@ -1,4 +1,4 @@
-import type { Point, Line, Shape, SequenceItem } from "../types";
+import type { Point, Line, Shape, SequenceItem, Settings } from "../types";
 
 /**
  * File save/load utilities for the visualizer
@@ -20,9 +20,11 @@ export function downloadTrajectory(
   lines: Line[],
   shapes: Shape[],
   sequence?: SequenceItem[],
+  settings?: Settings,
+  filename: string = "trajectory.pp",
 ): void {
   const jsonString = JSON.stringify(
-    { startPoint, lines, shapes, sequence },
+    { startPoint, lines, shapes, sequence, settings },
     null,
     2,
   );
@@ -31,7 +33,36 @@ export function downloadTrajectory(
   const url = URL.createObjectURL(blob);
 
   linkObj.href = url;
-  linkObj.download = "trajectory.pp";
+  linkObj.download = filename.endsWith(".pp") ? filename : `${filename}.pp`;
+
+  document.body.appendChild(linkObj);
+  linkObj.click();
+  document.body.removeChild(linkObj);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Download trajectory data as a text file
+ */
+export function downloadTrajectoryAsText(
+  startPoint: Point,
+  lines: Line[],
+  shapes: Shape[],
+  sequence: SequenceItem[],
+  settings: Settings,
+  filename: string = "trajectory.txt",
+): void {
+  const jsonString = JSON.stringify(
+    { startPoint, lines, shapes, sequence, settings },
+    null,
+    2,
+  );
+  const blob = new Blob([jsonString], { type: "text/plain" });
+  const linkObj = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+
+  linkObj.href = url;
+  linkObj.download = filename;
 
   document.body.appendChild(linkObj);
   linkObj.click();
