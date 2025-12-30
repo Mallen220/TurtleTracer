@@ -190,10 +190,10 @@ export async function handleExternalFileOpen(filePath: string) {
 
     // If no directory saved, just load it
     if (!savedDir) {
-        loadProjectData(data);
-        currentFilePath.set(filePath);
-        addToRecentFiles(filePath);
-        return;
+      loadProjectData(data);
+      currentFilePath.set(filePath);
+      addToRecentFiles(filePath);
+      return;
     }
 
     // 3. Check if file is already in the working directory
@@ -213,46 +213,59 @@ export async function handleExternalFileOpen(filePath: string) {
       addToRecentFiles(filePath);
     } else {
       // Not in directory. Prompt copy.
-      if (confirm(`The file "${fileName}" is not in your configured AutoPaths directory.\nWould you like to copy it there?`)) {
-         // Use savedDir (original case) for constructing the destination path
-         // Be careful with slashes. savedDir might not end with slash.
-         // Normalized savedDir replaced backslashes with slashes. We should probably stick to standard slash for destPath or use path.join if available (not available in browser context directly, but we can assume / for simple concatenation or just use what we have).
-         // The savedDir comes from electron, which usually gives absolute path with OS specific separators or normalized.
-         // Let's just append safely.
-         const separator = savedDir.includes("\\") ? "\\" : "/";
-         const cleanSavedDir = savedDir.endsWith(separator) ? savedDir.slice(0, -1) : savedDir;
-         const destPath = cleanSavedDir + separator + fileName;
+      if (
+        confirm(
+          `The file "${fileName}" is not in your configured AutoPaths directory.\nWould you like to copy it there?`,
+        )
+      ) {
+        // Use savedDir (original case) for constructing the destination path
+        // Be careful with slashes. savedDir might not end with slash.
+        // Normalized savedDir replaced backslashes with slashes. We should probably stick to standard slash for destPath or use path.join if available (not available in browser context directly, but we can assume / for simple concatenation or just use what we have).
+        // The savedDir comes from electron, which usually gives absolute path with OS specific separators or normalized.
+        // Let's just append safely.
+        const separator = savedDir.includes("\\") ? "\\" : "/";
+        const cleanSavedDir = savedDir.endsWith(separator)
+          ? savedDir.slice(0, -1)
+          : savedDir;
+        const destPath = cleanSavedDir + separator + fileName;
 
-         // Check if overwrite
-         if (electronAPI.fileExists && await electronAPI.fileExists(destPath)) {
-             if (!confirm(`File "${fileName}" already exists in the destination. Overwrite?`)) {
-                 // User cancelled overwrite, just load original
-                 loadProjectData(data);
-                 currentFilePath.set(filePath);
-                 addToRecentFiles(filePath);
-                 return;
-             }
-         }
+        // Check if overwrite
+        if (
+          electronAPI.fileExists &&
+          (await electronAPI.fileExists(destPath))
+        ) {
+          if (
+            !confirm(
+              `File "${fileName}" already exists in the destination. Overwrite?`,
+            )
+          ) {
+            // User cancelled overwrite, just load original
+            loadProjectData(data);
+            currentFilePath.set(filePath);
+            addToRecentFiles(filePath);
+            return;
+          }
+        }
 
-         // Perform Copy
-         if (electronAPI.copyFile) {
-             await electronAPI.copyFile(filePath, destPath);
-             // Load the NEW path
-             loadProjectData(data); // data is same
-             currentFilePath.set(destPath);
-             addToRecentFiles(destPath);
-         } else {
-             // Fallback if copyFile not available (should be)
-             await electronAPI.writeFile(destPath, content);
-             loadProjectData(data);
-             currentFilePath.set(destPath);
-             addToRecentFiles(destPath);
-         }
-      } else {
-          // User said no to copy
+        // Perform Copy
+        if (electronAPI.copyFile) {
+          await electronAPI.copyFile(filePath, destPath);
+          // Load the NEW path
+          loadProjectData(data); // data is same
+          currentFilePath.set(destPath);
+          addToRecentFiles(destPath);
+        } else {
+          // Fallback if copyFile not available (should be)
+          await electronAPI.writeFile(destPath, content);
           loadProjectData(data);
-          currentFilePath.set(filePath);
-          addToRecentFiles(filePath);
+          currentFilePath.set(destPath);
+          addToRecentFiles(destPath);
+        }
+      } else {
+        // User said no to copy
+        loadProjectData(data);
+        currentFilePath.set(filePath);
+        addToRecentFiles(filePath);
       }
     }
   } catch (err) {

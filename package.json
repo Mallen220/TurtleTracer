@@ -127,7 +127,9 @@
     },
     "fileAssociations": [
       {
-        "ext": ["pp"],
+        "ext": [
+          "pp"
+        ],
         "name": "PedroPathing Project",
         "description": "Pedro Pathing Project File",
         "icon": "build/icon.png",

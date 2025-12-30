@@ -497,9 +497,9 @@ ipcMain.handle("renderer-ready", async (event) => {
 // Add handler for file copy
 ipcMain.handle("file:copy", async (event, srcPath, destPath) => {
   try {
-     // Check if new path already exists
-     // (Using fs.copyFile triggers overwrite by default, so we might want to check existence if we want to prompt,
-     // but the prompt logic is likely in the renderer. The renderer asks user, then calls this.)
+    // Check if new path already exists
+    // (Using fs.copyFile triggers overwrite by default, so we might want to check existence if we want to prompt,
+    // but the prompt logic is likely in the renderer. The renderer asks user, then calls this.)
 
     await fs.copyFile(srcPath, destPath);
     return true;
@@ -508,7 +508,6 @@ ipcMain.handle("file:copy", async (event, srcPath, destPath) => {
     throw error;
   }
 });
-
 
 // Update the existing ipcMain.handle for "file:get-directory"
 ipcMain.handle("file:get-directory", async () => {

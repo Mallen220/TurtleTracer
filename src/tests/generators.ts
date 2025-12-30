@@ -89,16 +89,24 @@ export const pointArbitrary: any = fc.oneof
 export const controlPointArbitrary: any = basePointArbitrary;
 
 // Custom hex color generator
-const hexColorArbitrary = fc.string ? fc.string({ minLength: 6, maxLength: 6 }).map((s: string) => "#" + s) : ({} as any);
+const hexColorArbitrary = fc.string
+  ? fc.string({ minLength: 6, maxLength: 6 }).map((s: string) => "#" + s)
+  : ({} as any);
 
 // Generate a Line
 export const lineArbitrary: any = fc.record
   ? fc.record({
       id: fc.option ? fc.option(fc.uuid(), { nil: undefined }) : ({} as any),
       endPoint: pointArbitrary,
-      controlPoints: fc.array ? fc.array(controlPointArbitrary, { minLength: 0, maxLength: 2 }) : ({} as any),
+      controlPoints: fc.array
+        ? fc.array(controlPointArbitrary, { minLength: 0, maxLength: 2 })
+        : ({} as any),
       color: hexColorArbitrary,
-      name: fc.option ? fc.option(fc.string(), { nil: undefined }) : ({} as any),
-      locked: fc.option ? fc.option(fc.boolean(), { nil: undefined }) : ({} as any),
+      name: fc.option
+        ? fc.option(fc.string(), { nil: undefined })
+        : ({} as any),
+      locked: fc.option
+        ? fc.option(fc.boolean(), { nil: undefined })
+        : ({} as any),
     })
   : ({} as any);

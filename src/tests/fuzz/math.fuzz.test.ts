@@ -4,7 +4,9 @@ import { createRequire } from "module";
 import { existsSync } from "fs";
 import path from "path";
 
-const fastCheckInstalled = existsSync(path.join(process.cwd(), "node_modules", "fast-check"));
+const fastCheckInstalled = existsSync(
+  path.join(process.cwd(), "node_modules", "fast-check"),
+);
 const require = createRequire(import.meta.url);
 let fc: any;
 if (!fastCheckInstalled) {
