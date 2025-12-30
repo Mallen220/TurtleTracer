@@ -4,7 +4,7 @@ import {
   saveSettings,
   resetSettings,
   settingsFileExists,
-} from "./settingsPersistence";
+} from "../utils/settingsPersistence";
 import { DEFAULT_SETTINGS } from "../config/defaults";
 
 describe("Settings Persistence", () => {
