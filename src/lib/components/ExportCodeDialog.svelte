@@ -11,6 +11,8 @@
     generateJavaCode,
     generatePointsArray,
     generateSequentialCommandCode,
+    loadSettings,
+    saveSettings,
   } from "../../utils";
   import { tick, onMount } from "svelte";
   import { loadSettings, saveSettings } from "../../utils/settingsPersistence";
@@ -92,18 +94,29 @@
           lines,
           exportFullCode,
           sequence,
+          packageName,
         );
         currentLanguage = java;
       } else if (exportFormat === "points") {
         exportedCode = generatePointsArray(startPoint, lines);
         currentLanguage = plaintext;
       } else if (exportFormat === "sequential") {
+        // For sequential, we might want to append .Commands.AutoCommands if the user
+        // just provides the base package, or let them type the full thing.
+        // The default implementation in codeExporter assumed a suffix.
+        // Let's assume the user types the full package they want for the file.
+        // But the previous default was 'org.firstinspires.ftc.teamcode.Commands.AutoCommands'
+        // If the user's input is just 'org.firstinspires.ftc.teamcode', maybe we should suggest or default?
+        // For now, let's just pass what they typed, but maybe we initialize packageName differently for sequential?
+        // Actually, shared packageName is fine, but sequential often goes in a specific subpackage.
+        // Users can edit the input.
         exportedCode = await generateSequentialCommandCode(
           startPoint,
           lines,
           sequentialClassName,
           sequence,
           targetLibrary,
+          packageName,
         );
         currentLanguage = java;
       }
