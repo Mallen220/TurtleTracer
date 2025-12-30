@@ -11,7 +11,7 @@
   export let x: d3.ScaleLinear<number, number, number>;
   export let y: d3.ScaleLinear<number, number, number>;
   export let twoElement: HTMLDivElement;
-  export let robotXY: { x: number; y: number };
+  export let robotXY: { x: number; y: number } = { x: 0, y: 0 };
 
   let rulerStart = { x: 20, y: 72 };
   let rulerEnd = { x: 80, y: 72 };

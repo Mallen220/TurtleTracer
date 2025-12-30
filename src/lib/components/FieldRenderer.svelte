@@ -1074,7 +1074,7 @@
         e.target.src = "/fields/decode.webp";
       }}
     />
-    <MathTools {x} {y} {twoElement} {robotXY} {robotHeading} />
+    <MathTools {x} {y} {twoElement} {robotXY} />
     <img
       src={settings.robotImage || "/robot.png"}
       alt="Robot"
