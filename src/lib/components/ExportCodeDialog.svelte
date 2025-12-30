@@ -11,8 +11,6 @@
     generateJavaCode,
     generatePointsArray,
     generateSequentialCommandCode,
-    loadSettings,
-    saveSettings,
   } from "../../utils";
   import { tick, onMount } from "svelte";
   import { loadSettings, saveSettings } from "../../utils/settingsPersistence";
