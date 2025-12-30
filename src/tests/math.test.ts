@@ -41,7 +41,7 @@ describe("Math Utils", () => {
     it("interpolates angle correctly via shortest path", () => {
       expect(shortestRotation(0, 90, 0.5)).toBe(45);
       expect(shortestRotation(350, 10, 0.5)).toBe(360); // 350 + 20*0.5 = 360 which is equivalent to 0
-      expect(shortestRotation(10, 350, 0.5)).toBe(0);   // 10 - 20*0.5 = 0
+      expect(shortestRotation(10, 350, 0.5)).toBe(0); // 10 - 20*0.5 = 0
     });
   });
 
@@ -72,12 +72,12 @@ describe("Math Utils", () => {
       const { Q1, Q2 } = quadraticToCubic(p0, p1, p2);
 
       // Q1 = P0 + (2/3)(P1 - P0)
-      expect(Q1.x).toBeCloseTo(0 + (2/3)*10);
-      expect(Q1.y).toBeCloseTo(0 + (2/3)*10);
+      expect(Q1.x).toBeCloseTo(0 + (2 / 3) * 10);
+      expect(Q1.y).toBeCloseTo(0 + (2 / 3) * 10);
 
       // Q2 = P2 + (2/3)(P1 - P2)
-      expect(Q2.x).toBeCloseTo(20 + (2/3)*(10-20));
-      expect(Q2.y).toBeCloseTo(0 + (2/3)*(10-0));
+      expect(Q2.x).toBeCloseTo(20 + (2 / 3) * (10 - 20));
+      expect(Q2.y).toBeCloseTo(0 + (2 / 3) * (10 - 0));
     });
   });
 
@@ -100,14 +100,18 @@ describe("Math Utils", () => {
 
   describe("getCurvePoint", () => {
     it("calculates point on bezier curve", () => {
-       const points = [{x: 0, y: 0}, {x: 10, y: 10}, {x: 20, y: 0}];
-       // At t=0.5, a quadratic bezier with these points is at (10, 5)
-       // P = (1-t)^2 P0 + 2(1-t)t P1 + t^2 P2
-       // P = 0.25*(0,0) + 0.5*(10,10) + 0.25*(20,0)
-       // P = (0,0) + (5,5) + (5,0) = (10,5)
-       const p = getCurvePoint(0.5, points);
-       expect(p.x).toBeCloseTo(10);
-       expect(p.y).toBeCloseTo(5);
+      const points = [
+        { x: 0, y: 0 },
+        { x: 10, y: 10 },
+        { x: 20, y: 0 },
+      ];
+      // At t=0.5, a quadratic bezier with these points is at (10, 5)
+      // P = (1-t)^2 P0 + 2(1-t)t P1 + t^2 P2
+      // P = 0.25*(0,0) + 0.5*(10,10) + 0.25*(20,0)
+      // P = (0,0) + (5,5) + (5,0) = (10,5)
+      const p = getCurvePoint(0.5, points);
+      expect(p.x).toBeCloseTo(10);
+      expect(p.y).toBeCloseTo(5);
     });
   });
 });

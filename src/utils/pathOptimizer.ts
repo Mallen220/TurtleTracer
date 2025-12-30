@@ -13,6 +13,12 @@ import { calculatePathTime } from "./timeCalculator";
 import { FIELD_SIZE } from "../config";
 import { calculateRobotState } from "./animation";
 import { pointInPolygon, getRobotCorners } from "./geometry";
+import {
+  getCurvePoint,
+  easeInOutQuad,
+  shortestRotation,
+  radiansToDegrees,
+} from "./math";
 
 export interface OptimizationResult {
   generation: number;
@@ -32,6 +38,7 @@ export class PathOptimizer {
   private settings: Settings;
   private sequence: SequenceItem[];
   private shapes: Shape[];
+  private activeShapes: Shape[];
 
   constructor(
     startPoint: Point,
@@ -45,6 +52,7 @@ export class PathOptimizer {
     this.settings = settings;
     this.sequence = sequence;
     this.shapes = shapes;
+    this.activeShapes = this.shapes.filter((s) => s.vertices.length >= 3);
     // Use settings values if provided, else defaults
     this.generations = settings.optimizationIterations ?? 100;
     this.populationSize = settings.optimizationPopulationSize ?? 50;
@@ -174,38 +182,98 @@ export class PathOptimizer {
 
   // Returns number of collision checks that failed
   private getCollisionCount(timeline: TimelineEvent[], lines: Line[]): number {
-    if (!this.shapes || this.shapes.length === 0) return 0;
-
-    // Filter out shapes with fewer than 3 vertices
-    const activeShapes = this.shapes.filter((s) => s.vertices.length >= 3);
-    if (activeShapes.length === 0) return 0;
+    if (this.activeShapes.length === 0) return 0;
 
     const totalTime = timeline[timeline.length - 1].endTime;
     const step = 0.2; // Check every 0.2 seconds for performance
-    const identityScale: any = (x: number) => x;
     let collisions = 0;
 
-    for (let t = 0; t <= totalTime; t += step) {
-      const percent = (t / totalTime) * 100;
-      const state = calculateRobotState(
-        percent,
-        timeline,
-        lines,
-        this.startPoint,
-        identityScale,
-        identityScale,
-      );
+    // Robot dimensions with safety margin
+    const rLength =
+      this.settings.rLength + (this.settings.safetyMargin || 0) * 2;
+    const rWidth = this.settings.rWidth + (this.settings.safetyMargin || 0) * 2;
 
-      const corners = getRobotCorners(
-        state.x,
-        state.y,
-        state.heading,
-        this.settings.rLength + (this.settings.safetyMargin || 0) * 2,
-        this.settings.rWidth + (this.settings.safetyMargin || 0) * 2,
-      );
+    let eventIdx = 0;
+
+    for (let t = 0; t <= totalTime; t += step) {
+      // Optimized timeline lookup: Advance event index if t exceeds current event end
+      while (eventIdx < timeline.length - 1 && t > timeline[eventIdx].endTime) {
+        eventIdx++;
+      }
+      const activeEvent = timeline[eventIdx];
+
+      // Inline simplified calculateRobotState logic for performance
+      // This avoids O(N) search and function overhead in the hot loop
+      let x = 0,
+        y = 0,
+        heading = 0;
+
+      if (activeEvent.type === "wait") {
+        const point = activeEvent.atPoint!;
+        x = point.x;
+        y = point.y;
+
+        const eventProgress =
+          (t - activeEvent.startTime) / activeEvent.duration;
+        const clampedProgress = Math.max(0, Math.min(1, eventProgress));
+
+        const currentHeading = shortestRotation(
+          activeEvent.startHeading!,
+          activeEvent.targetHeading!,
+          clampedProgress,
+        );
+        heading = -currentHeading;
+      } else {
+        const lineIdx = activeEvent.lineIndex!;
+        const currentLine = lines[lineIdx];
+        const prevPoint =
+          lineIdx === 0 ? this.startPoint : lines[lineIdx - 1].endPoint;
+
+        const timeProgress = (t - activeEvent.startTime) / activeEvent.duration;
+        const linePercent = easeInOutQuad(
+          Math.max(0, Math.min(1, timeProgress)),
+        );
+
+        const curvePoints = [
+          prevPoint,
+          ...currentLine.controlPoints,
+          currentLine.endPoint,
+        ];
+        const robotInchesXY = getCurvePoint(linePercent, curvePoints);
+        x = robotInchesXY.x;
+        y = robotInchesXY.y;
+
+        // Calculate Heading
+        switch (currentLine.endPoint.heading) {
+          case "linear":
+            heading = -shortestRotation(
+              currentLine.endPoint.startDeg,
+              currentLine.endPoint.endDeg,
+              linePercent,
+            );
+            break;
+          case "constant":
+            heading = -currentLine.endPoint.degrees;
+            break;
+          case "tangential":
+            const nextPointInches = getCurvePoint(
+              linePercent + (currentLine.endPoint.reverse ? -0.01 : 0.01),
+              curvePoints,
+            );
+            const dx = nextPointInches.x - x;
+            const dy = nextPointInches.y - y;
+            if (dx !== 0 || dy !== 0) {
+              const angle = Math.atan2(dy, dx);
+              heading = radiansToDegrees(angle);
+            }
+            break;
+        }
+      }
+
+      const corners = getRobotCorners(x, y, heading, rLength, rWidth);
 
       let isColliding = false;
-      for (const shape of activeShapes) {
+      for (const shape of this.activeShapes) {
         // Check if any robot corner is in shape
         for (const corner of corners) {
           if (pointInPolygon([corner.x, corner.y], shape.vertices)) {

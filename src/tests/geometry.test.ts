@@ -121,9 +121,9 @@ describe("Geometry Utils", () => {
       const corners = getRobotCorners(0, 0, 90, 10, 6);
 
       // Check for approximations due to floating point
-      const roundedCorners = corners.map(c => ({
+      const roundedCorners = corners.map((c) => ({
         x: Math.round(c.x),
-        y: Math.round(c.y)
+        y: Math.round(c.y),
       }));
 
       expect(roundedCorners).toContainEqual({ x: 3, y: 5 });
@@ -147,20 +147,25 @@ describe("Geometry Utils", () => {
 
       // Hull should contain the 4 corner points
       expect(hull.length).toBe(4);
-      expect(hull).toEqual(expect.arrayContaining([
-        { x: 0, y: 0 },
-        { x: 10, y: 0 },
-        { x: 10, y: 10 },
-        { x: 0, y: 10 },
-      ]));
+      expect(hull).toEqual(
+        expect.arrayContaining([
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+          { x: 10, y: 10 },
+          { x: 0, y: 10 },
+        ]),
+      );
 
       // Should not contain the inner point
       expect(hull).not.toContainEqual({ x: 5, y: 5 });
     });
 
     it("handles less than 3 points", () => {
-        const points = [{ x: 0, y: 0 }, { x: 10, y: 10 }];
-        expect(convexHull(points)).toEqual(points);
+      const points = [
+        { x: 0, y: 0 },
+        { x: 10, y: 10 },
+      ];
+      expect(convexHull(points)).toEqual(points);
     });
   });
 });
