@@ -769,7 +769,9 @@
       }
 
       // Cursor and Dragging Logic
-      const elem = document.elementFromPoint(evt.clientX, evt.clientY);
+      // Optimization: Don't use elementFromPoint here. It forces a reflow.
+      // If we are dragging, we already know what we are dragging (currentElem).
+      // If we are not dragging, we can use evt.target which is O(1).
 
       if (isDown && currentElem) {
         // Dragging Logic
@@ -820,28 +822,34 @@
         }
       } else {
         // Cursor Update
-        if (elem?.id.startsWith("point") || elem?.id.startsWith("obstacle")) {
+        // Use evt.target instead of elementFromPoint
+        const target = evt.target as Element;
+
+        if (
+          target?.id.startsWith("point") ||
+          target?.id.startsWith("obstacle")
+        ) {
           two.renderer.domElement.style.cursor = "pointer";
-          currentElem = elem.id;
+          currentElem = target.id;
         } else if (
-          elem?.id &&
-          (elem.id.startsWith("event-") ||
-            elem.id.startsWith("event-circle-") ||
-            elem.id.startsWith("event-flag-") ||
-            elem.id.startsWith("wait-event-") ||
-            elem.id.startsWith("wait-event-circle-") ||
-            elem.id.startsWith("wait-event-flag-"))
+          target?.id &&
+          (target.id.startsWith("event-") ||
+            target.id.startsWith("event-circle-") ||
+            target.id.startsWith("event-flag-") ||
+            target.id.startsWith("wait-event-") ||
+            target.id.startsWith("wait-event-circle-") ||
+            target.id.startsWith("wait-event-flag-"))
         ) {
           two.renderer.domElement.style.cursor = "pointer";
           // Normalize ID logic
-          const idParts = elem.id.split("-");
-          if (elem.id.startsWith("wait-event-")) {
+          const idParts = target.id.split("-");
+          if (target.id.startsWith("wait-event-")) {
             if (idParts.length >= 4) {
               const waitId = idParts[idParts.length - 2];
               const evIdx = idParts[idParts.length - 1];
               currentElem = `wait-event-${waitId}-${evIdx}`;
             } else {
-              currentElem = elem.id;
+              currentElem = target.id;
             }
           } else {
             if (idParts.length >= 3) {
@@ -849,7 +857,7 @@
               const evIdx = idParts[idParts.length - 1];
               currentElem = `event-${lineIdx}-${evIdx}`;
             } else {
-              currentElem = elem.id;
+              currentElem = target.id;
             }
           }
         } else {
@@ -863,7 +871,8 @@
       isDown = true;
       // Re-determine currentElem if needed
       if (!currentElem) {
-        const el = document.elementFromPoint(evt.clientX, evt.clientY);
+        // Optimization: use evt.target
+        const el = evt.target as Element;
         if (el?.id) {
           if (el.id.startsWith("point") || el.id.startsWith("obstacle-"))
             currentElem = el.id;
@@ -976,12 +985,12 @@
 
     // Double Click to Add Line
     two.renderer.domElement.addEventListener("dblclick", (evt: MouseEvent) => {
-      const elem = document.elementFromPoint(evt.clientX, evt.clientY);
+      const target = evt.target as Element;
       if (
-        elem?.id &&
-        (elem.id.startsWith("point") ||
-          elem.id.startsWith("obstacle") ||
-          elem.id.startsWith("line"))
+        target?.id &&
+        (target.id.startsWith("point") ||
+          target.id.startsWith("obstacle") ||
+          target.id.startsWith("line"))
       )
         return;
 
