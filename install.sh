@@ -173,12 +173,6 @@ install_mac() {
         fi
     fi
 
-    # Cleanup
-    if [ -d "/Applications/Pedro Pathing Visualizer.app" ]; then
-        sudo rm -rf "/Applications/Pedro Pathing Visualizer.app"
-        print_status "Removed old version"
-    fi
-
     print_status "Looking for DMG assets in the latest release..."
     DOWNLOAD_URL=$(select_asset_by_pattern "\.dmg")
 
@@ -220,19 +214,36 @@ install_mac() {
 
     DMG_PATH="/tmp/pedro-installer.dmg"
     print_status "Downloading $(basename "$DOWNLOAD_URL")..."
-    curl -L -o "$DMG_PATH" "$DOWNLOAD_URL"
+    if ! curl -L -o "$DMG_PATH" "$DOWNLOAD_URL" --fail; then
+        print_error "Download failed. Aborting."
+        exit 1
+    fi
     
     print_status "Mounting and Installing..."
     TEMP_MOUNT=$(mktemp -d /tmp/pedro-mount.XXXXXX)
-    hdiutil attach "$DMG_PATH" -mountpoint "$TEMP_MOUNT" -nobrowse -quiet
+    if ! hdiutil attach "$DMG_PATH" -mountpoint "$TEMP_MOUNT" -nobrowse -quiet; then
+        print_error "Failed to mount DMG"
+        rm "$DMG_PATH"
+        rm -rf "$TEMP_MOUNT"
+        exit 1
+    fi
     
     APP_SOURCE=$(find "$TEMP_MOUNT" -name "*.app" -type d -maxdepth 2 | head -1)
     if [ -z "$APP_SOURCE" ]; then
         print_error "App not found in DMG"
         hdiutil detach "$TEMP_MOUNT" -quiet
+        rm "$DMG_PATH"
+        rm -rf "$TEMP_MOUNT"
         exit 1
     fi
     
+    # Cleanup old version only after successful download and mount
+    if [ -d "/Applications/Pedro Pathing Visualizer.app" ]; then
+        print_status "Removing old version..."
+        sudo rm -rf "/Applications/Pedro Pathing Visualizer.app"
+    fi
+
+    print_status "Copying new version..."
     cp -R "$APP_SOURCE" "/Applications/"
     hdiutil detach "$TEMP_MOUNT" -quiet
     rm "$DMG_PATH"
@@ -276,8 +287,15 @@ install_linux() {
 
     if [[ "$lower" == *.appimage ]]; then
         APP_PATH="$INSTALL_DIR/$fname"
-        print_info "Downloading AppImage to $APP_PATH..."
-        curl -L -o "$APP_PATH" "$candidate_url"
+        TMP_APP_PATH="/tmp/$fname"
+        print_info "Downloading AppImage to $TMP_APP_PATH..."
+        if ! curl -L -o "$TMP_APP_PATH" "$candidate_url" --fail; then
+            print_error "Download failed. Aborting."
+            exit 1
+        fi
+
+        print_status "Moving AppImage to $APP_PATH..."
+        mv "$TMP_APP_PATH" "$APP_PATH"
         print_status "Making executable..."
         chmod +x "$APP_PATH"
 
@@ -302,7 +320,10 @@ EOL
     elif [[ "$lower" == *.deb ]]; then
         TMP_DEB="/tmp/$fname"
         print_info "Downloading .deb to $TMP_DEB..."
-        curl -L -o "$TMP_DEB" "$candidate_url"
+        if ! curl -L -o "$TMP_DEB" "$candidate_url" --fail; then
+            print_error "Download failed. Aborting."
+            exit 1
+        fi
         print_status "Installing via dpkg..."
         sudo dpkg -i "$TMP_DEB" || (print_warning "dpkg returned errors; attempting to fix with apt-get -f install" && sudo apt-get -f install -y)
         rm -f "$TMP_DEB"
@@ -311,7 +332,10 @@ EOL
         TMP_TAR="/tmp/$fname"
         DEST_DIR="$INSTALL_DIR/pedro-$RANDOM"
         print_info "Downloading tarball to $TMP_TAR..."
-        curl -L -o "$TMP_TAR" "$candidate_url"
+        if ! curl -L -o "$TMP_TAR" "$candidate_url" --fail; then
+            print_error "Download failed. Aborting."
+            exit 1
+        fi
         mkdir -p "$DEST_DIR"
         tar -xzf "$TMP_TAR" -C "$DEST_DIR" || (print_error "Failed to extract tarball" && exit 1)
         rm -f "$TMP_TAR"
