@@ -87,10 +87,16 @@ function getCurvatureRadius(
   return denominator / numerator;
 }
 
+interface PathStep {
+  deltaLength: number;
+  radius: number;
+}
+
 interface PathAnalysis {
   length: number;
   minRadius: number;
   tangentRotation: number;
+  steps: PathStep[];
 }
 
 /**
@@ -113,18 +119,20 @@ function analyzePathSegment(
 
   // Determine curve type
   const isLine = cps.length === 0;
-  const isQuadratic = cps.length === 1;
-  const isCubic = cps.length >= 2;
+
+  const steps: PathStep[] = [];
 
   for (let i = 0; i <= samples; i++) {
     const t = i / samples;
     const point = getCurvePoint(t, [start, ...cps, end]);
 
+    let deltaLength = 0;
     // Length
     if (i > 0) {
       const dx = point.x - prevPoint.x;
       const dy = point.y - prevPoint.y;
-      length += Math.sqrt(dx * dx + dy * dy);
+      deltaLength = Math.sqrt(dx * dx + dy * dy);
+      length += deltaLength;
     }
     prevPoint = point;
 
@@ -146,6 +154,13 @@ function analyzePathSegment(
     const radius = getCurvatureRadius(d1, d2);
     if (radius < minRadius) minRadius = radius;
 
+    if (i > 0) {
+      steps.push({
+        deltaLength,
+        radius,
+      });
+    }
+
     // Tangent Angle
     // Ensure d1 is not zero vector to avoid undefined atan2
     if (Math.abs(d1.x) > 1e-9 || Math.abs(d1.y) > 1e-9) {
@@ -161,42 +176,86 @@ function analyzePathSegment(
     }
   }
 
-  return { length, minRadius, tangentRotation };
+  return { length, minRadius, tangentRotation, steps };
 }
 
 /**
- * Calculate time for a motion profile (trapezoidal or triangular)
+ * Calculates time for a motion profile over a path with varying constraints.
+ * Uses a Forward-Backward pass algorithm.
  */
-function calculateMotionProfileTime(
-  distance: number,
-  maxVel: number,
-  maxAcc: number,
-  maxDec?: number,
+function calculateMotionProfileDetailed(
+  steps: PathStep[],
+  settings: Settings,
 ): number {
-  const deceleration = maxDec || maxAcc;
+  const maxVelGlobal = settings.maxVelocity || 100;
+  const maxAcc = settings.maxAcceleration || 30;
+  const maxDec = settings.maxDeceleration || maxAcc;
+  const kFriction = settings.kFriction || 0;
+  const aVelocity = settings.aVelocity || Math.PI;
 
-  // Avoid division by zero
-  if (maxVel <= 0 || maxAcc <= 0 || deceleration <= 0) return 0;
+  const n = steps.length;
+  if (n === 0) return 0;
 
-  const accDist = (maxVel * maxVel) / (2 * maxAcc);
-  const decDist = (maxVel * maxVel) / (2 * deceleration);
+  // vAtPoints[i] is velocity at the end of step i-1 (so at point i).
+  // vAtPoints[0] is velocity at start.
+  // vAtPoints[n] is velocity at end.
+  const vAtPoints = new Float64Array(n + 1);
+  vAtPoints[0] = 0; // Start stop
 
-  if (distance >= accDist + decDist) {
-    const accTime = maxVel / maxAcc;
-    const decTime = maxVel / deceleration;
-    const constDist = distance - accDist - decDist;
-    const constTime = constDist / maxVel;
+  // 1. Forward Pass
+  for (let i = 0; i < n; i++) {
+    const step = steps[i];
 
-    return accTime + constTime + decTime;
-  } else {
-    const vPeak = Math.sqrt(
-      (2 * distance * maxAcc * deceleration) / (maxAcc + deceleration),
+    // Calculate limit at point i+1 based on local curvature
+    let limit = maxVelGlobal;
+    if (kFriction > 0) {
+      const frictionLimit = Math.sqrt(kFriction * 386.22 * step.radius);
+      if (frictionLimit < limit) limit = frictionLimit;
+    }
+    const angVelLimit = aVelocity * step.radius;
+    if (angVelLimit < limit) limit = angVelLimit;
+
+    const dist = step.deltaLength;
+    const maxReachable = Math.sqrt(
+      vAtPoints[i] * vAtPoints[i] + 2 * maxAcc * dist,
     );
-    const accTime = vPeak / maxAcc;
-    const decTime = vPeak / deceleration;
 
-    return accTime + decTime;
+    vAtPoints[i + 1] = Math.min(limit, maxReachable);
   }
+
+  // 2. Backward Pass
+  // Enforce stop at end
+  vAtPoints[n] = 0;
+
+  for (let i = n - 1; i >= 0; i--) {
+    const dist = steps[i].deltaLength;
+    const maxReachable = Math.sqrt(
+      vAtPoints[i + 1] * vAtPoints[i + 1] + 2 * maxDec * dist,
+    );
+
+    if (maxReachable < vAtPoints[i]) {
+      vAtPoints[i] = maxReachable;
+    }
+  }
+
+  // 3. Integrate Time
+  let totalTime = 0;
+  for (let i = 0; i < n; i++) {
+    const vStart = vAtPoints[i];
+    const vEnd = vAtPoints[i + 1];
+    const dist = steps[i].deltaLength;
+    const avgV = (vStart + vEnd) / 2;
+
+    if (avgV > 1e-6) {
+      totalTime += dist / avgV;
+    } else {
+      // Fallback for very low speeds (start from 0) using kinematics
+      // d = 0.5 * a * t^2 -> t = sqrt(2d/a)
+      totalTime += Math.sqrt((2 * dist) / maxAcc);
+    }
+  }
+
+  return totalTime;
 }
 
 export function calculatePathTime(
@@ -289,9 +348,6 @@ export function calculatePathTime(
 
     // Wait logic: If the current heading is significantly different from the start heading of the line
     // we simulate a "wait" turn.
-    // Note: If the previous line ended at 90 and this one starts at 90, diff is 0.
-    // If the previous line ended at 90 and this one starts at 180 (e.g. sharp corner in Tangential mode),
-    // we assume we must stop and turn.
     const diff = Math.abs(
       getAngularDifference(currentHeading, requiredStartHeading),
     );
@@ -312,38 +368,22 @@ export function calculatePathTime(
     }
 
     // --- TRAVEL ANALYSIS ---
+    // Use higher sample count for better physics accuracy (100 instead of 50)
     const analysis = analyzePathSegment(
       prevPoint,
       line.controlPoints as any,
       line.endPoint as any,
+      100,
     );
     const length = analysis.length;
     segmentLengths.push(length);
 
-    // Calculate Translation Time (Physical Limits)
-    let maxVel = settings.maxVelocity || 100;
-    // 1. Friction Limit (Centripetal: v = sqrt(k * g * r))
-    if (settings.kFriction && settings.kFriction > 0) {
-      // 386.22 in/s^2 is gravity
-      const frictionLimit = Math.sqrt(
-        settings.kFriction * 386.22 * analysis.minRadius,
-      );
-      if (frictionLimit < maxVel) maxVel = frictionLimit;
-    }
-
-    // 2. Angular Velocity Limit for Curve Following (v = w * r)
-    // Limits the speed based on the robot's maximum angular velocity and the path curvature.
-    // This applies to the path vector rotation regardless of chassis heading mode.
-    const angVelLimit = settings.aVelocity * analysis.minRadius;
-    if (angVelLimit < maxVel) maxVel = angVelLimit;
-
     let translationTime = 0;
     if (useMotionProfile) {
-      translationTime = calculateMotionProfileTime(
-        length,
-        maxVel,
-        settings.maxAcceleration!,
-        settings.maxDeceleration,
+      // Use detailed forward-backward pass for realistic physics
+      translationTime = calculateMotionProfileDetailed(
+        analysis.steps,
+        settings,
       );
     } else {
       const avgVelocity = (settings.xVelocity + settings.yVelocity) / 2;
@@ -351,23 +391,14 @@ export function calculatePathTime(
     }
 
     // Calculate Rotation Time (Simultaneous Heading Change)
-    // We need to know the Total Rotation required during this segment.
     let rotationRequired = 0;
     const endHeading = getLineEndHeading(line, prevPoint);
 
     if (line.endPoint.heading === "tangential") {
-      // For tangential, the robot rotates as the curve turns.
-      // We use the accumulated tangent rotation from analysis.
       rotationRequired = analysis.tangentRotation;
     } else if (line.endPoint.heading === "constant") {
-      // No rotation during movement (unless previous was different, which is handled by initial Wait)
       rotationRequired = 0;
     } else if (line.endPoint.heading === "linear") {
-      // Linear interpolation from start heading to end heading
-      // start heading is `requiredStartHeading` (which we are at)
-      // end heading is `endHeading`
-      // For linear heading, we use the absolute difference of the raw values
-      // to respect multi-turn rotations (e.g. 0 to 720)
       rotationRequired = Math.abs(endHeading - requiredStartHeading);
     }
 

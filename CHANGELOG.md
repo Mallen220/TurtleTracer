@@ -1,6 +1,6 @@
 ## 1.4.2 (2025-12-31)
 
-- Fast Fix Settings not loading properly leading to critical application failures. 
+- Fast Fix Settings not loading properly leading to critical application failures.
 
 ## 1.4.1 (2025-12-30)
 
