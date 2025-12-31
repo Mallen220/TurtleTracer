@@ -83,6 +83,19 @@ function getCurvatureRadius(
 ): number {
   const numerator = Math.abs(d1.x * d2.y - d1.y * d2.x);
   const denominator = Math.pow(d1.x * d1.x + d1.y * d1.y, 1.5);
+  // If numerator is very small (straight line), return Infinity.
+  // BUT: If denominator is also zero (cusp), we must be careful.
+  // A cusp implies d1 = 0.
+  // If d1.x and d1.y are ~0, denominator is ~0.
+  // 0/0 is undefined. But physically, at a cusp, you must stop.
+  // Radius of curvature effectively becomes 0 or undefined, but the velocity limit should be 0.
+  // We handle this by checking velocity (d1 magnitude) separately in the caller or here.
+
+  if (Math.abs(d1.x) < 1e-6 && Math.abs(d1.y) < 1e-6) {
+    // Zero velocity / Cusp -> Force radius to 0 to force stop
+    return 0;
+  }
+
   if (numerator < 1e-6) return Infinity; // Straight line
   return denominator / numerator;
 }
@@ -373,7 +386,7 @@ export function calculatePathTime(
       prevPoint,
       line.controlPoints as any,
       line.endPoint as any,
-      1000,
+      100,
     );
     const length = analysis.length;
     segmentLengths.push(length);
