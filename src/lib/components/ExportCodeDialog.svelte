@@ -22,7 +22,7 @@
   export let lines: Line[];
   export let sequence: SequenceItem[];
   export let shapes: Shape[] = [];
-  export const settings = undefined as Settings | undefined;
+  export let settings: Settings;
 
   let exportFullCode = false;
   let exportFormat: "java" | "points" | "sequential" | "json" = "java";
