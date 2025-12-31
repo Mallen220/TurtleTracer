@@ -1,3 +1,7 @@
+## 1.4.2 (2025-12-31)
+
+- Fast Fix Settings not loading properly leading to critical application failures. 
+
 ## 1.4.1 (2025-12-30)
 
 - Optimized optimization and field logic that caused laggy behavior. allow opening multiple app windows easily. export .pp file. Decouple settings from project files. Better code testing. implement.pp file association.
