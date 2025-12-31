@@ -88,13 +88,66 @@ export function lerp2d(
   };
 }
 
+/**
+ * Optimized De Casteljau's algorithm for Bezier curves.
+ * Uses explicit Bernstein basis polynomials for common degrees (1-3)
+ * to avoid recursion and array allocation.
+ */
 export function getCurvePoint(
   t: number,
   points: { x: number; y: number }[],
 ): { x: number; y: number } {
-  if (points.length === 1) return points[0];
-  var newpoints = [];
-  for (var i = 0, j = 1; j < points.length; i++, j++) {
+  const len = points.length;
+
+  if (len === 2) {
+    // Linear: P = (1-t)P0 + tP1
+    const p0 = points[0];
+    const p1 = points[1];
+    return {
+      x: p0.x + (p1.x - p0.x) * t,
+      y: p0.y + (p1.y - p0.y) * t,
+    };
+  } else if (len === 3) {
+    // Quadratic: P = (1-t)^2 P0 + 2(1-t)t P1 + t^2 P2
+    const p0 = points[0];
+    const p1 = points[1];
+    const p2 = points[2];
+    const mt = 1 - t;
+    const a = mt * mt;
+    const b = 2 * mt * t;
+    const c = t * t;
+
+    return {
+      x: a * p0.x + b * p1.x + c * p2.x,
+      y: a * p0.y + b * p1.y + c * p2.y,
+    };
+  } else if (len === 4) {
+    // Cubic: P = (1-t)^3 P0 + 3(1-t)^2 t P1 + 3(1-t)t^2 P2 + t^3 P3
+    const p0 = points[0];
+    const p1 = points[1];
+    const p2 = points[2];
+    const p3 = points[3];
+    const mt = 1 - t;
+    const mt2 = mt * mt;
+    const t2 = t * t;
+
+    const a = mt2 * mt;
+    const b = 3 * mt2 * t;
+    const c = 3 * mt * t2;
+    const d = t2 * t;
+
+    return {
+      x: a * p0.x + b * p1.x + c * p2.x + d * p3.x,
+      y: a * p0.y + b * p1.y + c * p2.y + d * p3.y,
+    };
+  }
+
+  // Fallback for N > 4 (or N=1)
+  if (len === 1) return points[0];
+
+  // Recursive fallback
+  const newpoints = [];
+  for (let i = 0, j = 1; j < len; i++, j++) {
     newpoints[i] = lerp2d(t, points[i], points[j]);
   }
   return getCurvePoint(t, newpoints);
