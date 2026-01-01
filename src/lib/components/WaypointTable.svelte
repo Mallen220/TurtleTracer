@@ -613,6 +613,7 @@
               class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               step={stepSize}
               value={startPoint.x}
+              aria-label="Start Point X"
               on:input={(e) => handleInput(e, startPoint, "x")}
               disabled={startPoint.locked}
             />
@@ -623,6 +624,7 @@
               class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               step={stepSize}
               value={startPoint.y}
+              aria-label="Start Point Y"
               on:input={(e) => handleInput(e, startPoint, "y")}
               disabled={startPoint.locked}
             />
@@ -702,6 +704,7 @@
                         updateLineName(item.lineId, e.target.value)}
                       disabled={line.locked}
                       placeholder="Path {lineIdx + 1}"
+                      aria-label="Path Name"
                     />
                   </div>
                 </td>
@@ -712,6 +715,7 @@
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       step={stepSize}
                       value={line.endPoint.x}
+                      aria-label="{line.name || `Path ${lineIdx + 1}`} X"
                       on:input={(e) => handleInput(e, line.endPoint, "x")}
                       disabled={line.locked}
                     />
@@ -726,6 +730,7 @@
                     class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     step={stepSize}
                     value={line.endPoint.y}
+                    aria-label="{line.name || `Path ${lineIdx + 1}`} Y"
                     on:input={(e) => handleInput(e, line.endPoint, "y")}
                     disabled={line.locked}
                   />
@@ -821,6 +826,8 @@
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
                       step={stepSize}
                       value={cp.x}
+                      aria-label="Control Point {j + 1} X for {line.name ||
+                        `Path ${lineIdx + 1}`}"
                       on:input={(e) => handleInput(e, cp, "x")}
                       disabled={line.locked}
                     />
@@ -831,6 +838,8 @@
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
                       step={stepSize}
                       value={cp.y}
+                      aria-label="Control Point {j + 1} Y for {line.name ||
+                        `Path ${lineIdx + 1}`}"
                       on:input={(e) => handleInput(e, cp, "y")}
                       disabled={line.locked}
                     />
@@ -901,6 +910,7 @@
                     updateWaitName(item, e.target.value)}
                   disabled={item.locked}
                   placeholder="Wait Name"
+                  aria-label="Wait Name"
                 />
               </td>
               <td class="px-3 py-2">
@@ -909,6 +919,7 @@
                   class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-amber-500 focus:outline-none text-xs"
                   min="0"
                   value={item.durationMs}
+                  aria-label="{item.name || 'Wait'} Duration"
                   on:input={(e) =>
                     updateWaitDuration(
                       item,
