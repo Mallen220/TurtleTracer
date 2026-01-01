@@ -74,7 +74,7 @@ function getCurvatureRadius(
   const denominator = Math.pow(d1.x * d1.x + d1.y * d1.y, 1.5);
 
   if (Math.abs(d1.x) < 1e-6 && Math.abs(d1.y) < 1e-6) {
-      return 0;
+    return 0;
   }
 
   if (numerator < 1e-6) return Infinity; // Straight line
@@ -180,11 +180,23 @@ function analyzePathSegment(
     }
 
     if (i > 0) {
-      steps.push({ deltaLength, radius, rotation: stepRotation, heading: currentUnwrapped });
+      steps.push({
+        deltaLength,
+        radius,
+        rotation: stepRotation,
+        heading: currentUnwrapped,
+      });
     }
   }
 
-  return { length, minRadius, tangentRotation, netRotation, steps, startHeading: initialHeading };
+  return {
+    length,
+    minRadius,
+    tangentRotation,
+    netRotation,
+    steps,
+    startHeading: initialHeading,
+  };
 }
 
 /**
@@ -193,7 +205,7 @@ function analyzePathSegment(
  */
 function calculateRotationTime(
   angleDiffDegrees: number,
-  settings: Settings
+  settings: Settings,
 ): number {
   if (angleDiffDegrees <= 0.001) return 0;
 
@@ -209,11 +221,6 @@ function calculateRotationTime(
   const maxAngAccel = maxAccel / leverArm;
 
   // Motion profile:
-  // t_accel = v / a
-  // d_accel = v^2 / 2a
-  // We accelerate to maxVel, cruise, decelerate.
-  // Or we triangle profile if distance is short.
-
   const accDist = (maxVel * maxVel) / (2 * maxAngAccel);
   const decDist = accDist; // Symmetric
 
@@ -226,7 +233,6 @@ function calculateRotationTime(
     return accTime + constTime + decTime;
   } else {
     // Triangle (don't reach max speed)
-    // d = v_peak^2 / a -> v_peak = sqrt(d * a)
     const vPeak = Math.sqrt(diffRad * maxAngAccel);
     const accTime = vPeak / maxAngAccel;
     const decTime = accTime;
@@ -304,26 +310,18 @@ function calculateMotionProfileDetailed(
     }
 
     // Check rotation constraint
-    let dtRotation = 0;
-
-    // HEURISTIC: If we are moving very slowly, we assume we are pivoting/starting/stopping
-    // and thus limited by Angular Acceleration (Stop-and-Go).
-    // If we are moving fast, we assume continuous motion and are limited by Angular Velocity.
-    if (avgV < 0.1) {
-       dtRotation = calculateRotationTime(steps[i].rotation, settings);
-    } else {
-       dtRotation = (steps[i].rotation * (Math.PI / 180)) / aVelocity;
-    }
+    // Using simple constant velocity assumption for travel continuity
+    // This avoids over-penalizing smooth curves with acceleration start/stops
+    const dtRotation = (steps[i].rotation * (Math.PI / 180)) / aVelocity;
 
     // Take the maximum time required (slower of the two)
     const dt = Math.max(dtLinear, dtRotation);
 
     // Guard against NaN integration
     if (!Number.isFinite(dt)) {
-        // Fallback to small valid step if physics breaks
-        totalTime += 0;
+      totalTime += 0;
     } else {
-        totalTime += dt;
+      totalTime += dt;
     }
     profile.push(totalTime);
   }
@@ -349,8 +347,8 @@ export function calculatePathTime(
 
   // Guard aVelocity globally in this scope
   const safeSettings = {
-      ...settings,
-      aVelocity: Math.max(settings.aVelocity, 0.001)
+    ...settings,
+    aVelocity: Math.max(settings.aVelocity, 0.001),
   };
 
   const segmentLengths: number[] = [];
@@ -426,9 +424,13 @@ export function calculatePathTime(
     // Unwind requiredStartHeading relative to currentHeading
     let requiredStartHeadingRaw = getLineStartHeading(line, prevPoint);
     // Unwind: find value closest to currentHeading
-    let requiredStartHeading = unwrapAngle(requiredStartHeadingRaw, currentHeading);
+    let requiredStartHeading = unwrapAngle(
+      requiredStartHeadingRaw,
+      currentHeading,
+    );
 
-    if (!Number.isFinite(requiredStartHeading)) requiredStartHeading = currentHeading;
+    if (!Number.isFinite(requiredStartHeading))
+      requiredStartHeading = currentHeading;
 
     if (idx === 0) currentHeading = requiredStartHeading;
 
@@ -436,9 +438,10 @@ export function calculatePathTime(
 
     // Use a small epsilon
     if (diff > 0.1) {
-       // Convert diff to rotation time WITH acceleration
-       const rotTime = calculateRotationTime(diff, safeSettings);
-       timeline.push({
+      // Convert diff to rotation time WITH ACCELERATION logic for Wait events
+      const rotTime = calculateRotationTime(diff, safeSettings);
+
+      timeline.push({
         type: "wait",
         duration: rotTime,
         startTime: currentTime,
@@ -458,7 +461,7 @@ export function calculatePathTime(
       line.controlPoints as any,
       line.endPoint as any,
       100,
-      currentHeading
+      currentHeading,
     );
     const length = analysis.length;
     segmentLengths.push(length);
@@ -511,15 +514,19 @@ export function calculatePathTime(
         const samples = analysis.steps.length; // 100
         for (let i = 1; i <= samples; i++) {
           const ratio = i / samples;
-          headingProfile!.push(currentHeading + (endHeading - currentHeading) * ratio);
+          headingProfile!.push(
+            currentHeading + (endHeading - currentHeading) * ratio,
+          );
         }
       }
     }
 
     if (!Number.isFinite(endHeading)) endHeading = currentHeading;
 
-    // Use robust rotation time
-    const rotationTime = calculateRotationTime(rotationRequired, safeSettings);
+    // Use simple velocity check for segment duration max check
+    // This maintains continuity with previous logic that didn't penalize smooth travel
+    const rotationTime =
+      (rotationRequired * (Math.PI / 180)) / safeSettings.aVelocity;
 
     const segmentTime = Math.max(translationTime, rotationTime);
 

@@ -83,17 +83,18 @@ export function calculateRobotState(
     // Use detailed motion profile if available
     if (activeEvent.motionProfile && activeEvent.motionProfile.length > 0) {
       const profile = activeEvent.motionProfile;
-      const relativeTime = Math.max(
-        0,
-        currentSeconds - activeEvent.startTime,
-      );
+      const relativeTime = Math.max(0, currentSeconds - activeEvent.startTime);
       const profileEndTime = profile[profile.length - 1];
 
       if (relativeTime >= profileEndTime) {
         // If we exceeded the profile (e.g. rotation time extended the segment), we are at the end
         linePercent = 1;
-        if (activeEvent.headingProfile && activeEvent.headingProfile.length > 0) {
-          interpolatedHeading = activeEvent.headingProfile[activeEvent.headingProfile.length - 1];
+        if (
+          activeEvent.headingProfile &&
+          activeEvent.headingProfile.length > 0
+        ) {
+          interpolatedHeading =
+            activeEvent.headingProfile[activeEvent.headingProfile.length - 1];
         }
       } else {
         // Find the segment in the profile
@@ -117,16 +118,18 @@ export function calculateRobotState(
         linePercent = tStart + localProgress * (tEnd - tStart);
 
         // Use detailed heading profile if available and we are using motion profile
-        if (activeEvent.headingProfile && activeEvent.headingProfile.length === profile.length) {
+        if (
+          activeEvent.headingProfile &&
+          activeEvent.headingProfile.length === profile.length
+        ) {
           const hStart = activeEvent.headingProfile[i];
           const hEnd = activeEvent.headingProfile[i + 1];
           // Linear interpolation of unwrapped heading
           if (Number.isFinite(hStart) && Number.isFinite(hEnd)) {
-             interpolatedHeading = hStart + (hEnd - hStart) * localProgress;
+            interpolatedHeading = hStart + (hEnd - hStart) * localProgress;
           }
         }
       }
-
     } else {
       // Fallback to linear time interpolation
       const timeProgress =
