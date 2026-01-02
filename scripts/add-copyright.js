@@ -1,40 +1,40 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
-const OWNER = 'Matthew Allen';
+const OWNER = "Matthew Allen";
 const CURRENT_YEAR = new Date().getFullYear();
 
 const ONE_LINE_LICENSE = `Licensed under the Apache License, Version 2.0.`;
 
 const EXTENSIONS = {
-  '.js': 'LINE',
-  '.ts': 'LINE',
-  '.scss': 'LINE',
-  '.svelte': 'HTML',
-  '.html': 'HTML',
-  '.sh': 'HASH',
+  ".js": "LINE",
+  ".ts": "LINE",
+  ".scss": "LINE",
+  ".svelte": "HTML",
+  ".html": "HTML",
+  ".sh": "HASH",
 };
 
 const COMMENT_STYLES = {
-  LINE: { start: '// ', end: '', prefix: '' },
-  BLOCK: { start: '/*', end: '*/', prefix: ' * ' }, // Kept for reference or removal
-  HTML: { start: '<!-- ', end: ' -->', prefix: '' },
-  HASH: { start: '# ', end: '', prefix: '' },
+  LINE: { start: "// ", end: "", prefix: "" },
+  BLOCK: { start: "/*", end: "*/", prefix: " * " }, // Kept for reference or removal
+  HTML: { start: "<!-- ", end: " -->", prefix: "" },
+  HASH: { start: "# ", end: "", prefix: "" },
 };
 
 function getHeader(yearRange, styleType) {
   const text = `Copyright ${yearRange} ${OWNER}. ${ONE_LINE_LICENSE}`;
 
-  if (styleType === 'LINE') {
+  if (styleType === "LINE") {
     return `// ${text}\n`;
-  } else if (styleType === 'HTML') {
+  } else if (styleType === "HTML") {
     return `<!-- ${text} -->\n`;
-  } else if (styleType === 'HASH') {
+  } else if (styleType === "HASH") {
     return `# ${text}\n`;
-  } else if (styleType === 'BLOCK') {
-     // Fallback if we ever use it, but we want one line
-     return `/* ${text} */\n`;
+  } else if (styleType === "BLOCK") {
+    // Fallback if we ever use it, but we want one line
+    return `/* ${text} */\n`;
   }
 }
 
@@ -45,7 +45,16 @@ function traverse(dir) {
     const stat = fs.statSync(filePath);
 
     if (stat.isDirectory()) {
-      if (file === 'node_modules' || file === '.git' || file === 'dist' || file === 'build' || file === 'release' || file === '.jules' || file === '.vscode') continue;
+      if (
+        file === "node_modules" ||
+        file === ".git" ||
+        file === "dist" ||
+        file === "build" ||
+        file === "release" ||
+        file === ".jules" ||
+        file === ".vscode"
+      )
+        continue;
       traverse(filePath);
     } else {
       const ext = path.extname(file);
@@ -57,7 +66,7 @@ function traverse(dir) {
 }
 
 function processFile(filePath, styleType) {
-  const originalContent = fs.readFileSync(filePath, 'utf8');
+  const originalContent = fs.readFileSync(filePath, "utf8");
   let content = originalContent;
 
   // Regex to detect existing copyright info to preserve years
@@ -77,34 +86,37 @@ function processFile(filePath, styleType) {
     }
   }
 
-  const yearRange = startYear === endYear ? `${startYear}` : `${startYear}-${endYear}`;
+  const yearRange =
+    startYear === endYear ? `${startYear}` : `${startYear}-${endYear}`;
   const newHeader = getHeader(yearRange, styleType);
 
-  const lines = content.split('\n');
-  let shebang = '';
+  const lines = content.split("\n");
+  let shebang = "";
   let bodyLines = lines;
 
-  if (lines.length > 0 && lines[0].startsWith('#!')) {
-    shebang = lines[0] + '\n';
+  if (lines.length > 0 && lines[0].startsWith("#!")) {
+    shebang = lines[0] + "\n";
     bodyLines = lines.slice(1);
   }
 
-  let body = bodyLines.join('\n');
+  let body = bodyLines.join("\n");
 
   // Logic to remove existing headers (both multi-line and single-line variants)
 
   // 1. Remove Multi-line Block Comments (/* ... */)
   // Matches start of block comment, content including "Copyright" and "Matthew Allen", end of block comment.
-  const multiLineBlockRegex = /^\s*\/\*[\s\S]*?Copyright[\s\S]*?Matthew Allen[\s\S]*?\*\/\s*/;
+  const multiLineBlockRegex =
+    /^\s*\/\*[\s\S]*?Copyright[\s\S]*?Matthew Allen[\s\S]*?\*\/\s*/;
   if (multiLineBlockRegex.test(body)) {
-    body = body.replace(multiLineBlockRegex, '');
+    body = body.replace(multiLineBlockRegex, "");
   }
 
   // 2. Remove HTML Comments (<!-- ... -->)
   // Matches start, content, end.
-  const htmlCommentRegex = /^\s*<!--[\s\S]*?Copyright[\s\S]*?Matthew Allen[\s\S]*?-->\s*/;
+  const htmlCommentRegex =
+    /^\s*<!--[\s\S]*?Copyright[\s\S]*?Matthew Allen[\s\S]*?-->\s*/;
   if (htmlCommentRegex.test(body)) {
-    body = body.replace(htmlCommentRegex, '');
+    body = body.replace(htmlCommentRegex, "");
   }
 
   // 3. Remove Hash Comments (# ...)
@@ -112,7 +124,7 @@ function processFile(filePath, styleType) {
   // Matches a block of lines starting with #, containing Copyright and Matthew Allen.
   const hashBlockRegex = /^(\s*#[^\n]*\n)+/;
   const m = body.match(hashBlockRegex);
-  if (m && m[0].includes('Copyright') && m[0].includes('Matthew Allen')) {
+  if (m && m[0].includes("Copyright") && m[0].includes("Matthew Allen")) {
     body = body.substring(m[0].length);
   }
 
@@ -120,18 +132,18 @@ function processFile(filePath, styleType) {
   // Matches lines starting with // containing Copyright and Matthew Allen at the very top.
   const lineCommentRegex = /^\s*\/\/.*?Copyright.*?Matthew Allen.*?\n/;
   if (lineCommentRegex.test(body)) {
-    body = body.replace(lineCommentRegex, '');
+    body = body.replace(lineCommentRegex, "");
   }
 
   // Trim leading newlines from body to avoid gaps
-  body = body.replace(/^\n+/, '');
+  body = body.replace(/^\n+/, "");
 
   const finalContent = shebang + newHeader + body;
 
   if (finalContent !== originalContent) {
-     fs.writeFileSync(filePath, finalContent);
-     console.log(`Updated ${filePath}`);
+    fs.writeFileSync(filePath, finalContent);
+    console.log(`Updated ${filePath}`);
   }
 }
 
-traverse('.');
+traverse(".");

@@ -2,3 +2,10 @@ Pedro Pathing Visualizer
 Copyright 2024 Matthew Allen
 
 This product includes software developed by Matthew Allen.
+
+These files have been edited, deleted, or created by Matthew Allen:
+bench_derivative.ts
+package.json
+scripts/add-copyright.js
+scripts/generate-file-notice.js
+src/tests/history.test.ts

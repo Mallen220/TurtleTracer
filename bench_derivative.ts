@@ -60,7 +60,8 @@ function getBezierDerivativeOptimized(
   if (n < 1) return { x: 0, y: 0 };
 
   // Quadratic (3 points) -> Derivative is Linear (2 points)
-  if (n === 2) { // 3 points P0, P1, P2
+  if (n === 2) {
+    // 3 points P0, P1, P2
     const p0 = points[0];
     const p1 = points[1];
     const p2 = points[2];
@@ -75,13 +76,14 @@ function getBezierDerivativeOptimized(
     const d1y = 2 * (p2.y - p1.y);
 
     return {
-        x: mt * d0x + t * d1x,
-        y: mt * d0y + t * d1y
+      x: mt * d0x + t * d1x,
+      y: mt * d0y + t * d1y,
     };
   }
 
   // Cubic (4 points) -> Derivative is Quadratic (3 points)
-  if (n === 3) { // 4 points P0..P3
+  if (n === 3) {
+    // 4 points P0..P3
     const p0 = points[0];
     const p1 = points[1];
     const p2 = points[2];
@@ -102,8 +104,8 @@ function getBezierDerivativeOptimized(
     const q2y = 3 * (p3.y - p2.y);
 
     return {
-        x: a * q0x + b * q1x + c * q2x,
-        y: a * q0y + b * q1y + c * q2y
+      x: a * q0x + b * q1x + c * q2x,
+      y: a * q0y + b * q1y + c * q2y,
     };
   }
 
@@ -132,8 +134,8 @@ function getBezierSecondDerivativeOptimized(
     const p1 = points[1];
     const p2 = points[2];
     return {
-        x: 2 * (2 * (p2.x - p1.x) - 2 * (p1.x - p0.x)),
-        y: 2 * (2 * (p2.y - p1.y) - 2 * (p1.y - p0.y))
+      x: 2 * (2 * (p2.x - p1.x) - 2 * (p1.x - p0.x)),
+      y: 2 * (2 * (p2.y - p1.y) - 2 * (p1.y - p0.y)),
     };
   }
 
@@ -142,25 +144,25 @@ function getBezierSecondDerivativeOptimized(
   // S1 = 6(P3 - 2P2 + P1)
   // Val = (1-t)S0 + tS1
   if (n === 3) {
-      const p0 = points[0];
-      const p1 = points[1];
-      const p2 = points[2];
-      const p3 = points[3];
+    const p0 = points[0];
+    const p1 = points[1];
+    const p2 = points[2];
+    const p3 = points[3];
 
-      const mt = 1 - t;
+    const mt = 1 - t;
 
-      // S0 components
-      const s0x = 6 * (p2.x - 2 * p1.x + p0.x);
-      const s0y = 6 * (p2.y - 2 * p1.y + p0.y);
+    // S0 components
+    const s0x = 6 * (p2.x - 2 * p1.x + p0.x);
+    const s0y = 6 * (p2.y - 2 * p1.y + p0.y);
 
-      // S1 components
-      const s1x = 6 * (p3.x - 2 * p2.x + p1.x);
-      const s1y = 6 * (p3.y - 2 * p2.y + p1.y);
+    // S1 components
+    const s1x = 6 * (p3.x - 2 * p2.x + p1.x);
+    const s1y = 6 * (p3.y - 2 * p2.y + p1.y);
 
-      return {
-          x: mt * s0x + t * s1x,
-          y: mt * s0y + t * s1y
-      };
+    return {
+      x: mt * s0x + t * s1x,
+      y: mt * s0y + t * s1y,
+    };
   }
 
   // Fallback
@@ -186,45 +188,50 @@ function getBezierSecondDerivativeOptimized(
 
 // Benchmark
 const ITERATIONS = 1000000;
-const pointsCubic = [{x:0,y:0}, {x:10,y:20}, {x:50,y:50}, {x:100,y:0}];
+const pointsCubic = [
+  { x: 0, y: 0 },
+  { x: 10, y: 20 },
+  { x: 50, y: 50 },
+  { x: 100, y: 0 },
+];
 
 console.log(`Running ${ITERATIONS} iterations...`);
 
 const start1 = performance.now();
 let chk1 = 0;
-for(let i=0; i<ITERATIONS; i++) {
-    const d = getBezierDerivativeOriginal(0.5, pointsCubic);
-    chk1 += d.x;
+for (let i = 0; i < ITERATIONS; i++) {
+  const d = getBezierDerivativeOriginal(0.5, pointsCubic);
+  chk1 += d.x;
 }
 const end1 = performance.now();
-console.log(`Original Derivative: ${(end1-start1).toFixed(2)}ms`);
+console.log(`Original Derivative: ${(end1 - start1).toFixed(2)}ms`);
 
 const start2 = performance.now();
 let chk2 = 0;
-for(let i=0; i<ITERATIONS; i++) {
-    const d = getBezierDerivativeOptimized(0.5, pointsCubic);
-    chk2 += d.x;
+for (let i = 0; i < ITERATIONS; i++) {
+  const d = getBezierDerivativeOptimized(0.5, pointsCubic);
+  chk2 += d.x;
 }
 const end2 = performance.now();
-console.log(`Optimized Derivative: ${(end2-start2).toFixed(2)}ms`);
+console.log(`Optimized Derivative: ${(end2 - start2).toFixed(2)}ms`);
 
 const start3 = performance.now();
 let chk3 = 0;
-for(let i=0; i<ITERATIONS; i++) {
-    const d = getBezierSecondDerivativeOriginal(0.5, pointsCubic);
-    chk3 += d.x;
+for (let i = 0; i < ITERATIONS; i++) {
+  const d = getBezierSecondDerivativeOriginal(0.5, pointsCubic);
+  chk3 += d.x;
 }
 const end3 = performance.now();
-console.log(`Original 2nd Derivative: ${(end3-start3).toFixed(2)}ms`);
+console.log(`Original 2nd Derivative: ${(end3 - start3).toFixed(2)}ms`);
 
 const start4 = performance.now();
 let chk4 = 0;
-for(let i=0; i<ITERATIONS; i++) {
-    const d = getBezierSecondDerivativeOptimized(0.5, pointsCubic);
-    chk4 += d.x;
+for (let i = 0; i < ITERATIONS; i++) {
+  const d = getBezierSecondDerivativeOptimized(0.5, pointsCubic);
+  chk4 += d.x;
 }
 const end4 = performance.now();
-console.log(`Optimized 2nd Derivative: ${(end4-start4).toFixed(2)}ms`);
+console.log(`Optimized 2nd Derivative: ${(end4 - start4).toFixed(2)}ms`);
 
 if (Math.abs(chk1 - chk2) > 0.001) console.error("Mismatch in Derivative!");
 if (Math.abs(chk3 - chk4) > 0.001) console.error("Mismatch in 2nd Derivative!");

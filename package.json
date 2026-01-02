@@ -9,6 +9,7 @@
   "description": "A better alternative to pedro pathing visualizer",
   "type": "module",
   "scripts": {
+    "fix:notice": "node scripts/generate-file-notice.js",
     "fix:headers": "node scripts/add-copyright.js",
     "version:bump": "node scripts/bump-version.js",
     "build": "vite build",
@@ -16,7 +17,7 @@
     "test": "vitest",
     "tests": "vitest",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
-    "dev": "npm run format && npm run build && electron .",
+    "dev": "npm run fix:headers && npm run format && npm run build && electron .",
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder --mac --arm64 --publish=never",
     "dist:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --publish=never",
