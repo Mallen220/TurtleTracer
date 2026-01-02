@@ -12,3 +12,4 @@ src/tests/history.test.ts
 src/main.ts
 src/lib/components/ControlPointsSection.svelte
 src/tests/pathOptimizer.test.ts
+src/lib/components/SettingsDialog.svelte

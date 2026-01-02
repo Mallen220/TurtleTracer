@@ -1397,6 +1397,136 @@
             </div>
           {/if}
         </div>
+
+        <!-- Credits Section -->
+        <div class="mb-4">
+          <button
+            on:click={() =>
+              (collapsedSections.credits = !collapsedSections.credits)}
+            class="flex items-center justify-between w-full py-2 px-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+            aria-expanded={!collapsedSections.credits}
+          >
+            <div class="flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width={1.5}
+                stroke="currentColor"
+                class="size-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"
+                />
+              </svg>
+              <span class="font-semibold">Credits & Legal</span>
+            </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width={2}
+              stroke="currentColor"
+              class="size-5 transition-transform duration-200"
+              class:rotate-180={collapsedSections.credits}
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m19.5 8.25-7.5 7.5-7.5-7.5"
+              />
+            </svg>
+          </button>
+
+          {#if !collapsedSections.credits}
+            <div
+              class="mt-2 space-y-4 p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg text-sm text-neutral-700 dark:text-neutral-300"
+            >
+              <!-- App Info -->
+              <div class="text-center">
+                <h3 class="font-bold text-lg">Pedro Pathing Visualizer</h3>
+                <div class="text-xs text-neutral-500 dark:text-neutral-400">
+                  Version {appVersion}
+                </div>
+              </div>
+
+              <!-- Copyright & License -->
+              <div class="text-center">
+                <p>Copyright © 2026 Matthew Allen</p>
+                <p class="text-xs mt-1">
+                  Licensed under the Apache License, Version 2.0
+                </p>
+              </div>
+
+              <div class="text-center text-sm">
+                <p class="mb-1">Created by Matthew Allen</p>
+                <div class="flex justify-center gap-3">
+                  <a
+                    href="https://mallen220.github.io/Portfolio/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Portfolio
+                  </a>
+                  <span>•</span>
+                  <a
+                    href="https://www.linkedin.com/in/allenmc220/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    LinkedIn
+                  </a>
+                </div>
+              </div>
+
+              <hr class="border-neutral-200 dark:border-neutral-700" />
+
+              <!-- Acknowledgments -->
+              <div>
+                <h4 class="font-semibold mb-2">Acknowledgments</h4>
+                <ul class="list-disc pl-5 space-y-1 text-sm">
+                  <li>
+                    <span class="font-medium">#16166 Watt's Up</span> - Initial development
+                    and inspiration
+                  </li>
+                  <li>
+                    <span class="font-medium">FIRST Community</span> - Testing and
+                    feedback
+                  </li>
+                  <li>
+                    <span class="font-medium">Pedro Pathing Developers</span> - The
+                    project this tool is based on
+                  </li>
+                  <li>All contributors who have helped improve the tool</li>
+                </ul>
+              </div>
+
+              <!-- Links -->
+              <div class="flex justify-center gap-4 text-sm">
+                <a
+                  href="https://github.com/Mallen220/PedroPathingVisualizer"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  GitHub Repository
+                </a>
+                <a
+                  href="https://github.com/Mallen220/PedroPathingVisualizer/releases"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Releases
+                </a>
+              </div>
+            </div>
+          {/if}
+        </div>
       </div>
 
       <!-- Footer Buttons -->
