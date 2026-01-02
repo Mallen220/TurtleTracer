@@ -244,7 +244,7 @@ function analyzePathSegment(
       const angle = Math.atan2(d1.y, d1.x) * (180 / Math.PI);
 
       if (prevAngle === null) {
-        currentUnwrapped = unwrapAngle(angle, currentUnwrapped);
+        // Do not reset currentUnwrapped; respect the initialHeading passed in.
       } else {
         // Shortest difference
         const diff = getAngularDifference(prevAngle, angle);
