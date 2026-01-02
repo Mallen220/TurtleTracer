@@ -751,6 +751,7 @@
     points.forEach((el) => pointGroup.add(el));
     eventMarkerElements.forEach((el) => eventGroup.add(el));
 
+    // Ensure collisionElements is used in the reactive block to trigger updates
     collisionElements.forEach((el) => collisionGroup.add(el));
 
     two.add(shapeGroup);
@@ -1085,6 +1086,13 @@
     return two;
   }
 </script>
+
+<style>
+  /* Ensure collision markers do not block pointer events so users can click through them */
+  :global(#collision-group, #collision-group *) {
+    pointer-events: none !important;
+  }
+</style>
 
 <div
   class="relative aspect-square"

@@ -21,6 +21,7 @@
     showShortcuts,
     exportDialogState,
     selectedPointId,
+    collisionMarkers,
   } from "./stores";
   import {
     startPointStore,
@@ -124,6 +125,20 @@
   const { canUndoStore, canRedoStore } = history;
   $: canUndo = $canUndoStore;
   $: canRedo = $canRedoStore;
+
+  // Clear collision markers when path/settings change
+  // Note: We avoid depending on $collisionMarkers to prevent loops
+  $: $linesStore,
+    $startPointStore,
+    $shapesStore,
+    $settingsStore,
+    (() => {
+      // Use get() to read without subscribing
+      const current = get(collisionMarkers);
+      if (current && current.length > 0) {
+        collisionMarkers.set([]);
+      }
+    })();
 
   let isLoaded = false;
   let lastSavedState: string = "";

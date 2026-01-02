@@ -6,17 +6,21 @@
   let visible = false;
   let currentNotification: import("../../types").Notification | null = null;
   let timeoutId: any;
+  let cleanupTimeoutId: any;
 
   const unsubscribe = notification.subscribe((n) => {
     if (n) {
       currentNotification = n;
       visible = true;
+      // Clear any pending timeouts from previous notifications to prevent race conditions
       if (timeoutId) clearTimeout(timeoutId);
+      if (cleanupTimeoutId) clearTimeout(cleanupTimeoutId);
+
       if (n.timeout !== 0) {
         timeoutId = setTimeout(() => {
           visible = false;
           // Clear store after animation
-          setTimeout(() => {
+          cleanupTimeoutId = setTimeout(() => {
             notification.set(null);
           }, 300);
         }, n.timeout || 3000);
@@ -29,6 +33,7 @@
   onDestroy(() => {
     unsubscribe();
     if (timeoutId) clearTimeout(timeoutId);
+    if (cleanupTimeoutId) clearTimeout(cleanupTimeoutId);
   });
 
   function close() {
