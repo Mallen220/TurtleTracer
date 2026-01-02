@@ -129,7 +129,7 @@
 
   // Clear collision markers when path/settings change
   // Note: We avoid depending on $collisionMarkers to prevent loops
-  $: $linesStore,
+  $: ($linesStore,
     $startPointStore,
     $shapesStore,
     $settingsStore,
@@ -139,7 +139,7 @@
       if (current && current.length > 0) {
         collisionMarkers.set([]);
       }
-    })();
+    })());
 
   let isLoaded = false;
   let lastSavedState: string = "";
