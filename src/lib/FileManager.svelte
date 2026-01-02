@@ -52,6 +52,7 @@
   // Initialize from session state
   const session = get(fileManagerSessionState);
   let sortMode: "name" | "date" = "name";
+  let sortModeInitialized = false;
   let viewMode: "list" | "grid" = session.viewMode;
   let currentDirectory = "";
   let files: FileInfo[] = [];
@@ -81,10 +82,20 @@
     if (settings?.fileManagerSortMode) {
       sortMode = settings.fileManagerSortMode;
     }
+    sortModeInitialized = true;
   });
 
   // Persist session state when changed
   $: fileManagerSessionState.set({ searchQuery, viewMode });
+
+  // Sync sortMode to settings only after initialization
+  $: if (sortModeInitialized && settings && sortMode) {
+    if (settings.fileManagerSortMode !== sortMode) {
+      settings.fileManagerSortMode = sortMode;
+      // Force update if needed, though bind should handle it
+      sortFiles();
+    }
+  }
 
   // Update filtered files whenever files or searchQuery changes
   $: {
@@ -184,7 +195,6 @@
   }
 
   $: if (sortMode) {
-    if (settings) settings.fileManagerSortMode = sortMode;
     sortFiles();
   }
 

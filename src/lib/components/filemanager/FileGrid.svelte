@@ -1,8 +1,9 @@
 <!-- src/lib/components/filemanager/FileGrid.svelte -->
 <script lang="ts">
-  import { createEventDispatcher, tick } from "svelte";
-  import type { FileInfo } from "../../../types";
+  import { createEventDispatcher, tick, onMount, onDestroy } from "svelte";
+  import type { FileInfo, Point, Line } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
+  import PathPreview from "./PathPreview.svelte";
 
   export let files: FileInfo[] = [];
   export let selectedFilePath: string | null = null;
@@ -21,9 +22,84 @@
   let contextMenu: { x: number; y: number; file: FileInfo } | null = null;
   let renameInput = "";
 
+  // Preview Data Cache
+  let previews: Record<string, { startPoint: Point, lines: Line[] } | null> = {};
+  let observer: IntersectionObserver;
+  let elementMap = new Map<HTMLElement, string>();
+
   $: if (renamingFile) {
     renameInput = renamingFile.name.replace(/\.pp$/, "");
   }
+
+  // --- Preview Loading Logic ---
+  async function loadPreview(filePath: string) {
+    if (previews[filePath] !== undefined) return; // Already loaded or loading
+
+    // Mark as loading (null)
+    previews[filePath] = null;
+
+    try {
+      const content = await window.electronAPI.readFile(filePath);
+      const data = JSON.parse(content);
+      if (data.startPoint && Array.isArray(data.lines)) {
+        previews[filePath] = {
+          startPoint: data.startPoint,
+          lines: data.lines
+        };
+      } else {
+        previews[filePath] = null; // Invalid data
+      }
+    } catch (e) {
+      // console.error("Failed to load preview for", filePath);
+      previews[filePath] = null;
+    }
+    previews = previews; // Reactivity
+  }
+
+  function setupObserver() {
+    if (observer) observer.disconnect();
+
+    observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const path = elementMap.get(entry.target as HTMLElement);
+          if (path) {
+            loadPreview(path);
+            observer.unobserve(entry.target);
+          }
+        }
+      });
+    }, { rootMargin: "50px" });
+  }
+
+  function observeElement(node: HTMLElement, filePath: string) {
+    if (!observer) setupObserver();
+    elementMap.set(node, filePath);
+    observer.observe(node);
+
+    return {
+      destroy() {
+        if (observer) observer.unobserve(node);
+        elementMap.delete(node);
+      },
+      update(newPath: string) {
+        if (newPath !== filePath) {
+           elementMap.set(node, newPath);
+           // Re-observe if changed
+           observer.unobserve(node);
+           observer.observe(node);
+        }
+      }
+    };
+  }
+
+  onMount(() => {
+    setupObserver();
+  });
+
+  onDestroy(() => {
+    if (observer) observer.disconnect();
+  });
 
   function formatFileSize(bytes: number): string {
     if (bytes === 0) return "0 B";
@@ -119,15 +195,22 @@
           role="button"
           tabindex="0"
           aria-label={file.name}
+          use:observeElement={file.path}
           on:keydown={(e) => {
              if (e.key === 'Enter') dispatch('open', file);
           }}
         >
-          <!-- Icon -->
-          <div class="mb-2 text-blue-500 dark:text-blue-400 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-            </svg>
+          <!-- Icon / Preview -->
+          <div class="mb-2">
+             {#if previews[file.path]}
+               <PathPreview startPoint={previews[file.path].startPoint} lines={previews[file.path].lines} width={80} height={80} />
+             {:else}
+               <div class="w-[80px] h-[80px] flex items-center justify-center bg-neutral-50 dark:bg-neutral-900/50 rounded text-blue-500 dark:text-blue-400">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+               </div>
+             {/if}
           </div>
 
           <!-- Content -->
