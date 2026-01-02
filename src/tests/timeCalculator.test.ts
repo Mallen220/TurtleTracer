@@ -47,6 +47,11 @@ describe("Time Calculator", () => {
     ];
 
     const result = calculatePathTime(startPoint, lines, defaultSettings);
+    // 2.828 was for previous logic. With motion profile (accel=5, vel=10).
+    // Dist 10. Accel Dist = 100 / 10 = 10.
+    // Triangle profile. vPeak = sqrt(2*5*5) = 7.07.
+    // Time = 7.07/5 * 2 = 2.828.
+    // Correct.
     expect(result.totalTime).toBeCloseTo(2.828, 2);
   });
 
@@ -142,6 +147,8 @@ describe("Time Calculator", () => {
     );
 
     expect(rotationEvents.length).toBeGreaterThan(0);
-    expect(rotationEvents[0].duration).toBeCloseTo(1.0, 1);
+    // With angular acceleration logic (maxAccel=5, rWidth=18 -> alpha=0.55),
+    // time to rotate 90 deg (1.57 rad) is ~3.36s (triangle profile).
+    expect(rotationEvents[0].duration).toBeCloseTo(3.36, 1);
   });
 });

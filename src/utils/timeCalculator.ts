@@ -16,8 +16,6 @@ import {
 
 /**
  * Calculates the first derivative of a Bezier curve of degree N at t.
- * The derivative of an N-degree Bezier defined by P0...Pn is an (N-1)-degree Bezier
- * defined by Q0...Q(n-1), where Qi = n * (P(i+1) - Pi).
  */
 function getBezierDerivative(
   t: number,
@@ -77,14 +75,11 @@ function getBezierDerivative(
       y: n * (points[i + 1].y - points[i].y),
     });
   }
-
-  // Use the existing getCurvePoint (De Casteljau) to evaluate the derivative curve
   return getCurvePoint(t, derivativePoints);
 }
 
 /**
  * Calculates the second derivative of a Bezier curve of degree N at t.
- * This is the derivative of the first derivative.
  */
 function getBezierSecondDerivative(
   t: number,
@@ -140,8 +135,6 @@ function getBezierSecondDerivative(
     });
   }
 
-  // Calculate second derivative control points R from Q
-  // R has degree n-2, derived from Q (degree n-1)
   const m = n - 1;
   const rPoints = [];
   for (let i = 0; i < m; i++) {
@@ -150,14 +143,11 @@ function getBezierSecondDerivative(
       y: m * (qPoints[i + 1].y - qPoints[i].y),
     });
   }
-
   return getCurvePoint(t, rPoints);
 }
 
 /**
  * Calculate curvature at t.
- * kappa = |x'y'' - y'x''| / (x'^2 + y'^2)^(3/2)
- * Radius = 1 / kappa
  */
 function getCurvatureRadius(
   d1: { x: number; y: number },
@@ -165,14 +155,37 @@ function getCurvatureRadius(
 ): number {
   const numerator = Math.abs(d1.x * d2.y - d1.y * d2.x);
   const denominator = Math.pow(d1.x * d1.x + d1.y * d1.y, 1.5);
+
+  if (Math.abs(d1.x) < 1e-6 && Math.abs(d1.y) < 1e-6) {
+    return 0;
+  }
+
   if (numerator < 1e-6) return Infinity; // Straight line
   return denominator / numerator;
+}
+
+interface PathStep {
+  deltaLength: number;
+  radius: number;
+  rotation: number; // Absolute rotation change in this step (degrees)
+  heading: number; // Unwrapped heading at END of step
 }
 
 interface PathAnalysis {
   length: number;
   minRadius: number;
   tangentRotation: number;
+  netRotation: number; // Signed net rotation
+  steps: PathStep[];
+  startHeading: number; // Unwrapped
+}
+
+/**
+ * Unwraps target angle to be closest to reference angle.
+ */
+function unwrapAngle(target: number, reference: number): number {
+  const diff = getAngularDifference(reference, target);
+  return reference + diff;
 }
 
 /**
@@ -183,102 +196,220 @@ function analyzePathSegment(
   controlPoints: BasePoint[],
   end: BasePoint,
   samples: number = 50,
+  initialHeading: number, // Unwrapped starting heading
 ): PathAnalysis {
-  // Safe access to control points
   const cps = controlPoints || [];
 
   let length = 0;
   let minRadius = Infinity;
   let prevPoint = start;
   let tangentRotation = 0;
+  let netRotation = 0;
   let prevAngle: number | null = null;
+  let currentUnwrapped = Number.isFinite(initialHeading) ? initialHeading : 0;
 
-  // Determine curve type
   const isLine = cps.length === 0;
-  const isQuadratic = cps.length === 1;
-  const isCubic = cps.length >= 2;
+  const steps: PathStep[] = [];
 
   for (let i = 0; i <= samples; i++) {
     const t = i / samples;
     const point = getCurvePoint(t, [start, ...cps, end]);
 
-    // Length
+    let deltaLength = 0;
     if (i > 0) {
       const dx = point.x - prevPoint.x;
       const dy = point.y - prevPoint.y;
-      length += Math.sqrt(dx * dx + dy * dy);
+      deltaLength = Math.sqrt(dx * dx + dy * dy);
+      length += deltaLength;
     }
     prevPoint = point;
 
-    // Derivatives for Curvature and Tangent
     let d1 = { x: 0, y: 0 };
     let d2 = { x: 0, y: 0 };
 
     if (isLine) {
       d1 = { x: end.x - start.x, y: end.y - start.y };
-      d2 = { x: 0, y: 0 }; // Zero curvature
+      d2 = { x: 0, y: 0 };
     } else {
-      // Use generic N-degree Bezier derivative logic for Quadratic, Cubic, Quartic, etc.
       const fullPoints = [start, ...cps, end];
       d1 = getBezierDerivative(t, fullPoints);
       d2 = getBezierSecondDerivative(t, fullPoints);
     }
 
-    // Curvature Radius
     const radius = getCurvatureRadius(d1, d2);
     if (radius < minRadius) minRadius = radius;
 
-    // Tangent Angle
-    // Ensure d1 is not zero vector to avoid undefined atan2
+    let stepRotation = 0;
     if (Math.abs(d1.x) > 1e-9 || Math.abs(d1.y) > 1e-9) {
       const angle = Math.atan2(d1.y, d1.x) * (180 / Math.PI);
-      if (prevAngle !== null) {
-        const diff = Math.abs(getAngularDifference(prevAngle, angle));
-        // Accumulate all rotation to be safe, filtering only extreme noise
-        if (diff > 0.001) {
-          tangentRotation += diff;
+
+      if (prevAngle === null) {
+        currentUnwrapped = unwrapAngle(angle, currentUnwrapped);
+      } else {
+        // Shortest difference
+        const diff = getAngularDifference(prevAngle, angle);
+        stepRotation = Math.abs(diff);
+
+        // Accumulate absolute (for physics time)
+        if (stepRotation > 0.001) {
+          tangentRotation += stepRotation;
+          // Accumulate signed (for heading tracking)
+          netRotation += diff;
+          // Update unwrapped heading
+          currentUnwrapped += diff;
         }
       }
       prevAngle = angle;
     }
+
+    if (i > 0) {
+      steps.push({
+        deltaLength,
+        radius,
+        rotation: stepRotation,
+        heading: currentUnwrapped,
+      });
+    }
   }
 
-  return { length, minRadius, tangentRotation };
+  return {
+    length,
+    minRadius,
+    tangentRotation,
+    netRotation,
+    steps,
+    startHeading: initialHeading,
+  };
 }
 
 /**
- * Calculate time for a motion profile (trapezoidal or triangular)
+ * Calculates time to rotate a certain angle using a trapezoidal motion profile
+ * Accounts for angular acceleration limits derived from robot dimensions.
  */
-function calculateMotionProfileTime(
-  distance: number,
-  maxVel: number,
-  maxAcc: number,
-  maxDec?: number,
+function calculateRotationTime(
+  angleDiffDegrees: number,
+  settings: Settings,
 ): number {
-  const deceleration = maxDec || maxAcc;
+  if (angleDiffDegrees <= 0.001) return 0;
 
-  // Avoid division by zero
-  if (maxVel <= 0 || maxAcc <= 0 || deceleration <= 0) return 0;
+  const diffRad = angleDiffDegrees * (Math.PI / 180);
+  const maxVel = Math.max(settings.aVelocity, 0.001);
 
-  const accDist = (maxVel * maxVel) / (2 * maxAcc);
-  const decDist = (maxVel * maxVel) / (2 * deceleration);
+  // Estimate max angular acceleration from linear acceleration and robot width
+  // alpha = a_linear / r
+  // Assuming rotation around center, wheels are at width/2
+  // We use width/2 as the lever arm for conservative estimate
+  const leverArm = Math.max(settings.rWidth / 2, 1); // Avoid division by zero
+  const maxAccel = settings.maxAcceleration || 30;
+  const maxAngAccel = maxAccel / leverArm;
 
-  if (distance >= accDist + decDist) {
-    const accTime = maxVel / maxAcc;
-    const decTime = maxVel / deceleration;
-    const constDist = distance - accDist - decDist;
+  // Motion profile:
+  const accDist = (maxVel * maxVel) / (2 * maxAngAccel);
+  const decDist = accDist; // Symmetric
+
+  if (diffRad >= accDist + decDist) {
+    // Trapezoid
+    const accTime = maxVel / maxAngAccel;
+    const decTime = accTime;
+    const constDist = diffRad - accDist - decDist;
     const constTime = constDist / maxVel;
-
     return accTime + constTime + decTime;
   } else {
-    const vPeak = Math.sqrt(
-      (2 * distance * maxAcc * deceleration) / (maxAcc + deceleration),
-    );
-    const accTime = vPeak / maxAcc;
-    const decTime = vPeak / deceleration;
-
+    // Triangle (don't reach max speed)
+    const vPeak = Math.sqrt(diffRad * maxAngAccel);
+    const accTime = vPeak / maxAngAccel;
+    const decTime = accTime;
     return accTime + decTime;
   }
+}
+
+/**
+ * Calculates time for a motion profile over a path with varying constraints.
+ * Returns both total time and the cumulative time profile.
+ */
+function calculateMotionProfileDetailed(
+  steps: PathStep[],
+  settings: Settings,
+): { totalTime: number; profile: number[] } {
+  const maxVelGlobal = settings.maxVelocity || 100;
+  const maxAcc = settings.maxAcceleration || 30;
+  const maxDec = settings.maxDeceleration || maxAcc;
+  const kFriction = settings.kFriction || 0;
+  // Ensure aVelocity is finite and non-zero to avoid Infinity
+  const aVelocity = Math.max(settings.aVelocity, 0.001);
+
+  const n = steps.length;
+  if (n === 0) return { totalTime: 0, profile: [0] };
+
+  const vAtPoints = new Float64Array(n + 1);
+  vAtPoints[0] = 0;
+
+  // 1. Forward Pass
+  for (let i = 0; i < n; i++) {
+    const step = steps[i];
+    let limit = maxVelGlobal;
+    if (kFriction > 0) {
+      const frictionLimit = Math.sqrt(kFriction * 386.22 * step.radius);
+      if (frictionLimit < limit) limit = frictionLimit;
+    }
+    const angVelLimit = aVelocity * step.radius;
+    if (angVelLimit < limit) limit = angVelLimit;
+
+    const dist = step.deltaLength;
+    const maxReachable = Math.sqrt(
+      vAtPoints[i] * vAtPoints[i] + 2 * maxAcc * dist,
+    );
+    vAtPoints[i + 1] = Math.min(limit, maxReachable);
+  }
+
+  // 2. Backward Pass
+  vAtPoints[n] = 0;
+  for (let i = n - 1; i >= 0; i--) {
+    const dist = steps[i].deltaLength;
+    const maxReachable = Math.sqrt(
+      vAtPoints[i + 1] * vAtPoints[i + 1] + 2 * maxDec * dist,
+    );
+    if (maxReachable < vAtPoints[i]) {
+      vAtPoints[i] = maxReachable;
+    }
+  }
+
+  // 3. Integrate Time and Build Profile
+  const profile: number[] = [0];
+  let totalTime = 0;
+
+  for (let i = 0; i < n; i++) {
+    const vStart = vAtPoints[i];
+    const vEnd = vAtPoints[i + 1];
+    const dist = steps[i].deltaLength;
+    const avgV = (vStart + vEnd) / 2;
+
+    let dtLinear = 0;
+    if (avgV > 1e-6) {
+      dtLinear = dist / avgV;
+    } else {
+      // Fallback for very low speeds (start from 0) using kinematics
+      dtLinear = Math.sqrt((2 * dist) / maxAcc);
+    }
+
+    // Check rotation constraint
+    // Using simple constant velocity assumption for travel continuity
+    // This avoids over-penalizing smooth curves with acceleration start/stops
+    const dtRotation = (steps[i].rotation * (Math.PI / 180)) / aVelocity;
+
+    // Take the maximum time required (slower of the two)
+    const dt = Math.max(dtLinear, dtRotation);
+
+    // Guard against NaN integration
+    if (!Number.isFinite(dt)) {
+      totalTime += 0;
+    } else {
+      totalTime += dt;
+    }
+    profile.push(totalTime);
+  }
+
+  return { totalTime, profile };
 }
 
 export function calculatePathTime(
@@ -297,6 +428,12 @@ export function calculatePathTime(
     settings.maxVelocity !== undefined &&
     settings.maxAcceleration !== undefined;
 
+  // Guard aVelocity globally in this scope
+  const safeSettings = {
+    ...settings,
+    aVelocity: Math.max(settings.aVelocity, 0.001),
+  };
+
   const segmentLengths: number[] = [];
   const segmentTimes: number[] = [];
   const timeline: TimelineEvent[] = [];
@@ -305,6 +442,7 @@ export function calculatePathTime(
   let currentHeading = 0;
 
   // Initialize heading based on start point settings
+  // Note: We don't have a previous reference, so we take the raw value.
   if (startPoint.heading === "linear") currentHeading = startPoint.startDeg;
   else if (startPoint.heading === "constant")
     currentHeading = startPoint.degrees;
@@ -324,7 +462,8 @@ export function calculatePathTime(
     }
   }
 
-  // Create map and default sequence
+  if (!Number.isFinite(currentHeading)) currentHeading = 0;
+
   const lineById = new Map<string, Line>();
   lines.forEach((ln) => {
     if (!ln.id) ln.id = `line-${Math.random().toString(36).slice(2)}`;
@@ -365,21 +504,26 @@ export function calculatePathTime(
     const prevPoint = lastPoint;
 
     // --- ROTATION CHECK (Initial Turn-to-Face or Wait) ---
-    // If we need to be at a specific heading before starting the path segment
-    const requiredStartHeading = getLineStartHeading(line, prevPoint);
+    // Unwind requiredStartHeading relative to currentHeading
+    let requiredStartHeadingRaw = getLineStartHeading(line, prevPoint);
+    // Unwind: find value closest to currentHeading
+    let requiredStartHeading = unwrapAngle(
+      requiredStartHeadingRaw,
+      currentHeading,
+    );
+
+    if (!Number.isFinite(requiredStartHeading))
+      requiredStartHeading = currentHeading;
+
     if (idx === 0) currentHeading = requiredStartHeading;
 
-    // Wait logic: If the current heading is significantly different from the start heading of the line
-    // we simulate a "wait" turn.
-    // Note: If the previous line ended at 90 and this one starts at 90, diff is 0.
-    // If the previous line ended at 90 and this one starts at 180 (e.g. sharp corner in Tangential mode),
-    // we assume we must stop and turn.
-    const diff = Math.abs(
-      getAngularDifference(currentHeading, requiredStartHeading),
-    );
+    const diff = Math.abs(currentHeading - requiredStartHeading);
+
+    // Use a small epsilon
     if (diff > 0.1) {
-      const diffRad = diff * (Math.PI / 180);
-      const rotTime = diffRad / settings.aVelocity;
+      // Convert diff to rotation time WITH ACCELERATION logic for Wait events
+      const rotTime = calculateRotationTime(diff, safeSettings);
+
       timeline.push({
         type: "wait",
         duration: rotTime,
@@ -394,69 +538,79 @@ export function calculatePathTime(
     }
 
     // --- TRAVEL ANALYSIS ---
+    // Pass currentHeading to start tracking
     const analysis = analyzePathSegment(
       prevPoint,
       line.controlPoints as any,
       line.endPoint as any,
+      100,
+      currentHeading,
     );
     const length = analysis.length;
     segmentLengths.push(length);
 
-    // Calculate Translation Time (Physical Limits)
-    let maxVel = settings.maxVelocity || 100;
-    // 1. Friction Limit (Centripetal: v = sqrt(k * g * r))
-    if (settings.kFriction && settings.kFriction > 0) {
-      // 386.22 in/s^2 is gravity
-      const frictionLimit = Math.sqrt(
-        settings.kFriction * 386.22 * analysis.minRadius,
-      );
-      if (frictionLimit < maxVel) maxVel = frictionLimit;
-    }
-
-    // 2. Angular Velocity Limit for Curve Following (v = w * r)
-    // Limits the speed based on the robot's maximum angular velocity and the path curvature.
-    // This applies to the path vector rotation regardless of chassis heading mode.
-    const angVelLimit = settings.aVelocity * analysis.minRadius;
-    if (angVelLimit < maxVel) maxVel = angVelLimit;
-
     let translationTime = 0;
+    let motionProfile: number[] | undefined = undefined;
+    let headingProfile: number[] | undefined = undefined;
+
     if (useMotionProfile) {
-      translationTime = calculateMotionProfileTime(
-        length,
-        maxVel,
-        settings.maxAcceleration!,
-        settings.maxDeceleration,
+      const result = calculateMotionProfileDetailed(
+        analysis.steps,
+        safeSettings,
       );
+      translationTime = result.totalTime;
+      motionProfile = result.profile;
+
+      // Build heading profile if Tangential
+      if (line.endPoint.heading === "tangential") {
+        headingProfile = [analysis.startHeading]; // Start
+        for (const step of analysis.steps) {
+          headingProfile.push(step.heading);
+        }
+      }
     } else {
-      const avgVelocity = (settings.xVelocity + settings.yVelocity) / 2;
+      const avgVelocity = (safeSettings.xVelocity + safeSettings.yVelocity) / 2;
       translationTime = length / avgVelocity;
     }
 
-    // Calculate Rotation Time (Simultaneous Heading Change)
-    // We need to know the Total Rotation required during this segment.
+    // Calculate Rotation Time (for non-profile logic)
     let rotationRequired = 0;
-    const endHeading = getLineEndHeading(line, prevPoint);
+
+    // Determine End Heading (Unwound)
+    let endHeadingRaw = getLineEndHeading(line, prevPoint);
+    let endHeading = endHeadingRaw;
 
     if (line.endPoint.heading === "tangential") {
-      // For tangential, the robot rotates as the curve turns.
-      // We use the accumulated tangent rotation from analysis.
+      endHeading = currentHeading + analysis.netRotation;
       rotationRequired = analysis.tangentRotation;
     } else if (line.endPoint.heading === "constant") {
-      // No rotation during movement (unless previous was different, which is handled by initial Wait)
+      // Rotate to specific constant heading
+      endHeading = unwrapAngle(line.endPoint.degrees, currentHeading);
       rotationRequired = 0;
     } else if (line.endPoint.heading === "linear") {
-      // Linear interpolation from start heading to end heading
-      // start heading is `requiredStartHeading` (which we are at)
-      // end heading is `endHeading`
-      // For linear heading, we use the absolute difference of the raw values
-      // to respect multi-turn rotations (e.g. 0 to 720)
-      rotationRequired = Math.abs(endHeading - requiredStartHeading);
+      // Linear: Interpolate from start to end.
+      endHeading = unwrapAngle(line.endPoint.endDeg, currentHeading);
+      rotationRequired = Math.abs(endHeading - currentHeading);
+
+      if (useMotionProfile) {
+        headingProfile = [currentHeading];
+        const samples = analysis.steps.length; // 100
+        for (let i = 1; i <= samples; i++) {
+          const ratio = i / samples;
+          headingProfile!.push(
+            currentHeading + (endHeading - currentHeading) * ratio,
+          );
+        }
+      }
     }
 
-    const rotationTime =
-      (rotationRequired * (Math.PI / 180)) / settings.aVelocity;
+    if (!Number.isFinite(endHeading)) endHeading = currentHeading;
 
-    // The segment takes the maximum of translation time (slowed by physics) and rotation time
+    // Use simple velocity check for segment duration max check
+    // This maintains continuity with previous logic that didn't penalize smooth travel
+    const rotationTime =
+      (rotationRequired * (Math.PI / 180)) / safeSettings.aVelocity;
+
     const segmentTime = Math.max(translationTime, rotationTime);
 
     segmentTimes.push(segmentTime);
@@ -467,6 +621,8 @@ export function calculatePathTime(
       startTime: currentTime,
       endTime: currentTime + segmentTime,
       lineIndex,
+      motionProfile: motionProfile,
+      headingProfile: headingProfile,
     });
     currentTime += segmentTime;
 
@@ -487,7 +643,10 @@ export function calculatePathTime(
 }
 
 export function formatTime(totalSeconds: number): string {
+  // Handle NaN or Infinity
+  if (!Number.isFinite(totalSeconds)) return "Infinite";
   if (totalSeconds <= 0) return "0.000s";
+
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   if (minutes > 0) {
