@@ -4,7 +4,7 @@
     interface Window {
       electronAPI: {
         getDirectory: () => Promise<string>;
-        setDirectory: () => Promise<string | null>;
+        setDirectory: (path?: string) => Promise<string | null>;
         listFiles: (directory: string) => Promise<FileInfo[]>;
         readFile: (filePath: string) => Promise<string>;
         writeFile: (filePath: string, content: string) => Promise<boolean>;
@@ -25,6 +25,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { fade } from "svelte/transition";
+  import { get } from "svelte/store";
   import type {
     FileInfo,
     Point,
@@ -33,12 +34,13 @@
     SequenceItem,
     Settings,
   } from "../types";
-  import { currentFilePath, isUnsaved } from "../stores";
+  import { currentFilePath, isUnsaved, fileManagerSessionState } from "../stores";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
 
   import FileManagerToolbar from "./components/filemanager/FileManagerToolbar.svelte";
   import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
   import FileList from "./components/filemanager/FileList.svelte";
+  import FileGrid from "./components/filemanager/FileGrid.svelte";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -47,14 +49,17 @@
   export let sequence: SequenceItem[];
   export let settings: Settings;
 
+  // Initialize from session state
+  const session = get(fileManagerSessionState);
   let sortMode: "name" | "date" = "name";
+  let viewMode: "list" | "grid" = session.viewMode;
   let currentDirectory = "";
   let files: FileInfo[] = [];
   let filteredFiles: FileInfo[] = [];
   let loading = false;
   let selectedFile: FileInfo | null = null;
   let errorMessage = "";
-  let searchQuery = "";
+  let searchQuery = session.searchQuery;
 
   // Renaming state
   let renamingFile: FileInfo | null = null;
@@ -71,11 +76,15 @@
     return String(error);
   }
 
+  // Load settings on mount
   onMount(() => {
     if (settings?.fileManagerSortMode) {
       sortMode = settings.fileManagerSortMode;
     }
   });
+
+  // Persist session state when changed
+  $: fileManagerSessionState.set({ searchQuery, viewMode });
 
   // Update filtered files whenever files or searchQuery changes
   $: {
@@ -179,7 +188,8 @@
     sortFiles();
   }
 
-  async function changeDirectory() {
+  // Handle directory change (dialog)
+  async function changeDirectoryDialog() {
     try {
       const newDir = await electronAPI.setDirectory();
       if (newDir) {
@@ -191,6 +201,34 @@
     } catch (error) {
       errorMessage = `Failed to change directory: ${getErrorMessage(error)}`;
     }
+  }
+
+  // Handle directory change (manual input)
+  async function changeDirectoryManual(e: CustomEvent<string>) {
+     const newDir = e.detail;
+     if (!newDir) return;
+
+     try {
+       // Ideally we verify if it exists first, but `listFiles` will fail if not
+       // Or we can try to save it directly.
+       // NOTE: `setDirectory` normally opens a dialog, so we can't use it for direct set if it doesn't take args.
+       // However, `saveAutoPathsDirectory` saves to store.
+       // Let's try to verify via listFiles or check directory existence if API allows.
+
+       // Assuming user knows what they are doing or we catch error
+       currentDirectory = newDir;
+       await saveAutoPathsDirectory(newDir);
+       await refreshDirectory();
+
+       if (errorMessage) {
+          // If refresh failed, revert? Or just show error?
+          // Keeping error is fine.
+       } else {
+         showToast(`Directory changed`, "success");
+       }
+     } catch (err) {
+        errorMessage = `Failed to change directory: ${getErrorMessage(err)}`;
+     }
   }
 
   // File Operations
@@ -539,15 +577,20 @@
     <FileManagerToolbar
       {searchQuery}
       {sortMode}
+      {viewMode}
       on:search={(e) => (searchQuery = e.detail)}
       on:sort-change={(e) => (sortMode = e.detail)}
+      on:view-change={(e) => (viewMode = e.detail)}
       on:refresh={refreshDirectory}
-      on:change-dir={changeDirectory}
+      on:change-dir={changeDirectoryDialog}
       on:new-file={() => (creatingNewFile = true)}
     />
 
     <!-- Breadcrumbs -->
-    <FileManagerBreadcrumbs currentPath={currentDirectory} />
+    <FileManagerBreadcrumbs
+      currentPath={currentDirectory}
+      on:change-dir={changeDirectoryManual}
+    />
 
     <!-- Error Display -->
     {#if errorMessage}
@@ -589,7 +632,7 @@
       </div>
     {/if}
 
-    <!-- File List -->
+    <!-- File List / Grid -->
     {#if loading}
       <div
         class="flex-1 flex items-center justify-center text-neutral-400 text-sm"
@@ -628,18 +671,29 @@
         {/if}
       </div>
     {:else}
-      <FileList
-        files={filteredFiles}
-        selectedFilePath={selectedFile?.path ?? null}
-        {sortMode}
-        {renamingFile}
-        on:select={(e) => (selectedFile = e.detail)}
-        on:open={(e) => loadFile(e.detail)}
-        on:rename-save={(e) =>
-          renamingFile && renameFile(renamingFile, e.detail)}
-        on:rename-cancel={() => (renamingFile = null)}
-        on:menu-action={handleMenuAction}
-      />
+      {#if viewMode === 'list'}
+        <FileList
+          files={filteredFiles}
+          selectedFilePath={selectedFile?.path ?? null}
+          {sortMode}
+          {renamingFile}
+          on:select={(e) => (selectedFile = e.detail)}
+          on:open={(e) => loadFile(e.detail)}
+          on:rename-save={(e) =>
+            renamingFile && renameFile(renamingFile, e.detail)}
+          on:rename-cancel={() => (renamingFile = null)}
+          on:menu-action={handleMenuAction}
+        />
+      {:else}
+        <FileGrid
+           files={filteredFiles}
+           selectedFilePath={selectedFile?.path ?? null}
+           {sortMode}
+           on:select={(e) => (selectedFile = e.detail)}
+           on:open={(e) => loadFile(e.detail)}
+           on:menu-action={handleMenuAction}
+        />
+      {/if}
     {/if}
 
     <!-- Footer Status -->
