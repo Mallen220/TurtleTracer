@@ -1,4 +1,4 @@
-
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PathOptimizer } from "../utils/pathOptimizer";
 import { pointInPolygon, getRobotCorners } from "../utils/geometry";
@@ -67,7 +67,7 @@ describe("PathOptimizer", () => {
       lines,
       settings,
       sequence,
-      shapes
+      shapes,
     );
     expect(optimizer).toBeDefined();
   });
@@ -78,7 +78,7 @@ describe("PathOptimizer", () => {
       lines,
       settings,
       sequence,
-      shapes
+      shapes,
     );
     const onUpdate = vi.fn();
 
@@ -97,11 +97,11 @@ describe("PathOptimizer", () => {
       lines,
       settings,
       sequence,
-      shapes
+      shapes,
     );
 
     const onUpdate = vi.fn(() => {
-        optimizer.stop();
+      optimizer.stop();
     });
 
     const result = await optimizer.optimize(onUpdate);
@@ -113,37 +113,37 @@ describe("PathOptimizer", () => {
   });
 
   it("should verify geometry assumptions for collision", () => {
-      // Recreate the scenario that failed, but modified to ensure collision detection works with current logic
-      // Robot moves from 0,0 to 50,50. At 25,25:
-      const robotX = 25;
-      const robotY = 25;
-      const heading = 0;
-      const rLength = 12 + 4; // 16
-      const rWidth = 12 + 4;  // 16
+    // Recreate the scenario that failed, but modified to ensure collision detection works with current logic
+    // Robot moves from 0,0 to 50,50. At 25,25:
+    const robotX = 25;
+    const robotY = 25;
+    const heading = 0;
+    const rLength = 12 + 4; // 16
+    const rWidth = 12 + 4; // 16
 
-      const corners = getRobotCorners(robotX, robotY, heading, rLength, rWidth);
-      // corners: (17,17), (33,17), (33,33), (17,33)
+    const corners = getRobotCorners(robotX, robotY, heading, rLength, rWidth);
+    // corners: (17,17), (33,17), (33,33), (17,33)
 
-      // Move obstacle to overlap with the right side of the robot (x=33)
-      // Obstacle x: 30-40.
-      const obstacleVertices = [
-        { x: 30, y: 0 },
-        { x: 30, y: 60 },
-        { x: 40, y: 60 },
-        { x: 40, y: 0 }
-      ];
+    // Move obstacle to overlap with the right side of the robot (x=33)
+    // Obstacle x: 30-40.
+    const obstacleVertices = [
+      { x: 30, y: 0 },
+      { x: 30, y: 60 },
+      { x: 40, y: 60 },
+      { x: 40, y: 0 },
+    ];
 
-      // Check if any corner is in obstacle
-      let isColliding = false;
-      for (const corner of corners) {
-          if (pointInPolygon([corner.x, corner.y], obstacleVertices)) {
-              isColliding = true;
-              break;
-          }
+    // Check if any corner is in obstacle
+    let isColliding = false;
+    for (const corner of corners) {
+      if (pointInPolygon([corner.x, corner.y], obstacleVertices)) {
+        isColliding = true;
+        break;
       }
+    }
 
-      // (33, 17) should be inside [30, 40] x [0, 60]
-      expect(isColliding).toBe(true);
+    // (33, 17) should be inside [30, 40] x [0, 60]
+    expect(isColliding).toBe(true);
   });
 
   it("should handle collisions by returning a high fitness score", async () => {
@@ -152,10 +152,10 @@ describe("PathOptimizer", () => {
       {
         id: "obstacle1",
         vertices: [
-            { x: 30, y: 0 },
-            { x: 30, y: 60 },
-            { x: 40, y: 60 },
-            { x: 40, y: 0 }
+          { x: 30, y: 0 },
+          { x: 30, y: 60 },
+          { x: 40, y: 60 },
+          { x: 40, y: 0 },
         ],
         color: "blue",
         fillColor: "blue",
@@ -167,7 +167,7 @@ describe("PathOptimizer", () => {
       lines,
       settings,
       sequence,
-      shapes
+      shapes,
     );
 
     settings.optimizationIterations = 1;
@@ -180,52 +180,52 @@ describe("PathOptimizer", () => {
   });
 
   it("should mutate lines to avoid obstacles", async () => {
-     // Ensure this obstacle is also detectable by current logic
-     // A small block at 25,25 (center of path)
-     // Robot covers 17-33.
-     // Block at 24-26 is fully inside the robot.
-     // So "shape vertex inside robot" check should pass.
-     shapes = [
-        {
-          id: "obstacle1",
-          vertices: [
-              { x: 24, y: 24 },
-              { x: 24, y: 26 },
-              { x: 26, y: 26 },
-              { x: 26, y: 24 }
-          ],
-          color: "blue",
-          fillColor: "blue",
-        },
-      ];
+    // Ensure this obstacle is also detectable by current logic
+    // A small block at 25,25 (center of path)
+    // Robot covers 17-33.
+    // Block at 24-26 is fully inside the robot.
+    // So "shape vertex inside robot" check should pass.
+    shapes = [
+      {
+        id: "obstacle1",
+        vertices: [
+          { x: 24, y: 24 },
+          { x: 24, y: 26 },
+          { x: 26, y: 26 },
+          { x: 26, y: 24 },
+        ],
+        color: "blue",
+        fillColor: "blue",
+      },
+    ];
 
-      settings.optimizationIterations = 20;
-      settings.optimizationPopulationSize = 20;
-      settings.optimizationMutationStrength = 10;
+    settings.optimizationIterations = 20;
+    settings.optimizationPopulationSize = 20;
+    settings.optimizationMutationStrength = 10;
 
-      const optimizer = new PathOptimizer(
-        startPoint,
-        lines,
-        settings,
-        sequence,
-        shapes
-      );
+    const optimizer = new PathOptimizer(
+      startPoint,
+      lines,
+      settings,
+      sequence,
+      shapes,
+    );
 
-      const onUpdate = vi.fn();
-      const result = await optimizer.optimize(onUpdate);
+    const onUpdate = vi.fn();
+    const result = await optimizer.optimize(onUpdate);
 
-      expect(result.lines[0].controlPoints.length).toBeGreaterThanOrEqual(0);
-      expect(result.lines).not.toEqual(lines);
+    expect(result.lines[0].controlPoints.length).toBeGreaterThanOrEqual(0);
+    expect(result.lines).not.toEqual(lines);
   });
 
   it("should initialize population with valid seeds if available", async () => {
     const optimizer = new PathOptimizer(
-        startPoint,
-        lines,
-        settings,
-        sequence,
-        shapes
-      ) as any;
+      startPoint,
+      lines,
+      settings,
+      sequence,
+      shapes,
+    ) as any;
 
     const seeds = optimizer.findValidPathSeeds();
     expect(Array.isArray(seeds)).toBe(true);
