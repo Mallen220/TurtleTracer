@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { PathOptimizer } from "./pathOptimizer";
 import { collisionMarkers, notification } from "../stores";
 import type { Line, Point, SequenceItem, Settings, Shape } from "../types";

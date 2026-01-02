@@ -1088,13 +1088,6 @@
   }
 </script>
 
-<style>
-  /* Ensure collision markers do not block pointer events so users can click through them */
-  :global(#collision-group, #collision-group *) {
-    pointer-events: none !important;
-  }
-</style>
-
 <div
   class="relative aspect-square"
   style={`width: ${width}px; height: ${height}px;`}
@@ -1147,3 +1140,10 @@ left: ${robotXY.x}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg
     isObstructed={isObstructingHUD}
   />
 </div>
+
+<style>
+  /* Ensure collision markers do not block pointer events so users can click through them */
+  :global(#collision-group, #collision-group *) {
+    pointer-events: none !important;
+  }
+</style>
