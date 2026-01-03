@@ -317,7 +317,7 @@ export const DEFAULT_SETTINGS: Settings = {
   optimizationIterations: 300,
   optimizationPopulationSize: 100,
   optimizationMutationRate: 0.4,
-  optimizationMutationStrength: 3.0,
+  optimizationMutationStrength: 6.0,
   keyBindings: DEFAULT_KEY_BINDINGS,
   recentFiles: [],
   // Developer/debugging aids
