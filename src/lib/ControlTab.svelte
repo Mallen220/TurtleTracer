@@ -847,15 +847,21 @@
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
           class="size-4"
+          aria-hidden="true"
         >
           <path
-            fill-rule="evenodd"
-            d="M10 2c-1.716 0-3.408.106-5.07.31C3.806 2.45 3 3.414 3 4.517V17.25a.75.75 0 0 0 1.075.676L10 15.082l5.925 2.844A.75.75 0 0 0 17 17.25V4.517c0-1.103-.806-2.068-1.93-2.207A41.403 41.403 0 0 0 10 2Z"
-            clip-rule="evenodd"
+            d="M4 15c3-6 9-6 14-3"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
           />
+          <circle cx="4" cy="15" r="1.8" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="9" r="1.8" fill="currentColor" stroke="none" />
+          <circle cx="20" cy="12" r="1.8" fill="currentColor" stroke="none" />
         </svg>
         Paths
       </button>
@@ -872,14 +878,29 @@
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
           class="size-4"
+          aria-hidden="true"
         >
+          <rect x="3" y="4" width="18" height="16" rx="1.5" stroke-width="2" />
+          <!-- Triangle from top-left & top-right corners to center point -->
           <path
-            fill-rule="evenodd"
-            d="M2.5 4A1.5 1.5 0 0 1 4 2.5h12A1.5 1.5 0 0 1 17.5 4v12a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 16V4Zm7 4.75a.75.75 0 0 0-1.5 0v3.5a.75.75 0 0 0 1.5 0v-3.5ZM13 10a.75.75 0 0 1-.75.75H10.5a.75.75 0 0 1 0-1.5h1.75A.75.75 0 0 1 13 10ZM7.75 12.25a.75.75 0 0 0 0-1.5H6a.75.75 0 0 0 0 1.5h1.75Z"
-            clip-rule="evenodd"
+            d="M3 4 L21 4 L12 12 Z"
+            fill="currentColor"
+            opacity="0.08"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linejoin="round"
+          />
+          <!-- Stronger edges for clarity -->
+          <path
+            d="M3 4 L12 12 M21 4 L12 12"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
           />
         </svg>
         Field
@@ -897,17 +918,47 @@
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
           class="size-4"
+          aria-hidden="true"
         >
-          <path
-            fill-rule="evenodd"
-            d="M2 3.75A.75.75 0 0 1 2.75 3h14.5a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75H2.75a.75.75 0 0 1-.75-.75V3.75ZM2.75 4.5v11h14.5v-11H2.75Z"
-            clip-rule="evenodd"
+          <rect x="3" y="4" width="18" height="16" rx="1.5" stroke-width="2" />
+          <!-- subtle header fill for legibility -->
+          <rect
+            x="3"
+            y="4"
+            width="18"
+            height="5"
+            rx="1.5"
+            fill="currentColor"
+            opacity="0.06"
+            stroke="none"
           />
-          <path
-            d="M6 7.75A.75.75 0 0 1 6.75 7h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 6 7.75ZM6 11.25a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75Z"
+          <line
+            x1="3"
+            y1="10"
+            x2="21"
+            y2="10"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+          <line
+            x1="9"
+            y1="10"
+            x2="9"
+            y2="20"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          />
+          <line
+            x1="15"
+            y1="10"
+            x2="15"
+            y2="20"
+            stroke-width="1.5"
+            stroke-linecap="round"
           />
         </svg>
         Table

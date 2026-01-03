@@ -402,6 +402,33 @@
   }
 
   // --- Resizing Logic ---
+  // When in vertical (mobile) mode, hide the control tab from layout after
+  // its closing animation completes so the field can resize to the freed area.
+  let controlTabHidden = false;
+  let hideControlTabTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  $: if (!isLargeScreen) {
+    // On small screens, when sidebar is closed, wait for animation then hide
+    if (!showSidebar) {
+      if (hideControlTabTimeout) clearTimeout(hideControlTabTimeout);
+      hideControlTabTimeout = setTimeout(() => {
+        controlTabHidden = true;
+      }, 320); // slightly longer than the 300ms transition
+    } else {
+      if (hideControlTabTimeout) {
+        clearTimeout(hideControlTabTimeout);
+        hideControlTabTimeout = null;
+      }
+      controlTabHidden = false;
+    }
+  } else {
+    // Ensure visible on large screens
+    controlTabHidden = false;
+    if (hideControlTabTimeout) {
+      clearTimeout(hideControlTabTimeout);
+      hideControlTabTimeout = null;
+    }
+  }
   $: if (userFieldLimit === null && mainContentWidth > 0 && isLargeScreen) {
     userFieldLimit = mainContentWidth * 0.49;
   }
@@ -429,6 +456,22 @@
     const avW = leftPaneWidth - 16;
     const avH = mainContentHeight - 16;
     return Math.max(100, Math.min(avW, avH));
+  })();
+
+  // Compute a target height for the field container so it can animate smoothly
+  // when the sidebar (control tab) opens/closes in vertical mode
+  $: fieldContainerTargetHeight = (() => {
+    if (isLargeScreen) return "100%";
+    // when sidebar is visible, reserve space for it (use userFieldHeightLimit or default fraction)
+    if (showSidebar) {
+      const h = userFieldHeightLimit ?? mainContentHeight * 0.6;
+      // ensure we don't exceed the available height
+      const target = Math.min(h, mainContentHeight);
+      return `${Math.max(120, Math.floor(target))}px`;
+    } else {
+      // sidebar not shown -> full available height
+      return `${mainContentHeight}px`;
+    }
   })();
 
   function startResize(mode: "horizontal" | "vertical") {
@@ -586,10 +629,10 @@
   >
     <!-- Field Container -->
     <div
-      class="flex-none flex justify-center items-center relative transition-all duration-75 ease-linear bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
+      class="flex-none flex justify-center items-center relative transition-all duration-300 ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
       style={`
         width: ${isLargeScreen && showSidebar ? leftPaneWidth + "px" : "100%"};
-        height: ${isLargeScreen ? "100%" : userFieldHeightLimit ? userFieldHeightLimit + "px" : "auto"};
+        height: ${isLargeScreen ? "100%" : fieldContainerTargetHeight};
         min-height: ${!isLargeScreen ? (userFieldHeightLimit ? "0" : "60vh") : "0"};
       `}
     >
@@ -651,6 +694,7 @@
       class:translate-x-full={!showSidebar && isLargeScreen}
       class:translate-y-full={!showSidebar && !isLargeScreen}
       class:overflow-hidden={!showSidebar}
+      class:hidden={controlTabHidden}
     >
       <ControlTab
         bind:this={controlTabRef}
