@@ -212,7 +212,6 @@ function analyzePathSegment(
   const isLine = cps.length === 0;
   const steps: PathStep[] = [];
 
-  // OPTIMIZATION: Pre-allocate the full points array to avoid creating it inside the loop
   const fullPoints = [start, ...cps, end];
 
   for (let i = 0; i <= samples; i++) {
