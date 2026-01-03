@@ -1451,6 +1451,27 @@
                 <div class="text-xs text-neutral-500 dark:text-neutral-400">
                   Version {appVersion}
                 </div>
+
+                <!-- App Icon (with white glow behind to show on dark backgrounds) -->
+                <div class="flex justify-center mt-3">
+                  <div class="relative w-20 h-20">
+                    <!-- Glow layer: white rounded blurred background placed behind the image -->
+                    <div
+                      class="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    >
+                      <div
+                        class="w-14 h-14 rounded-full bg-white"
+                        style="transform: translateY(-7px); filter: blur(8px); opacity: 0.95;"
+                      ></div>
+                    </div>
+
+                    <img
+                      src="/icon.png"
+                      alt="Pedro Pathing Visualizer icon"
+                      class="relative w-14 h-14 object-contain mx-auto"
+                    />
+                  </div>
+                </div>
               </div>
 
               <!-- Copyright & License -->
