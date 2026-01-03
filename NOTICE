@@ -22,3 +22,4 @@ src/lib/components/filemanager/FileManagerToolbar.svelte
 src/lib/components/filemanager/PathPreview.svelte
 src/stores.ts
 src/utils/validation.ts
+src/lib/components/SettingsDialog.svelte
