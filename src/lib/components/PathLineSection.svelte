@@ -241,8 +241,12 @@
       {#if lines.length > 1}
         <button
           title="Remove Line"
-          class="text-red-500 hover:text-red-600"
-          on:click={onRemove}
+          class="text-red-500 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+          on:click={() => {
+            if (!line.locked && onRemove) onRemove();
+          }}
+          aria-disabled={line.locked}
+          disabled={line.locked}
         >
           <TrashIcon class_="size-5" strokeWidth={2} />
         </button>
@@ -259,7 +263,7 @@
         <div class="flex items-center gap-2">
           <div class="font-extralight">X:</div>
           <input
-            class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-20 sm:w-28"
+            class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14 sm:w-14"
             step={$snapToGrid && $showGrid ? $gridSize : 0.1}
             type="number"
             min="0"
@@ -270,7 +274,7 @@
           />
           <div class="font-extralight">Y:</div>
           <input
-            class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-20 sm:w-28"
+            class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14 sm:w-14"
             step={$snapToGrid && $showGrid ? $gridSize : 0.1}
             min="0"
             max="144"

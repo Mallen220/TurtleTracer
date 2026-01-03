@@ -29,3 +29,8 @@ src/App.svelte
 src/lib/ControlTab.svelte
 src/lib/Navbar.svelte
 src/lib/components/StartingPointSection.svelte
+src/lib/components/WaitRow.svelte
+src/lib/components/HeadingControls.svelte
+src/lib/components/PathLineSection.svelte
+src/lib/components/KeyboardShortcuts.svelte
+src/lib/components/WaypointTable.svelte

@@ -14,6 +14,7 @@
     selectedLineId,
     selectedPointId,
   } from "../../stores";
+  import { slide } from "svelte/transition";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -567,6 +568,7 @@
   {#if optimizationOpen}
     <div
       class="w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-100 dark:bg-neutral-800 p-4"
+      transition:slide
     >
       <OptimizationDialog
         bind:this={optDialogRef}

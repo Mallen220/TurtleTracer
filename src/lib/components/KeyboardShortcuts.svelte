@@ -174,6 +174,7 @@
       $selectedLineId || (lines.length > 0 ? lines[lines.length - 1].id : null);
     const targetLine = targetId ? lines.find((l) => l.id === targetId) : null;
     if (targetLine) {
+      if (targetLine.locked) return; // Don't allow adding event markers to locked lines
       targetLine.eventMarkers = targetLine.eventMarkers || [];
       targetLine.eventMarkers.push({
         id: `event-${Date.now()}`,
@@ -191,6 +192,7 @@
     const targetLine =
       lines.find((l) => l.id === targetId) || lines[lines.length - 1];
     if (!targetLine) return;
+    if (targetLine.locked) return; // Don't allow adding control points to locked lines
 
     targetLine.controlPoints.push({
       x: _.random(36, 108),
@@ -210,6 +212,7 @@
       const targetLine =
         lines.find((l) => l.id === targetId) || lines[lines.length - 1];
       if (targetLine && targetLine.controlPoints.length > 0) {
+        if (targetLine.locked) return; // Don't allow removing control points from locked lines
         targetLine.controlPoints.pop();
         linesStore.set(lines);
         recordChange();
@@ -224,6 +227,11 @@
 
     if (sel.startsWith("wait-")) {
       const waitId = sel.substring(5);
+      const waitItem = $sequenceStore.find(
+        (s) => s.kind === "wait" && (s as any).id === waitId,
+      ) as any;
+      if (waitItem && waitItem.locked) return; // Don't delete locked waits
+
       sequenceStore.update((s) =>
         s.filter((item) => !(item.kind === "wait" && item.id === waitId)),
       );
@@ -245,6 +253,7 @@
       if (ptIdx === 0) {
         // End Point -> Remove line
         if (lines.length <= 1) return;
+        if (line.locked) return; // Don't allow keyboard delete of locked lines
         const removedId = line.id;
         linesStore.update((l) => l.filter((_, i) => i !== lineIndex));
         if (removedId) {
@@ -470,8 +479,11 @@
 
     if (current.startsWith("wait-")) {
       const waitId = current.substring(5);
-      const item = sequence.find((s) => s.kind === "wait" && s.id === waitId);
+      const item = sequence.find(
+        (s) => s.kind === "wait" && s.id === waitId,
+      ) as any;
       if (item) {
+        if (item.locked) return; // Don't modify locked waits
         item.durationMs = Math.max(0, item.durationMs + delta * 100);
         sequenceStore.set(sequence);
         recordChange();
@@ -484,6 +496,7 @@
       const evIdx = Number(parts[2]);
       const line = lines[lineIdx];
       if (line && line.eventMarkers && line.eventMarkers[evIdx]) {
+        if (line.locked) return; // Don't modify event markers on locked lines
         const step = 0.01 * Math.sign(delta);
         let newPos = line.eventMarkers[evIdx].position + step;
         newPos = Math.max(0, Math.min(1, newPos));
@@ -497,6 +510,7 @@
     if ($selectedLineId) {
       const line = lines.find((l) => l.id === $selectedLineId);
       if (line && line.eventMarkers && line.eventMarkers.length > 0) {
+        if (line.locked) return; // Don't modify event markers on locked lines
         const lastIdx = line.eventMarkers.length - 1;
         const step = 0.01 * Math.sign(delta);
         let newPos = line.eventMarkers[lastIdx].position + step;

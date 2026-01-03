@@ -537,6 +537,9 @@
     // Protect against deleting the last remaining path
     if (lines.length <= 1) return;
 
+    // Prevent deleting a locked line
+    if (lines[idx]?.locked) return;
+
     const removedId = lines[idx]?.id;
     // Remove the line from lines array
     const newLines = [...lines];

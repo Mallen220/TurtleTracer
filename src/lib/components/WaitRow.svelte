@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import { selectedPointId, selectedLineId } from "../../stores";
+  import TrashIcon from "./icons/TrashIcon.svelte";
 
   export let id: string;
   export let name: string;
@@ -207,26 +208,15 @@
     </button>
 
     <button
-      title="Remove"
+      title={locked ? "Locked" : "Remove"}
       on:click={() => {
         if (!locked && onRemove) onRemove();
       }}
-      class="text-red-500 hover:text-red-600"
+      class="text-red-500 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+      aria-disabled={locked}
+      disabled={locked}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        class="size-5"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-        />
-      </svg>
+      <TrashIcon className="size-5" strokeWidth={2} />
     </button>
   </div>
 </div>

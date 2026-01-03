@@ -49,7 +49,7 @@
     dispatch("change");
     dispatch("commit");
   }}
-  class=" rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-28 text-sm"
+  class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-20 sm:w-28"
   title="The heading style of the robot. 
 With constant heading, the robot maintains the same heading throughout the line. 
 With linear heading, heading changes linearly between given start and end angles. 
@@ -64,11 +64,11 @@ With tangential heading, the heading follows the direction of the line."
 {#if endPoint.heading === "linear"}
   <div class="flex items-center gap-1">
     <label
-      class="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400"
+      class="flex items-center gap-1 text-sm text-neutral-600 dark:text-neutral-400"
     >
       Start:
       <input
-        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14 text-black dark:text-white"
+        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-20 sm:w-28 text-black dark:text-white"
         step="1"
         type="number"
         min="-180"
@@ -81,11 +81,11 @@ With tangential heading, the heading follows the direction of the line."
       />
     </label>
     <label
-      class="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400 ml-1"
+      class="flex items-center gap-1 text-sm text-neutral-600 dark:text-neutral-400 ml-1"
     >
       End:
       <input
-        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14 text-black dark:text-white"
+        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-20 sm:w-28 text-black dark:text-white"
         step="1"
         type="number"
         min="-180"
@@ -101,11 +101,11 @@ With tangential heading, the heading follows the direction of the line."
 {:else if endPoint.heading === "constant"}
   <div class="flex items-center gap-1">
     <label
-      class="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400"
+      class="flex items-center gap-1 text-sm text-neutral-600 dark:text-neutral-400"
     >
       Deg:
       <input
-        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14 text-black dark:text-white"
+        class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-20 sm:w-28 text-black dark:text-white"
         step="1"
         type="number"
         min="-180"
