@@ -1086,54 +1086,53 @@
             {/if}
             </div>
         {/each}
-      </div>
-
-      <!-- Floating Action Button for Adding Items -->
-      <div class="absolute bottom-20 left-1/2 -translate-x-1/2 flex gap-3 z-20">
-        <button
-          on:click={addLine}
-          class="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 font-medium"
-          aria-label="Add new path segment"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2.5"
-            stroke="currentColor"
-            class="size-5"
+        <!-- Add Buttons at end of list -->
+        <div class="flex flex-row justify-center items-center gap-3 pt-4">
+          <button
+            on:click={addLine}
+            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            aria-label="Add new path segment"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
-          </svg>
-          Add Path
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 4.5v15m7.5-7.5h-15"
+              />
+            </svg>
+            Add Path
+          </button>
 
-        <button
-          on:click={addWait}
-          class="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 font-medium"
-          aria-label="Add wait command"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-            class="size-5"
+          <button
+            on:click={addWait}
+            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            aria-label="Add wait command"
           >
-            <circle cx="12" cy="12" r="9" />
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M12 7v5l3 2"
-            />
-          </svg>
-          Add Wait
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="size-4"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 7v5l3 2"
+              />
+            </svg>
+            Add Wait
+          </button>
+        </div>
       </div>
     {/if}
   </div>

@@ -625,9 +625,12 @@
     <!-- Resizer Handle (Mobile) -->
     {#if !isLargeScreen && showSidebar}
       <button
-        class="h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700"
+        class="h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
         on:mousedown={() => startResize("vertical")}
-        on:touchstart={() => startResize("vertical")}
+        on:touchstart={(e) => {
+          e.preventDefault();
+          startResize("vertical");
+        }}
         on:dblclick={() => {
           userFieldHeightLimit = null;
         }}
