@@ -96,6 +96,21 @@
       <div class="flex-1 text-sm font-medium">
         {currentNotification.message}
       </div>
+      {#if currentNotification && currentNotification.action && currentNotification.actionLabel}
+        <button
+          on:click={() => {
+            const act = currentNotification ? currentNotification.action : undefined;
+            try {
+              if (act) act();
+            } finally {
+              notification.set(null);
+            }
+          }}
+          class="shrink-0 ml-3 px-3 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          {currentNotification.actionLabel}
+        </button>
+      {/if}
       <button
         on:click={close}
         class="shrink-0 ml-3 p-1 rounded-md hover:bg-black/10 transition-colors"

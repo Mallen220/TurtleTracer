@@ -178,4 +178,7 @@ export interface Notification {
   message: string;
   type: "success" | "warning" | "error" | "info";
   timeout?: number; // milliseconds
+  // Optional action button (e.g. Undo)
+  actionLabel?: string;
+  action?: () => void;
 }
