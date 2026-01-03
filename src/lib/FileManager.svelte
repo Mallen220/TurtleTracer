@@ -55,7 +55,7 @@
 
   // Initialize from session state
   const session = get(fileManagerSessionState);
-  let sortMode: "name" | "date" = "name";
+  let sortMode: "name" | "date" = session.sortMode ?? "date";
   let sortModeInitialized = false;
   let viewMode: "list" | "grid" = session.viewMode;
   let currentDirectory = "";
@@ -117,7 +117,7 @@
   }
 
   // Persist session state when changed
-  $: fileManagerSessionState.set({ searchQuery, viewMode });
+  $: fileManagerSessionState.set({ searchQuery, viewMode, sortMode });
 
   // Sync sortMode to settings only after initialization
   $: if (sortModeInitialized && settings && sortMode) {
@@ -241,6 +241,30 @@
       }
     } catch (error) {
       errorMessage = `Failed to change directory: ${getErrorMessage(error)}`;
+    }
+  }
+
+  // New refresh handler: refresh directory and force preview reloads
+  async function handleRefresh() {
+    try {
+      await refreshDirectory();
+
+      // After directory is refreshed, request previews to refresh for both list and grid
+      if (fileList && typeof fileList.refreshAllFailed === "function") {
+        fileList.refreshAllFailed();
+      } else if (fileList && typeof fileList.refreshAll === "function") {
+        fileList.refreshAll();
+      }
+
+      if (fileGrid && typeof fileGrid.refreshAllFailed === "function") {
+        fileGrid.refreshAllFailed();
+      } else if (fileGrid && typeof fileGrid.refreshAll === "function") {
+        fileGrid.refreshAll();
+      }
+
+      showToast("Refreshed files and previews", "success");
+    } catch (err) {
+      showToast(`Refresh failed: ${getErrorMessage(err)}`, "error");
     }
   }
 
@@ -665,7 +689,7 @@
           }
         }
       }}
-      on:refresh={refreshDirectory}
+      on:refresh={handleRefresh}
       on:change-dir={changeDirectoryDialog}
       on:new-file={() => (creatingNewFile = true)}
     />

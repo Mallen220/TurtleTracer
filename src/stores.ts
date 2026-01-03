@@ -38,7 +38,9 @@ export const notification = writable<Notification | null>(null);
 export const fileManagerSessionState = writable<{
   searchQuery: string;
   viewMode: "list" | "grid";
+  sortMode: "name" | "date";
 }>({
   searchQuery: "",
-  viewMode: "list",
+  viewMode: "grid",
+  sortMode: "date",
 });
