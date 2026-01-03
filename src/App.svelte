@@ -550,8 +550,9 @@
 
 <NotificationToast />
 
+<!-- Main Container -->
 <div
-  class="h-screen w-full flex flex-col overflow-hidden bg-neutral-200 dark:bg-neutral-950"
+  class="h-screen w-full flex flex-col overflow-hidden bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-sans"
 >
   <div class="flex-none z-50">
     <Navbar
@@ -578,34 +579,36 @@
   </div>
 
   <div
-    class="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch lg:overflow-hidden relative p-2 gap-2"
+    class="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch lg:overflow-hidden relative gap-0"
     bind:clientHeight={mainContentHeight}
     bind:clientWidth={mainContentWidth}
     bind:this={mainContentDiv}
   >
     <!-- Field Container -->
     <div
-      class="flex-none flex justify-center items-center relative transition-all duration-75 ease-linear"
+      class="flex-none flex justify-center items-center relative transition-all duration-75 ease-linear bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
       style={`
         width: ${isLargeScreen && showSidebar ? leftPaneWidth + "px" : "100%"};
         height: ${isLargeScreen ? "100%" : userFieldHeightLimit ? userFieldHeightLimit + "px" : "auto"};
         min-height: ${!isLargeScreen ? (userFieldHeightLimit ? "0" : "60vh") : "0"};
       `}
     >
-      <FieldRenderer
-        bind:this={fieldRenderer}
-        width={fieldDrawSize}
-        height={fieldDrawSize}
-        {timePrediction}
-        {previewOptimizedLines}
-        {onRecordChange}
-      />
+      <div class="relative shadow-inner w-full h-full flex justify-center items-center">
+        <FieldRenderer
+          bind:this={fieldRenderer}
+          width={fieldDrawSize}
+          height={fieldDrawSize}
+          {timePrediction}
+          {previewOptimizedLines}
+          {onRecordChange}
+        />
+      </div>
     </div>
 
     <!-- Resizer Handle (Desktop) -->
     {#if isLargeScreen && showSidebar}
       <button
-        class="w-2 cursor-col-resize flex justify-center items-center hover:bg-purple-500/50 active:bg-purple-600 transition-colors rounded-sm select-none z-40 border-none bg-transparent p-0 m-0"
+        class="w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
         on:mousedown={() => startResize("horizontal")}
         on:dblclick={() => {
           userFieldLimit = null;
@@ -614,7 +617,7 @@
         title="Drag to resize. Double-click to reset to default width"
       >
         <div
-          class="w-[2px] h-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+          class="w-1 h-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
         ></div>
       </button>
     {/if}
@@ -622,7 +625,7 @@
     <!-- Resizer Handle (Mobile) -->
     {#if !isLargeScreen && showSidebar}
       <button
-        class="h-2 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/50 active:bg-purple-600 transition-colors rounded-sm select-none z-40 border-none bg-transparent p-0 m-0"
+        class="h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700"
         on:mousedown={() => startResize("vertical")}
         on:touchstart={() => startResize("vertical")}
         on:dblclick={() => {
@@ -632,14 +635,14 @@
         title="Drag to resize. Double-click to reset to default height"
       >
         <div
-          class="h-[2px] w-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+          class="h-1 w-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
         ></div>
       </button>
     {/if}
 
     <!-- Control Tab -->
     <div
-      class="flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-transform duration-300 ease-in-out transform"
+      class="flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-transform duration-300 ease-in-out transform bg-neutral-50 dark:bg-neutral-900"
       class:translate-x-full={!showSidebar && isLargeScreen}
       class:translate-y-full={!showSidebar && !isLargeScreen}
       class:overflow-hidden={!showSidebar}

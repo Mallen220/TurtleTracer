@@ -92,9 +92,6 @@
   // Sync export dialog state
   $: if ($exportDialogState.isOpen && exportDialog) {
     exportDialog.openWithFormat($exportDialogState.format);
-    // Reset store state after opening to allow re-opening
-    // actually, ExportCodeDialog probably doesn't two-way bind openWithFormat well with this store pattern
-    // if we just call openWithFormat it sets internal isOpen=true
   }
 
   function handleGridSizeChange(event: Event) {
@@ -216,693 +213,240 @@
 
 <SettingsDialog bind:isOpen={$showSettings} bind:settings />
 <KeyboardShortcutsDialog bind:isOpen={shortcutsOpen} bind:settings />
+
 <div
-  class="w-full z-50 bg-neutral-50 dark:bg-neutral-900 shadow-md flex flex-wrap justify-between items-center px-4 md:px-6 py-4 border-b-[0.75px] border-[#b300e6] gap-y-4"
+  class="w-full z-50 bg-neutral-50 dark:bg-neutral-900 shadow-md flex flex-wrap justify-between items-center px-4 md:px-6 py-3 border-b border-neutral-200 dark:border-neutral-800"
 >
-  <!-- Title -->
-  <div class="font-semibold flex flex-col justify-start items-start">
-    <div class="flex flex-row items-center gap-2">
-      <!-- File manager button -->
-      <button
-        title="File Manager"
+  <!-- Left: Brand & File -->
+  <div class="flex items-center gap-4">
+    <!-- Menu Button (Mobile/Sidebar toggle for consistency if desired, or just File Manager) -->
+    <button
+        title="Open File Manager"
         aria-label="Open File Manager"
         on:click={() => (fileManagerOpen = true)}
+        class="text-neutral-700 dark:text-neutral-200 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+        stroke="currentColor"
+        class="size-6"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-6"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-          />
-        </svg>
-      </button>
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+        />
+      </svg>
+    </button>
 
-      <span>Pedro Pathing Visualizer</span>
-      {#if $currentFilePath}
-        <span class="text-neutral-400 font-light text-sm mx-2">/</span>
-        <span
-          class="text-sm font-normal text-neutral-600 dark:text-neutral-300"
-        >
-          {$currentFilePath.split(/[\\/]/).pop()}
-          {#if $isUnsaved}
-            <span class="text-amber-500 font-bold ml-1" title="Unsaved changes"
-              >*</span
-            >
-          {/if}
-        </span>
-      {/if}
+    <div class="flex flex-col">
+        <span class="font-bold text-lg leading-tight tracking-tight text-neutral-900 dark:text-neutral-100">Pedro Pathing</span>
+        {#if $currentFilePath}
+          <div class="flex items-center text-xs text-neutral-500 dark:text-neutral-400">
+            <span class="truncate max-w-[200px]">{$currentFilePath.split(/[\\/]/).pop()}</span>
+            {#if $isUnsaved}
+              <span class="text-amber-500 font-bold ml-1" title="Unsaved changes">*</span>
+            {/if}
+          </div>
+        {:else}
+            <span class="text-xs text-neutral-500 dark:text-neutral-400">Untitled Project</span>
+        {/if}
     </div>
   </div>
 
-  <!-- Actions -->
-  <div class="flex flex-row justify-end items-center gap-4">
-    <div class="flex items-center gap-3">
-      <!-- time estimate -->
-      <div class="flex items-center gap-2 text-sm">
-        <div class="text-neutral-600 dark:text-neutral-300">
-          Est: {formatTime(timePrediction.totalTime)}
-        </div>
-        <div class="text-neutral-500 dark:text-neutral-400">
-          ({timePrediction.totalDistance.toFixed(0)} in)
-        </div>
+  <!-- Center: Contextual Info (Desktop only usually) -->
+  {#if isLargeScreen}
+  <div class="flex items-center gap-6 text-sm">
+      <div class="flex flex-col items-center">
+        <span class="text-xs text-neutral-400 font-medium uppercase tracking-wider">Est. Time</span>
+        <span class="font-semibold text-neutral-800 dark:text-neutral-200">{formatTime(timePrediction.totalTime)}</span>
       </div>
-      <!-- Undo / Redo -->
-      <div class="flex items-center gap-2">
+      <div class="w-px h-6 bg-neutral-200 dark:bg-neutral-700"></div>
+      <div class="flex flex-col items-center">
+        <span class="text-xs text-neutral-400 font-medium uppercase tracking-wider">Distance</span>
+        <span class="font-semibold text-neutral-800 dark:text-neutral-200">{timePrediction.totalDistance.toFixed(0)} in</span>
+      </div>
+  </div>
+  {/if}
+
+  <!-- Right: Toolbar Actions -->
+  <div class="flex items-center gap-2 md:gap-3">
+    <!-- View Options Group -->
+    <div class="flex items-center bg-neutral-100 dark:bg-neutral-800 rounded-md p-1 gap-1">
+        <button
+            title="Toggle Grid"
+            aria-label="Toggle Grid"
+            aria-pressed={$showGrid}
+            on:click={() => showGrid.update((v) => !v)}
+            class="p-1.5 rounded-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors {$showGrid ? 'text-blue-500' : 'text-neutral-500 dark:text-neutral-400'}"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="3" y1="15" x2="21" y2="15"></line>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+                <line x1="15" y1="3" x2="15" y2="21"></line>
+            </svg>
+        </button>
+
+        {#if $showGrid}
+        <div class="relative">
+             <select
+                class="w-full bg-transparent text-xs font-medium text-neutral-600 dark:text-neutral-300 focus:outline-none cursor-pointer appearance-none pl-1 pr-3"
+                bind:value={selectedGridSize}
+                on:change={handleGridSizeChange}
+                aria-label="Select grid spacing"
+            >
+                {#each gridSizeOptions as option}
+                <option value={option}>{option}"</option>
+                {/each}
+            </select>
+        </div>
+        <!-- Snap Toggle -->
+        <button
+            title={$snapToGrid ? "Disable Snap" : "Enable Snap"}
+            aria-label={$snapToGrid ? "Disable Snap" : "Enable Snap"}
+            aria-pressed={$snapToGrid}
+            on:click={() => snapToGrid.update((v) => !v)}
+            class="p-1.5 rounded-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors {$snapToGrid ? 'text-green-500' : 'text-neutral-400'}"
+        >
+             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="m6 15-4-4 6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15"></path>
+            </svg>
+        </button>
+        {/if}
+    </div>
+
+    <div class="w-px h-6 bg-neutral-200 dark:bg-neutral-700 hidden md:block"></div>
+
+    <!-- Undo/Redo Group -->
+    <div class="flex items-center gap-1">
         <button
           title="Undo"
-          aria-label="Undo last action"
+          aria-label="Undo"
           on:click={undoAction}
           disabled={!canUndo}
-          class:opacity-50={!canUndo}
+          class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-6"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 1 1 0 12h-3"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 1 1 0 12h-3" />
           </svg>
         </button>
         <button
           title="Redo"
-          aria-label="Redo last action"
+          aria-label="Redo"
           on:click={redoAction}
           disabled={!canRedo}
-          class:opacity-50={!canRedo}
+          class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-6"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M15 9l6 6m0 0-6 6m6-6H9a6 6 0 1 1 0-12h3"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 9l6 6m0 0-6 6m6-6H9a6 6 0 1 1 0-12h3" />
           </svg>
         </button>
-      </div>
     </div>
 
-    <!-- Divider -->
-    <div
-      class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4"
-      aria-hidden="true"
-    ></div>
+    <div class="w-px h-6 bg-neutral-200 dark:bg-neutral-700 hidden md:block"></div>
 
-    <!-- Sidebar toggle -->
-    <div class="flex items-center">
-      <button
-        title={showSidebar
-          ? "Hide Sidebar"
-          : isLargeScreen
-            ? "Show Sidebar (Right)"
-            : "Show Tab (Bottom)"}
-        aria-label={showSidebar
-          ? "Hide Sidebar"
-          : isLargeScreen
-            ? "Show Sidebar"
-            : "Show Tab"}
-        aria-pressed={showSidebar}
-        on:click={() => (showSidebar = !showSidebar)}
-        class="p-2 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-      >
-        {#if showSidebar && isLargeScreen}
-          <!-- Sidebar visible: show icon with left pane -->
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="size-5"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
-            <rect x="12" y="4" width="9" height="16"></rect>
-          </svg>
-        {:else if showSidebar && !isLargeScreen}
-          <!-- Shown on vertical: icon with bottom pane -->
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="size-5"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
-            <rect x="3" y="12" width="18" height="8"></rect>
-          </svg>
-        {:else}
-          <!-- Hidden: Empty Box -->
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="size-5"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
-          </svg>
-        {/if}
-      </button>
-    </div>
-
-    <!-- Snap to grid toggle -->
-    {#if $showGrid}
-      <button
-        title={$snapToGrid ? "Disable Snap to Grid" : "Enable Snap to Grid"}
-        aria-label={$snapToGrid
-          ? "Disable Snap to Grid"
-          : "Enable Snap to Grid"}
-        aria-pressed={$snapToGrid}
-        on:click={() => snapToGrid.update((v) => !v)}
-        class:text-green-500={$snapToGrid && $showGrid}
-        class:text-gray-400={!$showGrid}
-        class:opacity-50={!$showGrid}
-        disabled={!$showGrid}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+    <!-- Main Actions -->
+    <div class="flex items-center gap-2">
+        <!-- Load -->
+        <label
+            for="file-upload"
+            class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 cursor-pointer transition-colors"
+            title="Open Project"
         >
-          <!-- When snapped, show magnet icon -->
-          <path
-            d="m6 15-4-4 6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15"
-          ></path>
-          <path d="m5 8 4 4"></path>
-          <path d="m12 15 4 4"></path>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+            </svg>
+            <input id="file-upload" type="file" accept=".pp" on:change={loadFile} class="hidden" />
+        </label>
 
-          <!-- If the snap is disabled, turn the icon grey, not white -->
-          {#if !$snapToGrid}
-            <line x1="23" y1="23" x2="1" y2="1"></line>
-            class="opacity-50"
-          {/if}
-        </svg>
-      </button>
-    {/if}
+        <!-- Save -->
+        <div class="relative">
+             <button
+                bind:this={saveButtonRef}
+                on:click={() => (saveDropdownOpen = !saveDropdownOpen)}
+                class="flex items-center gap-1 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+                title="Save Options"
+             >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H18A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6A2.25 2.25 0 0 1 6 3.75h1.5m9 0h-9" />
+                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-3 transition-transform {saveDropdownOpen ? 'rotate-180' : ''}">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+             </button>
 
-    <!-- Grid toggle -->
-    <div class="relative flex flex-col items-center justify-center">
-      <button
-        title="Toggle Grid"
-        aria-label="Toggle Grid"
-        aria-pressed={$showGrid}
-        on:click={() => showGrid.update((v) => !v)}
-        class:text-blue-500={$showGrid}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="3" y1="9" x2="21" y2="9"></line>
-          <line x1="3" y1="15" x2="21" y2="15"></line>
-          <line x1="9" y1="3" x2="9" y2="21"></line>
-          <line x1="15" y1="3" x2="15" y2="21"></line>
-        </svg>
-      </button>
-      {#if $showGrid}
-        <div class="absolute top-full left-1/2 mt-2 -translate-x-1/2">
-          <select
-            class="px-2 py-1 text-sm rounded-md border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
-            bind:value={selectedGridSize}
-            on:change={handleGridSizeChange}
-            aria-label="Select grid spacing"
-          >
-            {#each gridSizeOptions as option}
-              <option value={option}>{option}" grid</option>
-            {/each}
-          </select>
+             {#if saveDropdownOpen}
+                <div bind:this={saveDropdownRef} class="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100">
+                    <button
+                        on:click={() => { saveProject(); saveDropdownOpen = false; }}
+                        class="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                    >
+                         <span class="font-medium">Save</span>
+                    </button>
+                     <button
+                        on:click={() => { saveFileAs(); saveDropdownOpen = false; }}
+                        class="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                    >
+                         <span class="font-medium">Save As...</span>
+                    </button>
+                </div>
+             {/if}
         </div>
-      {/if}
+
+        <!-- Export -->
+        <div class="relative">
+            <button
+                bind:this={exportButtonRef}
+                on:click={() => (exportMenuOpen = !exportMenuOpen)}
+                class="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md shadow-sm transition-colors text-sm font-medium"
+            >
+                <span>Export</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-3 transition-transform {exportMenuOpen ? 'rotate-180' : ''}">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+            </button>
+             {#if exportMenuOpen}
+                <div bind:this={exportMenuRef} class="absolute right-0 mt-2 w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100">
+                    <button on:click={() => handleExport("java")} class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700">Java Code</button>
+                    <button on:click={() => handleExport("points")} class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700">Points Array</button>
+                    <button on:click={() => handleExport("sequential")} class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700">Sequential Command</button>
+                    <button on:click={() => handleExport("json")} class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700">.pp File</button>
+                    <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
+                    <button on:click={() => { exportMenuOpen = false; exportGif && exportGif(); }} class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700">Export GIF</button>
+                </div>
+            {/if}
+        </div>
     </div>
 
-    <!-- Ruler toggle -->
-    <button
-      title="Toggle Ruler"
-      aria-label="Toggle Ruler"
-      aria-pressed={$showRuler}
-      on:click={() => showRuler.update((v) => !v)}
-      class:text-blue-500={$showRuler}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path
-          d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0z"
-        ></path>
-        <path d="m14.5 12.5 2-2"></path>
-        <path d="m11.5 9.5 2-2"></path>
-        <path d="m8.5 6.5 2-2"></path>
-        <path d="m17.5 15.5 2-2"></path>
-      </svg>
-    </button>
+    <!-- More Options -->
+    <div class="flex items-center gap-1 ml-2">
+         <button
+            title="Settings"
+            on:click={() => showSettings.set(true)}
+            class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+         >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 0 1 0 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 0 1 0-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            </svg>
+         </button>
 
-    <!-- Protractor lock to robot toggle -->
-    {#if $showProtractor}
-      <button
-        title={$protractorLockToRobot
-          ? "Unlock Protractor from Robot"
-          : "Lock Protractor to Robot"}
-        aria-label={$protractorLockToRobot
-          ? "Unlock Protractor from Robot"
-          : "Lock Protractor to Robot"}
-        aria-pressed={$protractorLockToRobot}
-        on:click={() => protractorLockToRobot.update((v) => !v)}
-        class:text-amber-500={$protractorLockToRobot}
-      >
-        {#if $protractorLockToRobot}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-        {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-          </svg>
-        {/if}
-      </button>
-    {/if}
-
-    <!-- Protractor toggle -->
-
-    <button
-      title="Toggle Protractor"
-      aria-label="Toggle Protractor"
-      aria-pressed={$showProtractor}
-      on:click={() => showProtractor.update((v) => !v)}
-      class:text-blue-500={$showProtractor}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path d="M12 21a9 9 0 1 1 0-18c2.52 0 4.93 1 6.74 2.74L21 8"></path>
-        <path d="M12 3v6l3.7 2.7"></path>
-      </svg>
-    </button>
-
-    <!-- Divider -->
-    <div
-      class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4"
-      aria-hidden="true"
-    ></div>
-
-    <div class="flex items-center gap-3">
-      <!-- Load trajectory from file -->
-      <input
-        id="file-upload"
-        type="file"
-        accept=".pp"
-        on:change={loadFile}
-        class="hidden"
-      />
-      <label
-        for="file-upload"
-        title="Load trajectory from a .pp file"
-        aria-label="Load trajectory from a .pp file"
-        class="cursor-pointer hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-6"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
-          />
-        </svg>
-      </label>
-
-      <!-- Save dropdown -->
-      <div class="relative">
-        <button
-          bind:this={saveButtonRef}
-          title="Save options"
-          on:click={() => (saveDropdownOpen = !saveDropdownOpen)}
-          class="flex items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors"
-          aria-expanded={saveDropdownOpen}
-          aria-label="Save options"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-6"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H18A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6A2.25 2.25 0 0 1 6 3.75h1.5m9 0h-9"
-            />
-          </svg>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-4 transition-transform"
-            class:rotate-180={saveDropdownOpen}
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="m19.5 8.25-7.5 7.5-7.5-7.5"
-            />
-          </svg>
-        </button>
-
-        <!-- Dropdown menu -->
-        {#if saveDropdownOpen}
-          <div
-            bind:this={saveDropdownRef}
-            class="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-lg py-1 z-50 border border-neutral-200 dark:border-neutral-700"
-            role="menu"
-          >
-            <!-- Save option -->
-            <button
-              on:click={() => {
-                saveProject();
-                saveDropdownOpen = false;
-              }}
-              class="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-              role="menuitem"
-              title="Save to current file"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-4"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H18A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6A2.25 2.25 0 0 1 6 3.75h1.5m9 0h-9"
-                />
-              </svg>
-              <div class="flex flex-col">
-                <span class="font-medium">Save</span>
-                <span class="text-xs text-neutral-500 dark:text-neutral-400">
-                  {#if $currentFilePath}
-                    Save to {$currentFilePath.split(/[\\/]/).pop()}
-                  {:else}
-                    Save to new file
-                  {/if}
-                </span>
-              </div>
-            </button>
-
-            <!-- Save As option -->
-            <button
-              on:click={() => {
-                saveFileAs();
-                saveDropdownOpen = false;
-              }}
-              class="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-              role="menuitem"
-              title="Save as new file"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-4"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M17 16v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h2m3-4H9a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1m-1 4l-3 3m0 0l-3-3m3 3V3"
-                />
-              </svg>
-              <div class="flex flex-col">
-                <span class="font-medium">Save As</span>
-                <span class="text-xs text-neutral-500 dark:text-neutral-400">
-                  Save to a new file
-                </span>
-              </div>
-            </button>
-          </div>
-        {/if}
-      </div>
-
-      <div class="relative">
-        <button
-          bind:this={exportButtonRef}
-          title="Export path"
-          aria-label="Export path"
-          aria-haspopup="true"
-          aria-expanded={exportMenuOpen}
-          on:click={() => (exportMenuOpen = !exportMenuOpen)}
-          class="flex items-center gap-1"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-6"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5"
-            />
-          </svg>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-4"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="m19.5 8.25-7.5 7.5-7.5-7.5"
-            />
-          </svg>
-        </button>
-
-        {#if exportMenuOpen}
-          <div
-            bind:this={exportMenuRef}
-            class="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-lg py-1 z-50 border border-neutral-200 dark:border-neutral-700"
-          >
-            <button
-              on:click={() => handleExport("java")}
-              class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-            >
-              Java Code
-            </button>
-            <button
-              on:click={() => handleExport("points")}
-              class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-            >
-              Points Array
-            </button>
-            <button
-              on:click={() => handleExport("sequential")}
-              class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-            >
-              Sequential Command
-            </button>
-            <button
-              on:click={() => handleExport("json")}
-              class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-            >
-              .pp File
-            </button>
-            <button
-              on:click={() => {
-                exportMenuOpen = false;
-                exportGif && exportGif();
-              }}
-              class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-            >
-              Export GIF
-            </button>
-          </div>
-        {/if}
-      </div>
-    </div>
-
-    <div
-      class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4"
-      aria-hidden="true"
-    ></div>
-
-    <div class="flex items-center gap-3">
-      <!-- Delete/Reset path -->
-      <button
-        title="Delete/Reset path"
-        aria-label="Delete or Reset path"
-        on:click={handleResetPathWithConfirmation}
-        class="relative group"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="red"
-          class="size-6 stroke-red-500 hover:stroke-red-600 transition-colors"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-          />
-        </svg>
-      </button>
-
-      <!-- GitHub Repo Link -->
-      <a
-        target="_blank"
-        rel="norefferer"
-        title="GitHub Repo"
-        aria-label="GitHub Repository"
-        href="https://github.com/Mallen220/PedroPathingVisualizer"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 30 30"
-          class="size-6 dark:fill-white"
-        >
-          <path
-            d="M15,3C8.373,3,3,8.373,3,15c0,5.623,3.872,10.328,9.092,11.63C12.036,26.468,12,26.28,12,26.047v-2.051 c-0.487,0-1.303,0-1.508,0c-0.821,0-1.551-0.353-1.905-1.009c-0.393-0.729-0.461-1.844-1.435-2.526 c-0.289-0.227-0.069-0.486,0.264-0.451c0.615,0.174,1.125,0.596,1.605,1.222c0.478,0.627,0.703,0.769,1.596,0.769 c0.433,0,1.081-0.025,1.691-0.121c0.328-0.833,0.895-1.6,1.588-1.962c-3.996-0.411-5.903-2.399-5.903-5.098 c0-1.162,0.495-2.286,1.336-3.233C9.053,10.647,8.706,8.73,9.435,8c1.798,0,2.885,1.166,3.146,1.481C13.477,9.174,14.461,9,15.495,9 c1.036,0,2.024,0.174,2.922,0.483C18.675,9.17,19.763,8,21.565,8c0.732,0.731,0.381,2.656,0.102,3.594 c0.836,0.945,1.328,2.066,1.328,3.226c0,2.697-1.904,4.684-5.894,5.097C18.199,20.49,19,22.1,19,23.313v2.734 c0,0.104-0.023,0.179-0.035,0.268C23.641,24.676,27,20.236,27,15C27,8.373,21.627,3,15,3z"
-          ></path>
-        </svg>
-      </a>
-
-      <!-- Settings button -->
-      <button
-        title="Open Settings"
-        on:click={() => showSettings.set(true)}
-        aria-label="Open Settings"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="size-6 text-neutral-700 hover:text-neutral-900 dark:text-white dark:hover:text-white transition-colors"
-          ><circle cx="12" cy="12" r="3"></circle><path
-            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-          ></path></svg
-        >
-      </button>
-
-      <!-- Shortcuts button -->
-      <!-- <button
-        title="Keyboard Shortcuts (?)"
-        on:click={() => (shortcutsOpen = true)}
-        aria-label="Keyboard Shortcuts"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-6 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
-          />
-        </svg>
-      </button> -->
+         <button
+            title={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
+            aria-label={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
+            on:click={() => (showSidebar = !showSidebar)}
+            class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+         >
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 3v18" />
+             </svg>
+         </button>
     </div>
   </div>
 </div>
