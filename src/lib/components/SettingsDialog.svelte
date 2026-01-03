@@ -10,6 +10,7 @@
     DEFAULT_KEY_BINDINGS,
   } from "../../config/defaults";
   import type { Settings } from "../../types";
+  import KeyboardShortcutsDialog from "./KeyboardShortcutsDialog.svelte";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -20,69 +21,10 @@
     motion: true,
     advanced: true,
     theme: true,
-    shortcuts: true,
     credits: true,
   };
 
-  // State for key recording
-  let recordingKeyFor: string | null = null;
-
-  function startRecordingKey(actionId: string) {
-    recordingKeyFor = actionId;
-  }
-
-  function handleKeyDown(event: KeyboardEvent, binding: any) {
-    if (recordingKeyFor !== binding.id) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    // If Escape is pressed, reset this binding to the default and stop recording
-    if (event.key === "Escape") {
-      const defaultBinding = DEFAULT_KEY_BINDINGS.find(
-        (b) => b.id === binding.id,
-      );
-      if (defaultBinding) {
-        binding.key = defaultBinding.key;
-        settings = { ...settings }; // Force reactivity
-      }
-      recordingKeyFor = null;
-      return;
-    }
-
-    // Check if the key pressed is a modifier key (ignore if it is)
-    const modifierKeys = ["Control", "Alt", "Shift", "Meta", "Command"];
-    if (modifierKeys.includes(event.key)) {
-      return; // Wait for a non-modifier key to be pressed
-    }
-
-    // Build the key string
-    let key = "";
-    if (event.ctrlKey) key += "ctrl+";
-    if (event.altKey) key += "alt+";
-    if (event.shiftKey) key += "shift+";
-    if (event.metaKey) key += "cmd+";
-
-    // Handle special keys or regular keys
-    let code = event.code.toLowerCase();
-    let keyName = event.key.toLowerCase();
-
-    // Map common keys to hotkeys-js format if needed
-    if (code.startsWith("key")) {
-      key += keyName;
-    } else if (code.startsWith("digit")) {
-      key += keyName;
-    } else if (keyName === " ") {
-      key += "space";
-    } else {
-      key += keyName;
-    }
-
-    // Update the binding
-    binding.key = key;
-    settings = { ...settings }; // Force reactivity
-    recordingKeyFor = null;
-  }
+  let isShortcutsDialogOpen = false;
 
   // Get version from package. json
   import packageJson from "../../../package.json";
@@ -984,10 +926,8 @@
         <!-- Keyboard Shortcuts Section -->
         <div class="mb-4">
           <button
-            on:click={() =>
-              (collapsedSections.shortcuts = !collapsedSections.shortcuts)}
+            on:click={() => (isShortcutsDialogOpen = true)}
             class="flex items-center justify-between w-full py-2 px-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-            aria-expanded={!collapsedSections.shortcuts}
           >
             <div class="flex items-center gap-2">
               <svg
@@ -1006,93 +946,10 @@
               </svg>
               <span class="font-semibold">Keyboard Shortcuts</span>
             </div>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width={2}
-              stroke="currentColor"
-              class="size-5 transition-transform duration-200"
-              class:rotate-180={collapsedSections.shortcuts}
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="m19.5 8.25-7.5 7.5-7.5-7.5"
-              />
-            </svg>
-          </button>
-
-          {#if !collapsedSections.shortcuts}
-            <div
-              class="mt-2 space-y-2 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg"
-            >
-              {#if settings.keyBindings}
-                {#each settings.keyBindings as binding}
-                  <div
-                    class="flex items-center justify-between p-2 rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
-                  >
-                    <span
-                      class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
-                    >
-                      {binding.description}
-                    </span>
-                    <button
-                      class="px-3 py-1 text-xs font-mono rounded border transition-colors min-w-[80px] text-center"
-                      class:bg-blue-100={recordingKeyFor === binding.id}
-                      class:text-blue-700={recordingKeyFor === binding.id}
-                      class:border-blue-300={recordingKeyFor === binding.id}
-                      class:bg-neutral-100={recordingKeyFor !== binding.id}
-                      class:text-neutral-600={recordingKeyFor !== binding.id}
-                      class:border-neutral-200={recordingKeyFor !== binding.id}
-                      class:dark:bg-blue-900={recordingKeyFor === binding.id}
-                      class:dark:text-blue-100={recordingKeyFor === binding.id}
-                      class:dark:border-blue-700={recordingKeyFor ===
-                        binding.id}
-                      class:dark:bg-neutral-800={recordingKeyFor !== binding.id}
-                      class:dark:text-neutral-400={recordingKeyFor !==
-                        binding.id}
-                      class:dark:border-neutral-600={recordingKeyFor !==
-                        binding.id}
-                      on:click={() => startRecordingKey(binding.id)}
-                      on:keydown={(e) => handleKeyDown(e, binding)}
-                    >
-                      {recordingKeyFor === binding.id
-                        ? "Press Key..."
-                        : binding.key}
-                    </button>
-                  </div>
-                {/each}
-              {:else}
-                <div class="text-sm text-neutral-500 text-center py-2">
-                  No key bindings available
-                </div>
-              {/if}
-
-              <div class="mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-                <p
-                  class="text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="2"
-                    stroke="currentColor"
-                    class="size-4 mt-0.5 shrink-0"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"
-                    />
-                  </svg>
-                  Click a button to record a new shortcut. Press Escape to reset the
-                  binding to its default.
-                </p>
-              </div>
+            <div class="text-sm text-blue-600 dark:text-blue-400 font-medium">
+              Open Editor
             </div>
-          {/if}
+          </button>
         </div>
 
         <!-- Advanced Settings Section (for future expansion) -->
@@ -1565,6 +1422,11 @@
       </div>
     </div>
   </div>
+
+  <KeyboardShortcutsDialog
+    bind:isOpen={isShortcutsDialogOpen}
+    bind:settings
+  />
 {/if}
 
 <style>

@@ -88,6 +88,7 @@ export interface KeyBinding {
   key: string;
   description: string;
   action: string; // Identifier for the action
+  category?: string;
 }
 
 export interface Settings {
