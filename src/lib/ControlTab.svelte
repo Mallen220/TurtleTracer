@@ -19,6 +19,7 @@
   import ObstaclesSection from "./components/ObstaclesSection.svelte";
   import RobotPositionDisplay from "./components/RobotPositionDisplay.svelte";
   import StartingPointSection from "./components/StartingPointSection.svelte";
+  import CollapseAllButton from "./components/CollapseAllButton.svelte";
   import PathLineSection from "./components/PathLineSection.svelte";
   import PlaybackControls from "./components/PlaybackControls.svelte";
   import WaitRow from "./components/WaitRow.svelte";
@@ -1005,14 +1006,20 @@
 
     {#if activeTab === "field"}
       <div class="p-4 w-full flex flex-col gap-6">
-        <RobotPositionDisplay
-          {robotXY}
-          {robotHeading}
-          {x}
-          {y}
-          onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
-          onValidate={handleValidate}
-        />
+        <div class="flex items-center justify-between w-full gap-4">
+          <RobotPositionDisplay
+            {robotXY}
+            {robotHeading}
+            {x}
+            {y}
+            onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
+            onValidate={handleValidate}
+          />
+
+          <div class="flex items-center justify-end">
+            <CollapseAllButton {allCollapsed} onToggle={toggleCollapseAll} />
+          </div>
+        </div>
 
         {#if optimizationOpen}
           <div
@@ -1170,7 +1177,7 @@
                 canMoveUp={sIdx !== 0}
                 canMoveDown={sIdx !== sequence.length - 1}
               />
-              <WaitMarkersSection wait={getWait(item)} />
+              <WaitMarkersSection wait={getWait(item)} {allCollapsed} />
             {/if}
           </div>
         {/each}

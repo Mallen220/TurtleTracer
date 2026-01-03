@@ -4,7 +4,17 @@
   import TrashIcon from "./icons/TrashIcon.svelte";
 
   export let wait: SequenceWaitItem;
-  let collapsed: boolean = false;
+  // When a global collapse/expand-all is triggered, wait marker sections should respect it
+  export let allCollapsed: boolean = false;
+  // Initialize collapsed to reflect global collapse state so newly-rendered waits follow the global command
+  let collapsed: boolean = allCollapsed;
+  let _lastAllCollapsed = allCollapsed;
+
+  // Sync collapsed state when global allCollapsed toggles
+  $: if (allCollapsed !== _lastAllCollapsed) {
+    collapsed = allCollapsed;
+    _lastAllCollapsed = allCollapsed;
+  }
 
   function toggleCollapsed() {
     collapsed = !collapsed;
@@ -138,7 +148,7 @@
               title="Remove Event Marker"
               disabled={wait.locked}
             >
-              <TrashIcon class_="size-4" strokeWidth={2} />
+              <TrashIcon className="size-4" strokeWidth={2} />
             </button>
           </div>
 

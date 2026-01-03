@@ -34,3 +34,5 @@ src/lib/components/HeadingControls.svelte
 src/lib/components/PathLineSection.svelte
 src/lib/components/KeyboardShortcuts.svelte
 src/lib/components/WaypointTable.svelte
+src/lib/components/CollapseAllButton.svelte
+src/lib/components/WaitMarkersSection.svelte

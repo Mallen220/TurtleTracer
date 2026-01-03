@@ -3,6 +3,7 @@
   export let startPoint: Point;
   export let addPathAtStart: () => void;
   export let addWaitAtStart: () => void;
+  import CollapseAllButton from "./CollapseAllButton.svelte";
   export let toggleCollapseAll: () => void;
   export let allCollapsed: boolean;
 </script>
@@ -55,17 +56,7 @@
       </button>
     </div>
 
-    <button
-      on:click={toggleCollapseAll}
-      class="text-sm mb-2 px-2 py-1 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-200 dark:border-neutral-700"
-      aria-label="Toggle collapse/expand all"
-    >
-      {#if allCollapsed}
-        <span class="whitespace-nowrap">Expand All</span>
-      {:else}
-        <span class="whitespace-nowrap">Collapse All</span>
-      {/if}
-    </button>
+    <CollapseAllButton {allCollapsed} onToggle={toggleCollapseAll} />
   </div>
   <div class="flex flex-wrap justify-start items-center gap-x-4 gap-y-2">
     <div class="flex items-center gap-2">
