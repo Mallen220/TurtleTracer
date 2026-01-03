@@ -212,9 +212,12 @@ function analyzePathSegment(
   const isLine = cps.length === 0;
   const steps: PathStep[] = [];
 
+  // OPTIMIZATION: Pre-allocate the full points array to avoid creating it inside the loop
+  const fullPoints = [start, ...cps, end];
+
   for (let i = 0; i <= samples; i++) {
     const t = i / samples;
-    const point = getCurvePoint(t, [start, ...cps, end]);
+    const point = getCurvePoint(t, fullPoints);
 
     let deltaLength = 0;
     if (i > 0) {
@@ -232,7 +235,6 @@ function analyzePathSegment(
       d1 = { x: end.x - start.x, y: end.y - start.y };
       d2 = { x: 0, y: 0 };
     } else {
-      const fullPoints = [start, ...cps, end];
       d1 = getBezierDerivative(t, fullPoints);
       d2 = getBezierSecondDerivative(t, fullPoints);
     }
