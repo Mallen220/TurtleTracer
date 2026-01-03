@@ -99,7 +99,9 @@
       {#if currentNotification && currentNotification.action && currentNotification.actionLabel}
         <button
           on:click={() => {
-            const act = currentNotification ? currentNotification.action : undefined;
+            const act = currentNotification
+              ? currentNotification.action
+              : undefined;
             try {
               if (act) act();
             } finally {

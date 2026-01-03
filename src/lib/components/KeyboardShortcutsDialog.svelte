@@ -4,6 +4,7 @@
   import { cubicInOut } from "svelte/easing";
   import type { Settings } from "../../types";
   import { DEFAULT_KEY_BINDINGS } from "../../config/defaults";
+  import { notification } from "../../stores";
 
   export let isOpen = false;
   export let settings: Settings;
@@ -16,7 +17,10 @@
   $: keyBindings = settings?.keyBindings || DEFAULT_KEY_BINDINGS;
 
   // Extract unique categories
-  $: categories = ["All", ...new Set(keyBindings.map((b) => b.category || "Uncategorized"))];
+  $: categories = [
+    "All",
+    ...new Set(keyBindings.map((b) => b.category || "Uncategorized")),
+  ];
 
   // Filter bindings based on search and category
   $: filteredBindings = keyBindings.filter((binding) => {
@@ -24,7 +28,8 @@
       binding.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       binding.key.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
-      selectedCategory === "All" || (binding.category || "Uncategorized") === selectedCategory;
+      selectedCategory === "All" ||
+      (binding.category || "Uncategorized") === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -47,6 +52,28 @@
           },
         ];
 
+  // Detect duplicate keys (case-insensitive) and expose a mapping for UI warnings
+  let duplicateCheckVersion = 0;
+  let duplicateMap: Record<string, (typeof keyBindings)[number][] | undefined> =
+    {};
+  $: {
+    // include duplicateCheckVersion to force recomputation when a manual reset occurs
+    const _dup = duplicateCheckVersion;
+    duplicateMap = (keyBindings || []).reduce(
+      (acc, b) => {
+        const k = (b.key || "").toLowerCase().trim();
+        if (!k) return acc;
+        (acc[k] = acc[k] || []).push(b);
+        return acc;
+      },
+      {} as Record<string, (typeof keyBindings)[number][] | undefined>,
+    );
+  }
+
+  $: duplicateKeys = Object.entries(duplicateMap).filter(
+    ([, arr]) => (arr || []).length > 1,
+  ) as [string, (typeof keyBindings)[number][]][];
+
   function startRecordingKey(actionId: string) {
     recordingKeyFor = actionId;
   }
@@ -61,18 +88,20 @@
     }
 
     if (recordingKeyFor) {
+      // Ensure Escape during recording always reverts to the DEFAULT binding value
       handleRecordingKeyDown(event);
     }
   }
 
   function handleRecordingKeyDown(event: KeyboardEvent) {
-    const bindingIndex = settings.keyBindings?.findIndex((b) => b.id === recordingKeyFor);
+    const bindingIndex = settings.keyBindings?.findIndex(
+      (b) => b.id === recordingKeyFor,
+    );
     if (bindingIndex === undefined || bindingIndex === -1) {
-       recordingKeyFor = null;
-       return;
+      recordingKeyFor = null;
+      return;
     }
     const binding = settings.keyBindings![bindingIndex];
-
 
     event.preventDefault();
     event.stopPropagation();
@@ -120,17 +149,76 @@
   }
 
   function resetBinding(id: string) {
-      const defaultBinding = DEFAULT_KEY_BINDINGS.find((b) => b.id === id);
-      const bindingIndex = settings.keyBindings?.findIndex((b) => b.id === id);
-      if (defaultBinding && bindingIndex !== undefined && bindingIndex !== -1) {
-          settings.keyBindings![bindingIndex].key = defaultBinding.key;
-          settings = { ...settings };
+    const defaultBinding = DEFAULT_KEY_BINDINGS.find((b) => b.id === id);
+    const bindingIndex = settings.keyBindings?.findIndex((b) => b.id === id);
+
+    // If there's a default, prefer that
+    if (defaultBinding) {
+      if (bindingIndex !== undefined && bindingIndex !== -1) {
+        settings.keyBindings![bindingIndex].key = defaultBinding.key;
+      } else {
+        // If the binding wasn't present in user settings, add the default back
+        settings.keyBindings = [
+          ...(settings.keyBindings || []),
+          { ...defaultBinding },
+        ];
       }
+      settings = { ...settings };
+      return;
+    }
+
+    // Fallback: if no default exists but binding exists in settings, clear it
+    if (bindingIndex !== undefined && bindingIndex !== -1) {
+      settings.keyBindings![bindingIndex].key = "";
+      settings = { ...settings };
+    }
+  }
+
+  /**
+   * Reset all key bindings to their defaults (with confirmation)
+   */
+  function resetAllBindings() {
+    if (
+      !confirm(
+        "Reset all key bindings to defaults? This will overwrite any custom key bindings.",
+      )
+    )
+      return;
+    const previousBindings = (settings.keyBindings || []).map((b) => ({
+      ...b,
+    }));
+
+    settings.keyBindings = DEFAULT_KEY_BINDINGS.map((b) => ({ ...b }));
+    settings = { ...settings };
+    // Clear any active recording and inform the user
+    recordingKeyFor = null;
+    // Force re-evaluate duplicate detection
+    duplicateCheckVersion = (duplicateCheckVersion || 0) + 1;
+
+    // Provide an "Undo" action in the notification which restores the previous bindings
+    notification.set({
+      message: "Reset key bindings to defaults",
+      type: "success",
+      timeout: 5000,
+      actionLabel: "Undo",
+      action: () => {
+        settings.keyBindings = previousBindings.map((b) => ({ ...b }));
+        settings = { ...settings };
+        duplicateCheckVersion = (duplicateCheckVersion || 0) + 1;
+        notification.set({
+          message: "Restored key bindings",
+          type: "success",
+          timeout: 3000,
+        });
+      },
+    });
   }
 
   function isModified(binding: any) {
-      const defaultBinding = DEFAULT_KEY_BINDINGS.find(b => b.id === binding.id);
-      return defaultBinding && binding.key !== defaultBinding.key;
+    const defaultBinding = DEFAULT_KEY_BINDINGS.find(
+      (b) => b.id === binding.id,
+    );
+    return defaultBinding && binding.key !== defaultBinding.key;
   }
 </script>
 
@@ -156,164 +244,229 @@
         class="flex flex-col gap-4 px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50"
       >
         <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3">
             <div
-                class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400"
+              class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400"
             >
-                <svg
+              <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke-width="2"
                 stroke="currentColor"
                 class="size-6"
-                >
+              >
                 <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"
                 />
-                </svg>
+              </svg>
             </div>
             <div>
-                <h2
+              <h2
                 id="shortcuts-title"
                 class="text-xl font-bold text-neutral-900 dark:text-white"
-                >
+              >
                 Keyboard Shortcuts
-                </h2>
-                <p class="text-sm text-neutral-500 dark:text-neutral-400">
+              </h2>
+              <p class="text-sm text-neutral-500 dark:text-neutral-400">
                 Customize key bindings to speed up your workflow
-                </p>
+              </p>
             </div>
-            </div>
-            <button
+          </div>
+          <button
             on:click={() => (isOpen = false)}
             class="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors"
             aria-label="Close dialog"
-            >
+          >
             <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-6"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="size-6"
             >
-                <path
+              <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 d="M6 18 18 6M6 6l12 12"
-                />
+              />
             </svg>
-            </button>
+          </button>
         </div>
 
         <div class="flex gap-4">
-            <!-- Search -->
-            <div class="relative flex-1">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                    class="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-neutral-400"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-                    />
-                </svg>
-                <input
-                    type="text"
-                    bind:value={searchQuery}
-                    placeholder="Search shortcuts..."
-                    class="w-full pl-10 pr-4 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                />
-            </div>
-
-            <!-- Category Filter -->
-            <select
-                bind:value={selectedCategory}
-                class="px-4 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          <!-- Search -->
+          <div class="relative flex-1">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-neutral-400"
             >
-                {#each categories as category}
-                    <option value={category}>{category}</option>
-                {/each}
-            </select>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+              />
+            </svg>
+            <input
+              type="text"
+              bind:value={searchQuery}
+              placeholder="Search shortcuts..."
+              class="w-full pl-10 pr-4 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <!-- Category Filter -->
+          <select
+            bind:value={selectedCategory}
+            class="px-4 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          >
+            {#each categories as category}
+              <option value={category}>{category}</option>
+            {/each}
+          </select>
         </div>
       </div>
 
       <!-- Content -->
       <div class="flex-1 overflow-y-auto p-6 bg-white dark:bg-neutral-900">
         {#if filteredBindings.length === 0}
-            <div class="flex flex-col items-center justify-center h-full text-neutral-500 dark:text-neutral-400">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-12 mb-2 opacity-50">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-                </svg>
-                <p>No shortcuts found matching your search.</p>
-            </div>
+          <div
+            class="flex flex-col items-center justify-center h-full text-neutral-500 dark:text-neutral-400"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="size-12 mb-2 opacity-50"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
+              />
+            </svg>
+            <p>No shortcuts found matching your search.</p>
+          </div>
         {:else}
-            {#each groupedBindings as group}
-                <div class="mb-8 last:mb-0">
-                    <h3 class="text-sm font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-4 px-2">
-                        {group.category}
-                    </h3>
-                    <div class="space-y-2">
-                        {#each group.bindings as binding}
-                            <div
-                                class="flex items-center justify-between p-3 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800"
-                                class:bg-blue-50={recordingKeyFor === binding.id}
-                                class:dark:bg-blue-900\/20={recordingKeyFor === binding.id}
-                            >
-                                <span class="font-medium text-neutral-700 dark:text-neutral-300">
-                                    {binding.description}
-                                </span>
-                                <div class="flex items-center gap-3">
-                                    {#if isModified(binding)}
-                                        <button
-                                            on:click={() => resetBinding(binding.id)}
-                                            class="text-xs text-neutral-400 hover:text-red-500 transition-colors"
-                                            title="Reset to default"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
-                                            </svg>
-                                        </button>
-                                    {/if}
+          {#if duplicateKeys.length > 0}
+            <div
+              class="mb-4 p-3 rounded bg-amber-100 dark:bg-amber-900/20 text-sm text-amber-800"
+            >
+              <strong class="mr-2">⚠️ Duplicate keybindings detected:</strong>
+              {#each duplicateKeys as [k, arr], idx}
+                <span class="font-medium">{k}</span>
+                <span> — {arr.map((b) => b.description).join(", ")}</span>{idx <
+                duplicateKeys.length - 1
+                  ? ", "
+                  : ""}
+              {/each}
+            </div>
+          {/if}
+          {#each groupedBindings as group}
+            <div class="mb-8 last:mb-0">
+              <h3
+                class="text-sm font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-4 px-2"
+              >
+                {group.category}
+              </h3>
+              <div class="space-y-2">
+                {#each group.bindings as binding}
+                  <div
+                    class={"flex items-center justify-between p-3 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800 " +
+                      (recordingKeyFor === binding.id
+                        ? "bg-blue-50 dark:bg-blue-900/20"
+                        : "")}
+                  >
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="font-medium text-neutral-700 dark:text-neutral-300"
+                      >
+                        {binding.description}
+                      </span>
 
-                                    <button
-                                        class="px-3 py-1.5 min-w-[6rem] text-sm font-mono font-bold rounded-md shadow-sm border transition-all duration-200 text-center relative group"
-                                        class:bg-indigo-100={recordingKeyFor === binding.id}
-                                        class:text-indigo-700={recordingKeyFor === binding.id}
-                                        class:border-indigo-300={recordingKeyFor === binding.id}
-                                        class:ring-2={recordingKeyFor === binding.id}
-                                        class:ring-indigo-500={recordingKeyFor === binding.id}
-                                        class:bg-white={recordingKeyFor !== binding.id}
-                                        class:text-neutral-700={recordingKeyFor !== binding.id}
-                                        class:border-neutral-200={recordingKeyFor !== binding.id}
-                                        class:dark:bg-indigo-900={recordingKeyFor === binding.id}
-                                        class:dark:text-indigo-100={recordingKeyFor === binding.id}
-                                        class:dark:border-indigo-700={recordingKeyFor === binding.id}
-                                        class:dark:bg-neutral-800={recordingKeyFor !== binding.id}
-                                        class:dark:text-neutral-300={recordingKeyFor !== binding.id}
-                                        class:dark:border-neutral-700={recordingKeyFor !== binding.id}
-                                        on:click={() => startRecordingKey(binding.id)}
-                                    >
-                                        {#if recordingKeyFor === binding.id}
-                                            <span class="animate-pulse">Listening...</span>
-                                        {:else}
-                                            {binding.key}
-                                        {/if}
-                                    </button>
-                                </div>
-                            </div>
-                        {/each}
+                      {#if binding.key && duplicateMap[(binding.key || "").toLowerCase()] && (duplicateMap[(binding.key || "").toLowerCase()] || []).length > 1}
+                        <span
+                          class="text-xs text-red-600 dark:text-red-300 px-2 py-0.5 rounded bg-red-50 dark:bg-red-900/20"
+                        >
+                          Conflicts with: {duplicateMap[
+                            (binding.key || "").toLowerCase()
+                          ]
+                            ?.filter((b) => b.id !== binding.id)
+                            .map((b) => b.description)
+                            .join(", ")}
+                        </span>
+                      {/if}
                     </div>
-                </div>
-            {/each}
+                    <div class="flex items-center gap-3">
+                      {#if isModified(binding)}
+                        <button
+                          on:click={() => resetBinding(binding.id)}
+                          class="text-xs text-neutral-400 hover:text-red-500 transition-colors"
+                          title="Reset to default"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            class="size-4"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"
+                            />
+                          </svg>
+                        </button>
+                      {/if}
+
+                      <button
+                        class="px-3 py-1.5 min-w-[6rem] text-sm font-mono font-bold rounded-md shadow-sm border transition-all duration-200 text-center relative group"
+                        class:bg-indigo-100={recordingKeyFor === binding.id}
+                        class:text-indigo-700={recordingKeyFor === binding.id}
+                        class:border-indigo-300={recordingKeyFor === binding.id}
+                        class:ring-2={recordingKeyFor === binding.id}
+                        class:ring-indigo-500={recordingKeyFor === binding.id}
+                        class:bg-white={recordingKeyFor !== binding.id}
+                        class:text-neutral-700={recordingKeyFor !== binding.id}
+                        class:border-neutral-200={recordingKeyFor !==
+                          binding.id}
+                        class:dark:bg-indigo-900={recordingKeyFor ===
+                          binding.id}
+                        class:dark:text-indigo-100={recordingKeyFor ===
+                          binding.id}
+                        class:dark:border-indigo-700={recordingKeyFor ===
+                          binding.id}
+                        class:dark:bg-neutral-800={recordingKeyFor !==
+                          binding.id}
+                        class:dark:text-neutral-300={recordingKeyFor !==
+                          binding.id}
+                        class:dark:border-neutral-700={recordingKeyFor !==
+                          binding.id}
+                        on:click={() => startRecordingKey(binding.id)}
+                      >
+                        {#if recordingKeyFor === binding.id}
+                          <span class="animate-pulse">Listening...</span>
+                        {:else}
+                          {binding.key}
+                        {/if}
+                      </button>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/each}
         {/if}
       </div>
 
@@ -321,11 +474,39 @@
       <div
         class="bg-neutral-50 dark:bg-neutral-900/50 px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 flex justify-between items-center"
       >
-        <div class="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+        <div class="flex items-center gap-4">
+          <button
+            on:click={resetAllBindings}
+            title="Reset all key bindings to defaults"
+            class="px-3 py-1.5 text-sm rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 hover:bg-red-100 dark:hover:bg-red-800 transition-colors"
+          >
+            Reset All
+          </button>
+
+          <div
+            class="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"
+              />
             </svg>
-            <span>Click a keybinding to record a new one. Press <kbd class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1 rounded">Esc</kbd> while recording to reset.</span>
+            <span
+              >Click a keybinding to record a new one. Press <kbd
+                class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1 rounded"
+                >Esc</kbd
+              > while recording to reset.</span
+            >
+          </div>
         </div>
         <button
           on:click={() => (isOpen = false)}

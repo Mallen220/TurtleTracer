@@ -8,6 +8,7 @@
     snapToGrid,
     showProtractor,
     showShortcuts,
+    showSettings,
     selectedPointId,
     selectedLineId,
     toggleCollapseAllTrigger,
@@ -642,6 +643,7 @@
       toggleCollapseAllTrigger.update((v) => v + 1),
     );
     bind("showHelp", () => showShortcuts.update((v) => !v));
+    bind("openSettings", () => showSettings.update((v) => !v));
 
     const playKey = getKey("togglePlay");
     if (playKey) {

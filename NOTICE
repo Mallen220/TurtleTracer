@@ -36,3 +36,5 @@ src/lib/components/KeyboardShortcuts.svelte
 src/lib/components/WaypointTable.svelte
 src/lib/components/CollapseAllButton.svelte
 src/lib/components/WaitMarkersSection.svelte
+src/config/defaults.ts
+src/lib/components/KeyboardShortcutsDialog.svelte

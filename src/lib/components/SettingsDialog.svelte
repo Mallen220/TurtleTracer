@@ -243,8 +243,7 @@
 
       <!-- Settings Content -->
       <div class="w-full flex-1 overflow-y-auto pr-2">
-
-<!-- Keyboard Shortcuts Section -->
+        <!-- Keyboard Shortcuts Section -->
         <div class="mb-4">
           <button
             on:click={() => (isShortcutsDialogOpen = true)}
@@ -1424,10 +1423,7 @@
     </div>
   </div>
 
-  <KeyboardShortcutsDialog
-    bind:isOpen={isShortcutsDialogOpen}
-    bind:settings
-  />
+  <KeyboardShortcutsDialog bind:isOpen={isShortcutsDialogOpen} bind:settings />
 {/if}
 
 <style>
