@@ -1,6 +1,6 @@
 ## 1.4.3 (2026-01-03)
 
-- Fix critical error breaking several versions due to stale or undefined settings. implement realistic motion profiling for path segments and fix unexpected behavior. Better testing. Add path validation and collision visualization. reorder control points via drag-and-drop and buttons. Overhaul File Manager UI for better scalability and better user experience. Add credits section to settings dialog. 
+- Fix critical error breaking several versions due to stale or undefined settings. implement realistic motion profiling for path segments and fix unexpected behavior. Better testing. Add path validation and collision visualization. reorder control points via drag-and-drop and buttons. Overhaul File Manager UI for better scalability and better user experience. Add credits section to settings dialog.
 
 ## 1.4.2 (2025-12-31)
 

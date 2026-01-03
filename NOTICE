@@ -24,3 +24,4 @@ src/stores.ts
 src/utils/validation.ts
 src/lib/components/SettingsDialog.svelte
 vite.config.ts
+CHANGELOG.md

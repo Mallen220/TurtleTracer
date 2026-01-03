@@ -218,7 +218,7 @@
   >
     <div
       transition:fly={{ duration: 500, easing: cubicInOut, y: 20 }}
-      class="flex flex-col justify-start items-start p-6 bg-white dark:bg-neutral-900 rounded-lg w-full max-w-md max-h-[80vh]"
+      class="flex flex-col justify-start items-start p-6 bg-white dark:bg-neutral-900 rounded-lg w-full max-w-md max-h-[92vh]"
     >
       <!-- Header -->
       <div class="flex flex-row justify-between items-center w-full mb-4">
