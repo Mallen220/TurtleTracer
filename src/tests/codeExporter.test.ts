@@ -220,58 +220,49 @@ describe("codeExporter", () => {
     });
 
     it("should handle NextFTC wait commands (seconds conversion)", async () => {
-      const lines = [line1];
-      const sequence: SequenceItem[] = [
-        { kind: "path", lineId: "line1" },
-        { kind: "wait", durationMs: 1500 } as any,
-      ];
-      const code = await generateSequentialCommandCode(
-        startPoint,
-        lines,
-        "TestPath.pp",
-        sequence,
-        "NextFTC",
-      );
+        const lines = [line1];
+        const sequence: SequenceItem[] = [
+          { kind: "path", lineId: "line1" },
+          { kind: "wait", durationMs: 1500 } as any,
+        ];
+        const code = await generateSequentialCommandCode(
+          startPoint,
+          lines,
+          "TestPath.pp",
+          sequence,
+          "NextFTC"
+        );
 
-      // NextFTC uses seconds, so 1500ms -> 1.500
-      expect(code).toContain("new Delay(1.500)");
-    });
+        // NextFTC uses seconds, so 1500ms -> 1.500
+        expect(code).toContain("new Delay(1.500)");
+      });
 
     it("should generate auto-names if line names are missing", async () => {
-      const unnamedLine = { ...line1, name: "" };
-      const lines = [unnamedLine];
-      const code = await generateSequentialCommandCode(
-        startPoint,
-        lines,
-        "TestPath.pp",
-      );
+        const unnamedLine = { ...line1, name: "" };
+        const lines = [unnamedLine];
+        const code = await generateSequentialCommandCode(startPoint, lines, "TestPath.pp");
 
-      expect(code).toContain("private Pose point1;");
-      expect(code).toContain('point1 = pp.get("point1");');
+        expect(code).toContain("private Pose point1;");
+        expect(code).toContain("point1 = pp.get(\"point1\");");
     });
 
     it("should handle wait events with markers", async () => {
-      const sequence: SequenceItem[] = [
-        {
-          kind: "wait",
-          durationMs: 2000,
-          eventMarkers: [
-            { name: "midWait", position: 0.5 },
-            { name: "endWait", position: 1.0 },
-          ],
-        } as any,
-      ];
-      const code = await generateSequentialCommandCode(
-        startPoint,
-        [],
-        "TestPath.pp",
-        sequence,
-      );
+        const sequence: SequenceItem[] = [
+            {
+                kind: "wait",
+                durationMs: 2000,
+                eventMarkers: [
+                    { name: "midWait", position: 0.5 },
+                    { name: "endWait", position: 1.0 }
+                ]
+            } as any
+        ];
+        const code = await generateSequentialCommandCode(startPoint, [], "TestPath.pp", sequence);
 
-      expect(code).toContain("ParallelRaceGroup");
-      expect(code).toContain('progressTracker.executeEvent("midWait")');
-      // 2000ms * 0.5 = 1000
-      expect(code).toContain("new WaitCommand(1000)");
+        expect(code).toContain("ParallelRaceGroup");
+        expect(code).toContain("progressTracker.executeEvent(\"midWait\")");
+        // 2000ms * 0.5 = 1000
+        expect(code).toContain("new WaitCommand(1000)");
     });
   });
 });
