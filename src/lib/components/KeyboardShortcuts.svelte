@@ -248,13 +248,13 @@
       // Safety/Sanity: loop limit to prevent infinite hangs in weird edge cases
       while (i < 1000) {
         if (i === 1) {
-             candidate = rootName + " duplicate";
+          candidate = rootName + " duplicate";
         } else {
-             candidate = rootName + " duplicate " + i;
+          candidate = rootName + " duplicate " + i;
         }
 
         if (!existingNames.includes(candidate)) {
-            return candidate;
+          return candidate;
         }
         i++;
       }
@@ -322,8 +322,11 @@
       newLine.id = `line-${Math.random().toString(36).slice(2)}`;
 
       // Update name
-      const existingLineNames = lines.map(l => l.name || "");
-      newLine.name = generateName(originalLine.name || `Path ${lineIndex + 1}`, existingLineNames);
+      const existingLineNames = lines.map((l) => l.name || "");
+      newLine.name = generateName(
+        originalLine.name || `Path ${lineIndex + 1}`,
+        existingLineNames,
+      );
 
       // Apply offset to endPoint
       newLine.endPoint.x += deltaX;
@@ -337,7 +340,7 @@
       // letting the user move it back if it's out of bounds.
 
       // Apply offset to control points
-      newLine.controlPoints.forEach(cp => {
+      newLine.controlPoints.forEach((cp) => {
         cp.x += deltaX;
         cp.y += deltaY;
       });
@@ -351,7 +354,9 @@
 
       // Insert into sequence
       // We need to find where the original line was in the sequence
-      const seqIdx = sequence.findIndex(s => s.kind === "path" && s.lineId === originalLine.id);
+      const seqIdx = sequence.findIndex(
+        (s) => s.kind === "path" && s.lineId === originalLine.id,
+      );
       if (seqIdx !== -1) {
         sequenceStore.update((s) => {
           const s2 = [...s];
@@ -360,7 +365,10 @@
         });
       } else {
         // Fallback: append
-         sequenceStore.update((s) => [...s, { kind: "path", lineId: newLine.id! }]);
+        sequenceStore.update((s) => [
+          ...s,
+          { kind: "path", lineId: newLine.id! },
+        ]);
       }
 
       selectedLineId.set(newLine.id!);
