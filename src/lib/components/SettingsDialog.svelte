@@ -1364,6 +1364,38 @@
 
               <hr class="border-neutral-200 dark:border-neutral-700" />
 
+              <!-- Contact & Support -->
+              <div>
+                <h4 class="font-semibold mb-2">Contact & Support</h4>
+                <ul class="list-disc pl-5 space-y-1 text-sm">
+                  <li>
+                    Report bugs on
+                    <a
+                      href="https://github.com/Mallen220/PedroPathingVisualizer/issues"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      GitHub Issues
+                    </a>
+                  </li>
+                  <li>
+                    Discord: <span class="font-medium">mallen20</span>
+                  </li>
+                  <li>
+                    Email:
+                    <a
+                      href="mailto:allenmc220@gmail.com"
+                      class="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      allenmc220@gmail.com
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              <hr class="border-neutral-200 dark:border-neutral-700" />
+
               <!-- Acknowledgments -->
               <div>
                 <h4 class="font-semibold mb-2">Acknowledgments</h4>
