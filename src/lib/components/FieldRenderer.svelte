@@ -1165,7 +1165,7 @@
         ? `/fields/${settings.fieldMap}`
         : "/fields/decode.webp"}
       alt="Field"
-      class="absolute rounded-lg z-10"
+      class="absolute rounded-lg z-10 max-w-none"
       style={`top: ${y(FIELD_SIZE)}px; left: ${x(0)}px; width: ${x(FIELD_SIZE) - x(0)}px; height: ${y(0) - y(FIELD_SIZE)}px;`}
       draggable="false"
       on:error={(e) => {
@@ -1177,6 +1177,7 @@
     <img
       src={settings.robotImage || "/robot.png"}
       alt="Robot"
+      class="max-w-none"
       style={`position: absolute; top: ${y(robotXY.y)}px;
 left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
       draggable="false"
