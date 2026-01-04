@@ -45,6 +45,7 @@ Experience a comprehensive suite of tools designed for precision and efficiency:
 *   **📏 Precision Tools**: Integrated Ruler, Protractor, and customizable Grid snapping (1" - 24") for exact field positioning.
 *   **🛠️ Customization**: Full support for custom field maps, robot sizing, color themes, and adjustable safe margins.
 *   **📦 Cross-Platform**: Native, optimized applications for macOS, Windows, and Linux.
+*   **♾️ And so, so much more!** Check back often for updates and new features. 
 
 ## 📥 Installation
 
