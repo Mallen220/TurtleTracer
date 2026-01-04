@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import type { Line } from "../types";
 
 export const makeId = () =>
@@ -21,7 +22,10 @@ export function renumberDefaultPathNames(lines: Line[]): Line[] {
  * "MyPath duplicate" -> "MyPath duplicate 1"
  * "MyPath duplicate 1" -> "MyPath duplicate 2"
  */
-export function generateName(baseName: string, existingNames: string[]): string {
+export function generateName(
+  baseName: string,
+  existingNames: string[],
+): string {
   const normalize = (n: string) => n.trim().toLowerCase();
   const existingSet = new Set(existingNames.map(normalize));
 
@@ -64,23 +68,23 @@ export function generateName(baseName: string, existingNames: string[]): string 
   // If the original was "Name duplicate", core is "Name", start checking "Name duplicate 1"...
 
   if (match) {
-     // We are duplicating a duplicate. Start looking from currentNum + 1
-     let i = currentNum + 1;
-     while (true) {
-       candidate = `${coreName} duplicate ${i}`;
-       if (!existingSet.has(normalize(candidate))) return candidate;
-       i++;
-     }
-  } else {
-      // First duplication
-      candidate = `${baseName} duplicate`;
+    // We are duplicating a duplicate. Start looking from currentNum + 1
+    let i = currentNum + 1;
+    while (true) {
+      candidate = `${coreName} duplicate ${i}`;
       if (!existingSet.has(normalize(candidate))) return candidate;
+      i++;
+    }
+  } else {
+    // First duplication
+    candidate = `${baseName} duplicate`;
+    if (!existingSet.has(normalize(candidate))) return candidate;
 
-      let i = 1;
-      while (true) {
-        candidate = `${baseName} duplicate ${i}`;
-        if (!existingSet.has(normalize(candidate))) return candidate;
-        i++;
-      }
+    let i = 1;
+    while (true) {
+      candidate = `${baseName} duplicate ${i}`;
+      if (!existingSet.has(normalize(candidate))) return candidate;
+      i++;
+    }
   }
 }

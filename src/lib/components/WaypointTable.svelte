@@ -496,11 +496,10 @@
     const item = sequence[seqIndex];
     if (!item) return;
 
-    const line = item.kind === "path" ? lines.find((l) => l.id === item.lineId) : null;
+    const line =
+      item.kind === "path" ? lines.find((l) => l.id === item.lineId) : null;
     const isLocked =
-      item.kind === "path"
-        ? (line?.locked ?? false)
-        : (item.locked ?? false);
+      item.kind === "path" ? (line?.locked ?? false) : (item.locked ?? false);
 
     const items = [];
 
@@ -550,9 +549,7 @@
     items.push({
       label: "Delete",
       onClick: () =>
-        item.kind === "path"
-          ? deleteLine(item.lineId)
-          : deleteWait(seqIndex),
+        item.kind === "path" ? deleteLine(item.lineId) : deleteWait(seqIndex),
       danger: true,
       disabled: isLocked || (lines.length <= 1 && item.kind === "path"),
     });
@@ -600,100 +597,106 @@
       sequence = newSeq;
       recordChange();
     } else if (item.kind === "path") {
-        // Logic for duplicating path (similar to insertLineAfter but copying properties)
-        const line = lines.find(l => l.id === item.lineId);
-        if (!line) return;
+      // Logic for duplicating path (similar to insertLineAfter but copying properties)
+      const line = lines.find((l) => l.id === item.lineId);
+      if (!line) return;
 
-        const newLine = structuredClone(line);
-        newLine.id = makeId();
-        newLine.locked = false;
-        newLine.name = generateName(line.name || "Path", lines.map(l => l.name));
+      const newLine = structuredClone(line);
+      newLine.id = makeId();
+      newLine.locked = false;
+      newLine.name = generateName(
+        line.name || "Path",
+        lines.map((l) => l.name),
+      );
 
-        // Offset the new line slightly or keep it same?
-        // Usually duplicate implies same properties.
-        // But for path, maybe we want it to start where the previous one ended?
-        // Wait, "Duplicate" usually means copy the configuration.
-        // If we duplicate a path segment, we probably want a new segment that continues from the current end point,
-        // with the same relative vector?
-        // Memory says: "Duplicating a path segment creates a new line inserted after the original, calculating the new end point and control points by applying the original segment's vector delta (end - start) to the previous endpoint..."
+      // Offset the new line slightly or keep it same?
+      // Usually duplicate implies same properties.
+      // But for path, maybe we want it to start where the previous one ended?
+      // Wait, "Duplicate" usually means copy the configuration.
+      // If we duplicate a path segment, we probably want a new segment that continues from the current end point,
+      // with the same relative vector?
+      // Memory says: "Duplicating a path segment creates a new line inserted after the original, calculating the new end point and control points by applying the original segment's vector delta (end - start) to the previous endpoint..."
 
-        // "previous endpoint" is the end point of the line being duplicated (since we insert after it).
-        // So: New.Start = Old.End.
-        // New.End = New.Start + (Old.End - Old.Start).
-        // Old.Start is ... well, the end point of the line *before* the old line.
+      // "previous endpoint" is the end point of the line being duplicated (since we insert after it).
+      // So: New.Start = Old.End.
+      // New.End = New.Start + (Old.End - Old.Start).
+      // Old.Start is ... well, the end point of the line *before* the old line.
 
-        // Let's look at `ControlTab` logic if it exists. It doesn't seem to have "Duplicate Path" explicitly, only "Insert Line After" (random) and "Duplicate Wait".
-        // Wait, memory says: "The 'Duplicate' feature is triggered by Shift+D... Duplicating a path segment creates a new line inserted after the original..."
-        // So I should implement that logic.
+      // Let's look at `ControlTab` logic if it exists. It doesn't seem to have "Duplicate Path" explicitly, only "Insert Line After" (random) and "Duplicate Wait".
+      // Wait, memory says: "The 'Duplicate' feature is triggered by Shift+D... Duplicating a path segment creates a new line inserted after the original..."
+      // So I should implement that logic.
 
-        // Find previous point for the original line to calculate delta.
-        // The start point of `line` is the end point of the line before it in sequence, or `startPoint` if it's first.
+      // Find previous point for the original line to calculate delta.
+      // The start point of `line` is the end point of the line before it in sequence, or `startPoint` if it's first.
 
-        let prevPoint = startPoint;
-        if (seqIndex > 0) {
-             // Find the previous PATH item to get its end point.
-             // Actually we just need the point before `line` in the linked list of paths.
-             // `sequence` order matters.
-             // Find path item index in sequence
-             // Go backwards to find a path item.
-             for (let i = seqIndex - 1; i >= 0; i--) {
-                 if (sequence[i].kind === 'path') {
-                     const pl = lines.find(l => l.id === (sequence[i] as any).lineId);
-                     if (pl) {
-                         prevPoint = pl.endPoint;
-                         break;
-                     }
-                 }
-             }
+      let prevPoint = startPoint;
+      if (seqIndex > 0) {
+        // Find the previous PATH item to get its end point.
+        // Actually we just need the point before `line` in the linked list of paths.
+        // `sequence` order matters.
+        // Find path item index in sequence
+        // Go backwards to find a path item.
+        for (let i = seqIndex - 1; i >= 0; i--) {
+          if (sequence[i].kind === "path") {
+            const pl = lines.find((l) => l.id === (sequence[i] as any).lineId);
+            if (pl) {
+              prevPoint = pl.endPoint;
+              break;
+            }
+          }
         }
+      }
 
-        const dx = line.endPoint.x - prevPoint.x;
-        const dy = line.endPoint.y - prevPoint.y;
+      const dx = line.endPoint.x - prevPoint.x;
+      const dy = line.endPoint.y - prevPoint.y;
 
-        // New start point is line.endPoint.
-        // New end point is line.endPoint + delta.
-        newLine.endPoint.x = line.endPoint.x + dx;
-        newLine.endPoint.y = line.endPoint.y + dy;
+      // New start point is line.endPoint.
+      // New end point is line.endPoint + delta.
+      newLine.endPoint.x = line.endPoint.x + dx;
+      newLine.endPoint.y = line.endPoint.y + dy;
 
-        // Clamp to field?
-        newLine.endPoint.x = Math.max(0, Math.min(144, newLine.endPoint.x));
-        newLine.endPoint.y = Math.max(0, Math.min(144, newLine.endPoint.y));
+      // Clamp to field?
+      newLine.endPoint.x = Math.max(0, Math.min(144, newLine.endPoint.x));
+      newLine.endPoint.y = Math.max(0, Math.min(144, newLine.endPoint.y));
 
-        // Adjust control points
-        // CP_new = New.Start + (CP_old - Old.Start)
-        // effectively CP_new = CP_old + (New.Start - Old.Start) = CP_old + (Old.End - Old.Start) = CP_old + delta
-        // Wait, CP is absolute.
-        newLine.controlPoints = line.controlPoints.map(cp => ({
-            ...cp,
-            x: Math.max(0, Math.min(144, cp.x + dx)),
-            y: Math.max(0, Math.min(144, cp.y + dy))
-        }));
+      // Adjust control points
+      // CP_new = New.Start + (CP_old - Old.Start)
+      // effectively CP_new = CP_old + (New.Start - Old.Start) = CP_old + (Old.End - Old.Start) = CP_old + delta
+      // Wait, CP is absolute.
+      newLine.controlPoints = line.controlPoints.map((cp) => ({
+        ...cp,
+        x: Math.max(0, Math.min(144, cp.x + dx)),
+        y: Math.max(0, Math.min(144, cp.y + dy)),
+      }));
 
-        // Insert
-        const lineIdx = lines.findIndex(l => l.id === item.lineId);
-        lines.splice(lineIdx + 1, 0, newLine);
-        lines = [...lines]; // trigger reactivity
+      // Insert
+      const lineIdx = lines.findIndex((l) => l.id === item.lineId);
+      lines.splice(lineIdx + 1, 0, newLine);
+      lines = [...lines]; // trigger reactivity
 
-        const newSeq = [...sequence];
-        newSeq.splice(seqIndex + 1, 0, { kind: 'path', lineId: newLine.id! });
-        sequence = newSeq;
+      const newSeq = [...sequence];
+      newSeq.splice(seqIndex + 1, 0, { kind: "path", lineId: newLine.id! });
+      sequence = newSeq;
 
-        lines = renumberDefaultPathNames(lines);
-        recordChange();
+      lines = renumberDefaultPathNames(lines);
+      recordChange();
     }
   }
 
   function insertWait(index: number) {
     const newWait: SequenceItem = {
-        kind: "wait",
-        id: makeId(),
-        name: "Wait",
-        durationMs: 1000,
-        locked: false
+      kind: "wait",
+      id: makeId(),
+      name: "Wait",
+      durationMs: 1000,
+      locked: false,
     };
 
     // Check naming
-    newWait.name = generateName("Wait", sequence.map(s => s.name || ""));
+    newWait.name = generateName(
+      "Wait",
+      sequence.map((s) => s.name || ""),
+    );
 
     const newSeq = [...sequence];
     newSeq.splice(index, 0, newWait);
@@ -703,66 +706,65 @@
   }
 
   function insertPath(index: number) {
-      // Logic similar to insertLineAfter in ControlTab
-      // We need to find where to insert in `lines` array.
-      // If index > 0, find the item at index-1.
-      // If it's a path, insert after that line.
-      // If it's a wait, keep going back until we find a path or start point.
+    // Logic similar to insertLineAfter in ControlTab
+    // We need to find where to insert in `lines` array.
+    // If index > 0, find the item at index-1.
+    // If it's a path, insert after that line.
+    // If it's a wait, keep going back until we find a path or start point.
 
-      let insertAfterLineId: string | null = null;
-      let refPoint = startPoint;
-      let heading = "tangential";
+    let insertAfterLineId: string | null = null;
+    let refPoint = startPoint;
+    let heading = "tangential";
 
-      // Find the last path element before insertion point
-      for (let i = index - 1; i >= 0; i--) {
-          if (sequence[i].kind === 'path') {
-              insertAfterLineId = (sequence[i] as any).lineId;
-              const l = lines.find(x => x.id === insertAfterLineId);
-              if (l) {
-                  refPoint = l.endPoint;
-                  heading = l.endPoint.heading;
-              }
-              break;
-          }
+    // Find the last path element before insertion point
+    for (let i = index - 1; i >= 0; i--) {
+      if (sequence[i].kind === "path") {
+        insertAfterLineId = (sequence[i] as any).lineId;
+        const l = lines.find((x) => x.id === insertAfterLineId);
+        if (l) {
+          refPoint = l.endPoint;
+          heading = l.endPoint.heading;
+        }
+        break;
       }
+    }
 
-      // Create new line
-      const newLine: Line = {
-          id: makeId(),
-          name: "",
-          endPoint: {
-              x: Math.max(0, Math.min(144, refPoint.x + 10)), // simple offset
-              y: Math.max(0, Math.min(144, refPoint.y + 10)),
-              heading: "tangential", // default
-              reverse: false
-          },
-          controlPoints: [],
-          color: getRandomColor(),
-          waitBeforeMs: 0,
-          waitAfterMs: 0,
-          waitBeforeName: "",
-          waitAfterName: "",
-          eventMarkers: []
-      };
+    // Create new line
+    const newLine: Line = {
+      id: makeId(),
+      name: "",
+      endPoint: {
+        x: Math.max(0, Math.min(144, refPoint.x + 10)), // simple offset
+        y: Math.max(0, Math.min(144, refPoint.y + 10)),
+        heading: "tangential", // default
+        reverse: false,
+      },
+      controlPoints: [],
+      color: getRandomColor(),
+      waitBeforeMs: 0,
+      waitAfterMs: 0,
+      waitBeforeName: "",
+      waitAfterName: "",
+      eventMarkers: [],
+    };
 
-      // If we found a reference line, we insert after it in `lines`.
-      // If not (inserting at start), insert at 0.
-      let lineInsertIdx = 0;
-      if (insertAfterLineId) {
-          const idx = lines.findIndex(l => l.id === insertAfterLineId);
-          if (idx !== -1) lineInsertIdx = idx + 1;
-      }
+    // If we found a reference line, we insert after it in `lines`.
+    // If not (inserting at start), insert at 0.
+    let lineInsertIdx = 0;
+    if (insertAfterLineId) {
+      const idx = lines.findIndex((l) => l.id === insertAfterLineId);
+      if (idx !== -1) lineInsertIdx = idx + 1;
+    }
 
-      lines.splice(lineInsertIdx, 0, newLine);
-      lines = renumberDefaultPathNames([...lines]);
+    lines.splice(lineInsertIdx, 0, newLine);
+    lines = renumberDefaultPathNames([...lines]);
 
-      const newSeq = [...sequence];
-      newSeq.splice(index, 0, { kind: 'path', lineId: newLine.id! });
-      sequence = newSeq;
+    const newSeq = [...sequence];
+    newSeq.splice(index, 0, { kind: "path", lineId: newLine.id! });
+    sequence = newSeq;
 
-      recordChange();
+    recordChange();
   }
-
 </script>
 
 <svelte:window on:dragover={handleWindowDragOver} on:drop={handleWindowDrop} />

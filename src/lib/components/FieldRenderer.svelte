@@ -122,7 +122,12 @@
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
       const rect = wrapperDiv.getBoundingClientRect();
-      const transformed = getTransformedCoordinates(e.clientX, e.clientY, rect, settings.fieldRotation || 0);
+      const transformed = getTransformedCoordinates(
+        e.clientX,
+        e.clientY,
+        rect,
+        settings.fieldRotation || 0,
+      );
       const lx = transformed.x;
       const ly = transformed.y;
       const deltaSign = e.deltaY < 0 ? 1 : -1; // wheel up -> zoom in

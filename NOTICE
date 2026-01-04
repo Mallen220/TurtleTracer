@@ -45,3 +45,8 @@ src/lib/components/ExportGifDialog.svelte
 src/tests/codeExporter.test.ts
 src/tests/fileSystemAdapter.test.ts
 src/tests/fuzz/pathOptimizer.fuzz.test.ts
+README.md
+src/lib/components/FieldRenderer.svelte
+src/lib/zoomHelpers.ts
+src/tests/zoomHelpers.test.ts
+src/utils/nameGenerator.ts

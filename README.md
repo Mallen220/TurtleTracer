@@ -19,8 +19,7 @@
   </p>
 </div>
 
-> ## This project is currently undergoing rapid updates. Please check back regularly for bug fixes and new features. If you find an error, please report it and revert to a previous version. 
-
+> ## This project is currently undergoing rapid updates. Please check back regularly for bug fixes and new features. If you find an error, please report it and revert to a previous version.
 
 ---
 
@@ -32,23 +31,23 @@
 
 Experience a comprehensive suite of tools designed for precision and efficiency:
 
-*   **🎨 Visual Path Editing**: Intuitive drag-and-drop interface for creating complex Bezier curves, straight lines, and path chains.
-*   **🤖 Advanced Simulation**: Real-time robot physics simulation featuring accurate kinematics, velocity constraints, and acceleration profiles.
-*   **⚠️ Obstacle & Collision Detection**: Define custom field obstacles (polygons) and get immediate feedback on potential collisions during path planning.
-*   **🔄 Sequence Editor**: Build full autonomous routines by sequencing paths, adding wait times, and triggering event markers.
-*   **💾 Local File Management**: Robust system for saving, loading, and organizing `.pp` project files directly on your file system.
-*   **📤 Powerful Export Options**:
-    *   **Java Code**: Generate full OpModes for the Pedro Pathing library.
-    *   **APNG & GIF Export**: Share your path animations with the team using high-quality exported visualizer recordings.
-    *   **JSON Export**: Raw data export for custom parsers.
-*   **⚡ Productivity Tools**:
-    *   **Onion Skinning**: Visualize previous path states for precise adjustments.
-    *   **Undo/Redo**: Full history support for mistake-free editing.
-    *   **Multi-Window Support**: Open multiple project windows simultaneously.
-*   **📏 Precision Tools**: Integrated Ruler, Protractor, and customizable Grid snapping (1" - 24") for exact field positioning.
-*   **🛠️ Customization**: Full support for custom field maps, robot sizing, color themes, and adjustable safe margins.
-*   **📦 Cross-Platform**: Native, optimized applications for macOS, Windows, and Linux.
-*   **♾️ And so, so much more!** Check back often for updates and new features. 
+- **🎨 Visual Path Editing**: Intuitive drag-and-drop interface for creating complex Bezier curves, straight lines, and path chains.
+- **🤖 Advanced Simulation**: Real-time robot physics simulation featuring accurate kinematics, velocity constraints, and acceleration profiles.
+- **⚠️ Obstacle & Collision Detection**: Define custom field obstacles (polygons) and get immediate feedback on potential collisions during path planning.
+- **🔄 Sequence Editor**: Build full autonomous routines by sequencing paths, adding wait times, and triggering event markers.
+- **💾 Local File Management**: Robust system for saving, loading, and organizing `.pp` project files directly on your file system.
+- **📤 Powerful Export Options**:
+  - **Java Code**: Generate full OpModes for the Pedro Pathing library.
+  - **APNG & GIF Export**: Share your path animations with the team using high-quality exported visualizer recordings.
+  - **JSON Export**: Raw data export for custom parsers.
+- **⚡ Productivity Tools**:
+  - **Onion Skinning**: Visualize previous path states for precise adjustments.
+  - **Undo/Redo**: Full history support for mistake-free editing.
+  - **Multi-Window Support**: Open multiple project windows simultaneously.
+- **📏 Precision Tools**: Integrated Ruler, Protractor, and customizable Grid snapping (1" - 24") for exact field positioning.
+- **🛠️ Customization**: Full support for custom field maps, robot sizing, color themes, and adjustable safe margins.
+- **📦 Cross-Platform**: Native, optimized applications for macOS, Windows, and Linux.
+- **♾️ And so, so much more!** Check back often for updates and new features.
 
 ## 📥 Installation
 
@@ -56,12 +55,15 @@ Experience a comprehensive suite of tools designed for precision and efficiency:
 
 **One-Line Installer (Recommended):**
 Open Terminal and run:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
 ```
-*Enter your password when prompted to complete installation.*
+
+_Enter your password when prompted to complete installation._
 
 **Manual Installation:**
+
 1.  Download the latest `.dmg` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
 2.  Mount the DMG and drag the app to your Applications folder.
 3.  **Important**: Run the following command in Terminal to clear the quarantine attribute (prevents "App is damaged" errors):
@@ -71,14 +73,17 @@ curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/ma
 4.  Launch the application.
 
 ### **Windows**
+
 1.  Download the latest `.exe` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
 2.  Run the installer.
-3.  *Note: If SmartScreen appears, click "More info" > "Run anyway".*
+3.  _Note: If SmartScreen appears, click "More info" > "Run anyway"._
 
 ### **Linux**
+
 Download the `.deb` (Debian/Ubuntu) or `.AppImage` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
 
 **AppImage:**
+
 ```bash
 chmod +x Pedro*.AppImage
 ./Pedro*.AppImage
@@ -88,25 +93,28 @@ chmod +x Pedro*.AppImage
 
 One of the critical advantages of Pedro Pathing Visualizer over web-based tools is its **Local File Management system**.
 
-*   **Security & Persistence**: Your paths are saved as actual files (`.pp`) on your hard drive, not in a temporary browser cache that can be accidentally cleared.
-*   **Version Control**: You can easily commit your path files to Git alongside your robot code, ensuring your team always has the latest versions.
-*   **Organization**: Use the built-in file browser to organize paths into folders, duplicate successful routines, and manage backups without leaving the app.
+- **Security & Persistence**: Your paths are saved as actual files (`.pp`) on your hard drive, not in a temporary browser cache that can be accidentally cleared.
+- **Version Control**: You can easily commit your path files to Git alongside your robot code, ensuring your team always has the latest versions.
+- **Organization**: Use the built-in file browser to organize paths into folders, duplicate successful routines, and manage backups without leaving the app.
 
 ## 🛠️ Tool Overview
 
 ### **Canvas Tools**
-*   **Grid & Snap**: Toggle customizable grids (1" - 24") and enable snapping for perfect alignment.
-*   **Ruler**: Measure distances instantly between any two points on the field.
-*   **Protractor**: Measure relative angles, with options to lock to the robot's heading.
+
+- **Grid & Snap**: Toggle customizable grids (1" - 24") and enable snapping for perfect alignment.
+- **Ruler**: Measure distances instantly between any two points on the field.
+- **Protractor**: Measure relative angles, with options to lock to the robot's heading.
 
 ### **Path Editing**
-*   **Control Points**: Fine-tune Bezier curves by manipulating control handles.
-*   **Heading Modes**: Choose between Tangential, Constant, or Linear heading interpolation for precise robot orientation.
-*   **Event Markers**: Place named triggers along the path to fire actions (e.g., "Open Claw") at exact path percentages.
+
+- **Control Points**: Fine-tune Bezier curves by manipulating control handles.
+- **Heading Modes**: Choose between Tangential, Constant, or Linear heading interpolation for precise robot orientation.
+- **Event Markers**: Place named triggers along the path to fire actions (e.g., "Open Claw") at exact path percentages.
 
 ### **Animation Controller**
-*   **Timeline**: Scrub through your autonomous routine to verify timing and sequence order.
-*   **Real-time Feedback**: See exact robot coordinates and heading at any point in time.
+
+- **Timeline**: Scrub through your autonomous routine to verify timing and sequence order.
+- **Real-time Feedback**: See exact robot coordinates and heading at any point in time.
 
 ## 📤 Export Options
 
@@ -119,29 +127,34 @@ The visualizer provides flexible export capabilities to suit your team's workflo
 ## 🔧 Troubleshooting
 
 ### **macOS**
-*   **"App is damaged" / Can't Open**:
-    Run the quarantine fix command:
-    ```bash
-    sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Visualizer.app"
-    ```
-*   **Gatekeeper**: If the app is blocked, go to *System Settings > Privacy & Security* and click "Open Anyway".
+
+- **"App is damaged" / Can't Open**:
+  Run the quarantine fix command:
+  ```bash
+  sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Visualizer.app"
+  ```
+- **Gatekeeper**: If the app is blocked, go to _System Settings > Privacy & Security_ and click "Open Anyway".
 
 ### **Windows**
-*   **SmartScreen Warning**: This is common for new software. Click "More Info" and "Run Anyway".
-*   **Antivirus**: If the file is flagged, adds an exception. The code is open source and safe.
+
+- **SmartScreen Warning**: This is common for new software. Click "More Info" and "Run Anyway".
+- **Antivirus**: If the file is flagged, adds an exception. The code is open source and safe.
 
 ### **Linux**
-*   **AppImage not running**: Ensure you have `libfuse2` installed and have given the file execution permissions (`chmod +x`).
+
+- **AppImage not running**: Ensure you have `libfuse2` installed and have given the file execution permissions (`chmod +x`).
 
 ## 🧩 Development
 
 Want to contribute or build from source?
 
 ### **Prerequisites**
-*   Node.js 18+
-*   Git
+
+- Node.js 18+
+- Git
 
 ### **Setup**
+
 ```bash
 # Clone the repository
 git clone https://github.com/Mallen220/PedroPathingVisualizer.git
@@ -155,6 +168,7 @@ npm run dev
 ```
 
 ### **Building**
+
 ```bash
 # Build for your current platform
 npm run dist
@@ -178,16 +192,16 @@ See the [LICENSE](LICENSE) file for the full Apache 2.0 legal text.
 
 ## 🙏 Acknowledgments
 
-*   **#16166 Watt's Up**: For the initial concept, development, and inspiration.
-*   **Pedro Pathing Developers**: For the underlying library this visualizer supports.
-*   **FIRST Community**: For the continuous feedback and testing.
-*   **Contributors**: All the developers who have helped improve this tool.
+- **#16166 Watt's Up**: For the initial concept, development, and inspiration.
+- **Pedro Pathing Developers**: For the underlying library this visualizer supports.
+- **FIRST Community**: For the continuous feedback and testing.
+- **Contributors**: All the developers who have helped improve this tool.
 
 ## 🔗 Links
 
-*   [GitHub Repository](https://github.com/Mallen220/PedroPathingVisualizer)
-*   [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases)
-*   [Issues & Bug Reports](https://github.com/Mallen220/PedroPathingVisualizer/issues)
+- [GitHub Repository](https://github.com/Mallen220/PedroPathingVisualizer)
+- [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases)
+- [Issues & Bug Reports](https://github.com/Mallen220/PedroPathingVisualizer/issues)
 
 ---
 

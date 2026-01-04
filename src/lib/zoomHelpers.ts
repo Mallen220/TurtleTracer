@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 /**
  * Compute adaptive zoom step to make zooming feel faster after 1x.
  * direction: +1 for zoom in, -1 for zoom out
@@ -33,11 +34,17 @@ export function computePanForZoom({
 }) {
   // For x: focusScreenX = width/2 - (width*newZoom)/2 + panX + (fieldX/fieldSize)*(width*newZoom)
   const panX =
-    focusScreenX - (width / 2 - (width * newZoom) / 2 + (fieldX / fieldSize) * (width * newZoom));
+    focusScreenX -
+    (width / 2 -
+      (width * newZoom) / 2 +
+      (fieldX / fieldSize) * (width * newZoom));
 
   // For y: focusScreenY = height/2 + (height*newZoom)/2 + panY + (fieldY/fieldSize)*(-height*newZoom)
   const panY =
-    focusScreenY - (height / 2 + (height * newZoom) / 2 + (fieldY / fieldSize) * (-height * newZoom));
+    focusScreenY -
+    (height / 2 +
+      (height * newZoom) / 2 +
+      (fieldY / fieldSize) * (-height * newZoom));
 
   return { x: panX, y: panY };
 }
