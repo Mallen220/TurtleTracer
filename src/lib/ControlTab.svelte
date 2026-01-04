@@ -44,8 +44,9 @@
   export let robotWidth: number = 16;
   export let robotXY: BasePoint;
   export let robotHeading: number;
-  export let x: d3.ScaleLinear<number, number, number>;
-  export let y: d3.ScaleLinear<number, number, number>;
+  // x and y scales are no longer used here as robotXY is inches
+  // export let x: d3.ScaleLinear<number, number, number>;
+  // export let y: d3.ScaleLinear<number, number, number>;
   export let settings: Settings;
   export let handleSeek: (percent: number) => void;
   export let loopAnimation: boolean;
@@ -1000,8 +1001,6 @@
           <RobotPositionDisplay
             {robotXY}
             {robotHeading}
-            {x}
-            {y}
             onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
             onValidate={handleValidate}
           />

@@ -253,6 +253,27 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "View",
   },
   {
+    id: "zoom-in",
+    key: "cmd+=, ctrl+=, cmd+shift+=, ctrl+shift+=, cmd+num_add, ctrl+num_add",
+    description: "Zoom In",
+    action: "zoomIn",
+    category: "View",
+  },
+  {
+    id: "zoom-out",
+    key: "cmd+-, ctrl+-, cmd+num_subtract, ctrl+num_subtract",
+    description: "Zoom Out",
+    action: "zoomOut",
+    category: "View",
+  },
+  {
+    id: "zoom-reset",
+    key: "cmd+0, ctrl+0, cmd+num_0, ctrl+num_0",
+    description: "Reset Zoom",
+    action: "zoomReset",
+    category: "View",
+  },
+  {
     id: "toggle-collapse-all",
     key: "shift+c",
     description: "Toggle collapse/expand all",

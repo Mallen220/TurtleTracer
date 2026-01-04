@@ -4,8 +4,9 @@
 
   export let robotXY: BasePoint;
   export let robotHeading: number;
-  export let x: d3.ScaleLinear<number, number, number>;
-  export let y: d3.ScaleLinear<number, number, number>;
+  // x and y scales are no longer needed as robotXY is now in inches
+  // export let x: d3.ScaleLinear<number, number, number>;
+  // export let y: d3.ScaleLinear<number, number, number>;
   export let onToggleOptimization: (() => void) | null = null;
   export let onValidate: (() => void) | null = null;
 </script>
@@ -15,9 +16,9 @@
   <div class="flex flex-row justify-between items-center w-full">
     <div class="flex flex-row justify-start items-center gap-2">
       <div class="font-extralight">X:</div>
-      <div class="w-16">{x.invert(robotXY.x).toFixed(3)}</div>
+      <div class="w-16">{robotXY.x.toFixed(3)}</div>
       <div class="font-extralight">Y:</div>
-      <div class="w-16">{y.invert(robotXY.y).toFixed(3)}</div>
+      <div class="w-16">{robotXY.y.toFixed(3)}</div>
       <div class="font-extralight">Heading:</div>
       <div>
         {robotHeading.toFixed(0) === "-0" ? "0" : -robotHeading.toFixed(0)}&deg;

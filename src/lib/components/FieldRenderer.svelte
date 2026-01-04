@@ -3,6 +3,7 @@
   import { onMount, onDestroy } from "svelte";
   import Two from "two.js";
   import * as d3 from "d3";
+  import { computeZoomStep, computePanForZoom } from "../zoomHelpers";
   import {
     gridSize,
     snapToGrid,
@@ -13,6 +14,8 @@
     showProtractor,
     protractorLockToRobot,
     collisionMarkers,
+    fieldZoom,
+    fieldPan,
   } from "../../stores";
   import {
     linesStore,
@@ -72,16 +75,70 @@
   let dragOffset = { x: 0, y: 0 };
   let currentElem: string | null = null;
   let isDown = false;
+  let isPanning = false;
+  let startPan = { x: 0, y: 0 };
 
   // D3 Scales
+  $: zoom = $fieldZoom;
+  $: pan = $fieldPan;
+  $: scaleFactor = zoom;
   $: x = d3
     .scaleLinear()
     .domain([0, FIELD_SIZE])
-    .range([0, width || FIELD_SIZE]);
+    .range([
+      width / 2 - (width * scaleFactor) / 2 + pan.x,
+      width / 2 + (width * scaleFactor) / 2 + pan.x,
+    ]);
   $: y = d3
     .scaleLinear()
     .domain([0, FIELD_SIZE])
-    .range([height || FIELD_SIZE, 0]);
+    .range([
+      height / 2 + (height * scaleFactor) / 2 + pan.y,
+      height / 2 - (height * scaleFactor) / 2 + pan.y,
+    ]);
+
+  function zoomTo(newZoom: number, focus?: { x: number; y: number }) {
+    const fx = focus?.x ?? width / 2;
+    const fy = focus?.y ?? height / 2;
+    // Compute field coordinates at the focus point using current scales
+    const fieldX = x.invert(fx);
+    const fieldY = y.invert(fy);
+    const pan = computePanForZoom({
+      width,
+      height,
+      fieldSize: FIELD_SIZE,
+      newZoom,
+      focusScreenX: fx,
+      focusScreenY: fy,
+      fieldX,
+      fieldY,
+    });
+    fieldZoom.set(Number(newZoom.toFixed(2)));
+    fieldPan.set(pan);
+  }
+
+  function handleWheel(e: WheelEvent) {
+    if (!wrapperDiv) return;
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const rect = wrapperDiv.getBoundingClientRect();
+      const transformed = getTransformedCoordinates(e.clientX, e.clientY, rect, settings.fieldRotation || 0);
+      const lx = transformed.x;
+      const ly = transformed.y;
+      const deltaSign = e.deltaY < 0 ? 1 : -1; // wheel up -> zoom in
+      const step = computeZoomStep(zoom, deltaSign);
+      const newZoom = Math.min(
+        5.0,
+        Math.max(0.1, Number((zoom + deltaSign * step).toFixed(2))),
+      );
+      zoomTo(newZoom, { x: lx, y: ly });
+    }
+  }
+
+  // Visual Scale (Pixels per Inch at 1x Zoom)
+  // Used for UI elements (points, markers) so they don't grow when zooming in
+  $: ppI = width / FIELD_SIZE;
+  $: uiLength = (inches: number) => inches * ppI;
 
   // Derived Values from Stores
   $: startPoint = $startPointStore;
@@ -124,7 +181,7 @@
     let startPointElem = new Two.Circle(
       x(startPoint.x),
       y(startPoint.y),
-      x(POINT_RADIUS),
+      uiLength(POINT_RADIUS),
     );
     startPointElem.id = `point-0-0`;
     startPointElem.fill = lines[0]?.color || "#000000"; // Fallback color if lines empty
@@ -140,7 +197,7 @@
           let pointElem = new Two.Circle(
             x(point.x),
             y(point.y),
-            x(POINT_RADIUS),
+            uiLength(POINT_RADIUS),
           );
           pointElem.id = `point-${idx + 1}-${idx1}-background`;
           pointElem.fill = line.color;
@@ -148,11 +205,11 @@
           let pointText = new Two.Text(
             `${idx1}`,
             x(point.x),
-            y(point.y - 0.15),
-            { size: x(POINT_RADIUS) as number } as any,
+            y(point.y) - uiLength(0.15),
+            uiLength(POINT_RADIUS),
           );
           pointText.id = `point-${idx + 1}-${idx1}-text`;
-          pointText.size = x(1.55) as number;
+          pointText.size = uiLength(1.55);
           pointText.leading = 1;
           pointText.family = "ui-sans-serif, system-ui, sans-serif";
           pointText.alignment = "center";
@@ -165,7 +222,7 @@
           let pointElem = new Two.Circle(
             x(point.x),
             y(point.y),
-            x(POINT_RADIUS),
+            uiLength(POINT_RADIUS),
           );
           pointElem.id = `point-${idx + 1}-${idx1}`;
           pointElem.fill = line.color;
@@ -182,7 +239,7 @@
         let pointElem = new Two.Circle(
           x(vertex.x),
           y(vertex.y),
-          x(POINT_RADIUS) as number,
+          uiLength(POINT_RADIUS),
         );
         pointElem.id = `obstacle-${shapeIdx}-${vertexIdx}-background`;
         pointElem.fill = "#991b1b";
@@ -190,11 +247,11 @@
         let pointText = new Two.Text(
           `${vertexIdx + 1}`,
           x(vertex.x),
-          y(vertex.y - 0.15),
-          { size: x(POINT_RADIUS) as number } as any,
+          y(vertex.y) - uiLength(0.15),
+          uiLength(POINT_RADIUS),
         );
         pointText.id = `obstacle-${shapeIdx}-${vertexIdx}-text`;
-        pointText.size = x(1.55) as number;
+        pointText.size = uiLength(1.55);
         pointText.leading = 1;
         pointText.family = "ui-sans-serif, system-ui, sans-serif";
         pointText.alignment = "center";
@@ -294,10 +351,12 @@
       lineElem.id = `line-${idx + 1}`;
       lineElem.stroke = line.color;
       const isSelected = line.id === currentSelectedId;
-      lineElem.linewidth = isSelected ? x(LINE_WIDTH * 2.5) : x(LINE_WIDTH);
+      lineElem.linewidth = isSelected
+        ? uiLength(LINE_WIDTH * 2.5)
+        : uiLength(LINE_WIDTH);
       lineElem.noFill();
       if (line.locked) {
-        lineElem.dashes = [x(2), x(2)];
+        lineElem.dashes = [uiLength(2), uiLength(2)];
         lineElem.opacity = 0.7;
       } else {
         lineElem.dashes = [];
@@ -355,7 +414,7 @@
         shapeElement.stroke = shape.color;
         shapeElement.fill = shape.color;
         shapeElement.opacity = 0.4;
-        shapeElement.linewidth = x(0.8);
+        shapeElement.linewidth = uiLength(0.8);
         shapeElement.automatic = false;
         _shapes.push(shapeElement);
       }
@@ -417,7 +476,7 @@
         ghostPath.stroke = "#a78bfa";
         ghostPath.fill = "#a78bfa";
         ghostPath.opacity = 0.15;
-        ghostPath.linewidth = x(0.5);
+        ghostPath.linewidth = uiLength(0.5);
         ghostPath.automatic = false;
       }
     }
@@ -479,7 +538,7 @@
         onionRect.stroke = "#818cf8";
         onionRect.noFill();
         onionRect.opacity = 0.35;
-        onionRect.linewidth = x(0.5);
+        onionRect.linewidth = uiLength(0.5);
         onionRect.automatic = false;
         onionLayers.push(onionRect);
       });
@@ -576,9 +635,9 @@
         }
         lineElem.id = `preview-line-${idx + 1}`;
         lineElem.stroke = "#60a5fa";
-        lineElem.linewidth = x(LINE_WIDTH);
+        lineElem.linewidth = uiLength(LINE_WIDTH);
         lineElem.noFill();
-        lineElem.dashes = [x(4), x(4)];
+        lineElem.dashes = [uiLength(4), uiLength(4)];
         lineElem.opacity = 0.7;
         _previewPaths.push(lineElem);
       });
@@ -617,7 +676,7 @@
         const py = y(pos.y);
         let grp = new Two.Group();
         grp.id = `event-${idx}-${evIdx}`;
-        let circle = new Two.Circle(px, py, x(1.8));
+        let circle = new Two.Circle(px, py, uiLength(1.8));
         circle.fill = "#a78bfa";
         circle.noStroke();
         grp.add(circle);
@@ -651,20 +710,20 @@
           const markerCircle = new Two.Circle(
             x(point.x),
             y(point.y),
-            x(POINT_RADIUS * 1.3),
+            uiLength(POINT_RADIUS * 1.3),
           );
           markerCircle.id = `wait-event-circle-${ev.waitId}-${eventIdx}`;
           const waitSelected = $selectedPointId === `wait-${ev.waitId}`;
           if (waitSelected) {
             markerCircle.fill = "#f97316";
             markerCircle.stroke = "#fffbeb";
-            markerCircle.linewidth = x(0.6);
+            markerCircle.linewidth = uiLength(0.6);
           } else {
             markerCircle.fill = "#8b5cf6";
             markerCircle.stroke = "#ffffff";
-            markerCircle.linewidth = x(0.3);
+            markerCircle.linewidth = uiLength(0.3);
           }
-          const flagSize = x(1);
+          const flagSize = uiLength(1);
           const flagPoints = [
             new Two.Anchor(x(point.x), y(point.y) - flagSize / 2),
             new Two.Anchor(x(point.x) + flagSize / 2, y(point.y)),
@@ -688,12 +747,12 @@
     if (markers && markers.length > 0) {
       markers.forEach((marker, idx) => {
         const group = new Two.Group();
-        const circle = new Two.Circle(x(marker.x), y(marker.y), x(2));
+        const circle = new Two.Circle(x(marker.x), y(marker.y), uiLength(2));
         circle.fill = "rgba(239, 68, 68, 0.5)"; // Red-500 with opacity
         circle.stroke = "#ef4444";
-        circle.linewidth = x(0.5);
+        circle.linewidth = uiLength(0.5);
 
-        const crossLength = x(1.5);
+        const crossLength = uiLength(1.5);
         const l1 = new Two.Line(
           x(marker.x) - crossLength,
           y(marker.y) - crossLength,
@@ -701,7 +760,7 @@
           y(marker.y) + crossLength,
         );
         l1.stroke = "#ffffff";
-        l1.linewidth = x(0.5);
+        l1.linewidth = uiLength(0.5);
 
         const l2 = new Two.Line(
           x(marker.x) + crossLength,
@@ -710,7 +769,7 @@
           y(marker.y) + crossLength,
         );
         l2.stroke = "#ffffff";
-        l2.linewidth = x(0.5);
+        l2.linewidth = uiLength(0.5);
 
         group.add(circle, l1, l2);
         elems.push(group);
@@ -866,6 +925,30 @@
             linesStore.set(lines);
           }
         }
+      } else if (isPanning) {
+        // Panning Logic
+        // Calculate the delta in pixels
+        const dx = evt.clientX - startPan.x;
+        const dy = evt.clientY - startPan.y;
+
+        // Rotate the drag vector to match the field rotation
+        // If field is rotated 90deg (CW), visual Right (dx) should map to local Down (-dy or similar) depending on coord system
+        // Visual vector (dx, dy) needs to be rotated by -rotation to align with local (unrotated) axes
+        const rad = -((settings.fieldRotation || 0) * Math.PI) / 180;
+        const rdx = dx * Math.cos(rad) - dy * Math.sin(rad);
+        const rdy = dx * Math.sin(rad) + dy * Math.cos(rad);
+
+        // Update the pan store
+        fieldPan.update((p) => ({
+          x: p.x + rdx,
+          y: p.y + rdy,
+        }));
+
+        // Reset start position for next frame
+        startPan = { x: evt.clientX, y: evt.clientY };
+
+        // Set cursor to grabbing
+        two.renderer.domElement.style.cursor = "grabbing";
       } else {
         // Cursor Update
         // Use evt.target instead of elementFromPoint
@@ -907,43 +990,44 @@
             }
           }
         } else {
-          two.renderer.domElement.style.cursor = "auto";
+          two.renderer.domElement.style.cursor = "grab";
           currentElem = null;
         }
       }
     });
 
     two.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
-      isDown = true;
       // Re-determine currentElem if needed
-      if (!currentElem) {
-        // Optimization: use evt.target
-        const el = evt.target as Element;
-        if (el?.id) {
-          if (el.id.startsWith("point") || el.id.startsWith("obstacle-"))
-            currentElem = el.id;
-          else if (el.id.includes("event-")) {
-            // Logic to normalize ID
-            // Copy-pasted from above logic for simplicity or extract helper
-            const idParts = el.id.split("-");
-            if (el.id.startsWith("wait-event-")) {
-              if (idParts.length >= 4) {
-                const waitId = idParts[idParts.length - 2];
-                const evIdx = idParts[idParts.length - 1];
-                currentElem = `wait-event-${waitId}-${evIdx}`;
-              } else currentElem = el.id;
-            } else {
-              if (idParts.length >= 3) {
-                const lineIdx = idParts[idParts.length - 2];
-                const evIdx = idParts[idParts.length - 1];
-                currentElem = `event-${lineIdx}-${evIdx}`;
-              } else currentElem = el.id;
-            }
+      let clickedElem = null;
+      // Optimization: use evt.target
+      const el = evt.target as Element;
+      if (el?.id) {
+        if (el.id.startsWith("point") || el.id.startsWith("obstacle-"))
+          clickedElem = el.id;
+        else if (el.id.includes("event-")) {
+          // Logic to normalize ID
+          // Copy-pasted from above logic for simplicity or extract helper
+          const idParts = el.id.split("-");
+          if (el.id.startsWith("wait-event-")) {
+            if (idParts.length >= 4) {
+              const waitId = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              clickedElem = `wait-event-${waitId}-${evIdx}`;
+            } else clickedElem = el.id;
+          } else {
+            if (idParts.length >= 3) {
+              const lineIdx = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              clickedElem = `event-${lineIdx}-${evIdx}`;
+            } else clickedElem = el.id;
           }
         }
       }
 
-      if (currentElem) {
+      if (clickedElem) {
+        isDown = true;
+        currentElem = clickedElem;
+
         if (currentElem.startsWith("point-")) {
           const parts = currentElem.split("-");
           const lineNum = Number(parts[1]);
@@ -1018,6 +1102,11 @@
           }
         }
         dragOffset = { x: objectX - mouseX, y: objectY - mouseY };
+      } else {
+        // Start Panning
+        isPanning = true;
+        startPan = { x: evt.clientX, y: evt.clientY };
+        two.renderer.domElement.style.cursor = "grabbing";
       }
     });
 
@@ -1026,7 +1115,9 @@
         onRecordChange(); // Notify parent of change
       }
       isDown = false;
+      isPanning = false;
       dragOffset = { x: 0, y: 0 };
+      two.renderer.domElement.style.cursor = "grab";
     });
 
     // Double Click to Add Line
@@ -1092,6 +1183,7 @@
   class="relative aspect-square"
   style={`width: ${width}px; height: ${height}px;`}
   bind:this={wrapperDiv}
+  on:wheel={(e) => handleWheel(e)}
 >
   <div
     bind:this={twoElement}
@@ -1113,7 +1205,8 @@
         ? `/fields/${settings.fieldMap}`
         : "/fields/decode.webp"}
       alt="Field"
-      class="absolute top-0 left-0 w-full h-full rounded-lg z-10"
+      class="absolute rounded-lg z-10 max-w-none"
+      style={`top: ${y(FIELD_SIZE)}px; left: ${x(0)}px; width: ${x(FIELD_SIZE) - x(0)}px; height: ${y(0) - y(FIELD_SIZE)}px;`}
       draggable="false"
       on:error={(e) => {
         // @ts-ignore
@@ -1124,8 +1217,9 @@
     <img
       src={settings.robotImage || "/robot.png"}
       alt="Robot"
-      style={`position: absolute; top: ${robotXY.y}px;
-left: ${robotXY.x}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${x(settings.rLength || DEFAULT_ROBOT_LENGTH)}px; height: ${x(settings.rWidth || DEFAULT_ROBOT_WIDTH)}px; pointer-events: none;`}
+      class="max-w-none"
+      style={`position: absolute; top: ${y(robotXY.y)}px;
+left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
       draggable="false"
       on:error={(e) => {
         // @ts-ignore
@@ -1139,6 +1233,95 @@ left: ${robotXY.x}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg
     visible={isMouseOverField}
     isObstructed={isObstructingHUD}
   />
+
+  <!-- Zoom Controls -->
+  <div
+    class="absolute bottom-2 right-2 flex flex-col gap-1 z-30 bg-white/80 dark:bg-neutral-800/80 p-1 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
+  >
+    <button
+      class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+      on:click={() => {
+        const step = computeZoomStep(zoom, 1);
+        const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
+        const focus = isMouseOverField
+          ? { x: x(currentMouseX), y: y(currentMouseY) }
+          : { x: width / 2, y: height / 2 };
+        zoomTo(newZoom, focus);
+      }}
+      aria-label="Zoom in"
+      title="Zoom In (Cmd/Ctrl + +)"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        class="w-4 h-4"
+      >
+        <path
+          d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
+        />
+      </svg>
+    </button>
+    <button
+      class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+      on:click={() => {
+        const step = computeZoomStep(zoom, -1);
+        const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
+        const focus = isMouseOverField
+          ? { x: x(currentMouseX), y: y(currentMouseY) }
+          : { x: width / 2, y: height / 2 };
+        zoomTo(newZoom, focus);
+      }}
+      aria-label="Zoom out"
+      title="Zoom Out (Cmd/Ctrl + -)"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        class="w-4 h-4"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
+          clip-rule="evenodd"
+        />
+      </svg>
+    </button>
+    <button
+      class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+      on:click={() => {
+        fieldZoom.set(1.0);
+        fieldPan.set({ x: 0, y: 0 });
+      }}
+      aria-label="Reset zoom"
+      title="Reset Zoom (Cmd/Ctrl + 0)"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        class="w-4 h-4"
+      >
+        <path
+          fill-rule="evenodd"
+          d="M3.5 2A1.5 1.5 0 002 3.5v13A1.5 1.5 0 003.5 18h13a1.5 1.5 0 001.5-1.5v-13A1.5 1.5 0 0016.5 2h-13zM9 5a.75.75 0 01.75.75v3.5h3.5a.75.75 0 010 1.5h-3.5v3.5a.75.75 0 01-1.5 0v-3.5h-3.5a.75.75 0 010-1.5h3.5v-3.5A.75.75 0 019 5z"
+          clip-rule="evenodd"
+          style="display:none"
+        />
+        <!-- Custom Reset Icon (Square with dot or similar, or just text '1x') -->
+        <!-- Using a simple maximize/fit icon representation or text -->
+        <text
+          x="10"
+          y="11"
+          font-size="8"
+          text-anchor="middle"
+          fill="currentColor"
+          font-weight="bold">R</text
+        >
+      </svg>
+    </button>
+  </div>
 </div>
 
 <style>
