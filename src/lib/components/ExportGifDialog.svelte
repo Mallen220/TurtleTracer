@@ -153,7 +153,7 @@
     >
       <!-- Header -->
       <div
-        class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-700 shrink-0"
+        class="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-700"
       >
         <h2
           class="text-xl font-semibold text-neutral-800 dark:text-neutral-100"
@@ -183,11 +183,9 @@
       </div>
 
       <!-- Content -->
-      <div class="p-6 flex-1 flex flex-col gap-6 min-h-0 overflow-hidden">
+      <div class="p-6 overflow-y-auto flex-1 flex flex-col gap-6 min-h-0">
         <!-- Controls Row -->
-        <div
-          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0"
-        >
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Format -->
           <div class="flex flex-col gap-2">
             <label
@@ -286,7 +284,7 @@
         <!-- Info Blurb -->
         {#if format === "apng"}
           <div
-            class="text-xs text-neutral-500 dark:text-neutral-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800 shrink-0"
+            class="text-xs text-neutral-500 dark:text-neutral-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800"
           >
             <strong>Note:</strong> Animated PNGs support full 24-bit color and 8-bit
             transparency. 'Best' quality is lossless but produces larger files.
@@ -295,7 +293,7 @@
 
         <!-- Progress Bar -->
         {#if status === "generating"}
-          <div class="flex flex-col gap-1 shrink-0">
+          <div class="flex flex-col gap-1">
             <div
               class="flex justify-between text-sm text-neutral-600 dark:text-neutral-400"
             >
@@ -313,7 +311,7 @@
           </div>
         {:else if status === "error"}
           <div
-            class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400 shrink-0"
+            class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400"
             role="alert"
           >
             <span class="font-medium">Error!</span>
@@ -321,7 +319,7 @@
           </div>
         {:else if status === "done"}
           <div
-            class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400 shrink-0"
+            class="p-4 mb-4 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400"
             role="alert"
           >
             <span class="font-medium">Success!</span>
@@ -365,7 +363,7 @@
 
       <!-- Footer -->
       <div
-        class="flex items-center justify-end px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 gap-3 shrink-0"
+        class="flex items-center justify-end px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 gap-3"
       >
         <button
           class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"

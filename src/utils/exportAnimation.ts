@@ -148,23 +148,6 @@ async function prepareResources(options: ExportAnimationOptions) {
   return { backgroundImage, robotImage };
 }
 
-// Calculate frame delays to exactly match total duration
-function calculateFrameDelays(frames: number, durationSec: number): number[] {
-  const targetTotalMs = durationSec * 1000;
-  const delays: number[] = [];
-  let accumulatedTime = 0;
-
-  for (let i = 0; i < frames; i++) {
-    // Calculate perfect end time for this frame
-    const targetEndTime = ((i + 1) / frames) * targetTotalMs;
-    // Calculate integer delay for this frame to reach that time
-    const delay = Math.round(targetEndTime - accumulatedTime);
-    delays.push(delay);
-    accumulatedTime += delay;
-  }
-  return delays;
-}
-
 export async function exportPathToGif(
   options: ExportAnimationOptions,
 ): Promise<Blob> {
@@ -210,11 +193,9 @@ export async function exportPathToGif(
   const calculatedFrames = Math.ceil(durationSec * fps);
   const MAX_FRAMES = 300;
   const frames = Math.max(2, Math.min(calculatedFrames, MAX_FRAMES));
-
-  const delays = calculateFrameDelays(frames, durationSec);
+  const delayMs = Math.round(1000 / fps);
 
   const framesDataURLs: string[] = [];
-  const framesDelays: number[] = []; // Store delays for fallback
 
   for (let i = 0; i < frames; i++) {
     const percent = (i / (frames - 1)) * 100;
@@ -233,16 +214,13 @@ export async function exportPathToGif(
       scale,
     );
 
-    const delay = delays[i];
-    framesDelays.push(delay);
-
     // Capture fallback data
     try {
       framesDataURLs.push(canvas.toDataURL("image/png"));
     } catch (e) {}
 
     try {
-      gif.addFrame(ctx, { copy: true, delay: delay });
+      gif.addFrame(ctx, { copy: true, delay: delayMs });
     } catch (e) {}
 
     if (onProgress) {
@@ -276,14 +254,13 @@ export async function exportPathToGif(
 
           for (let i = 0; i < framesDataURLs.length; i++) {
             const dataUrl = framesDataURLs[i];
-            const delay = framesDelays[i];
             await new Promise<void>((res, rej) => {
               const im = new Image();
               im.onload = () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(im, 0, 0, canvas.width, canvas.height);
                 try {
-                  gif2.addFrame(ctx, { copy: true, delay: delay });
+                  gif2.addFrame(ctx, { copy: true, delay: delayMs });
                 } catch (e) {}
                 res();
               };
@@ -353,7 +330,21 @@ export async function exportPathToApng(
   const MAX_FRAMES = 300;
   const frames = Math.max(2, Math.min(calculatedFrames, MAX_FRAMES));
 
-  const delays = calculateFrameDelays(frames, durationSec);
+  // Precise timing calculation:
+  // We want sum(delays) == durationSec * 1000
+  // Distribute error accumulation
+  const targetTotalMs = durationSec * 1000;
+  const delays: number[] = [];
+  let accumulatedTime = 0;
+
+  for (let i = 0; i < frames; i++) {
+    // Calculate perfect end time for this frame
+    const targetEndTime = ((i + 1) / frames) * targetTotalMs;
+    // Calculate integer delay for this frame to reach that time
+    const delay = Math.round(targetEndTime - accumulatedTime);
+    delays.push(delay);
+    accumulatedTime += delay;
+  }
 
   const buffers: ArrayBuffer[] = [];
 

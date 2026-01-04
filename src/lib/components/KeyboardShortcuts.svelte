@@ -221,6 +221,162 @@
     }
   }
 
+  function duplicate() {
+    if (isUIElementFocused()) return;
+    const sel = $selectedPointId;
+    if (!sel) return;
+
+    // Helper to generate unique name
+    const generateName = (baseName: string, existingNames: string[]) => {
+      // Regex to match "Name duplicate" or "Name duplicate N"
+      const match = baseName.match(/^(.*?) duplicate(?: (\d+))?$/);
+
+      let rootName = baseName;
+      let startNum = 1;
+
+      if (match) {
+        rootName = match[1];
+        startNum = match[2] ? parseInt(match[2], 10) : 1;
+        // If we are duplicating a duplicate, we probably want to start incrementing from its number + 1
+        startNum++;
+      }
+
+      // Try candidates starting from the determined number
+      let candidate = "";
+      let i = startNum;
+
+      // Safety/Sanity: loop limit to prevent infinite hangs in weird edge cases
+      while (i < 1000) {
+        if (i === 1) {
+          candidate = rootName + " duplicate";
+        } else {
+          candidate = rootName + " duplicate " + i;
+        }
+
+        if (!existingNames.includes(candidate)) {
+          return candidate;
+        }
+        i++;
+      }
+      return rootName + " duplicate " + Date.now(); // Fallback
+    };
+
+    if (sel.startsWith("wait-")) {
+      const waitId = sel.substring(5);
+      const waitItem = $sequenceStore.find(
+        (s) => s.kind === "wait" && (s as any).id === waitId,
+      ) as any;
+      if (!waitItem) return;
+
+      const newWait = _.cloneDeep(waitItem);
+      newWait.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      // Wait names are usually just "Wait", but let's see if we should append duplicate
+      // The user said: "Wait's should be identical."
+      // But also: "adding 'duplicate' to the name for the first duplicate..."
+      // Assuming this applies to both.
+      const existingWaitNames = sequence
+        .filter((s) => s.kind === "wait")
+        .map((s) => (s as any).name || "");
+      newWait.name = generateName(waitItem.name || "Wait", existingWaitNames);
+
+      const insertIdx = getSelectedSequenceIndex();
+      if (insertIdx !== null) {
+        sequenceStore.update((s) => {
+          const s2 = [...s];
+          s2.splice(insertIdx + 1, 0, newWait);
+          return s2;
+        });
+        selectedPointId.set(`wait-${newWait.id}`);
+        recordChange();
+      }
+      return;
+    }
+
+    // Path duplication
+    let targetLineId: string | null = null;
+    if (sel.startsWith("point-")) {
+      const parts = sel.split("-");
+      const lineNum = Number(parts[1]);
+      if (lineNum > 0) {
+        targetLineId = lines[lineNum - 1].id || null;
+      }
+    }
+    if ($selectedLineId) targetLineId = $selectedLineId;
+
+    if (targetLineId) {
+      const lineIndex = lines.findIndex((l) => l.id === targetLineId);
+      if (lineIndex === -1) return;
+      const originalLine = lines[lineIndex];
+
+      // Calculate relative offset
+      // Previous point (start of original line)
+      let prevPoint: { x: number; y: number } = startPoint;
+      if (lineIndex > 0) {
+        prevPoint = lines[lineIndex - 1].endPoint;
+      }
+
+      const deltaX = originalLine.endPoint.x - prevPoint.x;
+      const deltaY = originalLine.endPoint.y - prevPoint.y;
+
+      const newLine = _.cloneDeep(originalLine);
+      newLine.id = `line-${Math.random().toString(36).slice(2)}`;
+
+      // Update name
+      const existingLineNames = lines.map((l) => l.name || "");
+      newLine.name = generateName(
+        originalLine.name || `Path ${lineIndex + 1}`,
+        existingLineNames,
+      );
+
+      // Apply offset to endPoint
+      newLine.endPoint.x += deltaX;
+      newLine.endPoint.y += deltaY;
+
+      // Clamp to field size? (optional, but good practice)
+      // newLine.endPoint.x = Math.max(0, Math.min(FIELD_SIZE, newLine.endPoint.x));
+      // newLine.endPoint.y = Math.max(0, Math.min(FIELD_SIZE, newLine.endPoint.y));
+      // User didn't strictly say clamp, but usually duplication shouldn't break the app.
+      // I'll leave it unclamped as per standard duplication behavior in vector apps,
+      // letting the user move it back if it's out of bounds.
+
+      // Apply offset to control points
+      newLine.controlPoints.forEach((cp) => {
+        cp.x += deltaX;
+        cp.y += deltaY;
+      });
+
+      // Insert line
+      linesStore.update((l) => {
+        const newLines = [...l];
+        newLines.splice(lineIndex + 1, 0, newLine);
+        return renumberDefaultPathNames(newLines);
+      });
+
+      // Insert into sequence
+      // We need to find where the original line was in the sequence
+      const seqIdx = sequence.findIndex(
+        (s) => s.kind === "path" && s.lineId === originalLine.id,
+      );
+      if (seqIdx !== -1) {
+        sequenceStore.update((s) => {
+          const s2 = [...s];
+          s2.splice(seqIdx + 1, 0, { kind: "path", lineId: newLine.id! });
+          return s2;
+        });
+      } else {
+        // Fallback: append
+        sequenceStore.update((s) => [
+          ...s,
+          { kind: "path", lineId: newLine.id! },
+        ]);
+      }
+
+      selectedLineId.set(newLine.id!);
+      selectedPointId.set(`point-${lineIndex + 2}-0`); // Selected the end point of new line
+      recordChange();
+    }
+  }
+
   function removeSelected() {
     if (isUIElementFocused()) return;
     const sel = $selectedPointId;
@@ -574,6 +730,7 @@
     bind("addEventMarker", () => addEventMarker());
     bind("addControlPoint", () => addControlPoint());
     bind("removeControlPoint", () => removeControlPoint());
+    bind("duplicate", () => duplicate());
     bind("removeSelected", () => removeSelected());
     bind("undo", () => undoAction());
     bind("redo", () => redoAction());

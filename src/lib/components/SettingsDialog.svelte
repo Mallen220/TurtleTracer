@@ -1311,23 +1311,11 @@
 
                 <!-- App Icon (with white glow behind to show on dark backgrounds) -->
                 <div class="flex justify-center mt-3">
-                  <div class="relative w-20 h-20">
-                    <!-- Glow layer: white rounded blurred background placed behind the image -->
-                    <div
-                      class="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    >
-                      <div
-                        class="w-14 h-14 rounded-full bg-white"
-                        style="transform: translateY(-7px); filter: blur(8px); opacity: 0.95;"
-                      ></div>
-                    </div>
-
-                    <img
-                      src="/icon.png"
-                      alt="Pedro Pathing Visualizer icon"
-                      class="relative w-14 h-14 object-contain mx-auto"
-                    />
-                  </div>
+                  <img
+                    src="/icon.png"
+                    alt="Pedro Pathing Visualizer icon"
+                    class="w-16 h-16 object-contain rounded-xl dark:shadow-[0_0_20px_rgba(255,255,255,0.4)] mx-auto"
+                  />
                 </div>
               </div>
 
@@ -1360,6 +1348,38 @@
                     LinkedIn
                   </a>
                 </div>
+              </div>
+
+              <hr class="border-neutral-200 dark:border-neutral-700" />
+
+              <!-- Contact & Support -->
+              <div>
+                <h4 class="font-semibold mb-2">Contact & Support</h4>
+                <ul class="list-disc pl-5 space-y-1 text-sm">
+                  <li>
+                    Report bugs on
+                    <a
+                      href="https://github.com/Mallen220/PedroPathingVisualizer/issues"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      GitHub Issues
+                    </a>
+                  </li>
+                  <li>
+                    Discord: <span class="font-medium">mallen20</span>
+                  </li>
+                  <li>
+                    Email:
+                    <a
+                      href="mailto:allenmc220@gmail.com"
+                      class="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      allenmc220@gmail.com
+                    </a>
+                  </li>
+                </ul>
               </div>
 
               <hr class="border-neutral-200 dark:border-neutral-700" />
