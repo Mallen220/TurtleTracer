@@ -3,6 +3,7 @@
   import { onMount, onDestroy } from "svelte";
   import Two from "two.js";
   import * as d3 from "d3";
+  import { computeZoomStep, computePanForZoom } from "../zoomHelpers";
   import {
     gridSize,
     snapToGrid,
@@ -95,6 +96,44 @@
       height / 2 + (height * scaleFactor) / 2 + pan.y,
       height / 2 - (height * scaleFactor) / 2 + pan.y,
     ]);
+
+  function zoomTo(newZoom: number, focus?: { x: number; y: number }) {
+    const fx = focus?.x ?? width / 2;
+    const fy = focus?.y ?? height / 2;
+    // Compute field coordinates at the focus point using current scales
+    const fieldX = x.invert(fx);
+    const fieldY = y.invert(fy);
+    const pan = computePanForZoom({
+      width,
+      height,
+      fieldSize: FIELD_SIZE,
+      newZoom,
+      focusScreenX: fx,
+      focusScreenY: fy,
+      fieldX,
+      fieldY,
+    });
+    fieldZoom.set(Number(newZoom.toFixed(2)));
+    fieldPan.set(pan);
+  }
+
+  function handleWheel(e: WheelEvent) {
+    if (!wrapperDiv) return;
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const rect = wrapperDiv.getBoundingClientRect();
+      const transformed = getTransformedCoordinates(e.clientX, e.clientY, rect, settings.fieldRotation || 0);
+      const lx = transformed.x;
+      const ly = transformed.y;
+      const deltaSign = e.deltaY < 0 ? 1 : -1; // wheel up -> zoom in
+      const step = computeZoomStep(zoom, deltaSign);
+      const newZoom = Math.min(
+        5.0,
+        Math.max(0.1, Number((zoom + deltaSign * step).toFixed(2))),
+      );
+      zoomTo(newZoom, { x: lx, y: ly });
+    }
+  }
 
   // Visual Scale (Pixels per Inch at 1x Zoom)
   // Used for UI elements (points, markers) so they don't grow when zooming in
@@ -1144,6 +1183,7 @@
   class="relative aspect-square"
   style={`width: ${width}px; height: ${height}px;`}
   bind:this={wrapperDiv}
+  on:wheel={(e) => handleWheel(e)}
 >
   <div
     bind:this={twoElement}
@@ -1200,8 +1240,14 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
   >
     <button
       class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-      on:click={() =>
-        fieldZoom.update((z) => Math.min(5.0, Number((z + 0.1).toFixed(2))))}
+      on:click={() => {
+        const step = computeZoomStep(zoom, 1);
+        const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
+        const focus = isMouseOverField
+          ? { x: x(currentMouseX), y: y(currentMouseY) }
+          : { x: width / 2, y: height / 2 };
+        zoomTo(newZoom, focus);
+      }}
       aria-label="Zoom in"
       title="Zoom In (Cmd/Ctrl + +)"
     >
@@ -1218,8 +1264,14 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
     </button>
     <button
       class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-      on:click={() =>
-        fieldZoom.update((z) => Math.max(0.1, Number((z - 0.1).toFixed(2))))}
+      on:click={() => {
+        const step = computeZoomStep(zoom, -1);
+        const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
+        const focus = isMouseOverField
+          ? { x: x(currentMouseX), y: y(currentMouseY) }
+          : { x: width / 2, y: height / 2 };
+        zoomTo(newZoom, focus);
+      }}
       aria-label="Zoom out"
       title="Zoom Out (Cmd/Ctrl + -)"
     >

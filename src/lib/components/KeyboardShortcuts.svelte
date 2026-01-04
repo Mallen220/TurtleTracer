@@ -28,6 +28,7 @@
   import type { Line, SequenceItem } from "../../types";
   import { DEFAULT_KEY_BINDINGS, FIELD_SIZE } from "../../config";
   import { getRandomColor } from "../../utils";
+  import { computeZoomStep } from "../zoomHelpers";
   import _ from "lodash";
 
   // Actions
@@ -544,8 +545,10 @@
   function modifyZoom(delta: number) {
     if (isUIElementFocused()) return;
     fieldZoom.update((z) => {
-      // Allow zooming from 0.1 to 5.0
-      return Math.max(0.1, Math.min(5.0, Number((z + delta).toFixed(2))));
+      // Use adaptive step: when zooming in past 1x, speed up
+      const step = computeZoomStep(z, Math.sign(delta));
+      const change = Math.sign(delta) * step;
+      return Math.max(0.1, Math.min(5.0, Number((z + change).toFixed(2))));
     });
   }
 
