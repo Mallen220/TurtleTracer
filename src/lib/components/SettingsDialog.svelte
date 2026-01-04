@@ -206,7 +206,13 @@
 
   function handlePopulationInput(e: Event) {
     const target = e.target as HTMLInputElement;
-    handleNumberInput(target.value, "optimizationPopulationSize", 10, 200, true);
+    handleNumberInput(
+      target.value,
+      "optimizationPopulationSize",
+      10,
+      200,
+      true,
+    );
   }
 
   function handleMutationRateInput(e: Event) {
@@ -216,7 +222,13 @@
 
   function handleMutationStrengthInput(e: Event) {
     const target = e.target as HTMLInputElement;
-    handleNumberInput(target.value, "optimizationMutationStrength", 0.1, 20, true);
+    handleNumberInput(
+      target.value,
+      "optimizationMutationStrength",
+      0.1,
+      20,
+      true,
+    );
   }
 
   async function handleImageUpload(e: Event) {

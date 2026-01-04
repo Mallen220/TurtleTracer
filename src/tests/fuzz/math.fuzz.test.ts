@@ -64,15 +64,19 @@ if (fc) {
 
     it("getTangentAngle should return consistent values for same slope", () => {
       fc.assert(
-        fc.property(pointArbitrary, pointArbitrary, (p1: BasePoint, p2: BasePoint) => {
-          // Skip if points are too close
-          if (Math.hypot(p1.x - p2.x, p1.y - p2.y) < 1e-6) return true;
+        fc.property(
+          pointArbitrary,
+          pointArbitrary,
+          (p1: BasePoint, p2: BasePoint) => {
+            // Skip if points are too close
+            if (Math.hypot(p1.x - p2.x, p1.y - p2.y) < 1e-6) return true;
 
-          const angle = getTangentAngle(p1, p2);
-          expect(angle).toBeDefined();
-          expect(angle).toBeGreaterThanOrEqual(-180);
-          expect(angle).toBeLessThanOrEqual(180);
-        }),
+            const angle = getTangentAngle(p1, p2);
+            expect(angle).toBeDefined();
+            expect(angle).toBeGreaterThanOrEqual(-180);
+            expect(angle).toBeLessThanOrEqual(180);
+          },
+        ),
       );
     });
   });

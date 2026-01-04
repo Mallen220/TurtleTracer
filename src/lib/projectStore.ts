@@ -58,9 +58,7 @@ export function sanitizeSequence(
 
   return [
     ...pruned,
-    ...missing.map(
-      (l) => ({ kind: "path", lineId: l.id }) as SequencePathItem,
-    ),
+    ...missing.map((l) => ({ kind: "path", lineId: l.id }) as SequencePathItem),
   ];
 }
 

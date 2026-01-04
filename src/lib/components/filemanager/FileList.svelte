@@ -27,7 +27,8 @@
   let renameInput: string = "";
 
   // Preview cache + retry logic (similar to FileGrid)
-  let previews: Record<string, { startPoint: any; lines: any[] } | undefined> = {};
+  let previews: Record<string, { startPoint: any; lines: any[] } | undefined> =
+    {};
   let previewRetryCount: Record<string, number> = {};
   const MAX_PREVIEW_RETRIES = 5;
   const previewQueue: string[] = [];

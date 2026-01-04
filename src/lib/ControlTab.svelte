@@ -326,7 +326,10 @@
         ...pruned,
         ...missing.map(
           (l) =>
-            ({ kind: "path", lineId: l.id as string }) as unknown as SequenceItem,
+            ({
+              kind: "path",
+              lineId: l.id as string,
+            }) as unknown as SequenceItem,
         ),
       ];
       repairedSequenceOnce = true;

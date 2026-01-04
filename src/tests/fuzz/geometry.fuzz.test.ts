@@ -69,14 +69,18 @@ if (fc) {
 
     it("pointToLineDistance should be zero if point is one of the line endpoints", () => {
       fc.assert(
-        fc.property(pointArbitrary, pointArbitrary, (l1: BasePoint, l2: BasePoint) => {
-          const dist = pointToLineDistance(
-            [l1.x, l1.y],
-            [l1.x, l1.y],
-            [l2.x, l2.y],
-          );
-          expect(dist).toBeCloseTo(0);
-        }),
+        fc.property(
+          pointArbitrary,
+          pointArbitrary,
+          (l1: BasePoint, l2: BasePoint) => {
+            const dist = pointToLineDistance(
+              [l1.x, l1.y],
+              [l1.x, l1.y],
+              [l2.x, l2.y],
+            );
+            expect(dist).toBeCloseTo(0);
+          },
+        ),
       );
     });
   });
