@@ -1,193 +1,147 @@
-# Pedro Pathing Visualizer
+<div align="center">
+  <img src="public/icon.png" alt="Pedro Pathing Visualizer Logo" width="120" height="120">
+  <h1 align="center">Pedro Pathing Visualizer</h1>
+  <p align="center">
+    <strong>The modern, intuitive path planner for FIRST Robotics Competition.</strong>
+  </p>
+  <p align="center">
+    Visualize • Plan • Simulate • Export
+  </p>
 
-A powerful, intuitive desktop application for visualizing and planning autonomous robot paths for FIRST Robotics Competition. Built with Electron and Svelte, this tool provides a modern alternative to traditional path planning software.
+  <p align="center">
+    <a href="https://github.com/Mallen220/PedroPathingVisualizer/releases">
+      <img src="https://img.shields.io/github/v/release/Mallen220/PedroPathingVisualizer?style=flat-square&color=blue" alt="Latest Release">
+    </a>
+    <a href="LICENSE">
+      <img src="https://img.shields.io/badge/license-Apache%202.0-green.svg?style=flat-square" alt="License">
+    </a>
+    <img src="https://img.shields.io/badge/platform-macOS%20|%20Windows%20|%20Linux-lightgrey.svg?style=flat-square" alt="Platform">
+  </p>
+</div>
 
-This repo is designed and maintained primarily on MacOS. While Windows and Linux executables are created (as this is an Electron app), they may become unexpectedly unstable. Please report platform issues as they are discovered. The best temporary fix is to revert to a previous version.
+> ## This project is currently undergoing rapid updates. Please check back regularly for bug fixes and new features. If you find an error, please report it and revert to a previous version. 
 
-![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)
-![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)
-![Platform](https://img.shields.io/badge/platform-macOS%20|%20Windows%20|%20Linux-lightgrey.svg)
 
-> ### This project is currently undergoing rapid updates. Please check back regularly for bug fixes and new features.
+---
+
+## 🚀 Overview
+
+**Pedro Pathing Visualizer** is a powerful desktop application built with Electron and Svelte, designed to revolutionize how FIRST Robotics Competition teams plan their autonomous routines. Unlike web-based alternatives, this tool runs natively on your machine, offering superior performance, local file management, and deep integration with your development workflow.
 
 ## ✨ Features
 
-- **Visual Path Editing**: Intuitive drag-and-drop interface for creating bezier curves, straight lines, and complex paths with snap-to-grid precision
-- **Robot Simulation**: Timeline-based animation of robot movement along paths with accurate kinematics and velocity/acceleration settings
-- **Sequence-Based Routines**: Create complex autonomous sequences with integrated wait times between path segments
-- **Obstacle Management**: Add and edit field obstacles with custom shapes, colors, and collision awareness
-- **Multiple Heading Modes**: Constant, linear, and tangential heading interpolation
-- **Event Markers**: Place event triggers at specific positions along paths for autonomous routines
-- **Cross-Platform**: Native applications for macOS, Windows, and Linux with auto-update support
-- **Code Export**: Generate ready-to-use Java code for Pedro Pathing library, including sequential commands for FTC SDK
-- **Integrated File Management**: Built-in file browser with save/load, duplicate, mirror, rename, and directory statistics
-- **Measurement Tools**: Built-in ruler, protractor, and adjustable grid (12", 24", 36", 48", 6" options)
-- **Customizable Appearance**: Choose between light and dark themes, and customize colors for paths and obstacles
-- **Field and Robot Customization**: Upload custom field maps and robot images for accurate visualization
-- **Locking Functionality**: Prevent accidental modification of critical path segments and starting points
-- **Persistent Settings**: All configurations are saved between sessions and can be reset to defaults
-- **And so much more!**
+Experience a comprehensive suite of tools designed for precision and efficiency:
 
-## 📦 Installation Options
+*   **🎨 Visual Path Editing**: Intuitive drag-and-drop interface for creating complex Bezier curves, straight lines, and path chains.
+*   **🤖 Advanced Simulation**: Real-time robot physics simulation featuring accurate kinematics, velocity constraints, and acceleration profiles.
+*   **⚠️ Obstacle & Collision Detection**: Define custom field obstacles (polygons) and get immediate feedback on potential collisions during path planning.
+*   **🔄 Sequence Editor**: Build full autonomous routines by sequencing paths, adding wait times, and triggering event markers.
+*   **💾 Local File Management**: Robust system for saving, loading, and organizing `.pp` project files directly on your file system.
+*   **📤 Powerful Export Options**:
+    *   **Java Code**: Generate full OpModes for the Pedro Pathing library.
+    *   **APNG & GIF Export**: Share your path animations with the team using high-quality exported visualizer recordings.
+    *   **JSON Export**: Raw data export for custom parsers.
+*   **⚡ Productivity Tools**:
+    *   **Onion Skinning**: Visualize previous path states for precise adjustments.
+    *   **Undo/Redo**: Full history support for mistake-free editing.
+    *   **Multi-Window Support**: Open multiple project windows simultaneously.
+*   **📏 Precision Tools**: Integrated Ruler, Protractor, and customizable Grid snapping (1" - 24") for exact field positioning.
+*   **🛠️ Customization**: Full support for custom field maps, robot sizing, color themes, and adjustable safe margins.
+*   **📦 Cross-Platform**: Native, optimized applications for macOS, Windows, and Linux.
+*   **♾️ And so, so much more!** Check back often for updates and new features. 
+
+## 📥 Installation
 
 ### **macOS**
 
-**Recommended (One-line Installer):**
-
+**One-Line Installer (Recommended):**
+Open Terminal and run:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
 ```
-
-Enter your password when prompted to complete installation.
+*Enter your password when prompted to complete installation.*
 
 **Manual Installation:**
-
-1. Download the latest `.dmg` file from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases)
-2. Double-click to mount the DMG
-3. Drag "Pedro Pathing Visualizer.app" to your Applications folder
-4. On first run: Right-click → Open, then click "Open" when prompted
+1.  Download the latest `.dmg` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
+2.  Mount the DMG and drag the app to your Applications folder.
+3.  **Important**: Run the following command in Terminal to clear the quarantine attribute (prevents "App is damaged" errors):
+    ```bash
+    sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Visualizer.app"
+    ```
+4.  Launch the application.
 
 ### **Windows**
+1.  Download the latest `.exe` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
+2.  Run the installer.
+3.  *Note: If SmartScreen appears, click "More info" > "Run anyway".*
 
-1. Download the `.exe` installer from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases)
-2. Run the installer and follow the installation wizard
-3. Launch from Start Menu or desktop shortcut
+### **Linux**
+Download the `.deb` (Debian/Ubuntu) or `.AppImage` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
 
-### **Linux (Ubuntu/Debian) — x86_64 (amd64) & arm64**
-
-Download either `.deb` (for Debian/Ubuntu) or `.AppImage` for other distros. For x86_64 machines choose the `_amd64.deb` or the standard `.AppImage`; arm64 builds include `arm64` in the filename.
-
-**Using .deb package:**
-
-```bash
-sudo dpkg -i Pedro*.deb
-```
-
-**Using AppImage:**
-
+**AppImage:**
 ```bash
 chmod +x Pedro*.AppImage
 ./Pedro*.AppImage
 ```
 
-## 🎯 Getting Started
+## 🗂️ File Management
 
-1. **Launch the Application**: Open Pedro Pathing Visualizer from your applications menu
-2. **Configure Settings**: Set up your robot dimensions, field map, and preferences in the Settings dialog
-3. **Create a Path**: Click "Add Line" to start creating your autonomous path, or use the sequence editor for complex routines
-4. **Adjust Points**: Drag start points, end points, and control points to shape your path (enable snap-to-grid for precision)
-5. **Set Headings**: Configure robot heading for each segment (constant, linear, or tangential)
-6. **Add Obstacles**: Define field obstacles with custom shapes and colors
-7. **Create Sequences**: Build complex autonomous routines with paths and timed waits
-8. **Simulate**: Use the animation controller to see your robot follow the path with accurate timing
-9. **Export**: Generate Java code for use with Pedro Pathing library
+One of the critical advantages of Pedro Pathing Visualizer over web-based tools is its **Local File Management system**.
+
+*   **Security & Persistence**: Your paths are saved as actual files (`.pp`) on your hard drive, not in a temporary browser cache that can be accidentally cleared.
+*   **Version Control**: You can easily commit your path files to Git alongside your robot code, ensuring your team always has the latest versions.
+*   **Organization**: Use the built-in file browser to organize paths into folders, duplicate successful routines, and manage backups without leaving the app.
 
 ## 🛠️ Tool Overview
 
-### Canvas Tools
+### **Canvas Tools**
+*   **Grid & Snap**: Toggle customizable grids (1" - 24") and enable snapping for perfect alignment.
+*   **Ruler**: Measure distances instantly between any two points on the field.
+*   **Protractor**: Measure relative angles, with options to lock to the robot's heading.
 
-- **Grid**: Toggle measurement grid with adjustable spacing (6", 12", 24", 36", 48")
-- **Snap-to-Grid**: Align points and obstacles to grid for precise placement
-- **Ruler**: Measure distances between points on the field
-- **Protractor**: Measure angles with lock-to-robot functionality
+### **Path Editing**
+*   **Control Points**: Fine-tune Bezier curves by manipulating control handles.
+*   **Heading Modes**: Choose between Tangential, Constant, or Linear heading interpolation for precise robot orientation.
+*   **Event Markers**: Place named triggers along the path to fire actions (e.g., "Open Claw") at exact path percentages.
 
-### Path Editing
+### **Animation Controller**
+*   **Timeline**: Scrub through your autonomous routine to verify timing and sequence order.
+*   **Real-time Feedback**: See exact robot coordinates and heading at any point in time.
 
-- **Multiple Path Segments**: Create complex paths with multiple connected segments
-- **Control Points**: Add bezier control points for smooth curves
-- **Lock Segments**: Prevent accidental modification of critical path segments
-- **Sequence Editor**: Create complex autonomous routines with paths and wait times
-- **Event Markers**: Place named events at specific positions for autonomous routines
-- **Obstacle System**: Define custom polygons as field obstacles with collision awareness
+## 📤 Export Options
 
-### Animation & Simulation
+The visualizer provides flexible export capabilities to suit your team's workflow:
 
-- **Timeline Controller**: Play, pause, and scrub through path execution
-- **Time Prediction**: Accurate path timing based on robot kinematics
-- **Velocity/Acceleration Settings**: Configure robot motion constraints for realistic simulation
-
-### Export Options
-
-- **Java Code**: Full Pedro Pathing library integration code
-- **Sequential Commands**: FTC SDK SequentialCommandGroup code with event markers
-- **Points Array**: Raw coordinate arrays for custom implementations
+1.  **Java Class**: Generates a complete, ready-to-run Java file for your FTC robot controller.
+2.  **Sequential Commands**: Exports code formatted for command-based frameworks, integrating paths with your subsystems.
+3.  **JSON / Text**: Raw data export for custom parsers or debugging.
 
 ## 🔧 Troubleshooting
 
-### macOS
+### **macOS**
+*   **"App is damaged" / Can't Open**:
+    Run the quarantine fix command:
+    ```bash
+    sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Visualizer.app"
+    ```
+*   **Gatekeeper**: If the app is blocked, go to *System Settings > Privacy & Security* and click "Open Anyway".
 
-- **"App is damaged and can't be opened"**:
+### **Windows**
+*   **SmartScreen Warning**: This is common for new software. Click "More Info" and "Run Anyway".
+*   **Antivirus**: If the file is flagged, adds an exception. The code is open source and safe.
 
-  ```bash
-  sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Visualizer.app"
-  ```
-
-- **Gatekeeper Blocking**:
-  - Go to System Settings → Privacy & Security
-  - Scroll down and click "Open Anyway" next to the app
-
-### Windows
-
-- **SmartScreen Warning**: Click "More info" then "Run anyway" for first launch
-- **Antivirus False Positive**: Add exception for the application in your antivirus software
-
-### Linux
-
-- **AppImage Permissions**:
-  ```bash
-  chmod +x *.AppImage
-  ```
-- **Missing Dependencies**: Ensure libfuse2 is installed for AppImage support
-
-## 🗂️ File Management
-
-The application includes a built-in file manager for organizing your path files (.pp extension):
-
-- **Auto-save Directory**: Defaults to your Pedro Pathing project directory
-- **Duplicate Files**: Create copies of existing paths
-- **Mirror Paths**: Automatically create horizontally mirrored versions of paths
-- **File Organization**: Browse, create, rename, and delete .pp files directly within the app
-- **Directory Statistics**: View file counts and sizes at a glance
-
-## 📝 Keyboard Shortcuts
-
-| Shortcut               | Action                   |
-| ---------------------- | ------------------------ |
-| `Double Click`         | Create new path to point |
-| `Cmd/Ctrl + S`         | Save current project     |
-| `Cmd/Ctrl + Shift + S` | Save As                  |
-| `Space`                | Play/Pause animation     |
-| `W`                    | Add new line             |
-| `A`                    | Add control point        |
-| `S`                    | Remove control point     |
-| `Escape`               | Close dialogs            |
-| `Cmd/Ctrl + Z`         | Undo                     |
-| `Cmd/Ctrl + Shift + Z` | Redo                     |
-
-## 🏗️ Project Structure
-
-```
-mallen220-pedropathingvisualizer/
-├── electron/           # Electron main process
-├── src/               # Svelte frontend
-│   ├── lib/          # Reusable components and stores
-│   ├── utils/        # Utility functions and classes
-│   ├── config/       # Application configurations and defaults
-│   └── types/        # TypeScript type definitions
-├── public/           # Static assets
-├── scripts/          # Build, release, and development scripts
-└── .github/         # GitHub Actions workflows
-```
+### **Linux**
+*   **AppImage not running**: Ensure you have `libfuse2` installed and have given the file execution permissions (`chmod +x`).
 
 ## 🧩 Development
 
-### Prerequisites
+Want to contribute or build from source?
 
-- Node.js 18+ and npm
-- Git
+### **Prerequisites**
+*   Node.js 18+
+*   Git
 
-### Setup
-
+### **Setup**
 ```bash
 # Clone the repository
 git clone https://github.com/Mallen220/PedroPathingVisualizer.git
@@ -200,54 +154,45 @@ npm install
 npm run dev
 ```
 
-### Building
-
+### **Building**
 ```bash
-# Build for current platform
+# Build for your current platform
 npm run dist
-
-# Build all platforms (requires cross-compilation setup)
-npm run dist:all
-
-# Build linux x86_64 (amd64) specifically on a mac or CI environment
-npm run dist:linux:x64
 ```
 
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow existing code style and structure
-- Use Prettier for code formatting (configured to run on build)
-- Add appropriate TypeScript types
-- Test changes on multiple platforms if possible
-- Update documentation as needed
+1.  Fork the repository.
+2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4.  Push to the branch (`git push origin feature/AmazingFeature`).
+5.  Open a Pull Request.
 
 ## 📄 License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is open for everyone! We believe in the power of open source and community collaboration. You are free to use, modify, and distribute this software as you see fit. All we ask is that you give credit to the original developers and any contributors who have helped shape this tool. If you make improvements, please consider sharing them back with the community!
+
+See the [LICENSE](LICENSE) file for the full Apache 2.0 legal text.
 
 ## 🙏 Acknowledgments
 
-- **#16166 Watt's Up** for initial development and inspiration
-- **FIRST** community for testing and feedback
-- **Pedro Pathing Developers** for the project this is based on
-- All contributors who have helped improve the tool
+*   **#16166 Watt's Up**: For the initial concept, development, and inspiration.
+*   **Pedro Pathing Developers**: For the underlying library this visualizer supports.
+*   **FIRST Community**: For the continuous feedback and testing.
+*   **Contributors**: All the developers who have helped improve this tool.
 
 ## 🔗 Links
 
-- [GitHub Repository](https://github.com/Mallen220/PedroPathingVisualizer)
-- [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases)
-- [Issues](https://github.com/Mallen220/PedroPathingVisualizer/issues)
+*   [GitHub Repository](https://github.com/Mallen220/PedroPathingVisualizer)
+*   [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases)
+*   [Issues & Bug Reports](https://github.com/Mallen220/PedroPathingVisualizer/issues)
 
 ---
 
-**Note**: This is a community-developed tool not officially affiliated with FIRST or Pedro Pathing. Always test autonomous routines in simulation before running on a physical robot.
+<div align="center">
+  <sub>Built by <a href="https://github.com/Mallen220">Matthew Allen</a> & Contributors</sub>
+  <br>
+  <sub>Not officially affiliated with FIRST® or Pedro Pathing.</sub>
+</div>
