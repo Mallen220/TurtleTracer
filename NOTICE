@@ -39,3 +39,6 @@ src/lib/components/WaitMarkersSection.svelte
 src/config/defaults.ts
 src/lib/components/KeyboardShortcutsDialog.svelte
 src/lib/components/ExportGifDialog.svelte
+src/tests/codeExporter.test.ts
+src/tests/fileSystemAdapter.test.ts
+src/tests/fuzz/pathOptimizer.fuzz.test.ts
