@@ -68,7 +68,7 @@ describe("codeExporter", () => {
       reverse: true,
     },
     color: "#000000",
-    eventMarkers: [{ name: "marker1", position: 0.5 }],
+    eventMarkers: [{ id: "m1", name: "marker1", position: 0.5 }],
   };
 
   describe("generatePointsArray", () => {
@@ -144,6 +144,29 @@ describe("codeExporter", () => {
       expect(code).toContain("public class PedroAutonomous extends OpMode");
       expect(code).toContain("paths = new Paths(follower);");
     });
+
+    it("should handle empty lines array", async () => {
+      const code = await generateJavaCode(startPoint, [], false);
+      expect(code).toContain("public static class Paths");
+      // Should not contain any paths
+      expect(code).not.toContain("public PathChain");
+    });
+
+    it("should handle wait events in sequence when provided", async () => {
+      const sequence: SequenceItem[] = [
+        {
+          kind: "wait",
+          durationMs: 500,
+          eventMarkers: [{ name: "waitMarker", position: 0.5 }],
+        } as any,
+      ];
+      // generateJavaCode uses sequence ONLY to collect event marker names for NamedCommands
+      const code = await generateJavaCode(startPoint, [], false, sequence);
+
+      expect(code).toContain(
+        'NamedCommands.registerCommand("waitMarker", yourwaitMarkerCommand)',
+      );
+    });
   });
 
   describe("generateSequentialCommandCode", () => {
@@ -193,6 +216,61 @@ describe("codeExporter", () => {
         sequence,
       );
 
+      expect(code).toContain("new WaitCommand(1000)");
+    });
+
+    it("should handle NextFTC wait commands (seconds conversion)", async () => {
+      const lines = [line1];
+      const sequence: SequenceItem[] = [
+        { kind: "path", lineId: "line1" },
+        { kind: "wait", durationMs: 1500 } as any,
+      ];
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestPath.pp",
+        sequence,
+        "NextFTC",
+      );
+
+      // NextFTC uses seconds, so 1500ms -> 1.500
+      expect(code).toContain("new Delay(1.500)");
+    });
+
+    it("should generate auto-names if line names are missing", async () => {
+      const unnamedLine = { ...line1, name: "" };
+      const lines = [unnamedLine];
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestPath.pp",
+      );
+
+      expect(code).toContain("private Pose point1;");
+      expect(code).toContain('point1 = pp.get("point1");');
+    });
+
+    it("should handle wait events with markers", async () => {
+      const sequence: SequenceItem[] = [
+        {
+          kind: "wait",
+          durationMs: 2000,
+          eventMarkers: [
+            { name: "midWait", position: 0.5 },
+            { name: "endWait", position: 1.0 },
+          ],
+        } as any,
+      ];
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        [],
+        "TestPath.pp",
+        sequence,
+      );
+
+      expect(code).toContain("ParallelRaceGroup");
+      expect(code).toContain('progressTracker.executeEvent("midWait")');
+      // 2000ms * 0.5 = 1000
       expect(code).toContain("new WaitCommand(1000)");
     });
   });

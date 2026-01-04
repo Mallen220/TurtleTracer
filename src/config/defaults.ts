@@ -46,7 +46,7 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
   {
     id: "export-gif",
     key: "cmd+shift+e, ctrl+shift+e",
-    description: "Export GIF",
+    description: "Export Animated Image",
     action: "exportGif",
     category: "File",
   },
@@ -85,6 +85,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     key: "d",
     description: "Remove control point",
     action: "removeControlPoint",
+    category: "Editing",
+  },
+  {
+    id: "duplicate",
+    key: "shift+d, cmd+d",
+    description: "Duplicate selected item",
+    action: "duplicate",
     category: "Editing",
   },
   {
@@ -410,6 +417,7 @@ export const DEFAULT_SETTINGS: Settings = {
   keyBindings: DEFAULT_KEY_BINDINGS,
   recentFiles: [],
   // Developer/debugging aids
+  // @ts-ignore
   showDebugSequence: false,
 };
 

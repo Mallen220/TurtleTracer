@@ -25,8 +25,10 @@
   let renameInput = "";
 
   // Preview Data Cache
-  let previews: Record<string, { startPoint: Point; lines: Line[] } | null> =
-    {};
+  let previews: Record<
+    string,
+    { startPoint: Point; lines: Line[] } | undefined
+  > = {};
   // Retry counters for failed previews
   let previewRetryCount: Record<string, number> = {};
   const MAX_PREVIEW_RETRIES = 5;
@@ -292,7 +294,7 @@
     // Preload top N files proactively
     files.slice(0, PRELOAD_COUNT).forEach((f) => {
       if (previews[f.path] === undefined) loadPreview(f.path);
-      if (previews[f.path] && previews[f.path].startPoint == null)
+      if (previews[f.path] && previews[f.path]!.startPoint == null)
         loadPreview(f.path, true);
     });
     files.forEach((f) => {
@@ -305,7 +307,7 @@
       }
 
       // If an earlier preview attempt failed (startPoint === null), retry it
-      if (previews[f.path] && previews[f.path].startPoint == null) {
+      if (previews[f.path] && previews[f.path]!.startPoint == null) {
         loadPreview(f.path, true);
       }
     });
@@ -314,7 +316,7 @@
   // If the field image or other settings change, retry any previously-failed previews
   $: if (fieldImage !== undefined) {
     Object.keys(previews).forEach((p) => {
-      if (previews[p] && previews[p].startPoint == null) {
+      if (previews[p] && previews[p]!.startPoint == null) {
         loadPreview(p, true);
       }
     });
@@ -384,10 +386,10 @@
         >
           <!-- Icon / Preview -->
           <div class="mb-2 relative">
-            {#if previews[file.path] && previews[file.path].startPoint}
+            {#if previews[file.path]?.startPoint}
               <PathPreview
-                startPoint={previews[file.path].startPoint}
-                lines={previews[file.path].lines}
+                startPoint={previews[file.path]?.startPoint}
+                lines={previews[file.path]?.lines ?? []}
                 fieldImage={fieldImage ? `/fields/${fieldImage}` : null}
                 width={80}
                 height={80}
@@ -400,7 +402,7 @@
                   <img
                     src={`/fields/${fieldImage}`}
                     alt="Field Map"
-                    class="w-full h-full object-cover"
+                    class="w-full h-full object-contain object-center"
                     on:error={handleFieldImageError}
                   />
                 {:else}

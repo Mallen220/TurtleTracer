@@ -647,7 +647,7 @@
 
   // Event Markers
   $: eventMarkerElements = (() => {
-    let twoMarkers: Two.Group[] = [];
+    let twoMarkers: InstanceType<typeof Two.Group>[] = [];
     lines.forEach((line, idx) => {
       if (
         !line ||
@@ -694,7 +694,7 @@
       sequence.forEach((it) => {
         if (it.kind === "wait") waitById.set(it.id, it);
       });
-      timePrediction.timeline.forEach((ev) => {
+      timePrediction.timeline.forEach((ev: any) => {
         if (ev.type !== "wait" || !ev.waitId || !ev.atPoint) return;
         const seqWait = waitById.get(ev.waitId);
         if (
@@ -743,7 +743,7 @@
 
   // Collision Markers
   $: collisionElements = (() => {
-    let elems: Two.Group[] = [];
+    let elems: InstanceType<typeof Two.Group>[] = [];
     if (markers && markers.length > 0) {
       markers.forEach((marker, idx) => {
         const group = new Two.Group();
@@ -1035,7 +1035,7 @@
           if (!isNaN(lineNum) && lineNum > 0) {
             const lineIndex = lineNum - 1;
             const line = lines[lineIndex];
-            if (line) {
+            if (line && line.id) {
               selectedLineId.set(line.id);
               selectedPointId.set(currentElem);
             }
@@ -1051,8 +1051,8 @@
         } else if (currentElem.startsWith("event-")) {
           const parts = currentElem.split("-");
           const lineIdx = Number(parts[1]);
-          if (!isNaN(lineIdx) && lines[lineIdx]) {
-            selectedLineId.set(lines[lineIdx].id);
+          if (!isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            selectedLineId.set(lines[lineIdx].id as string);
             selectedPointId.set(currentElem);
           }
         } else if (currentElem.startsWith("wait-event-")) {

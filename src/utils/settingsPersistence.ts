@@ -65,7 +65,11 @@ function migrateSettings(stored: Partial<StoredSettings>): Settings {
   Object.keys(sourceSettings).forEach((key) => {
     if (key in migrated) {
       // Special-case merging for keyBindings so newly added defaults appear
-      if (key === "keyBindings" && Array.isArray(stored.settings.keyBindings)) {
+      if (
+        key === "keyBindings" &&
+        stored.settings &&
+        Array.isArray(stored.settings.keyBindings)
+      ) {
         const defaultBindings = defaults.keyBindings || [];
         const storedBindings = stored.settings.keyBindings as any[];
 

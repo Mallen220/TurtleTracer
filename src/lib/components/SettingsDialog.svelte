@@ -106,7 +106,7 @@
       const defaultSettings = await resetSettings();
       // Update the bound settings object
       Object.keys(defaultSettings).forEach((key) => {
-        settings[key] = defaultSettings[key];
+        (settings as any)[key] = (defaultSettings as any)[key];
       });
     }
   }
@@ -120,7 +120,7 @@
     restoreDefaultIfEmpty = false,
   ) {
     if (value === "" && restoreDefaultIfEmpty) {
-      settings[property] = DEFAULT_SETTINGS[property];
+      (settings as any)[property] = DEFAULT_SETTINGS[property];
       // Force reactivity
       settings = { ...settings };
       return;
@@ -129,12 +129,12 @@
     if (isNaN(num)) num = 0;
     if (min !== undefined) num = Math.max(min, num);
     if (max !== undefined) num = Math.min(max, num);
-    settings[property] = num;
+    (settings as any)[property] = num;
     settings = { ...settings };
   }
 
   // Helper function to convert file to base64
-  function imageToBase64(file) {
+  function imageToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -147,6 +147,110 @@
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  }
+
+  function handleLengthInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(target.value, "rLength", 1, 36, true);
+  }
+
+  function handleWidthInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(target.value, "rWidth", 1, 36, true);
+  }
+
+  function handleImageError(e: Event) {
+    const target = e.target as HTMLImageElement;
+    target.src = "/robot.png";
+  }
+
+  function handleSafetyMarginInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(target.value, "safetyMargin", 0, 24, true);
+  }
+
+  function handleXVelocityInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(target.value, "xVelocity", 0, undefined, true);
+  }
+
+  function handleYVelocityInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(target.value, "yVelocity", 0, undefined, true);
+  }
+
+  function handleMaxVelocityInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(target.value, "maxVelocity", 0, undefined, true);
+  }
+
+  function handleMaxAccelerationInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(target.value, "maxAcceleration", 0, undefined, true);
+  }
+
+  function handleMaxDecelerationInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(target.value, "maxDeceleration", 0, undefined, true);
+  }
+
+  function handleFrictionInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(target.value, "kFriction", 0, undefined, true);
+  }
+
+  function handleIterationsInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(target.value, "optimizationIterations", 10, 3000, true);
+  }
+
+  function handlePopulationInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(
+      target.value,
+      "optimizationPopulationSize",
+      10,
+      200,
+      true,
+    );
+  }
+
+  function handleMutationRateInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(target.value, "optimizationMutationRate", 0.01, 1, true);
+  }
+
+  function handleMutationStrengthInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleNumberInput(
+      target.value,
+      "optimizationMutationStrength",
+      0.1,
+      20,
+      true,
+    );
+  }
+
+  async function handleImageUpload(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await imageToBase64(file);
+        settings.robotImage = base64;
+        settings = { ...settings }; // Force reactivity
+
+        // Show success message
+        const successMsg = document.createElement("div");
+        successMsg.className =
+          "fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg";
+        successMsg.textContent = "Robot image updated!";
+        document.body.appendChild(successMsg);
+        setTimeout(() => successMsg.remove(), 3000);
+      } catch (error) {
+        alert("Error loading image: " + (error as Error).message);
+      }
+    }
   }
 </script>
 
@@ -335,8 +439,7 @@
                   min="1"
                   max="36"
                   step="0.5"
-                  on:change={(e) =>
-                    handleNumberInput(e.target.value, "rLength", 1, 36, true)}
+                  on:change={handleLengthInput}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -358,8 +461,7 @@
                   min="1"
                   max="36"
                   step="0.5"
-                  on:change={(e) =>
-                    handleNumberInput(e.target.value, "rWidth", 1, 36, true)}
+                  on:change={handleWidthInput}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -381,14 +483,7 @@
                   min="0"
                   max="24"
                   step="0.5"
-                  on:change={(e) =>
-                    handleNumberInput(
-                      e.target.value,
-                      "safetyMargin",
-                      0,
-                      24,
-                      true,
-                    )}
+                  on:change={handleSafetyMarginInput}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -419,7 +514,7 @@
                           "Failed to load robot image:",
                           settings.robotImage,
                         );
-                        e.target.src = "/robot.png"; // Fallback
+                        handleImageError(e);
                       }}
                     />
                     {#if settings.robotImage && settings.robotImage !== "/robot.png"}
@@ -487,30 +582,11 @@
                       type="file"
                       accept="image/*"
                       class="hidden"
-                      on:change={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          try {
-                            const base64 = await imageToBase64(file);
-                            settings.robotImage = base64;
-                            settings = { ...settings }; // Force reactivity
-
-                            // Show success message
-                            const successMsg = document.createElement("div");
-                            successMsg.className =
-                              "fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg";
-                            successMsg.textContent = "Robot image updated!";
-                            document.body.appendChild(successMsg);
-                            setTimeout(() => successMsg.remove(), 3000);
-                          } catch (error) {
-                            alert("Error loading image: " + error.message);
-                          }
-                        }
-                      }}
+                      on:change={handleImageUpload}
                     />
                     <button
                       on:click={() =>
-                        document.getElementById("robot-image-input").click()}
+                        document.getElementById("robot-image-input")?.click()}
                       class="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors flex items-center justify-center gap-2"
                     >
                       <svg
@@ -639,14 +715,7 @@
                     bind:value={settings.xVelocity}
                     min="0"
                     step="1"
-                    on:change={(e) =>
-                      handleNumberInput(
-                        e.target.value,
-                        "xVelocity",
-                        0,
-                        undefined,
-                        true,
-                      )}
+                    on:change={handleXVelocityInput}
                     class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -664,14 +733,7 @@
                     bind:value={settings.yVelocity}
                     min="0"
                     step="1"
-                    on:change={(e) =>
-                      handleNumberInput(
-                        e.target.value,
-                        "yVelocity",
-                        0,
-                        undefined,
-                        true,
-                      )}
+                    on:change={handleYVelocityInput}
                     class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -714,14 +776,7 @@
                   bind:value={settings.maxVelocity}
                   min="0"
                   step="1"
-                  on:change={(e) =>
-                    handleNumberInput(
-                      e.target.value,
-                      "maxVelocity",
-                      0,
-                      undefined,
-                      true,
-                    )}
+                  on:change={handleMaxVelocityInput}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -741,14 +796,7 @@
                     bind:value={settings.maxAcceleration}
                     min="0"
                     step="1"
-                    on:change={(e) =>
-                      handleNumberInput(
-                        e.target.value,
-                        "maxAcceleration",
-                        0,
-                        undefined,
-                        true,
-                      )}
+                    on:change={handleMaxAccelerationInput}
                     class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -766,14 +814,7 @@
                     bind:value={settings.maxDeceleration}
                     min="0"
                     step="1"
-                    on:change={(e) =>
-                      handleNumberInput(
-                        e.target.value,
-                        "maxDeceleration",
-                        0,
-                        undefined,
-                        true,
-                      )}
+                    on:change={handleMaxDecelerationInput}
                     class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -796,14 +837,7 @@
                   bind:value={settings.kFriction}
                   min="0"
                   step="0.1"
-                  on:change={(e) =>
-                    handleNumberInput(
-                      e.target.value,
-                      "kFriction",
-                      0,
-                      undefined,
-                      true,
-                    )}
+                  on:change={handleFrictionInput}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -1092,14 +1126,7 @@
                     max="3000"
                     step="1"
                     bind:value={settings.optimizationIterations}
-                    on:change={(e) =>
-                      handleNumberInput(
-                        e.target.value,
-                        "optimizationIterations",
-                        10,
-                        3000,
-                        true,
-                      )}
+                    on:change={handleIterationsInput}
                     class="w-24 h-8 px-2 rounded border border-neutral-300 dark:border-neutral-600 text-purple-700 dark:text-purple-300 bg-neutral-50 dark:bg-neutral-900 focus:ring-2 focus:ring-purple-500"
                     title="Number of generations for path optimization"
                   />
@@ -1130,14 +1157,7 @@
                     max="200"
                     step="1"
                     bind:value={settings.optimizationPopulationSize}
-                    on:change={(e) =>
-                      handleNumberInput(
-                        e.target.value,
-                        "optimizationPopulationSize",
-                        10,
-                        200,
-                        true,
-                      )}
+                    on:change={handlePopulationInput}
                     class="w-24 h-8 px-2 rounded border border-neutral-300 dark:border-neutral-600 text-blue-700 dark:text-blue-300 bg-neutral-50 dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500"
                     title="Number of candidate paths per generation"
                   />
@@ -1168,14 +1188,7 @@
                     max="1"
                     step="0.01"
                     bind:value={settings.optimizationMutationRate}
-                    on:change={(e) =>
-                      handleNumberInput(
-                        e.target.value,
-                        "optimizationMutationRate",
-                        0.01,
-                        1,
-                        true,
-                      )}
+                    on:change={handleMutationRateInput}
                     class="w-24 h-8 px-2 rounded border border-neutral-300 dark:border-neutral-600 text-green-700 dark:text-green-300 bg-neutral-50 dark:bg-neutral-900 focus:ring-2 focus:ring-green-500"
                     title="Fraction of control points mutated per generation"
                   />
@@ -1207,14 +1220,7 @@
                     max="20"
                     step="0.1"
                     bind:value={settings.optimizationMutationStrength}
-                    on:change={(e) =>
-                      handleNumberInput(
-                        e.target.value,
-                        "optimizationMutationStrength",
-                        0.1,
-                        20,
-                        true,
-                      )}
+                    on:change={handleMutationStrengthInput}
                     class="w-24 h-8 px-2 rounded border border-neutral-300 dark:border-neutral-600 text-orange-700 dark:text-orange-300 bg-neutral-50 dark:bg-neutral-900 focus:ring-2 focus:ring-orange-500"
                     title="Maximum distance (inches) a control point can move per mutation"
                   />
@@ -1311,23 +1317,11 @@
 
                 <!-- App Icon (with white glow behind to show on dark backgrounds) -->
                 <div class="flex justify-center mt-3">
-                  <div class="relative w-20 h-20">
-                    <!-- Glow layer: white rounded blurred background placed behind the image -->
-                    <div
-                      class="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    >
-                      <div
-                        class="w-14 h-14 rounded-full bg-white"
-                        style="transform: translateY(-7px); filter: blur(8px); opacity: 0.95;"
-                      ></div>
-                    </div>
-
-                    <img
-                      src="/icon.png"
-                      alt="Pedro Pathing Visualizer icon"
-                      class="relative w-14 h-14 object-contain mx-auto"
-                    />
-                  </div>
+                  <img
+                    src="/icon.png"
+                    alt="Pedro Pathing Visualizer icon"
+                    class="w-16 h-16 object-contain rounded-xl dark:shadow-[0_0_20px_rgba(255,255,255,0.4)] mx-auto"
+                  />
                 </div>
               </div>
 
@@ -1360,6 +1354,38 @@
                     LinkedIn
                   </a>
                 </div>
+              </div>
+
+              <hr class="border-neutral-200 dark:border-neutral-700" />
+
+              <!-- Contact & Support -->
+              <div>
+                <h4 class="font-semibold mb-2">Contact & Support</h4>
+                <ul class="list-disc pl-5 space-y-1 text-sm">
+                  <li>
+                    Report bugs on
+                    <a
+                      href="https://github.com/Mallen220/PedroPathingVisualizer/issues"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      GitHub Issues
+                    </a>
+                  </li>
+                  <li>
+                    Discord: <span class="font-medium">mallen20</span>
+                  </li>
+                  <li>
+                    Email:
+                    <a
+                      href="mailto:allenmc220@gmail.com"
+                      class="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      allenmc220@gmail.com
+                    </a>
+                  </li>
+                </ul>
               </div>
 
               <hr class="border-neutral-200 dark:border-neutral-700" />

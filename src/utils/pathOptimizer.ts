@@ -13,7 +13,6 @@ import type {
 } from "../types";
 import { calculatePathTime } from "./timeCalculator";
 import { FIELD_SIZE } from "../config";
-import { calculateRobotState } from "./animation";
 import { pointInPolygon, getRobotCorners } from "./geometry";
 import {
   getCurvePoint,
@@ -202,7 +201,15 @@ export class PathOptimizer {
       timeline = result.timeline;
     }
 
-    const totalTime = timeline[timeline.length - 1].endTime;
+    if (!timeline || timeline.length === 0) return [];
+
+    const lastEvent = timeline[timeline.length - 1];
+    if (!lastEvent) return [];
+
+    const totalTime = lastEvent.endTime;
+    // Check for NaN totalTime to avoid infinite loop
+    if (!Number.isFinite(totalTime)) return [];
+
     const step = 0.2; // Check every 0.2 seconds for performance
     const markers: CollisionMarker[] = [];
 
@@ -219,6 +226,8 @@ export class PathOptimizer {
         eventIdx++;
       }
       const activeEvent = timeline[eventIdx];
+      // Guard against undefined activeEvent if logic slightly off
+      if (!activeEvent) break;
 
       // Inline simplified calculateRobotState logic for performance
       // This avoids O(N) search and function overhead in the hot loop
@@ -232,7 +241,9 @@ export class PathOptimizer {
         y = point.y;
 
         const eventProgress =
-          (t - activeEvent.startTime) / activeEvent.duration;
+          activeEvent.duration > 0
+            ? (t - activeEvent.startTime) / activeEvent.duration
+            : 1;
         const clampedProgress = Math.max(0, Math.min(1, eventProgress));
 
         const currentHeading = shortestRotation(
@@ -244,10 +255,16 @@ export class PathOptimizer {
       } else {
         const lineIdx = activeEvent.lineIndex!;
         const currentLine = lines[lineIdx];
+        if (!currentLine) break; // Should not happen
+
         const prevPoint =
           lineIdx === 0 ? this.startPoint : lines[lineIdx - 1].endPoint;
 
-        const timeProgress = (t - activeEvent.startTime) / activeEvent.duration;
+        const timeProgress =
+          activeEvent.duration > 0
+            ? (t - activeEvent.startTime) / activeEvent.duration
+            : 1;
+
         const linePercent = easeInOutQuad(
           Math.max(0, Math.min(1, timeProgress)),
         );
@@ -336,6 +353,8 @@ export class PathOptimizer {
       this.settings,
       this.sequence,
     );
+    // If NaN, punish extremely
+    if (!Number.isFinite(result.totalTime)) return 20000;
 
     const collisionCount = this.getCollisionCount(result.timeline, lines);
 

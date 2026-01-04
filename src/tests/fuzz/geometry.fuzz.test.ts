@@ -22,6 +22,7 @@ if (!fastCheckInstalled) {
 
 import { pointToLineDistance } from "../../utils/geometry";
 import { pointArbitrary } from "../generators";
+import type { BasePoint } from "../../types";
 
 if (fc) {
   describe("Geometry Utils Property Tests", () => {
@@ -31,7 +32,7 @@ if (fc) {
           pointArbitrary,
           pointArbitrary,
           pointArbitrary,
-          (p, l1, l2) => {
+          (p: BasePoint, l1: BasePoint, l2: BasePoint) => {
             const dist = pointToLineDistance(
               [p.x, p.y],
               [l1.x, l1.y],
@@ -49,7 +50,7 @@ if (fc) {
           pointArbitrary,
           pointArbitrary,
           pointArbitrary,
-          (p, l1, l2) => {
+          (p: BasePoint, l1: BasePoint, l2: BasePoint) => {
             const dist1 = pointToLineDistance(
               [p.x, p.y],
               [l1.x, l1.y],
@@ -68,14 +69,18 @@ if (fc) {
 
     it("pointToLineDistance should be zero if point is one of the line endpoints", () => {
       fc.assert(
-        fc.property(pointArbitrary, pointArbitrary, (l1, l2) => {
-          const dist = pointToLineDistance(
-            [l1.x, l1.y],
-            [l1.x, l1.y],
-            [l2.x, l2.y],
-          );
-          expect(dist).toBeCloseTo(0);
-        }),
+        fc.property(
+          pointArbitrary,
+          pointArbitrary,
+          (l1: BasePoint, l2: BasePoint) => {
+            const dist = pointToLineDistance(
+              [l1.x, l1.y],
+              [l1.x, l1.y],
+              [l2.x, l2.y],
+            );
+            expect(dist).toBeCloseTo(0);
+          },
+        ),
       );
     });
   });

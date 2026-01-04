@@ -171,7 +171,7 @@ export function getLineStartHeading(
   if (line.endPoint.heading === "constant") return line.endPoint.degrees;
   if (line.endPoint.heading === "linear") return line.endPoint.startDeg;
   if (line.endPoint.heading === "tangential") {
-    let nextP = line.endPoint;
+    let nextP: { x: number; y: number } = line.endPoint;
     // Find the first point that isn't the start point (overlap handling)
     if (line.controlPoints && line.controlPoints.length > 0) {
       for (const cp of line.controlPoints) {
@@ -199,7 +199,7 @@ export function getLineEndHeading(
   if (line.endPoint.heading === "constant") return line.endPoint.degrees;
   if (line.endPoint.heading === "linear") return line.endPoint.endDeg;
   if (line.endPoint.heading === "tangential") {
-    let prevP = previousPoint;
+    let prevP: { x: number; y: number } = previousPoint;
     // Find the last point that isn't the end point (overlap handling)
     if (line.controlPoints && line.controlPoints.length > 0) {
       for (let i = line.controlPoints.length - 1; i >= 0; i--) {

@@ -41,11 +41,13 @@
   tabindex="0"
   aria-pressed={isSelected}
   class={`flex flex-col w-full justify-start items-start gap-1 ${isSelected ? "border-l-4 border-amber-400 pl-2" : ""}`}
-  on:click={() => selectedLineId.set(line.id)}
+  on:click={() => {
+    if (line.id) selectedLineId.set(line.id);
+  }}
   on:keydown={(e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      selectedLineId.set(line.id);
+      if (line.id) selectedLineId.set(line.id);
     }
   }}
 >
@@ -57,6 +59,7 @@
         on:click={toggleCollapsed}
         class="flex items-center gap-2 font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors"
         title="{collapsed ? 'Expand' : 'Collapse'} path"
+        aria-label="{collapsed ? 'Expand' : 'Collapse'} path"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -103,6 +106,7 @@
       <!-- Lock/Unlock Button -->
       <button
         title={line.locked ? "Unlock Path" : "Lock Path"}
+        aria-label={line.locked ? "Unlock Path" : "Lock Path"}
         on:click|stopPropagation={() => {
           line.locked = !line.locked;
           lines = [...lines]; // Force reactivity
@@ -145,6 +149,7 @@
       <div class="flex flex-row gap-0.5 ml-1">
         <button
           title={line.locked ? "Path locked" : "Move up"}
+          aria-label="Move path up"
           on:click|stopPropagation={() => {
             if (!line.locked && onMoveUp) onMoveUp();
           }}
@@ -168,6 +173,7 @@
         </button>
         <button
           title={line.locked ? "Path locked" : "Move down"}
+          aria-label="Move path down"
           on:click|stopPropagation={() => {
             if (!line.locked && onMoveDown) onMoveDown();
           }}
@@ -197,6 +203,7 @@
 
       <button
         title="Add Point After This Line"
+        aria-label="Add Point After This Line"
         on:click={onInsertAfter}
         class="text-blue-500 hover:text-blue-600"
       >
@@ -218,6 +225,7 @@
       <!-- Add Wait After Button -->
       <button
         title="Add Wait After"
+        aria-label="Add Wait After"
         on:click={onAddWaitAfter}
         class="text-orange-500 hover:text-orange-600"
       >
@@ -241,6 +249,7 @@
       {#if lines.length > 1}
         <button
           title="Remove Line"
+          aria-label="Remove Line"
           class="text-red-500 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
           on:click={() => {
             if (!line.locked && onRemove) onRemove();
@@ -248,7 +257,7 @@
           aria-disabled={line.locked}
           disabled={line.locked}
         >
-          <TrashIcon class_="size-5" strokeWidth={2} />
+          <TrashIcon className="size-5" strokeWidth={2} />
         </button>
       {/if}
     </div>

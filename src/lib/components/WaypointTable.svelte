@@ -2,7 +2,6 @@
 <script lang="ts">
   import type { Point, Line, ControlPoint, SequenceItem } from "../../types";
   import {
-    calculateDragPosition,
     reorderSequence,
     getClosestTarget,
     type DragPosition,
@@ -15,16 +14,22 @@
     selectedPointId,
   } from "../../stores";
   import { slide } from "svelte/transition";
-
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let sequence: SequenceItem[];
   import OptimizationDialog from "./OptimizationDialog.svelte";
   import { tick } from "svelte";
   import ObstaclesSection from "./ObstaclesSection.svelte";
   import TrashIcon from "./icons/TrashIcon.svelte";
   import ColorPicker from "./ColorPicker.svelte";
+  import ContextMenu from "./ContextMenu.svelte";
+  import {
+    makeId,
+    generateName,
+    renumberDefaultPathNames,
+  } from "../../utils/nameGenerator";
+  import { getRandomColor } from "../../utils/draw";
 
+  export let startPoint: Point;
+  export let lines: Line[];
+  export let sequence: SequenceItem[];
   export let recordChange: () => void;
   // Handler passed from parent to toggle optimization dialog
   export let onToggleOptimization: () => void;
@@ -38,18 +43,18 @@
   export let onPreviewChange: (
     lines: import("../../types").Line[] | null,
   ) => void;
-  export let settings: import("../../types").Settings;
+  export let settings: import("../../types").Settings | undefined = undefined;
 
   // Shapes and collapsedObstacles binding for ObstaclesSection
   export let shapes: import("../../types").Shape[];
   export let collapsedObstacles: boolean[];
 
-  // Prevent Svelte unused-export warnings: these are bound from parent and used in markup
+  // Prevent Svelte unused-export warnings
   $: shapes;
   $: collapsedObstacles;
-
-  // Ensure these are referenced so the compiler doesn't mark them as unused
   $: _shapesCount = Array.isArray(shapes) ? shapes.length : 0;
+  $: _settingsRef = settings; // Reference settings to suppress unused warning
+  $: showDebug = (settings as any)?.showDebugSequence;
   $: _collapsedObstaclesCount = Array.isArray(collapsedObstacles)
     ? collapsedObstacles.length
     : 0;
@@ -119,14 +124,6 @@
     if (!isNaN(val)) {
       updatePoint(point, field, val);
     }
-  }
-
-  function getLine(id: string): Line | undefined {
-    return lines.find((l) => l.id === id);
-  }
-
-  function getLineIndex(id: string): number {
-    return lines.findIndex((l) => l.id === id);
   }
 
   function updateLineName(lineId: string, name: string) {
@@ -248,7 +245,6 @@
     draggingIndex = index;
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = "move";
-      // e.dataTransfer.setDragImage(e.target as Element, 0, 0); // Optional
     }
   }
 
@@ -257,7 +253,6 @@
     e.preventDefault();
 
     // Use a custom selector for rows that have sequence data
-    // We target tr elements that have data-seq-index
     const target = getClosestTarget(e, "tr[data-seq-index]", document.body);
 
     if (!target) return;
@@ -327,12 +322,8 @@
 
     lines = reordered;
 
-    // Renumber default path names to match the new order
-    const renamed = lines.map((l, idx) => {
-      if (/^Path \d+$/.test(l.name)) return { ...l, name: `Path ${idx + 1}` };
-      return l;
-    });
-    lines = renamed;
+    // Renumber default path names
+    lines = renumberDefaultPathNames(lines);
   }
 
   // Watch for missing sequence entries and repair once to keep UI in sync
@@ -402,26 +393,29 @@
     selectedPointId.set(null);
   }
 
+  function toggleWaitLock(index: number) {
+    const item = sequence[index];
+    if (item.kind === "wait") {
+      (item as any).locked = !(item.locked ?? false);
+      sequence = [...sequence];
+      if (recordChange) recordChange();
+    }
+  }
+
   let copyButtonText = "Copy Table";
 
   function copyTableToClipboard() {
     const rows = [];
-
-    // Header
     rows.push("| Name | X (in) / Dur (ms) | Y (in) |");
     rows.push("| :--- | :--- | :--- |");
-
-    // Start Point
     rows.push(
       `| Start Point | ${startPoint.x.toString()} | ${startPoint.y.toString()} |`,
     );
 
-    // Sequence
     for (const item of displaySequence) {
       if (item.kind === "path") {
         const line = lines.find((l) => l.id === item.lineId);
         if (line) {
-          // Line Row
           let xVal = line.endPoint.x.toString();
           if (line.waitBeforeName || line.waitBeforeMs) {
             xVal += ` (${line.waitBeforeName || line.waitBeforeMs})`;
@@ -430,8 +424,6 @@
           rows.push(
             `| ${line.name || `Path ${lineIdx + 1}`} | ${xVal} | ${line.endPoint.y.toString()} |`,
           );
-
-          // Control Points
           line.controlPoints.forEach((cp, idx) => {
             rows.push(
               `| ↳ Control ${idx + 1} | ${cp.x.toString()} | ${cp.y.toString()} |`,
@@ -458,9 +450,331 @@
         console.error("Failed to copy table: ", err);
       });
   }
+
+  // --- Context Menu Logic ---
+
+  let contextMenuOpen = false;
+  let contextMenuX = 0;
+  let contextMenuY = 0;
+  let contextMenuItems: any[] = [];
+
+  async function handleContextMenu(event: MouseEvent, seqIndex: number) {
+    event.preventDefault();
+
+    // Close existing if open to force re-mount and position recalc
+    if (contextMenuOpen) {
+      contextMenuOpen = false;
+      await tick();
+    }
+
+    // Start Point (index -1)
+    if (seqIndex === -1) {
+      contextMenuItems = [
+        {
+          label: startPoint.locked ? "Unlock Start Point" : "Lock Start Point",
+          onClick: () => {
+            startPoint.locked = !startPoint.locked;
+            if (recordChange) recordChange();
+          },
+        },
+        { separator: true },
+        {
+          label: "Insert Wait After",
+          onClick: () => insertWait(0),
+        },
+        {
+          label: "Insert Path After",
+          onClick: () => insertPath(0),
+        },
+      ];
+      contextMenuX = event.clientX;
+      contextMenuY = event.clientY;
+      contextMenuOpen = true;
+      return;
+    }
+
+    const item = sequence[seqIndex];
+    if (!item) return;
+
+    const line = item.kind === "path" ? lines.find((l) => l.id === item.lineId) : null;
+    const isLocked =
+      item.kind === "path"
+        ? (line?.locked ?? false)
+        : (item.locked ?? false);
+
+    const items = [];
+
+    // Lock/Unlock
+    items.push({
+      label: isLocked ? "Unlock" : "Lock",
+      onClick: () => toggleLock(seqIndex),
+    });
+
+    items.push({ separator: true });
+
+    // Duplicate
+    items.push({
+      label: "Duplicate",
+      onClick: () => duplicateItem(seqIndex),
+      disabled: isLocked && item.kind === "path", // can duplicate wait if locked? usually duplicating a locked item is fine, but maybe not if we can't insert?
+      // Actually duplication creates a new item, so it shouldn't be blocked by lock of the source,
+      // unless we want to prevent copying locked stuff. Usually "Duplicate" is "Copy & Paste".
+      // But the memory says: "Duplicating a 'Wait' command creates a deep copy..."
+      // The code in ControlTab checks "isLocked" for moving, but duplicating creates new.
+      // Let's allow duplication.
+    });
+
+    items.push({ separator: true });
+
+    // Insert options
+    items.push({
+      label: "Insert Wait Before",
+      onClick: () => insertWait(seqIndex),
+    });
+    items.push({
+      label: "Insert Wait After",
+      onClick: () => insertWait(seqIndex + 1),
+    });
+    items.push({
+      label: "Insert Path Before",
+      onClick: () => insertPath(seqIndex),
+    });
+    items.push({
+      label: "Insert Path After",
+      onClick: () => insertPath(seqIndex + 1),
+    });
+
+    items.push({ separator: true });
+
+    // Delete
+    items.push({
+      label: "Delete",
+      onClick: () =>
+        item.kind === "path"
+          ? deleteLine(item.lineId)
+          : deleteWait(seqIndex),
+      danger: true,
+      disabled: isLocked || (lines.length <= 1 && item.kind === "path"),
+    });
+
+    contextMenuItems = items;
+    contextMenuX = event.clientX;
+    contextMenuY = event.clientY;
+    contextMenuOpen = true;
+  }
+
+  function toggleLock(seqIndex: number) {
+    const item = sequence[seqIndex];
+    if (item.kind === "wait") {
+      const newSeq = [...sequence];
+      newSeq[seqIndex] = {
+        ...item,
+        locked: !item.locked,
+      };
+      sequence = newSeq;
+    } else if (item.kind === "path") {
+      const line = lines.find((l) => l.id === item.lineId);
+      if (line) {
+        line.locked = !line.locked;
+        lines = [...lines]; // Trigger reactivity
+      }
+    }
+    if (recordChange) recordChange();
+  }
+
+  function duplicateItem(seqIndex: number) {
+    const item = sequence[seqIndex];
+    if (!item) return;
+
+    if (item.kind === "wait") {
+      const newItem = structuredClone(item);
+      newItem.id = makeId();
+      newItem.locked = false; // unlock duplicate?
+      newItem.name = generateName(
+        item.name || "Wait",
+        sequence.map((s) => s.name || ""),
+      );
+
+      const newSeq = [...sequence];
+      newSeq.splice(seqIndex + 1, 0, newItem);
+      sequence = newSeq;
+      recordChange();
+    } else if (item.kind === "path") {
+        // Logic for duplicating path (similar to insertLineAfter but copying properties)
+        const line = lines.find(l => l.id === item.lineId);
+        if (!line) return;
+
+        const newLine = structuredClone(line);
+        newLine.id = makeId();
+        newLine.locked = false;
+        newLine.name = generateName(line.name || "Path", lines.map(l => l.name));
+
+        // Offset the new line slightly or keep it same?
+        // Usually duplicate implies same properties.
+        // But for path, maybe we want it to start where the previous one ended?
+        // Wait, "Duplicate" usually means copy the configuration.
+        // If we duplicate a path segment, we probably want a new segment that continues from the current end point,
+        // with the same relative vector?
+        // Memory says: "Duplicating a path segment creates a new line inserted after the original, calculating the new end point and control points by applying the original segment's vector delta (end - start) to the previous endpoint..."
+
+        // "previous endpoint" is the end point of the line being duplicated (since we insert after it).
+        // So: New.Start = Old.End.
+        // New.End = New.Start + (Old.End - Old.Start).
+        // Old.Start is ... well, the end point of the line *before* the old line.
+
+        // Let's look at `ControlTab` logic if it exists. It doesn't seem to have "Duplicate Path" explicitly, only "Insert Line After" (random) and "Duplicate Wait".
+        // Wait, memory says: "The 'Duplicate' feature is triggered by Shift+D... Duplicating a path segment creates a new line inserted after the original..."
+        // So I should implement that logic.
+
+        // Find previous point for the original line to calculate delta.
+        // The start point of `line` is the end point of the line before it in sequence, or `startPoint` if it's first.
+
+        let prevPoint = startPoint;
+        if (seqIndex > 0) {
+             // Find the previous PATH item to get its end point.
+             // Actually we just need the point before `line` in the linked list of paths.
+             // `sequence` order matters.
+             // Find path item index in sequence
+             // Go backwards to find a path item.
+             for (let i = seqIndex - 1; i >= 0; i--) {
+                 if (sequence[i].kind === 'path') {
+                     const pl = lines.find(l => l.id === (sequence[i] as any).lineId);
+                     if (pl) {
+                         prevPoint = pl.endPoint;
+                         break;
+                     }
+                 }
+             }
+        }
+
+        const dx = line.endPoint.x - prevPoint.x;
+        const dy = line.endPoint.y - prevPoint.y;
+
+        // New start point is line.endPoint.
+        // New end point is line.endPoint + delta.
+        newLine.endPoint.x = line.endPoint.x + dx;
+        newLine.endPoint.y = line.endPoint.y + dy;
+
+        // Clamp to field?
+        newLine.endPoint.x = Math.max(0, Math.min(144, newLine.endPoint.x));
+        newLine.endPoint.y = Math.max(0, Math.min(144, newLine.endPoint.y));
+
+        // Adjust control points
+        // CP_new = New.Start + (CP_old - Old.Start)
+        // effectively CP_new = CP_old + (New.Start - Old.Start) = CP_old + (Old.End - Old.Start) = CP_old + delta
+        // Wait, CP is absolute.
+        newLine.controlPoints = line.controlPoints.map(cp => ({
+            ...cp,
+            x: Math.max(0, Math.min(144, cp.x + dx)),
+            y: Math.max(0, Math.min(144, cp.y + dy))
+        }));
+
+        // Insert
+        const lineIdx = lines.findIndex(l => l.id === item.lineId);
+        lines.splice(lineIdx + 1, 0, newLine);
+        lines = [...lines]; // trigger reactivity
+
+        const newSeq = [...sequence];
+        newSeq.splice(seqIndex + 1, 0, { kind: 'path', lineId: newLine.id! });
+        sequence = newSeq;
+
+        lines = renumberDefaultPathNames(lines);
+        recordChange();
+    }
+  }
+
+  function insertWait(index: number) {
+    const newWait: SequenceItem = {
+        kind: "wait",
+        id: makeId(),
+        name: "Wait",
+        durationMs: 1000,
+        locked: false
+    };
+
+    // Check naming
+    newWait.name = generateName("Wait", sequence.map(s => s.name || ""));
+
+    const newSeq = [...sequence];
+    newSeq.splice(index, 0, newWait);
+    sequence = newSeq;
+    syncLinesToSequence(newSeq);
+    recordChange();
+  }
+
+  function insertPath(index: number) {
+      // Logic similar to insertLineAfter in ControlTab
+      // We need to find where to insert in `lines` array.
+      // If index > 0, find the item at index-1.
+      // If it's a path, insert after that line.
+      // If it's a wait, keep going back until we find a path or start point.
+
+      let insertAfterLineId: string | null = null;
+      let refPoint = startPoint;
+      let heading = "tangential";
+
+      // Find the last path element before insertion point
+      for (let i = index - 1; i >= 0; i--) {
+          if (sequence[i].kind === 'path') {
+              insertAfterLineId = (sequence[i] as any).lineId;
+              const l = lines.find(x => x.id === insertAfterLineId);
+              if (l) {
+                  refPoint = l.endPoint;
+                  heading = l.endPoint.heading;
+              }
+              break;
+          }
+      }
+
+      // Create new line
+      const newLine: Line = {
+          id: makeId(),
+          name: "",
+          endPoint: {
+              x: Math.max(0, Math.min(144, refPoint.x + 10)), // simple offset
+              y: Math.max(0, Math.min(144, refPoint.y + 10)),
+              heading: "tangential", // default
+              reverse: false
+          },
+          controlPoints: [],
+          color: getRandomColor(),
+          waitBeforeMs: 0,
+          waitAfterMs: 0,
+          waitBeforeName: "",
+          waitAfterName: "",
+          eventMarkers: []
+      };
+
+      // If we found a reference line, we insert after it in `lines`.
+      // If not (inserting at start), insert at 0.
+      let lineInsertIdx = 0;
+      if (insertAfterLineId) {
+          const idx = lines.findIndex(l => l.id === insertAfterLineId);
+          if (idx !== -1) lineInsertIdx = idx + 1;
+      }
+
+      lines.splice(lineInsertIdx, 0, newLine);
+      lines = renumberDefaultPathNames([...lines]);
+
+      const newSeq = [...sequence];
+      newSeq.splice(index, 0, { kind: 'path', lineId: newLine.id! });
+      sequence = newSeq;
+
+      recordChange();
+  }
+
 </script>
 
 <svelte:window on:dragover={handleWindowDragOver} on:drop={handleWindowDrop} />
+
+{#if contextMenuOpen}
+  <ContextMenu
+    x={contextMenuX}
+    y={contextMenuY}
+    items={contextMenuItems}
+    on:close={() => (contextMenuOpen = false)}
+  />
+{/if}
 
 <div class="w-full flex flex-col gap-4 text-sm p-1">
   <div class="flex justify-between items-center">
@@ -553,7 +867,7 @@
     </div>
   </div>
 
-  {#if settings?.showDebugSequence}
+  {#if showDebug}
     <div class="p-2 text-xs text-neutral-500">
       <div>
         <strong>DEBUG</strong> — lines: {lines.length}, sequence: {(
@@ -590,7 +904,7 @@
   {/if}
 
   <div
-    class="w-full overflow-x-auto border rounded-md border-neutral-200 dark:border-neutral-700"
+    class="w-full overflow-x-auto border rounded-md border-neutral-200 dark:border-neutral-700 pb-32"
   >
     <table
       class="w-full text-left bg-white dark:bg-neutral-900 border-collapse"
@@ -618,6 +932,7 @@
             selectedLineId.set(null);
             selectedPointId.set("point-0-0");
           }}
+          on:contextmenu={(e) => handleContextMenu(e, -1)}
           class:border-b-2={dragOverIndex === -1 && dragPosition === "bottom"}
           class:border-blue-500={dragOverIndex === -1}
           class:dark:border-blue-400={dragOverIndex === -1}
@@ -683,6 +998,7 @@
                 draggable={!line.locked}
                 on:dragstart={(e) => handleDragStart(e, seqIndex)}
                 on:dragend={handleDragEnd}
+                on:contextmenu={(e) => handleContextMenu(e, seqIndex)}
                 class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150`}
                 class:border-t-2={dragOverIndex === seqIndex &&
                   dragPosition === "top"}
@@ -692,7 +1008,7 @@
                 class:dark:border-blue-400={dragOverIndex === seqIndex}
                 class:opacity-50={draggingIndex === seqIndex}
                 on:click={() => {
-                  selectedLineId.set(line.id);
+                  if (line.id) selectedLineId.set(line.id);
                   selectedPointId.set(endPointId);
                 }}
               >
@@ -810,7 +1126,9 @@
                   <!-- Right slot: delete or placeholder -->
                   {#if lines.length > 1 && !line.locked}
                     <button
-                      on:click|stopPropagation={() => deleteLine(line.id)}
+                      on:click|stopPropagation={() => {
+                        if (line.id) deleteLine(line.id);
+                      }}
                       title="Delete path"
                       aria-label="Delete path"
                       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
@@ -834,7 +1152,7 @@
                 <tr
                   class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === pointId ? "bg-green-100 dark:bg-green-800/40" : ""}`}
                   on:click={() => {
-                    selectedLineId.set(line.id);
+                    if (line.id) selectedLineId.set(line.id);
                     selectedPointId.set(pointId);
                   }}
                 >
@@ -902,6 +1220,7 @@
               draggable={!item.locked}
               on:dragstart={(e) => handleDragStart(e, seqIndex)}
               on:dragend={handleDragEnd}
+              on:contextmenu={(e) => handleContextMenu(e, seqIndex)}
               class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-amber-50 dark:bg-amber-900/20 transition-colors duration-150"
               class:border-t-2={dragOverIndex === seqIndex &&
                 dragPosition === "top"}
@@ -961,11 +1280,7 @@
               >
                 <!-- Lock toggle for wait -->
                 <button
-                  on:click|stopPropagation={() => {
-                    sequence[seqIndex].locked = !sequence[seqIndex].locked;
-                    sequence = [...sequence];
-                    if (recordChange) recordChange();
-                  }}
+                  on:click|stopPropagation={() => toggleWaitLock(seqIndex)}
                   title={item.locked ? "Unlock wait" : "Lock wait"}
                   aria-label={item.locked ? "Unlock wait" : "Lock wait"}
                   class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"

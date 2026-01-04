@@ -3,6 +3,7 @@
   import { createTriangle } from "../../utils";
   import { snapToGrid, showGrid, gridSize } from "../../stores";
   import TrashIcon from "./icons/TrashIcon.svelte";
+  import type { Shape } from "../../types";
 
   export let shapes: Shape[];
   export let collapsedObstacles: boolean[];
@@ -134,7 +135,7 @@
               }}
               class="text-red-500 hover:text-red-600"
             >
-              <TrashIcon class_="size-4" strokeWidth={2} />
+              <TrashIcon className="size-4" strokeWidth={2} />
             </button>
           {/if}
         </div>
@@ -178,7 +179,7 @@
                   shape.vertices = shape.vertices;
                 }}
               >
-                <TrashIcon class_="size-4" strokeWidth={2} />
+                <TrashIcon className="size-4" strokeWidth={2} />
               </button>
             {/if}
           </div>

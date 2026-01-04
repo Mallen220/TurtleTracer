@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-import type { Shape } from "../types";
+import type { Shape, EventMarker } from "../types";
 
 /**
  * Shape creation factory functions

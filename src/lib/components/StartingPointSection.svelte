@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
+  import type { Point } from "../../types";
   export let startPoint: Point;
   export let addPathAtStart: () => void;
   export let addWaitAtStart: () => void;
@@ -14,6 +15,9 @@
       Starting Point
       <button
         title={startPoint.locked
+          ? "Unlock Starting Point"
+          : "Lock Starting Point"}
+        aria-label={startPoint.locked
           ? "Unlock Starting Point"
           : "Lock Starting Point"}
         on:click|stopPropagation={() => {

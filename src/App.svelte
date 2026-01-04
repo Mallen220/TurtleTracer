@@ -382,6 +382,11 @@
   function handleSeek(val: number) {
     if (animationController) animationController.seekToPercent(val);
   }
+
+  function handlePreviewChange(newLines: any) {
+    previewOptimizedLines = newLines;
+  }
+
   function stepForward() {
     const p = Math.min(100, percent + 1);
     percentStore.set(p);
@@ -722,9 +727,7 @@
         {resetPlaybackSpeed}
         {setPlaybackSpeed}
         bind:activeTab={activeControlTab}
-        onPreviewChange={(newLines) => {
-          previewOptimizedLines = newLines;
-        }}
+        onPreviewChange={handlePreviewChange}
       />
     </div>
   </div>

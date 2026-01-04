@@ -1,6 +1,13 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { writable, get } from "svelte/store";
-import type { Line, Point, SequenceItem, Shape, Settings } from "../types";
+import type {
+  Line,
+  Point,
+  SequenceItem,
+  Shape,
+  Settings,
+  SequencePathItem,
+} from "../types";
 import {
   getDefaultStartPoint,
   getDefaultLines,
@@ -49,13 +56,16 @@ export function sanitizeSequence(
   );
   const missing = lines.filter((l) => !presentIds.has(l.id));
 
-  return [...pruned, ...missing.map((l) => ({ kind: "path", lineId: l.id }))];
+  return [
+    ...pruned,
+    ...missing.map((l) => ({ kind: "path", lineId: l.id }) as SequencePathItem),
+  ];
 }
 
 // Helper: renumber default path names to match display order
 export function renumberDefaultPathNames(lines: Line[]): Line[] {
   return lines.map((l, idx) => {
-    if (/^Path \d+$/.test(l.name)) {
+    if (/^Path \d+$/.test(l.name || "")) {
       return { ...l, name: `Path ${idx + 1}` };
     }
     return l;
