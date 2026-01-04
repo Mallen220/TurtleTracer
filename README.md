@@ -33,12 +33,16 @@ Experience a comprehensive suite of tools designed for precision and efficiency:
 *   **🤖 Advanced Simulation**: Real-time robot physics simulation featuring accurate kinematics, velocity constraints, and acceleration profiles.
 *   **⚠️ Obstacle & Collision Detection**: Define custom field obstacles (polygons) and get immediate feedback on potential collisions during path planning.
 *   **🔄 Sequence Editor**: Build full autonomous routines by sequencing paths, adding wait times, and triggering event markers.
-*   **💾 Local File Management**: Robust system for saving, loading, and organizing `.pp` project files directly on your file system—no more lost browser cache data.
+*   **💾 Local File Management**: Robust system for saving, loading, and organizing `.pp` project files directly on your file system.
 *   **📤 Powerful Export Options**:
     *   **Java Code**: Generate full OpModes for the Pedro Pathing library.
-    *   **Custom Templates**: Design your own code output structure using the advanced template engine (Jinja-style syntax).
     *   **APNG & GIF Export**: Share your path animations with the team using high-quality exported visualizer recordings.
-*   **📏 Precision Tools**: Integrated Ruler, Protractor, and customizable Grid snapping (6", 12", 24", etc.) for exact field positioning.
+    *   **JSON Export**: Raw data export for custom parsers.
+*   **⚡ Productivity Tools**:
+    *   **Onion Skinning**: Visualize previous path states for precise adjustments.
+    *   **Undo/Redo**: Full history support for mistake-free editing.
+    *   **Multi-Window Support**: Open multiple project windows simultaneously.
+*   **📏 Precision Tools**: Integrated Ruler, Protractor, and customizable Grid snapping (1" - 24") for exact field positioning.
 *   **🛠️ Customization**: Full support for custom field maps, robot sizing, color themes, and adjustable safe margins.
 *   **📦 Cross-Platform**: Native, optimized applications for macOS, Windows, and Linux.
 
@@ -87,7 +91,7 @@ One of the critical advantages of Pedro Pathing Visualizer over web-based tools 
 ## 🛠️ Tool Overview
 
 ### **Canvas Tools**
-*   **Grid & Snap**: Toggle customizable grids (up to 48") and enable snapping for perfect alignment.
+*   **Grid & Snap**: Toggle customizable grids (1" - 24") and enable snapping for perfect alignment.
 *   **Ruler**: Measure distances instantly between any two points on the field.
 *   **Protractor**: Measure relative angles, with options to lock to the robot's heading.
 
@@ -107,7 +111,6 @@ The visualizer provides flexible export capabilities to suit your team's workflo
 1.  **Java Class**: Generates a complete, ready-to-run Java file for your FTC robot controller.
 2.  **Sequential Commands**: Exports code formatted for command-based frameworks, integrating paths with your subsystems.
 3.  **JSON / Text**: Raw data export for custom parsers or debugging.
-4.  **Advanced Templates**: Use the "Class Body" or "Full Mode" editors to define exactly how your code should look, using variables like `{{ startPoint.x }}` and logic loops.
 
 ## 🔧 Troubleshooting
 
@@ -165,8 +168,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-This project is licensed under the **Apache License 2.0**.
-*You may reproduce and distribute copies of the Work or Derivative Works thereof in any medium, with or without modifications, and in Source or Object form.* See the [LICENSE](LICENSE) file for details.
+This project is open for everyone! We believe in the power of open source and community collaboration. You are free to use, modify, and distribute this software as you see fit. All we ask is that you give credit to the original developers and any contributors who have helped shape this tool. If you make improvements, please consider sharing them back with the community!
+
+See the [LICENSE](LICENSE) file for the full Apache 2.0 legal text.
 
 ## 🙏 Acknowledgments
 
