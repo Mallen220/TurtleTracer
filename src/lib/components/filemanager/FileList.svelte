@@ -27,7 +27,8 @@
   let renameInput: string = "";
 
   // Preview cache + retry logic (similar to FileGrid)
-  let previews: Record<string, { startPoint: any; lines: any[] } | null> = {};
+  let previews: Record<string, { startPoint: any; lines: any[] } | undefined> =
+    {};
   let previewRetryCount: Record<string, number> = {};
   const MAX_PREVIEW_RETRIES = 5;
   const previewQueue: string[] = [];
@@ -105,7 +106,7 @@
         `[preview] Scheduling retry #${previewRetryCount[filePath]} for ${filePath}`,
       );
     if (previewRetryCount[filePath] <= MAX_PREVIEW_RETRIES) {
-      previews[filePath] = { startPoint: null, lines: [] } as any;
+      previews[filePath] = { startPoint: null, lines: [] };
       const delay = 1000 * Math.min(4, previewRetryCount[filePath]);
       if (PREVIEW_DEBUG)
         console.debug(`[preview] Will retry ${filePath} in ${delay}ms`);
@@ -117,7 +118,7 @@
         }
       }, delay);
     } else {
-      previews[filePath] = { startPoint: null, lines: [] } as any;
+      previews[filePath] = { startPoint: null, lines: [] };
       if (PREVIEW_DEBUG)
         console.error(
           `[preview] Giving up on ${filePath} after ${previewRetryCount[filePath]} retries`,
@@ -290,7 +291,7 @@
     files.slice(0, PRELOAD_COUNT).forEach((f) => {
       if (previews[f.path] === undefined) loadPreview(f.path);
       // If previous attempts failed, force a retry
-      if (previews[f.path] && previews[f.path].startPoint == null)
+      if (previews[f.path] && previews[f.path]!.startPoint == null)
         loadPreview(f.path, true);
     });
   }

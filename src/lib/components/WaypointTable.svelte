@@ -38,7 +38,7 @@
   export let onPreviewChange: (
     lines: import("../../types").Line[] | null,
   ) => void;
-  export let settings: import("../../types").Settings;
+  export let settings: import("../../types").Settings | undefined = undefined;
 
   // Shapes and collapsedObstacles binding for ObstaclesSection
   export let shapes: import("../../types").Shape[];
@@ -50,6 +50,8 @@
 
   // Ensure these are referenced so the compiler doesn't mark them as unused
   $: _shapesCount = Array.isArray(shapes) ? shapes.length : 0;
+  $: _settingsRef = settings; // Reference settings to suppress unused warning
+  $: showDebug = (settings as any)?.showDebugSequence;
   $: _collapsedObstaclesCount = Array.isArray(collapsedObstacles)
     ? collapsedObstacles.length
     : 0;
@@ -402,6 +404,15 @@
     selectedPointId.set(null);
   }
 
+  function toggleWaitLock(index: number) {
+    const item = sequence[index];
+    if (item.kind === "wait") {
+      (item as any).locked = !(item.locked ?? false);
+      sequence = [...sequence];
+      if (recordChange) recordChange();
+    }
+  }
+
   let copyButtonText = "Copy Table";
 
   function copyTableToClipboard() {
@@ -553,7 +564,7 @@
     </div>
   </div>
 
-  {#if settings?.showDebugSequence}
+  {#if showDebug}
     <div class="p-2 text-xs text-neutral-500">
       <div>
         <strong>DEBUG</strong> — lines: {lines.length}, sequence: {(
@@ -692,7 +703,7 @@
                 class:dark:border-blue-400={dragOverIndex === seqIndex}
                 class:opacity-50={draggingIndex === seqIndex}
                 on:click={() => {
-                  selectedLineId.set(line.id);
+                  if (line.id) selectedLineId.set(line.id);
                   selectedPointId.set(endPointId);
                 }}
               >
@@ -810,7 +821,9 @@
                   <!-- Right slot: delete or placeholder -->
                   {#if lines.length > 1 && !line.locked}
                     <button
-                      on:click|stopPropagation={() => deleteLine(line.id)}
+                      on:click|stopPropagation={() => {
+                        if (line.id) deleteLine(line.id);
+                      }}
                       title="Delete path"
                       aria-label="Delete path"
                       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
@@ -834,7 +847,7 @@
                 <tr
                   class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === pointId ? "bg-green-100 dark:bg-green-800/40" : ""}`}
                   on:click={() => {
-                    selectedLineId.set(line.id);
+                    if (line.id) selectedLineId.set(line.id);
                     selectedPointId.set(pointId);
                   }}
                 >
@@ -961,11 +974,7 @@
               >
                 <!-- Lock toggle for wait -->
                 <button
-                  on:click|stopPropagation={() => {
-                    sequence[seqIndex].locked = !sequence[seqIndex].locked;
-                    sequence = [...sequence];
-                    if (recordChange) recordChange();
-                  }}
+                  on:click|stopPropagation={() => toggleWaitLock(seqIndex)}
                   title={item.locked ? "Unlock wait" : "Lock wait"}
                   aria-label={item.locked ? "Unlock wait" : "Lock wait"}
                   class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"

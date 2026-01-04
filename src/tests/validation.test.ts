@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { validatePath } from "../utils/validation";
 import { collisionMarkers, notification } from "../stores";
 import { PathOptimizer } from "../utils/pathOptimizer";
+import type { Line, Point, SequenceItem, Shape } from "../types";
 
 // Mock the stores
 vi.mock("../stores", () => ({
@@ -25,8 +26,13 @@ vi.mock("../utils/pathOptimizer", () => {
 });
 
 describe("Validation Utility", () => {
-  const mockStartPoint = { x: 0, y: 0 };
-  const mockLines = [];
+  const mockStartPoint: Point = {
+    x: 0,
+    y: 0,
+    heading: "tangential",
+    reverse: false,
+  };
+  const mockLines: Line[] = [];
   const mockSettings = {
     xVelocity: 0,
     yVelocity: 0,
@@ -40,8 +46,8 @@ describe("Validation Utility", () => {
     fieldMap: "",
     theme: "dark" as "dark" | "light" | "auto",
   };
-  const mockSequence = [];
-  const mockShapes = [];
+  const mockSequence: SequenceItem[] = [];
+  const mockShapes: Shape[] = [];
 
   beforeEach(() => {
     vi.clearAllMocks();

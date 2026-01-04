@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import TrashIcon from "./icons/TrashIcon.svelte";
+  import type { Line } from "../../types";
 
   export let line: Line;
   export let lineIdx: number;
@@ -27,6 +28,45 @@
     if (line.eventMarkers) {
       line.eventMarkers.splice(eventIdx, 1);
       line = { ...line };
+    }
+  }
+
+  function handleInput(e: Event, event: any) {
+    const target = e.target as HTMLInputElement;
+    const value = parseFloat(target.value);
+    if (!isNaN(value)) {
+      event.position = value;
+      line.eventMarkers = [...line.eventMarkers!];
+    }
+  }
+
+  function handleBlur(e: Event, event: any) {
+    const target = e.target as HTMLInputElement;
+    const value = parseFloat(target.value);
+    if (isNaN(value) || value < 0 || value > 1) {
+      // Invalid - revert to current value
+      target.value = event.position.toString();
+      return;
+    }
+    // Valid - update
+    event.position = value;
+    line.eventMarkers = [...line.eventMarkers!];
+  }
+
+  function handleKeydown(e: KeyboardEvent, event: any) {
+    if (e.key === "Enter") {
+      const target = e.target as HTMLInputElement;
+      const value = parseFloat(target.value);
+      if (isNaN(value) || value < 0 || value > 1) {
+        // Invalid - revert
+        target.value = event.position.toString();
+        e.preventDefault();
+        return;
+      }
+      // Valid - update
+      event.position = value;
+      line.eventMarkers = [...line.eventMarkers!];
+      target.blur(); // Trigger blur to update
     }
   }
 </script>
@@ -96,7 +136,8 @@
                 disabled={line.locked}
                 on:change={() => {
                   // Update the array to trigger reactivity
-                  line.eventMarkers = [...line.eventMarkers];
+                  if (line.eventMarkers)
+                    line.eventMarkers = [...line.eventMarkers];
                 }}
               />
             </div>
@@ -108,7 +149,7 @@
               title="Remove Event Marker"
               disabled={line.locked}
             >
-              <TrashIcon class_="size-4" strokeWidth={2} />
+              <TrashIcon className="size-4" strokeWidth={2} />
             </button>
           </div>
 
@@ -128,13 +169,7 @@
                 data-event-marker-slider
                 disabled={line.locked}
                 on:dragstart|preventDefault|stopPropagation
-                on:input={(e) => {
-                  const value = parseFloat(e.target.value);
-                  if (!isNaN(value)) {
-                    event.position = value;
-                    line.eventMarkers = [...line.eventMarkers];
-                  }
-                }}
+                on:input={(e) => handleInput(e, event)}
               />
               <input
                 type="number"
@@ -148,32 +183,8 @@
                   // Don't update immediately, just show the typed value
                   // We'll validate on blur or Enter
                 }}
-                on:blur={(e) => {
-                  const value = parseFloat(e.target.value);
-                  if (isNaN(value) || value < 0 || value > 1) {
-                    // Invalid - revert to current value
-                    e.target.value = event.position;
-                    return;
-                  }
-                  // Valid - update
-                  event.position = value;
-                  line.eventMarkers = [...line.eventMarkers];
-                }}
-                on:keydown={(e) => {
-                  if (e.key === "Enter") {
-                    const value = parseFloat(e.target.value);
-                    if (isNaN(value) || value < 0 || value > 1) {
-                      // Invalid - revert
-                      e.target.value = event.position;
-                      e.preventDefault();
-                      return;
-                    }
-                    // Valid - update
-                    event.position = value;
-                    line.eventMarkers = [...line.eventMarkers];
-                    e.target.blur(); // Trigger blur to update
-                  }
-                }}
+                on:blur={(e) => handleBlur(e, event)}
+                on:keydown={(e) => handleKeydown(e, event)}
               />
             </div>
           </div>

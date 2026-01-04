@@ -202,7 +202,7 @@
     linesStore.set(lines);
     const lineIndex = lines.findIndex((l) => l.id === targetLine.id);
     const cpIndex = targetLine.controlPoints.length;
-    selectedLineId.set(targetLine.id);
+    selectedLineId.set(targetLine.id as string);
     selectedPointId.set(`point-${lineIndex + 1}-${cpIndex}`);
     recordChange();
   }

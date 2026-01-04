@@ -21,13 +21,18 @@
     showSpeedMenu = !showSpeedMenu;
   }
 
-  function selectSpeed(s) {
+  function selectSpeed(s: number) {
     setPlaybackSpeed(s, true);
     showSpeedMenu = false;
   }
 
-  function handleMenuKey(e) {
+  function handleMenuKey(e: KeyboardEvent) {
     if (e.key === "Escape") showSpeedMenu = false;
+  }
+
+  function handleSeekInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    handleSeek(parseFloat(target.value));
   }
 </script>
 
@@ -206,7 +211,7 @@
       step="0.000001"
       aria-label="Animation progress"
       class="w-full appearance-none slider focus:outline-none"
-      on:input={(e) => handleSeek(parseFloat(e.target.value))}
+      on:input={handleSeekInput}
     />
   </div>
 </div>

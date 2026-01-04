@@ -68,7 +68,7 @@ describe("codeExporter", () => {
       reverse: true,
     },
     color: "#000000",
-    eventMarkers: [{ name: "marker1", position: 0.5 }],
+    eventMarkers: [{ id: "m1", name: "marker1", position: 0.5 }],
   };
 
   describe("generatePointsArray", () => {

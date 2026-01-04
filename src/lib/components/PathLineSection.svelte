@@ -41,11 +41,13 @@
   tabindex="0"
   aria-pressed={isSelected}
   class={`flex flex-col w-full justify-start items-start gap-1 ${isSelected ? "border-l-4 border-amber-400 pl-2" : ""}`}
-  on:click={() => selectedLineId.set(line.id)}
+  on:click={() => {
+    if (line.id) selectedLineId.set(line.id);
+  }}
   on:keydown={(e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      selectedLineId.set(line.id);
+      if (line.id) selectedLineId.set(line.id);
     }
   }}
 >
@@ -255,7 +257,7 @@
           aria-disabled={line.locked}
           disabled={line.locked}
         >
-          <TrashIcon class_="size-5" strokeWidth={2} />
+          <TrashIcon className="size-5" strokeWidth={2} />
         </button>
       {/if}
     </div>

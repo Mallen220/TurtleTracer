@@ -149,10 +149,10 @@
             `${idx1}`,
             x(point.x),
             y(point.y - 0.15),
-            x(POINT_RADIUS),
+            { size: x(POINT_RADIUS) as number } as any,
           );
           pointText.id = `point-${idx + 1}-${idx1}-text`;
-          pointText.size = x(1.55);
+          pointText.size = x(1.55) as number;
           pointText.leading = 1;
           pointText.family = "ui-sans-serif, system-ui, sans-serif";
           pointText.alignment = "center";
@@ -182,7 +182,7 @@
         let pointElem = new Two.Circle(
           x(vertex.x),
           y(vertex.y),
-          x(POINT_RADIUS),
+          x(POINT_RADIUS) as number,
         );
         pointElem.id = `obstacle-${shapeIdx}-${vertexIdx}-background`;
         pointElem.fill = "#991b1b";
@@ -191,10 +191,10 @@
           `${vertexIdx + 1}`,
           x(vertex.x),
           y(vertex.y - 0.15),
-          x(POINT_RADIUS),
+          { size: x(POINT_RADIUS) as number } as any,
         );
         pointText.id = `obstacle-${shapeIdx}-${vertexIdx}-text`;
-        pointText.size = x(1.55);
+        pointText.size = x(1.55) as number;
         pointText.leading = 1;
         pointText.family = "ui-sans-serif, system-ui, sans-serif";
         pointText.alignment = "center";
@@ -588,7 +588,7 @@
 
   // Event Markers
   $: eventMarkerElements = (() => {
-    let twoMarkers: Two.Group[] = [];
+    let twoMarkers: InstanceType<typeof Two.Group>[] = [];
     lines.forEach((line, idx) => {
       if (
         !line ||
@@ -635,7 +635,7 @@
       sequence.forEach((it) => {
         if (it.kind === "wait") waitById.set(it.id, it);
       });
-      timePrediction.timeline.forEach((ev) => {
+      timePrediction.timeline.forEach((ev: any) => {
         if (ev.type !== "wait" || !ev.waitId || !ev.atPoint) return;
         const seqWait = waitById.get(ev.waitId);
         if (
@@ -684,7 +684,7 @@
 
   // Collision Markers
   $: collisionElements = (() => {
-    let elems: Two.Group[] = [];
+    let elems: InstanceType<typeof Two.Group>[] = [];
     if (markers && markers.length > 0) {
       markers.forEach((marker, idx) => {
         const group = new Two.Group();
@@ -951,7 +951,7 @@
           if (!isNaN(lineNum) && lineNum > 0) {
             const lineIndex = lineNum - 1;
             const line = lines[lineIndex];
-            if (line) {
+            if (line && line.id) {
               selectedLineId.set(line.id);
               selectedPointId.set(currentElem);
             }
@@ -967,8 +967,8 @@
         } else if (currentElem.startsWith("event-")) {
           const parts = currentElem.split("-");
           const lineIdx = Number(parts[1]);
-          if (!isNaN(lineIdx) && lines[lineIdx]) {
-            selectedLineId.set(lines[lineIdx].id);
+          if (!isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            selectedLineId.set(lines[lineIdx].id as string);
             selectedPointId.set(currentElem);
           }
         } else if (currentElem.startsWith("wait-event-")) {

@@ -31,7 +31,7 @@
   // Compute a point on a Bezier curve of arbitrary degree using De Casteljau's algorithm
   function deCasteljau(controlPoints: Point[], t: number): Point {
     // Work on a shallow copy to avoid mutating inputs
-    let pts = controlPoints.map((p) => ({ x: p.x, y: p.y }));
+    let pts: any[] = controlPoints.map((p) => ({ x: p.x, y: p.y }));
     const n = pts.length;
     for (let r = 1; r < n; r++) {
       for (let i = 0; i < n - r; i++) {
@@ -41,14 +41,14 @@
         };
       }
     }
-    return pts[0];
+    return pts[0] as Point;
   }
 
   function getPathD(start: Point, pathLines: Line[]): string {
     if (!start) return "";
 
     let d = `M ${scaleX(start.x)} ${scaleY(start.y)}`;
-    let current = { x: start.x, y: start.y };
+    let current: any = { x: start.x, y: start.y };
 
     for (const line of pathLines || []) {
       if (!line || !line.endPoint || !isValidPoint(line.endPoint)) continue;
@@ -64,7 +64,7 @@
       }
 
       // Build control array for De Casteljau: [current, ...cps, end]
-      const bezierControls: Point[] = [current, ...cps, end];
+      const bezierControls: Point[] = [current as Point, ...cps, end];
 
       // Choose number of samples based on degree and icon size (more points for higher degree)
       const degree = bezierControls.length - 1;
