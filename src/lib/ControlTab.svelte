@@ -16,6 +16,7 @@
     type DragPosition,
   } from "../utils/dragDrop";
   import { getRandomColor } from "../utils";
+  import { makeId, renumberDefaultPathNames } from "../utils/nameGenerator";
   import ObstaclesSection from "./components/ObstaclesSection.svelte";
   import RobotPositionDisplay from "./components/RobotPositionDisplay.svelte";
   import StartingPointSection from "./components/StartingPointSection.svelte";
@@ -366,9 +367,6 @@
     collapsedSections.obstacles = shapes.map(() => true);
   }
 
-  const makeId = () =>
-    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-
   // Drag and drop state
   let draggingIndex: number | null = null;
   let dragOverIndex: number | null = null;
@@ -456,18 +454,6 @@
     draggingIndex = null;
     dragOverIndex = null;
     dragPosition = null;
-  }
-
-  // Ensure default named paths are renumbered to match the displayed order when
-  // new paths are inserted at the beginning/middle/end of the list.
-  function renumberDefaultPathNames() {
-    const renamed = lines.map((l, idx) => {
-      if (/^Path \d+$/.test(l.name)) {
-        return { ...l, name: `Path ${idx + 1}` };
-      }
-      return l;
-    });
-    lines = renamed;
   }
 
   function getWait(i: any) {
@@ -685,7 +671,7 @@
     };
     lines = [newLine, ...lines];
     // Renumber default path names to match new ordering
-    renumberDefaultPathNames();
+    lines = renumberDefaultPathNames(lines);
     sequence = [{ kind: "path", lineId: newLine.id! }, ...sequence];
     collapsedSections.lines = [
       allCollapsed ? true : false,
@@ -744,7 +730,7 @@
     // Add the new line to the lines array
     lines = [...lines, newLine];
     // Renumber default path names now that the order will be reflected by sequence
-    renumberDefaultPathNames();
+    lines = renumberDefaultPathNames(lines);
 
     // Insert the new path in the sequence after the wait
     const newSeq = [...sequence];
@@ -790,11 +776,7 @@
 
     lines = reordered.map((entry) => entry.line);
     // Re-number default names after reordering so Path 1..N matches current order
-    const renamed = lines.map((l, idx) => {
-      if (/^Path \d+$/.test(l.name)) return { ...l, name: `Path ${idx + 1}` };
-      return l;
-    });
-    lines = renamed;
+    lines = renumberDefaultPathNames(lines);
 
     collapsedSections = {
       ...collapsedSections,
