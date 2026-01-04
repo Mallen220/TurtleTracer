@@ -17,6 +17,9 @@
         title={startPoint.locked
           ? "Unlock Starting Point"
           : "Lock Starting Point"}
+        aria-label={startPoint.locked
+          ? "Unlock Starting Point"
+          : "Lock Starting Point"}
         on:click|stopPropagation={() => {
           startPoint.locked = !startPoint.locked;
           startPoint = { ...startPoint }; // Force reactivity

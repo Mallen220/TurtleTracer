@@ -77,6 +77,7 @@
     <!-- Lock/Unlock Button -->
     <button
       title={locked ? "Unlock Wait" : "Lock Wait"}
+      aria-label={locked ? "Unlock Wait" : "Lock Wait"}
       on:click|stopPropagation={() => {
         if (onToggleLock) onToggleLock();
       }}
@@ -118,6 +119,7 @@
     <div class="flex flex-row gap-0.5 mr-1">
       <button
         title="Move up"
+        aria-label="Move wait up"
         on:click={() => {
           if (!locked && onMoveUp) onMoveUp();
         }}
@@ -141,6 +143,7 @@
       </button>
       <button
         title="Move down"
+        aria-label="Move wait down"
         on:click={() => {
           if (!locked && onMoveDown) onMoveDown();
         }}
@@ -166,6 +169,7 @@
 
     <button
       title="Add path after"
+      aria-label="Add path segment after"
       on:click={() => {
         if (!locked && onAddPathAfter) onAddPathAfter();
       }}
@@ -189,6 +193,7 @@
 
     <button
       title="Add wait after"
+      aria-label="Add wait command after"
       on:click={() => {
         if (!locked && onInsertAfter) onInsertAfter();
       }}
@@ -209,6 +214,7 @@
 
     <button
       title={locked ? "Locked" : "Remove"}
+      aria-label="Remove wait command"
       on:click={() => {
         if (!locked && onRemove) onRemove();
       }}

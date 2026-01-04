@@ -12,8 +12,17 @@
 
   const FIELD_SIZE = 144;
 
-  $: scaleX = d3.scaleLinear().domain([0, FIELD_SIZE]).range([0, width]);
-  $: scaleY = d3.scaleLinear().domain([0, FIELD_SIZE]).range([height, 0]);
+  // Use a uniform scale based on the minimum dimension so the field preview
+  // keeps its aspect and is not stretched. Center the scaled field inside the
+  // available width/height.
+  $: iconSize = Math.min(width, height);
+  $: offsetX = Math.max(0, Math.round((width - iconSize) / 2));
+  $: offsetY = Math.max(0, Math.round((height - iconSize) / 2));
+
+  $: _scale = d3.scaleLinear().domain([0, FIELD_SIZE]).range([0, iconSize]);
+  // scaleX and scaleY are functions so we can add the offsets and invert Y.
+  $: scaleX = (v: number) => _scale(v) + offsetX;
+  $: scaleY = (v: number) => offsetY + (iconSize - _scale(v));
 
   function isValidPoint(p: any): p is Point {
     return p && typeof p.x === "number" && typeof p.y === "number";
@@ -94,11 +103,24 @@
   <svg {width} {height} viewBox="0 0 {width} {height}" class="block">
     <!-- Field Background -->
     {#if fieldImage}
-      <!-- Use preserveAspectRatio="none" to stretch if needed, or xMidYMid meet for fit -->
-      <!-- Since we are on a square field, and width/height should be square-ish, stretching is usually desired for field map -->
-      <image href={fieldImage} {width} {height} preserveAspectRatio="none" />
+      <!-- Fit the field image into the centered square without stretching -->
+      <image
+        href={fieldImage}
+        x={offsetX}
+        y={offsetY}
+        width={iconSize}
+        height={iconSize}
+        preserveAspectRatio="xMidYMid meet"
+      />
     {/if}
-    <rect {width} {height} fill="none" stroke={fieldImage ? "none" : "#ccc"} />
+    <rect
+      x={offsetX}
+      y={offsetY}
+      width={iconSize}
+      height={iconSize}
+      fill="none"
+      stroke={fieldImage ? "none" : "#ccc"}
+    />
 
     <!-- Path -->
     <path

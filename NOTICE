@@ -41,3 +41,7 @@ src/lib/components/KeyboardShortcutsDialog.svelte
 src/lib/projectStore.ts
 src/tests/fuzz/geometry.fuzz.test.ts
 src/tests/fuzz/math.fuzz.test.ts
+src/lib/components/ExportGifDialog.svelte
+src/tests/codeExporter.test.ts
+src/tests/fileSystemAdapter.test.ts
+src/tests/fuzz/pathOptimizer.fuzz.test.ts

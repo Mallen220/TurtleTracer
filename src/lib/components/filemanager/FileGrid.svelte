@@ -402,7 +402,7 @@
                   <img
                     src={`/fields/${fieldImage}`}
                     alt="Field Map"
-                    class="w-full h-full object-cover"
+                    class="w-full h-full object-contain object-center"
                     on:error={handleFieldImageError}
                   />
                 {:else}

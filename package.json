@@ -33,6 +33,7 @@
     "@testing-library/svelte": "^5.3.1",
     "@testing-library/user-event": "^14.6.1",
     "@tsconfig/svelte": "^5.0.4",
+    "@types/upng-js": "^2.1.5",
     "autoprefixer": "^10.4.20",
     "cli-progress": "^3.12.0",
     "electron": "^39.2.3",
@@ -70,7 +71,8 @@
     "svelte-dnd-action": "^0.9.67",
     "svelte-highlight": "^7.7.0",
     "two.js": "^0.8.14",
-    "update-electron-app": "^3.1.1"
+    "update-electron-app": "^3.1.1",
+    "upng-js": "^2.1.0"
   },
   "build": {
     "appId": "com.pedropathing.visualizer",
