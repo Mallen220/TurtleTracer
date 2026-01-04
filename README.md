@@ -19,6 +19,9 @@
   </p>
 </div>
 
+> ## This project is currently undergoing rapid updates. Please check back regularly for bug fixes and new features. If you find an error, please report it and revert to a previous version. 
+
+
 ---
 
 ## 🚀 Overview
