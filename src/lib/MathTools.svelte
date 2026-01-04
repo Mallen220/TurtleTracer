@@ -113,7 +113,7 @@
 
   // Calculate protractor position - lock to robot if enabled
   $: actualProtractorPos = $protractorLockToRobot
-    ? { x: x.invert(robotXY.x), y: y.invert(robotXY.y) }
+    ? robotXY // robotXY is now in inches
     : protractorPos;
 
   const FIELD_SIZE = 144;

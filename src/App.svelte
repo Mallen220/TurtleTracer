@@ -349,18 +349,20 @@
   // Sync controller updates to Robot State
   $: {
     if (timePrediction && timePrediction.timeline && lines.length > 0) {
+      // Pass identity scales to get inches
       const state = calculateRobotState(
         percent,
         timePrediction.timeline,
         lines,
         startPoint,
-        x,
-        y,
+        d3.scaleLinear(),
+        d3.scaleLinear(),
       );
       robotXYStore.set({ x: state.x, y: state.y });
       robotHeadingStore.set(state.heading);
     } else {
-      robotXYStore.set({ x: x(startPoint.x), y: y(startPoint.y) });
+      // Store position in inches
+      robotXYStore.set({ x: startPoint.x, y: startPoint.y });
       robotHeadingStore.set(
         startPoint.heading === "constant" ? -startPoint.degrees : 0,
       );
@@ -711,8 +713,6 @@
         bind:robotXY={$robotXYStore}
         bind:robotHeading={$robotHeadingStore}
         bind:shapes={$shapesStore}
-        {x}
-        {y}
         {handleSeek}
         bind:loopAnimation={$loopAnimationStore}
         {resetAnimation}
