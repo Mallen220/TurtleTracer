@@ -454,6 +454,14 @@
     if (seqIndex === -1) {
       contextMenuItems = [
         {
+          label: startPoint.locked ? "Unlock Start Point" : "Lock Start Point",
+          onClick: () => {
+            startPoint.locked = !startPoint.locked;
+            if (recordChange) recordChange();
+          },
+        },
+        { separator: true },
+        {
           label: "Insert Wait After",
           onClick: () => insertWait(0),
         },
@@ -471,12 +479,21 @@
     const item = sequence[seqIndex];
     if (!item) return;
 
+    const line = item.kind === "path" ? lines.find((l) => l.id === item.lineId) : null;
     const isLocked =
       item.kind === "path"
-        ? (lines.find((l) => l.id === item.lineId)?.locked ?? false)
+        ? (line?.locked ?? false)
         : (item.locked ?? false);
 
     const items = [];
+
+    // Lock/Unlock
+    items.push({
+      label: isLocked ? "Unlock" : "Lock",
+      onClick: () => toggleLock(seqIndex),
+    });
+
+    items.push({ separator: true });
 
     // Duplicate
     items.push({
@@ -527,6 +544,25 @@
     contextMenuX = event.clientX;
     contextMenuY = event.clientY;
     contextMenuOpen = true;
+  }
+
+  function toggleLock(seqIndex: number) {
+    const item = sequence[seqIndex];
+    if (item.kind === "wait") {
+      const newSeq = [...sequence];
+      newSeq[seqIndex] = {
+        ...item,
+        locked: !item.locked,
+      };
+      sequence = newSeq;
+    } else if (item.kind === "path") {
+      const line = lines.find((l) => l.id === item.lineId);
+      if (line) {
+        line.locked = !line.locked;
+        lines = [...lines]; // Trigger reactivity
+      }
+    }
+    if (recordChange) recordChange();
   }
 
   function duplicateItem(seqIndex: number) {
