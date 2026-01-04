@@ -28,6 +28,17 @@
     }
   }
 
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return {
+      destroy() {
+        if (node.parentNode) {
+          node.parentNode.removeChild(node);
+        }
+      },
+    };
+  }
+
   // Adjust position if it goes off screen
   let adjustedX = x;
   let adjustedY = y;
@@ -62,6 +73,7 @@
 </script>
 
 <div
+  use:portal
   bind:this={menuElement}
   class="fixed z-[9999] min-w-[180px] py-1 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 text-sm select-none"
   style="top: {adjustedY}px; left: {adjustedX}px;"
@@ -84,23 +96,9 @@
         role="menuitem"
       >
         {#if item.icon}
-            <!-- If item.icon is a component, we would need <svelte:component>.
-                 For simplicity, let's assume it's passed as markup or handle simple cases.
-                 Or we can let the parent render icons?
-                 Actually, looking at FileContextMenu, it hardcodes SVGs.
-                 To be generic, let's accept an SVG string or skip icons for now if not critical,
-                 or use a flexible icon slot.
-                 But `items` prop makes slots hard.
-                 Let's assume the user passes an SVG string or we just render text for now,
-                 or we check if `icon` is a svelte component. -->
-            <!-- Simpler approach: Just label for now or generic icon support later. -->
-             <!-- Actually, the prompt says "implements ... using a new ContextMenu component".
-                  I'll check if I need icons. The FileContextMenu has icons.
-                  I will try to support icons if passed as a svelte component or HTML string. -->
-             <!-- For safety/simplicity, I will assume it is a Svelte component constructor if present. -->
-             {#if typeof item.icon === 'object' || typeof item.icon === 'function'}
-                <svelte:component this={item.icon} class="size-4" />
-             {/if}
+          {#if typeof item.icon === "object" || typeof item.icon === "function"}
+            <svelte:component this={item.icon} class="size-4" />
+          {/if}
         {/if}
         {item.label}
       </button>

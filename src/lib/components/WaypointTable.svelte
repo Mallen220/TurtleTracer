@@ -447,8 +447,14 @@
   let contextMenuY = 0;
   let contextMenuItems: any[] = [];
 
-  function handleContextMenu(event: MouseEvent, seqIndex: number) {
+  async function handleContextMenu(event: MouseEvent, seqIndex: number) {
     event.preventDefault();
+
+    // Close existing if open to force re-mount and position recalc
+    if (contextMenuOpen) {
+      contextMenuOpen = false;
+      await tick();
+    }
 
     // Start Point (index -1)
     if (seqIndex === -1) {
