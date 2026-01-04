@@ -46,7 +46,7 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
   {
     id: "export-gif",
     key: "cmd+shift+e, ctrl+shift+e",
-    description: "Export GIF",
+    description: "Export Animated Image",
     action: "exportGif",
     category: "File",
   },

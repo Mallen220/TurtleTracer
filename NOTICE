@@ -38,3 +38,4 @@ src/lib/components/CollapseAllButton.svelte
 src/lib/components/WaitMarkersSection.svelte
 src/config/defaults.ts
 src/lib/components/KeyboardShortcutsDialog.svelte
+src/lib/components/ExportGifDialog.svelte
