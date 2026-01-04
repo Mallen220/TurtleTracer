@@ -32,6 +32,16 @@
   let previewBlob: Blob | null = null;
   let previewUrl: string | null = null;
 
+  // Preview sizing helpers — measure the preview container and constrain
+  // the preview image to a square sized by min(width, height)
+  let previewContainer: HTMLDivElement | null = null;
+  let containerW = 0;
+  let containerH = 0;
+  $: iconSize = Math.max(
+    0,
+    Math.floor(Math.min(containerW || 0, containerH || 0)),
+  );
+
   function close() {
     if (status === "generating") return;
     show = false;
@@ -139,6 +149,25 @@
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") close();
   }
+
+  // ResizeObserver to track preview container size
+  let _ro: ResizeObserver | null = null;
+  import { onMount, onDestroy } from "svelte";
+  onMount(() => {
+    if (typeof ResizeObserver !== "undefined" && previewContainer) {
+      _ro = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const c = entry.contentRect;
+          containerW = c.width;
+          containerH = c.height;
+        }
+      });
+      _ro.observe(previewContainer);
+    }
+  });
+  onDestroy(() => {
+    if (_ro) _ro.disconnect();
+  });
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -287,7 +316,9 @@
             class="text-xs text-neutral-500 dark:text-neutral-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800"
           >
             <strong>Note:</strong> Animated PNGs support full 24-bit color and 8-bit
-            transparency. 'Best' quality is lossless but produces larger files.
+            transparency. However, they may not be supported by all web browsers and
+            image viewers. Please ensure your target platform supports APNG before
+            using this format.
           </div>
         {/if}
 
@@ -329,13 +360,15 @@
 
         <!-- Preview Area -->
         <div
+          bind:this={previewContainer}
           class="flex-1 min-h-[200px] flex items-center justify-center bg-neutral-100 dark:bg-neutral-900 rounded border border-neutral-300 dark:border-neutral-700 overflow-hidden relative p-2"
         >
           {#if previewUrl}
             <img
               src={previewUrl}
               alt="Animation Preview"
-              class="max-w-full max-h-full object-contain shadow-sm"
+              class="shadow-sm"
+              style="width: {iconSize}px; height: {iconSize}px; object-fit: contain;"
             />
           {:else}
             <div
