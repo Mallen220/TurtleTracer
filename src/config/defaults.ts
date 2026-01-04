@@ -88,6 +88,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "Editing",
   },
   {
+    id: "duplicate",
+    key: "shift+d, cmd+d",
+    description: "Duplicate selected item",
+    action: "duplicate",
+    category: "Editing",
+  },
+  {
     id: "remove-selected",
     key: "backspace, delete",
     description: "Remove selected point or wait",
