@@ -55,6 +55,8 @@
 
   export const resetAnimation = undefined as unknown as () => void;
 
+  $: showDebug = (settings as any)?.showDebugSequence;
+
   export let shapes: Shape[];
   export let recordChange: () => void;
   export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
@@ -322,7 +324,10 @@
 
       sequence = [
         ...pruned,
-        ...missing.map((l) => ({ kind: "path", lineId: l.id })),
+        ...missing.map(
+          (l) =>
+            ({ kind: "path", lineId: l.id as string }) as unknown as SequenceItem,
+        ),
       ];
       repairedSequenceOnce = true;
       recordChange?.();
@@ -1064,7 +1069,7 @@
           />
         </div>
 
-        {#if (settings as any)?.showDebugSequence}
+        {#if showDebug}
           <div class="p-2 text-xs text-neutral-500">
             <div>
               <strong>DEBUG (ControlTab)</strong> — lines: {lines.length},

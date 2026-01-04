@@ -386,10 +386,10 @@
         >
           <!-- Icon / Preview -->
           <div class="mb-2 relative">
-            {#if previews[file.path] && previews[file.path]!.startPoint}
+            {#if previews[file.path]?.startPoint}
               <PathPreview
-                startPoint={previews[file.path]!.startPoint}
-                lines={previews[file.path]!.lines}
+                startPoint={previews[file.path]?.startPoint}
+                lines={previews[file.path]?.lines ?? []}
                 fieldImage={fieldImage ? `/fields/${fieldImage}` : null}
                 width={80}
                 height={80}

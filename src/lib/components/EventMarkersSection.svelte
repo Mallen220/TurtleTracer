@@ -136,7 +136,8 @@
                 disabled={line.locked}
                 on:change={() => {
                   // Update the array to trigger reactivity
-                  line.eventMarkers = [...line.eventMarkers];
+                  if (line.eventMarkers)
+                    line.eventMarkers = [...line.eventMarkers];
                 }}
               />
             </div>

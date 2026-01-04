@@ -568,10 +568,9 @@
   }
 
   // Event handlers for child components
-  function handleMenuAction(
-    e: CustomEvent<{ action: string; file: FileInfo }>,
-  ) {
-    const { action, file } = e.detail;
+  function handleMenuAction(e: any) {
+    // If called from template with detail extracted or raw event
+    const { action, file } = e.detail || e;
     switch (action) {
       case "open":
         loadFile(file);
