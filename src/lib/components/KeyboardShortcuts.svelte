@@ -12,6 +12,8 @@
     selectedPointId,
     selectedLineId,
     toggleCollapseAllTrigger,
+    fieldZoom,
+    fieldPan,
   } from "../../stores";
   import {
     startPointStore,
@@ -26,6 +28,7 @@
   import type { Line, SequenceItem } from "../../types";
   import { DEFAULT_KEY_BINDINGS, FIELD_SIZE } from "../../config";
   import { getRandomColor } from "../../utils";
+  import { computeZoomStep } from "../zoomHelpers";
   import _ from "lodash";
 
   // Actions
@@ -695,6 +698,22 @@
     gridSize.set(prev);
   }
 
+  function modifyZoom(delta: number) {
+    if (isUIElementFocused()) return;
+    fieldZoom.update((z) => {
+      // Use adaptive step: when zooming in past 1x, speed up
+      const step = computeZoomStep(z, Math.sign(delta));
+      const change = Math.sign(delta) * step;
+      return Math.max(0.1, Math.min(5.0, Number((z + change).toFixed(2))));
+    });
+  }
+
+  function resetZoom() {
+    if (isUIElementFocused()) return;
+    fieldZoom.set(1.0);
+    fieldPan.set({ x: 0, y: 0 });
+  }
+
   function changePlaybackSpeedBy(delta: number) {
     const clamped = Math.max(
       0.25,
@@ -755,6 +774,9 @@
     bind("cycleGridSize", () => cycleGridSize());
     bind("cycleGridSizeReverse", () => cycleGridSizeReverse());
     bind("toggleSnap", () => snapToGrid.update((v) => !v));
+    bind("zoomIn", () => modifyZoom(0.1));
+    bind("zoomOut", () => modifyZoom(-0.1));
+    bind("zoomReset", () => resetZoom());
     bind("increasePlaybackSpeed", () => changePlaybackSpeedBy(0.25));
     bind("decreasePlaybackSpeed", () => changePlaybackSpeedBy(-0.25));
     bind("resetPlaybackSpeed", () => resetPlaybackSpeed());
