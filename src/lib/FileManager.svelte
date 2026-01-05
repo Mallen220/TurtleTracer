@@ -38,6 +38,7 @@
     currentFilePath,
     isUnsaved,
     fileManagerSessionState,
+    fileManagerNewFileMode,
   } from "../stores";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
 
@@ -103,6 +104,11 @@
   $: if (creatingNewFile) {
     // Focus the input after it renders
     tick().then(() => newFileInput?.focus());
+  }
+
+  $: if ($fileManagerNewFileMode) {
+    creatingNewFile = true;
+    fileManagerNewFileMode.set(false);
   }
 
   function startResize(e: MouseEvent) {

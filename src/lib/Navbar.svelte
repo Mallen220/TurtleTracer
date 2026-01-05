@@ -13,6 +13,7 @@
     snapToGrid,
     showSettings,
     exportDialogState,
+    showFileManager,
   } from "../stores";
   import { getRandomColor } from "../utils";
   import {
@@ -50,7 +51,6 @@
   export let canUndo: boolean;
   export let canRedo: boolean;
 
-  let fileManagerOpen = false;
   let shortcutsOpen = false;
   let exportMenuOpen = false;
   let exportDialog: ExportCodeDialog;
@@ -206,9 +206,9 @@
   });
 </script>
 
-{#if fileManagerOpen}
+{#if $showFileManager}
   <FileManager
-    bind:isOpen={fileManagerOpen}
+    bind:isOpen={$showFileManager}
     bind:startPoint
     bind:lines
     bind:shapes
@@ -238,7 +238,7 @@
     <button
       title="Open File Manager"
       aria-label="Open File Manager"
-      on:click={() => (fileManagerOpen = true)}
+      on:click={() => showFileManager.set(true)}
       class="text-neutral-700 dark:text-neutral-200 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
     >
       <svg

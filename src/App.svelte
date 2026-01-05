@@ -23,6 +23,8 @@
     exportDialogState,
     selectedPointId,
     collisionMarkers,
+    showFileManager,
+    fileManagerNewFileMode,
   } from "./stores";
   import {
     startPointStore,
@@ -168,6 +170,16 @@
     if (isLoaded) isUnsaved.set(true);
   }
 
+  function handleSaveProject() {
+    const path = get(currentFilePath);
+    if (!path) {
+      showFileManager.set(true);
+      fileManagerNewFileMode.set(true);
+    } else {
+      saveProject();
+    }
+  }
+
   function undoAction() {
     const prev = history.undo();
     if (prev) {
@@ -265,7 +277,7 @@
           // We can invoke the functions directly.
           switch (action) {
             case "save-project":
-              saveProject();
+              handleSaveProject();
               break;
             case "save-as":
               saveFileAs();
@@ -572,7 +584,7 @@
 />
 
 <KeyboardShortcuts
-  {saveProject}
+  saveProject={handleSaveProject}
   {saveFileAs}
   {exportGif}
   {undoAction}
@@ -619,7 +631,7 @@
       bind:robotWidth
       bind:showSidebar
       bind:isLargeScreen
-      {saveProject}
+      saveProject={handleSaveProject}
       {saveFileAs}
       {loadFile}
       {exportGif}

@@ -21,6 +21,10 @@ export const exportDialogState = writable<{
   format: "java" | "points" | "sequential" | "json";
 }>({ isOpen: false, format: "java" });
 
+// File Manager Stores
+export const showFileManager = writable(false);
+export const fileManagerNewFileMode = writable(false);
+
 // Currently selected line id (used to add control points to selected path)
 export const selectedLineId = writable<string | null>(null);
 
