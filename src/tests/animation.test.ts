@@ -1,6 +1,11 @@
-
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { describe, it, expect, vi } from "vitest";
-import { calculateRobotState, createAnimationController, generateGhostPathPoints, generateOnionLayers } from "../utils/animation";
+import {
+  calculateRobotState,
+  createAnimationController,
+  generateGhostPathPoints,
+  generateOnionLayers,
+} from "../utils/animation";
 import { scaleLinear } from "d3";
 import type { Line, TimelineEvent, Point } from "../types";
 
@@ -13,8 +18,8 @@ describe("animation", () => {
     {
       endPoint: { x: 10, y: 0, heading: "constant", degrees: 0 },
       controlPoints: [],
-      color: "red"
-    }
+      color: "red",
+    },
   ];
 
   const simpleTimeline: TimelineEvent[] = [
@@ -23,8 +28,8 @@ describe("animation", () => {
       duration: 1.0,
       startTime: 0,
       endTime: 1.0,
-      lineIndex: 0
-    }
+      lineIndex: 0,
+    },
   ];
 
   describe("calculateRobotState", () => {
@@ -36,14 +41,28 @@ describe("animation", () => {
     });
 
     it("should calculate state at start of simple line", () => {
-      const state = calculateRobotState(0, simpleTimeline, simpleLines, startPoint, xScale, yScale);
+      const state = calculateRobotState(
+        0,
+        simpleTimeline,
+        simpleLines,
+        startPoint,
+        xScale,
+        yScale,
+      );
       expect(state.x).toBeCloseTo(xScale(0));
       expect(state.y).toBeCloseTo(yScale(0));
     });
 
     it("should calculate state at end of simple line", () => {
-        // Percent 100
-      const state = calculateRobotState(100, simpleTimeline, simpleLines, startPoint, xScale, yScale);
+      // Percent 100
+      const state = calculateRobotState(
+        100,
+        simpleTimeline,
+        simpleLines,
+        startPoint,
+        xScale,
+        yScale,
+      );
       // It uses easeInOutQuad, so at 100% (t=1), value is 1.
       // Expected x is 10
       expect(state.x).toBeCloseTo(xScale(10));
@@ -51,54 +70,68 @@ describe("animation", () => {
     });
 
     it("should handle wait events", () => {
-        const waitTimeline: TimelineEvent[] = [
-            {
-                type: "wait",
-                duration: 1.0,
-                startTime: 0,
-                endTime: 1.0,
-                atPoint: { x: 5, y: 5 },
-                startHeading: 0,
-                targetHeading: 90
-            }
-        ];
+      const waitTimeline: TimelineEvent[] = [
+        {
+          type: "wait",
+          duration: 1.0,
+          startTime: 0,
+          endTime: 1.0,
+          atPoint: { x: 5, y: 5 },
+          startHeading: 0,
+          targetHeading: 90,
+        },
+      ];
 
-        // At 50%
-        const state = calculateRobotState(50, waitTimeline, [], startPoint, xScale, yScale);
-        expect(state.x).toBeCloseTo(xScale(5));
-        expect(state.y).toBeCloseTo(yScale(5));
-        // Heading should be interpolated. 0 to 90. 50% -> 45.
-        // The visualizer negates the heading. So -45.
-        expect(state.heading).toBeCloseTo(-45);
+      // At 50%
+      const state = calculateRobotState(
+        50,
+        waitTimeline,
+        [],
+        startPoint,
+        xScale,
+        yScale,
+      );
+      expect(state.x).toBeCloseTo(xScale(5));
+      expect(state.y).toBeCloseTo(yScale(5));
+      // Heading should be interpolated. 0 to 90. 50% -> 45.
+      // The visualizer negates the heading. So -45.
+      expect(state.heading).toBeCloseTo(-45);
     });
 
     it("should use motion profile if available", () => {
-        // Mock motion profile: 2 steps. t=0 -> 0s, t=1 -> 1s.
-        const profileTimeline: TimelineEvent[] = [
-            {
-              type: "travel",
-              duration: 1.0,
-              startTime: 0,
-              endTime: 1.0,
-              lineIndex: 0,
-              motionProfile: [0, 1.0],
-              headingProfile: [0, 90] // unwrapped heading
-            }
-        ];
+      // Mock motion profile: 2 steps. t=0 -> 0s, t=1 -> 1s.
+      const profileTimeline: TimelineEvent[] = [
+        {
+          type: "travel",
+          duration: 1.0,
+          startTime: 0,
+          endTime: 1.0,
+          lineIndex: 0,
+          motionProfile: [0, 1.0],
+          headingProfile: [0, 90], // unwrapped heading
+        },
+      ];
 
-        // At 50% (0.5s)
-        // Profile is linear 0 to 1. So 0.5s matches index 0.5 roughly?
-        // logic: finds segment. 0.5 is between 0 and 1.
-        // localProgress = (0.5 - 0) / (1 - 0) = 0.5
-        // linePercent = tStart + ... tStart=0, tEnd=1. So 0.5.
-        // Curve point at 0.5 (linear line 0,0 to 10,0) -> 5,0
+      // At 50% (0.5s)
+      // Profile is linear 0 to 1. So 0.5s matches index 0.5 roughly?
+      // logic: finds segment. 0.5 is between 0 and 1.
+      // localProgress = (0.5 - 0) / (1 - 0) = 0.5
+      // linePercent = tStart + ... tStart=0, tEnd=1. So 0.5.
+      // Curve point at 0.5 (linear line 0,0 to 10,0) -> 5,0
 
-        const state = calculateRobotState(50, profileTimeline, simpleLines, startPoint, xScale, yScale);
-        expect(state.x).toBeCloseTo(xScale(5));
-        expect(state.y).toBeCloseTo(yScale(0));
+      const state = calculateRobotState(
+        50,
+        profileTimeline,
+        simpleLines,
+        startPoint,
+        xScale,
+        yScale,
+      );
+      expect(state.x).toBeCloseTo(xScale(5));
+      expect(state.y).toBeCloseTo(yScale(0));
 
-        // Heading interpolation: 0 to 90 at 0.5 -> 45. Negated -> -45.
-        expect(state.heading).toBeCloseTo(-45);
+      // Heading interpolation: 0 to 90 at 0.5 -> 45. Negated -> -45.
+      expect(state.heading).toBeCloseTo(-45);
     });
   });
 
@@ -122,21 +155,27 @@ describe("animation", () => {
 
   describe("generateGhostPathPoints", () => {
     it("should return empty array for no lines", () => {
-        expect(generateGhostPathPoints(startPoint, [], 10, 10)).toEqual([]);
+      expect(generateGhostPathPoints(startPoint, [], 10, 10)).toEqual([]);
     });
 
     it("should generate points for simple line", () => {
-        const points = generateGhostPathPoints(startPoint, simpleLines, 10, 10, 10);
-        expect(points.length).toBeGreaterThan(0);
-        // It creates a boundary.
+      const points = generateGhostPathPoints(
+        startPoint,
+        simpleLines,
+        10,
+        10,
+        10,
+      );
+      expect(points.length).toBeGreaterThan(0);
+      // It creates a boundary.
     });
   });
 
   describe("generateOnionLayers", () => {
-      it("should generate layers", () => {
-          // Line length is 10. Spacing 4. Should have layers at ~4 and ~8.
-          const layers = generateOnionLayers(startPoint, simpleLines, 10, 10, 4);
-          expect(layers.length).toBeGreaterThanOrEqual(2);
-      });
+    it("should generate layers", () => {
+      // Line length is 10. Spacing 4. Should have layers at ~4 and ~8.
+      const layers = generateOnionLayers(startPoint, simpleLines, 10, 10, 4);
+      expect(layers.length).toBeGreaterThanOrEqual(2);
+    });
   });
 });

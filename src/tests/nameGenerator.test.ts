@@ -1,6 +1,10 @@
-
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
-import { makeId, renumberDefaultPathNames, generateName } from "../utils/nameGenerator";
+import {
+  makeId,
+  renumberDefaultPathNames,
+  generateName,
+} from "../utils/nameGenerator";
 import type { Line } from "../types";
 
 describe("nameGenerator", () => {
@@ -27,13 +31,13 @@ describe("nameGenerator", () => {
           endPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
           controlPoints: [],
           color: "red",
-          name: "Path 100"
+          name: "Path 100",
         },
         {
           endPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
           controlPoints: [],
           color: "red",
-          name: "Path 5"
+          name: "Path 5",
         },
       ];
       const result = renumberDefaultPathNames(lines);
@@ -47,13 +51,13 @@ describe("nameGenerator", () => {
           endPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
           controlPoints: [],
           color: "red",
-          name: "MyPath"
+          name: "MyPath",
         },
         {
           endPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
           controlPoints: [],
           color: "red",
-          name: "Path 5"
+          name: "Path 5",
         },
       ];
       const result = renumberDefaultPathNames(lines);
@@ -62,12 +66,12 @@ describe("nameGenerator", () => {
     });
 
     it("should treat empty name as default path", () => {
-       const lines: Line[] = [
+      const lines: Line[] = [
         {
           endPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
           controlPoints: [],
           color: "red",
-          name: ""
+          name: "",
         },
       ];
       const result = renumberDefaultPathNames(lines);
@@ -97,29 +101,31 @@ describe("nameGenerator", () => {
     });
 
     it("should handle duplication of a duplicate", () => {
-       const existing = ["Name", "Name duplicate"];
-       // Duplicating "Name duplicate"
-       expect(generateName("Name duplicate", existing)).toBe("Name duplicate 1");
+      const existing = ["Name", "Name duplicate"];
+      // Duplicating "Name duplicate"
+      expect(generateName("Name duplicate", existing)).toBe("Name duplicate 1");
     });
 
     it("should handle duplication of a numbered duplicate", () => {
-       const existing = ["Name", "Name duplicate", "Name duplicate 1"];
-       // Duplicating "Name duplicate 1"
-       expect(generateName("Name duplicate 1", existing)).toBe("Name duplicate 2");
+      const existing = ["Name", "Name duplicate", "Name duplicate 1"];
+      // Duplicating "Name duplicate 1"
+      expect(generateName("Name duplicate 1", existing)).toBe(
+        "Name duplicate 2",
+      );
     });
 
     it("should find gaps in sequence if logic permitted or just next available", () => {
-        // The current implementation just finds the next available suffix starting from count+1
-        const existing = ["Name", "Name duplicate", "Name duplicate 2"];
-        // Logic check: if "Name duplicate 1" is missing, does it fill it?
-        // Code: match " duplicate" -> count 0. loop i=1. "Name duplicate 1" -> not in set -> return it.
-        expect(generateName("Name", existing)).toBe("Name duplicate 1");
+      // The current implementation just finds the next available suffix starting from count+1
+      const existing = ["Name", "Name duplicate", "Name duplicate 2"];
+      // Logic check: if "Name duplicate 1" is missing, does it fill it?
+      // Code: match " duplicate" -> count 0. loop i=1. "Name duplicate 1" -> not in set -> return it.
+      expect(generateName("Name", existing)).toBe("Name duplicate 1");
     });
 
     it("should be case insensitive for checking existence but preserve case for result", () => {
-         const existing = ["name"];
-         // "Name" exists as "name". So it should duplicate.
-         expect(generateName("Name", existing)).toBe("Name duplicate");
+      const existing = ["name"];
+      // "Name" exists as "name". So it should duplicate.
+      expect(generateName("Name", existing)).toBe("Name duplicate");
     });
   });
 });

@@ -53,3 +53,5 @@ src/utils/nameGenerator.ts
 src/lib/components/OptimizationDialog.svelte
 src/lib/components/icons/SaveIcon.svelte
 vite.config.d.ts
+src/tests/animation.test.ts
+src/tests/nameGenerator.test.ts
