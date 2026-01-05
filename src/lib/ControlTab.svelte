@@ -7,6 +7,7 @@
     Settings,
     Shape,
     SequenceItem,
+    SequenceWaitItem,
   } from "../types";
   import _ from "lodash";
   import {
@@ -23,8 +24,7 @@
   import CollapseAllButton from "./components/CollapseAllButton.svelte";
   import PathLineSection from "./components/PathLineSection.svelte";
   import PlaybackControls from "./components/PlaybackControls.svelte";
-  import WaitRow from "./components/WaitRow.svelte";
-  import WaitMarkersSection from "./components/WaitMarkersSection.svelte";
+  import WaitSection from "./components/WaitSection.svelte";
   import OptimizationDialog from "./components/OptimizationDialog.svelte";
   import WaypointTable from "./components/WaypointTable.svelte";
   import { calculatePathTime } from "../utils";
@@ -274,6 +274,8 @@
     obstacles: shapes.map(() => true),
     lines: lines.map(() => false),
     controlPoints: lines.map(() => true), // Start with control points collapsed
+    // Track collapsed state for waits by their ID
+    waits: {} as Record<string, boolean>,
   };
 
   // Debug helpers (kept simple so template expressions stay small)
@@ -348,6 +350,7 @@
       collapsedSections.lines.length > 0 &&
       collapsedSections.lines.every((v) => v === true);
     collapsedSections = {
+      ...collapsedSections,
       obstacles: shapes.map(() => true),
       // If sections were all collapsed, new lines should start collapsed
       lines: lines.map(() => (wasAllCollapsed ? true : false)),
@@ -457,7 +460,7 @@
   }
 
   function getWait(i: any) {
-    return i as any;
+    return i as SequenceWaitItem;
   }
 
   function insertLineAfter(seqIndex: number) {
@@ -591,6 +594,16 @@
     collapsedSections.controlPoints = lines.map(() => true);
     collapsedEventMarkers = lines.map(() => true);
     collapsedSections.obstacles = shapes.map(() => true);
+
+    // Set all waits to collapsed
+    const newWaits = { ...collapsedSections.waits };
+    sequence.forEach(s => {
+      if (s.kind === 'wait') {
+        newWaits[s.id] = true;
+      }
+    });
+    collapsedSections.waits = newWaits;
+
     // Force reactivity
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
@@ -602,6 +615,16 @@
     collapsedSections.controlPoints = lines.map(() => false);
     collapsedEventMarkers = lines.map(() => false);
     collapsedSections.obstacles = shapes.map(() => false);
+
+    // Set all waits to expanded (false)
+    const newWaits = { ...collapsedSections.waits };
+    sequence.forEach(s => {
+      if (s.kind === 'wait') {
+        newWaits[s.id] = false;
+      }
+    });
+    collapsedSections.waits = newWaits;
+
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
   }
@@ -612,7 +635,10 @@
     collapsedSections.lines.every((v) => v) &&
     collapsedSections.controlPoints.every((v) => v) &&
     collapsedEventMarkers.every((v) => v) &&
-    collapsedSections.obstacles.every((v) => v);
+    collapsedSections.obstacles.every((v) => v) &&
+    // Check if all waits are collapsed (only if there are waits)
+    (sequence.filter(s => s.kind === 'wait').length === 0 ||
+     sequence.filter(s => s.kind === 'wait').every(s => collapsedSections.waits[s.id]));
 
   function toggleCollapseAll() {
     if (allCollapsed) expandAll();
@@ -1119,33 +1145,16 @@
                 />
               {/each}
             {:else}
-              <WaitRow
-                id={getWait(item).id}
-                name={getWait(item).name}
-                durationMs={getWait(item).durationMs}
-                locked={getWait(item).locked ?? false}
-                onToggleLock={() => {
-                  const newSeq = [...sequence];
-                  newSeq[sIdx] = {
-                    ...getWait(item),
-                    locked: !(getWait(item).locked ?? false),
-                  };
-                  sequence = newSeq;
-                  recordChange?.();
-                }}
-                onChange={(newName, newDuration) => {
-                  const newSeq = [...sequence];
-                  newSeq[sIdx] = {
-                    ...getWait(item),
-                    name: newName,
-                    durationMs: Math.max(0, Number(newDuration) || 0),
-                  };
-                  sequence = newSeq;
-                }}
+              <WaitSection
+                bind:wait={item}
+                idx={sIdx}
+                bind:collapsed={collapsedSections.waits[getWait(item).id]}
+                collapsedMarkers={allCollapsed}
                 onRemove={() => {
                   const newSeq = [...sequence];
                   newSeq.splice(sIdx, 1);
                   sequence = newSeq;
+                  recordChange?.();
                 }}
                 onInsertAfter={() => {
                   const newSeq = [...sequence];
@@ -1157,14 +1166,15 @@
                     locked: false,
                   });
                   sequence = newSeq;
+                  recordChange?.();
                 }}
                 onAddPathAfter={() => insertPathAfter(sIdx)}
                 onMoveUp={() => moveSequenceItem(sIdx, -1)}
                 onMoveDown={() => moveSequenceItem(sIdx, 1)}
                 canMoveUp={sIdx !== 0}
                 canMoveDown={sIdx !== sequence.length - 1}
+                {recordChange}
               />
-              <WaitMarkersSection wait={getWait(item)} {allCollapsed} />
             {/if}
           </div>
         {/each}
