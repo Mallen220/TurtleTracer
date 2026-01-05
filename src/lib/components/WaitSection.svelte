@@ -56,8 +56,8 @@
   class={`flex flex-col w-full justify-start items-start gap-1 ${isSelected ? "border-l-4 border-amber-400 pl-2" : ""}`}
   on:click|stopPropagation={() => {
     if (!wait.locked) {
-        selectedPointId.set(`wait-${wait.id}`);
-        selectedLineId.set(null);
+      selectedPointId.set(`wait-${wait.id}`);
+      selectedLineId.set(null);
     }
   }}
   on:keydown|stopPropagation={(e) => {
@@ -230,11 +230,11 @@
           stroke="currentColor"
           class="size-5"
         >
-            <path
+          <path
             stroke-linecap="round"
             stroke-linejoin="round"
             d="M12 4.5v15m7.5-7.5h-15"
-            />
+          />
         </svg>
       </button>
 
@@ -301,10 +301,7 @@
       </div>
 
       <!-- Wait Markers (Embedded) -->
-      <WaitMarkersSection
-        bind:wait={wait}
-        allCollapsed={collapsedMarkers}
-      />
+      <WaitMarkersSection bind:wait allCollapsed={collapsedMarkers} />
     </div>
   {/if}
 </div>

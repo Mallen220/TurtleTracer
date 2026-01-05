@@ -597,8 +597,8 @@
 
     // Set all waits to collapsed
     const newWaits = { ...collapsedSections.waits };
-    sequence.forEach(s => {
-      if (s.kind === 'wait') {
+    sequence.forEach((s) => {
+      if (s.kind === "wait") {
         newWaits[s.id] = true;
       }
     });
@@ -618,8 +618,8 @@
 
     // Set all waits to expanded (false)
     const newWaits = { ...collapsedSections.waits };
-    sequence.forEach(s => {
-      if (s.kind === 'wait') {
+    sequence.forEach((s) => {
+      if (s.kind === "wait") {
         newWaits[s.id] = false;
       }
     });
@@ -637,8 +637,10 @@
     collapsedEventMarkers.every((v) => v) &&
     collapsedSections.obstacles.every((v) => v) &&
     // Check if all waits are collapsed (only if there are waits)
-    (sequence.filter(s => s.kind === 'wait').length === 0 ||
-     sequence.filter(s => s.kind === 'wait').every(s => collapsedSections.waits[s.id]));
+    (sequence.filter((s) => s.kind === "wait").length === 0 ||
+      sequence
+        .filter((s) => s.kind === "wait")
+        .every((s) => collapsedSections.waits[s.id]));
 
   function toggleCollapseAll() {
     if (allCollapsed) expandAll();

@@ -473,13 +473,16 @@
           </div>-->
 
           <div class="px-2 py-2 grid grid-cols-1 gap-1">
-            <div class="flex items-center gap-3">
-              <button
-                title="Toggle Ruler"
-                aria-label="Toggle Ruler"
-                aria-pressed={$showRuler}
-                on:click={() => showRuler.update((v) => !v)}
-                class="p-1 rounded-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors {$showRuler
+            <button
+              title="Toggle Ruler"
+              aria-label="Toggle Ruler"
+              role="menuitemcheckbox"
+              aria-checked={$showRuler}
+              on:click={() => showRuler.update((v) => !v)}
+              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
+            >
+              <div
+                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {$showRuler
                   ? 'text-blue-500'
                   : 'text-neutral-500 dark:text-neutral-400'}"
               >
@@ -502,17 +505,22 @@
                   <path d="m8.5 6.5 2-2"></path>
                   <path d="m17.5 15.5 2-2"></path>
                 </svg>
-              </button>
-              <div class="text-sm">Ruler</div>
-            </div>
+              </div>
+              <span class="text-sm text-neutral-700 dark:text-neutral-200"
+                >Ruler</span
+              >
+            </button>
 
-            <div class="flex items-center gap-3">
-              <button
-                title="Toggle Protractor"
-                aria-label="Toggle Protractor"
-                aria-pressed={$showProtractor}
-                on:click={() => showProtractor.update((v) => !v)}
-                class="p-1 rounded-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors {$showProtractor
+            <button
+              title="Toggle Protractor"
+              aria-label="Toggle Protractor"
+              role="menuitemcheckbox"
+              aria-checked={$showProtractor}
+              on:click={() => showProtractor.update((v) => !v)}
+              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
+            >
+              <div
+                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {$showProtractor
                   ? 'text-blue-500'
                   : 'text-neutral-500 dark:text-neutral-400'}"
               >
@@ -531,22 +539,27 @@
                   ></path>
                   <path d="M12 3v6l3.7 2.7"></path>
                 </svg>
-              </button>
-              <div class="text-sm">Protractor</div>
-            </div>
+              </div>
+              <span class="text-sm text-neutral-700 dark:text-neutral-200"
+                >Protractor</span
+              >
+            </button>
 
             {#if $showProtractor}
-              <div class="flex items-center gap-3">
-                <button
-                  title={$protractorLockToRobot
-                    ? "Unlock Protractor from Robot"
-                    : "Lock Protractor to Robot"}
-                  aria-label={$protractorLockToRobot
-                    ? "Unlock Protractor from Robot"
-                    : "Lock Protractor to Robot"}
-                  aria-pressed={$protractorLockToRobot}
-                  on:click={() => protractorLockToRobot.update((v) => !v)}
-                  class="p-1 rounded-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors {$protractorLockToRobot
+              <button
+                title={$protractorLockToRobot
+                  ? "Unlock Protractor from Robot"
+                  : "Lock Protractor to Robot"}
+                aria-label={$protractorLockToRobot
+                  ? "Unlock Protractor from Robot"
+                  : "Lock Protractor to Robot"}
+                role="menuitemcheckbox"
+                aria-checked={$protractorLockToRobot}
+                on:click={() => protractorLockToRobot.update((v) => !v)}
+                class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
+              >
+                <div
+                  class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {$protractorLockToRobot
                     ? 'text-amber-500'
                     : 'text-neutral-500 dark:text-neutral-400'}"
                 >
@@ -583,18 +596,23 @@
                       <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
                     </svg>
                   {/if}
-                </button>
-                <div class="text-sm">Lock to Robot</div>
-              </div>
+                </div>
+                <span class="text-sm text-neutral-700 dark:text-neutral-200"
+                  >Lock to Robot</span
+                >
+              </button>
             {/if}
 
-            <div class="flex items-center gap-3">
-              <button
-                title="Toggle Grid"
-                aria-label="Toggle Grid"
-                aria-pressed={$showGrid}
-                on:click={() => showGrid.update((v) => !v)}
-                class="p-1 rounded-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors {$showGrid
+            <button
+              title="Toggle Grid"
+              aria-label="Toggle Grid"
+              role="menuitemcheckbox"
+              aria-checked={$showGrid}
+              on:click={() => showGrid.update((v) => !v)}
+              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
+            >
+              <div
+                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {$showGrid
                   ? 'text-blue-500'
                   : 'text-neutral-500 dark:text-neutral-400'}"
               >
@@ -615,20 +633,25 @@
                   <line x1="9" y1="3" x2="9" y2="21"></line>
                   <line x1="15" y1="3" x2="15" y2="21"></line>
                 </svg>
-              </button>
-              <div class="text-sm">Grid</div>
-            </div>
+              </div>
+              <span class="text-sm text-neutral-700 dark:text-neutral-200"
+                >Grid</span
+              >
+            </button>
 
             {#if $showGrid}
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between px-2 py-1.5">
                 <div class="flex items-center gap-2 w-full">
-                  <div class="flex items-center gap-2">
-                    <button
-                      title={$snapToGrid ? "Disable Snap" : "Enable Snap"}
-                      aria-label={$snapToGrid ? "Disable Snap" : "Enable Snap"}
-                      aria-pressed={$snapToGrid}
-                      on:click={() => snapToGrid.update((v) => !v)}
-                      class="p-1 rounded-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors {$snapToGrid
+                  <button
+                    title={$snapToGrid ? "Disable Snap" : "Enable Snap"}
+                    aria-label={$snapToGrid ? "Disable Snap" : "Enable Snap"}
+                    role="menuitemcheckbox"
+                    aria-checked={$snapToGrid}
+                    on:click={() => snapToGrid.update((v) => !v)}
+                    class="flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md py-1 px-2 -ml-2 transition-colors group"
+                  >
+                    <div
+                      class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {$snapToGrid
                         ? 'text-green-500'
                         : 'text-neutral-400'}"
                     >
@@ -647,12 +670,14 @@
                           d="m6 15-4-4 6.75-6.77a7.79 7.79 0 0 1 11 11L13 22l-4-4 6.39-6.36a2.14 2.14 0 0 0-3-3L6 15"
                         ></path>
                       </svg>
-                    </button>
-                    <div class="text-sm">Snap</div>
-                  </div>
-                  <div class="ml-2">
+                    </div>
+                    <span class="text-sm text-neutral-700 dark:text-neutral-200"
+                      >Snap</span
+                    >
+                  </button>
+                  <div class="ml-auto">
                     <select
-                      class="bg-transparent text-sm text-neutral-600 dark:text-neutral-300 focus:outline-none cursor-pointer pl-1 pr-3"
+                      class="bg-transparent text-sm text-neutral-600 dark:text-neutral-300 focus:outline-none cursor-pointer pl-1 pr-3 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors"
                       bind:value={selectedGridSize}
                       on:change={handleGridSizeChange}
                       aria-label="Select grid spacing"
