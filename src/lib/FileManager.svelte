@@ -581,7 +581,10 @@
     }
   }
 
-  async function duplicateFile(file: FileInfo, mode: "copy" | "mirror" | "reverse" = "copy") {
+  async function duplicateFile(
+    file: FileInfo,
+    mode: "copy" | "mirror" | "reverse" = "copy",
+  ) {
     try {
       const content = await electronAPI.readFile(file.path);
       let data = JSON.parse(content);

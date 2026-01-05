@@ -55,3 +55,5 @@ src/lib/components/icons/SaveIcon.svelte
 vite.config.d.ts
 src/tests/animation.test.ts
 src/tests/nameGenerator.test.ts
+src/utils/pathTransform.ts
+src/lib/components/WaitSection.svelte

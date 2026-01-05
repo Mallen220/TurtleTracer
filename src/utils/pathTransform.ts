@@ -67,16 +67,16 @@ export function reversePathData(data: {
   const newStartPoint = JSON.parse(JSON.stringify(lastLine.endPoint));
 
   // Adjust new start point heading properties
-  if (newStartPoint.heading === 'linear') {
-     const temp = newStartPoint.startDeg;
-     newStartPoint.startDeg = newStartPoint.endDeg;
-     newStartPoint.endDeg = temp;
+  if (newStartPoint.heading === "linear") {
+    const temp = newStartPoint.startDeg;
+    newStartPoint.startDeg = newStartPoint.endDeg;
+    newStartPoint.endDeg = temp;
   }
 
   // 2. Reverse Lines
   // We iterate backwards to reconstruct the path in reverse geometric order.
   // The target end points for the new lines are: [P_{n-1}, P_{n-2}, ..., P_0]
-  const points = [r.startPoint, ...originalLines.map(l => l.endPoint)];
+  const points = [r.startPoint, ...originalLines.map((l) => l.endPoint)];
 
   const newLines: Line[] = [];
 
@@ -85,13 +85,13 @@ export function reversePathData(data: {
     const originalLine = originalLines[originalLineIndex];
 
     // The target end point is the start point of the original segment.
-    const targetEndPoint = JSON.parse(JSON.stringify(points[i-1]));
+    const targetEndPoint = JSON.parse(JSON.stringify(points[i - 1]));
 
     // Fix heading for target end point if linear
-    if (targetEndPoint.heading === 'linear') {
-       const temp = targetEndPoint.startDeg;
-       targetEndPoint.startDeg = targetEndPoint.endDeg;
-       targetEndPoint.endDeg = temp;
+    if (targetEndPoint.heading === "linear") {
+      const temp = targetEndPoint.startDeg;
+      targetEndPoint.startDeg = targetEndPoint.endDeg;
+      targetEndPoint.endDeg = temp;
     }
 
     // Control points need to be reversed order
@@ -118,7 +118,7 @@ export function reversePathData(data: {
 
   // 3. Reverse Sequence
   if (r.sequence && Array.isArray(r.sequence)) {
-      r.sequence = r.sequence.reverse();
+    r.sequence = r.sequence.reverse();
   }
 
   return r;

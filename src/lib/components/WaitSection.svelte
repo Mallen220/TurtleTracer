@@ -6,7 +6,7 @@
   import type { SequenceWaitItem } from "../../types";
 
   export let wait: SequenceWaitItem;
-  export let idx: number = 0; // Keeping idx for potential future use or consistency
+  // export let idx: number = 0;
 
   // Collapsed state
   export let collapsed: boolean = false;

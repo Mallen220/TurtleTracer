@@ -10,7 +10,14 @@
 
   const dispatch = createEventDispatcher<{
     close: void;
-    action: "open" | "rename" | "delete" | "duplicate" | "mirror" | "reverse" | "save-to";
+    action:
+      | "open"
+      | "rename"
+      | "delete"
+      | "duplicate"
+      | "mirror"
+      | "reverse"
+      | "save-to";
   }>();
 
   let menuElement: HTMLDivElement;
