@@ -10,7 +10,7 @@
 
   const dispatch = createEventDispatcher<{
     close: void;
-    action: "open" | "rename" | "delete" | "duplicate" | "mirror" | "save-to";
+    action: "open" | "rename" | "delete" | "duplicate" | "mirror" | "reverse" | "save-to";
   }>();
 
   let menuElement: HTMLDivElement;
@@ -162,6 +162,27 @@
       />
     </svg>
     Mirror Copy
+  </button>
+
+  <button
+    on:click={() => dispatch("action", "reverse")}
+    class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      class="size-4"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3"
+      />
+    </svg>
+    Reverse Copy
   </button>
 
   <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>

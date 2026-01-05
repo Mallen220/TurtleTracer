@@ -41,6 +41,7 @@
     fileManagerNewFileMode,
   } from "../stores";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
+  import { mirrorPathData, reversePathData } from "../utils/pathTransform";
 
   import FileManagerToolbar from "./components/filemanager/FileManagerToolbar.svelte";
   import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
@@ -467,22 +468,21 @@
     }
   }
 
-  async function duplicateFile(file: FileInfo, mirror = false) {
+  async function duplicateFile(file: FileInfo, mode: "copy" | "mirror" | "reverse" = "copy") {
     try {
       const content = await electronAPI.readFile(file.path);
-      const data = JSON.parse(content);
+      let data = JSON.parse(content);
 
-      if (mirror) {
-        // Mirror logic would go here, reuse existing logic
-        // For brevity, assuming existing mirrorPathData function is available or we recreate it
-        const mirrored = mirrorPathData(data);
-        data.lines = mirrored.lines;
-        data.startPoint = mirrored.startPoint;
-        data.shapes = mirrored.shapes;
+      let suffix = "_copy";
+      if (mode === "mirror") {
+        data = mirrorPathData(data);
+        suffix = "_mirrored";
+      } else if (mode === "reverse") {
+        data = reversePathData(data);
+        suffix = "_reversed";
       }
 
       const baseName = file.name.replace(/\.pp$/, "");
-      const suffix = mirror ? "_mirrored" : "_copy";
       let newName = `${baseName}${suffix}.pp`;
       let counter = 1;
 
@@ -498,7 +498,12 @@
         JSON.stringify(data, null, 2),
       );
       await refreshDirectory();
-      showToast(`${mirror ? "Mirrored" : "Duplicated"}: ${newName}`, "success");
+
+      let actionLabel = "Duplicated";
+      if (mode === "mirror") actionLabel = "Mirrored";
+      if (mode === "reverse") actionLabel = "Reversed";
+
+      showToast(`${actionLabel}: ${newName}`, "success");
 
       // Refresh preview for the newly created copy/mirror
       const newFile = files.find((f) => f.name === newName);
@@ -510,47 +515,6 @@
       showToast(`Failed to duplicate: ${getErrorMessage(error)}`, "error");
     }
   }
-
-  // --- Mirror Logic Helpers (re-implemented efficiently) ---
-  function mirrorPointHeading(point: Point): Point {
-    if (point.heading === "linear")
-      return {
-        ...point,
-        startDeg: 180 - point.startDeg,
-        endDeg: 180 - point.endDeg,
-      };
-    if (point.heading === "constant")
-      return { ...point, degrees: 180 - point.degrees };
-    // Tangential reverse flag stays same
-    return point;
-  }
-
-  function mirrorPathData(data: any) {
-    const m = JSON.parse(JSON.stringify(data));
-    if (m.startPoint) {
-      m.startPoint.x = 144 - m.startPoint.x;
-      m.startPoint = mirrorPointHeading(m.startPoint);
-    }
-    if (m.lines) {
-      m.lines.forEach((line: any) => {
-        if (line.endPoint) {
-          line.endPoint.x = 144 - line.endPoint.x;
-          line.endPoint = mirrorPointHeading(line.endPoint);
-        }
-        if (line.controlPoints) {
-          line.controlPoints.forEach((cp: any) => (cp.x = 144 - cp.x));
-        }
-      });
-    }
-    if (m.shapes) {
-      m.shapes.forEach((s: any) =>
-        s.vertices?.forEach((v: any) => (v.x = 144 - v.x)),
-      );
-    }
-    return m;
-  }
-
-  // ---
 
   function showToast(
     message: string,
@@ -588,10 +552,13 @@
         deleteFile(file);
         break;
       case "duplicate":
-        duplicateFile(file, false);
+        duplicateFile(file, "copy");
         break;
       case "mirror":
-        duplicateFile(file, true);
+        duplicateFile(file, "mirror");
+        break;
+      case "reverse":
+        duplicateFile(file, "reverse");
         break;
       case "save-to":
         saveCurrentToFile(file);
