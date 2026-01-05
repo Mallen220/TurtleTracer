@@ -321,6 +321,119 @@
     }
   }
 
+  async function handleImportFile(e: CustomEvent<File>) {
+    const file = e.detail;
+    if (!file) return;
+
+    if (!file.name.endsWith(".pp")) {
+      showToast("Please select a .pp file", "error");
+      return;
+    }
+
+    if (get(isUnsaved)) {
+      if (
+        !confirm(
+          "You have unsaved changes that will be lost. Are you sure you want to import a new file?",
+        )
+      ) {
+        return;
+      }
+    }
+
+    try {
+      // If we are in Electron and have a current directory, we copy the file
+      if (electronAPI && currentDirectory) {
+        // Read file content first
+        // Note: For File object in Electron/Web, we might need FileReader or electron path.
+        // If it's Electron, the File object usually has a 'path' property.
+        // If it's Web, we just have the file content in memory.
+        const sourcePath = (file as any).path;
+
+        let content = "";
+        if (sourcePath && electronAPI.readFile) {
+          content = await electronAPI.readFile(sourcePath);
+        } else {
+          // Fallback to FileReader for web or if path missing
+          content = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.onerror = (e) => reject(new Error("Failed to read file"));
+            reader.readAsText(file);
+          });
+        }
+
+        // Validate JSON
+        const data = JSON.parse(content);
+        if (!data.startPoint || !data.lines) {
+          throw new Error("Invalid .pp file format");
+        }
+
+        // Determine destination path
+        const fileName = file.name;
+        const destPath = path.join(currentDirectory, fileName);
+
+        // Check overwrite
+        if (
+          electronAPI.fileExists &&
+          (await electronAPI.fileExists(destPath))
+        ) {
+          if (
+            !confirm(
+              `File "${fileName}" already exists in "${path.basename(currentDirectory)}". Overwrite?`,
+            )
+          ) {
+            return;
+          }
+        }
+
+        // Write to destination
+        await electronAPI.writeFile(destPath, content);
+
+        // Refresh and load
+        await refreshDirectory();
+
+        // Find the new file info object to pass to loadFile
+        const newFile = files.find((f) => f.name === fileName);
+        if (newFile) {
+           await loadFile(newFile);
+        } else {
+           // Fallback if refresh failed or something
+           showToast("File imported but not found in list", "warning");
+        }
+
+      } else {
+         // Web mode / No directory: just load into memory
+         const reader = new FileReader();
+         reader.onload = (e) => {
+            const content = e.target?.result as string;
+            try {
+               const data = JSON.parse(content);
+               if (!data.startPoint || !data.lines) throw new Error("Invalid format");
+
+               startPoint = data.startPoint;
+               lines = normalizeLines(data.lines || []);
+               shapes = data.shapes || [];
+               sequence = deriveSequence(data, lines);
+
+               // We don't have a path, so we can't set currentFilePath to a persistent location
+               // But we can set it to the file name for display?
+               // Usually currentFilePath implies it's saved.
+               currentFilePath.set(null);
+               isUnsaved.set(true); // Treat as unsaved imported data
+               selectedFile = null;
+
+               showToast(`Imported: ${file.name}`, "success");
+            } catch (err) {
+               showToast("Invalid file content", "error");
+            }
+         };
+         reader.readAsText(file);
+      }
+    } catch (err) {
+      showToast(`Import failed: ${getErrorMessage(err)}`, "error");
+    }
+  }
+
   // File Operations
   async function renameFile(file: FileInfo, newName: string) {
     renamingFile = null;
@@ -718,6 +831,7 @@
       on:refresh={handleRefresh}
       on:change-dir={changeDirectoryDialog}
       on:new-file={() => (creatingNewFile = true)}
+      on:import-file={handleImportFile}
     />
 
     <!-- Breadcrumbs -->
