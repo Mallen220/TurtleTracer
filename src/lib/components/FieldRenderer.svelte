@@ -903,12 +903,67 @@
           inchY = Math.round(rawInchY / $gridSize) * $gridSize;
         }
 
-        // Clamp to field bounds if restricted or if snapped (snap already clamped)
-        // Actually snap block above clamped to 0-144, but we need to check restriction setting
+        // Determine clamping range
+        let minX = -Infinity;
+        let maxX = Infinity;
+        let minY = -Infinity;
+        let maxY = Infinity;
+
+        // Apply field restrictions if enabled or if snapped (snap implies grid which is usually in field, but let's stick to explicit restriction)
         if (settings.restrictDraggingToField !== false) {
-          inchX = Math.max(0, Math.min(FIELD_SIZE, inchX));
-          inchY = Math.max(0, Math.min(FIELD_SIZE, inchY));
+          minX = 0;
+          maxX = FIELD_SIZE;
+          minY = 0;
+          maxY = FIELD_SIZE;
+
+          // Identify if we are dragging a control point or an anchor (start/end)
+          let isAnchor = false;
+          if (currentElem.startsWith("point-")) {
+            const parts = currentElem.split("-");
+            const lineNum = Number(parts[1]);
+            const pointIdx = Number(parts[2]);
+
+            // Check if it's start point (lineNum=0, pointIdx=0)
+            // OR if it's the start (0) or end of a line segment
+            if (lineNum === 0 && pointIdx === 0) {
+              isAnchor = true;
+            } else if (lineNum > 0) {
+               const lineIndex = lineNum - 1;
+               const line = lines[lineIndex];
+               // It's an anchor if it's the start (which is previous end, but that's handled by previous line's end usually?
+               // Wait, the points are rendered as:
+               // - StartPoint (point-0-0)
+               // - Line 1: EndPoint (point-1-0 is NOT end, point-1-0 is start? No.)
+               // Let's check `points` logic above.
+               // point-0-0 is Start Point.
+               // Loop lines:
+               // [line.endPoint, ...line.controlPoints].forEach((point, idx1)...
+               // idx1=0 is endPoint. idx1 > 0 are controlPoints.
+               // So point-N-0 is the End Point of line N-1 (0-indexed logic in store, 1-indexed in ID).
+               // Wait, ID is `point-${idx + 1}-${idx1}`.
+               // idx is line index (0..). idx1 is index in [endPoint, ...controlPoints].
+               // So idx1=0 is the END POINT of the line.
+
+               // So if pointIdx === 0, it is an endpoint (Anchor).
+               if (pointIdx === 0) {
+                 isAnchor = true;
+               }
+            }
+          }
+
+          if (isAnchor) {
+            // Apply robot dimension constraint
+            const margin = Math.min(settings.rLength, settings.rWidth) / 2;
+            minX = margin;
+            maxX = FIELD_SIZE - margin;
+            minY = margin;
+            maxY = FIELD_SIZE - margin;
+          }
         }
+
+        // Apply clamping
+        inchX = Math.max(minX, Math.min(maxX, inchX));
+        inchY = Math.max(minY, Math.min(maxY, inchY));
 
         if (currentElem.startsWith("obstacle-")) {
           const parts = currentElem.split("-");
