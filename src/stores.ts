@@ -40,6 +40,12 @@ export const collisionMarkers = writable<CollisionMarker[]>([]);
 // Notification system
 export const notification = writable<Notification | null>(null);
 
+// Project Metadata
+export const projectMetadataStore = writable<{
+  filepath: string;
+  lastSaved?: Date;
+}>({ filepath: "" });
+
 // File Manager Session State
 export const fileManagerSessionState = writable<{
   searchQuery: string;
