@@ -513,6 +513,22 @@
 
     items.push({ separator: true });
 
+    // Move Up/Down
+    // Only show if not locked and valid index
+    if (!isLocked) {
+      items.push({
+        label: "Move Up",
+        onClick: () => moveSequenceItem(seqIndex, -1),
+        disabled: seqIndex <= 0,
+      });
+      items.push({
+        label: "Move Down",
+        onClick: () => moveSequenceItem(seqIndex, 1),
+        disabled: seqIndex >= sequence.length - 1,
+      });
+      items.push({ separator: true });
+    }
+
     // Duplicate
     items.push({
       label: "Duplicate",
@@ -767,6 +783,37 @@
 
     recordChange();
   }
+
+  function moveSequenceItem(seqIndex: number, delta: number) {
+    const targetIndex = seqIndex + delta;
+    if (targetIndex < 0 || targetIndex >= sequence.length) return;
+
+    // Prevent moving if either the source or target is a locked path or a locked wait
+    const isLockedSequenceItem = (index: number) => {
+      const it = sequence[index];
+      if (!it) return false;
+      if (it.kind === "path") {
+        const ln = lines.find((l) => l.id === it.lineId);
+        return ln?.locked ?? false;
+      }
+      // wait
+      if (it.kind === "wait") {
+        return (it as any).locked ?? false;
+      }
+      return false;
+    };
+
+    if (isLockedSequenceItem(seqIndex) || isLockedSequenceItem(targetIndex))
+      return;
+
+    const newSeq = [...sequence];
+    const [item] = newSeq.splice(seqIndex, 1);
+    newSeq.splice(targetIndex, 0, item);
+    sequence = newSeq;
+
+    syncLinesToSequence(newSeq);
+    recordChange();
+  }
 </script>
 
 <svelte:window on:dragover={handleWindowDragOver} on:drop={handleWindowDrop} />
@@ -789,7 +836,7 @@
       <button
         title={copyButtonText}
         on:click={copyTableToClipboard}
-        class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-neutral-600 dark:text-neutral-400"
+        class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-neutral-600 dark:text-neutral-400 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
       >
         <span>{copyButtonText}</span>
         {#if copyButtonText === "Copied!"}
@@ -828,7 +875,7 @@
         title="Validate Path"
         aria-label="Validate Path"
         on:click={() => onValidate && onValidate()}
-        class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-blue-500"
+        class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
       >
         <span>Validate</span>
         <svg
@@ -850,7 +897,7 @@
         title="Optimize Path"
         aria-label="Optimize Path"
         on:click={() => onToggleOptimization && onToggleOptimization()}
-        class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-purple-500"
+        class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none"
       >
         <span>Optimize</span>
         <svg
@@ -907,22 +954,33 @@
   {/if}
 
   <div
-    class="w-full overflow-x-auto border rounded-md border-neutral-200 dark:border-neutral-700 pb-32"
+    class="w-full overflow-auto border rounded-md border-neutral-200 dark:border-neutral-700 max-h-[70vh]"
   >
     <table
       class="w-full text-left bg-white dark:bg-neutral-900 border-collapse"
     >
       <thead
-        class="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-semibold"
+        class="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-semibold sticky top-0 z-10 shadow-sm"
       >
         <tr>
-          <th class="w-8 px-2 py-2 border-b dark:border-neutral-700"></th>
-          <th class="px-3 py-2 border-b dark:border-neutral-700">Name</th>
-          <th class="px-3 py-2 border-b dark:border-neutral-700"
+          <th
+            class="w-8 px-2 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
+          ></th>
+          <th
+            class="px-3 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
+            >Name</th
+          >
+          <th
+            class="px-3 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
             >X (in) / Dur (ms)</th
           >
-          <th class="px-3 py-2 border-b dark:border-neutral-700">Y (in)</th>
-          <th class="px-3 py-2 border-b dark:border-neutral-700 w-10"></th>
+          <th
+            class="px-3 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
+            >Y (in)</th
+          >
+          <th
+            class="px-3 py-2 border-b dark:border-neutral-700 w-10 bg-neutral-100 dark:bg-neutral-800"
+          ></th>
         </tr>
       </thead>
       <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
