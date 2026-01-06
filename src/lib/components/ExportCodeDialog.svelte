@@ -46,6 +46,8 @@
   let currentMatchIndex = -1;
   let searchInputRef: HTMLInputElement;
 
+  const electronAPI = (window as any).electronAPI;
+
   // Update sequential class name when file changes
   $: if ($currentFilePath) {
     const fileName = $currentFilePath.split(/[\\/]/).pop();
@@ -104,15 +106,6 @@
         exportedCode = generatePointsArray(startPoint, lines);
         currentLanguage = plaintext;
       } else if (exportFormat === "sequential") {
-        // For sequential, we might want to append .Commands.AutoCommands if the user
-        // just provides the base package, or let them type the full thing.
-        // The default implementation in codeExporter assumed a suffix.
-        // Let's assume the user types the full package they want for the file.
-        // But the previous default was 'org.firstinspires.ftc.teamcode.Commands.AutoCommands'
-        // If the user's input is just 'org.firstinspires.ftc.teamcode', maybe we should suggest or default?
-        // For now, let's just pass what they typed, but maybe we initialize packageName differently for sequential?
-        // Actually, shared packageName is fine, but sequential often goes in a specific subpackage.
-        // Users can edit the input.
         exportedCode = await generateSequentialCommandCode(
           startPoint,
           lines,
@@ -177,6 +170,71 @@
     setTimeout(() => {
       copied = false;
     }, 2000);
+  }
+
+  async function handleSaveFile() {
+    if (!electronAPI || !electronAPI.showSaveDialog || !electronAPI.writeFile) {
+      // Fallback for web: use download attribute trick via Blob
+      // But downloadTrajectory is specialized for JSON/PP usually, let's make a generic one.
+      const blob = new Blob([exportedCode], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      let filename = "generated_code.txt";
+      if (exportFormat === "java" || exportFormat === "sequential") {
+        // Try to find class name or use default
+        // Regex to find 'class ClassName'
+        const match = exportedCode.match(/class\s+(\w+)/);
+        if (match) filename = `${match[1]}.java`;
+        else filename = "AutoPath.java";
+      } else if (exportFormat === "points") {
+        filename = "points.txt";
+      } else if (exportFormat === "json") {
+        filename = "trajectory.json";
+      }
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    try {
+      let defaultName = "generated_code";
+      let extensions = ["txt"];
+      let nameFilter = "Text File";
+
+      if (exportFormat === "java" || exportFormat === "sequential") {
+        const match = exportedCode.match(/class\s+(\w+)/);
+        defaultName = match ? `${match[1]}.java` : "AutoPath.java";
+        extensions = ["java"];
+        nameFilter = "Java File";
+      } else if (exportFormat === "points") {
+        defaultName = "points.txt";
+        extensions = ["txt"];
+        nameFilter = "Text File";
+      } else if (exportFormat === "json") {
+        defaultName = "trajectory.json"; // Or .pp if user wants raw project
+        // But for generic save, maybe .json is better if it is just json.
+        // The Download as .pp button is separate.
+        extensions = ["json"];
+        nameFilter = "JSON File";
+      }
+
+      const filePath = await electronAPI.showSaveDialog({
+        title: "Save Generated Code",
+        defaultPath: defaultName,
+        filters: [{ name: nameFilter, extensions }],
+      });
+
+      if (filePath) {
+        await electronAPI.writeFile(filePath, exportedCode);
+      }
+    } catch (err) {
+      console.error("Failed to save file:", err);
+      alert("Failed to save file: " + (err as Error).message);
+    }
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -625,6 +683,29 @@
           >
             Close
           </button>
+
+          <button
+            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+            on:click={handleSaveFile}
+            title="Save the generated content to a file"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 12.75l-3-3m3 3 3-3m-3 3V3"
+              />
+            </svg>
+            Save to File
+          </button>
+
           {#if exportFormat === "json"}
             <button
               class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
@@ -655,7 +736,7 @@
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 12.75l-3-3m3 3 3-3m-3 3V3"
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
                 />
               </svg>
               Download as .pp
