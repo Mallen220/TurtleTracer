@@ -60,3 +60,7 @@ src/lib/components/WaitSection.svelte
 .Jules/feature.md
 .jules/feature.md
 src/lib/components/ExportCodeDialog.svelte
+src/tests/fuzz/pathTransform.fuzz.test.ts
+src/tests/pathTransform.test.ts
+src/utils/pointLinking.ts
+src/utils/fileHandlers.ts

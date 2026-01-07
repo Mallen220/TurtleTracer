@@ -651,7 +651,7 @@
     const wait = {
       kind: "wait",
       id: makeId(),
-      name: "Wait",
+      name: "",
       durationMs: 1000,
       locked: false,
     } as SequenceItem;
@@ -667,7 +667,7 @@
     const wait = {
       kind: "wait",
       id: makeId(),
-      name: "Wait",
+      name: "",
       durationMs: 1000,
       locked: false,
     } as SequenceItem;
@@ -728,7 +728,7 @@
     newSeq.splice(seqIndex + 1, 0, {
       kind: "wait",
       id: makeId(),
-      name: "Wait",
+      name: "",
       durationMs: 1000,
       locked: false,
     });
@@ -1163,7 +1163,7 @@
                   newSeq.splice(sIdx + 1, 0, {
                     kind: "wait",
                     id: makeId(),
-                    name: "Wait",
+                    name: "",
                     durationMs: 1000,
                     locked: false,
                   });

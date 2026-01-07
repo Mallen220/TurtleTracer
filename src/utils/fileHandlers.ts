@@ -1,15 +1,21 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { get } from "svelte/store";
-import { currentFilePath, isUnsaved } from "../stores";
+import {
+  currentFilePath,
+  isUnsaved,
+  notification,
+  projectMetadataStore,
+} from "../stores";
 import {
   startPointStore,
   linesStore,
   shapesStore,
   sequenceStore,
   settingsStore,
-  loadProjectData,
 } from "../lib/projectStore";
 import { loadTrajectoryFromFile, downloadTrajectory } from "./index";
+import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
+import { makeId } from "./nameGenerator";
 
 interface ExtendedElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<boolean>;
@@ -24,28 +30,66 @@ interface ExtendedElectronAPI {
   readFile?: (filePath: string) => Promise<string>;
   onMenuAction?: (callback: (action: string) => void) => void;
   copyFile?: (src: string, dest: string) => Promise<boolean>;
+  saveFile?: (
+    content: string,
+    path?: string,
+  ) => Promise<{ success: boolean; filepath: string; error?: string }>;
 }
-const electronAPI = (window as any).electronAPI as
-  | ExtendedElectronAPI
-  | undefined;
 
-function addToRecentFiles(path: string) {
-  const settings = get(settingsStore);
-  if (!settings.recentFiles) settings.recentFiles = [];
+// Access electronAPI dynamically to allow mocking/runtime changes
+function getElectronAPI(): ExtendedElectronAPI | undefined {
+  return (window as any).electronAPI as ExtendedElectronAPI | undefined;
+}
+
+export function loadProjectData(data: any) {
+  if (data.startPoint) startPointStore.set(data.startPoint);
+  if (data.lines) {
+    // Ensure loaded lines have IDs and restore linked names
+    const lines = (data.lines as Line[]).map((l) => {
+      const newLine = { ...l, id: l.id || makeId() };
+      // Restore name from metadata if present
+      if (newLine._linkedName) {
+        newLine.name = newLine._linkedName;
+      }
+      return newLine;
+    });
+    linesStore.set(lines);
+  }
+  if (data.settings) settingsStore.set(data.settings);
+  if (data.sequence) {
+    const seq = (data.sequence as SequenceItem[]).map((s) => {
+      if (s.kind === "wait") {
+        const newWait = { ...s };
+        if (!newWait.id) newWait.id = makeId();
+        // Restore name from metadata if present
+        if ((newWait as any)._linkedName) {
+          newWait.name = (newWait as any)._linkedName;
+        }
+        return newWait;
+      }
+      return s;
+    });
+    sequenceStore.set(seq);
+  }
+  if (data.shapes) shapesStore.set(data.shapes);
+}
+
+function addToRecentFiles(path: string, settings?: Settings) {
+  const currentSettings = settings || get(settingsStore);
+  let recent = currentSettings.recentFiles || [];
 
   // Remove if exists
-  const existingIdx = settings.recentFiles.indexOf(path);
-  if (existingIdx !== -1) settings.recentFiles.splice(existingIdx, 1);
-
+  recent = recent.filter((f) => f !== path);
   // Add to top
-  settings.recentFiles.unshift(path);
-  if (settings.recentFiles.length > 10)
-    settings.recentFiles = settings.recentFiles.slice(0, 10);
+  recent.unshift(path);
+  // Limit to 10
+  if (recent.length > 10) recent = recent.slice(0, 10);
 
-  settingsStore.set({ ...settings });
+  settingsStore.update((s) => ({ ...s, recentFiles: recent }));
 }
 
 export async function loadRecentFile(path: string) {
+  const electronAPI = getElectronAPI();
   if (!electronAPI || !electronAPI.readFile) {
     alert("Cannot load files in this environment");
     return;
@@ -67,6 +111,7 @@ export async function loadRecentFile(path: string) {
     const data = JSON.parse(content);
     loadProjectData(data);
     currentFilePath.set(path);
+    projectMetadataStore.set({ filepath: path, lastSaved: new Date() });
     addToRecentFiles(path);
   } catch (err) {
     console.error("Error loading recent file:", err);
@@ -74,31 +119,175 @@ export async function loadRecentFile(path: string) {
   }
 }
 
-export async function saveProject() {
-  const path = get(currentFilePath);
-  if (path && electronAPI) {
-    try {
-      const jsonString = JSON.stringify(
-        {
-          startPoint: get(startPointStore),
-          lines: get(linesStore),
-          sequence: get(sequenceStore),
-          shapes: get(shapesStore),
-        },
-        null,
-        2,
-      );
-      await electronAPI.writeFile(path, jsonString);
-      isUnsaved.set(false);
-      addToRecentFiles(path);
-      console.log("Saved to", path);
-    } catch (e) {
-      console.error("Failed to save", e);
-      alert("Failed to save file.");
+// Internal implementation of save logic
+async function performSave(
+  startPoint: Point,
+  lines: Line[],
+  settings: Settings,
+  sequence: SequenceItem[],
+  shapes: Shape[],
+  targetPath: string | undefined,
+) {
+  const electronAPI = getElectronAPI();
+  try {
+    // Basic validation
+    if (!sequence || sequence.length === 0) {
+      // Auto-generate sequence if missing
+      sequence = lines.map((l) => ({ kind: "path", lineId: l.id! }));
     }
-  } else {
-    saveFileAs();
+
+    // Ensure all items have IDs
+    lines.forEach((l) => {
+      if (!l.id) l.id = makeId();
+    });
+    sequence.forEach((s) => {
+      if (s.kind === "wait" && !s.id) s.id = makeId();
+    });
+
+    // --- PREPARE FOR SAVE: Handle Linked Names ---
+    // Deep copy lines and sequence to modify names for saving without affecting the UI
+    const linesToSave = structuredClone(lines);
+    const sequenceToSave = structuredClone(sequence);
+
+    // Track usage of names to detect duplicates
+    const nameGroups = new Map<string, Array<Line | any>>(); // any for SequenceWaitItem
+
+    // Helper to collect items
+    const collectItems = (items: Array<Line | any>, type: "line" | "wait") => {
+      items.forEach((item) => {
+        const name = item.name?.trim();
+        if (name) {
+          if (!nameGroups.has(name)) {
+            nameGroups.set(name, []);
+          }
+          nameGroups.get(name)!.push(item);
+        }
+      });
+    };
+
+    collectItems(linesToSave, "line");
+    const waits = sequenceToSave.filter((s) => s.kind === "wait");
+    collectItems(waits, "wait");
+
+    // Process groups
+    nameGroups.forEach((group, name) => {
+      if (group.length > 1) {
+        // We have duplicates. Assign unique names and store original in metadata.
+        group.forEach((item, index) => {
+          item._linkedName = name;
+          item.name = `${name} (${index + 1})`;
+        });
+      }
+    });
+
+    // Create the project data structure
+    const projectData = {
+      version: 1,
+      startPoint,
+      lines: linesToSave,
+      settings,
+      sequence: sequenceToSave,
+      shapes,
+    };
+
+    const jsonString = JSON.stringify(projectData, null, 2);
+
+    if (electronAPI && electronAPI.saveFile) {
+      // Use the new saveFile API if available (mocked in tests)
+      const result = await electronAPI.saveFile(jsonString, targetPath);
+      if (result.success) {
+        projectMetadataStore.update((m) => ({
+          ...m,
+          filepath: result.filepath,
+        }));
+        currentFilePath.set(result.filepath);
+        addToRecentFiles(result.filepath, settings);
+        isUnsaved.set(false);
+        notification.set({
+          message: `Project saved to ${result.filepath}`,
+          type: "success",
+          timeout: 3000,
+        });
+        return true;
+      } else {
+        if (result.error !== "canceled") {
+          notification.set({
+            message: `Failed to save: ${result.error}`,
+            type: "error",
+            timeout: 5000,
+          });
+        }
+        return false;
+      }
+    } else if (electronAPI && electronAPI.writeFile) {
+      // Fallback to legacy writeFile if saveFile not present
+      if (!targetPath) {
+        // We need a path. If not provided (Save As), we might need dialog.
+        if (electronAPI.showSaveDialog) {
+          const filePath = await electronAPI.showSaveDialog({
+            title: "Save Project",
+            defaultPath: "trajectory.pp",
+            filters: [{ name: "Pedro Path", extensions: ["pp"] }],
+          });
+          if (!filePath) return false;
+          targetPath = filePath;
+        } else {
+          return false;
+        }
+      }
+
+      await electronAPI.writeFile(targetPath, jsonString);
+      projectMetadataStore.update((m) => ({ ...m, filepath: targetPath! }));
+      currentFilePath.set(targetPath);
+      addToRecentFiles(targetPath, settings);
+      isUnsaved.set(false);
+      notification.set({
+        message: `Project saved to ${targetPath}`,
+        type: "success",
+        timeout: 3000,
+      });
+      return true;
+    }
+
+    return false;
+  } catch (err: any) {
+    console.error("Save error:", err);
+    notification.set({
+      message: `Save failed: ${err.message}`,
+      type: "error",
+    });
+    return false;
   }
+}
+
+// Used by UI
+export async function saveProject(
+  startPoint?: Point,
+  lines?: Line[],
+  settings?: Settings,
+  sequence?: SequenceItem[],
+  shapes?: Shape[],
+  saveAs: boolean = false,
+) {
+  const electronAPI = getElectronAPI();
+  // If arguments are missing, grab from stores (UI behavior)
+  const sp = startPoint || get(startPointStore);
+  const ln = lines || get(linesStore);
+  const st = settings || get(settingsStore);
+  const seq = sequence || get(sequenceStore);
+  const sh = shapes || get(shapesStore);
+
+  let targetPath = get(currentFilePath);
+  if (saveAs || !targetPath) {
+    targetPath = undefined;
+  }
+
+  if (!electronAPI) {
+    saveFileAs();
+    return true;
+  }
+
+  return await performSave(sp, ln, st, seq, sh, targetPath);
 }
 
 export function saveFileAs() {
@@ -118,7 +307,9 @@ export function saveFileAs() {
     `${filename}.pp`,
   );
 }
+
 export async function exportAsPP() {
+  const electronAPI = getElectronAPI();
   const filePath = get(currentFilePath);
   // Extract just the filename without the path and .pp extension
   let filename = "trajectory";
@@ -177,7 +368,9 @@ export async function exportAsPP() {
     defaultName,
   );
 }
+
 export async function handleExternalFileOpen(filePath: string) {
+  const electronAPI = getElectronAPI();
   if (!electronAPI || !electronAPI.readFile) return;
 
   try {
@@ -198,11 +391,6 @@ export async function handleExternalFileOpen(filePath: string) {
     }
 
     // 3. Check if file is already in the working directory
-    // Normalize paths to compare
-    // Note: This is simple string check, might need path.resolve in main process if we want robust cross-platform path equality,
-    // but typically Electron paths are absolute.
-    // We check if filePath starts with savedDir.
-    // Handle potential slash mismatch (Windows vs POSIX)
     const normFilePath = filePath.replace(/\\/g, "/").toLowerCase();
     let normSavedDir = savedDir.replace(/\\/g, "/").toLowerCase();
     if (!normSavedDir.endsWith("/")) normSavedDir += "/";
@@ -219,11 +407,6 @@ export async function handleExternalFileOpen(filePath: string) {
           `The file "${fileName}" is not in your configured AutoPaths directory.\nWould you like to copy it there?`,
         )
       ) {
-        // Use savedDir (original case) for constructing the destination path
-        // Be careful with slashes. savedDir might not end with slash.
-        // Normalized savedDir replaced backslashes with slashes. We should probably stick to standard slash for destPath or use path.join if available (not available in browser context directly, but we can assume / for simple concatenation or just use what we have).
-        // The savedDir comes from electron, which usually gives absolute path with OS specific separators or normalized.
-        // Let's just append safely.
         const separator = savedDir.includes("\\") ? "\\" : "/";
         const cleanSavedDir = savedDir.endsWith(separator)
           ? savedDir.slice(0, -1)
@@ -276,6 +459,7 @@ export async function handleExternalFileOpen(filePath: string) {
 }
 
 export async function loadFile(evt: Event) {
+  const electronAPI = getElectronAPI();
   const elem = evt.target as HTMLInputElement;
   const file = elem.files?.[0];
   if (!file) return;

@@ -174,7 +174,7 @@ export interface CollisionMarker {
   y: number;
   time: number;
   segmentIndex?: number;
-  type?: "obstacle" | "boundary";
+  type?: "obstacle" | "boundary" | "zero-length";
 }
 
 export interface Notification {

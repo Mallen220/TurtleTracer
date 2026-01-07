@@ -1,8 +1,14 @@
-
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
 import { mirrorPathData, reversePathData } from "../../utils/pathTransform";
-import type { Point, Line, Shape, SequenceItem, ControlPoint } from "../../types";
+import type {
+  Point,
+  Line,
+  Shape,
+  SequenceItem,
+  ControlPoint,
+} from "../../types";
 
 // Generators
 const pointGenerator = fc.record({
@@ -24,8 +30,12 @@ const lineGenerator = fc.record({
   id: fc.uuid(),
   endPoint: pointGenerator,
   controlPoints: fc.array(controlPointGenerator, { maxLength: 5 }),
-  waitBefore: fc.option(fc.double({ min: 0, max: 100, noNaN: true }), { nil: undefined }),
-  waitAfter: fc.option(fc.double({ min: 0, max: 100, noNaN: true }), { nil: undefined }),
+  waitBefore: fc.option(fc.double({ min: 0, max: 100, noNaN: true }), {
+    nil: undefined,
+  }),
+  waitAfter: fc.option(fc.double({ min: 0, max: 100, noNaN: true }), {
+    nil: undefined,
+  }),
   waitBeforeName: fc.option(fc.string(), { nil: undefined }),
   waitAfterName: fc.option(fc.string(), { nil: undefined }),
 }) as unknown as fc.Arbitrary<Line>;
@@ -33,7 +43,9 @@ const lineGenerator = fc.record({
 const shapeGenerator = fc.record({
   id: fc.uuid(),
   type: fc.constant("polygon"),
-  vertices: fc.array(fc.record({ x: fc.double({noNaN: true}), y: fc.double({noNaN: true}) })),
+  vertices: fc.array(
+    fc.record({ x: fc.double({ noNaN: true }), y: fc.double({ noNaN: true }) }),
+  ),
   color: fc.string(),
   name: fc.string(),
 }) as unknown as fc.Arbitrary<Shape>;
@@ -42,7 +54,13 @@ const pathDataGenerator = fc.record({
   startPoint: pointGenerator,
   lines: fc.array(lineGenerator, { maxLength: 10 }),
   shapes: fc.array(shapeGenerator, { maxLength: 5 }),
-  sequence: fc.option(fc.array(fc.record({ type: fc.constantFrom("path", "wait"), id: fc.string() }), { maxLength: 20 }), { nil: undefined }),
+  sequence: fc.option(
+    fc.array(
+      fc.record({ type: fc.constantFrom("path", "wait"), id: fc.string() }),
+      { maxLength: 20 },
+    ),
+    { nil: undefined },
+  ),
 });
 
 describe("pathTransform fuzz tests", () => {
@@ -65,10 +83,12 @@ describe("pathTransform fuzz tests", () => {
         expect(doubleMirrored.startPoint.y).toBeCloseTo(original.startPoint.y);
 
         if (original.lines.length > 0) {
-             expect(doubleMirrored.lines.length).toBe(original.lines.length);
-             expect(doubleMirrored.lines[0].endPoint.x).toBeCloseTo(original.lines[0].endPoint.x);
+          expect(doubleMirrored.lines.length).toBe(original.lines.length);
+          expect(doubleMirrored.lines[0].endPoint.x).toBeCloseTo(
+            original.lines[0].endPoint.x,
+          );
         }
-      })
+      }),
     );
   });
 
@@ -89,10 +109,12 @@ describe("pathTransform fuzz tests", () => {
         expect(doubleReversed.startPoint.x).toBeCloseTo(original.startPoint.x);
 
         if (original.lines.length > 0) {
-             expect(doubleReversed.lines[0].id).toBe(original.lines[0].id);
-             expect(doubleReversed.lines[0].endPoint.x).toBeCloseTo(original.lines[0].endPoint.x);
+          expect(doubleReversed.lines[0].id).toBe(original.lines[0].id);
+          expect(doubleReversed.lines[0].endPoint.x).toBeCloseTo(
+            original.lines[0].endPoint.x,
+          );
         }
-      })
+      }),
     );
   });
 });

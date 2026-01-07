@@ -167,6 +167,42 @@ describe("codeExporter", () => {
         'NamedCommands.registerCommand("waitMarker", yourwaitMarkerCommand)',
       );
     });
+
+    it("generateJavaCode: handles duplicate path names correctly", async () => {
+      const lines: Line[] = [
+        {
+          id: "line1",
+          endPoint: { x: 10, y: 10, heading: "constant", degrees: 45 },
+          controlPoints: [],
+          color: "#000000",
+          name: "Score",
+        },
+        {
+          id: "line2",
+          endPoint: { x: 20, y: 20, heading: "constant", degrees: 90 },
+          controlPoints: [{ x: 15, y: 15 }],
+          color: "#000000",
+          name: "Score", // Shared name
+        },
+        {
+          id: "line3",
+          endPoint: { x: 30, y: 30, heading: "constant", degrees: 135 },
+          controlPoints: [],
+          color: "#000000",
+          name: "Park",
+        },
+      ];
+      const code = await generateJavaCode(startPoint, lines, false);
+
+      // Check that we have unique variables
+      expect(code).toMatch(/public PathChain Score;/);
+      expect(code).toMatch(/public PathChain Score_1;/);
+      expect(code).toMatch(/public PathChain Park;/);
+
+      // Check initialization - check for assignment
+      expect(code).toMatch(/Score = follower/);
+      expect(code).toMatch(/Score_1 = follower/);
+    });
   });
 
   describe("generateSequentialCommandCode", () => {
@@ -272,6 +308,106 @@ describe("codeExporter", () => {
       expect(code).toContain('progressTracker.executeEvent("midWait")');
       // 2000ms * 0.5 = 1000
       expect(code).toContain("new WaitCommand(1000)");
+    });
+
+    it("generateSequentialCommandCode: handles shared poses and naming", async () => {
+      const linkedLines: Line[] = [
+        {
+          id: "l1",
+          endPoint: { x: 10, y: 10, heading: "constant", degrees: 0 },
+          controlPoints: [],
+          color: "red",
+          name: "A",
+        },
+        {
+          id: "l2",
+          endPoint: { x: 20, y: 20, heading: "constant", degrees: 0 },
+          controlPoints: [{ x: 15, y: 15 }],
+          color: "red",
+          name: "B",
+        },
+        {
+          id: "l3",
+          endPoint: { x: 10, y: 10, heading: "constant", degrees: 0 },
+          controlPoints: [{ x: 25, y: 15 }],
+          color: "red",
+          name: "A",
+        },
+      ];
+
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        linkedLines,
+        "TestPath.pp",
+      );
+
+      // 1. Shared Pose Declarations
+      // "A" should be declared once
+      const matchesA = code.match(/private Pose A;/g);
+      expect(matchesA?.length).toBe(1);
+
+      // "B" should be declared once
+      const matchesB = code.match(/private Pose B;/g);
+      expect(matchesB?.length).toBe(1);
+
+      // Initialization
+      const initA = code.match(/A = pp.get\("A"\);/g);
+      expect(initA?.length).toBe(1);
+
+      // 3. Path Naming
+      expect(code).toMatch(/private PathChain startPointTOA;/);
+      expect(code).toMatch(/private PathChain ATOB;/);
+      expect(code).toMatch(/private PathChain BTOA;/);
+
+      // Test duplicate path naming
+      const loopLines: Line[] = [
+        {
+          id: "1",
+          endPoint: { x: 10, y: 10 },
+          controlPoints: [],
+          color: "r",
+          name: "A",
+          heading: "constant",
+          degrees: 0,
+        } as any,
+        {
+          id: "2",
+          endPoint: { x: 20, y: 20 },
+          controlPoints: [],
+          color: "r",
+          name: "B",
+          heading: "constant",
+          degrees: 0,
+        } as any,
+        {
+          id: "3",
+          endPoint: { x: 10, y: 10 },
+          controlPoints: [],
+          color: "r",
+          name: "A",
+          heading: "constant",
+          degrees: 0,
+        } as any,
+        {
+          id: "4",
+          endPoint: { x: 20, y: 20 },
+          controlPoints: [],
+          color: "r",
+          name: "B",
+          heading: "constant",
+          degrees: 0,
+        } as any,
+      ];
+
+      const loopCode = await generateSequentialCommandCode(
+        startPoint,
+        loopLines,
+        "TestPath.pp",
+      );
+      expect(loopCode).toMatch(/private PathChain ATOB;/);
+      expect(loopCode).toMatch(/private PathChain ATOB_1;/);
+      expect(loopCode).toMatch(/ATOB = follower/);
+      expect(loopCode).toMatch(/ATOB_1 = follower/);
     });
   });
 });

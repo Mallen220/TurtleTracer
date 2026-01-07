@@ -25,6 +25,14 @@
     generateName,
     renumberDefaultPathNames,
   } from "../../utils/nameGenerator";
+  import {
+    updateLinkedWaypoints,
+    handleWaypointRename,
+    handleWaitRename,
+    updateLinkedWaits,
+    isLineLinked,
+    isWaitLinked,
+  } from "../../utils/pointLinking";
   import { getRandomColor } from "../../utils/draw";
 
   export let startPoint: Point;
@@ -106,8 +114,18 @@
     point: Point | ControlPoint,
     field: "x" | "y",
     value: number,
+    lineId?: string,
   ) {
     point[field] = value;
+
+    // Check for linked endpoint updates
+    if (lineId) {
+      const line = lines.find((l) => l.id === lineId);
+      if (line && line.endPoint === point) {
+        lines = updateLinkedWaypoints(lines, lineId);
+      }
+    }
+
     // Trigger reactivity for lines/startPoint
     lines = lines;
     startPoint = startPoint;
@@ -118,27 +136,23 @@
     e: Event,
     point: Point | ControlPoint,
     field: "x" | "y",
+    lineId?: string,
   ) {
     const input = e.target as HTMLInputElement;
     const val = parseFloat(input.value);
     if (!isNaN(val)) {
-      updatePoint(point, field, val);
+      updatePoint(point, field, val, lineId);
     }
   }
 
   function updateLineName(lineId: string, name: string) {
-    const line = lines.find((l) => l.id === lineId);
-    if (line) {
-      line.name = name;
-      lines = lines; // Trigger reactivity
-      recordChange();
-    }
+    lines = handleWaypointRename(lines, lineId, name);
+    recordChange();
   }
 
   function updateWaitName(item: SequenceItem, name: string) {
     if (item.kind === "wait") {
-      item.name = name;
-      sequence = sequence; // Trigger reactivity
+      sequence = handleWaitRename(sequence, item.id, name);
       recordChange();
     }
   }
@@ -155,7 +169,7 @@
   function updateWaitDuration(item: SequenceItem, duration: number) {
     if (item.kind === "wait") {
       item.durationMs = duration;
-      sequence = sequence; // Trigger reactivity
+      sequence = updateLinkedWaits(sequence, item.id);
       recordChange();
     }
   }
@@ -705,7 +719,7 @@
     const newWait: SequenceItem = {
       kind: "wait",
       id: makeId(),
-      name: "Wait",
+      name: "",
       durationMs: 1000,
       locked: false,
     };
@@ -1099,16 +1113,37 @@
                       disabled={line.locked}
                       title="Path Color"
                     />
-                    <input
-                      class="w-full max-w-[140px] px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
-                      value={line.name}
-                      on:input={(e) =>
-                        // @ts-ignore
-                        updateLineName(item.lineId, e.target.value)}
-                      disabled={line.locked}
-                      placeholder="Path {lineIdx + 1}"
-                      aria-label="Path Name"
-                    />
+                    <div class="relative flex-1">
+                      <input
+                        class="w-full max-w-[140px] px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs pr-6"
+                        value={line.name}
+                        on:input={(e) =>
+                          // @ts-ignore
+                          updateLineName(item.lineId, e.target.value)}
+                        disabled={line.locked}
+                        placeholder="Path {lineIdx + 1}"
+                        aria-label="Path Name"
+                      />
+                      {#if line.id && isLineLinked(lines, line.id)}
+                        <div
+                          class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500"
+                          title="Linked by name. Shares position (X/Y). Control points & events are independent."
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            class="w-3.5 h-3.5"
+                          >
+                            <path
+                              fill-rule="evenodd"
+                              d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
+                              clip-rule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                      {/if}
+                    </div>
                   </div>
                 </td>
                 <td class="px-3 py-2">
@@ -1119,7 +1154,8 @@
                       step={stepSize}
                       value={line.endPoint.x}
                       aria-label="{line.name || `Path ${lineIdx + 1}`} X"
-                      on:input={(e) => handleInput(e, line.endPoint, "x")}
+                      on:input={(e) =>
+                        handleInput(e, line.endPoint, "x", line.id)}
                       disabled={line.locked}
                     />
                     <span class="text-xs text-neutral-500"
@@ -1134,7 +1170,8 @@
                     step={stepSize}
                     value={line.endPoint.y}
                     aria-label="{line.name || `Path ${lineIdx + 1}`} Y"
-                    on:input={(e) => handleInput(e, line.endPoint, "y")}
+                    on:input={(e) =>
+                      handleInput(e, line.endPoint, "y", line.id)}
                     disabled={line.locked}
                   />
                 </td>
@@ -1308,16 +1345,37 @@
                 </svg>
               </td>
               <td class="px-3 py-2">
-                <input
-                  class="w-full max-w-[160px] px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-amber-500 focus:outline-none text-xs"
-                  value={item.name}
-                  on:input={(e) =>
-                    // @ts-ignore
-                    updateWaitName(item, e.target.value)}
-                  disabled={item.locked}
-                  placeholder="Wait Name"
-                  aria-label="Wait Name"
-                />
+                <div class="relative w-full max-w-[160px]">
+                  <input
+                    class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-amber-500 focus:outline-none text-xs pr-6"
+                    value={item.name}
+                    on:input={(e) =>
+                      // @ts-ignore
+                      updateWaitName(item, e.target.value)}
+                    disabled={item.locked}
+                    placeholder="Wait Name"
+                    aria-label="Wait Name"
+                  />
+                  {#if isWaitLinked(sequence, item.id)}
+                    <div
+                      class="absolute right-1 top-1/2 -translate-y-1/2 text-amber-500"
+                      title="Linked by name. Shares duration."
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        class="w-3.5 h-3.5"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  {/if}
+                </div>
               </td>
               <td class="px-3 py-2">
                 <input

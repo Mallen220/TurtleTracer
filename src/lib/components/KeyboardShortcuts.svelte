@@ -152,7 +152,7 @@
     const wait: SequenceItem = {
       kind: "wait",
       id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
-      name: "Wait",
+      name: "",
       durationMs: 1000,
       locked: false,
     };

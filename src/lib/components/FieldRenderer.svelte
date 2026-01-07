@@ -42,6 +42,7 @@
     loadRobotImage,
     updateRobotImageDisplay,
   } from "../../utils";
+  import { updateLinkedWaypoints } from "../../utils/pointLinking";
   import type {
     Line,
     Point,
@@ -751,13 +752,17 @@
       markers.forEach((marker, idx) => {
         const group = new Two.Group();
         const isBoundary = marker.type === "boundary";
+        const isZeroLength = marker.type === "zero-length";
 
         const circle = new Two.Circle(x(marker.x), y(marker.y), uiLength(2));
         if (isBoundary) {
-          circle.fill = "rgba(249, 115, 22, 0.5)"; // Orange-500 with opacity
+          circle.fill = "rgba(249, 115, 22, 0.5)"; // Orange-500
           circle.stroke = "#f97316";
+        } else if (isZeroLength) {
+          circle.fill = "rgba(217, 70, 239, 0.5)"; // Fuchsia-500 (Magenta-ish)
+          circle.stroke = "#d946ef";
         } else {
-          circle.fill = "rgba(239, 68, 68, 0.5)"; // Red-500 with opacity
+          circle.fill = "rgba(239, 68, 68, 0.5)"; // Red-500
           circle.stroke = "#ef4444";
         }
         circle.linewidth = uiLength(0.5);
@@ -781,7 +786,21 @@
         l2.stroke = "#ffffff";
         l2.linewidth = uiLength(0.5);
 
-        group.add(circle, l1, l2);
+        // Add a larger transparent circle for visibility/glow
+        const glow = new Two.Circle(x(marker.x), y(marker.y), uiLength(6));
+        if (isBoundary) {
+          glow.fill = "rgba(249, 115, 22, 0.3)";
+          glow.stroke = "rgba(249, 115, 22, 0.5)";
+        } else if (isZeroLength) {
+          glow.fill = "rgba(217, 70, 239, 0.3)";
+          glow.stroke = "rgba(217, 70, 239, 0.5)";
+        } else {
+          glow.fill = "rgba(239, 68, 68, 0.3)";
+          glow.stroke = "rgba(239, 68, 68, 0.5)";
+        }
+        glow.linewidth = uiLength(0.5);
+
+        group.add(glow, circle, l1, l2);
         elems.push(group);
       });
     }
@@ -972,6 +991,16 @@
             if (point === 0 && lines[line].endPoint) {
               lines[line].endPoint.x = inchX;
               lines[line].endPoint.y = inchY;
+              if (lines[line].id) {
+                const updated = updateLinkedWaypoints(
+                  lines,
+                  lines[line].id as string,
+                );
+                // Only update if changes occurred to avoid unnecessary store updates
+                if (updated !== lines) {
+                  lines = updated;
+                }
+              }
             } else {
               if (!lines[line]?.locked) {
                 lines[line].controlPoints[point - 1].x = inchX;

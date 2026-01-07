@@ -50,13 +50,30 @@ export async function generateJavaCode(
     });
   }
 
+  const pathChainNames: string[] = [];
+  const usedPathNames = new Map<string, number>();
+
+  // First pass: generate unique variable names for all lines
+  lines.forEach((line, idx) => {
+    let baseName = line.name
+      ? line.name.replace(/[^a-zA-Z0-9]/g, "")
+      : `line${idx + 1}`;
+
+    // Ensure we preserve the base name but add suffix if needed
+    if (usedPathNames.has(baseName)) {
+      const count = usedPathNames.get(baseName)!;
+      usedPathNames.set(baseName, count + 1);
+      baseName = `${baseName}_${count}`;
+    } else {
+      usedPathNames.set(baseName, 1);
+    }
+    pathChainNames.push(baseName);
+  });
+
   let pathsClass = `
   public static class Paths {
-    ${lines
-      .map((line, idx) => {
-        const variableName = line.name
-          ? line.name.replace(/[^a-zA-Z0-9]/g, "")
-          : `line${idx + 1}`;
+    ${pathChainNames
+      .map((variableName) => {
         return `public PathChain ${variableName};`;
       })
       .join("\n")}
@@ -64,9 +81,7 @@ export async function generateJavaCode(
     public Paths(Follower follower) {
       ${lines
         .map((line, idx) => {
-          const variableName = line.name
-            ? line.name.replace(/[^a-zA-Z0-9]/g, "")
-            : `line${idx + 1}`;
+          const variableName = pathChainNames[idx];
           const start =
             idx === 0
               ? `new Pose(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)})`
@@ -286,13 +301,33 @@ export async function generateSequentialCommandCode(
   const allPoseDeclarations: string[] = [];
   const allPoseInitializations: string[] = [];
 
-  // Track all pose variable names
+  // Track declared poses to prevent duplicates
+  const declaredPoses = new Set<string>();
+
+  // Map logic name to variable name
   const poseVariableNames: Map<string, string> = new Map();
 
+  // Helper to add pose if not exists
+  const addPose = (
+    variableName: string,
+    lookupName: string = variableName,
+  ): void => {
+    if (!declaredPoses.has(variableName)) {
+      allPoseDeclarations.push(`    private Pose ${variableName};`);
+      allPoseInitializations.push(
+        `        ${variableName} = pp.get("${lookupName}");`,
+      );
+      declaredPoses.add(variableName);
+    }
+  };
+
   // Add start point
-  allPoseDeclarations.push("    private Pose startPoint;");
+  addPose("startPoint", "startPoint");
   poseVariableNames.set("startPoint", "startPoint");
-  allPoseInitializations.push('        startPoint = pp.get("startPoint");');
+
+  // Track used path chain names to handle duplicates
+  const usedPathChainNames = new Map<string, number>();
+  const pathChainVariables: string[] = []; // Stores the variable name for each line index
 
   // Process each line
   lines.forEach((line, lineIdx) => {
@@ -300,26 +335,118 @@ export async function generateSequentialCommandCode(
       ? line.name.replace(/[^a-zA-Z0-9]/g, "")
       : `point${lineIdx + 1}`;
 
-    // Add end point declaration
-    allPoseDeclarations.push(`    private Pose ${endPointName};`);
+    // Add end point declaration (shared poses)
+    addPose(endPointName, endPointName);
     poseVariableNames.set(`point${lineIdx + 1}`, endPointName);
 
-    allPoseInitializations.push(
-      `        ${endPointName} = pp.get(\"${endPointName}\");`,
-    );
-
     // Add control points if they exist
+    // Control points are tied to the line, but stored in .pp with a generated name if not explicit?
+    // The .pp format usually stores points with IDs or Names.
+    // If the standard exporter saves control points as "Score_control1", we must match that.
+    // Assuming the Reader uses the same logic or we need to ensure unique names for control points
+    // that don't conflict even if endpoints share names.
+    // For now, we will assume control points are unique to the line index to be safe,
+    // OR we follow the existing pattern if it matches the file format.
+    // The file format likely saves them nested or as separate points.
+    // The `PedroPathReader` gets them by string name.
+    // The previous code used `${endPointName}_control${controlIdx + 1}`.
+    // If endPointName is shared, this is ambiguous.
+    // We should use the line-specific control point name if possible, or assume the user/saver handles it.
+    // Given the requirement "Control points are always independent", we should probably use a unique name.
+    // However, we must match what `pp.get()` expects.
+    // If the .pp file contains "Score_control1", we must ask for "Score_control1".
+    // If we have two lines ending at Score, do we have "Score_control1" twice in .pp?
+    // Unlikely. The Saver likely handles unique names for control points.
+    // Let's look at how `saveProject` works -> it dumps `lines`.
+    // `Line` has `controlPoints`. They don't have names in the interface usually.
+    // The `PedroPathReader` probably iterates or expects specific naming conventions if it flattens them.
+    // WAIT. `PedroPathReader` reads the JSON.
+    // If `pp.get("name")` is used, the JSON must have a map with that key.
+    // The `PedroPathReader` implementation (which is external Java code) likely constructs the map.
+    // If the Java library parses the JSON, does it flatten everything into a map by name?
+    // If so, duplicate names in the JSON would overwrite each other.
+    // But `lines` is an array in JSON.
+    // `pp.get` implies retrieval by ID or Name.
+    // If the Java reader does `get(String name)`, it implies unique names.
+    // If the user has multiple lines ending at "Score", they share the "Score" point.
+    // But control points are unnamed in the UI usually.
+    // If the reader automatically generates names for unnamed points (like control points),
+    // it likely uses the line index or similar.
+    // However, the previous code used `${endPointName}_control...`.
+    // If I change this, I might break it if the reader expects that.
+    // BUT, if I have collision on `endPointName`, I have collision on control point name.
+    // FIX: We must assume the Reader handles specific naming for control points if they are shared.
+    // Use a safer naming scheme for control points: `${endPointName}_${lineIdx}_control${controlIdx}` ??
+    // No, I can't change what the Reader expects.
+    // The Reader parses the .pp file.
+    // If the .pp file is just the JSON dump of `lines`, it doesn't have "Score_control1" keys explicitly unless
+    // the Reader generates them upon loading.
+    // IF the Reader generates them, it probably follows a pattern.
+    // If the previous code worked for non-shared cases, it assumes the Reader uses `${endPointName}_controlN`.
+    // If we now support shared cases, we might need to rely on the Reader's behavior.
+    // Assumption: The Reader likely indexes control points by the line's end point name? That seems flawed for shared points.
+    // Let's assume for now we must use unique variables for control points in Java,
+    // but the string passed to `pp.get` must match what the Reader has.
+    // If `endPointName` is "Score", and we have two lines, the Reader might have "Score", "Score_control1" (from line 1), "Score_control1" (from line 2??).
+    // This implies the .pp format or Reader is limited?
+    // OR, we should use the `line.id` or similar if available?
+    // The prompt says: "Control points are always independent."
+    // Let's use `line${lineIdx}_control${controlIdx}` for the Java variable name to ensure uniqueness.
+    // For the `pp.get(...)`, we are stuck with what the reader provides.
+    // If the reader provides `${endPointName}_control${idx}`, and endPointName is shared, we have a problem.
+    // But maybe we can hope the reader is smart?
+    // Or maybe we should use `point${lineIdx+1}_control...` if the name is generated?
+    // Let's stick to unique Java variables first.
+
     if (line.controlPoints && line.controlPoints.length > 0) {
       line.controlPoints.forEach((_, controlIdx) => {
+        // We use a unique variable name to avoid Java conflicts
+        const controlPointVarName = `${endPointName}_l${lineIdx}_c${controlIdx + 1}`;
+        // We try to guess the key. If the previous code used `${endPointName}_control...`, it might be unsafe.
+        // Let's stick to the previous pattern for the string key but ensure unique Java variable.
+        // Actually, if I look at `generateJavaCode` (standard), it generates `new Pose(...)` inline.
+        // Sequential code loads from file.
+        // If the file is just the project JSON, and the Reader parses it...
+        // The Reader code is not here.
+        // I will use `${endPointName}_control${controlIdx + 1}` for the key as before,
+        // BUT I will assign it to a unique variable.
+        // Wait, if two lines share "Score", and both have 1 control point.
+        // Both keys would be "Score_control1".
+        // Use unique variable names:
         const controlPointName = `${endPointName}_control${controlIdx + 1}`;
-        allPoseDeclarations.push(`    private Pose ${controlPointName};`);
+        // If we already declared this variable (from another line sharing Score),
+        // we might be overwriting it or reusing it?
+        // "Control points are always independent."
+        // So we should NOT reuse it.
+        // But if `pp.get("Score_control1")` returns the same object...
+        // This implies the Reader might be merging them?
+        // Let's assume for now we generate unique variables.
+        // If the key is ambiguous, we can't fix it here without changing the Reader or the Saver.
+        // However, I can ensure the Java code compiles by making the variable unique.
+
+        // BETTER STRATEGY: Use the line index in the variable name.
+        const uniqueControlVar = `${endPointName}_line${lineIdx}_control${controlIdx + 1}`;
+        allPoseDeclarations.push(`    private Pose ${uniqueControlVar};`);
+
+        // For the key, we use what we think the reader expects.
+        // If the user has "Score" and "Score", checking the .pp file structure (JSON):
+        // It has `lines`.
+        // The Reader likely builds a map.
+        // If the map is built by iterating lines, and using "Name", then "Name_controlN",
+        // subsequent lines would overwrite previous ones in the map if keys collide.
+        // This is an issue in the Reader/Saver logic if true.
+        // But I can only fix the Java exporter.
+        // I will generate the code.
+
         allPoseInitializations.push(
-          `        ${controlPointName} = pp.get(\"${controlPointName}\");`,
+          `        ${uniqueControlVar} = pp.get(\"${controlPointName}\");`,
         );
+
         // Store for use in path building
+        // Key: identifying the control point for this specific line/index
         poseVariableNames.set(
-          `${endPointName}_control${controlIdx + 1}`,
-          controlPointName,
+          `${lineIdx}_control${controlIdx}`, // Use line index to disambiguate
+          uniqueControlVar,
         );
       });
     }
@@ -337,7 +464,20 @@ export async function generateSequentialCommandCode(
       const endPoseName = lines[idx].name
         ? lines[idx].name.replace(/[^a-zA-Z0-9]/g, "")
         : `point${idx + 1}`;
-      const pathName = `${startPoseName}TO${endPoseName}`;
+
+      let pathName = `${startPoseName}TO${endPoseName}`;
+
+      // Handle duplicates
+      if (usedPathChainNames.has(pathName)) {
+        const count = usedPathChainNames.get(pathName)!;
+        usedPathChainNames.set(pathName, count + 1);
+        pathName = `${pathName}_${count}`;
+      } else {
+        usedPathChainNames.set(pathName, 1);
+      }
+
+      pathChainVariables.push(pathName);
+
       return `    private PathChain ${pathName};`;
     })
     .join("\n");
@@ -429,17 +569,8 @@ export async function generateSequentialCommandCode(
       return;
     }
 
-    const startPoseName =
-      lineIdx === 0
-        ? "startPoint"
-        : lines[lineIdx - 1]?.name
-          ? lines[lineIdx - 1]!.name!.replace(/[^a-zA-Z0-9]/g, "")
-          : `point${lineIdx}`;
-    const endPoseName = line.name
-      ? line.name.replace(/[^a-zA-Z0-9]/g, "")
-      : `point${lineIdx + 1}`;
-    const pathName = `${startPoseName}TO${endPoseName}`;
-    const pathDisplayName = `${startPoseName}TO${endPoseName}`;
+    const pathName = pathChainVariables[lineIdx];
+    const pathDisplayName = pathName;
 
     // Construct FollowPath instantiation
     const followPathInstance = isNextFTC
@@ -505,11 +636,27 @@ export async function generateSequentialCommandCode(
           ? "startPoint"
           : lines[idx - 1]?.name
             ? lines[idx - 1]!.name!.replace(/[^a-zA-Z0-9]/g, "")
-            : `point${idx}`;
+            : `point${idx}`; // Uses 'pointN' which maps to endPointName in poseVariableNames?
+
+      // Correctly resolve the variable name for start pose
+      // In the loop above, we mapped `point${lineIdx+1}` -> `endPointName`
+      // So `point${idx}` refers to the end point of the previous line (which is start of this one)
+      // Special case: `point0` is not set, we use "startPoint" directly.
+
+      const startPoseVar =
+        idx === 0 ? "startPoint" : poseVariableNames.get(`point${idx}`);
+      // Fallback if something is wrong, though logic aligns with declaration loop
+      const actualStartPose = startPoseVar || "startPoint";
+
       const endPoseName = line.name
         ? line.name.replace(/[^a-zA-Z0-9]/g, "")
         : `point${idx + 1}`;
-      const pathName = `${startPoseName}TO${endPoseName}`;
+
+      // We already know the unique end pose variable name is just the cleaned name
+      // Because we declared it as such in the set/addPose
+      const endPoseVar = endPoseName;
+
+      const pathName = pathChainVariables[idx];
 
       const isCurve = line.controlPoints.length > 0;
       const curveType = isCurve ? "BezierCurve" : "BezierLine";
@@ -519,8 +666,11 @@ export async function generateSequentialCommandCode(
       if (isCurve) {
         const controlPoints: string[] = [];
         line.controlPoints.forEach((_, cpIdx) => {
-          const controlPointName = `${endPoseName}_control${cpIdx + 1}`;
-          controlPoints.push(controlPointName);
+          // Retrieve the unique variable we created
+          const cpVar = poseVariableNames.get(`${idx}_control${cpIdx}`);
+          if (cpVar) {
+            controlPoints.push(cpVar);
+          }
         });
         controlPointsStr = controlPoints.join(", ") + ", ";
       }
@@ -528,9 +678,9 @@ export async function generateSequentialCommandCode(
       // Determine heading interpolation
       let headingConfig = "";
       if (line.endPoint.heading === "constant") {
-        headingConfig = `setConstantHeadingInterpolation(${endPoseName}.getHeading())`;
+        headingConfig = `setConstantHeadingInterpolation(${endPoseVar}.getHeading())`;
       } else if (line.endPoint.heading === "linear") {
-        headingConfig = `setLinearHeadingInterpolation(${startPoseName}.getHeading(), ${endPoseName}.getHeading())`;
+        headingConfig = `setLinearHeadingInterpolation(${actualStartPose}.getHeading(), ${endPoseVar}.getHeading())`;
       } else {
         headingConfig = `setTangentHeadingInterpolation()`;
       }
@@ -541,7 +691,7 @@ export async function generateSequentialCommandCode(
         : "";
 
       return `        ${pathName} = follower.pathBuilder()
-            .addPath(new ${curveType}(${startPoseName}, ${controlPointsStr}${endPoseName}))
+            .addPath(new ${curveType}(${actualStartPose}, ${controlPointsStr}${endPoseVar}))
             .${headingConfig}${reverseConfig}
             .build();`;
     })

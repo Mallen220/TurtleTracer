@@ -1,6 +1,10 @@
-
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
-import { mirrorPointHeading, mirrorPathData, reversePathData } from "../utils/pathTransform";
+import {
+  mirrorPointHeading,
+  mirrorPathData,
+  reversePathData,
+} from "../utils/pathTransform";
 import type { Point, Line, Shape, SequenceItem } from "../types";
 
 describe("pathTransform", () => {
@@ -58,9 +62,18 @@ describe("pathTransform", () => {
         startPoint: { x: 0, y: 0, heading: "tangential" } as Point,
         lines: [
           {
-            endPoint: { x: 20, y: 30, heading: "linear", startDeg: 0, endDeg: 90 } as Point,
-            controlPoints: [{ x: 5, y: 5 }, { x: 15, y: 15 }],
-            id: "line1"
+            endPoint: {
+              x: 20,
+              y: 30,
+              heading: "linear",
+              startDeg: 0,
+              endDeg: 90,
+            } as Point,
+            controlPoints: [
+              { x: 5, y: 5 },
+              { x: 15, y: 15 },
+            ],
+            id: "line1",
           } as Line,
         ],
         shapes: [],
@@ -86,11 +99,14 @@ describe("pathTransform", () => {
         shapes: [
           {
             type: "polygon",
-            vertices: [{ x: 10, y: 10 }, { x: 20, y: 20 }],
+            vertices: [
+              { x: 10, y: 10 },
+              { x: 20, y: 20 },
+            ],
             id: "shape1",
             color: "red",
-            name: "Shape"
-          } as Shape
+            name: "Shape",
+          } as Shape,
         ],
       };
       const mirrored = mirrorPathData(data);
@@ -101,7 +117,7 @@ describe("pathTransform", () => {
     });
 
     it("should handle missing optional arrays", () => {
-       const data = {
+      const data = {
         startPoint: { x: 0, y: 0, heading: "tangential" } as Point,
         lines: undefined as unknown as Line[],
         shapes: undefined as unknown as Shape[],
@@ -114,7 +130,7 @@ describe("pathTransform", () => {
 
   describe("reversePathData", () => {
     it("should return original data if no lines exist", () => {
-       const data = {
+      const data = {
         startPoint: { x: 0, y: 0, heading: "tangential" } as Point,
         lines: [],
       };
@@ -127,16 +143,24 @@ describe("pathTransform", () => {
         startPoint: { x: 0, y: 0, heading: "tangential" } as Point,
         lines: [
           {
-            endPoint: { x: 100, y: 100, heading: "constant", degrees: 90 } as Point,
-            controlPoints: [{ x: 25, y: 25 }, { x: 75, y: 75 }],
+            endPoint: {
+              x: 100,
+              y: 100,
+              heading: "constant",
+              degrees: 90,
+            } as Point,
+            controlPoints: [
+              { x: 25, y: 25 },
+              { x: 75, y: 75 },
+            ],
             id: "line1",
             waitBefore: 1,
             waitAfter: 2,
             waitBeforeName: "w1",
-            waitAfterName: "w2"
-          } as unknown as Line
+            waitAfterName: "w2",
+          } as unknown as Line,
         ],
-        sequence: [{ type: "path", id: "line1" }] as SequenceItem[]
+        sequence: [{ type: "path", id: "line1" }] as SequenceItem[],
       };
 
       const reversed = reversePathData(data);
@@ -171,19 +195,34 @@ describe("pathTransform", () => {
     it("should reverse multiple lines correctly", () => {
       // P0 -> L1 -> P1 -> L2 -> P2
       const data = {
-        startPoint: { x: 0, y: 0, heading: "tangential", id: "P0" } as unknown as Point,
+        startPoint: {
+          x: 0,
+          y: 0,
+          heading: "tangential",
+          id: "P0",
+        } as unknown as Point,
         lines: [
           {
-             id: "L1",
-             endPoint: { x: 10, y: 10, heading: "tangential", id: "P1" } as unknown as Point,
-             controlPoints: [{x:1, y:1}]
+            id: "L1",
+            endPoint: {
+              x: 10,
+              y: 10,
+              heading: "tangential",
+              id: "P1",
+            } as unknown as Point,
+            controlPoints: [{ x: 1, y: 1 }],
           } as Line,
           {
-             id: "L2",
-             endPoint: { x: 20, y: 20, heading: "tangential", id: "P2" } as unknown as Point,
-             controlPoints: [{x:2, y:2}]
-          } as Line
-        ]
+            id: "L2",
+            endPoint: {
+              x: 20,
+              y: 20,
+              heading: "tangential",
+              id: "P2",
+            } as unknown as Point,
+            controlPoints: [{ x: 2, y: 2 }],
+          } as Line,
+        ],
       };
 
       const reversed = reversePathData(data);
@@ -205,14 +244,26 @@ describe("pathTransform", () => {
 
     it("should swap linear heading start/end degrees on new start point and end points", () => {
       const data = {
-        startPoint: { x: 0, y: 0, heading: "linear", startDeg: 10, endDeg: 20 } as Point,
+        startPoint: {
+          x: 0,
+          y: 0,
+          heading: "linear",
+          startDeg: 10,
+          endDeg: 20,
+        } as Point,
         lines: [
           {
-            endPoint: { x: 100, y: 100, heading: "linear", startDeg: 30, endDeg: 40 } as Point,
+            endPoint: {
+              x: 100,
+              y: 100,
+              heading: "linear",
+              startDeg: 30,
+              endDeg: 40,
+            } as Point,
             controlPoints: [],
-            id: "line1"
-          } as Line
-        ]
+            id: "line1",
+          } as Line,
+        ],
       };
 
       const reversed = reversePathData(data);
@@ -229,25 +280,33 @@ describe("pathTransform", () => {
     });
 
     it("should handle sequence reversal", () => {
-       const data = {
-         startPoint: { x: 0, y: 0, heading: "tangential" } as Point,
-         lines: [
-           { id: "L1", endPoint: {x:1,y:1,heading:"tangential"}, controlPoints:[] } as Line,
-           { id: "L2", endPoint: {x:2,y:2,heading:"tangential"}, controlPoints:[] } as Line,
-         ],
-         sequence: [
-           { type: "path", id: "L1" },
-           { type: "wait", id: "W1" },
-           { type: "path", id: "L2" }
-         ] as SequenceItem[]
-       };
+      const data = {
+        startPoint: { x: 0, y: 0, heading: "tangential" } as Point,
+        lines: [
+          {
+            id: "L1",
+            endPoint: { x: 1, y: 1, heading: "tangential" },
+            controlPoints: [],
+          } as Line,
+          {
+            id: "L2",
+            endPoint: { x: 2, y: 2, heading: "tangential" },
+            controlPoints: [],
+          } as Line,
+        ],
+        sequence: [
+          { type: "path", id: "L1" },
+          { type: "wait", id: "W1" },
+          { type: "path", id: "L2" },
+        ] as SequenceItem[],
+      };
 
-       const reversed = reversePathData(data);
+      const reversed = reversePathData(data);
 
-       expect(reversed.sequence).toHaveLength(3);
-       expect(reversed.sequence[0].id).toBe("L2");
-       expect(reversed.sequence[1].id).toBe("W1");
-       expect(reversed.sequence[2].id).toBe("L1");
+      expect(reversed.sequence).toHaveLength(3);
+      expect(reversed.sequence[0].id).toBe("L2");
+      expect(reversed.sequence[1].id).toBe("W1");
+      expect(reversed.sequence[2].id).toBe("L1");
     });
   });
 });
