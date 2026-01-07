@@ -1,7 +1,14 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { PathOptimizer } from "./pathOptimizer";
 import { collisionMarkers, notification } from "../stores";
-import type { Line, Point, SequenceItem, Settings, Shape, CollisionMarker } from "../types";
+import type {
+  Line,
+  Point,
+  SequenceItem,
+  Settings,
+  Shape,
+  CollisionMarker,
+} from "../types";
 
 export function validatePath(
   startPoint: Point,
@@ -43,7 +50,9 @@ export function validatePath(
 
   if (markers.length > 0) {
     const boundaryCount = markers.filter((m) => m.type === "boundary").length;
-    const zeroLengthCount = markers.filter((m) => m.type === "zero-length").length;
+    const zeroLengthCount = markers.filter(
+      (m) => m.type === "zero-length",
+    ).length;
     const obstacleCount = markers.length - boundaryCount - zeroLengthCount;
 
     let msg = `Found ${markers.length} issues! `;

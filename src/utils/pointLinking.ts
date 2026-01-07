@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import type { Line, SequenceItem, SequenceWaitItem, Point } from "../types";
 
 // Update linked waypoints: shares endpoint x/y

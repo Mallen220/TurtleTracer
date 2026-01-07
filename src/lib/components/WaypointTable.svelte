@@ -719,7 +719,7 @@
     const newWait: SequenceItem = {
       kind: "wait",
       id: makeId(),
-      name: "Wait",
+      name: "",
       durationMs: 1000,
       locked: false,
     };

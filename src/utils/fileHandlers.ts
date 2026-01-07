@@ -1,6 +1,11 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { get } from "svelte/store";
-import { currentFilePath, isUnsaved, notification, projectMetadataStore } from "../stores";
+import {
+  currentFilePath,
+  isUnsaved,
+  notification,
+  projectMetadataStore,
+} from "../stores";
 import {
   startPointStore,
   linesStore,
@@ -25,12 +30,15 @@ interface ExtendedElectronAPI {
   readFile?: (filePath: string) => Promise<string>;
   onMenuAction?: (callback: (action: string) => void) => void;
   copyFile?: (src: string, dest: string) => Promise<boolean>;
-  saveFile?: (content: string, path?: string) => Promise<{ success: boolean; filepath: string; error?: string }>;
+  saveFile?: (
+    content: string,
+    path?: string,
+  ) => Promise<{ success: boolean; filepath: string; error?: string }>;
 }
 
 // Access electronAPI dynamically to allow mocking/runtime changes
 function getElectronAPI(): ExtendedElectronAPI | undefined {
-    return (window as any).electronAPI as ExtendedElectronAPI | undefined;
+  return (window as any).electronAPI as ExtendedElectronAPI | undefined;
 }
 
 export function loadProjectData(data: any) {
@@ -118,11 +126,11 @@ async function performSave(
   settings: Settings,
   sequence: SequenceItem[],
   shapes: Shape[],
-  targetPath: string | undefined
+  targetPath: string | undefined,
 ) {
   const electronAPI = getElectronAPI();
   try {
-     // Basic validation
+    // Basic validation
     if (!sequence || sequence.length === 0) {
       // Auto-generate sequence if missing
       sequence = lines.map((l) => ({ kind: "path", lineId: l.id! }));
@@ -185,57 +193,60 @@ async function performSave(
     const jsonString = JSON.stringify(projectData, null, 2);
 
     if (electronAPI && electronAPI.saveFile) {
-        // Use the new saveFile API if available (mocked in tests)
-        const result = await electronAPI.saveFile(jsonString, targetPath);
-        if (result.success) {
-             projectMetadataStore.update((m) => ({ ...m, filepath: result.filepath }));
-             currentFilePath.set(result.filepath);
-             addToRecentFiles(result.filepath, settings);
-             isUnsaved.set(false);
-             notification.set({
-                message: `Project saved to ${result.filepath}`,
-                type: "success",
-                timeout: 3000,
-             });
-             return true;
-        } else {
-             if (result.error !== "canceled") {
-                notification.set({
-                  message: `Failed to save: ${result.error}`,
-                  type: "error",
-                  timeout: 5000,
-                });
-             }
-             return false;
-        }
-    } else if (electronAPI && electronAPI.writeFile) {
-        // Fallback to legacy writeFile if saveFile not present
-        if (!targetPath) {
-             // We need a path. If not provided (Save As), we might need dialog.
-             if (electronAPI.showSaveDialog) {
-                 const filePath = await electronAPI.showSaveDialog({
-                    title: "Save Project",
-                    defaultPath: "trajectory.pp",
-                    filters: [{ name: "Pedro Path", extensions: ["pp"] }],
-                  });
-                  if (!filePath) return false;
-                  targetPath = filePath;
-             } else {
-                 return false;
-             }
-        }
-
-        await electronAPI.writeFile(targetPath, jsonString);
-        projectMetadataStore.update((m) => ({ ...m, filepath: targetPath! }));
-        currentFilePath.set(targetPath);
-        addToRecentFiles(targetPath, settings);
+      // Use the new saveFile API if available (mocked in tests)
+      const result = await electronAPI.saveFile(jsonString, targetPath);
+      if (result.success) {
+        projectMetadataStore.update((m) => ({
+          ...m,
+          filepath: result.filepath,
+        }));
+        currentFilePath.set(result.filepath);
+        addToRecentFiles(result.filepath, settings);
         isUnsaved.set(false);
         notification.set({
-            message: `Project saved to ${targetPath}`,
-            type: "success",
-            timeout: 3000,
+          message: `Project saved to ${result.filepath}`,
+          type: "success",
+          timeout: 3000,
         });
         return true;
+      } else {
+        if (result.error !== "canceled") {
+          notification.set({
+            message: `Failed to save: ${result.error}`,
+            type: "error",
+            timeout: 5000,
+          });
+        }
+        return false;
+      }
+    } else if (electronAPI && electronAPI.writeFile) {
+      // Fallback to legacy writeFile if saveFile not present
+      if (!targetPath) {
+        // We need a path. If not provided (Save As), we might need dialog.
+        if (electronAPI.showSaveDialog) {
+          const filePath = await electronAPI.showSaveDialog({
+            title: "Save Project",
+            defaultPath: "trajectory.pp",
+            filters: [{ name: "Pedro Path", extensions: ["pp"] }],
+          });
+          if (!filePath) return false;
+          targetPath = filePath;
+        } else {
+          return false;
+        }
+      }
+
+      await electronAPI.writeFile(targetPath, jsonString);
+      projectMetadataStore.update((m) => ({ ...m, filepath: targetPath! }));
+      currentFilePath.set(targetPath);
+      addToRecentFiles(targetPath, settings);
+      isUnsaved.set(false);
+      notification.set({
+        message: `Project saved to ${targetPath}`,
+        type: "success",
+        timeout: 3000,
+      });
+      return true;
     }
 
     return false;
@@ -256,7 +267,7 @@ export async function saveProject(
   settings?: Settings,
   sequence?: SequenceItem[],
   shapes?: Shape[],
-  saveAs: boolean = false
+  saveAs: boolean = false,
 ) {
   const electronAPI = getElectronAPI();
   // If arguments are missing, grab from stores (UI behavior)
@@ -272,8 +283,8 @@ export async function saveProject(
   }
 
   if (!electronAPI) {
-      saveFileAs();
-      return true;
+    saveFileAs();
+    return true;
   }
 
   return await performSave(sp, ln, st, seq, sh, targetPath);

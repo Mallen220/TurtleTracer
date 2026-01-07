@@ -38,10 +38,10 @@
     const input = e.target as HTMLInputElement;
     const newName = input.value;
     if (line.id) {
-        lines = handleWaypointRename(lines, line.id, newName);
+      lines = handleWaypointRename(lines, line.id, newName);
     } else {
-        line.name = newName;
-        lines = [...lines];
+      line.name = newName;
+      lines = [...lines];
     }
   }
 </script>
@@ -95,35 +95,35 @@
 
       <div class="relative">
         <input
-            tabindex="-1"
-            value={line.name}
-            placeholder="Path {idx + 1}"
-            class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none text-sm font-semibold min-w-[100px] pr-6"
-            disabled={line.locked}
-            on:input={handleNameInput}
-            on:blur={() => {
+          tabindex="-1"
+          value={line.name}
+          placeholder="Path {idx + 1}"
+          class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none text-sm font-semibold min-w-[100px] pr-6"
+          disabled={line.locked}
+          on:input={handleNameInput}
+          on:blur={() => {
             // Commit the change for history/undo
             if (recordChange) recordChange();
-            }}
+          }}
         />
         {#if line.id && isLineLinked(lines, line.id)}
-            <div
-                class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500"
-                title="Linked by name. Shares position (X/Y). Control points & events are independent."
+          <div
+            class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500"
+            title="Linked by name. Shares position (X/Y). Control points & events are independent."
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              class="w-3.5 h-3.5"
             >
-                <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                class="w-3.5 h-3.5"
-                >
-                <path
-                    fill-rule="evenodd"
-                    d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
-                    clip-rule="evenodd"
-                />
-                </svg>
-            </div>
+              <path
+                fill-rule="evenodd"
+                d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
         {/if}
       </div>
 

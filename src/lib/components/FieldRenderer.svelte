@@ -789,14 +789,14 @@
         // Add a larger transparent circle for visibility/glow
         const glow = new Two.Circle(x(marker.x), y(marker.y), uiLength(6));
         if (isBoundary) {
-           glow.fill = "rgba(249, 115, 22, 0.3)";
-           glow.stroke = "rgba(249, 115, 22, 0.5)";
+          glow.fill = "rgba(249, 115, 22, 0.3)";
+          glow.stroke = "rgba(249, 115, 22, 0.5)";
         } else if (isZeroLength) {
-           glow.fill = "rgba(217, 70, 239, 0.3)";
-           glow.stroke = "rgba(217, 70, 239, 0.5)";
+          glow.fill = "rgba(217, 70, 239, 0.3)";
+          glow.stroke = "rgba(217, 70, 239, 0.5)";
         } else {
-           glow.fill = "rgba(239, 68, 68, 0.3)";
-           glow.stroke = "rgba(239, 68, 68, 0.5)";
+          glow.fill = "rgba(239, 68, 68, 0.3)";
+          glow.stroke = "rgba(239, 68, 68, 0.5)";
         }
         glow.linewidth = uiLength(0.5);
 
