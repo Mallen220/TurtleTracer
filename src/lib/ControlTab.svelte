@@ -1102,7 +1102,8 @@
         {#each sequence as item, sIdx (item.kind === "path" ? getPathLineId(item) : getWait(item).id)}
           {@const isLocked =
             item.kind === "path"
-              ? (lines.find((l) => l.id === getPathLineId(item))?.locked ?? false)
+              ? (lines.find((l) => l.id === getPathLineId(item))?.locked ??
+                false)
               : (item.locked ?? false)}
           <div
             role="listitem"
@@ -1153,7 +1154,7 @@
             {:else}
               <WaitSection
                 bind:wait={item}
-                bind:sequence={sequence}
+                bind:sequence
                 bind:collapsed={collapsedSections.waits[getWait(item).id]}
                 collapsedMarkers={allCollapsed}
                 onRemove={() => {

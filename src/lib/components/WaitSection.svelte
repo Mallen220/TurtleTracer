@@ -125,8 +125,7 @@
         {#if linked}
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div
-            class="absolute right-1 top-1/2 -translate-y-1/2 text-amber-500 cursor-help"
-            title={`Linked Wait (Logic: Same Name = Shared Duration). This wait event shares its duration with other waits named '${wait.name}'.`}
+            class="absolute right-1 top-1/2 -translate-y-1/2 text-amber-500 cursor-help flex items-center justify-center"
             on:mouseenter={() => (hoveredWaitId = wait.id)}
             on:mouseleave={() => (hoveredWaitId = null)}
           >
@@ -142,6 +141,15 @@
                 clip-rule="evenodd"
               />
             </svg>
+            {#if hoveredWaitId === wait.id}
+              <div
+                class="absolute bottom-full mb-1 right-0 w-64 p-2 bg-amber-100 dark:bg-amber-900 border border-amber-300 dark:border-amber-700 rounded shadow-lg text-xs text-amber-900 dark:text-amber-100 z-50 pointer-events-none"
+              >
+                <strong>Linked Wait</strong><br />
+                Logic: Same Name = Shared Duration.<br />
+                This wait event shares its duration with other waits named '{wait.name}'.
+              </div>
+            {/if}
           </div>
         {/if}
       </div>

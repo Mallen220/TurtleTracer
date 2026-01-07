@@ -112,8 +112,7 @@
         {#if line.id && isLineLinked(lines, line.id)}
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div
-            class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500 cursor-help"
-            title={`Linked Path (Logic: Same Name = Shared Position). This path shares its X/Y coordinates with other paths named '${line.name}'. Control points & events remain independent.`}
+            class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500 cursor-help flex items-center justify-center"
             on:mouseenter={() => (hoveredLinkId = line.id || null)}
             on:mouseleave={() => (hoveredLinkId = null)}
           >
@@ -129,6 +128,16 @@
                 clip-rule="evenodd"
               />
             </svg>
+            {#if hoveredLinkId === line.id}
+              <div
+                class="absolute bottom-full mb-1 right-0 w-64 p-2 bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded shadow-lg text-xs text-blue-900 dark:text-blue-100 z-50 pointer-events-none"
+              >
+                <strong>Linked Path</strong><br />
+                Logic: Same Name = Shared Position.<br />
+                This path shares its X/Y coordinates with other paths named '{line.name}'.
+                Control points & events remain independent.
+              </div>
+            {/if}
           </div>
         {/if}
       </div>
