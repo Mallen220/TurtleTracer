@@ -494,6 +494,7 @@
               >
                 <div>
                   <label
+                    for="validate-boundaries"
                     class="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-1"
                   >
                     Validate Field Boundaries
@@ -503,6 +504,7 @@
                   </div>
                 </div>
                 <input
+                  id="validate-boundaries"
                   type="checkbox"
                   bind:checked={settings.validateFieldBoundaries}
                   class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
@@ -515,6 +517,7 @@
               >
                 <div>
                   <label
+                    for="restrict-dragging"
                     class="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-1"
                   >
                     Restrict Dragging
@@ -524,6 +527,7 @@
                   </div>
                 </div>
                 <input
+                  id="restrict-dragging"
                   type="checkbox"
                   bind:checked={settings.restrictDraggingToField}
                   class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"

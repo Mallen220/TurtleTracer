@@ -848,6 +848,17 @@
     syncLinesToSequence(newSeq);
     recordChange?.();
   }
+
+  function isItemLocked(item: SequenceItem, lines: Line[]): boolean {
+    if (item.kind === "path") {
+      return lines.find((l) => l.id === (item as any).lineId)?.locked ?? false;
+    }
+    return getWait(item).locked ?? false;
+  }
+
+  function getLineId(item: SequenceItem): string {
+    return (item as any).lineId;
+  }
 </script>
 
 <div
@@ -1109,7 +1120,7 @@
             role="listitem"
             data-index={sIdx}
             class="w-full transition-all duration-200 rounded-lg"
-            draggable={!isLocked}
+            draggable={!isItemLocked(item, lines)}
             on:dragstart={(e) => handleDragStart(e, sIdx)}
             on:dragend={handleDragEnd}
             class:border-t-4={dragOverIndex === sIdx && dragPosition === "top"}
@@ -1156,7 +1167,6 @@
                 bind:wait={item}
                 bind:sequence
                 bind:collapsed={collapsedSections.waits[getWait(item).id]}
-                collapsedMarkers={allCollapsed}
                 onRemove={() => {
                   const newSeq = [...sequence];
                   newSeq.splice(sIdx, 1);

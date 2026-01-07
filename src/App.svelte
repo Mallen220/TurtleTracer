@@ -633,7 +633,6 @@
       bind:isLargeScreen
       saveProject={handleSaveProject}
       {saveFileAs}
-      {loadFile}
       {exportGif}
       {undoAction}
       {redoAction}
