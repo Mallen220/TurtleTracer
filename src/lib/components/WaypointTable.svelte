@@ -1133,7 +1133,8 @@
                         <div
                           class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500 cursor-help"
                           title={`Linked Path (Logic: Same Name = Shared Position). This path shares its X/Y coordinates with other paths named '${line.name}'. Control points & events remain independent.`}
-                          on:mouseenter={() => (hoveredLinkId = line.id)}
+                          on:mouseenter={() =>
+                            (hoveredLinkId = line.id || null)}
                           on:mouseleave={() => (hoveredLinkId = null)}
                         >
                           <svg

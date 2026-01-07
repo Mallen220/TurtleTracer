@@ -3,6 +3,7 @@
   import { createEventDispatcher } from "svelte";
   export let endPoint: any;
   export let locked: boolean = false;
+  export let tabindex: number | undefined = undefined;
   const dispatch = createEventDispatcher();
 
   // Helper to handle constant heading input safely
@@ -55,6 +56,7 @@ With constant heading, the robot maintains the same heading throughout the line.
 With linear heading, heading changes linearly between given start and end angles. 
 With tangential heading, the heading follows the direction of the line."
   disabled={locked}
+  {tabindex}
 >
   <option value="constant">Constant</option>
   <option value="linear">Linear</option>
@@ -78,6 +80,7 @@ With tangential heading, the heading follows the direction of the line."
         on:blur={() => dispatch("commit")}
         title="The heading the robot starts this line at (in degrees)"
         disabled={locked}
+        {tabindex}
       />
     </label>
     <label
@@ -95,6 +98,7 @@ With tangential heading, the heading follows the direction of the line."
         on:blur={() => dispatch("commit")}
         title="The heading the robot ends this line at (in degrees)"
         disabled={locked}
+        {tabindex}
       />
     </label>
   </div>
@@ -115,6 +119,7 @@ With tangential heading, the heading follows the direction of the line."
         on:blur={handleConstantBlur}
         title="The constant heading the robot maintains throughout this line (in degrees)"
         disabled={locked}
+        {tabindex}
       />
     </label>
   </div>
@@ -128,6 +133,7 @@ With tangential heading, the heading follows the direction of the line."
       on:blur={() => dispatch("commit")}
       title="Reverse the direction the robot faces along the tangential path"
       disabled={locked}
+      {tabindex}
     />
   </label>
 {/if}
