@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 export function tooltipPortal(node: HTMLElement, anchor: HTMLElement | null) {
   // Move node to document.body so it isn't clipped by overflow:hidden/auto containers
   const placeholder = document.createComment("portal-placeholder");
