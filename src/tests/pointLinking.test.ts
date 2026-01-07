@@ -53,10 +53,7 @@ describe("Point Linking Utils", () => {
     });
 
     it("updateLinkedWaypoints should do nothing if name is empty", () => {
-      const lines = [
-        createLine("1", "", 10, 10),
-        createLine("2", "", 20, 20),
-      ];
+      const lines = [createLine("1", "", 10, 10), createLine("2", "", 20, 20)];
       lines[0].endPoint.x = 50;
 
       const result = updateLinkedWaypoints(lines, "1");
