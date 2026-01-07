@@ -24,11 +24,11 @@ vi.mock("svelte/store", async () => {
 
 // Mock projectStore
 vi.mock("../lib/projectStore", () => ({
-  startPointStore: { value: { x: 0, y: 0 } },
-  linesStore: { value: [] },
-  shapesStore: { value: [] },
-  sequenceStore: { value: [] },
-  settingsStore: { value: { recentFiles: [] }, set: vi.fn() },
+  startPointStore: { value: { x: 0, y: 0 }, set: vi.fn(), subscribe: vi.fn() },
+  linesStore: { value: [], subscribe: vi.fn() },
+  shapesStore: { value: [], subscribe: vi.fn() },
+  sequenceStore: { value: [], subscribe: vi.fn() },
+  settingsStore: { value: { recentFiles: [] }, set: vi.fn(), update: vi.fn(), subscribe: vi.fn() },
   loadProjectData: vi.fn(),
 }));
 
@@ -36,6 +36,7 @@ vi.mock("../lib/projectStore", () => ({
 vi.mock("../stores", () => ({
   currentFilePath: { value: "", set: vi.fn(), subscribe: vi.fn() },
   isUnsaved: { value: false, set: vi.fn(), subscribe: vi.fn() },
+  projectMetadataStore: { value: { filepath: "" }, set: vi.fn(), subscribe: vi.fn() },
 }));
 
 describe("Directory Settings & File Handlers", () => {
