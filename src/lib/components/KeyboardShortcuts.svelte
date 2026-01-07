@@ -25,6 +25,10 @@
     playbackSpeedStore,
     renumberDefaultPathNames,
   } from "../projectStore";
+  import {
+    updateLinkedWaypoints,
+    updateLinkedWaits,
+  } from "../../utils/pointLinking";
   import type { Line, SequenceItem } from "../../types";
   import { DEFAULT_KEY_BINDINGS, FIELD_SIZE } from "../../config";
   import { getRandomColor } from "../../utils";
@@ -535,7 +539,8 @@
             }
             line.endPoint.x = Number(line.endPoint.x.toFixed(3));
             line.endPoint.y = Number(line.endPoint.y.toFixed(3));
-            linesStore.set(lines);
+            // Ensure linked lines (same-named waypoints) are updated when a point is moved via keybinds
+            linesStore.set(updateLinkedWaypoints(lines, line.id!));
             recordChange();
           }
         } else {
@@ -666,7 +671,8 @@
       if (item) {
         if (item.locked) return; // Don't modify locked waits
         item.durationMs = Math.max(0, item.durationMs + delta * 100);
-        sequenceStore.set(sequence);
+        // Update linked waits so waits that share a name keep the same duration
+        sequenceStore.set(updateLinkedWaits(sequence, item.id));
         recordChange();
       }
       return;
