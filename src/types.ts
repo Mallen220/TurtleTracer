@@ -65,6 +65,7 @@ export interface Line {
   waitAfterMs?: number;
   waitBeforeName?: string;
   waitAfterName?: string;
+  _linkedName?: string; // Metadata for linked names
 }
 
 export type SequencePathItem = {
@@ -79,6 +80,7 @@ export type SequenceWaitItem = {
   durationMs: number;
   locked?: boolean;
   eventMarkers?: EventMarker[];
+  _linkedName?: string; // Metadata for linked names
 };
 
 export type SequenceItem = SequencePathItem | SequenceWaitItem;

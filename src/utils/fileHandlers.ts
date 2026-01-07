@@ -43,6 +43,13 @@ function getElectronAPI(): ExtendedElectronAPI | undefined {
 
 export function loadProjectData(data: any) {
   if (data.startPoint) startPointStore.set(data.startPoint);
+  // Helper to strip " (##)" suffix from names to restore linkage
+  const stripSuffix = (name: string) => {
+    if (!name) return name;
+    const match = name.match(/^(.*) \(\d+\)$/);
+    return match ? match[1] : name;
+  };
+
   if (data.lines) {
     // Ensure loaded lines have IDs and restore linked names
     const lines = (data.lines as Line[]).map((l) => {
@@ -50,6 +57,9 @@ export function loadProjectData(data: any) {
       // Restore name from metadata if present
       if (newLine._linkedName) {
         newLine.name = newLine._linkedName;
+      } else if (newLine.name) {
+        // Attempt to strip suffix to restore linkage for older files
+        newLine.name = stripSuffix(newLine.name);
       }
       return newLine;
     });
@@ -64,6 +74,9 @@ export function loadProjectData(data: any) {
         // Restore name from metadata if present
         if ((newWait as any)._linkedName) {
           newWait.name = (newWait as any)._linkedName;
+        } else if (newWait.name) {
+          // Attempt to strip suffix
+          newWait.name = stripSuffix(newWait.name);
         }
         return newWait;
       }
