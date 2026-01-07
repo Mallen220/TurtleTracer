@@ -65,3 +65,4 @@ src/tests/pathTransform.test.ts
 src/utils/pointLinking.ts
 src/utils/fileHandlers.ts
 src/lib/components/ColorPicker.svelte
+src/lib/actions/portal.ts
