@@ -297,8 +297,8 @@ export async function saveProject(
   const seq = sequence || get(sequenceStore);
   const sh = shapes || get(shapesStore);
 
-  let targetPath = get(currentFilePath);
-  if (saveAs || !targetPath) {
+  let targetPath = get(currentFilePath) || undefined;
+  if (saveAs) {
     targetPath = undefined;
   }
 

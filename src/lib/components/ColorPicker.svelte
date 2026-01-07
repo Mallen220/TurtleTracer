@@ -4,7 +4,7 @@
   export let title: string = "Change Color";
   export let disabled: boolean = false;
   // Explicitly export tabindex to allow parent to control focusability
-  export let tabindex: number | string | undefined = undefined;
+  export let tabindex: number | undefined = undefined;
 </script>
 
 <div
@@ -18,7 +18,7 @@
     {title}
     aria-label={title}
     {disabled}
-    {tabindex}
+    tabindex={tabindex}
     on:input
     on:change
   />

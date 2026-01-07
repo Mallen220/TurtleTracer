@@ -131,7 +131,7 @@
         bind:color={line.color}
         title="Change Path Color"
         disabled={line.locked}
-        tabindex="-1"
+        tabindex={-1}
       />
 
       <!-- Lock/Unlock Button -->
@@ -336,7 +336,6 @@
         <HeadingControls
           endPoint={line.endPoint}
           locked={line.locked}
-          tabindex="-1"
           on:change={() => {
             // Force reactivity so timeline recalculates immediately
             lines = [...lines];

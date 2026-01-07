@@ -29,7 +29,8 @@
   import { calculatePathTime, formatTime } from "../utils";
   import { showShortcuts } from "../stores";
 
-  // export let loadFile: (evt: any) => any;
+  // svelte-ignore unused-export-let
+  export let loadFile: (evt: any) => any;
 
   export let startPoint: Point;
   export let lines: Line[];

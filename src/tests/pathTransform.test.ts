@@ -38,6 +38,7 @@ describe("pathTransform", () => {
         x: 0,
         y: 0,
         heading: "tangential",
+        reverse: false,
       };
       const mirrored = mirrorPointHeading(point);
       expect(mirrored).toEqual(point);
@@ -105,6 +106,7 @@ describe("pathTransform", () => {
             ],
             id: "shape1",
             color: "red",
+            fillColor: "blue",
             name: "Shape",
           } as Shape,
         ],
@@ -160,7 +162,7 @@ describe("pathTransform", () => {
             waitAfterName: "w2",
           } as unknown as Line,
         ],
-        sequence: [{ type: "path", id: "line1" }] as SequenceItem[],
+        sequence: [{ kind: "path", lineId: "line1" }] as SequenceItem[],
       };
 
       const reversed = reversePathData(data);
@@ -189,7 +191,7 @@ describe("pathTransform", () => {
       expect(line.waitAfterName).toBe("w1");
 
       // Sequence reversed
-      expect(reversed.sequence[0].id).toBe("line1");
+      expect((reversed.sequence[0] as any).lineId).toBe("line1");
     });
 
     it("should reverse multiple lines correctly", () => {
@@ -211,6 +213,7 @@ describe("pathTransform", () => {
               id: "P1",
             } as unknown as Point,
             controlPoints: [{ x: 1, y: 1 }],
+            color: "blue",
           } as Line,
           {
             id: "L2",
@@ -221,6 +224,7 @@ describe("pathTransform", () => {
               id: "P2",
             } as unknown as Point,
             controlPoints: [{ x: 2, y: 2 }],
+            color: "green",
           } as Line,
         ],
       };
@@ -262,6 +266,7 @@ describe("pathTransform", () => {
             } as Point,
             controlPoints: [],
             id: "line1",
+            color: "red",
           } as Line,
         ],
       };
@@ -285,28 +290,40 @@ describe("pathTransform", () => {
         lines: [
           {
             id: "L1",
-            endPoint: { x: 1, y: 1, heading: "tangential" },
+            endPoint: {
+              x: 1,
+              y: 1,
+              heading: "tangential",
+              reverse: false,
+            },
             controlPoints: [],
+            color: "blue",
           } as Line,
           {
             id: "L2",
-            endPoint: { x: 2, y: 2, heading: "tangential" },
+            endPoint: {
+              x: 2,
+              y: 2,
+              heading: "tangential",
+              reverse: false,
+            },
             controlPoints: [],
+            color: "green",
           } as Line,
         ],
         sequence: [
-          { type: "path", id: "L1" },
-          { type: "wait", id: "W1" },
-          { type: "path", id: "L2" },
+          { kind: "path", lineId: "L1" },
+          { kind: "wait", id: "W1" },
+          { kind: "path", lineId: "L2" },
         ] as SequenceItem[],
       };
 
       const reversed = reversePathData(data);
 
       expect(reversed.sequence).toHaveLength(3);
-      expect(reversed.sequence[0].id).toBe("L2");
-      expect(reversed.sequence[1].id).toBe("W1");
-      expect(reversed.sequence[2].id).toBe("L1");
+      expect((reversed.sequence[0] as any).lineId).toBe("L2");
+      expect((reversed.sequence[1] as any).id).toBe("W1");
+      expect((reversed.sequence[2] as any).lineId).toBe("L1");
     });
   });
 });

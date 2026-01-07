@@ -844,6 +844,17 @@
     syncLinesToSequence(newSeq);
     recordChange?.();
   }
+
+  function isItemLocked(item: SequenceItem, lines: Line[]): boolean {
+    if (item.kind === "path") {
+      return (lines.find((l) => l.id === (item as any).lineId)?.locked ?? false);
+    }
+    return getWait(item).locked ?? false;
+  }
+
+  function getLineId(item: SequenceItem): string {
+    return (item as any).lineId;
+  }
 </script>
 
 <div
@@ -1096,15 +1107,11 @@
 
         <!-- Unified sequence render: paths and waits -->
         {#each sequence as item, sIdx (item.kind === "path" ? item.lineId : getWait(item).id)}
-          {@const isLocked =
-            item.kind === "path"
-              ? (lines.find((l) => l.id === item.lineId)?.locked ?? false)
-              : (item.locked ?? false)}
           <div
             role="listitem"
             data-index={sIdx}
             class="w-full transition-all duration-200 rounded-lg"
-            draggable={!isLocked}
+            draggable={!isItemLocked(item, lines)}
             on:dragstart={(e) => handleDragStart(e, sIdx)}
             on:dragend={handleDragEnd}
             class:border-t-4={dragOverIndex === sIdx && dragPosition === "top"}
@@ -1115,7 +1122,7 @@
             class:opacity-50={draggingIndex === sIdx}
           >
             {#if item.kind === "path"}
-              {#each lines.filter((l) => l.id === item.lineId) as ln (ln.id)}
+              {#each lines.filter((l) => l.id === getLineId(item)) as ln (ln.id)}
                 <PathLineSection
                   bind:line={ln}
                   idx={lines.findIndex((l) => l.id === ln.id)}
@@ -1149,9 +1156,7 @@
             {:else}
               <WaitSection
                 bind:wait={item}
-                idx={sIdx}
                 bind:collapsed={collapsedSections.waits[getWait(item).id]}
-                collapsedMarkers={allCollapsed}
                 onRemove={() => {
                   const newSeq = [...sequence];
                   newSeq.splice(sIdx, 1);

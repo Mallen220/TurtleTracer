@@ -11,7 +11,7 @@
   // Collapsed state
   export let collapsed: boolean = false;
   // Markers collapsed state (for "Collapse All" deep behavior)
-  export let collapsedMarkers: boolean = false;
+  // export let collapsedMarkers: boolean = false;
 
   export let onRemove: () => void;
   export let onInsertAfter: () => void;
@@ -324,7 +324,7 @@
       </div>
 
       <!-- Wait Markers (Embedded) -->
-      <WaitMarkersSection bind:wait allCollapsed={collapsedMarkers} />
+      <WaitMarkersSection bind:wait allCollapsed={false} />
     </div>
   {/if}
 </div>
