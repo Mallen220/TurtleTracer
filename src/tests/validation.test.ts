@@ -54,7 +54,7 @@ describe("Validation Utils", () => {
       x: 0,
       y: 0,
       heading: "tangential",
-      velocity: 1,
+      reverse: false,
     };
     const lines: Line[] = [
       {
@@ -84,7 +84,7 @@ describe("Validation Utils", () => {
       x: 0,
       y: 0,
       heading: "tangential",
-      velocity: 1,
+      reverse: false,
     };
     const lines: Line[] = [
       {
@@ -117,7 +117,7 @@ describe("Validation Utils", () => {
       x: 0,
       y: 0,
       heading: "tangential",
-      velocity: 1,
+      reverse: false,
     };
     const lines: Line[] = [
       {
@@ -153,7 +153,7 @@ describe("Validation Utils", () => {
       x: 0,
       y: 0,
       heading: "tangential",
-      velocity: 1,
+      reverse: false,
     };
     const lines: Line[] = [
       {
@@ -189,7 +189,7 @@ describe("Validation Utils", () => {
       x: 0,
       y: 0,
       heading: "tangential",
-      velocity: 1,
+      reverse: false,
     };
     const lines: Line[] = [
       {
