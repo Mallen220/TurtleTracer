@@ -474,6 +474,9 @@
   let contextMenuY = 0;
   let contextMenuItems: any[] = [];
 
+  let hoveredLinkId: string | null = null;
+  let hoveredWaitId: string | null = null;
+
   async function handleContextMenu(event: MouseEvent, seqIndex: number) {
     event.preventDefault();
 
@@ -1113,9 +1116,10 @@
                       disabled={line.locked}
                       title="Path Color"
                     />
-                    <div class="relative flex-1">
+                    <div class="relative flex-1 max-w-[140px]">
                       <input
-                        class="w-full max-w-[140px] px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs pr-6"
+                        class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs pr-6"
+                        class:text-blue-500={hoveredLinkId === line.id}
                         value={line.name}
                         on:input={(e) =>
                           // @ts-ignore
@@ -1125,9 +1129,12 @@
                         aria-label="Path Name"
                       />
                       {#if line.id && isLineLinked(lines, line.id)}
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
                         <div
-                          class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500"
-                          title="Linked by name. Shares position (X/Y). Control points & events are independent."
+                          class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500 cursor-help"
+                          title="Linked Path: Shares X/Y position with other paths of the same name. Control points & events are independent."
+                          on:mouseenter={() => (hoveredLinkId = line.id)}
+                          on:mouseleave={() => (hoveredLinkId = null)}
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -1348,6 +1355,7 @@
                 <div class="relative w-full max-w-[160px]">
                   <input
                     class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-amber-500 focus:outline-none text-xs pr-6"
+                    class:text-amber-500={hoveredWaitId === item.id}
                     value={item.name}
                     on:input={(e) =>
                       // @ts-ignore
@@ -1357,9 +1365,12 @@
                     aria-label="Wait Name"
                   />
                   {#if isWaitLinked(sequence, item.id)}
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
                     <div
-                      class="absolute right-1 top-1/2 -translate-y-1/2 text-amber-500"
-                      title="Linked by name. Shares duration."
+                      class="absolute right-1 top-1/2 -translate-y-1/2 text-amber-500 cursor-help"
+                      title="Linked Wait: Shares duration with other waits of the same name."
+                      on:mouseenter={() => (hoveredWaitId = item.id)}
+                      on:mouseleave={() => (hoveredWaitId = null)}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
