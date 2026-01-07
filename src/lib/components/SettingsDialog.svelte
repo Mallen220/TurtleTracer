@@ -1302,7 +1302,7 @@
                 More advanced settings will be added here in future updates
               </p>
               <p class="text-xs mt-1">
-                Collision detection, export options, start/end states, and so,
+                Turn to logic, export options, start/end states, and so,
                 so much more!
               </p>
             </div>
