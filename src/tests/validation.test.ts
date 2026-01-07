@@ -60,9 +60,12 @@ describe("Validation Utils", () => {
       {
         id: "1",
         name: "L1",
-        endPoint: { x: 10, y: 10, heading: "tangential", velocity: 1 },
-        control1: { x: 0, y: 0 },
-        control2: { x: 0, y: 0 },
+        color: "black",
+        endPoint: { x: 10, y: 10, heading: "tangential", reverse: false },
+        controlPoints: [
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ],
       },
     ];
 
@@ -87,9 +90,12 @@ describe("Validation Utils", () => {
       {
         id: "1",
         name: "L1",
-        endPoint: { x: 0, y: 0, heading: "tangential", velocity: 1 }, // Same as start
-        control1: { x: 0, y: 0 },
-        control2: { x: 0, y: 0 },
+        color: "black",
+        endPoint: { x: 0, y: 0, heading: "tangential", reverse: false }, // Same as start
+        controlPoints: [
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ],
       },
     ];
 
@@ -117,9 +123,12 @@ describe("Validation Utils", () => {
       {
         id: "1",
         name: "L1",
-        endPoint: { x: 10, y: 10, heading: "tangential", velocity: 1 },
-        control1: { x: 0, y: 0 },
-        control2: { x: 0, y: 0 },
+        color: "black",
+        endPoint: { x: 10, y: 10, heading: "tangential", reverse: false },
+        controlPoints: [
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ],
       },
     ];
 
@@ -150,9 +159,12 @@ describe("Validation Utils", () => {
       {
         id: "1",
         name: "L1",
-        endPoint: { x: 10, y: 10, heading: "tangential", velocity: 1 },
-        control1: { x: 0, y: 0 },
-        control2: { x: 0, y: 0 },
+        color: "black",
+        endPoint: { x: 10, y: 10, heading: "tangential", reverse: false },
+        controlPoints: [
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ],
       },
     ];
 
@@ -183,9 +195,12 @@ describe("Validation Utils", () => {
       {
         id: "1",
         name: "L1",
-        endPoint: { x: 0, y: 0, heading: "tangential", velocity: 1 }, // Zero length
-        control1: { x: 0, y: 0 },
-        control2: { x: 0, y: 0 },
+        color: "black",
+        endPoint: { x: 0, y: 0, heading: "tangential", reverse: false }, // Zero length
+        controlPoints: [
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ],
       },
     ];
 

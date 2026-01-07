@@ -66,3 +66,5 @@ src/utils/pointLinking.ts
 src/utils/fileHandlers.ts
 src/lib/components/ColorPicker.svelte
 src/lib/actions/portal.ts
+src/tests/pointLinking.test.ts
+src/tests/validation.test.ts
