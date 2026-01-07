@@ -74,14 +74,16 @@ export function renumberDefaultPathNames(lines: Line[]): Line[] {
 
 // Create writable stores for the project state
 export const startPointStore = writable<Point>(getDefaultStartPoint());
-export const linesStore = writable<Line[]>(normalizeLines(getDefaultLines()));
+
+// Ensure we use the exact same default lines instance for both linesStore and sequenceStore
+// to prevent ID mismatches when getDefaultLines() generates random IDs.
+const initialDefaultLines = normalizeLines(getDefaultLines());
+
+export const linesStore = writable<Line[]>(initialDefaultLines);
 export const shapesStore = writable<Shape[]>(getDefaultShapes());
-// We need to initialize sequence store after lines, but for now we'll just set it to default
-// dependent on lines. Since this is a module, we can't easily access the initial lines value
-// if it were dynamic, but here we use defaults.
-const initialLines = normalizeLines(getDefaultLines());
+
 export const sequenceStore = writable<SequenceItem[]>(
-  initialLines.map((ln) => ({
+  initialDefaultLines.map((ln) => ({
     kind: "path",
     lineId: ln.id!,
   })),
