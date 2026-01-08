@@ -1124,7 +1124,7 @@
                   >
                     <path
                       fill-rule="evenodd"
-                      d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
+                      d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
                       clip-rule="evenodd"
                     />
                   </svg>
@@ -1511,10 +1511,100 @@
             </tr>
           {/if}
         {/each}
+
+        <!-- Empty State -->
+        {#if displaySequence.length === 0}
+          <tr>
+            <td
+              colspan="5"
+              class="p-8 text-center text-neutral-500 dark:text-neutral-400 border-t border-dashed border-neutral-200 dark:border-neutral-700"
+            >
+              <div class="flex flex-col items-center gap-4">
+                <div
+                  class="p-3 bg-neutral-100 dark:bg-neutral-800 rounded-full"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="size-6 text-neutral-400"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 4.5v15m7.5-7.5h-15"
+                    />
+                  </svg>
+                </div>
+                <div class="text-sm">
+                  <p class="font-medium text-neutral-800 dark:text-neutral-200">
+                    No path segments yet
+                  </p>
+                  <p class="text-neutral-500 mt-1">
+                    Start your path by adding a segment or wait command.
+                  </p>
+                </div>
+              </div>
+            </td>
+          </tr>
+        {/if}
       </tbody>
     </table>
   </div>
-  <div class="text-xs text-neutral-500 dark:text-neutral-500 px-1">
-    * Coordinates in inches. 0,0 is bottom-left. Drag handle to reorder.
+  <div class="flex items-center justify-between mt-2 px-1">
+    <div class="text-xs text-neutral-500 dark:text-neutral-500 w-2/3 break-words">
+      <div>* Coordinates in inches. 0,0 is bottom-left. Drag handle to reorder.</div>
+      <div>* Right-click a row to add or reorder points. Use keyboard shortcuts for the best experience (see Keyboard Shortcuts).</div>
+    </div>
+
+    <!-- Persistent Add Buttons -->
+    <div class="flex gap-2 flex-shrink-0">
+      <button
+        on:click={() => insertPath(sequence.length)}
+        class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
+        aria-label="Add new path segment"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-3"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 4.5v15m7.5-7.5h-15"
+          />
+        </svg>
+        Add Path
+      </button>
+
+      <button
+        on:click={() => insertWait(sequence.length)}
+        class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-amber-500 dark:bg-amber-600 rounded-md shadow-sm hover:bg-amber-600 dark:hover:bg-amber-500 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-200 dark:focus:ring-amber-500"
+        aria-label="Add wait command"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="size-3"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 7v5l3 2"
+          />
+        </svg>
+        Add Wait
+      </button>
+    </div>
   </div>
 </div>
