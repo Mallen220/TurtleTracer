@@ -69,3 +69,5 @@ src/lib/actions/portal.ts
 src/tests/pointLinking.test.ts
 src/tests/validation.test.ts
 package-lock.json
+src/tests/exportAnimation.test.ts
+src/tests/projectStore.test.ts

@@ -27,7 +27,11 @@ describe("projectStore Utilities", () => {
     it("should handle wait times", () => {
       const input: any[] = [
         { id: "1", waitBeforeMs: 100, waitAfterMs: 200 },
-        { id: "2", waitBefore: { durationMs: 300 }, waitAfter: { durationMs: 400 } },
+        {
+          id: "2",
+          waitBefore: { durationMs: 300 },
+          waitAfter: { durationMs: 400 },
+        },
       ];
       const output = normalizeLines(input);
       expect(output[0].waitBeforeMs).toBe(100);

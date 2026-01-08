@@ -183,11 +183,23 @@ describe("exportAnimation", () => {
       // Quality <= 9 should use cnum 0 (lossless)
       const upng = await import("upng-js");
       await exportPathToApng({ ...options, quality: 5 });
-      expect(upng.encode).toHaveBeenCalledWith(expect.anything(), 100, 100, 0, expect.anything());
+      expect(upng.encode).toHaveBeenCalledWith(
+        expect.anything(),
+        100,
+        100,
+        0,
+        expect.anything(),
+      );
 
       // Quality >= 10 should use cnum 256
       await exportPathToApng({ ...options, quality: 20 });
-      expect(upng.encode).toHaveBeenCalledWith(expect.anything(), 100, 100, 256, expect.anything());
+      expect(upng.encode).toHaveBeenCalledWith(
+        expect.anything(),
+        100,
+        100,
+        256,
+        expect.anything(),
+      );
     });
   });
 });

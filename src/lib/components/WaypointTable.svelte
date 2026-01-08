@@ -1554,9 +1554,16 @@
     </table>
   </div>
   <div class="flex items-center justify-between mt-2 px-1">
-    <div class="text-xs text-neutral-500 dark:text-neutral-500 w-2/3 break-words">
-      <div>* Coordinates in inches. 0,0 is bottom-left. Drag handle to reorder.</div>
-      <div>* Right-click a row to add or reorder points. Use keyboard shortcuts for the best experience (see Keyboard Shortcuts).</div>
+    <div
+      class="text-xs text-neutral-500 dark:text-neutral-500 w-2/3 break-words"
+    >
+      <div>
+        * Coordinates in inches. 0,0 is bottom-left. Drag handle to reorder.
+      </div>
+      <div>
+        * Right-click a row to add or reorder points. Use keyboard shortcuts for
+        the best experience (see Keyboard Shortcuts).
+      </div>
     </div>
 
     <!-- Persistent Add Buttons -->
