@@ -2,7 +2,6 @@
 <script lang="ts">
   import type { Line } from "../../types";
   import { snapToGrid, showGrid, gridSize } from "../../stores";
-  import EventMarkersSection from "./EventMarkersSection.svelte";
   import ControlPointsSection from "./ControlPointsSection.svelte";
   import HeadingControls from "./HeadingControls.svelte";
   import ColorPicker from "./ColorPicker.svelte";
@@ -15,7 +14,7 @@
   export let idx: number;
   export let lines: Line[];
   export let collapsed: boolean;
-  export let collapsedEventMarkers: boolean;
+  // export let collapsedEventMarkers: boolean;
   export let collapsedControlPoints: boolean;
   export let onRemove: () => void;
   export let onInsertAfter: () => void;
@@ -376,12 +375,6 @@
         />
       </div>
     </div>
-
-    <EventMarkersSection
-      bind:line
-      lineIdx={idx}
-      bind:collapsed={collapsedEventMarkers}
-    />
 
     <ControlPointsSection
       bind:line

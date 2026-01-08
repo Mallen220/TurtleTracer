@@ -56,3 +56,5 @@ export const fileManagerSessionState = writable<{
   viewMode: "grid",
   sortMode: "date",
 });
+
+export const hoveredMarkerId = writable<string | null>(null);

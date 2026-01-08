@@ -26,6 +26,7 @@
   import PlaybackControls from "./components/PlaybackControls.svelte";
   import WaitSection from "./components/WaitSection.svelte";
   import OptimizationDialog from "./components/OptimizationDialog.svelte";
+  import GlobalEventMarkers from "./components/GlobalEventMarkers.svelte";
   import WaypointTable from "./components/WaypointTable.svelte";
   import { calculatePathTime } from "../utils";
   import { validatePath } from "../utils/validation";
@@ -276,6 +277,7 @@
     controlPoints: lines.map(() => true), // Start with control points collapsed
     // Track collapsed state for waits by their ID
     waits: {} as Record<string, boolean>,
+    globalMarkers: false,
   };
 
   // Debug helpers (kept simple so template expressions stay small)
@@ -355,6 +357,7 @@
       // If sections were all collapsed, new lines should start collapsed
       lines: lines.map(() => (wasAllCollapsed ? true : false)),
       controlPoints: lines.map(() => true),
+      globalMarkers: wasAllCollapsed ? true : false,
     };
   }
 
@@ -598,6 +601,7 @@
     collapsedSections.controlPoints = lines.map(() => true);
     collapsedEventMarkers = lines.map(() => true);
     collapsedSections.obstacles = shapes.map(() => true);
+    collapsedSections.globalMarkers = true;
 
     // Set all waits to collapsed
     const newWaits = { ...collapsedSections.waits };
@@ -619,6 +623,7 @@
     collapsedSections.controlPoints = lines.map(() => false);
     collapsedEventMarkers = lines.map(() => false);
     collapsedSections.obstacles = shapes.map(() => false);
+    collapsedSections.globalMarkers = false;
 
     // Set all waits to expanded (false)
     const newWaits = { ...collapsedSections.waits };
@@ -1075,6 +1080,12 @@
           </div>
         {/if}
 
+        <GlobalEventMarkers
+          bind:sequence
+          bind:lines
+          bind:collapsedMarkers={collapsedSections.globalMarkers}
+        />
+
         <ObstaclesSection
           bind:shapes
           bind:collapsedObstacles={collapsedSections.obstacles}
@@ -1138,11 +1149,6 @@
                   bind:lines
                   bind:collapsed={
                     collapsedSections.lines[
-                      lines.findIndex((l) => l.id === ln.id)
-                    ]
-                  }
-                  bind:collapsedEventMarkers={
-                    collapsedEventMarkers[
                       lines.findIndex((l) => l.id === ln.id)
                     ]
                   }
