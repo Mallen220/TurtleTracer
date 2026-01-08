@@ -230,7 +230,7 @@ const startServer = async () => {
           resolve();
         });
 
-        candidate.listen(port);
+        candidate.listen(port, "127.0.0.1");
       };
 
       attemptListen();

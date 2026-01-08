@@ -78,6 +78,10 @@
   "build": {
     "appId": "com.pedropathing.visualizer",
     "productName": "Pedro Pathing Visualizer",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/electron-updater"
+    ],
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -98,11 +102,7 @@
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
-      "asar": true,
-      "asarUnpack": [
-        "node_modules/electron-updater"
-      ]
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "dmg": {
       "icon": "build/icon.png",
