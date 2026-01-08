@@ -178,35 +178,8 @@
     }
   }
 
-  function handleGlobalPositionInput(marker: GlobalMarker, newVal: number) {
-    // Start drag session if not already
-    if (!draggingMarkerId) {
-        draggingMarkerId = marker.id;
-        // Snapshot current order
-        cachedSortedMarkers = [...allMarkers];
-    }
-
-    // During drag/input, allow out-of-bounds local values relative to current parent
-    // to visualize "global" movement without thrashing the data structure.
-    // Calculate effective local position relative to CURRENT parent.
-    // globalPosition = parentIndex + localPos
-    // localPos = globalPosition - parentIndex
-    const newLocalPos = newVal - marker.parentIndex;
-
-    marker.ref.position = newLocalPos;
-
-    // Trigger reactivity so UI updates (e.g. number input value)
-    if (marker.parentType === "path") lines = [...lines];
-    else sequence = [...sequence];
-  }
-
-  function handleGlobalPositionCommit(marker: GlobalMarker, newVal: number) {
-    // End drag session
-    draggingMarkerId = null;
-    cachedSortedMarkers = [];
-
-    // On release/commit, perform the actual parent switch if needed.
-    // Clamp to valid range
+  function updateMarkerPosition(marker: GlobalMarker, newVal: number, clampLocal: boolean) {
+     // Clamp to valid range
     const max = sequence.length;
     if (newVal < 0) newVal = 0;
     if (newVal > max) newVal = max;
@@ -256,16 +229,48 @@
          sequence = [...sequence];
       }
     } else {
-      // Parent is same, just update local position (clamping if it was out of bounds)
-      // Ensure it is 0-1
-      if (newLocalPos < 0) newLocalPos = 0;
-      if (newLocalPos > 1) newLocalPos = 1;
+      // Parent is same, just update local position
+      if (clampLocal) {
+        if (newLocalPos < 0) newLocalPos = 0;
+        if (newLocalPos > 1) newLocalPos = 1;
+      }
 
       marker.ref.position = newLocalPos;
       // Trigger reactivity
       if (marker.parentType === "path") lines = [...lines];
       else sequence = [...sequence];
     }
+  }
+
+  function handleGlobalPositionInput(marker: GlobalMarker, newVal: number) {
+    // Start drag session if not already
+    if (!draggingMarkerId) {
+        draggingMarkerId = marker.id;
+        // Snapshot current order
+        cachedSortedMarkers = [...allMarkers];
+    }
+
+    // Update marker position immediately (switching parents if needed)
+    // but without clamping to allow smooth dragging?
+    // Actually, updateMarkerPosition handles parent switching.
+    // If we switch parents, newLocalPos will be within 0-1 (by math definition: newVal - floor(newVal)).
+    // So we can always clampLocal=true?
+    // Wait, updateMarkerPosition logic:
+    // newLocalPos = newVal - newIndex.
+    // This is always [0, 1) unless newVal == max.
+    // So "clamping" is implicit in the parent switch logic.
+    // The only case where we might want non-clamped is if we stayed on same parent but went < 0 or > 1.
+    // But here we switch parents aggressively.
+
+    updateMarkerPosition(marker, newVal, false);
+  }
+
+  function handleGlobalPositionCommit(marker: GlobalMarker, newVal: number) {
+    // End drag session
+    draggingMarkerId = null;
+    cachedSortedMarkers = [];
+
+    updateMarkerPosition(marker, newVal, true);
   }
 </script>
 
