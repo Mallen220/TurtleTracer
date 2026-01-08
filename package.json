@@ -22,6 +22,7 @@
     "dist": "npm run build && electron-builder --mac --arm64 --publish=never",
     "dist:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --publish=never",
     "dist:all": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --linux --x64 --arm64 --publish=never && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --linux --x64 --publish=never",
+    "dist:windows": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --x64 --publish=never",
     "dist:linux:x64": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --linux --x64 --publish=never",
     "dist:publish": "node scripts/publish.js",
     "format": "prettier --write ."
@@ -78,6 +79,10 @@
   "build": {
     "appId": "com.pedropathing.visualizer",
     "productName": "Pedro Pathing Visualizer",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/electron-updater"
+    ],
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -98,11 +103,7 @@
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
-      "asar": true,
-      "asarUnpack": [
-        "node_modules/electron-updater"
-      ]
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "dmg": {
       "icon": "build/icon.png",
