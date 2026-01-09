@@ -71,3 +71,4 @@ src/tests/validation.test.ts
 package-lock.json
 src/tests/exportAnimation.test.ts
 src/tests/projectStore.test.ts
+src/lib/components/PathStatisticsDialog.svelte

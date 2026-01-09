@@ -192,7 +192,7 @@ function unwrapAngle(target: number, reference: number): number {
 /**
  * Analyzes a path segment (Line, Quadratic, or Cubic)
  */
-function analyzePathSegment(
+export function analyzePathSegment(
   start: BasePoint,
   controlPoints: BasePoint[],
   end: BasePoint,
