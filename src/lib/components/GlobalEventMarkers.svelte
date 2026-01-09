@@ -86,28 +86,28 @@
     const sorted = markers.sort((a, b) => a.globalPosition - b.globalPosition);
 
     if (draggingId) {
-        // If dragging, we want to maintain the list order from before the drag started,
-        // but update the values of the dragging marker.
-        // We use cachedSortedMarkers as the base order.
-        if (cachedSortedMarkers.length === 0) return sorted; // Fallback
+      // If dragging, we want to maintain the list order from before the drag started,
+      // but update the values of the dragging marker.
+      // We use cachedSortedMarkers as the base order.
+      if (cachedSortedMarkers.length === 0) return sorted; // Fallback
 
-        // Map cached ID order to current marker data
-        const idMap = new Map(sorted.map(m => [m.id, m]));
-        const result: GlobalMarker[] = [];
+      // Map cached ID order to current marker data
+      const idMap = new Map(sorted.map((m) => [m.id, m]));
+      const result: GlobalMarker[] = [];
 
-        // Use cached order
-        cachedSortedMarkers.forEach(cached => {
-            const current = idMap.get(cached.id);
-            if (current) {
-                result.push(current);
-                idMap.delete(cached.id);
-            }
-        });
+      // Use cached order
+      cachedSortedMarkers.forEach((cached) => {
+        const current = idMap.get(cached.id);
+        if (current) {
+          result.push(current);
+          idMap.delete(cached.id);
+        }
+      });
 
-        // Append any new markers that weren't in cache
-        idMap.forEach(m => result.push(m));
+      // Append any new markers that weren't in cache
+      idMap.forEach((m) => result.push(m));
 
-        return result;
+      return result;
     }
 
     return sorted;
@@ -166,9 +166,9 @@
         lines = [...lines];
       }
     } else {
-      const wait = sequence.find((s) => s.kind === "wait" && s.id === marker.parentId) as
-        | SequenceWaitItem
-        | undefined;
+      const wait = sequence.find(
+        (s) => s.kind === "wait" && s.id === marker.parentId,
+      ) as SequenceWaitItem | undefined;
       if (wait && wait.eventMarkers) {
         wait.eventMarkers = wait.eventMarkers.filter(
           (m) => m.id !== marker.originalId,
@@ -178,8 +178,12 @@
     }
   }
 
-  function updateMarkerPosition(marker: GlobalMarker, newVal: number, clampLocal: boolean) {
-     // Clamp to valid range
+  function updateMarkerPosition(
+    marker: GlobalMarker,
+    newVal: number,
+    clampLocal: boolean,
+  ) {
+    // Clamp to valid range
     const max = sequence.length;
     if (newVal < 0) newVal = 0;
     if (newVal > max) newVal = max;
@@ -192,8 +196,8 @@
     let newLocalPos = newVal - newIndex;
 
     if (newIndex >= sequence.length) {
-        newIndex = sequence.length - 1;
-        newLocalPos = 1.0;
+      newIndex = sequence.length - 1;
+      newLocalPos = 1.0;
     }
 
     // Check if parent changed
@@ -211,22 +215,23 @@
       if (newItem.kind === "path") {
         const line = lines.find((l) => l.id === (newItem as any).lineId);
         if (line) {
-            if (!line.eventMarkers) line.eventMarkers = [];
-            // Update context fields if needed by types (though largely unused or implicit)
-            if (newMarkerData.waitId) delete newMarkerData.waitId;
-            newMarkerData.lineIndex = lines.findIndex(l => l.id === line.id);
+          if (!line.eventMarkers) line.eventMarkers = [];
+          // Update context fields if needed by types (though largely unused or implicit)
+          if (newMarkerData.waitId) delete newMarkerData.waitId;
+          newMarkerData.lineIndex = lines.findIndex((l) => l.id === line.id);
 
-            line.eventMarkers = [...line.eventMarkers, newMarkerData];
-            lines = [...lines];
+          line.eventMarkers = [...line.eventMarkers, newMarkerData];
+          lines = [...lines];
         }
       } else {
         const wait = newItem as SequenceWaitItem;
-         if (!wait.eventMarkers) wait.eventMarkers = [];
-         if (newMarkerData.lineIndex !== undefined) delete newMarkerData.lineIndex;
-         newMarkerData.waitId = wait.id;
+        if (!wait.eventMarkers) wait.eventMarkers = [];
+        if (newMarkerData.lineIndex !== undefined)
+          delete newMarkerData.lineIndex;
+        newMarkerData.waitId = wait.id;
 
-         wait.eventMarkers = [...wait.eventMarkers, newMarkerData];
-         sequence = [...sequence];
+        wait.eventMarkers = [...wait.eventMarkers, newMarkerData];
+        sequence = [...sequence];
       }
     } else {
       // Parent is same, just update local position
@@ -245,9 +250,9 @@
   function handleGlobalPositionInput(marker: GlobalMarker, newVal: number) {
     // Start drag session if not already
     if (!draggingMarkerId) {
-        draggingMarkerId = marker.id;
-        // Snapshot current order
-        cachedSortedMarkers = [...allMarkers];
+      draggingMarkerId = marker.id;
+      // Snapshot current order
+      cachedSortedMarkers = [...allMarkers];
     }
 
     // Update marker position immediately (switching parents if needed)
@@ -274,7 +279,9 @@
   }
 </script>
 
-<div class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden">
+<div
+  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden"
+>
   <SectionHeader
     title="Event Markers"
     bind:collapsed={collapsedMarkers}
@@ -304,8 +311,8 @@
                   bind:value={marker.ref.name}
                   class="text-sm font-medium bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 rounded px-2 py-0.5 w-full"
                   on:change={() => {
-                      if (marker.parentType === 'path') lines = [...lines];
-                      else sequence = [...sequence];
+                    if (marker.parentType === "path") lines = [...lines];
+                    else sequence = [...sequence];
                   }}
                 />
               </div>
@@ -318,32 +325,49 @@
               </button>
             </div>
 
-            <div class="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
-                <span class="truncate max-w-[100px] font-mono" title={marker.parentName}>{marker.parentName}</span>
-                <span>•</span>
-                <span>Global: {marker.globalPosition.toFixed(2)}</span>
+            <div
+              class="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400"
+            >
+              <span
+                class="truncate max-w-[100px] font-mono"
+                title={marker.parentName}>{marker.parentName}</span
+              >
+              <span>•</span>
+              <span>Global: {marker.globalPosition.toFixed(2)}</span>
             </div>
 
             <div class="flex items-center gap-2">
-                 <input
-                    type="range"
-                    min="0"
-                    max={sequence.length}
-                    step="0.01"
-                    value={marker.globalPosition}
-                    class="flex-1 slider accent-purple-500"
-                    on:input={(e) => handleGlobalPositionInput(marker, parseFloat(e.currentTarget.value))}
-                    on:change={(e) => handleGlobalPositionCommit(marker, parseFloat(e.currentTarget.value))}
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max={sequence.length}
-                    step="0.01"
-                    value={parseFloat(marker.globalPosition.toFixed(2))}
-                    class="w-16 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-center"
-                    on:change={(e) => handleGlobalPositionCommit(marker, parseFloat(e.currentTarget.value))}
-                  />
+              <input
+                type="range"
+                min="0"
+                max={sequence.length}
+                step="0.01"
+                value={marker.globalPosition}
+                class="flex-1 slider accent-purple-500"
+                on:input={(e) =>
+                  handleGlobalPositionInput(
+                    marker,
+                    parseFloat(e.currentTarget.value),
+                  )}
+                on:change={(e) =>
+                  handleGlobalPositionCommit(
+                    marker,
+                    parseFloat(e.currentTarget.value),
+                  )}
+              />
+              <input
+                type="number"
+                min="0"
+                max={sequence.length}
+                step="0.01"
+                value={parseFloat(marker.globalPosition.toFixed(2))}
+                class="w-16 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-center"
+                on:change={(e) =>
+                  handleGlobalPositionCommit(
+                    marker,
+                    parseFloat(e.currentTarget.value),
+                  )}
+              />
             </div>
           </div>
         {/each}

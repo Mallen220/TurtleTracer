@@ -1,6 +1,6 @@
 ## 1.5.1 (2026-01-08)
 
-- Fixed critical error on Windows systems. Added context to the waypoint menu. 
+- Fixed critical error on Windows systems. Added context to the waypoint menu.
 
 ## 1.5.0 (2026-01-07)
 
