@@ -8,6 +8,7 @@
   import type { Point, Line, SequenceItem, Settings } from "../../types";
   import { slide } from "svelte/transition";
   import { getAngularDifference } from "../../utils/math";
+  import { notification } from "../../stores";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -220,6 +221,19 @@
       segments: segments,
     };
   }
+
+  function copyToMarkdown() {
+    if (!pathStats) return;
+
+    let md = `| Segment | Length | Time | Max V | Max ω |\n|---|---:|---:|---:|---:|\n`;
+    pathStats.segments.forEach((seg) => {
+      md += `| ${seg.name} | ${seg.length.toFixed(1)}" | ${seg.time.toFixed(2)}s | ${seg.maxVel.toFixed(1)} in/s | ${seg.maxAngVel.toFixed(1)} rad/s |\n`;
+    });
+
+    navigator.clipboard.writeText(md).then(() => {
+      notification.set({ message: "Copied stats to clipboard!", type: "success" });
+    });
+  }
 </script>
 
 {#if isOpen && pathStats}
@@ -246,26 +260,49 @@
         >
           Path Statistics
         </h2>
-        <button
-          on:click={onClose}
-          class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-          aria-label="Close"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            class="size-5"
+        <div class="flex items-center gap-2">
+          <button
+            on:click={copyToMarkdown}
+            class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+            title="Copy as Markdown"
+            aria-label="Copy statistics table as Markdown"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              class="size-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+              />
+            </svg>
+          </button>
+          <button
+            on:click={onClose}
+            class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+            aria-label="Close"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              class="size-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Summary Cards -->
