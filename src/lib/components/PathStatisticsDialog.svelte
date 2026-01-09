@@ -7,6 +7,7 @@
   } from "../../utils/timeCalculator";
   import type { Point, Line, SequenceItem, Settings } from "../../types";
   import { slide } from "svelte/transition";
+  import { getAngularDifference } from "../../utils/math";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -57,10 +58,13 @@
     let lastPoint = startPoint;
 
     // Map timePrediction segments to sequence items
-    // Filter to only travel events
-    const travelEvents = timePred.timeline.filter((e) => e.type === "travel");
+    const timeline = timePred.timeline || [];
 
-    let travelEventIndex = 0;
+    // Filter to travel and wait events
+    // Actually we iterate sequence items and find matching events.
+
+    // Index cursor for timeline
+    let timelineIndex = 0;
 
     // Re-simulation loop setup
     let simHeading =
@@ -87,20 +91,44 @@
     let _maxAng = 0;
 
     sequence.forEach((item) => {
+      // Handle Wait Item
       if (item.kind === "wait") {
+        // Find corresponding wait event
+        let event: any = null;
+        for (let i = timelineIndex; i < timeline.length; i++) {
+          const tEv = timeline[i];
+          if (tEv.type === "wait" && (tEv as any).waitId === item.id) {
+            event = tEv;
+            timelineIndex = i + 1; // Advance past this event
+            break;
+          }
+        }
+
+        // If not found (e.g. 0 duration), we still want to show the row if it exists in sequence
+        const duration = event ? event.duration : (item.durationMs / 1000); // Fallback to item duration
+
+        segments.push({
+          name: item.name || "Wait",
+          length: 0,
+          time: duration,
+          maxVel: 0,
+          maxAngVel: 0,
+          color: "#f59e0b", // Amber for wait
+        });
         return;
       }
 
+      // Handle Path Item
       const line = lineById.get(item.lineId);
       if (!line) return;
 
-      // Find corresponding travel event in timeline
+      // Find corresponding travel event
       let event: any = null;
-      // Search forward from current index
-      for (let i = travelEventIndex; i < travelEvents.length; i++) {
-        if (travelEvents[i].lineIndex === lines.findIndex((l) => l.id === line.id)) {
-          event = travelEvents[i];
-          travelEventIndex = i + 1;
+      for (let i = timelineIndex; i < timeline.length; i++) {
+        const tEv = timeline[i];
+        if (tEv.type === "travel" && tEv.lineIndex === lines.findIndex((l) => l.id === line.id)) {
+          event = tEv;
+          timelineIndex = i + 1;
           break;
         }
       }
@@ -112,11 +140,15 @@
           ? event.headingProfile[0]
           : simHeading;
 
+      const resolution = (event.motionProfile && event.motionProfile.length > 0)
+        ? event.motionProfile.length - 1
+        : ((settings as any).resolution || 100);
+
       const analysis = analyzePathSegment(
         simPoint,
         line.controlPoints as any,
         line.endPoint as any,
-        100,
+        resolution,
         startH,
       );
 
@@ -125,19 +157,32 @@
       let segMaxAng = 0;
 
       if (event.motionProfile && analysis.steps.length > 0) {
-        // motionProfile length = steps.length + 1 (start at 0)
-        // steps length = 100
         const profile = event.motionProfile;
+        const headingProfile = event.headingProfile;
+
         // Limit loop to min of both
         const len = Math.min(profile.length - 1, analysis.steps.length);
+
         for (let i = 0; i < len; i++) {
           const dt = profile[i + 1] - profile[i];
           if (dt > 1e-6) {
+            // Linear Velocity
             const step = analysis.steps[i];
             const vLin = step.deltaLength / dt;
-            const vAng = (step.rotation * (Math.PI / 180)) / dt; // rad/s
-
             if (vLin > segMaxLin) segMaxLin = vLin;
+
+            // Angular Velocity
+            // Use headingProfile if available to capture linear interpolation rotation
+            let vAng = 0;
+            if (headingProfile && headingProfile.length > i + 1) {
+                const h1 = headingProfile[i];
+                const h2 = headingProfile[i+1];
+                const diff = Math.abs(getAngularDifference(h1, h2)); // degrees
+                vAng = (diff * (Math.PI / 180)) / dt; // rad/s
+            } else {
+                // Fallback to geometric rotation only
+                vAng = (step.rotation * (Math.PI / 180)) / dt;
+            }
             if (vAng > segMaxAng) segMaxAng = vAng;
           }
         }
@@ -255,7 +300,7 @@
             >Max Vel</span
           >
           <span class="text-xl font-bold text-neutral-900 dark:text-white mt-1">
-            {pathStats.maxLinearVelocity.toFixed(1)} ip/s
+            {pathStats.maxLinearVelocity.toFixed(1)} in/s
           </span>
         </div>
         <div
