@@ -161,45 +161,48 @@
                           title="Snapping enabled">✓</span
                         >
                       {/if}
-                      {#if shape.vertices.length > 3}
+                      <div class="flex items-center gap-1 ml-auto">
                         <button
-                          title="Remove Vertex"
-                          class="text-neutral-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all ml-auto"
+                          title="Add Vertex After"
+                          class="text-neutral-400 hover:text-purple-500 transition-colors p-1"
                           on:click={() => {
-                            shape.vertices.splice(vertexIdx, 1);
+                            // Duplicate current vertex for easier editing
+                            const newVertex = { ...vertex };
+                            shape.vertices.splice(vertexIdx + 1, 0, newVertex);
                             shape.vertices = shape.vertices;
                           }}
                         >
-                          <TrashIcon className="size-3.5" strokeWidth={2} />
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width={2}
+                            stroke="currentColor"
+                            class="size-4"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 4.5v15m7.5-7.5h-15"
+                            />
+                          </svg>
                         </button>
-                      {/if}
+                        {#if shape.vertices.length > 3}
+                          <button
+                            title="Remove Vertex"
+                            class="text-neutral-400 hover:text-red-500 transition-colors p-1"
+                            on:click={() => {
+                              shape.vertices.splice(vertexIdx, 1);
+                              shape.vertices = shape.vertices;
+                            }}
+                          >
+                            <TrashIcon className="size-4" strokeWidth={2} />
+                          </button>
+                        {/if}
+                      </div>
                     </div>
                   {/each}
                 </div>
-
-                <button
-                  title="Add Vertex"
-                  on:click={() => {
-                    shape.vertices = [...shape.vertices, { x: 50, y: 50 }];
-                  }}
-                  class="flex items-center gap-1 text-xs font-medium text-purple-500 hover:text-purple-600 mt-1 self-start px-1 py-0.5 rounded hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width={2}
-                    stroke="currentColor"
-                    class="size-3.5"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 4.5v15m7.5-7.5h-15"
-                    />
-                  </svg>
-                  Add Vertex
-                </button>
               </div>
             {/if}
           </div>
