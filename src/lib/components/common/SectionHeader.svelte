@@ -10,7 +10,9 @@
   }
 </script>
 
-<div class="flex items-center justify-between w-full p-2 bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700">
+<div
+  class="flex items-center justify-between w-full p-2 bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700"
+>
   <button
     on:click={toggleCollapsed}
     class="flex items-center gap-2 font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-sm text-neutral-800 dark:text-neutral-200"
@@ -24,11 +26,17 @@
       stroke="currentColor"
       class="size-4 transition-transform {collapsed ? 'rotate-0' : 'rotate-90'}"
     >
-      <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="m8.25 4.5 7.5 7.5-7.5 7.5"
+      />
     </svg>
     {title}
     {#if count !== undefined}
-      <span class="text-xs font-normal text-neutral-500 dark:text-neutral-400">({count})</span>
+      <span class="text-xs font-normal text-neutral-500 dark:text-neutral-400"
+        >({count})</span
+      >
     {/if}
   </button>
 
@@ -46,7 +54,11 @@
         stroke="currentColor"
         class="size-4"
       >
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M12 4.5v15m7.5-7.5h-15"
+        />
       </svg>
       Add
     </button>

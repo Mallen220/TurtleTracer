@@ -349,7 +349,6 @@
         />
         <span class="text-sm font-extralight">ms</span>
       </div>
-
     </div>
   {/if}
 </div>
