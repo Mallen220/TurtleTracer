@@ -307,7 +307,10 @@
         `[data-line-index="${lineIndex}"]`,
       );
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Only call scrollIntoView if supported (jsdom in tests doesn't implement it)
+        if (typeof (el as any).scrollIntoView === "function") {
+          (el as any).scrollIntoView({ behavior: "smooth", block: "center" });
+        }
       }
     }
   }
@@ -405,6 +408,16 @@
                 placeholder="Find..."
                 bind:value={searchQuery}
                 on:input={performSearch}
+                on:keydown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                      prevMatch();
+                    } else {
+                      nextMatch();
+                    }
+                  }
+                }}
                 class="bg-transparent border-none text-sm px-2 py-1 w-32 focus:ring-0 focus:outline-none text-neutral-900 dark:text-white placeholder-neutral-500"
               />
               <span class="text-xs text-neutral-400 min-w-[3rem] text-center">
