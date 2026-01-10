@@ -88,10 +88,13 @@ describe("ExportGifDialog", () => {
     const closeBtn = getByLabelText("Close");
     await fireEvent.click(closeBtn);
 
-    // dialog should be removed from DOM
-    await waitFor(() => {
-      expect(queryByText("Export Animation")).toBeNull();
-    });
+    // dialog should be removed from DOM (allow extra time for transitions)
+    await waitFor(
+      () => {
+        expect(queryByText("Export Animation")).toBeNull();
+      },
+      { timeout: 2000 },
+    );
 
     // The exporter should have been called and aborted
     expect(exporter.exportPathToGif as any).toHaveBeenCalled();

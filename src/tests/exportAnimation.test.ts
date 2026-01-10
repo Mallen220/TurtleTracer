@@ -13,6 +13,8 @@ vi.mock("gif.js", () => {
       handlers: Record<string, Function> = {};
       constructor(options: any) {
         this.options = options;
+        // Expose last instance for tests to inspect frame count
+        (global as any).__lastGifInstance = this;
       }
       addFrame(image: any, options: any) {
         this.frames.push({ image, options });
@@ -167,6 +169,23 @@ describe("exportAnimation", () => {
       expect(mockCtx.drawImage).toHaveBeenCalled();
     });
 
+    it("should not cap frames for GIF exports", async () => {
+      const duration = 20; // seconds
+      const fps = 30;
+      const calculatedFrames = Math.ceil(duration * fps);
+      await exportPathToGif({ ...options, durationSec: duration, fps });
+      const inst = (global as any).__lastGifInstance;
+      expect(inst).toBeDefined();
+      expect(inst.frames.length).toBe(calculatedFrames);
+
+      // Ensure total delay (centiseconds) sums to duration*100 (1/100s)
+      const totalCs = inst.frames.reduce((sum: number, f: any) => {
+        const d = Math.round((f.options?.delay ?? 0) / 10);
+        return sum + d;
+      }, 0);
+      expect(totalCs).toBe(Math.round(duration * 100));
+    });
+
     it("should abort when signal is aborted (GIF)", async () => {
       const controller = new AbortController();
       const p = exportPathToGif({
@@ -212,6 +231,25 @@ describe("exportAnimation", () => {
         256,
         expect.anything(),
       );
+    });
+
+    it("should not cap frames for APNG exports", async () => {
+      const duration = 20; // seconds
+      const fps = 30;
+      const calculatedFrames = Math.ceil(duration * fps);
+      const upng = await import("upng-js");
+      await exportPathToApng({ ...options, durationSec: duration, fps });
+      // The first argument to encode is the buffers array
+      expect(upng.encode.mock.calls.length).toBeGreaterThanOrEqual(1);
+      const buffers =
+        upng.encode.mock.calls[upng.encode.mock.calls.length - 1][0];
+      expect(buffers.length).toBe(calculatedFrames);
+
+      // Ensure delays sum to total duration in ms
+      const delays =
+        upng.encode.mock.calls[upng.encode.mock.calls.length - 1][4];
+      const totalMs = delays.reduce((s: number, v: number) => s + v, 0);
+      expect(totalMs).toBe(Math.round(duration * 1000));
     });
 
     it("should abort when signal is aborted (APNG)", async () => {

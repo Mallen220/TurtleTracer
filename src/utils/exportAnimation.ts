@@ -198,137 +198,157 @@ export async function exportPathToGif(
   }
 
   const calculatedFrames = Math.ceil(durationSec * fps);
-  const MAX_FRAMES = 300;
-  const frames = Math.max(2, Math.min(calculatedFrames, MAX_FRAMES));
-  const delayMs = Math.round(1000 / fps);
+  // Use requested frame count (Est. Time * fps). Avoid a small hard cap so we don't silently drop FPS.
+  // We still ensure at least 2 frames.
+  const frames = Math.max(2, calculatedFrames);
+
+  // For GIFs, delays are stored in centiseconds (10ms) granularity; to maintain
+  // overall accuracy we distribute the total centiseconds across frames.
+  const totalCentis = Math.round(durationSec * 100); // total 1/100s
+  const baseCs = Math.floor(totalCentis / frames);
+  const remainder = totalCentis - baseCs * frames;
+  const frameCs: number[] = new Array(frames);
+  // Distribute remainder as evenly as possible across frames
+  let acc = 0;
+  for (let i = 0; i < frames; i++) {
+    acc += remainder;
+    if (acc >= frames) {
+      frameCs[i] = baseCs + 1;
+      acc -= frames;
+    } else {
+      frameCs[i] = baseCs;
+    }
+  }
 
   const framesDataURLs: string[] = [];
 
-  try {
-    for (let i = 0; i < frames; i++) {
-      if (options.signal?.aborted) throw makeAbortError();
-      const percent = (i / (frames - 1)) * 100;
-      if (animationController.seekToPercent)
-        animationController.seekToPercent(percent);
-      two.update();
+  // Frame capture loop
+  for (let i = 0; i < frames; i++) {
+    if (options.signal?.aborted) throw makeAbortError();
+    const percent = (i / (frames - 1)) * 100;
+    if (animationController.seekToPercent)
+      animationController.seekToPercent(percent);
+    two.update();
 
-      await renderFrameToCanvas(
-        ctx,
-        canvas,
-        svgEl,
-        percent,
-        options,
-        backgroundImage,
-        robotImage,
-        scale,
-      );
+    await renderFrameToCanvas(
+      ctx,
+      canvas,
+      svgEl,
+      percent,
+      options,
+      backgroundImage,
+      robotImage,
+      scale,
+    );
 
-      // Capture fallback data
+    // Capture fallback data
+    try {
+      framesDataURLs.push(canvas.toDataURL("image/png"));
+    } catch (e) {}
+
+    try {
+      // Use distributed centiseconds delays (converted to ms)
+      const delay = (frameCs[i] || 0) * 10;
+      gif.addFrame(ctx, { copy: true, delay });
+    } catch (e) {}
+
+    if (onProgress) {
+      onProgress(((i + 1) / frames) * 0.5);
+    }
+  }
+
+  // Restore before encoding stage
+  if (animationController.seekToPercent)
+    animationController.seekToPercent(prevPercent);
+  if (prevPlaying && animationController.play) animationController.play();
+
+  const p = new Promise(async (resolve, reject) => {
+    let encodeStarted = false;
+
+    const onAbort = () => {
       try {
-        framesDataURLs.push(canvas.toDataURL("image/png"));
+        (gif as any).abort?.();
       } catch (e) {}
+      reject(makeAbortError());
+    };
 
-      try {
-        gif.addFrame(ctx, { copy: true, delay: delayMs });
-      } catch (e) {}
-
-      if (onProgress) {
-        onProgress(((i + 1) / frames) * 0.5);
-      }
+    if (options.signal) {
+      if (options.signal.aborted) return reject(makeAbortError());
+      options.signal.addEventListener("abort", onAbort);
     }
 
-    // Restore before encoding stage
-    if (animationController.seekToPercent)
-      animationController.seekToPercent(prevPercent);
-    if (prevPlaying && animationController.play) animationController.play();
-
-    return await new Promise(async (resolve, reject) => {
-      let encodeStarted = false;
-
-      const onAbort = () => {
+    const fallbackTimeout = setTimeout(async () => {
+      if (!encodeStarted) {
+        console.warn(
+          "Worker encoding not detected — falling back to main-thread encode",
+        );
         try {
-          (gif as any).abort?.();
-        } catch (e) {}
-        reject(makeAbortError());
-      };
-
-      if (options.signal) {
-        if (options.signal.aborted) return reject(makeAbortError());
-        options.signal.addEventListener("abort", onAbort);
-      }
-
-      const fallbackTimeout = setTimeout(async () => {
-        if (!encodeStarted) {
-          console.warn(
-            "Worker encoding not detected — falling back to main-thread encode",
-          );
-          try {
-            const gif2 = new GIF({
-              workers: 0,
-              quality: quality,
-              width: canvas.width,
-              height: canvas.height,
-            });
-            if (onProgress) onProgress(0.5);
-            if (onProgress) {
-              gif2.on("progress", (p: number) => onProgress(0.5 + p * 0.5));
-            }
-
-            for (let i = 0; i < framesDataURLs.length; i++) {
-              if (options.signal?.aborted) return reject(makeAbortError());
-              const dataUrl = framesDataURLs[i];
-              await new Promise<void>((res, rej) => {
-                const im = new Image();
-                im.onload = () => {
-                  ctx.clearRect(0, 0, canvas.width, canvas.height);
-                  ctx.drawImage(im, 0, 0, canvas.width, canvas.height);
-                  try {
-                    gif2.addFrame(ctx, { copy: true, delay: delayMs });
-                  } catch (e) {}
-                  res();
-                };
-                im.onerror = (e) => rej(e);
-                im.src = dataUrl;
-              });
-            }
-            gif2.on("finished", (blobObj: Blob) => resolve(blobObj));
-            gif2.on("error", (err: any) => reject(err));
-            gif2.render();
-          } catch (err) {
-            reject(err);
+          const gif2 = new GIF({
+            workers: 0,
+            quality: quality,
+            width: canvas.width,
+            height: canvas.height,
+          });
+          if (onProgress) onProgress(0.5);
+          if (onProgress) {
+            gif2.on("progress", (p: number) => onProgress(0.5 + p * 0.5));
           }
+
+          for (let i = 0; i < framesDataURLs.length; i++) {
+            if (options.signal?.aborted) return reject(makeAbortError());
+            const dataUrl = framesDataURLs[i];
+            await new Promise<void>((res, rej) => {
+              const im = new Image();
+              im.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(im, 0, 0, canvas.width, canvas.height);
+                try {
+                  const delay = (frameCs[i] || 0) * 10;
+                  gif2.addFrame(ctx, { copy: true, delay });
+                } catch (e) {}
+                res();
+              };
+              im.onerror = (e) => rej(e);
+              im.src = dataUrl;
+            });
+          }
+          gif2.on("finished", (blobObj: Blob) => resolve(blobObj));
+          gif2.on("error", (err: any) => reject(err));
+          gif2.render();
+        } catch (err) {
+          reject(err);
         }
-      }, 3000);
-
-      gif.on("finished", (blobObj: Blob) => {
-        if (options.signal)
-          options.signal.removeEventListener("abort", onAbort);
-        clearTimeout(fallbackTimeout);
-        resolve(blobObj);
-      });
-      gif.on("error", (err: any) => {
-        if (options.signal)
-          options.signal.removeEventListener("abort", onAbort);
-        clearTimeout(fallbackTimeout);
-        reject(err);
-      });
-      gif.on("progress", () => {
-        encodeStarted = true;
-      });
-
-      try {
-        gif.render();
-      } catch (err) {
-        clearTimeout(fallbackTimeout);
-        reject(err);
       }
+    }, 3000);
+
+    gif.on("finished", (blobObj: Blob) => {
+      if (options.signal) options.signal.removeEventListener("abort", onAbort);
+      clearTimeout(fallbackTimeout);
+      resolve(blobObj);
     });
-  } finally {
+    gif.on("error", (err: any) => {
+      if (options.signal) options.signal.removeEventListener("abort", onAbort);
+      clearTimeout(fallbackTimeout);
+      reject(err);
+    });
+    gif.on("progress", () => {
+      encodeStarted = true;
+    });
+
+    try {
+      gif.render();
+    } catch (err) {
+      clearTimeout(fallbackTimeout);
+      reject(err);
+    }
+  });
+
+  return await p.finally(() => {
     // Ensure animation state is restored even on abort
     if (animationController.seekToPercent)
       animationController.seekToPercent(prevPercent);
     if (prevPlaying && animationController.play) animationController.play();
-  }
+  });
 }
 
 export async function exportPathToApng(
@@ -360,8 +380,9 @@ export async function exportPathToApng(
   const { backgroundImage, robotImage } = await prepareResources(options);
 
   const calculatedFrames = Math.ceil(durationSec * fps);
-  const MAX_FRAMES = 300;
-  const frames = Math.max(2, Math.min(calculatedFrames, MAX_FRAMES));
+  // Use requested frame count (Est. Time * fps). Avoid a small hard cap so we don't silently drop FPS.
+  // We still ensure at least 2 frames.
+  const frames = Math.max(2, calculatedFrames);
 
   // Precise timing calculation:
   // We want sum(delays) == durationSec * 1000

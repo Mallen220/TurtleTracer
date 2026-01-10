@@ -52,15 +52,20 @@
 
   function close() {
     if (status === "generating") {
-      // Abort generation and close dialog
-      abortController?.abort();
-      // Proceed to close and cleanup
+      // Immediately close UI and clean up state before aborting to avoid any race
       show = false;
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       previewUrl = null;
       previewBlob = null;
       status = "idle";
       progress = 0;
+
+      try {
+        abortController?.abort();
+      } catch (e) {
+        console.warn("Abort threw", e);
+      }
+
       dispatch("close");
       return;
     }
@@ -78,7 +83,11 @@
   function handleCancel() {
     if (status === "generating") {
       // Abort the ongoing generation but keep dialog open
-      abortController?.abort();
+      try {
+        abortController?.abort();
+      } catch (e) {
+        console.warn("Abort threw", e);
+      }
       statusMessage = "Cancelling...";
       return;
     }
