@@ -780,8 +780,10 @@
       sequence.length > 0
     ) {
       const waitById = new Map<string, any>();
+      const rotateById = new Map<string, any>();
       sequence.forEach((it) => {
         if (it.kind === "wait") waitById.set(it.id, it);
+        if (it.kind === "rotate") rotateById.set(it.id, it);
       });
       timePrediction.timeline.forEach((ev: any) => {
         if (ev.type !== "wait" || !ev.waitId || !ev.atPoint) return;
@@ -823,6 +825,64 @@
           flag.stroke = "none";
           flag.id = `wait-event-flag-${ev.waitId}-${eventIdx}`;
           markerGroup.add(markerCircle, flag);
+          twoMarkers.push(markerGroup);
+        });
+      });
+
+      // Rotate event markers
+      timePrediction.timeline.forEach((ev: any) => {
+        // Rotate events appear as wait type in timeline with waitId matching rotate id
+        if (ev.type !== "wait" || !ev.waitId || !ev.atPoint) return;
+        const seqRotate = rotateById.get(ev.waitId);
+        if (
+          !seqRotate ||
+          !seqRotate.eventMarkers ||
+          seqRotate.eventMarkers.length === 0
+        )
+          return;
+        const point = ev.atPoint;
+        seqRotate.eventMarkers.forEach((event: any, eventIdx: number) => {
+          const markerGroup = new Two.Group();
+          markerGroup.id = `rotate-event-${ev.waitId}-${eventIdx}`;
+          const markerCircle = new Two.Circle(
+            x(point.x),
+            y(point.y),
+            uiLength(POINT_RADIUS * 1.3),
+          );
+          markerCircle.id = `rotate-event-circle-${ev.waitId}-${eventIdx}`;
+          const rotateSelected = $selectedPointId === `rotate-${ev.waitId}`;
+          if (rotateSelected) {
+            markerCircle.fill = "#f97316";
+            markerCircle.stroke = "#fffbeb";
+            markerCircle.linewidth = uiLength(0.6);
+          } else {
+            markerCircle.fill = "#06b6d4";
+            markerCircle.stroke = "#ffffff";
+            markerCircle.linewidth = uiLength(0.3);
+          }
+          // Arrow/rotation indicator shape (circular arrow segment)
+          const arrowSize = uiLength(1);
+          const arrowPoints = [
+            new Two.Anchor(
+              x(point.x) - arrowSize / 3,
+              y(point.y) - arrowSize / 3,
+            ),
+            new Two.Anchor(
+              x(point.x) + arrowSize / 3,
+              y(point.y) - arrowSize / 3,
+            ),
+            new Two.Anchor(x(point.x) + arrowSize / 3, y(point.y)),
+            new Two.Anchor(x(point.x), y(point.y)),
+            new Two.Anchor(x(point.x), y(point.y) + arrowSize / 3),
+          ];
+          const arrow = new Two.Path(arrowPoints, false);
+          arrow.fill = "none";
+          arrow.stroke = rotateSelected ? "#fffbeb" : "#ffffff";
+          arrow.linewidth = uiLength(0.3);
+          arrow.cap = "round";
+          arrow.join = "round";
+          arrow.id = `rotate-event-arrow-${ev.waitId}-${eventIdx}`;
+          markerGroup.add(markerCircle, arrow);
           twoMarkers.push(markerGroup);
         });
       });
