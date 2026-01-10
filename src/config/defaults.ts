@@ -416,6 +416,11 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     description: "Focus Heading Input",
     action: "focusHeading",
     category: "Editing",
+    id: "open-whats-new",
+    key: "shift+n",
+    description: "Open What's New",
+    action: "openWhatsNew",
+    category: "Settings",
   },
 ];
 

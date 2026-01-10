@@ -52,6 +52,13 @@ describe("File Utils", () => {
     removeChildSpy = vi
       .spyOn(document.body, "removeChild")
       .mockImplementation(() => linkMock);
+    if (!URL.createObjectURL) {
+      URL.createObjectURL = vi.fn();
+    }
+    if (!URL.revokeObjectURL) {
+      URL.revokeObjectURL = vi.fn();
+    }
+
     createObjectURLSpy = vi
       .spyOn(URL, "createObjectURL")
       .mockReturnValue("blob:url");
