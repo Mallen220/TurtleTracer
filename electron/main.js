@@ -578,6 +578,17 @@ ipcMain.handle("renderer-ready", async (event) => {
   return true;
 });
 
+// Open a URL in the default system browser (called from renderer via preload)
+ipcMain.handle("app:open-external", async (event, url) => {
+  try {
+    await shell.openExternal(url);
+    return true;
+  } catch (err) {
+    console.warn("Failed to open external url", url, err);
+    return false;
+  }
+});
+
 // Add handler for file copy
 ipcMain.handle("file:copy", async (event, srcPath, destPath) => {
   try {

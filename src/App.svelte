@@ -75,8 +75,35 @@
     writeFileBase64?: (path: string, content: string) => Promise<boolean>;
     rendererReady?: () => Promise<void>;
     onOpenFilePath?: (callback: (path: string) => void) => void;
+    // Open a link in the system default browser
+    openExternal?: (url: string) => Promise<boolean>;
   }
   const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
+
+  // Delegated handler: open external links in the user's default browser when running in Electron
+  function handleLinkClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    if (!target || !('closest' in target)) return;
+    const anchor = target.closest('a') as HTMLAnchorElement | null;
+    if (!anchor || !anchor.href) return;
+
+    const href = anchor.href;
+    const isExternal = href.startsWith('http://') || href.startsWith('https://');
+    if (isExternal && electronAPI && electronAPI.openExternal) {
+      e.preventDefault();
+      electronAPI.openExternal(href).catch((err) =>
+        console.warn('openExternal failed', err),
+      );
+    }
+  }
+
+  onMount(() => {
+    document.addEventListener('click', handleLinkClick);
+  });
+
+  onDestroy(() => {
+    document.removeEventListener('click', handleLinkClick);
+  });
 
   // --- Layout State ---
   let showSidebar = true;
