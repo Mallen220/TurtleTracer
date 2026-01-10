@@ -51,7 +51,20 @@
   );
 
   function close() {
-    if (status === "generating") return;
+    if (status === "generating") {
+      // Abort generation and close dialog
+      abortController?.abort();
+      // Proceed to close and cleanup
+      show = false;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+      previewBlob = null;
+      status = "idle";
+      progress = 0;
+      dispatch("close");
+      return;
+    }
+
     show = false;
     // Clean up
     if (previewUrl) URL.revokeObjectURL(previewUrl);
