@@ -87,17 +87,18 @@
   // Delegated handler: open external links in the user's default browser when running in Electron
   function handleLinkClick(e: MouseEvent) {
     const target = e.target as HTMLElement;
-    if (!target || !('closest' in target)) return;
-    const anchor = target.closest('a') as HTMLAnchorElement | null;
+    if (!target || !("closest" in target)) return;
+    const anchor = target.closest("a") as HTMLAnchorElement | null;
     if (!anchor || !anchor.href) return;
 
     const href = anchor.href;
-    const isExternal = href.startsWith('http://') || href.startsWith('https://');
+    const isExternal =
+      href.startsWith("http://") || href.startsWith("https://");
     if (isExternal && electronAPI && electronAPI.openExternal) {
       e.preventDefault();
-      electronAPI.openExternal(href).catch((err) =>
-        console.warn('openExternal failed', err),
-      );
+      electronAPI
+        .openExternal(href)
+        .catch((err) => console.warn("openExternal failed", err));
     }
   }
 
@@ -261,7 +262,7 @@
     const s = get(settingsStore);
     settingsStore.set({
       ...s,
-      lastSeenVersion: currentVersion
+      lastSeenVersion: currentVersion,
     });
     // Persistence handled by debounced auto-save
   }
@@ -367,11 +368,11 @@
   });
 
   onMount(() => {
-    document.addEventListener('click', handleLinkClick);
+    document.addEventListener("click", handleLinkClick);
   });
 
   onDestroy(() => {
-    document.removeEventListener('click', handleLinkClick);
+    document.removeEventListener("click", handleLinkClick);
   });
 
   // Settings Auto-Save

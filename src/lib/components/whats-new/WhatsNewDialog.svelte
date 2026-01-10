@@ -4,7 +4,7 @@
   import MarkdownIt from "markdown-it";
   import { features } from "./features";
   // @ts-ignore
-  import changelogContent from "../../../../../CHANGELOG.md?raw";
+  import changelogContent from "../../../../CHANGELOG.md?raw";
 
   export let show = false;
 
@@ -138,12 +138,15 @@
             </div>
 
             {#if features.length === 0}
-               <div class="text-center py-12 text-neutral-500">
-                 <p>No feature highlights available for this version.</p>
-                 <button class="text-purple-500 hover:underline mt-2" on:click={() => activeTab = 'changelog'}>
-                   View Changelog
-                 </button>
-               </div>
+              <div class="text-center py-12 text-neutral-500">
+                <p>No feature highlights available for this version.</p>
+                <button
+                  class="text-purple-500 hover:underline mt-2"
+                  on:click={() => (activeTab = "changelog")}
+                >
+                  View Changelog
+                </button>
+              </div>
             {/if}
           </div>
         {:else}
@@ -217,7 +220,13 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 </style>
