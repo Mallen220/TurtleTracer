@@ -473,7 +473,7 @@
                 >
                   Safety Margin (in)
                   <div class="text-xs text-neutral-500 dark:text-neutral-400">
-                    Buffer around obstacles
+                    Buffer around obstacles and field boundaries
                   </div>
                 </label>
                 <input
