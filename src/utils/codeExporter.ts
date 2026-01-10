@@ -168,10 +168,13 @@ export async function generateJavaCode(
   const targetSequence =
     sequence && sequence.length > 0
       ? sequence
-      : lines.map((line, i) => ({
-          kind: "path",
-          lineId: line.id || `line-${i + 1}`,
-        } as any));
+      : lines.map(
+          (line, i) =>
+            ({
+              kind: "path",
+              lineId: line.id || `line-${i + 1}`,
+            }) as any,
+        );
 
   targetSequence.forEach((item) => {
     stateMachineCode += `\n        case ${stateStep}:`;

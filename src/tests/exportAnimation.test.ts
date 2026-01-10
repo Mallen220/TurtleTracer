@@ -169,7 +169,12 @@ describe("exportAnimation", () => {
 
     it("should abort when signal is aborted (GIF)", async () => {
       const controller = new AbortController();
-      const p = exportPathToGif({ ...options, durationSec: 0.5, fps: 15, signal: controller.signal });
+      const p = exportPathToGif({
+        ...options,
+        durationSec: 0.5,
+        fps: 15,
+        signal: controller.signal,
+      });
       setTimeout(() => controller.abort(), 10);
       await expect(p).rejects.toHaveProperty("name", "AbortError");
     });
@@ -211,7 +216,12 @@ describe("exportAnimation", () => {
 
     it("should abort when signal is aborted (APNG)", async () => {
       const controller = new AbortController();
-      const p = exportPathToApng({ ...options, durationSec: 0.5, fps: 15, signal: controller.signal });
+      const p = exportPathToApng({
+        ...options,
+        durationSec: 0.5,
+        fps: 15,
+        signal: controller.signal,
+      });
       setTimeout(() => controller.abort(), 10);
       await expect(p).rejects.toHaveProperty("name", "AbortError");
     });

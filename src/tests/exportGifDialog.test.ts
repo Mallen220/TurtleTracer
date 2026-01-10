@@ -10,7 +10,10 @@ vi.mock("../utils/exportAnimation", async () => {
     ...actual,
     exportPathToGif: vi.fn(async (opts: any) => {
       return await new Promise<Blob>((resolve, reject) => {
-        const timeout = setTimeout(() => resolve(new Blob(["gif"], { type: "image/gif" })), 50);
+        const timeout = setTimeout(
+          () => resolve(new Blob(["gif"], { type: "image/gif" })),
+          50,
+        );
         const onAbort = () => {
           clearTimeout(timeout);
           const e = new Error("Aborted");
@@ -22,7 +25,10 @@ vi.mock("../utils/exportAnimation", async () => {
     }),
     exportPathToApng: vi.fn(async (opts: any) => {
       return await new Promise<Blob>((resolve, reject) => {
-        const timeout = setTimeout(() => resolve(new Blob(["png"], { type: "image/png" })), 50);
+        const timeout = setTimeout(
+          () => resolve(new Blob(["png"], { type: "image/png" })),
+          50,
+        );
         const onAbort = () => {
           clearTimeout(timeout);
           const e = new Error("Aborted");
@@ -64,7 +70,10 @@ describe("ExportGifDialog", () => {
   });
 
   it("X button aborts generation and closes dialog", async () => {
-    const { getByText, getByLabelText, queryByText, container } = render(ExportGifDialog, props as any);
+    const { getByText, getByLabelText, queryByText, container } = render(
+      ExportGifDialog,
+      props as any,
+    );
 
     // Start generation
     const genBtn = getByText("Generate Preview");
@@ -85,6 +94,6 @@ describe("ExportGifDialog", () => {
     });
 
     // The exporter should have been called and aborted
-    expect((exporter.exportPathToGif as any)).toHaveBeenCalled();
+    expect(exporter.exportPathToGif as any).toHaveBeenCalled();
   });
 });

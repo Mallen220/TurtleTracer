@@ -409,7 +409,7 @@
                 bind:value={searchQuery}
                 on:input={performSearch}
                 on:keydown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     e.preventDefault();
                     if (e.shiftKey) {
                       prevMatch();

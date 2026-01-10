@@ -301,12 +301,14 @@ export async function exportPathToGif(
       }, 3000);
 
       gif.on("finished", (blobObj: Blob) => {
-        if (options.signal) options.signal.removeEventListener("abort", onAbort);
+        if (options.signal)
+          options.signal.removeEventListener("abort", onAbort);
         clearTimeout(fallbackTimeout);
         resolve(blobObj);
       });
       gif.on("error", (err: any) => {
-        if (options.signal) options.signal.removeEventListener("abort", onAbort);
+        if (options.signal)
+          options.signal.removeEventListener("abort", onAbort);
         clearTimeout(fallbackTimeout);
         reject(err);
       });
