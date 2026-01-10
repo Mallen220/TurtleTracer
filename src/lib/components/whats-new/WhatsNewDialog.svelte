@@ -1,10 +1,14 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import { createEventDispatcher, onMount } from "svelte";
+  import { createEventDispatcher } from "svelte";
   import MarkdownIt from "markdown-it";
   import { features } from "./features";
+  import { pages, type Page } from "./pages";
   // @ts-ignore
   import changelogContent from "../../../../CHANGELOG.md?raw";
+  // Import app version from package.json so the UI shows the real version at build time
+  // @ts-ignore
+  import pkg from "../../../../package.json";
 
   export let show = false;
 
@@ -15,7 +19,11 @@
     typographer: true,
   });
 
-  let activeTab: "features" | "changelog" = "features";
+  // Navigation state
+  let activeTab: "home" | "changelog" = "home";
+  let currentView: "grid" | "content" = "grid";
+  let activePage: Page | null = null;
+  let activeFeatureId: string | null = null;
 
   function close() {
     dispatch("close");
@@ -23,25 +31,84 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && show) {
-      close();
+      if (currentView === "content" && activeTab === "home") {
+        goBack();
+      } else {
+        close();
+      }
     }
   }
 
-  // Render markdown content
-  $: featuresHtml = features
-    .map(
-      (f) => `
-      <div class="mb-8 border-b border-neutral-200 dark:border-neutral-700 pb-6 last:border-0">
-        <h2 class="text-xl font-bold mb-4 text-purple-600 dark:text-purple-400">${f.title}</h2>
-        <div class="markdown-body text-neutral-800 dark:text-neutral-200">
-          ${md.render(f.content)}
-        </div>
-      </div>
-    `,
-    )
-    .join("");
+  function handlePageClick(page: Page) {
+    if (page.type === "changelog") {
+      activeTab = "changelog";
+      return;
+    }
 
-  $: changelogHtml = md.render(changelogContent);
+    if (page.type === "highlight") {
+      if (page.highlightId) {
+        activeFeatureId = page.highlightId;
+        activePage = page;
+        currentView = "content";
+      }
+      return;
+    }
+
+    if (page.type === "page") {
+      activePage = page;
+      currentView = "content";
+    }
+  }
+
+  function goBack() {
+    currentView = "grid";
+    activePage = null;
+    activeFeatureId = null;
+  }
+
+  function switchToHome() {
+    activeTab = "home";
+    currentView = "grid";
+    activePage = null;
+    activeFeatureId = null;
+  }
+
+  // Render markdown content
+  // We only render the active content now
+  $: activeContentHtml = (() => {
+    if (activeTab === "changelog") {
+      return md.render(changelogContent);
+    }
+
+    if (activeFeatureId) {
+      const feature = features.find((f) => f.id === activeFeatureId);
+      return feature ? md.render(feature.content) : "";
+    }
+
+    if (activePage && activePage.content) {
+      return md.render(activePage.content);
+    }
+
+    return "";
+  })();
+
+  // Icons
+  const icons: Record<string, string> = {
+    sparkles: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>`,
+    rocket: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>`,
+    keyboard: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" ry="2"/><path d="M6 8h.001"/><path d="M10 8h.001"/><path d="M14 8h.001"/><path d="M18 8h.001"/><path d="M6 12h.001"/><path d="M10 12h.001"/><path d="M14 12h.001"/><path d="M18 12h.001"/><path d="M7 16h10"/></svg>`,
+    "file-text": `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>`,
+  };
+
+  // Application version read from package.json (set at build time)
+  const appVersion: string = (pkg as any)?.version ?? "?.?.?";
+
+  $: title =
+    activeTab === "changelog"
+      ? "Full Changelog"
+      : currentView === "content" && activePage
+        ? activePage.title
+        : "What's New";
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -54,22 +121,47 @@
     aria-labelledby="whats-new-title"
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden border border-neutral-200 dark:border-neutral-700"
+      class="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden border border-neutral-200 dark:border-neutral-700 transition-all duration-200"
     >
       <!-- Header -->
       <div
         class="flex-none p-6 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center bg-neutral-50 dark:bg-neutral-800"
       >
-        <div>
-          <h1
-            id="whats-new-title"
-            class="text-2xl font-bold text-neutral-900 dark:text-white flex items-center gap-2"
-          >
-            <span>🎉</span> What's New
-          </h1>
-          <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-            Check out the latest updates and improvements.
-          </p>
+        <div class="flex items-center gap-4">
+          {#if activeTab === "changelog" || (activeTab === "home" && currentView === "content")}
+            <button
+              class="p-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors"
+              on:click={() =>
+                activeTab === "changelog" ? switchToHome() : goBack()}
+              aria-label="Back"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
+              </svg>
+            </button>
+          {/if}
+          <div>
+            <h1
+              id="whats-new-title"
+              class="text-2xl font-bold text-neutral-900 dark:text-white flex items-center gap-2"
+            >
+              {#if activeTab === "home" && currentView === "grid"}
+                <span>🎉</span>
+              {/if}
+              {title}
+            </h1>
+          </div>
         </div>
         <button
           class="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors"
@@ -93,81 +185,62 @@
         </button>
       </div>
 
-      <!-- Tabs -->
-      <div
-        class="flex-none flex border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900"
-      >
-        <button
-          class="flex-1 py-4 text-sm font-medium border-b-2 transition-colors relative"
-          class:border-purple-500={activeTab === "features"}
-          class:text-purple-600={activeTab === "features"}
-          class:dark:text-purple-400={activeTab === "features"}
-          class:border-transparent={activeTab !== "features"}
-          class:text-neutral-500={activeTab !== "features"}
-          class:dark:text-neutral-400={activeTab !== "features"}
-          class:hover:text-neutral-700={activeTab !== "features"}
-          class:dark:hover:text-neutral-300={activeTab !== "features"}
-          on:click={() => (activeTab = "features")}
-        >
-          ✨ Highlights
-        </button>
-        <button
-          class="flex-1 py-4 text-sm font-medium border-b-2 transition-colors relative"
-          class:border-purple-500={activeTab === "changelog"}
-          class:text-purple-600={activeTab === "changelog"}
-          class:dark:text-purple-400={activeTab === "changelog"}
-          class:border-transparent={activeTab !== "changelog"}
-          class:text-neutral-500={activeTab !== "changelog"}
-          class:dark:text-neutral-400={activeTab !== "changelog"}
-          class:hover:text-neutral-700={activeTab !== "changelog"}
-          class:dark:hover:text-neutral-300={activeTab !== "changelog"}
-          on:click={() => (activeTab = "changelog")}
-        >
-          📝 Full Changelog
-        </button>
-      </div>
-
       <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-0 bg-white dark:bg-neutral-900">
-        {#if activeTab === "features"}
-          <div class="p-8 max-w-3xl mx-auto animate-fade-in">
-            <!-- Features Content -->
-            <!-- Use a wrapper for prose styling -->
-            <div class="prose dark:prose-invert max-w-none">
-              {@html featuresHtml}
+      <div class="flex-1 overflow-y-auto bg-white dark:bg-neutral-900">
+        {#if activeTab === "home" && currentView === "grid"}
+          <div class="p-8 max-w-5xl mx-auto animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {#each pages as page}
+                <button
+                  class="group flex flex-col items-start p-6 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:border-purple-500 dark:hover:border-purple-500 bg-neutral-50 dark:bg-neutral-800/50 hover:bg-white dark:hover:bg-neutral-800 transition-all duration-200 shadow-sm hover:shadow-md text-left w-full h-full"
+                  on:click={() => handlePageClick(page)}
+                >
+                  <div
+                    class="p-3 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform duration-200"
+                  >
+                    {@html icons[page.icon] || icons["sparkles"]}
+                  </div>
+                  <h3
+                    class="text-lg font-bold text-neutral-900 dark:text-white mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors"
+                  >
+                    {page.title}
+                  </h3>
+                  <p
+                    class="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed"
+                  >
+                    {page.description}
+                  </p>
+                </button>
+              {/each}
             </div>
 
-            {#if features.length === 0}
-              <div class="text-center py-12 text-neutral-500">
-                <p>No feature highlights available for this version.</p>
-                <button
-                  class="text-purple-500 hover:underline mt-2"
-                  on:click={() => (activeTab = "changelog")}
-                >
-                  View Changelog
-                </button>
-              </div>
-            {/if}
+            <!-- Version info footer -->
+            <div
+              class="mt-12 text-center text-sm text-neutral-400 dark:text-neutral-600"
+            >
+              Pedro Pathing Visualizer v{appVersion}
+            </div>
           </div>
         {:else}
           <div class="p-8 max-w-3xl mx-auto animate-fade-in">
             <div class="prose dark:prose-invert max-w-none">
-              {@html changelogHtml}
+              {@html activeContentHtml}
             </div>
+
+            {#if activeTab === "home" && currentView === "content"}
+              <div
+                class="mt-12 pt-6 border-t border-neutral-200 dark:border-neutral-700 flex justify-center"
+              >
+                <button
+                  class="px-6 py-2 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-sm font-medium"
+                  on:click={goBack}
+                >
+                  Back to Overview
+                </button>
+              </div>
+            {/if}
           </div>
         {/if}
-      </div>
-
-      <!-- Footer -->
-      <div
-        class="flex-none p-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 flex justify-end"
-      >
-        <button
-          class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors shadow-sm"
-          on:click={close}
-        >
-          Got it!
-        </button>
       </div>
     </div>
   </div>

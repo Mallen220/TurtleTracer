@@ -87,3 +87,9 @@ src/lib/components/whats-new/features/index.ts
 src/lib/components/whats-new/features/v1.5.1.md
 src/utils/codeExporter.ts
 test-results/.last-run.json
+src/lib/components/whats-new/features/v1.5.2.md
+src/lib/components/whats-new/features/v1.6.0.md
+src/lib/components/whats-new/features/v2.0.0.md
+src/lib/components/whats-new/pages/controls.md
+src/lib/components/whats-new/pages/getting-started.md
+src/lib/components/whats-new/pages/index.ts
