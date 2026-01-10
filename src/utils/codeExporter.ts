@@ -161,6 +161,77 @@ export async function generateJavaCode(
     `;
   }
 
+  // Generate state machine logic
+  let stateMachineCode = "";
+  let stateStep = 0;
+
+  const targetSequence =
+    sequence && sequence.length > 0
+      ? sequence
+      : lines.map((line, i) => ({
+          kind: "path",
+          lineId: line.id || `line-${i + 1}`,
+        } as any));
+
+  targetSequence.forEach((item) => {
+    stateMachineCode += `\n        case ${stateStep}:`;
+
+    if (item.kind === "path") {
+      const lineIndex = lines.findIndex(
+        (l) =>
+          (l.id || `line-${lines.indexOf(l) + 1}`) === (item as any).lineId,
+      );
+
+      const idx = lineIndex !== -1 ? lineIndex : -1;
+
+      if (idx !== -1) {
+        stateMachineCode += `\n          follower.followPath(paths.${pathChainNames[idx]}, true);`;
+        stateMachineCode += `\n          setPathState(${stateStep + 1});`;
+        stateMachineCode += `\n          break;`;
+
+        stateMachineCode += `\n        case ${stateStep + 1}:`;
+        stateMachineCode += `\n          if(!follower.isBusy()) {`;
+        stateMachineCode += `\n            setPathState(${stateStep + 2});`;
+        stateMachineCode += `\n          }`;
+        stateMachineCode += `\n          break;`;
+        stateStep += 2;
+      } else {
+        stateMachineCode += `\n          setPathState(${stateStep + 1});`;
+        stateMachineCode += `\n          break;`;
+        stateStep += 1;
+      }
+    } else if (item.kind === "wait") {
+      const waitMs = (item as any).durationMs || 0;
+      stateMachineCode += `\n          setPathState(${stateStep + 1});`;
+      stateMachineCode += `\n          break;`;
+
+      stateMachineCode += `\n        case ${stateStep + 1}:`;
+      stateMachineCode += `\n          if(pathTimer.getMilliseconds() > ${waitMs}) {`;
+      stateMachineCode += `\n            setPathState(${stateStep + 2});`;
+      stateMachineCode += `\n          }`;
+      stateMachineCode += `\n          break;`;
+      stateStep += 2;
+    } else if (item.kind === "rotate") {
+      const degrees = (item as any).degrees || 0;
+      const radians = (degrees * Math.PI) / 180;
+      stateMachineCode += `\n          follower.turnTo(${radians.toFixed(3)});`;
+      stateMachineCode += `\n          setPathState(${stateStep + 1});`;
+      stateMachineCode += `\n          break;`;
+
+      stateMachineCode += `\n        case ${stateStep + 1}:`;
+      stateMachineCode += `\n          if(!follower.isBusy()) {`;
+      stateMachineCode += `\n            setPathState(${stateStep + 2});`;
+      stateMachineCode += `\n          }`;
+      stateMachineCode += `\n          break;`;
+      stateStep += 2;
+    }
+  });
+
+  stateMachineCode += `\n        case ${stateStep}:`;
+  stateMachineCode += `\n          requestOpModeStop();`;
+  stateMachineCode += `\n          pathState = -1;`;
+  stateMachineCode += `\n          break;`;
+
   let file = "";
   if (!exportFullCode) {
     file =
@@ -172,6 +243,7 @@ export async function generateJavaCode(
     package ${packageName};
     import com.qualcomm.robotcore.eventloop.opmode.OpMode;
     import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+    import com.qualcomm.robotcore.util.ElapsedTime;
     import com.bylazar.configurables.annotations.Configurable;
     import com.bylazar.telemetry.TelemetryManager;
     import com.bylazar.telemetry.PanelsTelemetry;
@@ -189,6 +261,7 @@ export async function generateJavaCode(
       private TelemetryManager panelsTelemetry; // Panels Telemetry instance
       public Follower follower; // Pedro Pathing follower instance
       private int pathState; // Current autonomous path state (state machine)
+      private ElapsedTime pathTimer; // Timer for path state machine
       private Paths paths; // Paths defined in the Paths class
       
       @Override
@@ -198,6 +271,7 @@ export async function generateJavaCode(
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose(72, 8, Math.toRadians(90)));
 
+        pathTimer = new ElapsedTime();
         paths = new Paths(follower); // Build paths
 
         panelsTelemetry.debug("Status", "Initialized");
@@ -220,9 +294,15 @@ export async function generateJavaCode(
       ${pathsClass}
 
       public int autonomousPathUpdate() {
-          // Event markers will automatically trigger at their positions
-          // Make sure to register NamedCommands in your RobotContainer
-          return pathState;
+        switch (pathState) {
+          ${stateMachineCode}
+        }
+        return pathState;
+      }
+
+      public void setPathState(int pState) {
+        pathState = pState;
+        pathTimer.reset();
       }
       
       ${namedCommandsSection}
@@ -509,6 +589,18 @@ export async function generateSequentialCommandCode(
   const seq = sequence && sequence.length ? sequence : defaultSequence;
 
   seq.forEach((item, idx) => {
+    if (item.kind === "rotate") {
+      const rotateItem: any = item as any;
+      const degrees = rotateItem.degrees || 0;
+      const radians = (degrees * Math.PI) / 180;
+
+      commands.push(
+        `                new ${InstantCmdClass}(() -> follower.turnTo(${radians.toFixed(3)})),`,
+        `                new ${WaitUntilCmdClass}(() -> !follower.isBusy())`,
+      );
+      return;
+    }
+
     if (item.kind === "wait") {
       const waitItem: any = item as any;
       const waitDuration = waitItem.durationMs || 0;
