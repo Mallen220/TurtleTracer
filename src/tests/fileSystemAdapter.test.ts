@@ -48,7 +48,7 @@ vi.mock("../stores", () => ({
   },
 }));
 
-describe("Directory Settings", () => {
+describe("Directory Settings & File Handlers", () => {
   beforeEach(() => {
     vi.resetModules(); // Reset modules to ensure top-level code re-runs
     vi.resetAllMocks();
@@ -141,6 +141,80 @@ describe("Directory Settings", () => {
         "/app/data/directory-settings.json",
         expect.stringContaining('"/updated/dir"'),
       );
+    });
+  });
+
+  describe("fileHandlers", () => {
+    describe("loadRecentFile", () => {
+      it("should alert if electronAPI is missing", async () => {
+        delete (window as any).electronAPI;
+        const { loadRecentFile } = await import("../utils/fileHandlers");
+        const alertMock = vi
+          .spyOn(window, "alert")
+          .mockImplementation(() => {});
+
+        await loadRecentFile("test.pp");
+        expect(alertMock).toHaveBeenCalledWith(
+          "Cannot load files in this environment",
+        );
+      });
+
+      it("should prompt to remove if file does not exist", async () => {
+        mockElectronAPI.fileExists.mockResolvedValue(false);
+        const { loadRecentFile } = await import("../utils/fileHandlers");
+        const confirmMock = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+        await loadRecentFile("test.pp");
+
+        expect(confirmMock).toHaveBeenCalled();
+      });
+
+      it("should load file if it exists", async () => {
+        mockElectronAPI.fileExists.mockResolvedValue(true);
+        mockElectronAPI.readFile.mockResolvedValue(
+          '{"startPoint": { "x":0, "y":0 }}',
+        );
+        const { loadRecentFile } = await import("../utils/fileHandlers");
+
+        await loadRecentFile("test.pp");
+
+        expect(mockElectronAPI.readFile).toHaveBeenCalledWith("test.pp");
+      });
+    });
+
+    describe("handleExternalFileOpen", () => {
+      it("should copy file if not in saved directory and user confirms", async () => {
+        mockElectronAPI.readFile.mockResolvedValue("{}");
+        mockElectronAPI.getSavedDirectory.mockResolvedValue("/project/dir");
+        mockElectronAPI.fileExists.mockResolvedValue(false); // Destination doesn't exist
+        mockElectronAPI.copyFile.mockResolvedValue(true);
+
+        const { handleExternalFileOpen } =
+          await import("../utils/fileHandlers");
+        const confirmMock = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+        await handleExternalFileOpen("/downloads/external.pp");
+
+        expect(confirmMock).toHaveBeenCalled();
+        expect(mockElectronAPI.copyFile).toHaveBeenCalledWith(
+          "/downloads/external.pp",
+          expect.stringContaining("/project/dir"),
+        );
+      });
+
+      it("should just load if in saved directory", async () => {
+        mockElectronAPI.readFile.mockResolvedValue("{}");
+        mockElectronAPI.getSavedDirectory.mockResolvedValue("/project/dir");
+
+        const { handleExternalFileOpen } =
+          await import("../utils/fileHandlers");
+        const confirmMock = vi.spyOn(window, "confirm");
+
+        // Simulate file path being inside the project dir
+        await handleExternalFileOpen("/project/dir/file.pp");
+
+        expect(confirmMock).not.toHaveBeenCalled();
+      });
     });
   });
 });
