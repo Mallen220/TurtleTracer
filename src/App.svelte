@@ -799,12 +799,27 @@
     <!-- Control Tab -->
     <div
       bind:this={controlTabContainer}
-      class="flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-transform duration-300 ease-in-out transform bg-neutral-50 dark:bg-neutral-900"
+      class="relative flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-transform duration-300 ease-in-out transform bg-neutral-50 dark:bg-neutral-900"
       class:translate-x-full={!showSidebar && isLargeScreen}
       class:translate-y-full={!showSidebar && !isLargeScreen}
       class:overflow-hidden={!showSidebar}
       class:hidden={controlTabHidden}
+      class:controlTabBlurred={statsOpen}
     >
+      {#if statsOpen}
+        <div
+          class="control-tab-overlay absolute inset-0 z-40"
+          role="button"
+          aria-label="Dismiss statistics"
+          tabindex="0"
+          on:click={() => (statsOpen = false)}
+          on:keydown={(e) => {
+            if (e.key === "Enter" || e.key === " " || e.key === "Spacebar")
+              statsOpen = false;
+          }}
+        ></div>
+      {/if}
+
       <ControlTab
         bind:this={controlTabRef}
         bind:playing={$playingStore}
@@ -834,3 +849,27 @@
     </div>
   </div>
 </div>
+
+<style>
+  /* Blur the control tab when the stats panel is open; clicking the background closes the panel */
+  .controlTabBlurred {
+    filter: blur(4px);
+    opacity: 0.88;
+    transition:
+      filter 0.15s ease,
+      opacity 0.15s ease;
+    position: relative;
+  }
+
+  /* Overlay that sits above the control tab contents while stats are open */
+  .control-tab-overlay {
+    cursor: pointer;
+    background: transparent; /* keep blurred visuals visible */
+    outline: none;
+  }
+
+  .control-tab-overlay:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    border-radius: 8px;
+  }
+</style>
