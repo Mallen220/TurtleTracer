@@ -110,3 +110,5 @@ verification/full_changelog.png
 verification/getting_started.png
 verification/recent_highlights.png
 verification/whats_new_grid.png
+verification/verify_whats_new.py
+verification/page_content.html

@@ -29,7 +29,7 @@ export interface Page {
   description: string;
   icon: string; // Icon name (key in icons object)
   content?: string; // Markdown content
-  type: "page" | "highlight" | "changelog" | "external";
+  type: "page" | "highlight" | "changelog" | "external" | "release-list";
   highlightId?: string; // For linking to a specific highlight
   url?: string; // For external links
 }
@@ -37,11 +37,18 @@ export interface Page {
 export const pages: Page[] = [
   {
     id: "recent-highlights",
-    title: "Recent Highlights",
+    title: "Latest Highlights",
     description: "Check out the most recent updates and features.",
     type: "highlight",
     highlightId: features[0]?.id, // Default to the latest feature
     icon: "sparkles",
+  },
+  {
+    id: "release-notes",
+    title: "Release Notes",
+    description: "View highlights from previous versions.",
+    type: "release-list",
+    icon: "clock",
   },
   {
     id: "getting-started",
