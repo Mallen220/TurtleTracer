@@ -671,6 +671,7 @@
   {recordChange}
   bind:controlTabRef
   bind:activeControlTab
+  toggleStats={() => (statsOpen = !statsOpen)}
 />
 
 {#if $showExportGif && fieldRenderer}

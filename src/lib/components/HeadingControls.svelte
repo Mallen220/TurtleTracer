@@ -24,6 +24,18 @@
     }
     dispatch("commit");
   }
+
+  let constantInput: HTMLInputElement;
+  let startInput: HTMLInputElement;
+  let endInput: HTMLInputElement;
+  let reverseInput: HTMLInputElement;
+
+  export function focus() {
+    if (endPoint.heading === "constant" && constantInput) constantInput.focus();
+    else if (endPoint.heading === "linear" && startInput) startInput.focus();
+    else if (endPoint.heading === "tangential" && reverseInput)
+      reverseInput.focus();
+  }
 </script>
 
 <select
@@ -70,6 +82,7 @@ With tangential heading, the heading follows the direction of the line."
     >
       Start:
       <input
+        bind:this={startInput}
         class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-20 sm:w-28 text-black dark:text-white"
         step="1"
         type="number"
@@ -88,6 +101,7 @@ With tangential heading, the heading follows the direction of the line."
     >
       End:
       <input
+        bind:this={endInput}
         class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-20 sm:w-28 text-black dark:text-white"
         step="1"
         type="number"
@@ -109,6 +123,7 @@ With tangential heading, the heading follows the direction of the line."
     >
       Deg:
       <input
+        bind:this={constantInput}
         class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-20 sm:w-28 text-black dark:text-white"
         step="1"
         type="number"
@@ -127,6 +142,7 @@ With tangential heading, the heading follows the direction of the line."
   <label class="flex items-center gap-2 cursor-pointer">
     <span class="text-sm font-extralight select-none">Reverse:</span>
     <input
+      bind:this={reverseInput}
       type="checkbox"
       bind:checked={endPoint.reverse}
       on:change={() => dispatch("change")}
