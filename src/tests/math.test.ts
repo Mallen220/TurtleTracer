@@ -10,6 +10,7 @@ import {
   easeInOutQuad,
   radiansToDegrees,
   getCurvePoint,
+  getTangentAngle,
 } from "../utils/math";
 
 describe("Math Utils", () => {
@@ -100,19 +101,80 @@ describe("Math Utils", () => {
   });
 
   describe("getCurvePoint", () => {
-    it("calculates point on bezier curve", () => {
+    it("calculates point on linear curve", () => {
+      const points = [
+        { x: 0, y: 0 },
+        { x: 10, y: 10 },
+      ];
+      const p = getCurvePoint(0.5, points);
+      expect(p.x).toBeCloseTo(5);
+      expect(p.y).toBeCloseTo(5);
+    });
+
+    it("calculates point on quadratic bezier curve", () => {
       const points = [
         { x: 0, y: 0 },
         { x: 10, y: 10 },
         { x: 20, y: 0 },
       ];
       // At t=0.5, a quadratic bezier with these points is at (10, 5)
-      // P = (1-t)^2 P0 + 2(1-t)t P1 + t^2 P2
-      // P = 0.25*(0,0) + 0.5*(10,10) + 0.25*(20,0)
-      // P = (0,0) + (5,5) + (5,0) = (10,5)
       const p = getCurvePoint(0.5, points);
       expect(p.x).toBeCloseTo(10);
       expect(p.y).toBeCloseTo(5);
+    });
+
+    it("calculates point on cubic bezier curve", () => {
+      const points = [
+        { x: 0, y: 0 },
+        { x: 10, y: 10 },
+        { x: 20, y: 10 },
+        { x: 30, y: 0 },
+      ];
+      // Simple cubic case
+      const p = getCurvePoint(0.5, points);
+      expect(p.x).toBeCloseTo(15);
+      expect(p.y).toBeCloseTo(7.5);
+    });
+
+    it("calculates point on single point", () => {
+      const points = [{ x: 5, y: 5 }];
+      const p = getCurvePoint(0.5, points);
+      expect(p.x).toBe(5);
+      expect(p.y).toBe(5);
+    });
+
+    it("calculates point on higher order curve (recursive fallback)", () => {
+      const points = [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 10 },
+        { x: 0, y: 10 },
+        { x: 0, y: 0 },
+      ];
+      const p = getCurvePoint(0.5, points);
+      // Fallback works recursively
+      expect(p.x).toBeDefined();
+      expect(p.y).toBeDefined();
+    });
+  });
+
+  describe("getTangentAngle", () => {
+    it("calculates angle in degrees between two points", () => {
+      const p1 = { x: 0, y: 0 };
+      const p2 = { x: 1, y: 1 };
+      expect(getTangentAngle(p1, p2)).toBe(45);
+    });
+
+    it("handles vertical lines", () => {
+      const p1 = { x: 0, y: 0 };
+      const p2 = { x: 0, y: 1 };
+      expect(getTangentAngle(p1, p2)).toBe(90);
+    });
+
+    it("handles horizontal lines", () => {
+      const p1 = { x: 0, y: 0 };
+      const p2 = { x: 1, y: 0 };
+      expect(getTangentAngle(p1, p2)).toBe(0);
     });
   });
 });

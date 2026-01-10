@@ -1,6 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
-import { calculatePathTime, formatTime } from "../utils/timeCalculator";
+import {
+  calculatePathTime,
+  formatTime,
+  analyzePathSegment,
+} from "../utils/timeCalculator";
 import type { Point, Line, Settings, SequenceItem } from "../types";
 
 describe("Time Calculator", () => {
@@ -142,5 +146,51 @@ describe("Time Calculator", () => {
     // With angular acceleration logic (maxAccel=5, rWidth=18 -> alpha=0.55),
     // time to rotate 90 deg (1.57 rad) is ~3.36s (triangle profile).
     expect(rotationEvents[0].duration).toBeCloseTo(3.36, 1);
+  });
+
+  describe("analyzePathSegment", () => {
+    it("should return correct steps for a linear path", () => {
+      const p1 = { x: 0, y: 0 };
+      const p2 = { x: 10, y: 0 };
+      const controlPoints: Point[] = [];
+      const headingConfig = { heading: "constant", degrees: 0 } as any;
+
+      const steps = analyzePathSegment(
+        p1,
+        controlPoints, // Corrected signature: p1, cps, p2
+        p2,
+        50, // samples
+        0, // initialHeading
+      );
+
+      // Should have steps covering the distance 10
+      // 50 samples = 50 intervals.
+      // steps array has length 50 (i=1 to 50)
+      expect(steps.steps.length).toBe(50);
+      expect(steps.length).toBeCloseTo(10);
+    });
+
+    it("should calculate curvature for bezier", () => {
+      const p1 = { x: 0, y: 0 };
+      const p2 = { x: 10, y: 10 };
+      const controlPoints = [{ x: 10, y: 0 }]; // Quadratic bezier
+      const headingConfig = { heading: "constant", degrees: 0 } as any;
+
+      const steps = analyzePathSegment(
+        p1,
+        controlPoints, // Corrected signature
+        p2,
+        50,
+        0,
+      );
+
+      expect(steps.steps.length).toBe(50);
+      // Midpoint curvature should be non-zero
+      const midStep = steps.steps[Math.floor(steps.steps.length / 2)];
+      // For a quadratic bezier with P0(0,0), P1(10,0), P2(10,10)
+      // At t=0.5, P=(7.5, 2.5) -> No, P=(0.25*0 + 0.5*10 + 0.25*10, ...) = (7.5, 2.5)
+      // Curvature is non-zero.
+      expect(midStep.radius).toBeGreaterThan(0);
+    });
   });
 });

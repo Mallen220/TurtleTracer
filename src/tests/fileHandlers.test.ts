@@ -111,6 +111,17 @@ describe("fileHandlers", () => {
   });
 
   describe("loadRecentFile", () => {
+    it("should alert if electronAPI is missing", async () => {
+      delete (window as any).electronAPI;
+      const { loadRecentFile } = await import("../utils/fileHandlers");
+      const alertMock = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+      await loadRecentFile("test.pp");
+      expect(alertMock).toHaveBeenCalledWith(
+        "Cannot load files in this environment",
+      );
+    });
+
     it("loads file if it exists", async () => {
       mockElectronAPI.fileExists.mockResolvedValue(true);
       mockElectronAPI.readFile.mockResolvedValue(
@@ -199,6 +210,19 @@ describe("fileHandlers", () => {
       // Depending on separator logic in implementation
       expect(mockElectronAPI.copyFile).toHaveBeenCalled();
       // We can't easily check exact string due to separator logic, but we verify copyFile was called
+    });
+
+    it("should just load if in saved directory", async () => {
+      mockElectronAPI.readFile.mockResolvedValue("{}");
+      mockElectronAPI.getSavedDirectory.mockResolvedValue("/project/dir");
+
+      const { handleExternalFileOpen } = await import("../utils/fileHandlers");
+      const confirmMock = vi.spyOn(window, "confirm");
+
+      // Simulate file path being inside the project dir
+      await handleExternalFileOpen("/project/dir/file.pp");
+
+      expect(confirmMock).not.toHaveBeenCalled();
     });
   });
 });

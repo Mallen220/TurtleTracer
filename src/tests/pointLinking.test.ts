@@ -7,8 +7,16 @@ import {
   handleWaitRename,
   isLineLinked,
   isWaitLinked,
+  updateLinkedRotations,
+  handleRotateRename,
+  isRotateLinked,
 } from "../utils/pointLinking";
-import type { Line, SequenceItem, SequenceWaitItem } from "../types";
+import type {
+  Line,
+  SequenceItem,
+  SequenceWaitItem,
+  SequenceRotateItem,
+} from "../types";
 
 // Helper to create a dummy line
 const createLine = (id: string, name: string, x: number, y: number): Line => ({
@@ -32,6 +40,18 @@ const createWait = (
   id,
   name,
   durationMs,
+});
+
+// Helper to create a dummy rotate item
+const createRotate = (
+  id: string,
+  name: string,
+  degrees: number,
+): SequenceRotateItem => ({
+  kind: "rotate",
+  id,
+  name,
+  degrees,
 });
 
 describe("Point Linking Utils", () => {
@@ -128,6 +148,44 @@ describe("Point Linking Utils", () => {
       ];
       expect(isWaitLinked(sequence, "1")).toBe(true);
       expect(isWaitLinked(sequence, "3")).toBe(false);
+    });
+  });
+
+  describe("Rotates", () => {
+    it("updateLinkedRotations should sync degrees", () => {
+      const sequence: SequenceItem[] = [
+        createRotate("1", "Rot A", 90),
+        createRotate("2", "Rot A", 180), // Should sync to 1
+        createRotate("3", "Rot B", 45),
+      ];
+
+      // Simulate Rot 1 changing to 270
+      (sequence[0] as SequenceRotateItem).degrees = 270;
+
+      const result = updateLinkedRotations(sequence, "1");
+      expect((result[1] as SequenceRotateItem).degrees).toBe(270);
+      expect((result[2] as SequenceRotateItem).degrees).toBe(45);
+    });
+
+    it("handleRotateRename should adopt degrees of existing group", () => {
+      const sequence: SequenceItem[] = [
+        createRotate("1", "Old", 90),
+        createRotate("2", "New Group", 180),
+      ];
+
+      const result = handleRotateRename(sequence, "1", "New Group");
+      expect((result[0] as SequenceRotateItem).name).toBe("New Group");
+      expect((result[0] as SequenceRotateItem).degrees).toBe(180);
+    });
+
+    it("isRotateLinked returns true only if another rotate shares the name", () => {
+      const sequence: SequenceItem[] = [
+        createRotate("1", "Shared", 90),
+        createRotate("2", "Shared", 90),
+        createRotate("3", "Unique", 90),
+      ];
+      expect(isRotateLinked(sequence, "1")).toBe(true);
+      expect(isRotateLinked(sequence, "3")).toBe(false);
     });
   });
 });
