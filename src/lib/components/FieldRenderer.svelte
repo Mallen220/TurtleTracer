@@ -73,6 +73,9 @@
   let two: Two;
   let twoElement: HTMLDivElement;
   let wrapperDiv: HTMLDivElement;
+  // Optimization: Cache bounding rects to avoid reflows during drag
+  let cachedRect: DOMRect | null = null;
+  let cachedWrapperRect: DOMRect | null = null;
   let dragOffset = { x: 0, y: 0 };
   let currentElem: string | null = null;
   let isDown = false;
@@ -155,6 +158,15 @@
   $: robotHeading = $robotHeadingStore;
   $: sequence = $sequenceStore; // Needed for wait markers
   $: markers = $collisionMarkers;
+
+  function updateRects() {
+    if (two?.renderer?.domElement) {
+      cachedRect = two.renderer.domElement.getBoundingClientRect();
+    }
+    if (wrapperDiv) {
+      cachedWrapperRect = wrapperDiv.getBoundingClientRect();
+    }
+  }
 
   // Helper to transform mouse coordinates based on rotation
   function getTransformedCoordinates(
@@ -942,12 +954,24 @@
     updateRobotImageDisplay();
 
     // Event Listeners
+    two.renderer.domElement.addEventListener("mouseenter", () => {
+      // Optimization: Start caching rects when user interacts with field
+      updateRects();
+      window.addEventListener("resize", updateRects);
+      window.addEventListener("scroll", updateRects, true);
+    });
+
     two.renderer.domElement.addEventListener("mouseleave", () => {
       isMouseOverField = false;
+      // Optimization: Stop listening when user leaves field to avoid global overhead
+      window.removeEventListener("resize", updateRects);
+      window.removeEventListener("scroll", updateRects, true);
     });
 
     two.renderer.domElement.addEventListener("mousemove", (evt: MouseEvent) => {
-      const rect = two.renderer.domElement.getBoundingClientRect();
+      // Optimization: Use cached rect to prevent layout thrashing
+      const rect =
+        cachedRect || two.renderer.domElement.getBoundingClientRect();
       const transformed = getTransformedCoordinates(
         evt.clientX,
         evt.clientY,
@@ -967,7 +991,8 @@
 
       // HUD obstruction check
       if (wrapperDiv) {
-        const wrapperRect = wrapperDiv.getBoundingClientRect();
+        const wrapperRect =
+          cachedWrapperRect || wrapperDiv.getBoundingClientRect();
         const visualX = evt.clientX - wrapperRect.left;
         const visualY = evt.clientY - wrapperRect.top;
         const w = wrapperRect.width;
@@ -1155,6 +1180,7 @@
     });
 
     two.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
+      updateRects(); // Ensure fresh rects on start of interaction
       // Re-determine currentElem if needed
       let clickedElem = null;
       // Optimization: use evt.target
@@ -1337,6 +1363,13 @@
   export function getTwoInstance() {
     return two;
   }
+
+  onDestroy(() => {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("resize", updateRects);
+      window.removeEventListener("scroll", updateRects, true);
+    }
+  });
 </script>
 
 <div
