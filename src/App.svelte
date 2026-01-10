@@ -705,6 +705,7 @@
   {recordChange}
   bind:controlTabRef
   bind:activeControlTab
+  toggleStats={() => (statsOpen = !statsOpen)}
   openWhatsNew={() => (showWhatsNew = true)}
 />
 

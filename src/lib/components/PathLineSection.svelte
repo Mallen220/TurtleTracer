@@ -5,7 +5,7 @@
   import ControlPointsSection from "./ControlPointsSection.svelte";
   import HeadingControls from "./HeadingControls.svelte";
   import ColorPicker from "./ColorPicker.svelte";
-  import { selectedLineId } from "../../stores";
+  import { selectedLineId, selectedPointId, focusRequest } from "../../stores";
   import TrashIcon from "./icons/TrashIcon.svelte";
   import { handleWaypointRename, isLineLinked } from "../../utils/pointLinking";
   import { tooltipPortal } from "../actions/portal";
@@ -32,6 +32,23 @@
 
   let hoveredLinkId: string | null = null;
   let hoveredLinkAnchor: HTMLElement | null = null;
+
+  let xInput: HTMLInputElement;
+  let yInput: HTMLInputElement;
+  let headingControls: HeadingControls;
+
+  // Listen for focus requests
+  $: if ($focusRequest) {
+    // Only focus if this line is selected AND we are focusing the endpoint (point-IDX-0)
+    // The selectedPointId format is point-{lineIndex+1}-{pointIndex}
+    // So if idx (line index) matches, and pointIndex is 0, we focus this line's X/Y/H
+    if ($selectedPointId === `point-${idx + 1}-0`) {
+      if ($focusRequest.field === "x" && xInput) xInput.focus();
+      if ($focusRequest.field === "y" && yInput) yInput.focus();
+      if ($focusRequest.field === "heading" && headingControls)
+        headingControls.focus();
+    }
+  }
 
   function handleLinkHoverEnter(e: MouseEvent, id: string | null) {
     hoveredLinkId = id;
@@ -335,6 +352,7 @@
         <div class="flex items-center gap-2">
           <div class="font-extralight">X:</div>
           <input
+            bind:this={xInput}
             tabindex="-1"
             class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14 sm:w-14"
             step={$snapToGrid && $showGrid ? $gridSize : 0.1}
@@ -347,6 +365,7 @@
           />
           <div class="font-extralight">Y:</div>
           <input
+            bind:this={yInput}
             tabindex="-1"
             class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-14 sm:w-14"
             step={$snapToGrid && $showGrid ? $gridSize : 0.1}
@@ -360,6 +379,7 @@
         </div>
 
         <HeadingControls
+          bind:this={headingControls}
           endPoint={line.endPoint}
           locked={line.locked}
           tabindex={-1}

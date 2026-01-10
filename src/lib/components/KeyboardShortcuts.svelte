@@ -14,6 +14,7 @@
     toggleCollapseAllTrigger,
     fieldZoom,
     fieldPan,
+    focusRequest,
   } from "../../stores";
   import {
     startPointStore,
@@ -49,6 +50,7 @@
   export let recordChange: () => void;
   export let controlTabRef: any = null;
   export let activeControlTab: "path" | "field" | "table" = "path";
+  export let toggleStats: () => void = () => {};
 
   // Optional callback provided by App.svelte to open the What's New dialog
   export let openWhatsNew: () => void;
@@ -847,6 +849,16 @@
     bind("selectTabPaths", () => (activeControlTab = "path")); // Note: this requires binding or callback
     bind("selectTabField", () => (activeControlTab = "field"));
     bind("selectTabTable", () => (activeControlTab = "table"));
+    bind("cycle-tabs-next", () => {
+      if (activeControlTab === "path") activeControlTab = "field";
+      else if (activeControlTab === "field") activeControlTab = "table";
+      else activeControlTab = "path";
+    });
+    bind("cycle-tabs-prev", () => {
+      if (activeControlTab === "path") activeControlTab = "table";
+      else if (activeControlTab === "field") activeControlTab = "path";
+      else activeControlTab = "field";
+    });
 
     bind("toggleCollapseAll", () =>
       toggleCollapseAllTrigger.update((v) => v + 1),
@@ -855,6 +867,20 @@
     bind("openSettings", () => showSettings.update((v) => !v));
     bind("openWhatsNew", () => {
       if (openWhatsNew) openWhatsNew();
+    });
+
+    bind("toggleStats", () => {
+      if (toggleStats) toggleStats();
+    });
+
+    bind("focusX", () => {
+      focusRequest.set({ field: "x", timestamp: Date.now() });
+    });
+    bind("focusY", () => {
+      focusRequest.set({ field: "y", timestamp: Date.now() });
+    });
+    bind("focusHeading", () => {
+      focusRequest.set({ field: "heading", timestamp: Date.now() });
     });
 
     const playKey = getKey("togglePlay");

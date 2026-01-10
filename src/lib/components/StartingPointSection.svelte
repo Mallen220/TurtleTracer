@@ -1,12 +1,25 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import type { Point } from "../../types";
+  import { selectedPointId, focusRequest } from "../../stores";
   export let startPoint: Point;
   export let addPathAtStart: () => void;
   export let addWaitAtStart: () => void;
   import CollapseAllButton from "./CollapseAllButton.svelte";
+  import { tick } from "svelte";
   export let toggleCollapseAll: () => void;
   export let allCollapsed: boolean;
+
+  let xInput: HTMLInputElement;
+  let yInput: HTMLInputElement;
+
+  // Subscribe to focus requests
+  $: if ($focusRequest) {
+    if ($selectedPointId === "point-0-0") {
+      if ($focusRequest.field === "x" && xInput) xInput.focus();
+      if ($focusRequest.field === "y" && yInput) yInput.focus();
+    }
+  }
 </script>
 
 <div class="flex flex-col w-full justify-start items-start gap-0.5">
@@ -66,6 +79,7 @@
     <div class="flex items-center gap-2">
       <span class="font-extralight">X:</span>
       <input
+        bind:this={xInput}
         bind:value={startPoint.x}
         min="0"
         max="144"
@@ -76,6 +90,7 @@
       />
       <span class="font-extralight">Y:</span>
       <input
+        bind:this={yInput}
         bind:value={startPoint.y}
         min="0"
         max="144"

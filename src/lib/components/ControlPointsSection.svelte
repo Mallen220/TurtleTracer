@@ -1,7 +1,13 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import _ from "lodash";
-  import { snapToGrid, showGrid, gridSize } from "../../stores";
+  import {
+    snapToGrid,
+    showGrid,
+    gridSize,
+    selectedPointId,
+    focusRequest,
+  } from "../../stores";
   import type { Line } from "../../types";
   import {
     calculateDragPosition,
@@ -27,6 +33,28 @@
   let dragOverIndex: number | null = null;
   let dragPosition: DragPosition | null = null;
   let containerRef: HTMLElement;
+
+  let xInputs: (HTMLInputElement | null)[] = [];
+  let yInputs: (HTMLInputElement | null)[] = [];
+
+  // Handle focus request
+  $: if ($focusRequest) {
+    if (
+      $selectedPointId &&
+      $selectedPointId.startsWith(`point-${lineIdx + 1}-`)
+    ) {
+      const ptIdxStr = $selectedPointId.split("-")[2];
+      const ptIdx = Number(ptIdxStr);
+      // Control points are indexed 1..N in the selection ID (since 0 is the endpoint)
+      if (ptIdx > 0) {
+        const cpIndex = ptIdx - 1;
+        if ($focusRequest.field === "x" && xInputs[cpIndex])
+          xInputs[cpIndex]?.focus();
+        if ($focusRequest.field === "y" && yInputs[cpIndex])
+          yInputs[cpIndex]?.focus();
+      }
+    }
+  }
 
   function handleDragStart(e: DragEvent, index: number) {
     if (line.locked) {
@@ -307,6 +335,7 @@
                 >X:</span
               >
               <input
+                bind:this={xInputs[idx]}
                 bind:value={point.x}
                 type="number"
                 min="0"
@@ -327,6 +356,7 @@
                 >Y:</span
               >
               <input
+                bind:this={yInputs[idx]}
                 bind:value={point.y}
                 type="number"
                 min="0"
