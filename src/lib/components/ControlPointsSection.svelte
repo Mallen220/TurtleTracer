@@ -112,10 +112,11 @@
   <!-- Control Points header with toggle and add button -->
   <div class="flex items-center justify-between w-full">
     <button
-      tabindex="-1"
       on:click={toggleCollapsed}
-      class="flex items-center gap-2 font-light hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-sm"
+      class="flex items-center gap-2 font-light hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       title="{collapsed ? 'Show' : 'Hide'} control points"
+      aria-expanded={!collapsed}
+      aria-controls="control-points-list-{lineIdx}"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -136,7 +137,6 @@
       Control Points ({line.controlPoints.length})
     </button>
     <button
-      tabindex="-1"
       on:click={() => {
         line.controlPoints = [
           ...line.controlPoints,
@@ -147,9 +147,10 @@
         ];
         recordChange();
       }}
-      class="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1 px-2 py-1"
+      class="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
       title="Add Control Point"
       disabled={line.locked}
+      aria-label="Add Control Point"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -171,7 +172,11 @@
 
   <!-- Control Points list (shown when expanded) -->
   {#if !collapsed && line.controlPoints.length > 0}
-    <div class="w-full mt-2 space-y-2" bind:this={containerRef}>
+    <div
+      id="control-points-list-{lineIdx}"
+      class="w-full mt-2 space-y-2"
+      bind:this={containerRef}
+    >
       {#each line.controlPoints as point, idx (idx)}
         <div
           role="listitem"
@@ -219,10 +224,10 @@
               <!-- Move Up/Down Buttons -->
               <div class="flex flex-row gap-0.5 mr-2">
                 <button
-                  tabindex="-1"
                   title={line.locked ? "Locked" : "Move up"}
+                  aria-label="Move control point up"
                   on:click|stopPropagation={() => moveControlPoint(idx, -1)}
-                  class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed"
+                  class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={idx === 0 || line.locked}
                 >
                   <svg
@@ -241,10 +246,10 @@
                   </svg>
                 </button>
                 <button
-                  tabindex="-1"
                   title={line.locked ? "Locked" : "Move down"}
+                  aria-label="Move control point down"
                   on:click|stopPropagation={() => moveControlPoint(idx, 1)}
-                  class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed"
+                  class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={idx === line.controlPoints.length - 1 ||
                     line.locked}
                 >
@@ -266,15 +271,15 @@
               </div>
 
               <button
-                tabindex="-1"
                 on:click={() => {
                   let _pts = line.controlPoints;
                   _pts.splice(idx, 1);
                   line.controlPoints = _pts;
                   recordChange();
                 }}
-                class="text-red-500 hover:text-red-600"
+                class="text-red-500 hover:text-red-600 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
                 title="Remove Control Point"
+                aria-label="Remove Control Point"
                 disabled={line.locked}
               >
                 <svg
@@ -302,13 +307,12 @@
                 >X:</span
               >
               <input
-                tabindex="-1"
                 bind:value={point.x}
                 type="number"
                 min="0"
                 max="144"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
-                class="w-16 sm:w-20 px-2 py-1 text-xs rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                class="w-16 sm:w-20 px-2 py-1 text-xs rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Line {lineIdx + 1} Control Point {idx + 1} X"
                 on:change={() => {
                   // Update the array to trigger reactivity
@@ -323,13 +327,12 @@
                 >Y:</span
               >
               <input
-                tabindex="-1"
                 bind:value={point.y}
                 type="number"
                 min="0"
                 max="144"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
-                class="w-16 sm:w-20 px-2 py-1 text-xs rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                class="w-16 sm:w-20 px-2 py-1 text-xs rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Line {lineIdx + 1} Control Point {idx + 1} Y"
                 on:change={() => {
                   // Update the array to trigger reactivity

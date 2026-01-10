@@ -94,11 +94,11 @@
     <div class="flex flex-row items-center gap-2 flex-wrap">
       <!-- Collapse Button & Title -->
       <button
-        tabindex="-1"
         on:click|stopPropagation={toggleCollapsed}
-        class="flex items-center gap-2 font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors"
+        class="flex items-center gap-2 font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
         title="{collapsed ? 'Expand' : 'Collapse'} wait"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} wait"
+        aria-expanded={!collapsed}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -122,15 +122,15 @@
       <!-- Name Input -->
       <div class="relative">
         <input
-          tabindex="-1"
           value={wait.name}
           placeholder="Wait Name"
-          class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none text-sm font-semibold min-w-[100px] pr-6"
+          class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold min-w-[100px] pr-6"
           class:text-amber-500={hoveredWaitId === wait.id}
           disabled={wait.locked}
           on:input={handleNameInput}
           on:blur={handleBlur}
           on:click|stopPropagation
+          aria-label="Wait Name"
         />
         {#if linked}
           <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -167,14 +167,13 @@
 
       <!-- Lock/Unlock Button -->
       <button
-        tabindex="-1"
         title={wait.locked ? "Unlock Wait" : "Lock Wait"}
         aria-label={wait.locked ? "Unlock Wait" : "Lock Wait"}
         on:click|stopPropagation={() => {
           wait.locked = !wait.locked;
           if (recordChange) recordChange();
         }}
-        class="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+        class="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         {#if wait.locked}
           <svg
@@ -211,13 +210,12 @@
 
       <div class="flex flex-row gap-0.5 ml-1">
         <button
-          tabindex="-1"
           title={wait.locked ? "Wait locked" : "Move up"}
           aria-label="Move wait up"
           on:click|stopPropagation={() => {
             if (!wait.locked && canMoveUp && onMoveUp) onMoveUp();
           }}
-          class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed"
+          class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
           disabled={!canMoveUp || wait.locked}
         >
           <svg
@@ -236,13 +234,12 @@
           </svg>
         </button>
         <button
-          tabindex="-1"
           title={wait.locked ? "Wait locked" : "Move down"}
           aria-label="Move wait down"
           on:click|stopPropagation={() => {
             if (!wait.locked && canMoveDown && onMoveDown) onMoveDown();
           }}
-          class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed"
+          class="p-1 rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 bg-neutral-100/70 dark:bg-neutral-900/70 border border-neutral-200/70 dark:border-neutral-700/70 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
           disabled={!canMoveDown || wait.locked}
         >
           <svg
@@ -266,11 +263,10 @@
     <div class="flex flex-row justify-end items-center gap-1 ml-auto">
       <!-- Add Path After Button -->
       <button
-        tabindex="-1"
         title="Add Path After This Wait"
         aria-label="Add Path After This Wait"
         on:click|stopPropagation={onAddPathAfter}
-        class="text-green-500 hover:text-green-600"
+        class="text-green-500 hover:text-green-600 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -290,11 +286,10 @@
 
       <!-- Add Wait After Button -->
       <button
-        tabindex="-1"
         title="Add Wait After"
         aria-label="Add Wait After"
         on:click|stopPropagation={onInsertAfter}
-        class="text-amber-500 hover:text-amber-600"
+        class="text-amber-500 hover:text-amber-600 rounded focus:outline-none focus:ring-2 focus:ring-amber-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -314,10 +309,9 @@
       </button>
 
       <button
-        tabindex="-1"
         title="Remove Wait"
         aria-label="Remove Wait"
-        class="text-red-500 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+        class="text-red-500 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed rounded focus:outline-none focus:ring-2 focus:ring-red-500"
         on:click|stopPropagation={() => {
           if (!wait.locked && onRemove) onRemove();
         }}
@@ -335,10 +329,9 @@
     <div class="flex flex-col justify-start items-start w-full gap-2 pl-2">
       <!-- Duration Input -->
       <div class="flex items-center gap-2">
-        <span class="text-sm font-light">Duration:</span>
+        <span class="text-sm font-light" id="wait-duration-label-{wait.id}">Duration:</span>
         <input
-          tabindex="-1"
-          class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none w-24"
+          class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 w-24"
           type="number"
           min="0"
           step="50"
@@ -346,6 +339,7 @@
           on:change={handleDurationChange}
           on:click|stopPropagation
           disabled={wait.locked}
+          aria-labelledby="wait-duration-label-{wait.id}"
         />
         <span class="text-sm font-extralight">ms</span>
       </div>
