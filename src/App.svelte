@@ -705,6 +705,7 @@
   {recordChange}
   bind:controlTabRef
   bind:activeControlTab
+  openWhatsNew={() => (showWhatsNew = true)}
 />
 
 {#if $showExportGif && fieldRenderer}

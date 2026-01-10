@@ -93,3 +93,4 @@ src/lib/components/whats-new/features/v2.0.0.md
 src/lib/components/whats-new/pages/controls.md
 src/lib/components/whats-new/pages/getting-started.md
 src/lib/components/whats-new/pages/index.ts
+verification/verify_whats_new.ts

@@ -50,6 +50,9 @@
   export let controlTabRef: any = null;
   export let activeControlTab: "path" | "field" | "table" = "path";
 
+  // Optional callback provided by App.svelte to open the What's New dialog
+  export let openWhatsNew: () => void;
+
   // Reactive Values
   $: settings = $settingsStore;
   $: lines = $linesStore;
@@ -850,6 +853,9 @@
     );
     bind("showHelp", () => showShortcuts.update((v) => !v));
     bind("openSettings", () => showSettings.update((v) => !v));
+    bind("openWhatsNew", () => {
+      if (openWhatsNew) openWhatsNew();
+    });
 
     const playKey = getKey("togglePlay");
     if (playKey) {

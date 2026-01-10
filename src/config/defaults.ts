@@ -389,6 +389,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "showHelp",
     category: "Settings",
   },
+  {
+    id: "open-whats-new",
+    key: "shift+n",
+    description: "Open What's New",
+    action: "openWhatsNew",
+    category: "Settings",
+  },
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
