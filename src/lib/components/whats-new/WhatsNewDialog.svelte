@@ -9,6 +9,7 @@
   // Import app version from package.json so the UI shows the real version at build time
   // @ts-ignore
   import pkg from "../../../../package.json";
+  import { onMount } from "svelte";
 
   export let show = false;
 
@@ -27,6 +28,143 @@
   let activeFeatureId: string | null = null;
   let searchQuery = "";
 
+  // Log features at component init so we can see what the dialog receives at runtime
+  // eslint-disable-next-line no-console
+  console.info(
+    "[whats-new] dialog sees features:",
+    features.length,
+    features.map((f) => f.id),
+  );
+
+  // Runtime-loaded features (dynamic fallback when compile-time glob yields nothing)
+  let runtimeFeatures: FeatureHighlight[] = [];
+
+  // Decide which features list to render: prefer compile-time `features`, otherwise
+  // use runtime-discovered ones.
+  $: displayedFeatures = features.length ? features : runtimeFeatures;
+
+  // If the static import produced no features (e.g., in the renderer during
+  // Electron runtime), attempt to dynamically import them at runtime.
+  onMount(async () => {
+    if (
+      features.length === 0 &&
+      typeof (import.meta as any).glob === "function"
+    ) {
+      try {
+        // Use a non-eager glob to get importer functions and fetch content at runtime.
+        // Prefer the query/import form so the import returns raw content as default.
+        let dynamic: Record<string, (args?: any) => Promise<any>> | undefined;
+        try {
+          // @ts-ignore
+          dynamic = (import.meta as any).glob("./features/*.md", {
+            query: "?raw",
+            import: "default",
+          }) as Record<string, (args?: any) => Promise<any>>;
+        } catch (e) {
+          try {
+            dynamic = (import.meta as any).glob(
+              "./features/*.md?raw",
+            ) as Record<string, (args?: any) => Promise<any>>;
+          } catch (e) {
+            dynamic = undefined;
+          }
+        }
+        const entries = Object.entries(dynamic || {});
+        const out: FeatureHighlight[] = [];
+        for (const [path, importer] of entries) {
+          try {
+            const res = await importer();
+            const content =
+              typeof res === "string" ? res : (res?.default ?? "");
+            const fileName = path.split("/").pop()!;
+            const fileBase = fileName.replace(/\?.*$/, "");
+            const id = fileBase.replace(/\.md$/, "");
+            out.push({
+              id,
+              title: `Version ${id.replace(/^v/, "")} Highlights`,
+              content,
+            });
+          } catch (e) {
+            // ignore individual failures
+          }
+        }
+        // Sort newest first
+        out.sort((a, b) => {
+          const pa = a.id
+            .replace(/^v/, "")
+            .split(".")
+            .map((n) => parseInt(n, 10) || 0);
+          const pb = b.id
+            .replace(/^v/, "")
+            .split(".")
+            .map((n) => parseInt(n, 10) || 0);
+          for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+            if ((pb[i] || 0) !== (pa[i] || 0))
+              return (pb[i] || 0) - (pa[i] || 0);
+          }
+          return 0;
+        });
+        runtimeFeatures = out;
+        // eslint-disable-next-line no-console
+        console.info(
+          "[whats-new] runtime loaded features:",
+          runtimeFeatures.map((f) => f.id),
+        );
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("[whats-new] runtime feature import failed", e);
+      }
+
+      // If import.meta.glob is provided as a plain object (built bundle form),
+      // try to extract raw content from that object now that the function-based
+      // runtime attempt failed or wasn't executed.
+      try {
+        const globAny = (import.meta as any).glob;
+        if (features.length === 0 && globAny && typeof globAny === "object") {
+          const entries = Object.entries(globAny as Record<string, any>);
+          const out2: FeatureHighlight[] = [];
+          for (const [path, val] of entries) {
+            try {
+              const content =
+                typeof val === "string" ? val : (val?.default ?? "");
+              const fileName = path.split("/").pop()!;
+              const fileBase = fileName.replace(/\?.*$/, "");
+              const id = fileBase.replace(/\.md$/, "");
+              out2.push({
+                id,
+                title: `Version ${id.replace(/^v/, "")} Highlights`,
+                content,
+              });
+            } catch (ee) {}
+          }
+          out2.sort((a, b) => {
+            const pa = a.id
+              .replace(/^v/, "")
+              .split(".")
+              .map((n) => parseInt(n, 10) || 0);
+            const pb = b.id
+              .replace(/^v/, "")
+              .split(".")
+              .map((n) => parseInt(n, 10) || 0);
+            for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+              if ((pb[i] || 0) !== (pa[i] || 0))
+                return (pb[i] || 0) - (pa[i] || 0);
+            }
+            return 0;
+          });
+          runtimeFeatures = out2;
+          // eslint-disable-next-line no-console
+          console.info(
+            "[whats-new] runtime loaded features (object):",
+            runtimeFeatures.map((f) => f.id),
+          );
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  });
+
   $: searchResults = (() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
@@ -43,7 +181,7 @@
       .map((p) => ({ type: "page" as const, item: p }));
 
     // Search features
-    const matchedFeatures = features
+    const matchedFeatures = displayedFeatures
       .filter(
         (f) =>
           f.title.toLowerCase().includes(query) ||
@@ -86,11 +224,22 @@
     }
 
     if (page.type === "highlight") {
-      if (page.highlightId) {
-        activeFeatureId = page.highlightId;
+      // If the page doesn't declare a highlightId (e.g. "Recent Highlights"),
+      // fall back to the current latest feature at runtime.
+      const targetId = page.highlightId ?? displayedFeatures[0]?.id;
+      if (targetId) {
+        activeFeatureId = targetId;
         activePage = page;
         previousView = "grid";
         currentView = "content";
+      } else {
+        // No features available — show an informative placeholder instead of
+        // doing nothing. This keeps the UI from appearing broken.
+        console.warn(
+          "[whats-new] no features available to show for page",
+          page.id,
+        );
+        // Keep on the grid; we could also open the changelog instead.
       }
       return;
     }
@@ -166,7 +315,7 @@
     }
 
     if (activeFeatureId) {
-      const feature = features.find((f) => f.id === activeFeatureId);
+      const feature = displayedFeatures.find((f) => f.id === activeFeatureId);
       return feature ? md.render(feature.content) : "";
     }
 
@@ -204,7 +353,7 @@
       : currentView === "content" && activePage
         ? activePage.title
         : currentView === "content" && activeFeatureId
-          ? (features.find((f) => f.id === activeFeatureId)?.title ??
+          ? (displayedFeatures.find((f) => f.id === activeFeatureId)?.title ??
             "Feature Highlight")
           : currentView === "release-list"
             ? "Release Notes"
@@ -454,28 +603,46 @@
           <!-- Release List View -->
           <div class="p-4 md:p-8 max-w-3xl mx-auto animate-fade-in">
             <div class="space-y-4">
-              {#each features as feature}
-                <button
-                  class="w-full flex flex-col items-start p-6 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:border-purple-500 dark:hover:border-purple-500 bg-neutral-50 dark:bg-neutral-800/50 hover:bg-white dark:hover:bg-neutral-800 transition-all duration-200 shadow-sm hover:shadow-md text-left"
-                  on:click={() => handleFeatureClick(feature)}
+              {#if displayedFeatures.length === 0}
+                <div
+                  class="text-center text-neutral-500 dark:text-neutral-400 py-12"
                 >
-                  <div class="flex items-center gap-3 mb-2">
-                    <div
-                      class="p-1.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
-                    >
-                      {@html icons["sparkles"]}
-                    </div>
-                    <h3
-                      class="text-lg font-bold text-neutral-900 dark:text-white"
-                    >
-                      {feature.title}
-                    </h3>
+                  <div class="mb-2 text-xl font-semibold">
+                    No release highlights
                   </div>
-                  <p class="text-neutral-500 dark:text-neutral-400 text-sm">
-                    Click to view highlights for this version.
-                  </p>
-                </button>
-              {/each}
+                  <div class="text-sm">
+                    There are no feature highlights available right now. You can
+                    view the <button
+                      class="text-purple-600 hover:underline"
+                      on:click={() => (activeTab = "changelog")}
+                      >Full Changelog</button
+                    > instead.
+                  </div>
+                </div>
+              {:else}
+                {#each displayedFeatures as feature}
+                  <button
+                    class="w-full flex flex-col items-start p-6 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:border-purple-500 dark:hover:border-purple-500 bg-neutral-50 dark:bg-neutral-800/50 hover:bg-white dark:hover:bg-neutral-800 transition-all duration-200 shadow-sm hover:shadow-md text-left"
+                    on:click={() => handleFeatureClick(feature)}
+                  >
+                    <div class="flex items-center gap-3 mb-2">
+                      <div
+                        class="p-1.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                      >
+                        {@html icons["sparkles"]}
+                      </div>
+                      <h3
+                        class="text-lg font-bold text-neutral-900 dark:text-white"
+                      >
+                        {feature.title}
+                      </h3>
+                    </div>
+                    <p class="text-neutral-500 dark:text-neutral-400 text-sm">
+                      Click to view highlights for this version.
+                    </p>
+                  </button>
+                {/each}
+              {/if}
             </div>
           </div>
         {:else}

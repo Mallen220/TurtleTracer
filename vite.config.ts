@@ -19,8 +19,8 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    // Increase chunk size warning limit to 1.5 MB to avoid noisy warnings
-    chunkSizeWarningLimit: 1500,
+    // Increase chunk size warning limit to 3 MB to avoid noisy warnings
+    chunkSizeWarningLimit: 3000,
     rollupOptions: {
       output: {
         entryFileNames: `assets/[name].js`,

@@ -40,7 +40,10 @@ export const pages: Page[] = [
     title: "Latest Highlights",
     description: "Check out the most recent updates and features.",
     type: "highlight",
-    highlightId: features[0]?.id, // Default to the latest feature
+    // Do NOT capture a static highlightId at module load time because the
+    // features list may be populated asynchronously by the bundler/runtime.
+    // Resolve the latest feature at click/runtime instead.
+    highlightId: undefined,
     icon: "sparkles",
   },
   {
