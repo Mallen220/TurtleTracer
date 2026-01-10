@@ -24,8 +24,14 @@ These settings affect the simulation physics and time estimation.
 - **Field Orientation**: Rotate the field view (0°, 90°, 180°, 270°).
 - **Grid**: Toggle the grid and set the snap size.
 
+## Validation
+
+- **Field Boundaries**: Enable validation to ensure points stay within the field.
+- **Drag Restrictions**: Prevent dragging points outside the playable area.
+
 ## Advanced
 
 - **Optimization**: Configure parameters for the path optimizer (iterations, population size, mutation rate).
 - **Onion Skinning**: Enable/disable ghost trails and adjust their spacing.
 - **Keyboard Shortcuts**: View and customize key bindings.
+- **Credits & Legal**: View open source licenses and contributors.

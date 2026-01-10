@@ -30,3 +30,7 @@ Use the simulation to verify:
 - **Timing**: Check the total duration of your autonomous routine.
 - **Collisions**: Visually check if the robot comes too close to obstacles or field boundaries.
 - **Smoothness**: Ensure the path and heading changes are smooth and achievable by the robot.
+
+## Performance
+
+- **Optimized Rendering**: The simulation engine has been optimized for smoother playback even with complex paths.

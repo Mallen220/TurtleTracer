@@ -5,8 +5,14 @@ Creating and editing paths is the core functionality of the Visualizer. Here's h
 ## Creating a Path
 
 1.  **Add Points**: Click the "Add Point" button (or use a shortcut) to add a new waypoint to your path.
-2.  **Move Points**: Drag any point on the canvas to change its position.
-3.  **Path Type**: The path connects points using Bezier curves. You can adjust the curvature using control points.
+2.  **Duplicate Path**: Use `Shift + D` to quickly duplicate the currently selected path.
+3.  **Move Points**: Drag any point on the canvas to change its position.
+4.  **Path Type**: The path connects points using Bezier curves. You can adjust the curvature using control points.
+
+## Tools & Actions
+
+- **Reverse Path**: Select a path and choose "Reverse Path" to create a new path that follows the reverse trajectory.
+- **Context Menu**: Right-click on the waypoint table to access additional options like deleting, duplicating, or locking paths.
 
 ## Control Points
 

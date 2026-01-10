@@ -29,3 +29,4 @@ The optimizer iteratively tweaks control points to:
 - **Iterations**: How many generations to run. More iterations = better results but takes longer.
 - **Population**: Number of candidate paths per generation.
 - **Mutation Rate**: How drastically the path can change in each step.
+- **Mutation Strength**: Controls the magnitude of changes applied during mutation. Higher strength can help escape local optima but may be less precise.
