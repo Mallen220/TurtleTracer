@@ -12,6 +12,7 @@
   import KeyboardShortcuts from "./lib/components/KeyboardShortcuts.svelte";
   import ExportGifDialog from "./lib/components/ExportGifDialog.svelte";
   import NotificationToast from "./lib/components/NotificationToast.svelte";
+  import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
 
   // Stores
   import {
@@ -68,6 +69,9 @@
     DEFAULT_ROBOT_WIDTH,
   } from "./config";
 
+  // Package info
+  import pkg from "../package.json";
+
   // Electron API
   interface ElectronAPI {
     onMenuAction?: (callback: (action: string) => void) => void;
@@ -97,16 +101,9 @@
     }
   }
 
-  onMount(() => {
-    document.addEventListener('click', handleLinkClick);
-  });
-
-  onDestroy(() => {
-    document.removeEventListener('click', handleLinkClick);
-  });
-
   // --- Layout State ---
   let showSidebar = true;
+  let showWhatsNew = false;
   let activeControlTab: "path" | "field" | "table" = "path";
   let controlTabRef: any = null;
   let mainContentHeight = 0;
@@ -257,6 +254,18 @@
     }
   }
 
+  function closeWhatsNew() {
+    showWhatsNew = false;
+    // Update settings with new version
+    const currentVersion = pkg.version;
+    const s = get(settingsStore);
+    settingsStore.set({
+      ...s,
+      lastSeenVersion: currentVersion
+    });
+    // Persistence handled by debounced auto-save
+  }
+
   // --- Initialization ---
   onMount(async () => {
     // Load Settings
@@ -273,6 +282,15 @@
         ensureSequenceConsistency();
       } catch (err) {
         console.warn("ensureSequenceConsistency failed", err);
+      }
+
+      // Check for What's New
+      const currentVersion = pkg.version;
+      const lastSeen = get(settingsStore).lastSeenVersion;
+
+      // If version mismatch or never seen, show dialog
+      if (lastSeen !== currentVersion) {
+        showWhatsNew = true;
       }
 
       // Remove loading screen
@@ -346,6 +364,14 @@
         });
       }
     }
+  });
+
+  onMount(() => {
+    document.addEventListener('click', handleLinkClick);
+  });
+
+  onDestroy(() => {
+    document.removeEventListener('click', handleLinkClick);
   });
 
   // Settings Auto-Save
@@ -641,6 +667,7 @@
   />
 {/if}
 
+<WhatsNewDialog show={showWhatsNew} on:close={closeWhatsNew} />
 <NotificationToast />
 
 <!-- Main Container -->

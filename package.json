@@ -58,6 +58,7 @@
   "dependencies": {
     "@types/d3": "^7.4.3",
     "@types/lodash": "^4.17.7",
+    "@types/markdown-it": "^14.1.2",
     "canvas": "^3.2.0",
     "d3": "^7.9.0",
     "electron-updater": "^6.6.2",
@@ -67,6 +68,7 @@
     "gif.js": "^0.2.0",
     "hotkeys-js": "^3.13.9",
     "lodash": "^4.17.21",
+    "markdown-it": "^14.1.0",
     "prettier-plugin-java": "^2.7.7",
     "sass": "^1.77.8",
     "svelte-copy": "^1.4.2",
