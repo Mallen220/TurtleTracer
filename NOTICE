@@ -114,5 +114,6 @@ verification/verify_whats_new.py
 verification/page_content.html
 src/tests/whats-new.test.ts
 src/lib/components/GlobalEventMarkers.svelte
+src/lib/components/PlaybackControls.svelte
 src/lib/components/whats-new/features/newest.md
 scripts/bump-version.js

@@ -16,6 +16,7 @@
     collisionMarkers,
     fieldZoom,
     fieldPan,
+    hoveredMarkerId,
   } from "../../stores";
   import {
     linesStore,
@@ -750,6 +751,9 @@
       if (!_startPoint) return;
 
       line.eventMarkers.forEach((ev, evIdx) => {
+        // Only show marker if it's being hovered
+        if ($hoveredMarkerId !== ev.id) return;
+        
         const t = Math.max(0, Math.min(1, ev.position ?? 0.5));
         let pos = { x: 0, y: 0 };
         if (line.controlPoints.length > 0) {
@@ -796,6 +800,9 @@
           return;
         const point = ev.atPoint;
         seqWait.eventMarkers.forEach((event: any, eventIdx: number) => {
+          // Only show marker if it's being hovered
+          if ($hoveredMarkerId !== event.id) return;
+          
           const markerGroup = new Two.Group();
           markerGroup.id = `wait-event-${ev.waitId}-${eventIdx}`;
           const markerCircle = new Two.Circle(
@@ -842,6 +849,9 @@
           return;
         const point = ev.atPoint;
         seqRotate.eventMarkers.forEach((event: any, eventIdx: number) => {
+          // Only show marker if it's being hovered
+          if ($hoveredMarkerId !== event.id) return;
+          
           const markerGroup = new Two.Group();
           markerGroup.id = `rotate-event-${ev.waitId}-${eventIdx}`;
           const markerCircle = new Two.Circle(

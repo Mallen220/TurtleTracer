@@ -6,16 +6,61 @@
   export let percent: number;
   export let handleSeek: (percent: number) => void;
   export let loopAnimation: boolean;
-  export let markers: { percent: number; color: string; name: string }[] = [];
+  // New prop for timeline items (markers, waits, rotates)
+  export let timelineItems: {
+    type: "marker" | "wait" | "rotate" | "dot";
+    percent: number;
+    durationPercent?: number;
+    color?: string;
+    name: string;
+    explicit?: boolean; // true = user-defined action, false = implicit pathing behavior
+    fromWait?: boolean; // true when the marker comes from a wait/rotate event
+  }[] = [];
   export let playbackSpeed: number = 1.0;
   export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
 
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
+  import { tooltipPortal } from "../actions/portal";
+  import { onMount, onDestroy } from "svelte";
 
   // Speed dropdown state & helpers
   let showSpeedMenu = false;
   const speedOptions = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0];
+
+  // Hover tooltip state for timeline events
+  let hoveredEventName: string | null = null;
+  let hoveredEventAnchor: HTMLElement | null = null;
+
+  function resetHoverState() {
+    hoveredEventName = null;
+    hoveredEventAnchor = null;
+  }
+
+  function handleMarkerHoverEnter(e: MouseEvent, name: string) {
+    hoveredEventName = name;
+    hoveredEventAnchor = e.currentTarget as HTMLElement;
+  }
+
+  function handleMarkerHoverLeave() {
+    resetHoverState();
+  }
+
+  // Clean up hover state on layout changes (resize) to prevent stale tooltips
+  function handleWindowResize() {
+    resetHoverState();
+  }
+
+  onMount(() => {
+    window.addEventListener("resize", handleWindowResize);
+    return () => {
+      window.removeEventListener("resize", handleWindowResize);
+    };
+  });
+
+  onDestroy(() => {
+    resetHoverState();
+  });
 
   function toggleSpeedMenu() {
     showSpeedMenu = !showSpeedMenu;
@@ -186,23 +231,66 @@
     {/if}
   </div>
 
-  <div class="w-full relative">
-    <!-- markers: small colored dots positioned by percent -->
-    {#each markers as m, i}
-      <div
-        class="absolute"
-        role="button"
-        tabindex="0"
-        on:click={() => handleSeek(m.percent)}
-        on:keydown={(e) => {
-          if (e.key === "Enter" || e.key === " ") handleSeek(m.percent);
-        }}
-        style={`left: ${m.percent}%; top: 3px; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 9999px; background: ${m.color}; box-shadow: 0 0 0 2px rgba(0,0,0,0.06); cursor: pointer;`}
-        title={m.name}
-        aria-label={m.name}
-      ></div>
-    {/each}
+  <div class="w-full relative h-6 flex items-center">
+    <!-- Timeline Highlights Layer (Under slider) -->
+    <div
+      class="absolute inset-0 w-full h-full pointer-events-none overflow-hidden rounded-full"
+    >
+      {#each timelineItems as item}
+        {#if item.type === "wait"}
+          <!-- Wait: Amber highlight/underline -->
+          <div
+            class="absolute top-1/2 -translate-y-1/2 h-2 bg-amber-500/70"
+            style="left: {item.percent}%; width: {item.durationPercent}%; border-radius: 2px;"
+            aria-hidden="true"
+          ></div>
+        {:else if item.type === "rotate"}
+          <!-- Rotate: explicit rotates are highlighted in blue; implicit (auto) rotates use a lighter style -->
+          <div
+            class={item.explicit === true ? 'absolute top-1/2 -translate-y-1/2 h-2 bg-blue-500/70' : 'absolute top-1/2 -translate-y-1/2 h-2 bg-blue-200/40'}
+            style="left: {item.percent}%; width: {item.durationPercent}%; border-radius: 2px;"
+            aria-hidden="true"
+          ></div>
+        {/if}
+      {/each}
+    </div>
 
+    <!-- Rotate Icons Overlay (Above highlights, below slider to not block events, or above slider?)
+         If above slider, it might block clicking. But slider is input type=range.
+         The input is usually full width.
+         Let's put icons above the highlight but below markers.
+    -->
+    <div class="absolute inset-0 w-full h-full pointer-events-none">
+      {#each timelineItems as item}
+        {#if item.type === "rotate" && item.explicit === true}
+          <!-- Center the icon in the duration; only show icon for explicit rotates -->
+          <div
+            class="absolute"
+            style="left: {item.percent + (item.durationPercent || 0) / 2}%; top: 50%; transform: translate(-50%, -50%); pointer-events: none;"
+            aria-hidden="true"
+          >
+            <!-- Small rotate icon (explicit rotates are blue) -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="w-4 h-4 rounded-full bg-white dark:bg-neutral-900"
+              style="color: rgb(37 99 235)"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </div>
+        {/if}
+      {/each}
+    </div>
+
+    <!-- The Slider -->
     <input
       bind:value={percent}
       type="range"
@@ -210,11 +298,72 @@
       max="100"
       step="0.000001"
       aria-label="Animation progress"
-      class="w-full appearance-none slider focus:outline-none"
+      class="w-full appearance-none slider focus:outline-none bg-transparent relative z-10"
       on:input={handleSeekInput}
     />
+
+    <!-- Event Markers Layer (Top, Map Pins) -->
+    <!-- These need pointer events to be clickable for seeking -->
+    {#each timelineItems as item}
+      {#if item.type === "marker"}
+        <div
+          class="absolute z-20 group"
+          role="button"
+          tabindex="0"
+          on:mouseenter={(e) => handleMarkerHoverEnter(e, item.name)}
+          on:mouseleave={handleMarkerHoverLeave}
+          on:click={() => handleSeek(item.percent)}
+          on:keydown={(e) => {
+            if (e.key === "Enter" || e.key === " ") handleSeek(item.percent);
+          }}
+          style="left: {item.percent}%; top: -14px; transform: translateX(-50%); cursor: pointer;"
+          aria-label={item.name}
+        >
+          <!-- Map Pin Icon -->
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            class={item.fromWait ? 'w-5 h-5 drop-shadow-md transition-transform group-hover:scale-125 text-black dark:text-white' : 'w-5 h-5 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125'}
+            style={item.fromWait ? '' : `color: ${item.color || '#a855f7'}`}
+          >
+            <path
+              fill-rule="evenodd"
+              d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
+      {:else if item.type === "dot"}
+        <div
+          class="absolute z-20"
+          role="button"
+          tabindex="0"
+          on:mouseenter={(e) => handleMarkerHoverEnter(e, item.name)}
+          on:mouseleave={handleMarkerHoverLeave}
+          on:click={() => handleSeek(item.percent)}
+          on:keydown={(e) => {
+            if (e.key === "Enter" || e.key === " ") handleSeek(item.percent);
+          }}
+          style={`left: ${item.percent}%; top: 6px; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 9999px; background: ${item.color}; box-shadow: 0 0 0 2px rgba(0,0,0,0.06); cursor: pointer;`}
+          aria-label={item.name}
+        ></div>
+      {/if}
+    {/each}
   </div>
 </div>
+
+{#key hoveredEventName}
+  {#if hoveredEventName && hoveredEventAnchor}
+    <div
+      use:tooltipPortal={hoveredEventAnchor}
+      class="w-auto max-w-xs p-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded shadow-lg text-xs text-neutral-800 dark:text-neutral-200 z-50 pointer-events-none"
+      transition:fade={{ duration: 100 }}
+    >
+      {hoveredEventName}
+    </div>
+  {/if}
+{/key}
 
 <svelte:window
   on:click={() => (showSpeedMenu = false)}
