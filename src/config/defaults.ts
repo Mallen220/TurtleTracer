@@ -67,6 +67,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "Editing",
   },
   {
+    id: "add-rotate",
+    key: "t",
+    description: "Add rotate event",
+    action: "addRotate",
+    category: "Editing",
+  },
+  {
     id: "add-event-marker",
     key: "e",
     description: "Add event marker",
@@ -146,14 +153,14 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
   {
     id: "increase-val",
     key: "=",
-    description: "Increase value (e.g. wait time)",
+    description: "Increase value (wait/rotate)",
     action: "increaseValue",
     category: "Editing",
   },
   {
     id: "decrease-val",
     key: "-",
-    description: "Decrease value (e.g. wait time)",
+    description: "Decrease value (wait/rotate)",
     action: "decreaseValue",
     category: "Editing",
   },

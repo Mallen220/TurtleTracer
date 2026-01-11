@@ -29,9 +29,11 @@ Master the keyboard shortcuts and mouse controls to speed up your workflow. Pres
 | **Delete Selected** | <kbd>Backspace</kbd> or <kbd>Delete</kbd> |
 | **Add New Path** | <kbd>P</kbd> |
 | **Add Wait** | <kbd>W</kbd> |
+| **Add Rotate** | <kbd>T</kbd> |
 | **Add Event Marker** | <kbd>E</kbd> |
 | **Add Control Point** | <kbd>A</kbd> |
 | **Remove Control Point** | <kbd>D</kbd> |
+| **Adjust Wait / Rotate** | <kbd>=</kbd> / <kbd>-</kbd> |
 | **Nudge Point** | Arrow Keys or <kbd>I</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> |
 | **Focus X / Y / Heading** | <kbd>X</kbd> / <kbd>Y</kbd> / <kbd>H</kbd> |
 

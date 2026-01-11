@@ -29,6 +29,7 @@
   import {
     updateLinkedWaypoints,
     updateLinkedWaits,
+    updateLinkedRotations,
   } from "../../utils/pointLinking";
   import type { Line, SequenceItem } from "../../types";
   import { DEFAULT_KEY_BINDINGS, FIELD_SIZE } from "../../config";
@@ -94,6 +95,15 @@
       const wid = sel.substring(5);
       const idx = seq.findIndex(
         (s) => s.kind === "wait" && (s as any).id === wid,
+      );
+      return idx >= 0 ? idx : null;
+    }
+
+    // Selected item is a rotate
+    if (sel.startsWith("rotate-")) {
+      const rid = sel.substring(7);
+      const idx = seq.findIndex(
+        (s) => s.kind === "rotate" && (s as any).id === rid,
       );
       return idx >= 0 ? idx : null;
     }
@@ -178,6 +188,31 @@
     }
 
     selectedPointId.set(`wait-${wait.id}`);
+    selectedLineId.set(null);
+    recordChange();
+  }
+
+  function addRotate() {
+    const rotate: SequenceItem = {
+      kind: "rotate",
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      name: "",
+      degrees: 0,
+      locked: false,
+    };
+
+    const insertIdx = getSelectedSequenceIndex();
+    if (insertIdx === null) {
+      sequenceStore.update((s) => [...s, rotate]);
+    } else {
+      sequenceStore.update((s) => {
+        const s2 = [...s];
+        s2.splice(insertIdx + 1, 0, rotate);
+        return s2;
+      });
+    }
+
+    selectedPointId.set(`rotate-${rotate.id}`);
     selectedLineId.set(null);
     recordChange();
   }
@@ -325,6 +360,36 @@
       return;
     }
 
+    if (sel.startsWith("rotate-")) {
+      const rotateId = sel.substring(7);
+      const rotateItem = $sequenceStore.find(
+        (s) => s.kind === "rotate" && (s as any).id === rotateId,
+      ) as any;
+      if (!rotateItem) return;
+
+      const newRotate = _.cloneDeep(rotateItem);
+      newRotate.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      const existingRotateNames = sequence
+        .filter((s) => s.kind === "rotate")
+        .map((s) => (s as any).name || "");
+      newRotate.name = generateName(
+        rotateItem.name || "Rotate",
+        existingRotateNames,
+      );
+
+      const insertIdx = getSelectedSequenceIndex();
+      if (insertIdx !== null) {
+        sequenceStore.update((s) => {
+          const s2 = [...s];
+          s2.splice(insertIdx + 1, 0, newRotate);
+          return s2;
+        });
+        selectedPointId.set(`rotate-${newRotate.id}`);
+        recordChange();
+      }
+      return;
+    }
+
     // Path duplication
     let targetLineId: string | null = null;
     if (sel.startsWith("point-")) {
@@ -424,6 +489,21 @@
 
       sequenceStore.update((s) =>
         s.filter((item) => !(item.kind === "wait" && item.id === waitId)),
+      );
+      selectedPointId.set(null);
+      recordChange();
+      return;
+    }
+
+    if (sel.startsWith("rotate-")) {
+      const rotateId = sel.substring(7);
+      const rotateItem = $sequenceStore.find(
+        (s) => s.kind === "rotate" && (s as any).id === rotateId,
+      ) as any;
+      if (rotateItem && rotateItem.locked) return; // Don't delete locked rotates
+
+      sequenceStore.update((s) =>
+        s.filter((item) => !(item.kind === "rotate" && item.id === rotateId)),
       );
       selectedPointId.set(null);
       recordChange();
@@ -631,6 +711,8 @@
         }
       } else if (item.kind === "wait") {
         items.push(`wait-${item.id}`);
+      } else if (item.kind === "rotate") {
+        items.push(`rotate-${item.id}`);
       }
     });
     lines.forEach((line, lineIdx) => {
@@ -678,6 +760,20 @@
         item.durationMs = Math.max(0, item.durationMs + delta * 100);
         // Update linked waits so waits that share a name keep the same duration
         sequenceStore.set(updateLinkedWaits(sequence, item.id));
+        recordChange();
+      }
+      return;
+    }
+    if (current.startsWith("rotate-")) {
+      const rotateId = current.substring(7);
+      const item = sequence.find(
+        (s) => s.kind === "rotate" && s.id === rotateId,
+      ) as any;
+      if (item) {
+        if (item.locked) return; // Don't modify locked rotates
+        const step = 5;
+        item.degrees = Number((item.degrees + delta * step).toFixed(2));
+        sequenceStore.set(updateLinkedRotations(sequence, item.id));
         recordChange();
       }
       return;
@@ -778,6 +874,7 @@
     bind("exportGif", () => exportGif());
     bind("addNewLine", () => addNewLine());
     bind("addWait", () => addWait());
+    bind("addRotate", () => addRotate());
     bind("addEventMarker", () => addEventMarker());
     bind("addControlPoint", () => addControlPoint());
     bind("removeControlPoint", () => removeControlPoint());
