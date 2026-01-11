@@ -40,7 +40,7 @@ At the top right of each path panel:
 
 ## Keyboard Shortcuts
 
-*   **Add Point**: `Ctrl + Click` on canvas (or `Cmd + Click` on Mac)
+*   **Add Point**: `Double Click` on field map
 *   **Delete**: `Backspace` or `Delete` key
 *   **Duplicate**: `Shift + D`
 *   **Undo/Redo**: `Ctrl + Z` / `Ctrl + Y`
