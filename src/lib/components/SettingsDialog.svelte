@@ -1158,6 +1158,7 @@
                   <div class="flex items-center gap-2">
                     <input
                       type="range"
+                      aria-label="Onion Layer Spacing"
                       min="2"
                       max="20"
                       step="1"
