@@ -1,43 +1,46 @@
 # Path Editing
 
-Creating and editing paths is the core functionality of the Visualizer. Here's how to master the path editing tools.
+The path editor allows you to create complex autonomous routines using Bezier curves. Each segment of your path is managed through its own panel in the sidebar.
 
-## Creating a Path
+## Path Panels
 
-1.  **Add Points**: Click the "Add Point" button (or use a shortcut) to add a new waypoint to your path.
-2.  **Duplicate Path**: Use `Shift + D` to quickly duplicate the currently selected path.
-3.  **Move Points**: Drag any point on the canvas to change its position.
-4.  **Path Type**: The path connects points using Bezier curves. You can adjust the curvature using control points.
+Each path segment has a dedicated panel with several controls:
 
-## Tools & Actions
+*   **Expand/Collapse**: Click the arrow or path name to show or hide details.
+*   **Renaming**: Click the name to rename. **Tip:** Paths with the **same name** are "linked" — moving one automatically moves the others.
+*   **Locking**: Click the **Lock Icon** to prevent accidental edits to a path.
+*   **Color**: Click the color circle to verify or change the path's color.
+*   **Reorder**: Use the **Up/Down Arrows** to change the sequence of the path.
 
-- **Reverse Path**: Select a path and choose "Reverse Path" to create a new path that follows the reverse trajectory.
-- **Context Menu**: Right-click on the waypoint table to access additional options like deleting, duplicating, or locking paths.
+## Point Configuration
+
+Inside an expanded panel, you can precisely configure the endpoint:
+
+*   **Position**: Manually enter **X** and **Y** coordinates (in inches). Inputs respect your grid snapping settings.
+*   **Heading Modes**: Control the robot's orientation:
+    *   **Constant**: Robot maintains a fixed heading (Degrees).
+    *   **Linear**: Heading changes smoothly from a **Start** angle to an **End** angle.
+    *   **Tangential**: Robot faces the direction of travel. Check **Reverse** to drive backwards.
 
 ## Control Points
 
-Each path segment has control points that define the curve.
+The **Control Points** section allows you to shape the Bezier curve:
 
-- **Tangent**: The control points determine the tangent of the curve at the start and end points.
-- **Adjusting**: Drag the blue control point handles to shape the curve.
-- **Adding/Removing**: You can add more control points for complex curves in the "Control Points" section of the path settings.
+*   **Add/Remove**: Click **Add Control Point** to create complex curves. Use the trash icon to remove them.
+*   **Precise Editing**: Enter exact X/Y coordinates for every control point.
+*   **Reorder**: Drag and drop control points in the list to change their order of influence.
 
-## Heading Modes
+## Panel Actions
 
-The robot's heading (orientation) can be controlled independently of the path direction.
+At the top right of each path panel:
 
-- **Tangential**: The robot faces the direction of travel. You can reverse this to make the robot drive backwards.
-- **Constant**: The robot maintains a fixed heading throughout the path segment.
-- **Linear**: The robot's heading changes linearly from a start angle to an end angle over the course of the segment.
+*   **Insert Point**: Click the **Plus (+)** icon to insert a new path segment after the current one.
+*   **Add Wait**: Click the **Clock** icon to insert a stop/wait command.
+*   **Delete**: Click the **Trash** icon to remove the path segment.
 
-## Path Chains
+## Keyboard Shortcuts
 
-You can link multiple path segments together to create a continuous routine.
-
-- **Linked Points**: If you name two paths with the same name (e.g., "Path 1"), their start/end points will be linked. Moving one will move the other.
-- **Wait Times**: You can add wait times between paths to simulate pauses or robot actions.
-
-## Precision Tools
-
-- **Grid Snapping**: Enable grid snapping in the settings to align points to a grid (1" - 24").
-- **Coordinates**: You can manually enter X/Y coordinates for precise positioning in the path settings panel.
+*   **Add Point**: `Ctrl + Click` on canvas (or `Cmd + Click` on Mac)
+*   **Delete**: `Backspace` or `Delete` key
+*   **Duplicate**: `Shift + D`
+*   **Undo/Redo**: `Ctrl + Z` / `Ctrl + Y`
