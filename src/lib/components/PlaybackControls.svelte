@@ -247,7 +247,9 @@
         {:else if item.type === "rotate"}
           <!-- Rotate: explicit rotates are highlighted in blue; implicit (auto) rotates use a lighter style -->
           <div
-            class={item.explicit === true ? 'absolute top-1/2 -translate-y-1/2 h-2 bg-blue-500/70' : 'absolute top-1/2 -translate-y-1/2 h-2 bg-blue-200/40'}
+            class={item.explicit === true
+              ? "absolute top-1/2 -translate-y-1/2 h-2 bg-blue-500/70"
+              : "absolute top-1/2 -translate-y-1/2 h-2 bg-blue-200/40"}
             style="left: {item.percent}%; width: {item.durationPercent}%; border-radius: 2px;"
             aria-hidden="true"
           ></div>
@@ -266,7 +268,9 @@
           <!-- Center the icon in the duration; only show icon for explicit rotates -->
           <div
             class="absolute"
-            style="left: {item.percent + (item.durationPercent || 0) / 2}%; top: 50%; transform: translate(-50%, -50%); pointer-events: none;"
+            style="left: {item.percent +
+              (item.durationPercent || 0) /
+                2}%; top: 50%; transform: translate(-50%, -50%); pointer-events: none;"
             aria-hidden="true"
           >
             <!-- Small rotate icon (explicit rotates are blue) -->
@@ -324,8 +328,10 @@
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="currentColor"
-            class={item.fromWait ? 'w-5 h-5 drop-shadow-md transition-transform group-hover:scale-125 text-black dark:text-white' : 'w-5 h-5 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125'}
-            style={item.fromWait ? '' : `color: ${item.color || '#a855f7'}`}
+            class={item.fromWait
+              ? "w-5 h-5 drop-shadow-md transition-transform group-hover:scale-125 text-black dark:text-white"
+              : "w-5 h-5 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125"}
+            style={item.fromWait ? "" : `color: ${item.color || "#a855f7"}`}
           >
             <path
               fill-rule="evenodd"

@@ -7,6 +7,7 @@ Configure the visualizer and robot parameters.
 ## Keyboard Shortcuts
 
 View and customize key bindings for faster editing.
+
 - Click **Open Editor** in the settings menu to manage shortcuts.
 
 ## Robot Configuration
@@ -40,16 +41,20 @@ Customize the visualizer appearance.
 ## Advanced Settings
 
 ### Visualization
+
 - **Onion Layers**: Show ghost outlines of the robot along the path.
 - **Spacing**: Adjust distance between ghost layers.
 
 ### Path Optimization
+
 Tune the genetic algorithm for automatic path refinement:
+
 - **Iterations**: Number of improvement cycles.
 - **Population**: Paths tested per cycle.
 - **Mutation Rate**: Frequency of point changes.
 - **Mutation Strength**: Max distance points move.
 
 ## Credits & Legal
+
 - View version, contributors, and licenses.
 - **Reset All**: Restore default settings.

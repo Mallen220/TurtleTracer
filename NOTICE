@@ -117,3 +117,5 @@ src/lib/components/GlobalEventMarkers.svelte
 src/lib/components/PlaybackControls.svelte
 src/lib/components/whats-new/features/newest.md
 scripts/bump-version.js
+verification/page_content.md
+verification/render_md.js

@@ -753,7 +753,7 @@
       line.eventMarkers.forEach((ev, evIdx) => {
         // Only show marker if it's being hovered
         if ($hoveredMarkerId !== ev.id) return;
-        
+
         const t = Math.max(0, Math.min(1, ev.position ?? 0.5));
         let pos = { x: 0, y: 0 };
         if (line.controlPoints.length > 0) {
@@ -802,7 +802,7 @@
         seqWait.eventMarkers.forEach((event: any, eventIdx: number) => {
           // Only show marker if it's being hovered
           if ($hoveredMarkerId !== event.id) return;
-          
+
           const markerGroup = new Two.Group();
           markerGroup.id = `wait-event-${ev.waitId}-${eventIdx}`;
           const markerCircle = new Two.Circle(
@@ -851,7 +851,7 @@
         seqRotate.eventMarkers.forEach((event: any, eventIdx: number) => {
           // Only show marker if it's being hovered
           if ($hoveredMarkerId !== event.id) return;
-          
+
           const markerGroup = new Two.Group();
           markerGroup.id = `rotate-event-${ev.waitId}-${eventIdx}`;
           const markerCircle = new Two.Circle(

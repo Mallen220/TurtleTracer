@@ -1,19 +1,21 @@
-
-import MarkdownIt from 'markdown-it';
-import fs from 'fs';
-import path from 'path';
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+import MarkdownIt from "markdown-it";
+import fs from "fs";
+import path from "path";
 
 const md = new MarkdownIt({
   html: true,
   linkify: true,
-  typographer: true
+  typographer: true,
 });
 
-const inputPath = path.resolve('src/lib/components/whats-new/pages/simulation.md');
-const outputPath = path.resolve('verification/page_content.html');
+const inputPath = path.resolve(
+  "src/lib/components/whats-new/pages/simulation.md",
+);
+const outputPath = path.resolve("verification/page_content.html");
 
 try {
-  const content = fs.readFileSync(inputPath, 'utf8');
+  const content = fs.readFileSync(inputPath, "utf8");
   const result = md.render(content);
 
   const html = `
@@ -45,8 +47,8 @@ try {
   `;
 
   fs.writeFileSync(outputPath, html);
-  console.log('HTML generated at', outputPath);
+  console.log("HTML generated at", outputPath);
 } catch (e) {
-  console.error('Error:', e);
+  console.error("Error:", e);
   process.exit(1);
 }
