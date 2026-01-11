@@ -305,9 +305,10 @@
           }
         }
         // Fallback: heading difference indicates an implicit rotation inserted by pathing
+        // Use a slightly larger threshold to avoid noisy small heading differences being treated as rotates
         if (
           !isRotate &&
-          Math.abs((ev.startHeading || 0) - (ev.targetHeading || 0)) > 0.1
+          Math.abs((ev.startHeading || 0) - (ev.targetHeading || 0)) > 1.0
         ) {
           isRotate = true;
           // Mark as implicit
@@ -374,7 +375,9 @@
             items.push({
               type: "marker",
               percent: toPct(absTime),
-              color: "#ffffff", // Default white for wait/rotate markers
+              // Marker originates from a wait/rotate sequence item (user-defined or implicit)
+              // Renderer will style wait-origin markers using theme-aware colors (black / white)
+              fromWait: true,
               name: m.name,
             });
           });

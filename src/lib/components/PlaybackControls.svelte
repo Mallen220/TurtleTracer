@@ -14,6 +14,7 @@
     color?: string;
     name: string;
     explicit?: boolean; // true = user-defined action, false = implicit pathing behavior
+    fromWait?: boolean; // true when the marker comes from a wait/rotate event
   }[] = [];
   export let playbackSpeed: number = 1.0;
   export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
@@ -286,8 +287,8 @@
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="currentColor"
-            class="w-5 h-5 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125"
-            style="color: {item.color || '#a855f7'};"
+            class={item.fromWait ? 'w-5 h-5 drop-shadow-md transition-transform group-hover:scale-125 text-black dark:text-white' : 'w-5 h-5 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125'}
+            style={item.fromWait ? '' : `color: ${item.color || '#a855f7'}`}
           >
             <path
               fill-rule="evenodd"
