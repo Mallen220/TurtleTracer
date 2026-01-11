@@ -120,7 +120,7 @@
         <input
           tabindex="-1"
           value={rotate.name}
-          placeholder="Rotate Name"
+          placeholder="Rotate"
           class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none text-sm font-semibold min-w-[100px] pr-6"
           class:text-pink-500={hoveredRotateId === rotate.id}
           disabled={rotate.locked}

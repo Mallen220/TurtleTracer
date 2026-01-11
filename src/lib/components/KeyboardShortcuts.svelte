@@ -338,10 +338,7 @@
 
       const newWait = _.cloneDeep(waitItem);
       newWait.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-      // Wait names are usually just "Wait", but let's see if we should append duplicate
-      // The user said: "Wait's should be identical."
-      // But also: "adding 'duplicate' to the name for the first duplicate..."
-      // Assuming this applies to both.
+
       const existingWaitNames = sequence
         .filter((s) => s.kind === "wait")
         .map((s) => (s as any).name || "");

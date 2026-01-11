@@ -124,14 +124,14 @@
       <div class="relative">
         <input
           value={wait.name}
-          placeholder="Wait Name"
+          placeholder="Wait"
           class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold min-w-[100px] pr-6"
           class:text-amber-500={hoveredWaitId === wait.id}
           disabled={wait.locked}
           on:input={handleNameInput}
           on:blur={handleBlur}
           on:click|stopPropagation
-          aria-label="Wait Name"
+          aria-label="Wait"
         />
         {#if linked}
           <!-- svelte-ignore a11y-no-static-element-interactions -->

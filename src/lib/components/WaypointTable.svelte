@@ -1468,8 +1468,8 @@
                       // @ts-ignore
                       updateWaitName(item, e.target.value)}
                     disabled={item.locked}
-                    placeholder="Wait Name"
-                    aria-label="Wait Name"
+                    placeholder="Wait"
+                    aria-label="Wait"
                   />
                   {#if isWaitLinked(sequence, item.id)}
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -1624,8 +1624,8 @@
                       // @ts-ignore
                       updateRotateName(item, e.target.value)}
                     disabled={item.locked}
-                    placeholder="Rotate Name"
-                    aria-label="Rotate Name"
+                    placeholder="Rotate"
+                    aria-label="Rotate"
                   />
                   {#if isRotateLinked(sequence, item.id)}
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
