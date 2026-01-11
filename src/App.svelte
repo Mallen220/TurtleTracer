@@ -14,6 +14,7 @@
   import PathStatisticsDialog from "./lib/components/PathStatisticsDialog.svelte";
   import NotificationToast from "./lib/components/NotificationToast.svelte";
   import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
+  import CommandPalette from "./lib/components/CommandPalette.svelte";
 
   // Stores
   import {
@@ -115,6 +116,7 @@
   let showSidebar = true;
   // DEBUG: force open Whats New during development to validate feature loading
   let showWhatsNew = true;
+  let showCommandPalette = false;
   let activeControlTab: "path" | "field" | "table" = "path";
   let controlTabRef: any = null;
   // DOM container for the ControlTab; used to size/position the stats panel
@@ -708,6 +710,7 @@
   bind:activeControlTab
   toggleStats={() => (statsOpen = !statsOpen)}
   openWhatsNew={() => (showWhatsNew = true)}
+  toggleCommandPalette={() => (showCommandPalette = !showCommandPalette)}
 />
 
 {#if $showExportGif && fieldRenderer}
@@ -739,6 +742,116 @@
 
 <WhatsNewDialog show={showWhatsNew} on:close={closeWhatsNew} />
 <NotificationToast />
+
+<CommandPalette
+  isOpen={showCommandPalette}
+  onClose={() => (showCommandPalette = false)}
+  commands={[
+    // File
+    {
+      id: "save-project",
+      label: "Save Project",
+      shortcut: "Cmd/Ctrl+S",
+      action: handleSaveProject,
+      category: "File",
+    },
+    {
+      id: "save-as",
+      label: "Save As / Download",
+      shortcut: "Cmd/Ctrl+Shift+S",
+      action: saveFileAs,
+      category: "File",
+    },
+    {
+      id: "export-gif",
+      label: "Export Animated GIF",
+      shortcut: "Cmd/Ctrl+Shift+E",
+      action: exportGif,
+      category: "File",
+    },
+    {
+      id: "export-java",
+      label: "Export Java Code",
+      action: () => exportDialogState.set({ isOpen: true, format: "java" }),
+      category: "File",
+    },
+    {
+      id: "export-json",
+      label: "Export JSON (.pp)",
+      action: () => exportDialogState.set({ isOpen: true, format: "json" }),
+      category: "File",
+    },
+
+    // Edit
+    {
+      id: "undo",
+      label: "Undo",
+      shortcut: "Cmd/Ctrl+Z",
+      action: undoAction,
+      category: "Edit",
+    },
+    {
+      id: "redo",
+      label: "Redo",
+      shortcut: "Cmd/Ctrl+Shift+Z",
+      action: redoAction,
+      category: "Edit",
+    },
+
+    // View
+    {
+      id: "toggle-settings",
+      label: "Open Settings",
+      shortcut: "Cmd/Ctrl+,",
+      action: () => showSettings.set(true),
+      category: "View",
+    },
+    {
+      id: "toggle-shortcuts",
+      label: "Keyboard Shortcuts",
+      shortcut: "?",
+      action: () => showShortcuts.set(true),
+      category: "View",
+    },
+    {
+      id: "toggle-stats",
+      label: "Toggle Path Statistics",
+      shortcut: "S",
+      action: () => (statsOpen = !statsOpen),
+      category: "View",
+    },
+    {
+      id: "toggle-sidebar",
+      label: "Toggle Sidebar",
+      shortcut: "B",
+      action: () => (showSidebar = !showSidebar),
+      category: "View",
+    },
+
+    // Tabs
+    {
+      id: "tab-paths",
+      label: "Go to Paths Tab",
+      shortcut: "Alt+1",
+      action: () => (activeControlTab = "path"),
+      category: "Navigation",
+    },
+    {
+      id: "tab-field",
+      label: "Go to Field Tab",
+      shortcut: "Alt+2",
+      action: () => (activeControlTab = "field"),
+      category: "Navigation",
+    },
+    {
+      id: "tab-table",
+      label: "Go to Table Tab",
+      shortcut: "Alt+3",
+      action: () => (activeControlTab = "table"),
+      category: "Navigation",
+    },
+  ]}
+/>
 
 <!-- Main Container -->
 <div

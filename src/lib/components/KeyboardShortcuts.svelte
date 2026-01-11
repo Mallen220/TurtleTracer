@@ -55,6 +55,7 @@
 
   // Optional callback provided by App.svelte to open the What's New dialog
   export let openWhatsNew: () => void;
+  export let toggleCommandPalette: () => void;
 
   // Reactive Values
   $: settings = $settingsStore;
@@ -961,6 +962,10 @@
     bind("openSettings", () => showSettings.update((v) => !v));
     bind("openWhatsNew", () => {
       if (openWhatsNew) openWhatsNew();
+    });
+
+    bind("toggleCommandPalette", () => {
+      if (toggleCommandPalette) toggleCommandPalette();
     });
 
     bind("toggleStats", () => {

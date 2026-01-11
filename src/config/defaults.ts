@@ -431,6 +431,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "openWhatsNew",
     category: "Settings",
   },
+  {
+    id: "toggle-command-palette",
+    key: "cmd+p, ctrl+p",
+    description: "Toggle Command Palette",
+    action: "toggleCommandPalette",
+    category: "View",
+  },
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
