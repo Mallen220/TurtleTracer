@@ -1,25 +1,44 @@
 # File Management
 
-The Pedro Pathing Visualizer uses a local file management system to store your projects as `.pp` files. This allows for secure storage, easy version control, and organized project management.
+The visualizer uses a local file system to store projects as `.pp` files, giving you full control over your data.
 
-## Opening and Saving Files
+## File Browser
 
-- **Open File**: Click the "Files" button in the top left corner to open the file manager. From there, you can browse your saved projects and click to open one.
-- **Save File**: Use `Ctrl + S` (or `Cmd + S` on macOS) to save your current project. If it's a new project, you'll be prompted to name it.
-- **Save As**: You can duplicate or rename files within the file manager to create copies.
+The file manager appears in the sidebar when you click **Files** in the top-left corner.
 
-## Organizing Files
+### Toolbar Controls
 
-The file manager allows you to:
+*   **Search**: Filter files by name.
+*   **Sort**: Toggle between **Name** and **Date** sorting.
+*   **View**: Switch between **List** (details) and **Grid** (visual previews) modes.
+*   **Import**: Load an external `.pp` file into the current directory.
+*   **New File**: Create a blank project.
+*   **Refresh**: Reload the file list.
+*   **Change Directory**: Open a system dialog to select a new working folder.
 
-- **Create New Files**: Click "New File" in the file manager toolbar.
-- **Delete Files**: Click the trash icon next to a file to delete it.
-- **Rename Files**: Click the pencil icon to rename a file.
-- **Search**: Use the search bar to filter files by name.
-- **Sort**: Sort files by name or date modified.
-- **Change Directory**: By default, files are saved in an `auto_paths` directory in your documents. You can change this directory in the file manager settings.
+### Navigation
 
-## Importing and Exporting
+The breadcrumb bar below the toolbar shows your current path.
 
-- **Import**: You can import `.pp` files from other locations by dragging them into the application or using the import button in the file manager.
-- **Export**: While `.pp` files are the native format, you can also export your paths as Java code, JSON, or sequential commands for use in your robot code. See the [Exporting](/exporting) page for more details.
+*   **Edit Path**: Click the path text to manually type a new directory location.
+*   **Home Directory**: You can use `~` as a shortcut for your home folder.
+
+## File Operations
+
+Right-click a file (or click the **⋮** menu in Grid view) to access actions:
+
+*   **Open**: Load the project. Double-clicking also works.
+*   **Save Current to File**: Overwrite this file with your currently active project.
+*   **Rename**: Change the file name.
+*   **Delete**: Permanently remove the file.
+*   **Duplicate**: Create a copy of the project.
+
+### Advanced Tools
+
+*   **Mirror Copy**: Creates a mirrored version of the path (e.g., for the opposite alliance).
+*   **Reverse Copy**: Creates a version with the path reversed.
+
+## Saving & Exporting
+
+*   **Save Project**: Press `Ctrl+S` (or `Cmd+S`) to save changes to the current file.
+*   **Export**: To generate Java code or JSON, use the **Export** button in the main navbar. See [Exporting Code](/exporting) for details.
