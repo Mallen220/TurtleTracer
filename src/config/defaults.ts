@@ -517,6 +517,7 @@ export const DEFAULT_SETTINGS: Settings = {
   restrictDraggingToField: true,
   keyBindings: DEFAULT_KEY_BINDINGS,
   recentFiles: [],
+  lastSeenVersion: "",
   // Developer/debugging aids
   // @ts-ignore
   showDebugSequence: false,
