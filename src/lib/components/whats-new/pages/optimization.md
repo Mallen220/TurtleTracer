@@ -14,7 +14,7 @@ The optimizer treats your path like a living organism that evolves. It tries tho
 For the optimizer to work effectively, ensure your **Settings** are accurate:
 
 - **Robot Dimensions**: Set the correct `Length` and `Width` of your robot.
-- **Safety Margin**: Add a buffer (e.g., 2 inches) to ensure you don't graze obstacles. The more precise the drive train the smaller the buffer. 
+- **Safety Margin**: Add a buffer (e.g., 2 inches) to ensure you don't graze obstacles. The more precise the drive train the smaller the buffer.
 - **Obstacles**: Define accurate obstacles in the "Obstacles" tab.
 
 ## The Optimization Process
