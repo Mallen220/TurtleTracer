@@ -1,35 +1,60 @@
-# Exporting
+# Exporting Code
 
-The Visualizer offers powerful export options to integrate your paths into your robot code.
+Turn your visualized paths into runnable robot code or shareable animations.
 
-## Export Formats
+## Java OpMode (Standard)
 
-1.  **Java Code**: Generates a complete Java class for your autonomous routine.
-    - **Full Class**: Creates a ready-to-use OpMode file.
-    - **Snippets**: Generates just the path building code to copy-paste.
-2.  **Sequential Commands**: Exports code formatted for command-based frameworks (e.g., SolversLib, NextFTC).
-3.  **Points**: Exports a raw list of points.
-4.  **JSON / Project**: Exports the raw project data (`.pp` file) or JSON for custom parsers.
+Generates a complete, standalone OpMode for your autonomous routine. This does not support all the functionality of the program due to current limitaions.
 
-## Java Export Settings
+*   **Full Class**: Creates a ready-to-run file including the `OpMode` structure, state machine, and path definitions.
+*   **Snippets**: Uncheck "Generate Full Class" to get just the `PathChain` construction code for copy-pasting into your own classes.
+*   **Hardcoded Paths**: The geometry is baked into the Java file. You do **not** need to upload the `.pp` file to the robot.
+*   **Event Markers**: Automatically generates `addEventMarker` calls and placeholder comments for registering your commands.
 
-- **Package Name**: Specify your team's package name (e.g., `org.firstinspires.ftc.teamcode.autos`).
-- **Class Name**: Define the name of the generated Java class.
-- **Library**: Choose between supported libraries if applicable.
+## Command-Based (Recommended, Advanced)
 
-## How to Use
+Generates a `SequentialCommandGroup` for use with command-based frameworks.
 
-1.  Open the "Export" dialog (top right).
-2.  Select your desired format.
-3.  Configure any settings (package name, etc.).
-4.  **Copy**: Click to copy the code to your clipboard.
-5.  **Save**: Click to save the code directly to a file.
+*   **Supported Libraries**:
+    *   **SolversLib**: Standard integration.
+    *   **NextFTC**: Experimental support.
+*   **Dynamic Loading**: This mode uses `PedroPathReader` to load path data from the `.pp` file at runtime. **You must upload your `.pp` file to the robot** for this to work.
+*   **Features**: Automatically handles `FollowPath`, `Wait`, and event triggers using `ParallelRaceGroup`.
+
+### Gradle setup
+
+To use the command-based exports you need to add the JitPack repository and the PedroPathingPlus dependency to your `teamcode` Gradle configuration (for example, `build.gradle`):
+
+```groovy
+repositories {
+    maven {
+        url 'https://jitpack.io'
+    }
+}
+```
+
+And add the dependency (use the [newest release](https://github.com/Mallen220/PedroPathingPlus/releases) instead of the version shown):
+
+```groovy
+implementation 'com.github.Mallen220:PedroPathingPlus:1.0.5'
+```
+
+## Other Formats
+
+*   **Points List**: A raw array of coordinates (e.g., `[(10, 10), (20, 20)]`) for custom processing or debugging.
+*   **Project File (.pp)**: Download the source file to share with teammates or back up your work.
 
 ## Animation Export
 
-You can also export the simulation as a GIF or APNG to share with your team.
+Create high-quality visualizers to share your strategy.
 
-- **Gif Export**: Click the "Export GIF" button.
-- **APNG Export**: Choose APNG format for higher quality animations with transparency support.
-- **Settings**: Adjust resolution, frame rate, and quality.
-- **Share**: Use the generated file for documentation or strategy discussions.
+*   **Formats**:
+    *   **GIF**: Best for compatibility (Discord, Slack).
+    *   **APNG**: Higher quality with transparency support, and smaller file sizes.
+*   **Quality Controls**: Adjust **FPS**, **Scale**, and **Quality** to balance file size and visual fidelity.
+
+## Dialog Tools
+
+*   **Search (Ctrl+F)**: Quickly find specific lines or markers in the generated code.
+*   **Package Name**: Set your team's package (e.g., `org.firstinspires.ftc.teamcode`) to fix imports automatically.
+*   **Save to File**: Directly save `.java` or `.txt` files to your computer.
