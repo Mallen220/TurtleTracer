@@ -1,24 +1,29 @@
 # Obstacles
 
-Defining obstacles helps you avoid collisions during path planning.
+Obstacles define restricted areas on the field. The path optimizer effectively routes around these zones to prevent collisions.
 
-## Adding Obstacles
+## Basics
 
-1.  **Create**: Click the "+" button in the Obstacles section to add a new obstacle.
-2.  **Shape**: Obstacles are defined as polygons. You can add or remove vertices to create complex shapes.
-3.  **Position**: Drag the vertices on the canvas to define the obstacle's boundary.
+*   **Add**: Click the **+** button in the Obstacles header.
+*   **Name**: Type in the text box to rename (e.g., "Wall", "Stage").
+*   **Color**: Click the color dot to change the obstacle's appearance.
+*   **Delete**: Click the trash icon to remove the entire obstacle.
 
-## Managing Obstacles
+## Editing Shapes
 
-- **Naming**: Give your obstacles descriptive names (e.g., "Stage", "Wall").
-- **Color**: Assign colors to obstacles for better visibility.
-- **Visibility**: You can toggle the visibility of individual obstacles or the entire section.
+Obstacles are polygons. You can modify their shape using the Sidebar or the Field.
 
-## Collision Detection
+### 1. On the Field (Interactive)
+*   **Drag**: Click and drag any corner (vertex) to move it.
+*   **Snap**: Dragging respects the **Snap to Grid** setting if enabled.
 
-- **Visual Warning**: If the robot's path intersects with an obstacle, it may not be explicitly flagged in real-time, but you can visually verify it during simulation.
-- **Optimization**: The path optimizer considers obstacles and will try to find a path that avoids them.
+### 2. In the Sidebar (Precise)
+*   **Coordinates**: Enter exact X and Y values for any vertex.
+*   **Add Vertex**: Click **+** next to a coordinate row to insert a new corner after it.
+*   **Remove Vertex**: Click the trash icon next to a coordinate row to delete it (minimum 3 corners).
+*   **Collapse**: Click the arrow icon to hide the vertex list for a cleaner view.
 
-## Safety Margin
+## Safety & Collisions
 
-You can define a "Safety Margin" in the settings. This adds a buffer zone around obstacles and field boundaries that the path optimizer will try to respect, ensuring the robot doesn't get too close.
+*   **Safety Margin**: Set a buffer distance in **Settings**. The optimizer will keep the path this far away from all obstacles.
+*   **Warnings**: The path prediction will visually indicate if the robot is projected to hit an obstacle.
