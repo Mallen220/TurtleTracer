@@ -121,3 +121,5 @@ verification/page_content.md
 verification/render_md.js
 verification/verify_highlights.py
 src/lib/components/CommandPalette.svelte
+src/tests/directorySettings.test.ts
+src/tests/draw.test.ts

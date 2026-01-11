@@ -949,7 +949,8 @@
       if (openWhatsNew) openWhatsNew();
     },
     toggleCommandPalette: () => {
-      if (toggleCommandPalette) toggleCommandPalette(); // external override?
+      if (toggleCommandPalette)
+        toggleCommandPalette(); // external override?
       else showCommandPalette = !showCommandPalette; // internal toggle
     },
     toggleStats: () => {
