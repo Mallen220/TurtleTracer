@@ -56,7 +56,11 @@ if (fc) {
             const normTarget = ((target % 360) + 360) % 360;
             const normEnd = ((end % 360) + 360) % 360;
 
-            expect(Math.abs(normTarget - normEnd)).toBeLessThan(1e-9);
+            const difference = Math.abs(normTarget - normEnd);
+            // If difference is close to 360, it's effectively 0
+            const minDifference = Math.min(difference, Math.abs(difference - 360));
+
+            expect(minDifference).toBeLessThan(1e-9);
           },
         ),
       );
