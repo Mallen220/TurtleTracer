@@ -354,6 +354,7 @@
                 <div class="w-2 h-2 rounded-full bg-purple-500 shrink-0"></div>
                 <input
                   type="text"
+                  aria-label="Marker name"
                   bind:value={marker.ref.name}
                   class="text-sm font-medium bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 rounded px-2 py-0.5 w-full"
                   on:change={() => {
@@ -366,6 +367,7 @@
                 class="text-neutral-400 hover:text-red-500 transition-colors"
                 on:click={() => removeMarker(marker)}
                 title="Remove Marker"
+                aria-label="Remove Marker"
               >
                 <TrashIcon className="size-4" />
               </button>
@@ -385,6 +387,7 @@
             <div class="flex items-center gap-2">
               <input
                 type="range"
+                aria-label="Position for {marker.ref.name}"
                 min="0"
                 max={sequence.length}
                 step="0.01"
@@ -403,6 +406,7 @@
               />
               <input
                 type="number"
+                aria-label="Position value for {marker.ref.name}"
                 min="0"
                 max={sequence.length}
                 step="0.01"

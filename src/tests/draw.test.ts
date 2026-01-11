@@ -15,18 +15,18 @@ describe("Draw Utils", () => {
     });
 
     it("returns different colors on subsequent calls", () => {
-        const color1 = getRandomColor();
-        const color2 = getRandomColor();
-        // It's technically possible for them to be equal, but very unlikely
-        // running it a few times to be safe
-        let allEqual = true;
-        for(let i=0; i<5; i++) {
-            if (getRandomColor() !== getRandomColor()) {
-                allEqual = false;
-                break;
-            }
+      const color1 = getRandomColor();
+      const color2 = getRandomColor();
+      // It's technically possible for them to be equal, but very unlikely
+      // running it a few times to be safe
+      let allEqual = true;
+      for (let i = 0; i < 5; i++) {
+        if (getRandomColor() !== getRandomColor()) {
+          allEqual = false;
+          break;
         }
-        expect(allEqual).toBe(false);
+      }
+      expect(allEqual).toBe(false);
     });
   });
 });

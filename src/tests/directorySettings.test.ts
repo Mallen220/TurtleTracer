@@ -49,7 +49,9 @@ describe("Directory Settings", () => {
       mockElectronAPI.getAppDataPath.mockResolvedValue("/app/data");
       mockElectronAPI.fileExists.mockResolvedValue(true);
       const storedSettings = { autoPathsDirectory: "/some/path" };
-      mockElectronAPI.readFile.mockResolvedValue(JSON.stringify(storedSettings));
+      mockElectronAPI.readFile.mockResolvedValue(
+        JSON.stringify(storedSettings),
+      );
 
       const settings = await loadDirectorySettings();
       expect(settings).toEqual(storedSettings);
@@ -72,7 +74,7 @@ describe("Directory Settings", () => {
 
       expect(mockElectronAPI.writeFile).toHaveBeenCalledWith(
         "/app/data/directory-settings.json",
-        JSON.stringify(settings, null, 2)
+        JSON.stringify(settings, null, 2),
       );
     });
 
@@ -96,7 +98,7 @@ describe("Directory Settings", () => {
       mockElectronAPI.getAppDataPath.mockResolvedValue("/app/data");
       mockElectronAPI.fileExists.mockResolvedValue(true);
       mockElectronAPI.readFile.mockResolvedValue(
-        JSON.stringify({ autoPathsDirectory: "/custom/path" })
+        JSON.stringify({ autoPathsDirectory: "/custom/path" }),
       );
 
       const dir = await getSavedAutoPathsDirectory();
@@ -110,7 +112,7 @@ describe("Directory Settings", () => {
       mockElectronAPI.fileExists.mockResolvedValue(true);
       // Initial state
       mockElectronAPI.readFile.mockResolvedValue(
-        JSON.stringify({ autoPathsDirectory: "/old/path" })
+        JSON.stringify({ autoPathsDirectory: "/old/path" }),
       );
 
       await saveAutoPathsDirectory("/new/path");
@@ -118,7 +120,7 @@ describe("Directory Settings", () => {
       // Verify it tried to write the updated settings
       expect(mockElectronAPI.writeFile).toHaveBeenCalledWith(
         "/app/data/directory-settings.json",
-        expect.stringContaining('"/new/path"')
+        expect.stringContaining('"/new/path"'),
       );
     });
   });

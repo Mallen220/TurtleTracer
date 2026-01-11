@@ -133,6 +133,7 @@
                 bind:value={event.name}
                 class="pl-1.5 rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm w-full min-w-[100px]"
                 placeholder="Event name"
+                aria-label="Event name"
                 disabled={line.locked}
                 on:change={() => {
                   // Update the array to trigger reactivity
@@ -147,6 +148,7 @@
               on:click={() => removeEventMarker(eventIdx)}
               class="text-red-500 hover:text-red-600 ml-auto"
               title="Remove Event Marker"
+              aria-label="Remove Event Marker"
               disabled={line.locked}
             >
               <TrashIcon className="size-4" strokeWidth={2} />
@@ -166,6 +168,7 @@
                 step="0.01"
                 value={event.position}
                 class="flex-1 slider"
+                aria-label="Event position"
                 data-event-marker-slider
                 disabled={line.locked}
                 on:dragstart|preventDefault|stopPropagation
@@ -174,6 +177,7 @@
               <input
                 type="number"
                 value={event.position}
+                aria-label="Event position value"
                 disabled={line.locked}
                 min="0"
                 max="1"

@@ -120,7 +120,8 @@
                   <span class="text-base font-semibold">{command.label}</span>
                   {#if command.category}
                     <span
-                      class="text-xs font-medium uppercase tracking-wider mt-0.5 {index === selectedIndex
+                      class="text-xs font-medium uppercase tracking-wider mt-0.5 {index ===
+                      selectedIndex
                         ? 'text-indigo-200'
                         : 'text-neutral-400 dark:text-neutral-500'}"
                       >{command.category}</span
@@ -130,14 +131,19 @@
               </div>
               {#if command.shortcut}
                 <div class="flex items-center gap-1">
-                   {#each command.shortcut.split('+') as key}
-                     <kbd class="text-xs font-mono font-bold px-1.5 py-0.5 rounded border
+                  {#each command.shortcut.split("+") as key}
+                    <kbd
+                      class="text-xs font-mono font-bold px-1.5 py-0.5 rounded border
                        {index === selectedIndex
-                         ? 'bg-indigo-500 border-indigo-400 text-indigo-100'
-                         : 'bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400'}">
-                       {key.trim().replace('Command', 'Cmd').replace('Control', 'Ctrl')}
-                     </kbd>
-                   {/each}
+                        ? 'bg-indigo-500 border-indigo-400 text-indigo-100'
+                        : 'bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400'}"
+                    >
+                      {key
+                        .trim()
+                        .replace("Command", "Cmd")
+                        .replace("Control", "Ctrl")}
+                    </kbd>
+                  {/each}
                 </div>
               {/if}
             </button>
@@ -153,7 +159,8 @@
             class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded min-w-[1.5em] text-center"
             >↑</kbd
           >
-          <kbd class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded min-w-[1.5em] text-center"
+          <kbd
+            class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded min-w-[1.5em] text-center"
             >↓</kbd
           > to navigate</span
         >
