@@ -1,4 +1,4 @@
-
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import MarkdownIt from 'markdown-it';
 import fs from 'fs';
 import path from 'path';

@@ -5,6 +5,7 @@
   export let startPoint: Point;
   export let addPathAtStart: () => void;
   export let addWaitAtStart: () => void;
+  export let addRotateAtStart: () => void;
   import CollapseAllButton from "./CollapseAllButton.svelte";
   import { tick } from "svelte";
   export let toggleCollapseAll: () => void;
@@ -141,6 +142,26 @@
           />
         </svg>
         <span>Add Wait</span>
+      </button>
+      <button
+        on:click={addRotateAtStart}
+        class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-pink-500 dark:bg-pink-600 rounded-md shadow-sm hover:bg-pink-600 dark:hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="size-4"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+          />
+        </svg>
+        <span>Add Rotate</span>
       </button>
     </div>
   </div>

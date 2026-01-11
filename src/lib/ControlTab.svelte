@@ -739,6 +739,22 @@
     recordChange();
   }
 
+  function addRotateAtStart() {
+    const rotate = {
+      kind: "rotate",
+      id: makeId(),
+      name: "",
+      degrees: 0,
+      locked: false,
+    } as SequenceItem;
+    sequence = [rotate, ...sequence];
+
+    // Select newly created rotate
+    selectedPointId.set(`rotate-${(rotate as any).id}`);
+    selectedLineId.set(null);
+    recordChange();
+  }
+
   function addPathAtStart() {
     const newLine: Line = {
       id: makeId(),
@@ -1193,6 +1209,7 @@
             bind:startPoint
             {addPathAtStart}
             {addWaitAtStart}
+            {addRotateAtStart}
             {toggleCollapseAll}
             {allCollapsed}
           />
@@ -1254,6 +1271,7 @@
                     removeLine(lines.findIndex((l) => l.id === ln.id))}
                   onInsertAfter={() => insertLineAfter(sIdx)}
                   onAddWaitAfter={() => insertWaitAfter(sIdx)}
+                  onAddRotateAfter={() => insertRotateAfter(sIdx)}
                   onMoveUp={() => moveSequenceItem(sIdx, -1)}
                   onMoveDown={() => moveSequenceItem(sIdx, 1)}
                   canMoveUp={sIdx !== 0}
@@ -1305,6 +1323,7 @@
                   recordChange?.();
                 }}
                 onAddPathAfter={() => insertPathAfter(sIdx)}
+                onAddRotateAfter={() => insertRotateAfter(sIdx)}
                 onMoveUp={() => moveSequenceItem(sIdx, -1)}
                 onMoveDown={() => moveSequenceItem(sIdx, 1)}
                 canMoveUp={sIdx !== 0}
