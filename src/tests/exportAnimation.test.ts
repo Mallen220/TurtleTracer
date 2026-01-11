@@ -240,14 +240,17 @@ describe("exportAnimation", () => {
       const upng = await import("upng-js");
       await exportPathToApng({ ...options, durationSec: duration, fps });
       // The first argument to encode is the buffers array
-      expect(upng.encode.mock.calls.length).toBeGreaterThanOrEqual(1);
+      const mockEncode = upng.encode as unknown as {
+        mock: { calls: any[][] };
+      };
+      expect(mockEncode.mock.calls.length).toBeGreaterThanOrEqual(1);
       const buffers =
-        upng.encode.mock.calls[upng.encode.mock.calls.length - 1][0];
+        mockEncode.mock.calls[mockEncode.mock.calls.length - 1][0];
       expect(buffers.length).toBe(calculatedFrames);
 
       // Ensure delays sum to total duration in ms
       const delays =
-        upng.encode.mock.calls[upng.encode.mock.calls.length - 1][4];
+        mockEncode.mock.calls[mockEncode.mock.calls.length - 1][4];
       const totalMs = delays.reduce((s: number, v: number) => s + v, 0);
       expect(totalMs).toBe(Math.round(duration * 1000));
     });

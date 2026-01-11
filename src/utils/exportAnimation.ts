@@ -262,7 +262,7 @@ export async function exportPathToGif(
     animationController.seekToPercent(prevPercent);
   if (prevPlaying && animationController.play) animationController.play();
 
-  const p = new Promise(async (resolve, reject) => {
+  const p = new Promise<Blob>(async (resolve, reject) => {
     let encodeStarted = false;
 
     const onAbort = () => {

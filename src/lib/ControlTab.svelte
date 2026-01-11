@@ -256,6 +256,8 @@
       durationPercent?: number;
       color?: string;
       name: string;
+      explicit?: boolean;
+      fromWait?: boolean;
     }[] = [];
 
     if (
