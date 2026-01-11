@@ -3,7 +3,7 @@
 **Features:**
 
 - **Path Statistics:**
-  - View detailed metrics including **Total Time**, **Total Distance**, **Max Velocity**, and **Max Angular Velocity**.
+  - View detailed metrics including **Total Time**, **Total Distance**, **Max Velocity**, **Max Angular Velocity**, and **Degrees Turned**.
   - Analyze a breakdown of every segment (Path, Wait, Rotate) with per-segment statistics.
   - Copy the full statistics table to your clipboard as Markdown for easy sharing.
 - **Rotate Sequence Items:**
@@ -21,7 +21,6 @@
   - Dramatically improved timeline with distinct colors for **Paths (Green)**, **Waits (Amber)**, and **Rotates (Pink)**.
   - Event markers are now clearly visible on the timeline, making it easier to fine-tune timing.
 - **Code Export Improvements:**
-  - **State Machine Generation:** The Java exporter now generates robust `switch-case` state machines with `ElapsedTime` timers.
   - **PedroPathingPlus v1.0.6:** Updated export logic to support the latest library version.
 - **Path Validation Tool:**
   - A new "Validate" button checks for **collisions** and **zero-length segments**.
