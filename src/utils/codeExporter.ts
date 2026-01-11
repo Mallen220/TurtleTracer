@@ -597,10 +597,54 @@ export async function generateSequentialCommandCode(
       const degrees = rotateItem.degrees || 0;
       const radians = (degrees * Math.PI) / 180;
 
-      commands.push(
-        `                new ${InstantCmdClass}(() -> follower.turnTo(${radians.toFixed(3)}))`,
-        `                new ${WaitUntilCmdClass}(() -> !follower.isTurning())`,
-      );
+      const markers: any[] = Array.isArray(rotateItem.eventMarkers)
+        ? [...rotateItem.eventMarkers]
+        : [];
+
+      if (markers.length === 0) {
+        commands.push(
+          `                new ${InstantCmdClass}(() -> follower.turnTo(${radians.toFixed(3)}))`,
+          `                new ${WaitUntilCmdClass}(() -> !follower.isTurning())`,
+        );
+        return;
+      }
+
+      // Sort markers by position (0-1)
+      markers.sort((a, b) => (a.position || 0) - (b.position || 0));
+
+      const firstMarker = markers[0];
+      let turnCommand = `                new ${InstantCmdClass}(() -> {
+                        progressTracker.turn(${radians.toFixed(3)}, "${firstMarker.name}", ${firstMarker.position.toFixed(3)});`;
+
+      // Register remaining markers
+      for (let i = 1; i < markers.length; i++) {
+        turnCommand += `
+                        progressTracker.registerEvent("${markers[i].name}", ${markers[i].position.toFixed(3)});`;
+      }
+      turnCommand += `
+                    })`;
+
+      commands.push(turnCommand);
+
+      let eventSequence = `                new ${ParallelRaceClass}(
+                    new ${WaitUntilCmdClass}(() -> !follower.isTurning()),
+                    new ${SequentialGroupClass}(`;
+
+      markers.forEach((marker, idx) => {
+        if (idx > 0) eventSequence += `,`;
+        eventSequence += `
+                        new ${WaitUntilCmdClass}(() -> progressTracker.shouldTriggerEvent("${marker.name}")),
+                        new ${InstantCmdClass}(() -> progressTracker.executeEvent("${marker.name}"))`;
+      });
+
+      // Ensure the event sequence doesn't finish before the turn completes
+      eventSequence += `,
+                        new ${WaitUntilCmdClass}(() -> !follower.isTurning())`;
+
+      eventSequence += `
+                    ))`;
+
+      commands.push(eventSequence);
       return;
     }
 

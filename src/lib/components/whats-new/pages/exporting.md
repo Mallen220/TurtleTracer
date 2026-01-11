@@ -36,7 +36,7 @@ repositories {
 And add the dependency (use the [newest release](https://github.com/Mallen220/PedroPathingPlus/releases) instead of the version shown):
 
 ```groovy
-implementation 'com.github.Mallen220:PedroPathingPlus:1.0.5'
+implementation 'com.github.Mallen220:PedroPathingPlus:1.0.6'
 ```
 
 ## Other Formats
