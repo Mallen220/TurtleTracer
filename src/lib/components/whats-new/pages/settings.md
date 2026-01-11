@@ -4,24 +4,23 @@ Configure the visualizer and robot parameters.
 
 > **⚠️ Important:** These settings affect the **visualizer only**. Ensure your robot's code constants match these values for accurate simulation.
 
-## ⌨️ Keyboard Shortcuts
+## Keyboard Shortcuts
 
 View and customize key bindings for faster editing.
 - Click **Open Editor** in the settings menu to manage shortcuts.
 
-## 🤖 Robot Configuration
+## Robot Configuration
 
 Set physical dimensions for collision detection.
 
 - **Dimensions**: Set **Length** and **Width** (in inches).
 - **Safety Margin**: Buffer zone around obstacles (in inches).
 - **Validation**:
-  - **Field Boundaries**: Warn if the robot leaves the field.
+  - **Field Boundaries**: Warn if the robot leaves the field or goes close then the safety margin to the field wall.
   - **Restrict Dragging**: Prevent moving points outside the field.
 - **Robot Image**: Upload a custom top-down image or use the default.
-  - *Fun:* Select **Use Potato Robot** for a starchy alternative. 🥔
 
-## ⚡ Motion Parameters
+## Motion Parameters
 
 Simulate robot physics for path timing.
 
@@ -29,7 +28,7 @@ Simulate robot physics for path timing.
 - **Acceleration**: Set **Max Acceleration** and **Deceleration** (in/s²).
 - **Friction**: Adjust surface resistance coefficient.
 
-## 🎨 Interface Settings
+## Interface Settings
 
 Customize the visualizer appearance.
 
@@ -38,7 +37,7 @@ Customize the visualizer appearance.
 - **Orientation**: Rotate the field view (0°–270°).
 - **Velocity Heatmap**: Color-code the path based on speed (Green = Slow, Red = Fast).
 
-## 🛠️ Advanced Settings
+## Advanced Settings
 
 ### Visualization
 - **Onion Layers**: Show ghost outlines of the robot along the path.
@@ -51,6 +50,6 @@ Tune the genetic algorithm for automatic path refinement:
 - **Mutation Rate**: Frequency of point changes.
 - **Mutation Strength**: Max distance points move.
 
-## ℹ️ Credits & Legal
+## Credits & Legal
 - View version, contributors, and licenses.
 - **Reset All**: Restore default settings.
