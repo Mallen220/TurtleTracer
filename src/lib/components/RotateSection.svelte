@@ -67,7 +67,7 @@
   role="button"
   tabindex="0"
   aria-pressed={isSelected}
-  class={`flex flex-col w-full justify-start items-start gap-1 ${isSelected ? "border-l-4 border-green-500 pl-2" : ""}`}
+  class={`flex flex-col w-full justify-start items-start gap-1 ${isSelected ? "border-l-4 border-pink-500 pl-2" : ""}`}
   on:click|stopPropagation={() => {
     if (!rotate.locked) {
       selectedPointId.set(`rotate-${rotate.id}`);
@@ -122,7 +122,7 @@
           value={rotate.name}
           placeholder="Rotate Name"
           class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none text-sm font-semibold min-w-[100px] pr-6"
-          class:text-green-500={hoveredRotateId === rotate.id}
+          class:text-pink-500={hoveredRotateId === rotate.id}
           disabled={rotate.locked}
           on:input={handleNameInput}
           on:blur={handleBlur}
@@ -131,7 +131,7 @@
         {#if linked}
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div
-            class="absolute right-1 top-1/2 -translate-y-1/2 text-green-500 cursor-help flex items-center justify-center"
+            class="absolute right-1 top-1/2 -translate-y-1/2 text-pink-500 cursor-help flex items-center justify-center"
             on:mouseenter={(e) => handleRotateHoverEnter(e, rotate.id)}
             on:mouseleave={handleRotateHoverLeave}
           >
@@ -150,7 +150,7 @@
             {#if hoveredRotateId === rotate.id}
               <div
                 use:tooltipPortal={hoveredRotateAnchor}
-                class="w-64 p-2 bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700 rounded shadow-lg text-xs text-green-900 dark:text-green-100 z-50 pointer-events-none"
+                class="w-64 p-2 bg-pink-100 dark:bg-pink-900 border border-pink-300 dark:border-pink-700 rounded shadow-lg text-xs text-pink-900 dark:text-pink-100 z-50 pointer-events-none"
               >
                 <strong>Linked Rotate</strong><br />
                 Logic: Same Name = Shared Degrees.<br />
@@ -315,7 +315,7 @@
         title="Add Rotate After"
         aria-label="Add Rotate After"
         on:click|stopPropagation={onInsertAfter}
-        class="text-green-500 hover:text-green-600"
+        class="text-pink-500 hover:text-pink-600"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -350,7 +350,7 @@
   </div>
 
   {#if !collapsed}
-    <div class={`h-[0.75px] w-full bg-green-400/50 my-1`} />
+    <div class={`h-[0.75px] w-full bg-pink-400/50 my-1`} />
 
     <div class="flex flex-col justify-start items-start w-full gap-2 pl-2">
       <!-- Degrees Input -->

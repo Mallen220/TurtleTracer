@@ -1590,7 +1590,7 @@
               on:dragstart={(e) => handleDragStart(e, seqIndex)}
               on:dragend={handleDragEnd}
               on:contextmenu={(e) => handleContextMenu(e, seqIndex)}
-              class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-green-50 dark:bg-green-900/20 transition-colors duration-150"
+              class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-pink-50 dark:bg-pink-900/20 transition-colors duration-150"
               class:border-t-2={dragOverIndex === seqIndex &&
                 dragPosition === "top"}
               class:border-b-2={dragOverIndex === seqIndex &&
@@ -1618,7 +1618,7 @@
               <td class="px-3 py-2">
                 <div class="relative w-full max-w-[160px]">
                   <input
-                    class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-green-500 focus:outline-none text-xs pr-6"
+                    class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-pink-500 focus:outline-none text-xs pr-6"
                     value={item.name}
                     on:input={(e) =>
                       // @ts-ignore
@@ -1630,7 +1630,7 @@
                   {#if isRotateLinked(sequence, item.id)}
                     <!-- svelte-ignore a11y-no-static-element-interactions -->
                     <div
-                      class="absolute right-1 top-1/2 -translate-y-1/2 text-green-500 cursor-help flex items-center justify-center"
+                      class="absolute right-1 top-1/2 -translate-y-1/2 text-pink-500 cursor-help flex items-center justify-center"
                       title="Linked Rotate: Same Name = Shared Degrees"
                     >
                       <svg
@@ -1653,7 +1653,7 @@
               <td class="px-3 py-2">
                 <input
                   type="number"
-                  class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-green-500 focus:outline-none text-xs"
+                  class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-pink-500 focus:outline-none text-xs"
                   value={item.degrees}
                   aria-label="{item.name || 'Rotate'} Degrees"
                   on:input={(e) =>
@@ -1830,7 +1830,7 @@
 
       <button
         on:click={() => insertRotate(sequence.length)}
-        class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-500 dark:bg-green-600 rounded-md shadow-sm hover:bg-green-600 dark:hover:bg-green-500 transition-colors focus:outline-none focus:ring-2 focus:ring-green-200 dark:focus:ring-green-500"
+        class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-pink-500 dark:bg-pink-600 rounded-md shadow-sm hover:bg-pink-600 dark:hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500"
         aria-label="Add rotate command"
       >
         <svg

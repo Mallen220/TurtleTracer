@@ -81,7 +81,7 @@
   role="button"
   tabindex="0"
   aria-pressed={isSelected}
-  class={`flex flex-col w-full justify-start items-start gap-1 ${isSelected ? "border-l-4 border-amber-400 pl-2" : ""}`}
+  class={`flex flex-col w-full justify-start items-start gap-1 ${isSelected ? "border-l-4 border-green-500 pl-2" : ""}`}
   on:click={() => {
     if (line.id) selectedLineId.set(line.id);
   }}
@@ -128,7 +128,7 @@
           value={line.name}
           placeholder="Path {idx + 1}"
           class="pl-1.5 rounded-md bg-neutral-100 dark:bg-neutral-950 dark:border-neutral-700 border-[0.5px] focus:outline-none text-sm font-semibold min-w-[100px] pr-6"
-          class:text-blue-500={hoveredLinkId === line.id}
+          class:text-green-500={hoveredLinkId === line.id}
           disabled={line.locked}
           on:input={handleNameInput}
           on:blur={() => {
@@ -139,7 +139,7 @@
         {#if line.id && isLineLinked(lines, line.id)}
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div
-            class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500 cursor-help flex items-center justify-center"
+            class="absolute right-1 top-1/2 -translate-y-1/2 text-green-500 cursor-help flex items-center justify-center"
             on:mouseenter={(e) => handleLinkHoverEnter(e, line.id || null)}
             on:mouseleave={handleLinkHoverLeave}
           >
@@ -158,7 +158,7 @@
             {#if hoveredLinkId === line.id}
               <div
                 use:tooltipPortal={hoveredLinkAnchor}
-                class="w-64 p-2 bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded shadow-lg text-xs text-blue-900 dark:text-blue-100 z-50 pointer-events-none"
+                class="w-64 p-2 bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700 rounded shadow-lg text-xs text-green-900 dark:text-green-100 z-50 pointer-events-none"
               >
                 <strong>Linked Path</strong><br />
                 Logic: Same Name = Shared Position.<br />
@@ -283,14 +283,15 @@
         title="Add Point After This Line"
         aria-label="Add Point After This Line"
         on:click={onInsertAfter}
-        class="text-blue-500 hover:text-blue-600"
+        class="text-green-500 hover:text-green-600"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
           viewBox="0 0 24 24"
           stroke-width={2}
-          class="size-5 stroke-green-500"
+          stroke="currentColor"
+          class="size-5"
         >
           <path
             stroke-linecap="round"
@@ -306,7 +307,7 @@
         title="Add Wait After"
         aria-label="Add Wait After"
         on:click={onAddWaitAfter}
-        class="text-orange-500 hover:text-orange-600"
+        class="text-amber-500 hover:text-amber-600"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
