@@ -1,6 +1,6 @@
 # Controls & Shortcuts
 
-Master the keyboard shortcuts and mouse controls to speed up your workflow.
+Master the keyboard shortcuts and mouse controls to speed up your workflow. Press **shift + ?** to open the keybinds menu for a complete list. 
 
 ## Mouse Controls
 
@@ -8,7 +8,7 @@ Master the keyboard shortcuts and mouse controls to speed up your workflow.
 | :--- | :--- |
 | **Select Point** | Left Click |
 | **Context Menu** | Right Click |
-| **Pan View** | Middle Click + Drag _or_ Space + Drag |
+| **Pan View** | Drag |
 | **Zoom** | Scroll Wheel |
 
 ## File Management
