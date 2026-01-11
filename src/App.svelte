@@ -708,6 +708,7 @@
   bind:activeControlTab
   toggleStats={() => (statsOpen = !statsOpen)}
   openWhatsNew={() => (showWhatsNew = true)}
+  toggleSidebar={() => (showSidebar = !showSidebar)}
 />
 
 {#if $showExportGif && fieldRenderer}

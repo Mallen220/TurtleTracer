@@ -2,6 +2,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import hotkeys from "hotkeys-js";
+  import CommandPalette from "./CommandPalette.svelte";
   import {
     gridSize,
     showGrid,
@@ -52,9 +53,13 @@
   export let controlTabRef: any = null;
   export let activeControlTab: "path" | "field" | "table" = "path";
   export let toggleStats: () => void = () => {};
+  export let toggleSidebar: () => void = () => {};
 
   // Optional callback provided by App.svelte to open the What's New dialog
   export let openWhatsNew: () => void;
+  // This is no longer passed as a prop, handled internally, but kept for compatibility if needed.
+  // We'll mark it optional or ignore if passed.
+  export let toggleCommandPalette: (() => void) | undefined = undefined;
 
   // Reactive Values
   $: settings = $settingsStore;
@@ -64,6 +69,9 @@
   $: sequence = $sequenceStore;
   $: playing = $playingStore;
   $: playbackSpeed = $playbackSpeedStore;
+
+  // Internal State
+  let showCommandPalette = false;
 
   function isUIElementFocused(): boolean {
     const el = document.activeElement as HTMLElement | null;
@@ -853,138 +861,149 @@
 
   // --- Registration ---
 
-  $: if (settings && settings.keyBindings) {
-    hotkeys.unbind();
-    const bind = (action: string, handler: (e: KeyboardEvent) => void) => {
-      const key = getKey(action);
-      if (key) {
-        hotkeys(key, (e) => {
-          if (isUIElementFocused()) return;
-          e.preventDefault();
-          handler(e);
-        });
-      }
-    };
-
-    bind("saveProject", () => saveProject());
-    bind("saveFileAs", () => saveFileAs());
-    bind("exportGif", () => exportGif());
-    bind("addNewLine", () => addNewLine());
-    bind("addWait", () => addWait());
-    bind("addRotate", () => addRotate());
-    bind("addEventMarker", () => addEventMarker());
-    bind("addControlPoint", () => addControlPoint());
-    bind("removeControlPoint", () => removeControlPoint());
-    bind("duplicate", () => duplicate());
-    bind("removeSelected", () => removeSelected());
-    bind("undo", () => undoAction());
-    bind("redo", () => redoAction());
-    bind("resetAnimation", () => resetAnimation());
-    bind("stepForward", () => stepForward());
-    bind("stepBackward", () => stepBackward());
-    bind("movePointUp", () => movePoint(0, 1));
-    bind("movePointDown", () => movePoint(0, -1));
-    bind("movePointLeft", () => movePoint(-1, 0));
-    bind("movePointRight", () => movePoint(1, 0));
-    bind("selectNext", () => cycleSelection(1));
-    bind("selectPrev", () => cycleSelection(-1));
-    bind("increaseValue", () => modifyValue(1));
-    bind("decreaseValue", () => modifyValue(-1));
-    bind("toggleOnion", () =>
+  // Create map of actionId -> handler
+  $: actions = {
+    saveProject: () => saveProject(),
+    saveFileAs: () => saveFileAs(),
+    exportGif: () => exportGif(),
+    addNewLine: () => addNewLine(),
+    addWait: () => addWait(),
+    addRotate: () => addRotate(),
+    addEventMarker: () => addEventMarker(),
+    addControlPoint: () => addControlPoint(),
+    removeControlPoint: () => removeControlPoint(),
+    duplicate: () => duplicate(),
+    removeSelected: () => removeSelected(),
+    undo: () => undoAction(),
+    redo: () => redoAction(),
+    resetAnimation: () => resetAnimation(),
+    stepForward: () => stepForward(),
+    stepBackward: () => stepBackward(),
+    movePointUp: () => movePoint(0, 1),
+    movePointDown: () => movePoint(0, -1),
+    movePointLeft: () => movePoint(-1, 0),
+    movePointRight: () => movePoint(1, 0),
+    selectNext: () => cycleSelection(1),
+    selectPrev: () => cycleSelection(-1),
+    increaseValue: () => modifyValue(1),
+    decreaseValue: () => modifyValue(-1),
+    toggleOnion: () =>
       settingsStore.update((s) => ({
         ...s,
         showOnionLayers: !s.showOnionLayers,
       })),
-    );
-    bind("toggleGrid", () => showGrid.update((v) => !v));
-    bind("cycleGridSize", () => cycleGridSize());
-    bind("cycleGridSizeReverse", () => cycleGridSizeReverse());
-    bind("toggleSnap", () => snapToGrid.update((v) => !v));
-    bind("zoomIn", () => modifyZoom(0.1));
-    bind("zoomOut", () => modifyZoom(-0.1));
-    bind("zoomReset", () => resetZoom());
-    bind("increasePlaybackSpeed", () => changePlaybackSpeedBy(0.25));
-    bind("decreasePlaybackSpeed", () => changePlaybackSpeedBy(-0.25));
-    bind("resetPlaybackSpeed", () => resetPlaybackSpeed());
-    bind("toggleProtractor", () => showProtractor.update((v) => !v));
-    // toggleSidebar is handled in App.svelte via props or bound value,
-    // but here we can't easily change `showSidebar` which is local to App.
-    // Ideally showSidebar should be in a store or passed as a callback.
-    // For now we might need to export a callback from props.
-
-    // Optimization
-    bind("optimizeStart", () => {
+    toggleGrid: () => showGrid.update((v) => !v),
+    cycleGridSize: () => cycleGridSize(),
+    cycleGridSizeReverse: () => cycleGridSizeReverse(),
+    toggleSnap: () => snapToGrid.update((v) => !v),
+    zoomIn: () => modifyZoom(0.1),
+    zoomOut: () => modifyZoom(-0.1),
+    zoomReset: () => resetZoom(),
+    increasePlaybackSpeed: () => changePlaybackSpeedBy(0.25),
+    decreasePlaybackSpeed: () => changePlaybackSpeedBy(-0.25),
+    resetPlaybackSpeed: () => resetPlaybackSpeed(),
+    toggleProtractor: () => showProtractor.update((v) => !v),
+    optimizeStart: () => {
       if (controlTabRef?.openAndStartOptimization)
         controlTabRef.openAndStartOptimization();
-    });
-    bind("optimizeStop", () => {
+    },
+    optimizeStop: () => {
       if (controlTabRef?.getOptimizationStatus?.().isRunning)
         controlTabRef.stopOptimization();
-    });
-    bind("optimizeApply", () => {
+    },
+    optimizeApply: () => {
       const status = controlTabRef?.getOptimizationStatus?.();
       if (status?.optimizedLines && !status.optimizationFailed)
         controlTabRef.applyOptimization();
-    });
-    bind("optimizeDiscard", () => {
+    },
+    optimizeDiscard: () => {
       const status = controlTabRef?.getOptimizationStatus?.();
       if (status?.optimizedLines || status?.optimizationFailed)
         controlTabRef.discardOptimization();
-    });
-    bind("optimizeRetry", () => {
+    },
+    optimizeRetry: () => {
       const status = controlTabRef?.getOptimizationStatus?.();
       if (
         !status?.isRunning &&
         (status?.optimizedLines || status?.optimizationFailed)
       )
         controlTabRef.retryOptimization();
-    });
-
-    bind("selectTabPaths", () => (activeControlTab = "path")); // Note: this requires binding or callback
-    bind("selectTabField", () => (activeControlTab = "field"));
-    bind("selectTabTable", () => (activeControlTab = "table"));
-    bind("cycle-tabs-next", () => {
+    },
+    selectTabPaths: () => (activeControlTab = "path"),
+    selectTabField: () => (activeControlTab = "field"),
+    selectTabTable: () => (activeControlTab = "table"),
+    cycleTabNext: () => {
       if (activeControlTab === "path") activeControlTab = "field";
       else if (activeControlTab === "field") activeControlTab = "table";
       else activeControlTab = "path";
-    });
-    bind("cycle-tabs-prev", () => {
+    },
+    cycleTabPrev: () => {
       if (activeControlTab === "path") activeControlTab = "table";
       else if (activeControlTab === "field") activeControlTab = "path";
       else activeControlTab = "field";
-    });
-
-    bind("toggleCollapseAll", () =>
-      toggleCollapseAllTrigger.update((v) => v + 1),
-    );
-    bind("showHelp", () => showShortcuts.update((v) => !v));
-    bind("openSettings", () => showSettings.update((v) => !v));
-    bind("openWhatsNew", () => {
+    },
+    toggleCollapseAll: () => toggleCollapseAllTrigger.update((v) => v + 1),
+    showHelp: () => showShortcuts.update((v) => !v),
+    openSettings: () => showSettings.update((v) => !v),
+    openWhatsNew: () => {
       if (openWhatsNew) openWhatsNew();
-    });
-
-    bind("toggleStats", () => {
+    },
+    toggleCommandPalette: () => {
+      if (toggleCommandPalette) toggleCommandPalette(); // external override?
+      else showCommandPalette = !showCommandPalette; // internal toggle
+    },
+    toggleStats: () => {
       if (toggleStats) toggleStats();
+    },
+    toggleSidebar: () => {
+      if (toggleSidebar) toggleSidebar();
+    },
+    focusX: () => focusRequest.set({ field: "x", timestamp: Date.now() }),
+    focusY: () => focusRequest.set({ field: "y", timestamp: Date.now() }),
+    focusHeading: () =>
+      focusRequest.set({ field: "heading", timestamp: Date.now() }),
+    togglePlay: () => {
+      if (playing) pause();
+      else play();
+    },
+  };
+
+  // Derive commands list for Command Palette
+  $: paletteCommands = (settings?.keyBindings || DEFAULT_KEY_BINDINGS)
+    .filter((b) => (actions as any)[b.action])
+    .map((b) => ({
+      id: b.id,
+      label: b.description,
+      shortcut: b.key,
+      category: b.category,
+      action: (actions as any)[b.action],
+    }));
+
+  $: if (settings && settings.keyBindings) {
+    hotkeys.unbind();
+
+    // Bind all actions defined in settings
+    settings.keyBindings.forEach((binding) => {
+      const handler = (actions as any)[binding.action];
+      if (handler && binding.key) {
+        hotkeys(binding.key, (e) => {
+          if (isUIElementFocused()) return;
+          e.preventDefault();
+          handler(e);
+        });
+      }
     });
 
-    bind("focusX", () => {
-      focusRequest.set({ field: "x", timestamp: Date.now() });
-    });
-    bind("focusY", () => {
-      focusRequest.set({ field: "y", timestamp: Date.now() });
-    });
-    bind("focusHeading", () => {
-      focusRequest.set({ field: "heading", timestamp: Date.now() });
-    });
-
-    const playKey = getKey("togglePlay");
-    if (playKey) {
-      hotkeys(playKey, (e) => {
-        if (isUIElementFocused()) return;
-        e.preventDefault();
-        if (playing) pause();
-        else play();
-      });
-    }
+    // Special case for Play/Pause toggle which is mapped to 'togglePlay' action
+    // but the ID in defaults is 'play-pause' and action is 'togglePlay'.
+    // The loop above covers it if keyBinding is correct.
   }
 </script>
+
+<CommandPalette
+  isOpen={showCommandPalette}
+  onClose={() => (showCommandPalette = false)}
+  commands={paletteCommands}
+/>
+
+<!-- No UI for shortcuts themselves, just listeners -->
