@@ -453,10 +453,10 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "File",
   },
   {
-    id: "open-file-manager",
+    id: "toggle-file-manager",
     key: "cmd+shift+m, ctrl+shift+m",
-    description: "Open File Manager",
-    action: "openFileManager",
+    description: "Toggle File Manager",
+    action: "toggleFileManager",
     category: "File",
   },
   {

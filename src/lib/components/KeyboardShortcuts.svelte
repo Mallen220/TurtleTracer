@@ -978,8 +978,8 @@
     newProject: () => {
       handleResetPathWithConfirmation(recordChange);
     },
-    openFileManager: () => {
-      showFileManager.set(true);
+    toggleFileManager: () => {
+      showFileManager.update((v) => !v);
     },
     exportJava: () => exportDialogState.set({ isOpen: true, format: "java" }),
     exportPoints: () => exportDialogState.set({ isOpen: true, format: "points" }),
