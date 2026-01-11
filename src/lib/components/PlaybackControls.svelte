@@ -6,7 +6,14 @@
   export let percent: number;
   export let handleSeek: (percent: number) => void;
   export let loopAnimation: boolean;
-  export let markers: { percent: number; color: string; name: string }[] = [];
+  // New prop for timeline items (markers, waits, rotates)
+  export let timelineItems: {
+    type: "marker" | "wait" | "rotate" | "dot";
+    percent: number;
+    durationPercent?: number;
+    color?: string;
+    name: string;
+  }[] = [];
   export let playbackSpeed: number = 1.0;
   export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
 
@@ -186,23 +193,66 @@
     {/if}
   </div>
 
-  <div class="w-full relative">
-    <!-- markers: small colored dots positioned by percent -->
-    {#each markers as m, i}
-      <div
-        class="absolute"
-        role="button"
-        tabindex="0"
-        on:click={() => handleSeek(m.percent)}
-        on:keydown={(e) => {
-          if (e.key === "Enter" || e.key === " ") handleSeek(m.percent);
-        }}
-        style={`left: ${m.percent}%; top: 3px; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 9999px; background: ${m.color}; box-shadow: 0 0 0 2px rgba(0,0,0,0.06); cursor: pointer;`}
-        title={m.name}
-        aria-label={m.name}
-      ></div>
-    {/each}
+  <div class="w-full relative h-6 flex items-center">
+    <!-- Timeline Highlights Layer (Under slider) -->
+    <div
+      class="absolute inset-0 w-full h-full pointer-events-none overflow-hidden rounded-full"
+    >
+      {#each timelineItems as item}
+        {#if item.type === "wait"}
+          <!-- Wait: Amber highlight/underline -->
+          <div
+            class="absolute top-1/2 -translate-y-1/2 h-1 bg-amber-500/70"
+            style="left: {item.percent}%; width: {item.durationPercent}%; border-radius: 2px;"
+            title={item.name}
+          ></div>
+        {:else if item.type === "rotate"}
+          <!-- Rotate: Blue highlight/underline with icon -->
+          <div
+            class="absolute top-1/2 -translate-y-1/2 h-1 bg-blue-500/70"
+            style="left: {item.percent}%; width: {item.durationPercent}%; border-radius: 2px;"
+            title={item.name}
+          >
+            <!-- Optional small icon overlaid centrally if width permits -->
+          </div>
+        {/if}
+      {/each}
+    </div>
 
+    <!-- Rotate Icons Overlay (Above highlights, below slider to not block events, or above slider?)
+         If above slider, it might block clicking. But slider is input type=range.
+         The input is usually full width.
+         Let's put icons above the highlight but below markers.
+    -->
+    <div class="absolute inset-0 w-full h-full pointer-events-none">
+      {#each timelineItems as item}
+        {#if item.type === "rotate"}
+          <!-- Center the icon in the duration -->
+          <div
+            class="absolute top-0 -translate-y-2 flex justify-center"
+            style="left: {item.percent + (item.durationPercent || 0) / 2}%;"
+          >
+            <!-- Small rotate icon -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="w-3 h-3 text-blue-600 dark:text-blue-400 bg-white dark:bg-neutral-900 rounded-full"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </div>
+        {/if}
+      {/each}
+    </div>
+
+    <!-- The Slider -->
     <input
       bind:value={percent}
       type="range"
@@ -210,9 +260,56 @@
       max="100"
       step="0.000001"
       aria-label="Animation progress"
-      class="w-full appearance-none slider focus:outline-none"
+      class="w-full appearance-none slider focus:outline-none bg-transparent relative z-10"
       on:input={handleSeekInput}
     />
+
+    <!-- Event Markers Layer (Top, Map Pins) -->
+    <!-- These need pointer events to be clickable for seeking -->
+    {#each timelineItems as item}
+      {#if item.type === "marker"}
+        <div
+          class="absolute z-20 group"
+          role="button"
+          tabindex="0"
+          on:click={() => handleSeek(item.percent)}
+          on:keydown={(e) => {
+            if (e.key === "Enter" || e.key === " ") handleSeek(item.percent);
+          }}
+          style="left: {item.percent}%; top: -14px; transform: translateX(-50%); cursor: pointer;"
+          title={item.name}
+          aria-label={item.name}
+        >
+          <!-- Map Pin Icon -->
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            class="w-5 h-5 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125"
+            style="color: {item.color || '#a855f7'};"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
+      {:else if item.type === "dot"}
+        <div
+          class="absolute z-20"
+          role="button"
+          tabindex="0"
+          on:click={() => handleSeek(item.percent)}
+          on:keydown={(e) => {
+            if (e.key === "Enter" || e.key === " ") handleSeek(item.percent);
+          }}
+          style={`left: ${item.percent}%; top: 6px; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 9999px; background: ${item.color}; box-shadow: 0 0 0 2px rgba(0,0,0,0.06); cursor: pointer;`}
+          title={item.name}
+          aria-label={item.name}
+        ></div>
+      {/if}
+    {/each}
   </div>
 </div>
 

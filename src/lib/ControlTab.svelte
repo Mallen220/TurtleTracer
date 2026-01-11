@@ -247,28 +247,129 @@
 
   // Compute timeline markers for the UI (start of each travel segment)
   $: timePrediction = calculatePathTime(startPoint, lines, settings, sequence);
-  $: markers = (() => {
-    const _markers: { percent: number; color: string; name: string }[] = [];
+
+  // Revised Timeline Items Calculation (Markers, Waits, Rotates)
+  $: timelineItems = (() => {
+    const items: {
+      type: "marker" | "wait" | "rotate" | "dot";
+      percent: number;
+      durationPercent?: number;
+      color?: string;
+      name: string;
+    }[] = [];
+
     if (
       !timePrediction ||
       !timePrediction.timeline ||
       timePrediction.totalTime <= 0
     )
-      return _markers;
+      return items;
 
-    timePrediction.timeline.forEach((ev) => {
-      if ((ev as any).type === "travel") {
-        const start = (ev as any).startTime as number;
-        const pct = (start / timePrediction.totalTime) * 100;
-        const lineIndex = (ev as any).lineIndex as number;
+    const totalTime = timePrediction.totalTime;
+    const timeline = timePrediction.timeline;
+
+    // Helper to get percent
+    const toPct = (t: number) => (t / totalTime) * 100;
+
+    // 1. Process Timeline Events: Travel Start Dots, Waits, Rotates
+    timeline.forEach((ev) => {
+      // Path Start Dot
+      if (ev.type === "travel") {
+        const startPct = toPct(ev.startTime);
+        const lineIndex = ev.lineIndex as number;
         const line = lines[lineIndex];
         const color = line?.color || "#ffffff";
         const name = line?.name || `Path ${lineIndex + 1}`;
-        _markers.push({ percent: pct, color, name });
+        items.push({ type: "dot", percent: startPct, color, name });
+      }
+      // Waits and Rotates
+      else if (ev.type === "wait") {
+        const startPct = toPct(ev.startTime);
+        const durPct = toPct(ev.duration);
+
+        // Check if this is a Rotation
+        // Either by waitId mapping to a RotateItem, or by heading change
+        let isRotate = false;
+        if (ev.waitId) {
+          const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
+          if (seqItem && seqItem.kind === "rotate") isRotate = true;
+        }
+        // Fallback: check heading difference (e.g. for auto-turns)
+        if (
+          !isRotate &&
+          Math.abs((ev.startHeading || 0) - (ev.targetHeading || 0)) > 0.1
+        ) {
+          isRotate = true;
+        }
+
+        items.push({
+          type: isRotate ? "rotate" : "wait",
+          percent: startPct,
+          durationPercent: durPct,
+          name: ev.name || (isRotate ? "Rotate" : "Wait"),
+          // Color handled by PlaybackControls CSS classes mostly, but can pass explicit if needed
+        });
       }
     });
 
-    return _markers;
+    // 2. Process Event Markers on Lines (Travel Events)
+    timeline.forEach((ev) => {
+      if (ev.type === "travel" && typeof ev.lineIndex === "number") {
+        const line = lines[ev.lineIndex];
+        if (line && line.eventMarkers) {
+          line.eventMarkers.forEach((m) => {
+            let timeOffset = 0;
+            if (ev.motionProfile) {
+              // Map position (0-1) to time using motion profile
+              // motionProfile maps step index -> time
+              const steps = ev.motionProfile.length - 1;
+              if (steps > 0) {
+                const idx = Math.min(Math.floor(m.position * steps), steps);
+                timeOffset = ev.motionProfile[idx];
+              }
+            } else {
+              // Linear fallback
+              timeOffset = ev.duration * m.position;
+            }
+
+            const absTime = ev.startTime + timeOffset;
+            items.push({
+              type: "marker",
+              percent: toPct(absTime),
+              color: line.color,
+              name: m.name,
+            });
+          });
+        }
+      }
+    });
+
+    // 3. Process Event Markers on Waits/Rotates
+    // Since wait events in timeline have waitId, we can link back
+    timeline.forEach((ev) => {
+      if (ev.type === "wait" && ev.waitId) {
+        const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
+        if (
+          seqItem &&
+          (seqItem.kind === "wait" || seqItem.kind === "rotate") &&
+          seqItem.eventMarkers
+        ) {
+          seqItem.eventMarkers.forEach((m) => {
+            // Linear interpolation for waits/rotates
+            const timeOffset = ev.duration * m.position;
+            const absTime = ev.startTime + timeOffset;
+            items.push({
+              type: "marker",
+              percent: toPct(absTime),
+              color: "#ffffff", // Default white for wait/rotate markers
+              name: m.name,
+            });
+          });
+        }
+      }
+    });
+
+    return items;
   })();
 
   let collapsedEventMarkers: boolean[] = lines.map(() => false);
@@ -1397,7 +1498,7 @@
       bind:percent
       {handleSeek}
       bind:loopAnimation
-      {markers}
+      {timelineItems}
       {playbackSpeed}
       {setPlaybackSpeed}
     />
