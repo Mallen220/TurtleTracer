@@ -4,14 +4,14 @@ Turn your visualized paths into runnable robot code or shareable animations.
 
 ## Java OpMode (Standard)
 
-Generates a complete, standalone OpMode for your autonomous routine. This is the recommended method for most teams.
+Generates a complete, standalone OpMode for your autonomous routine. This does not support all the functionality of the program due to current limitaions.
 
 *   **Full Class**: Creates a ready-to-run file including the `OpMode` structure, state machine, and path definitions.
 *   **Snippets**: Uncheck "Generate Full Class" to get just the `PathChain` construction code for copy-pasting into your own classes.
 *   **Hardcoded Paths**: The geometry is baked into the Java file. You do **not** need to upload the `.pp` file to the robot.
 *   **Event Markers**: Automatically generates `addEventMarker` calls and placeholder comments for registering your commands.
 
-## Command-Based (Advanced)
+## Command-Based (Recommended, Advanced)
 
 Generates a `SequentialCommandGroup` for use with command-based frameworks.
 
@@ -20,6 +20,24 @@ Generates a `SequentialCommandGroup` for use with command-based frameworks.
     *   **NextFTC**: Experimental support.
 *   **Dynamic Loading**: This mode uses `PedroPathReader` to load path data from the `.pp` file at runtime. **You must upload your `.pp` file to the robot** for this to work.
 *   **Features**: Automatically handles `FollowPath`, `Wait`, and event triggers using `ParallelRaceGroup`.
+
+### Gradle setup
+
+To use the command-based exports you need to add the JitPack repository and the PedroPathingPlus dependency to your `teamcode` Gradle configuration (for example, `build.gradle`):
+
+```groovy
+repositories {
+    maven {
+        url 'https://jitpack.io'
+    }
+}
+```
+
+And add the dependency (use the [newest release](https://github.com/Mallen220/PedroPathingPlus/releases) instead of the version shown):
+
+```groovy
+implementation 'com.github.Mallen220:PedroPathingPlus:1.0.5'
+```
 
 ## Other Formats
 
@@ -32,7 +50,7 @@ Create high-quality visualizers to share your strategy.
 
 *   **Formats**:
     *   **GIF**: Best for compatibility (Discord, Slack).
-    *   **APNG**: Higher quality with transparency support, but larger file sizes.
+    *   **APNG**: Higher quality with transparency support, and smaller file sizes.
 *   **Quality Controls**: Adjust **FPS**, **Scale**, and **Quality** to balance file size and visual fidelity.
 
 ## Dialog Tools
