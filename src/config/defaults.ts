@@ -438,6 +438,55 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "toggleCommandPalette",
     category: "View",
   },
+  {
+    id: "open-file",
+    key: "cmd+o, ctrl+o",
+    description: "Open File",
+    action: "openFile",
+    category: "File",
+  },
+  {
+    id: "new-file",
+    key: "cmd+n, ctrl+n",
+    description: "New Project / Reset Path",
+    action: "newProject",
+    category: "File",
+  },
+  {
+    id: "toggle-file-manager",
+    key: "cmd+shift+m, ctrl+shift+m",
+    description: "Toggle File Manager",
+    action: "toggleFileManager",
+    category: "File",
+  },
+  {
+    id: "export-java",
+    key: "cmd+shift+j, ctrl+shift+j",
+    description: "Export Java Code",
+    action: "exportJava",
+    category: "Export",
+  },
+  {
+    id: "export-points",
+    key: "cmd+shift+k, ctrl+shift+k",
+    description: "Export Points Array",
+    action: "exportPoints",
+    category: "Export",
+  },
+  {
+    id: "export-sequential",
+    key: "cmd+shift+u, ctrl+shift+u",
+    description: "Export Sequential Command",
+    action: "exportSequential",
+    category: "Export",
+  },
+  {
+    id: "export-pp",
+    key: "cmd+shift+x, ctrl+shift+x",
+    description: "Export .pp (JSON)",
+    action: "exportPP",
+    category: "Export",
+  },
 ];
 
 export const DEFAULT_SETTINGS: Settings = {

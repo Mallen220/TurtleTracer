@@ -16,11 +16,7 @@
     showFileManager,
   } from "../stores";
   import { getRandomColor } from "../utils";
-  import {
-    getDefaultStartPoint,
-    getDefaultLines,
-    getDefaultShapes,
-  } from "../config";
+  import { handleResetPathWithConfirmation } from "../utils/projectLifecycle";
   import FileManager from "./FileManager.svelte";
   import SettingsDialog from "./components/SettingsDialog.svelte";
   import KeyboardShortcutsDialog from "./components/KeyboardShortcutsDialog.svelte";
@@ -105,44 +101,6 @@
   function handleExport(format: "java" | "points" | "sequential" | "json") {
     exportMenuOpen = false;
     exportDialogState.set({ isOpen: true, format });
-  }
-
-  function resetPath() {
-    startPoint = getDefaultStartPoint();
-    lines = getDefaultLines();
-    sequence = lines.map((ln) => ({
-      kind: "path",
-      lineId: ln.id || `line-${Math.random().toString(36).slice(2)}`,
-    }));
-    shapes = getDefaultShapes();
-  }
-
-  function handleResetPathWithConfirmation() {
-    // Check if there's unsaved work
-    const hasChanges = $isUnsaved || lines.length > 1 || shapes.length > 0;
-
-    let message = "Are you sure you want to reset the path?\n\n";
-
-    if (hasChanges) {
-      if ($currentFilePath) {
-        message += `This will reset "${$currentFilePath.split(/[\\/]/).pop()}" to the default path.`;
-      } else {
-        message += "This will reset your current work to the default path.";
-      }
-
-      if ($isUnsaved) {
-        message += "\n\n⚠ WARNING: You have unsaved changes that will be lost!";
-      }
-    } else {
-      message += "This will reset to the default starting path.";
-    }
-
-    message += "\n\nClick OK to reset, or Cancel to keep your current path.";
-
-    if (confirm(message)) {
-      resetPath();
-      if (recordChange) recordChange();
-    }
   }
 
   $: if (settings) {
@@ -832,7 +790,7 @@
       <button
         title="Delete/Reset path"
         aria-label="Delete or Reset path"
-        on:click={handleResetPathWithConfirmation}
+        on:click={() => handleResetPathWithConfirmation(recordChange)}
         class="relative group p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
       >
         <svg

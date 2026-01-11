@@ -16,6 +16,9 @@
     fieldZoom,
     fieldPan,
     focusRequest,
+    exportDialogState,
+    showFileManager,
+    fileManagerNewFileMode,
   } from "../../stores";
   import {
     startPointStore,
@@ -32,6 +35,8 @@
     updateLinkedWaits,
     updateLinkedRotations,
   } from "../../utils/pointLinking";
+  import { loadFile } from "../../utils/fileHandlers";
+  import { handleResetPathWithConfirmation } from "../../utils/projectLifecycle";
   import type { Line, SequenceItem } from "../../types";
   import { DEFAULT_KEY_BINDINGS, FIELD_SIZE } from "../../config";
   import { getRandomColor } from "../../utils";
@@ -72,6 +77,7 @@
 
   // Internal State
   let showCommandPalette = false;
+  let fileInput: HTMLInputElement;
 
   function isUIElementFocused(): boolean {
     const el = document.activeElement as HTMLElement | null;
@@ -967,6 +973,19 @@
       if (playing) pause();
       else play();
     },
+    openFile: () => {
+      if (fileInput) fileInput.click();
+    },
+    newProject: () => {
+      handleResetPathWithConfirmation(recordChange);
+    },
+    toggleFileManager: () => {
+      showFileManager.update((v) => !v);
+    },
+    exportJava: () => exportDialogState.set({ isOpen: true, format: "java" }),
+    exportPoints: () => exportDialogState.set({ isOpen: true, format: "points" }),
+    exportSequential: () => exportDialogState.set({ isOpen: true, format: "sequential" }),
+    exportPP: () => exportDialogState.set({ isOpen: true, format: "json" }),
   };
 
   // Derive commands list for Command Palette
@@ -1005,6 +1024,24 @@
   isOpen={showCommandPalette}
   onClose={() => (showCommandPalette = false)}
   commands={paletteCommands}
+/>
+
+<!-- Hidden file input for Open File shortcut -->
+<input
+  bind:this={fileInput}
+  type="file"
+  accept=".pp"
+  class="hidden"
+  style="display:none;"
+  on:change={(e) => {
+    // @ts-ignore
+    if (e.target.files && e.target.files.length > 0) {
+      loadFile(e);
+      // Reset value so we can load the same file again if needed
+      // @ts-ignore
+      e.target.value = "";
+    }
+  }}
 />
 
 <!-- No UI for shortcuts themselves, just listeners -->
