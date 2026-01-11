@@ -91,10 +91,10 @@ describe('WhatsNew Search Utils', () => {
       });
 
       afterEach(() => {
-          // @ts-ignore
-          delete global.document;
-          delete global.NodeFilter;
-          delete global.Node;
+          // Clean up globals set for JSDOM. Cast to `any` so `delete` is allowed by TypeScript.
+          delete (global as any).document;
+          delete (global as any).NodeFilter;
+          delete (global as any).Node;
       });
 
       it('should highlight text in DOM', () => {
