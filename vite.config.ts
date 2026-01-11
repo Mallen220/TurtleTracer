@@ -33,7 +33,12 @@ export default defineConfig({
       onwarn(warning, warn) {
         try {
           const message = warning && (warning.message || String(warning));
-          if (typeof message === "string" && message.includes("dynamic import will not move module into another chunk")) {
+          if (
+            typeof message === "string" &&
+            message.includes(
+              "dynamic import will not move module into another chunk",
+            )
+          ) {
             return;
           }
         } catch (e) {

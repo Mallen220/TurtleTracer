@@ -393,6 +393,87 @@
           : currentView === "release-list"
             ? "Release Notes"
             : "What's New / Docs";
+
+  // Header extraction for TOC
+  let headers: { id: string; text: string; level: number }[] = [];
+
+  async function updateHeaders() {
+    await tick();
+    if (!contentContainer) return;
+    const headings = contentContainer.querySelectorAll("h1, h2, h3");
+    headers = Array.from(headings).map((h, i) => {
+      if (!h.id) {
+        // Generate a stable-ish ID based on text content if possible, or fallback to index
+        const textSlug = (h.textContent || "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+        h.id = textSlug || `header-${i}`;
+      }
+      return {
+        id: h.id,
+        text: h.textContent || "Header",
+        level: parseInt(h.tagName.substring(1)),
+      };
+    });
+  }
+
+  function scrollToHeader(id: string) {
+    const el = contentContainer?.querySelector(`#${id}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  }
+
+  // Handle links in markdown content
+  function handleContentClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    const anchor = target.closest("a");
+    if (!anchor) return;
+
+    const href = anchor.getAttribute("href");
+    if (!href) return;
+
+    // Handle internal markdown links
+    if (href.endsWith(".md") || href.includes(".md#")) {
+      e.preventDefault();
+      const [path, hash] = href.split("#");
+      const filename = path.split("/").pop()?.replace(/\.md$/, "");
+
+      if (filename) {
+        // Try to find page or feature
+        const foundPage = pages.find((p) => p.id === filename);
+        if (foundPage) {
+          handlePageClick(foundPage);
+        } else {
+          const foundFeature = displayedFeatures.find((f) => f.id === filename);
+          if (foundFeature) {
+            handleFeatureClick(foundFeature);
+          }
+        }
+
+        // If there's a hash, scroll to it after update
+        if (hash) {
+          tick().then(() => {
+            scrollToHeader(hash);
+          });
+        }
+      }
+    } else if (href.startsWith("#")) {
+      // Internal hash link
+      e.preventDefault();
+      scrollToHeader(href.substring(1));
+    } else if (href.startsWith("http")) {
+      // External link - allow default (will open in new window if target=_blank)
+      // or we can force it here for electron
+      anchor.target = "_blank";
+    }
+  }
+
+  // Update headers when content changes
+  $: if (activeContentHtml && currentView === "content") {
+    updateHeaders();
+  }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -552,10 +633,12 @@
       </div>
 
       <!-- Content -->
-      <div class="flex-1 overflow-y-auto bg-white dark:bg-neutral-900">
+      <div class="flex-1 flex flex-col min-h-0 bg-white dark:bg-neutral-900">
         {#if searchQuery && currentView !== "content"}
           <!-- Search Results View -->
-          <div class="p-6 max-w-5xl mx-auto animate-fade-in">
+          <div
+            class="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto animate-fade-in w-full"
+          >
             {#if searchResults.length === 0}
               <div
                 class="flex flex-col items-center justify-center text-center py-12 text-neutral-500"
@@ -605,7 +688,9 @@
           </div>
         {:else if activeTab === "home" && currentView === "grid"}
           <!-- Grid View -->
-          <div class="p-4 md:p-8 max-w-5xl mx-auto animate-fade-in">
+          <div
+            class="flex-1 overflow-y-auto p-4 md:p-8 max-w-5xl mx-auto animate-fade-in w-full"
+          >
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {#each pages as page}
                 <button
@@ -640,7 +725,9 @@
           </div>
         {:else if activeTab === "home" && currentView === "release-list"}
           <!-- Release List View -->
-          <div class="p-4 md:p-8 max-w-3xl mx-auto animate-fade-in">
+          <div
+            class="flex-1 overflow-y-auto p-4 md:p-8 max-w-3xl mx-auto animate-fade-in w-full"
+          >
             <div class="space-y-4">
               {#if displayedFeatures.length === 0}
                 <div
@@ -686,24 +773,60 @@
           </div>
         {:else}
           <!-- Content View -->
-          <div class="p-4 md:p-8 max-w-3xl mx-auto animate-fade-in">
+          <div class="flex-1 flex min-h-0">
+            <!-- Main Text Area -->
             <div
-              class="prose dark:prose-invert max-w-none"
-              bind:this={contentContainer}
+              class="flex-1 overflow-y-auto p-4 md:p-8 animate-fade-in custom-scrollbar"
             >
-              {@html activeContentHtml}
+              <div class="max-w-3xl mx-auto">
+                <div
+                  class="prose dark:prose-invert max-w-none"
+                  bind:this={contentContainer}
+                  on:click={handleContentClick}
+                  role="presentation"
+                >
+                  {@html activeContentHtml}
+                </div>
+
+                {#if activeTab === "home" && currentView === "content"}
+                  <div
+                    class="mt-12 pt-6 border-t border-neutral-200 dark:border-neutral-700 flex justify-center"
+                  >
+                    <button
+                      class="px-6 py-2 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-sm font-medium"
+                      on:click={goBack}
+                    >
+                      Back
+                    </button>
+                  </div>
+                {/if}
+              </div>
             </div>
 
-            {#if activeTab === "home" && currentView === "content"}
+            <!-- Sidebar (TOC) -->
+            {#if headers.length > 0}
               <div
-                class="mt-12 pt-6 border-t border-neutral-200 dark:border-neutral-700 flex justify-center"
+                class="hidden md:block w-64 border-l border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 overflow-y-auto p-4 shrink-0 custom-scrollbar"
               >
-                <button
-                  class="px-6 py-2 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-sm font-medium"
-                  on:click={goBack}
+                <h4
+                  class="font-bold text-sm text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-4"
                 >
-                  Back
-                </button>
+                  On this page
+                </h4>
+                <ul class="space-y-2 text-sm">
+                  {#each headers as header}
+                    <li style="padding-left: {(header.level - 1) * 0.5}rem">
+                      <a
+                        href="#{header.id}"
+                        on:click|preventDefault={() =>
+                          scrollToHeader(header.id)}
+                        class="block text-neutral-600 dark:text-neutral-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate"
+                      >
+                        {header.text}
+                      </a>
+                    </li>
+                  {/each}
+                </ul>
               </div>
             {/if}
           </div>

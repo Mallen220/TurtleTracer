@@ -24,7 +24,7 @@ export function resetPath() {
     lines.map((ln) => ({
       kind: "path",
       lineId: ln.id || `line-${Math.random().toString(36).slice(2)}`,
-    }))
+    })),
   );
   shapesStore.set(getDefaultShapes());
 }

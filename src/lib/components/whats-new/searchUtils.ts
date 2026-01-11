@@ -1,11 +1,10 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 export function getSnippet(text: string, q: string): string | null {
   const index = text.toLowerCase().indexOf(q);
   if (index === -1) return null;
   const start = text.lastIndexOf("\n", index) + 1;
   const end = text.indexOf("\n", index);
-  return text
-    .slice(start, end === -1 ? undefined : end)
-    .trim();
+  return text.slice(start, end === -1 ? undefined : end).trim();
 }
 
 function escapeHtml(text: string): string {

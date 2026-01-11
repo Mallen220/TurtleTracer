@@ -184,7 +184,7 @@
                 </div>
                 {#if command.shortcut}
                   <div class="flex items-center gap-1">
-                    {#each command.shortcut.split('+') as key}
+                    {#each command.shortcut.split("+") as key}
                       <kbd
                         class="text-xs font-mono font-bold px-1.5 py-0.5 rounded border
                        {index === selectedIndex
@@ -193,8 +193,8 @@
                       >
                         {key
                           .trim()
-                          .replace('Command', 'Cmd')
-                          .replace('Control', 'Ctrl')}
+                          .replace("Command", "Cmd")
+                          .replace("Control", "Ctrl")}
                       </kbd>
                     {/each}
                   </div>

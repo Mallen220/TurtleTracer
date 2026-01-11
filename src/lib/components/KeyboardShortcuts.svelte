@@ -983,8 +983,10 @@
       showFileManager.update((v) => !v);
     },
     exportJava: () => exportDialogState.set({ isOpen: true, format: "java" }),
-    exportPoints: () => exportDialogState.set({ isOpen: true, format: "points" }),
-    exportSequential: () => exportDialogState.set({ isOpen: true, format: "sequential" }),
+    exportPoints: () =>
+      exportDialogState.set({ isOpen: true, format: "points" }),
+    exportSequential: () =>
+      exportDialogState.set({ isOpen: true, format: "sequential" }),
     exportPP: () => exportDialogState.set({ isOpen: true, format: "json" }),
   };
 
