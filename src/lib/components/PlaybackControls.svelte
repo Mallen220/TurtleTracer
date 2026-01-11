@@ -287,7 +287,7 @@
         >
           <!-- Tooltip (CSS Hover) -->
           <div
-            class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded shadow-lg text-xs text-neutral-800 dark:text-neutral-200 z-50 pointer-events-none whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded shadow-lg text-xs text-neutral-800 dark:text-neutral-100 z-[100] pointer-events-none whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200"
           >
             {item.name}
           </div>
@@ -297,9 +297,10 @@
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="currentColor"
+            stroke-width="1.5"
             class={item.fromWait
-              ? "w-5 h-5 drop-shadow-md transition-transform group-hover:scale-125 text-black dark:text-white"
-              : "w-5 h-5 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125"}
+              ? "w-5 h-5 drop-shadow-md transition-transform group-hover:scale-125 text-black dark:text-white stroke-white dark:stroke-neutral-900"
+              : "w-5 h-5 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125 stroke-white dark:stroke-neutral-900"}
             style={item.fromWait ? "" : `color: ${item.color || "#a855f7"}`}
           >
             <path
@@ -311,19 +312,19 @@
         </div>
       {:else if item.type === "dot"}
         <div
-          class="absolute z-20 group"
+          class="absolute z-20 group ring-2 ring-black/5 dark:ring-white/20 rounded-full"
           role="button"
           tabindex="0"
           on:click={() => handleSeek(item.percent)}
           on:keydown={(e) => {
             if (e.key === "Enter" || e.key === " ") handleSeek(item.percent);
           }}
-          style={`left: ${item.percent}%; top: 6px; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 9999px; background: ${item.color}; box-shadow: 0 0 0 2px rgba(0,0,0,0.06); cursor: pointer;`}
+          style={`left: ${item.percent}%; top: 6px; transform: translateX(-50%); width: 12px; height: 12px; background: ${item.color}; cursor: pointer;`}
           aria-label={item.name}
         >
           <!-- Tooltip (CSS Hover) -->
           <div
-            class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded shadow-lg text-xs text-neutral-800 dark:text-neutral-200 z-50 pointer-events-none whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded shadow-lg text-xs text-neutral-800 dark:text-neutral-100 z-[100] pointer-events-none whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200"
           >
             {item.name}
           </div>
