@@ -46,6 +46,7 @@
     time: number;
     maxVel: number;
     maxAngVel: number;
+    degrees: number;
     color: string;
   }
 
@@ -136,6 +137,7 @@
           time: duration,
           maxVel: 0,
           maxAngVel: 0,
+          degrees: 0,
           color: "#f59e0b", // Amber for wait
         });
         return;
@@ -157,9 +159,16 @@
         const duration = event ? event.duration : 0;
 
         let maxAngVel = 0;
+        let degrees = 0;
         if (event && event.duration > 0) {
-             const diff = Math.abs(getAngularDifference((event as any).startHeading, (event as any).targetHeading));
-             maxAngVel = (diff * (Math.PI / 180)) / event.duration;
+          const diff = Math.abs(
+            getAngularDifference(
+              (event as any).startHeading,
+              (event as any).targetHeading,
+            ),
+          );
+          maxAngVel = (diff * (Math.PI / 180)) / event.duration;
+          degrees = diff;
         }
 
         segments.push({
@@ -168,6 +177,7 @@
           time: duration,
           maxVel: 0,
           maxAngVel: maxAngVel,
+          degrees: degrees,
           color: "#d946ef", // Fuchsia-500 (matching pink/fuchsia theme of rotate)
         });
         return;
@@ -215,6 +225,7 @@
       // Calculate velocities from profile
       let segMaxLin = 0;
       let segMaxAng = 0;
+      let segDegrees = 0;
 
       if (event.motionProfile && analysis.steps.length > 0) {
         const profile = event.motionProfile;
@@ -239,9 +250,11 @@
               const h2 = headingProfile[i + 1];
               const diff = Math.abs(getAngularDifference(h1, h2)); // degrees
               vAng = (diff * (Math.PI / 180)) / dt; // rad/s
+              segDegrees += diff;
             } else {
               // Fallback to geometric rotation only
               vAng = (step.rotation * (Math.PI / 180)) / dt;
+              segDegrees += step.rotation;
             }
             if (vAng > segMaxAng) segMaxAng = vAng;
           }
@@ -253,6 +266,16 @@
           segMaxLin = analysis.length / dt;
           segMaxAng = (analysis.netRotation * (Math.PI / 180)) / dt;
         }
+
+        // Approx degrees turned from analysis
+        // For tangential, tangentRotation is the total accumulated rotation.
+        // For others, we approximate based on heading difference
+        if (line.endPoint.heading === "tangential") {
+          segDegrees = analysis.tangentRotation;
+        } else {
+          // Linear or Constant
+          segDegrees = Math.abs(analysis.netRotation);
+        }
       }
 
       segments.push({
@@ -262,6 +285,7 @@
         time: event.duration,
         maxVel: segMaxLin,
         maxAngVel: segMaxAng,
+        degrees: segDegrees,
         color: line.color,
       });
 
@@ -285,9 +309,9 @@
   function copyToMarkdown() {
     if (!pathStats) return;
 
-    let md = `| Segment | Length | Time | Max V | Max ω |\n|---|---:|---:|---:|---:|\n`;
+    let md = `| Segment | Length | Time | Max V | Max ω | Degrees |\n|---|---:|---:|---:|---:|---:|\n`;
     pathStats.segments.forEach((seg) => {
-      md += `| ${seg.name} | ${seg.length.toFixed(1)}" | ${seg.time.toFixed(2)}s | ${seg.maxVel.toFixed(1)} in/s | ${seg.maxAngVel.toFixed(1)} rad/s |\n`;
+      md += `| ${seg.name} | ${seg.length.toFixed(1)}" | ${seg.time.toFixed(2)}s | ${seg.maxVel.toFixed(1)} in/s | ${seg.maxAngVel.toFixed(1)} rad/s | ${seg.degrees.toFixed(1)}° |\n`;
     });
 
     navigator.clipboard.writeText(md).then(() => {
@@ -417,11 +441,12 @@
     <div
       class="hidden sm:grid grid-cols-12 gap-2 px-6 py-2 bg-neutral-100 dark:bg-neutral-900/30 border-y border-neutral-200 dark:border-neutral-700 text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider"
     >
-      <div class="col-span-4">Segment</div>
+      <div class="col-span-3">Segment</div>
       <div class="col-span-2 text-right">Length</div>
       <div class="col-span-2 text-right">Time</div>
       <div class="col-span-2 text-right">Max V</div>
       <div class="col-span-2 text-right">Max ω</div>
+      <div class="col-span-1 text-right">Deg</div>
     </div>
 
     <!-- Scrollable List -->
@@ -432,7 +457,7 @@
             class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700/30 transition-colors items-start text-sm"
           >
             <div
-              class="col-span-1 sm:col-span-4 flex items-center gap-2 truncate"
+              class="col-span-1 sm:col-span-3 flex items-center gap-2 truncate"
             >
               <div
                 class="w-3 h-3 rounded-full flex-none"
@@ -452,6 +477,7 @@
               <div class="flex-1">Time: {seg.time.toFixed(2)}s</div>
               <div class="flex-1">Max V: {seg.maxVel.toFixed(1)}</div>
               <div class="flex-1">ω: {seg.maxAngVel.toFixed(1)}</div>
+              <div class="flex-1">Deg: {seg.degrees.toFixed(1)}°</div>
             </div>
 
             <!-- Desktop metrics -->
@@ -474,6 +500,11 @@
               class="hidden sm:block sm:col-span-2 text-right text-neutral-600 dark:text-neutral-400"
             >
               {seg.maxAngVel.toFixed(1)}
+            </div>
+            <div
+              class="hidden sm:block sm:col-span-1 text-right text-neutral-600 dark:text-neutral-400"
+            >
+              {seg.degrees.toFixed(1)}°
             </div>
           </div>
         {/each}
