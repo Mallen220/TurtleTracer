@@ -114,7 +114,7 @@
   // --- Layout State ---
   let showSidebar = true;
   // DEBUG: force open Whats New during development to validate feature loading
-  let showWhatsNew = true;
+  let showWhatsNew = false;
   let activeControlTab: "path" | "field" | "table" = "path";
   let controlTabRef: any = null;
   // DOM container for the ControlTab; used to size/position the stats panel
