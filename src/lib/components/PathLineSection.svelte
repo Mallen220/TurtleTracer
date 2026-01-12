@@ -37,6 +37,7 @@
   let xInput: HTMLInputElement;
   let yInput: HTMLInputElement;
   let headingControls: HeadingControls;
+  let nameInput: HTMLInputElement;
 
   // Listen for focus requests
   $: if ($focusRequest) {
@@ -48,6 +49,14 @@
       if ($focusRequest.field === "y" && yInput) yInput.focus();
       if ($focusRequest.field === "heading" && headingControls)
         headingControls.focus();
+    }
+    // Special handling for rename focus which can happen on any selection of this line
+    if (
+      $focusRequest.field === "name" &&
+      $focusRequest.id === line.id &&
+      nameInput
+    ) {
+      nameInput.focus();
     }
   }
 
@@ -125,6 +134,7 @@
 
       <div class="relative">
         <input
+          bind:this={nameInput}
           tabindex="-1"
           value={line.name}
           placeholder="Path {idx + 1}"

@@ -38,6 +38,7 @@
   import { loadFile, loadRecentFile } from "../../utils/fileHandlers";
   import { handleResetPathWithConfirmation } from "../../utils/projectLifecycle";
   import type { Line, SequenceItem } from "../../types";
+  import { createTriangle } from "../../utils";
   import {
     DEFAULT_KEY_BINDINGS,
     FIELD_SIZE,
@@ -999,6 +1000,34 @@
     },
     toggleSidebar: () => {
       if (toggleSidebar) toggleSidebar();
+    },
+    toggleVelocityHeatmap: () =>
+      settingsStore.update((s) => ({
+        ...s,
+        showVelocityHeatmap: !s.showVelocityHeatmap,
+      })),
+    toggleGhostPaths: () =>
+      settingsStore.update((s) => ({
+        ...s,
+        showGhostPaths: !s.showGhostPaths,
+      })),
+    addObstacle: () => {
+      shapesStore.update((s) => [...s, createTriangle(s.length)]);
+      activeControlTab = "field";
+    },
+    focusName: () => {
+      const sel = $selectedPointId || $selectedLineId;
+      if (sel) {
+        focusRequest.set({
+          field: "name",
+          timestamp: Date.now(),
+          id: sel,
+        });
+      }
+    },
+    deselectAll: () => {
+      selectedPointId.set(null);
+      selectedLineId.set(null);
     },
     focusX: () => focusRequest.set({ field: "x", timestamp: Date.now() }),
     focusY: () => focusRequest.set({ field: "y", timestamp: Date.now() }),
