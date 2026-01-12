@@ -85,7 +85,7 @@
         >
         <input
           bind:this={startInput}
-          class="w-full pl-9 pr-1 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class="w-full pl-12 pr-1 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
           step="1"
           type="number"
           min="-180"

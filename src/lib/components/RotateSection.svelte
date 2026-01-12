@@ -126,8 +126,10 @@
           <input
             tabindex="-1"
             value={rotate.name}
-            placeholder="Rotate Name"
-            class="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md px-2 py-1 text-sm font-semibold text-neutral-800 dark:text-neutral-200 focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all placeholder-neutral-400 truncate"
+            placeholder="Rotate"
+            aria-label="Rotate name"
+            title="Edit rotate name"
+            class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all placeholder-neutral-400 truncate"
             class:text-pink-500={hoveredRotateId === rotate.id}
             disabled={rotate.locked}
             on:input={handleNameInput}

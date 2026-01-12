@@ -131,7 +131,7 @@
     class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50"
   >
     <span class="text-xs font-medium text-neutral-400 mr-auto"
-      >Add first step:</span
+      >After first step:</span
     >
     <button
       on:click={addPathAtStart}

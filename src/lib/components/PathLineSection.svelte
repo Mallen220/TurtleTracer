@@ -9,6 +9,7 @@
   import TrashIcon from "./icons/TrashIcon.svelte";
   import { handleWaypointRename, isLineLinked } from "../../utils/pointLinking";
   import { tooltipPortal } from "../actions/portal";
+import { onMount, onDestroy } from "svelte";
 
   export let line: Line;
   export let idx: number;
@@ -37,6 +38,27 @@
   let xInput: HTMLInputElement;
   let yInput: HTMLInputElement;
   let headingControls: HeadingControls;
+
+  // Container-based responsiveness: observe the grid container's width and
+  // toggle a compact layout when it becomes too narrow (e.g., in a small
+  // control tab). This ensures the Heading section snaps under Target Position
+  // based on the control tab size and not the viewport width.
+  let gridContainer: HTMLElement;
+  let isNarrow: boolean = false;
+  const CONTROL_WIDTH_THRESHOLD = 480; // px, tweak as needed
+
+  onMount(() => {
+    if (!gridContainer) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        isNarrow = width < CONTROL_WIDTH_THRESHOLD;
+      }
+    });
+    ro.observe(gridContainer);
+
+    return () => ro.disconnect();
+  });
 
   // Listen for focus requests
   $: if ($focusRequest) {
@@ -136,7 +158,9 @@
             tabindex="-1"
             value={line.name}
             placeholder="Path Name"
-            class="w-full bg-transparent border-none p-0 text-sm font-semibold text-neutral-800 dark:text-neutral-200 focus:ring-0 placeholder-neutral-400 truncate"
+            aria-label="Path name"
+            title="Edit path name"
+            class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all placeholder-neutral-400 truncate"
             class:text-green-500={hoveredLinkId === line.id}
             disabled={line.locked}
             on:input={handleNameInput}
@@ -294,7 +318,7 @@
   {#if !collapsed}
     <div class="px-3 pb-3 space-y-4">
       <!-- Grid Layout for Inputs -->
-      <div class="grid grid-cols-2 gap-4">
+      <div bind:this={gridContainer} class="grid gap-4" class:grid-cols-1={isNarrow} class:grid-cols-3={!isNarrow}>
         <!-- Target Position -->
         <div class="space-y-2">
           <label
@@ -303,7 +327,7 @@
             Target Position
           </label>
           <div class="flex items-center gap-2">
-            <div class="relative flex-1">
+            <div class="relative flex-[0.5] min-w-0 max-w-[200px]">
               <span
                 class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
                 >X</span
@@ -321,7 +345,7 @@
                 title={snapToGridTitle}
               />
             </div>
-            <div class="relative flex-1">
+            <div class="relative flex-[0.5] min-w-0 max-w-[200px]">
               <span
                 class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
                 >Y</span
@@ -343,7 +367,7 @@
         </div>
 
         <!-- Heading Control -->
-        <div class="space-y-2">
+        <div class="space-y-2" class:col-span-2={!isNarrow}>
           <label
             class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
           >
