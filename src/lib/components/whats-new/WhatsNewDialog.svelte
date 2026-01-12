@@ -818,6 +818,7 @@
                     <li style="padding-left: {(header.level - 1) * 0.5}rem">
                       <a
                         href="#{header.id}"
+                        data-internal="true"
                         on:click|preventDefault={() =>
                           scrollToHeader(header.id)}
                         class="block text-neutral-600 dark:text-neutral-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate"

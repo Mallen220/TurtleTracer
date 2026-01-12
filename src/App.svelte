@@ -92,6 +92,12 @@
     const anchor = target.closest("a") as HTMLAnchorElement | null;
     if (!anchor || !anchor.href) return;
 
+    // Allow other handlers to prevent default behavior first
+    if (e.defaultPrevented) return;
+
+    // Special exception: allow links marked as internal
+    if (anchor.hasAttribute("data-internal")) return;
+
     const href = anchor.href;
     const isExternal =
       href.startsWith("http://") || href.startsWith("https://");
