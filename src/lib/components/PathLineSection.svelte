@@ -6,10 +6,10 @@
   import HeadingControls from "./HeadingControls.svelte";
   import ColorPicker from "./ColorPicker.svelte";
   import { selectedLineId, selectedPointId, focusRequest } from "../../stores";
-  import TrashIcon from "./icons/TrashIcon.svelte";
+  import DeleteButtonWithConfirm from "./common/DeleteButtonWithConfirm.svelte";
   import { handleWaypointRename, isLineLinked } from "../../utils/pointLinking";
   import { tooltipPortal } from "../actions/portal";
-import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy } from "svelte";
 
   export let line: Line;
   export let idx: number;
@@ -154,7 +154,10 @@ import { onMount, onDestroy } from "svelte";
             d="m19.5 8.25-7.5 7.5-7.5-7.5"
           />
         </svg>
-        <span class="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 whitespace-nowrap">Path {idx + 1}</span>
+        <span
+          class="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 whitespace-nowrap"
+          >Path {idx + 1}</span
+        >
       </button>
 
       <div class="flex items-center gap-2 flex-1 min-w-0">
@@ -306,16 +309,11 @@ import { onMount, onDestroy } from "svelte";
       </div>
 
       {#if lines.length > 1}
-        <button
-          tabindex="-1"
-          class="ml-1 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-neutral-400 hover:text-red-500 transition-colors disabled:opacity-30"
-          on:click|stopPropagation={() =>
-            !line.locked && onRemove && onRemove()}
+        <DeleteButtonWithConfirm
+          on:click={() => !line.locked && onRemove && onRemove()}
           disabled={line.locked}
           title="Delete Path"
-        >
-          <TrashIcon className="size-4" strokeWidth={2} />
-        </button>
+        />
       {/if}
     </div>
   </div>
@@ -323,7 +321,12 @@ import { onMount, onDestroy } from "svelte";
   {#if !collapsed}
     <div class="px-3 pb-3 space-y-4">
       <!-- Grid Layout for Inputs -->
-      <div bind:this={gridContainer} class="grid gap-4" class:grid-cols-1={isNarrow} class:grid-cols-3={!isNarrow}>
+      <div
+        bind:this={gridContainer}
+        class="grid gap-4"
+        class:grid-cols-1={isNarrow}
+        class:grid-cols-3={!isNarrow}
+      >
         <!-- Target Position -->
         <div class="space-y-2">
           <label

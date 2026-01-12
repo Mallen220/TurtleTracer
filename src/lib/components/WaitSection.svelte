@@ -1,7 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import { selectedPointId, selectedLineId } from "../../stores";
-  import TrashIcon from "./icons/TrashIcon.svelte";
+  import DeleteButtonWithConfirm from "./common/DeleteButtonWithConfirm.svelte";
   import type { SequenceWaitItem, SequenceItem } from "../../types";
   import { isWaitLinked, handleWaitRename } from "../../utils/pointLinking";
   import { tooltipPortal } from "../actions/portal";
@@ -118,7 +118,10 @@
             d="m19.5 8.25-7.5 7.5-7.5-7.5"
           />
         </svg>
-        <span class="text-xs font-bold uppercase tracking-wider text-amber-500 whitespace-nowrap">Wait</span>
+        <span
+          class="text-xs font-bold uppercase tracking-wider text-amber-500 whitespace-nowrap"
+          >Wait</span
+        >
       </button>
 
       <div class="flex items-center gap-2 flex-1 min-w-0">
@@ -261,16 +264,13 @@
         </button>
       </div>
 
-      <button
-        class="ml-1 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-neutral-400 hover:text-red-500 transition-colors disabled:opacity-30"
-        on:click|stopPropagation={() => {
+      <DeleteButtonWithConfirm
+        on:click={() => {
           if (!wait.locked && onRemove) onRemove();
         }}
         disabled={wait.locked}
         title="Remove Wait"
-      >
-        <TrashIcon className="size-4" strokeWidth={2} />
-      </button>
+      />
     </div>
   </div>
 

@@ -426,10 +426,7 @@
         .map((s) => (s as any).name || "");
       // Preserve empty name when duplicating unnamed rotates
       if (rotateItem.name && rotateItem.name.trim() !== "") {
-        newRotate.name = generateName(
-          rotateItem.name,
-          existingRotateNames,
-        );
+        newRotate.name = generateName(rotateItem.name, existingRotateNames);
       } else {
         newRotate.name = "";
       }

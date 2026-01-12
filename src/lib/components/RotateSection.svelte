@@ -1,7 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import { selectedPointId, selectedLineId } from "../../stores";
-  import TrashIcon from "./icons/TrashIcon.svelte";
+  import DeleteButtonWithConfirm from "./common/DeleteButtonWithConfirm.svelte";
   import type { SequenceRotateItem, SequenceItem } from "../../types";
   import { isRotateLinked, handleRotateRename } from "../../utils/pointLinking";
   import { tooltipPortal } from "../actions/portal";
@@ -114,7 +114,10 @@
             d="m19.5 8.25-7.5 7.5-7.5-7.5"
           />
         </svg>
-        <span class="text-xs font-bold uppercase tracking-wider text-pink-500 whitespace-nowrap">Rotate</span>
+        <span
+          class="text-xs font-bold uppercase tracking-wider text-pink-500 whitespace-nowrap"
+          >Rotate</span
+        >
       </button>
 
       <div class="flex items-center gap-2 flex-1 min-w-0">
@@ -260,17 +263,13 @@
         </button>
       </div>
 
-      <button
-        tabindex="-1"
-        class="ml-1 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-neutral-400 hover:text-red-500 transition-colors disabled:opacity-30"
-        on:click|stopPropagation={() => {
+      <DeleteButtonWithConfirm
+        on:click={() => {
           if (!rotate.locked && onRemove) onRemove();
         }}
         disabled={rotate.locked}
         title="Remove Rotate"
-      >
-        <TrashIcon className="size-4" strokeWidth={2} />
-      </button>
+      />
     </div>
   </div>
 
@@ -309,7 +308,13 @@
             <!-- Needle indicating an angle (visual hint) -->
             <line x1="12" y1="12" x2="17" y2="7" stroke-width="1.8" />
             <!-- Small degree symbol near needle tip -->
-            <circle cx="17.6" cy="6.4" r="0.9" fill="currentColor" stroke="none" />
+            <circle
+              cx="17.6"
+              cy="6.4"
+              r="0.9"
+              fill="currentColor"
+              stroke="none"
+            />
           </svg>
           <input
             tabindex="-1"

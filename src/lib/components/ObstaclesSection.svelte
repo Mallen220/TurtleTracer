@@ -28,11 +28,11 @@
 
   // React to external additions to shapes (e.g. from keybindings)
   $: if (shapes.length > collapsedObstacles.length) {
-      const diff = shapes.length - collapsedObstacles.length;
-      // Default new externally added obstacles to expanded (false) so user can see them immediately
-      collapsedObstacles = [...collapsedObstacles, ...Array(diff).fill(false)];
-      // Force expand section if a new shape is added externally (e.g. shortcut)
-      if (collapsed) collapsed = false;
+    const diff = shapes.length - collapsedObstacles.length;
+    // Default new externally added obstacles to expanded (false) so user can see them immediately
+    collapsedObstacles = [...collapsedObstacles, ...Array(diff).fill(false)];
+    // Force expand section if a new shape is added externally (e.g. shortcut)
+    if (collapsed) collapsed = false;
   }
 </script>
 

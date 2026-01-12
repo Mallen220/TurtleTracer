@@ -812,7 +812,6 @@
 
     // Name intentionally left empty for new waypoints
 
-
     const newSeq = [...sequence];
     newSeq.splice(index, 0, newWait);
     sequence = newSeq;
@@ -830,7 +829,6 @@
     };
 
     // Name intentionally left empty for new waypoints
-
 
     const newSeq = [...sequence];
     newSeq.splice(index, 0, newRotate);

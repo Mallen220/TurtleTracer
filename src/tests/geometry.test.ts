@@ -29,32 +29,32 @@ describe("Geometry Utils", () => {
     });
 
     it("should handle ray casting edge cases gracefully", () => {
-        // Points on vertices
-        // In the ray casting algorithm implementation:
-        // yi > y !== yj > y
-        // (0,0) -> y=0. yi=0, yj=0/10.
-        // It's brittle on vertices/edges.
-        // The implementation considers strictly greater for Y check.
-        // Let's document current behavior rather than enforcing 'false'.
-        // If it returns true for [0,0], that's fine as long as consistent.
-        // But [10,10] might be false.
+      // Points on vertices
+      // In the ray casting algorithm implementation:
+      // yi > y !== yj > y
+      // (0,0) -> y=0. yi=0, yj=0/10.
+      // It's brittle on vertices/edges.
+      // The implementation considers strictly greater for Y check.
+      // Let's document current behavior rather than enforcing 'false'.
+      // If it returns true for [0,0], that's fine as long as consistent.
+      // But [10,10] might be false.
 
-        // Actually, ray casting is usually exclusive of edges/vertices depending on exact logic.
-        // Current implementation:
-        // intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+      // Actually, ray casting is usually exclusive of edges/vertices depending on exact logic.
+      // Current implementation:
+      // intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
 
-        // If point is [0,0]. y=0.
-        // Edge (0,0)-(10,0). yi=0, yj=0. yi>y (0>0) False. yj>y False. False.
-        // Edge (10,0)-(10,10). yi=0, yj=10. yi>0 False. yj>0 True. Intersect potential.
-        // x < ...?
-        // x=0.
-        // ((10-10)*(0-0))/(10-0) + 10 = 0/10 + 10 = 10.
-        // 0 < 10. True.
-        // So it intersects edge (10,0)-(10,10). One intersection -> Inside (True).
+      // If point is [0,0]. y=0.
+      // Edge (0,0)-(10,0). yi=0, yj=0. yi>y (0>0) False. yj>y False. False.
+      // Edge (10,0)-(10,10). yi=0, yj=10. yi>0 False. yj>0 True. Intersect potential.
+      // x < ...?
+      // x=0.
+      // ((10-10)*(0-0))/(10-0) + 10 = 0/10 + 10 = 10.
+      // 0 < 10. True.
+      // So it intersects edge (10,0)-(10,10). One intersection -> Inside (True).
 
-        // So [0,0] is considered Inside.
+      // So [0,0] is considered Inside.
 
-        expect(pointInPolygon([0, 0], square)).toBe(true);
+      expect(pointInPolygon([0, 0], square)).toBe(true);
     });
   });
 
@@ -75,9 +75,9 @@ describe("Geometry Utils", () => {
     });
 
     it("should return 0 for points on the line segment", () => {
-        const start = [0, 0];
-        const end = [10, 10];
-        expect(pointToLineDistance([5, 5], start, end)).toBeCloseTo(0);
+      const start = [0, 0];
+      const end = [10, 10];
+      expect(pointToLineDistance([5, 5], start, end)).toBeCloseTo(0);
     });
   });
 
@@ -170,28 +170,40 @@ describe("Geometry Utils", () => {
     });
 
     it("property: all points should be inside or on boundary of hull", () => {
-        // Use fast-check to generate random point sets
-        const pointArb = fc.record({ x: fc.double({min: -1000, max: 1000}), y: fc.double({min: -1000, max: 1000}) });
+      // Use fast-check to generate random point sets
+      const pointArb = fc.record({
+        x: fc.double({ min: -1000, max: 1000 }),
+        y: fc.double({ min: -1000, max: 1000 }),
+      });
 
-        fc.assert(
-            fc.property(fc.array(pointArb, { minLength: 3, maxLength: 20 }), (points) => {
-                // If points are collinear or duplicates, convex hull might fail or behave weirdly
-                // Filter out unique points roughly
-                const uniquePoints = points.filter((p, i) => points.findIndex(p2 => Math.abs(p2.x - p.x) < 1e-6 && Math.abs(p2.y - p.y) < 1e-6) === i);
-                if (uniquePoints.length < 3) return true;
+      fc.assert(
+        fc.property(
+          fc.array(pointArb, { minLength: 3, maxLength: 20 }),
+          (points) => {
+            // If points are collinear or duplicates, convex hull might fail or behave weirdly
+            // Filter out unique points roughly
+            const uniquePoints = points.filter(
+              (p, i) =>
+                points.findIndex(
+                  (p2) =>
+                    Math.abs(p2.x - p.x) < 1e-6 && Math.abs(p2.y - p.y) < 1e-6,
+                ) === i,
+            );
+            if (uniquePoints.length < 3) return true;
 
-                const hull = convexHull(uniquePoints);
+            const hull = convexHull(uniquePoints);
 
-                return uniquePoints.every(p => {
-                    const isInside = pointInPolygon([p.x, p.y], hull);
-                    if (isInside) return true;
+            return uniquePoints.every((p) => {
+              const isInside = pointInPolygon([p.x, p.y], hull);
+              if (isInside) return true;
 
-                    // If considered outside, check if it's on the boundary
-                    const dist = minDistanceToPolygon([p.x, p.y], hull);
-                    return dist < 1e-4;
-                });
-            })
-        )
+              // If considered outside, check if it's on the boundary
+              const dist = minDistanceToPolygon([p.x, p.y], hull);
+              return dist < 1e-4;
+            });
+          },
+        ),
+      );
     });
   });
 });
