@@ -35,10 +35,14 @@
     updateLinkedWaits,
     updateLinkedRotations,
   } from "../../utils/pointLinking";
-  import { loadFile } from "../../utils/fileHandlers";
+  import { loadFile, loadRecentFile } from "../../utils/fileHandlers";
   import { handleResetPathWithConfirmation } from "../../utils/projectLifecycle";
   import type { Line, SequenceItem } from "../../types";
-  import { DEFAULT_KEY_BINDINGS, FIELD_SIZE } from "../../config";
+  import {
+    DEFAULT_KEY_BINDINGS,
+    FIELD_SIZE,
+    DEFAULT_SETTINGS,
+  } from "../../config";
   import { getRandomColor } from "../../utils";
   import { computeZoomStep } from "../zoomHelpers";
   import _ from "lodash";
@@ -78,6 +82,37 @@
   // Internal State
   let showCommandPalette = false;
   let fileInput: HTMLInputElement;
+  let fileCommands: {
+    id: string;
+    label: string;
+    action: () => void;
+    category: string;
+  }[] = [];
+
+  async function fetchFiles() {
+    if (!window.electronAPI) return;
+    try {
+      let dir = await window.electronAPI.getSavedDirectory();
+      if (!dir) dir = await window.electronAPI.getDirectory();
+      if (dir) {
+        const files = await window.electronAPI.listFiles(dir);
+        fileCommands = files
+          .filter((f) => f.name.endsWith(".pp"))
+          .map((f) => ({
+            id: `file-${f.name}`,
+            label: `Open File: ${f.name}`,
+            action: () => loadRecentFile(f.path),
+            category: "File",
+          }));
+      }
+    } catch (err) {
+      console.warn("Failed to fetch files for command palette", err);
+    }
+  }
+
+  $: if (showCommandPalette) {
+    fetchFiles();
+  }
 
   function isUIElementFocused(): boolean {
     const el = document.activeElement as HTMLElement | null;
@@ -991,15 +1026,67 @@
   };
 
   // Derive commands list for Command Palette
-  $: paletteCommands = (settings?.keyBindings || DEFAULT_KEY_BINDINGS)
-    .filter((b) => (actions as any)[b.action])
-    .map((b) => ({
-      id: b.id,
-      label: b.description,
-      shortcut: b.key,
-      category: b.category,
-      action: (actions as any)[b.action],
-    }));
+  $: paletteCommands = [
+    ...(settings?.keyBindings || DEFAULT_KEY_BINDINGS)
+      .filter((b) => (actions as any)[b.action])
+      .map((b) => ({
+        id: b.id,
+        label: b.description,
+        shortcut: b.key,
+        category: b.category,
+        action: (actions as any)[b.action],
+      })),
+    ...fileCommands,
+    // Extra commands requested by user
+    {
+      id: "set-file-manager-directory",
+      label: "Set File Manager Directory",
+      category: "File",
+      action: async () => {
+        if (window.electronAPI && window.electronAPI.setDirectory) {
+          await window.electronAPI.setDirectory();
+          // Optionally refresh files after setting directory
+          fetchFiles();
+        }
+      },
+    },
+    {
+      id: "reset-keybinds",
+      label: "Reset Keybinds",
+      category: "Settings",
+      action: () => {
+        settingsStore.update((s) => ({
+          ...s,
+          keyBindings: DEFAULT_KEY_BINDINGS.map((b) => ({ ...b })),
+        }));
+      },
+    },
+    {
+      id: "reset-settings",
+      label: "Reset Settings",
+      category: "Settings",
+      action: () => {
+        settingsStore.set(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)));
+      },
+    },
+    {
+      id: "cycle-theme",
+      label: "Cycle Light/Dark Mode",
+      category: "View",
+      action: () => {
+        settingsStore.update((s) => {
+          const themes: ("light" | "dark" | "auto")[] = [
+            "light",
+            "dark",
+            "auto",
+          ];
+          const currentIndex = themes.indexOf(s.theme);
+          const nextIndex = (currentIndex + 1) % themes.length;
+          return { ...s, theme: themes[nextIndex] };
+        });
+      },
+    },
+  ];
 
   $: if (settings && settings.keyBindings) {
     hotkeys.unbind();
