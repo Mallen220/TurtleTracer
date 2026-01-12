@@ -99,7 +99,7 @@
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
         on:click|stopPropagation={toggleCollapsed}
-        class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors"
+        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
         title="{collapsed ? 'Expand' : 'Collapse'} wait"
       >
         <svg
@@ -118,14 +118,10 @@
             d="m19.5 8.25-7.5 7.5-7.5-7.5"
           />
         </svg>
+        <span class="text-xs font-bold uppercase tracking-wider text-amber-500 whitespace-nowrap">Wait</span>
       </button>
 
       <div class="flex items-center gap-2 flex-1 min-w-0">
-        <span
-          class="text-xs font-bold uppercase tracking-wider text-amber-500 whitespace-nowrap"
-        >
-          Wait
-        </span>
         <div class="relative flex-1 min-w-0">
           <input
             value={wait.name}

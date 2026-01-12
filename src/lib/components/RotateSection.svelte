@@ -95,7 +95,7 @@
       <button
         tabindex="-1"
         on:click|stopPropagation={toggleCollapsed}
-        class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors"
+        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
         title="{collapsed ? 'Expand' : 'Collapse'} rotate"
       >
         <svg
@@ -114,14 +114,10 @@
             d="m19.5 8.25-7.5 7.5-7.5-7.5"
           />
         </svg>
+        <span class="text-xs font-bold uppercase tracking-wider text-pink-500 whitespace-nowrap">Rotate</span>
       </button>
 
       <div class="flex items-center gap-2 flex-1 min-w-0">
-        <span
-          class="text-xs font-bold uppercase tracking-wider text-pink-500 whitespace-nowrap"
-        >
-          Rotate
-        </span>
         <div class="relative flex-1 min-w-0">
           <input
             tabindex="-1"
@@ -290,15 +286,30 @@
         <div class="relative">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
             class="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-neutral-400"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
           >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 0 0 0-1.5h-3.25V5Z"
-              clip-rule="evenodd"
-            />
+            <!-- Semicircle protractor arc -->
+            <path d="M3 12a9 9 0 0 1 18 0" />
+
+            <!-- Major tick marks at 0,30,60,90,120,150,180 degrees -->
+            <line x1="21" y1="12" x2="19.2" y2="12" />
+            <line x1="19.794" y1="7.5" x2="18.235" y2="8.4" />
+            <line x1="16.5" y1="4.206" x2="15.6" y2="5.765" />
+            <line x1="12" y1="3" x2="12" y2="4.8" />
+            <line x1="7.5" y1="4.206" x2="8.4" y2="5.765" />
+            <line x1="4.206" y1="7.5" x2="5.765" y2="8.4" />
+            <line x1="3" y1="12" x2="4.8" y2="12" />
+
+            <!-- Needle indicating an angle (visual hint) -->
+            <line x1="12" y1="12" x2="17" y2="7" stroke-width="1.8" />
+            <!-- Small degree symbol near needle tip -->
+            <circle cx="17.6" cy="6.4" r="0.9" fill="currentColor" stroke="none" />
           </svg>
           <input
             tabindex="-1"

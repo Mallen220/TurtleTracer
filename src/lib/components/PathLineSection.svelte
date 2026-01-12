@@ -135,7 +135,7 @@ import { onMount, onDestroy } from "svelte";
       <button
         tabindex="-1"
         on:click|stopPropagation={toggleCollapsed}
-        class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors"
+        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
         title="{collapsed ? 'Expand' : 'Collapse'} path"
       >
         <svg
@@ -154,14 +154,10 @@ import { onMount, onDestroy } from "svelte";
             d="m19.5 8.25-7.5 7.5-7.5-7.5"
           />
         </svg>
+        <span class="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 whitespace-nowrap">Path {idx + 1}</span>
       </button>
 
       <div class="flex items-center gap-2 flex-1 min-w-0">
-        <span
-          class="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 whitespace-nowrap"
-        >
-          Path {idx + 1}
-        </span>
         <div class="relative flex-1 min-w-0">
           <input
             tabindex="-1"
