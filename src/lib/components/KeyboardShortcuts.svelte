@@ -356,7 +356,12 @@
       const existingWaitNames = sequence
         .filter((s) => s.kind === "wait")
         .map((s) => (s as any).name || "");
-      newWait.name = generateName(waitItem.name || "Wait", existingWaitNames);
+      // Preserve empty name when duplicating unnamed waits
+      if (waitItem.name && waitItem.name.trim() !== "") {
+        newWait.name = generateName(waitItem.name, existingWaitNames);
+      } else {
+        newWait.name = "";
+      }
 
       const insertIdx = getSelectedSequenceIndex();
       if (insertIdx !== null) {
@@ -383,10 +388,15 @@
       const existingRotateNames = sequence
         .filter((s) => s.kind === "rotate")
         .map((s) => (s as any).name || "");
-      newRotate.name = generateName(
-        rotateItem.name || "Rotate",
-        existingRotateNames,
-      );
+      // Preserve empty name when duplicating unnamed rotates
+      if (rotateItem.name && rotateItem.name.trim() !== "") {
+        newRotate.name = generateName(
+          rotateItem.name,
+          existingRotateNames,
+        );
+      } else {
+        newRotate.name = "";
+      }
 
       const insertIdx = getSelectedSequenceIndex();
       if (insertIdx !== null) {
@@ -430,12 +440,13 @@
       const newLine = _.cloneDeep(originalLine);
       newLine.id = `line-${Math.random().toString(36).slice(2)}`;
 
-      // Update name
+      // Update name (preserve empty name if original was unnamed)
       const existingLineNames = lines.map((l) => l.name || "");
-      newLine.name = generateName(
-        originalLine.name || `Path ${lineIndex + 1}`,
-        existingLineNames,
-      );
+      if (originalLine.name && originalLine.name.trim() !== "") {
+        newLine.name = generateName(originalLine.name, existingLineNames);
+      } else {
+        newLine.name = "";
+      }
 
       // Apply offset to endPoint
       newLine.endPoint.x += deltaX;

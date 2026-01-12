@@ -6,7 +6,8 @@ export const makeId = () =>
 
 export function renumberDefaultPathNames(lines: Line[]): Line[] {
   return lines.map((l, idx) => {
-    if (!l.name || /^Path \d+$/.test(l.name)) {
+    // Only renumber explicit default-style names like "Path 5". Preserve empty names.
+    if (/^Path \d+$/.test(l.name || "")) {
       return { ...l, name: `Path ${idx + 1}` };
     }
     return l;

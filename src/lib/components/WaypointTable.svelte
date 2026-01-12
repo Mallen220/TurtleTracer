@@ -695,10 +695,15 @@
       const newItem = structuredClone(item);
       newItem.id = makeId();
       newItem.locked = false; // unlock duplicate?
-      newItem.name = generateName(
-        item.name || "Wait",
-        sequence.map((s) => (s.kind === "wait" ? s.name : "") || ""),
-      );
+      // Preserve empty name when duplicating unnamed waits
+      if (item.name && item.name.trim() !== "") {
+        newItem.name = generateName(
+          item.name,
+          sequence.map((s) => (s.kind === "wait" ? s.name : "") || ""),
+        );
+      } else {
+        newItem.name = "";
+      }
 
       const newSeq = [...sequence];
       newSeq.splice(seqIndex + 1, 0, newItem);
@@ -712,10 +717,15 @@
       const newLine = structuredClone(line);
       newLine.id = makeId();
       newLine.locked = false;
-      newLine.name = generateName(
-        line.name || "Path",
-        lines.map((l) => l.name || ""),
-      );
+      // Preserve empty name when duplicating unnamed paths
+      if (line.name && line.name.trim() !== "") {
+        newLine.name = generateName(
+          line.name,
+          lines.map((l) => l.name || ""),
+        );
+      } else {
+        newLine.name = "";
+      }
 
       // Offset the new line slightly or keep it same?
       // Usually duplicate implies same properties.
@@ -800,11 +810,8 @@
       locked: false,
     };
 
-    // Check naming
-    newWait.name = generateName(
-      "Wait",
-      sequence.map((s) => (s.kind === "wait" ? s.name : "") || ""),
-    );
+    // Name intentionally left empty for new waypoints
+
 
     const newSeq = [...sequence];
     newSeq.splice(index, 0, newWait);
@@ -822,11 +829,8 @@
       locked: false,
     };
 
-    // Check naming
-    newRotate.name = generateName(
-      "Rotate",
-      sequence.map((s) => (s.kind === "rotate" ? s.name : "") || ""),
-    );
+    // Name intentionally left empty for new waypoints
+
 
     const newSeq = [...sequence];
     newSeq.splice(index, 0, newRotate);

@@ -65,7 +65,7 @@ describe("nameGenerator", () => {
       expect(result[1].name).toBe("Path 2"); // Note: it renumbers based on index
     });
 
-    it("should treat empty name as default path", () => {
+    it("should preserve empty names (do not auto-assign 'Path N')", () => {
       const lines: Line[] = [
         {
           endPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
@@ -75,7 +75,7 @@ describe("nameGenerator", () => {
         },
       ];
       const result = renumberDefaultPathNames(lines);
-      expect(result[0].name).toBe("Path 1");
+      expect(result[0].name).toBe("");
     });
   });
 
