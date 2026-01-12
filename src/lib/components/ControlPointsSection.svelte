@@ -15,6 +15,7 @@
     getClosestTarget,
     type DragPosition,
   } from "../../utils/dragDrop";
+  import TrashIcon from "./icons/TrashIcon.svelte";
 
   export let line: Line;
   export let lineIdx: number;
@@ -317,26 +318,13 @@
                 aria-label="Remove Control Point"
                 disabled={line.locked}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width={2}
-                  class="size-3.5"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <TrashIcon className="size-3.5" strokeWidth={2} />
               </button>
             </div>
 
             <!-- Position Inputs -->
             <div class="flex items-center gap-2">
-              <div class="relative flex-1">
+              <div class="relative w-20">
                 <span
                   class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none"
                   >X</span
@@ -358,7 +346,7 @@
                   title={snapToGridTitle}
                 />
               </div>
-              <div class="relative flex-1">
+              <div class="relative w-20">
                 <span
                   class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none"
                   >Y</span

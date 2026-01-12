@@ -80,12 +80,12 @@
     <div class="flex items-center gap-2 flex-[2]">
       <div class="relative flex-1">
         <span
-          class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
-          >S</span
+          class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
+          >Start</span
         >
         <input
           bind:this={startInput}
-          class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class="w-full pl-9 pr-1 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
           step="1"
           type="number"
           min="-180"
@@ -100,12 +100,12 @@
       </div>
       <div class="relative flex-1">
         <span
-          class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
-          >E</span
+          class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
+          >End</span
         >
         <input
           bind:this={endInput}
-          class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class="w-full pl-8 pr-1 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
           step="1"
           type="number"
           min="-180"
@@ -144,10 +144,10 @@
     </div>
   {:else if endPoint.heading === "tangential"}
     <div
-      class="flex items-center gap-2 flex-[2] bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg px-2"
+      class="flex items-center gap-2 flex-[2] bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg px-2 min-w-0"
     >
       <label
-        class="flex items-center gap-2 cursor-pointer w-full h-full py-1.5"
+        class="flex items-center gap-2 cursor-pointer w-full h-full py-1.5 overflow-hidden"
       >
         <input
           bind:this={reverseInput}
@@ -158,9 +158,10 @@
           title="Reverse the direction the robot faces along the tangential path"
           disabled={locked}
           {tabindex}
-          class="rounded text-purple-600 focus:ring-purple-500"
+          class="rounded text-purple-600 focus:ring-purple-500 flex-none"
         />
-        <span class="text-sm text-neutral-600 dark:text-neutral-400 select-none"
+        <span
+          class="text-sm text-neutral-600 dark:text-neutral-400 select-none truncate"
           >Reverse</span
         >
       </label>

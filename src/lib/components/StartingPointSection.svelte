@@ -92,7 +92,7 @@
   <div class="flex items-end gap-3">
     <!-- Position Inputs -->
     <div class="flex items-center gap-2 flex-1">
-      <div class="relative flex-1">
+      <div class="relative w-24">
         <span
           class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
           >X</span
@@ -108,7 +108,7 @@
           disabled={startPoint.locked}
         />
       </div>
-      <div class="relative flex-1">
+      <div class="relative w-24">
         <span
           class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
           >Y</span
@@ -131,7 +131,7 @@
     class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50"
   >
     <span class="text-xs font-medium text-neutral-400 mr-auto"
-      >After first step:</span
+      >Add first step:</span
     >
     <button
       on:click={addPathAtStart}

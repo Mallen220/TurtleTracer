@@ -130,7 +130,7 @@
           <input
             value={wait.name}
             placeholder="Wait Name"
-            class="w-full bg-transparent border-none p-0 text-sm font-semibold text-neutral-800 dark:text-neutral-200 focus:ring-0 placeholder-neutral-400 truncate"
+            class="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md px-2 py-1 text-sm font-semibold text-neutral-800 dark:text-neutral-200 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder-neutral-400 truncate"
             class:text-amber-500={hoveredWaitId === wait.id}
             disabled={wait.locked}
             on:input={handleNameInput}
