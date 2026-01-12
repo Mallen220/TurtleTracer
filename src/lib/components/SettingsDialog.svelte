@@ -11,6 +11,7 @@
   } from "../../config/defaults";
   import type { Settings } from "../../types";
   import KeyboardShortcutsDialog from "./KeyboardShortcutsDialog.svelte";
+  import RobotProfileManager from "./settings/RobotProfileManager.svelte";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -422,6 +423,11 @@
             <div
               class="mt-2 space-y-3 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg"
             >
+              <RobotProfileManager
+                {settings}
+                onSettingsChange={() => (settings = { ...settings })}
+              />
+
               <div>
                 <label
                   for="robot-length"

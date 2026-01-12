@@ -140,6 +140,21 @@ export interface Settings {
   lastSeenVersion?: string; // Version of the app the user last saw (for What's New dialog)
 }
 
+export interface RobotProfile {
+  id: string;
+  name: string;
+  rLength: number;
+  rWidth: number;
+  maxVelocity: number;
+  maxAcceleration: number;
+  maxDeceleration: number;
+  kFriction: number;
+  aVelocity: number; // angular velocity
+  xVelocity: number;
+  yVelocity: number;
+  robotImage?: string;
+}
+
 export interface Shape {
   id: string;
   name?: string;

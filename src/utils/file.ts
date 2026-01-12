@@ -99,7 +99,6 @@ export function loadTrajectoryFromFile(
         const jsonObj = JSON.parse(result) as SaveData;
         onSuccess(jsonObj);
       } catch (err) {
-        console.error(err);
         if (onError) onError(err as Error);
       }
     };

@@ -164,6 +164,27 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "decreaseValue",
     category: "Editing",
   },
+  {
+    id: "add-obstacle",
+    key: "shift+o",
+    description: "Add new obstacle",
+    action: "addObstacle",
+    category: "Editing",
+  },
+  {
+    id: "focus-name",
+    key: "f2, enter",
+    description: "Rename selected item",
+    action: "focusName",
+    category: "Editing",
+  },
+  {
+    id: "deselect-all",
+    key: "escape",
+    description: "Deselect all",
+    action: "deselectAll",
+    category: "Navigation",
+  },
 
   // Playback
   {
@@ -292,6 +313,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     key: "b",
     description: "Toggle sidebar / control tab",
     action: "toggleSidebar",
+    category: "View",
+  },
+  {
+    id: "toggle-velocity-heatmap",
+    key: "v",
+    description: "Toggle Velocity Heatmap",
+    action: "toggleVelocityHeatmap",
     category: "View",
   },
 

@@ -1,4 +1,35 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+declare global {
+  interface Window {
+    electronAPI: {
+      getDirectory: () => Promise<string>;
+      setDirectory: (path?: string) => Promise<string | null>;
+      listFiles: (directory: string) => Promise<FileInfo[]>;
+      readFile: (filePath: string) => Promise<string>;
+      writeFile: (filePath: string, content: string) => Promise<boolean>;
+      deleteFile: (filePath: string) => Promise<boolean>;
+      fileExists: (filePath: string) => Promise<boolean>;
+      getSavedDirectory: () => Promise<string>;
+      createDirectory: (dirPath: string) => Promise<boolean>;
+      getDirectoryStats: (dirPath: string) => Promise<any>;
+      renameFile: (
+        oldPath: string,
+        newPath: string,
+      ) => Promise<{ success: boolean; newPath: string }>;
+      openExternal?: (url: string) => Promise<boolean>;
+      onMenuAction?: (callback: (action: string) => void) => void;
+      showSaveDialog?: (options: any) => Promise<string | null>;
+      rendererReady?: () => Promise<void>;
+      onOpenFilePath?: (callback: (path: string) => void) => void;
+      saveFile?: (
+        content: string,
+        path?: string,
+      ) => Promise<{ success: boolean; filepath: string; error?: string }>;
+      copyFile?: (src: string, dest: string) => Promise<boolean>;
+    };
+  }
+}
+
 interface BasePoint {
   x: number;
   y: number;
@@ -92,7 +123,23 @@ type SequenceWaitItem = {
   durationMs: number;
 };
 
-type SequenceItem = SequencePathItem | SequenceWaitItem;
+type SequenceRotateItem = {
+  kind: "rotate";
+  id: string;
+  name: string;
+  degrees: number;
+  locked?: boolean;
+};
+
+type SequenceItem = SequencePathItem | SequenceWaitItem | SequenceRotateItem;
+
+interface KeyBinding {
+  id: string;
+  key: string;
+  description: string;
+  action: string;
+  category?: string;
+}
 
 interface Settings {
   xVelocity: number;
@@ -101,13 +148,31 @@ interface Settings {
   kFriction: number;
   rWidth: number;
   rHeight: number;
+  // added rLength for consistency with usage
+  rLength?: number;
   safetyMargin: number;
   maxVelocity: number; // inches/sec
   maxAcceleration: number; // inches/sec²
   maxDeceleration?: number; // inches/sec²
   fieldMap: string;
+  fieldRotation?: number; // degrees
   robotImage?: string;
   theme: "light" | "dark" | "auto";
+  javaPackageName?: string;
+  showVelocityHeatmap?: boolean;
+  showGhostPaths?: boolean;
+  showOnionLayers?: boolean;
+  onionLayerSpacing?: number;
+  optimizationIterations?: number;
+  optimizationPopulationSize?: number;
+  optimizationMutationRate?: number;
+  optimizationMutationStrength?: number;
+  validateFieldBoundaries?: boolean;
+  restrictDraggingToField?: boolean;
+  keyBindings?: KeyBinding[];
+  recentFiles?: string[];
+  lastSeenVersion?: string;
+  fileManagerSortMode?: "name" | "date";
 }
 
 function getDefaultSettings(): Settings {

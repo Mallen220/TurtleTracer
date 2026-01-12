@@ -20,10 +20,19 @@
 
   function addObstacle() {
     shapes = [...shapes, createTriangle(shapes.length)];
-    // Add a new collapsed state for the new obstacle (default to collapsed)
-    collapsedObstacles = [...collapsedObstacles, true];
+    // Add a new collapsed state for the new obstacle (default to expanded for better UX)
+    collapsedObstacles = [...collapsedObstacles, false];
     // Expand the section if it was collapsed
     if (collapsed) collapsed = false;
+  }
+
+  // React to external additions to shapes (e.g. from keybindings)
+  $: if (shapes.length > collapsedObstacles.length) {
+      const diff = shapes.length - collapsedObstacles.length;
+      // Default new externally added obstacles to expanded (false) so user can see them immediately
+      collapsedObstacles = [...collapsedObstacles, ...Array(diff).fill(false)];
+      // Force expand section if a new shape is added externally (e.g. shortcut)
+      if (collapsed) collapsed = false;
   }
 </script>
 

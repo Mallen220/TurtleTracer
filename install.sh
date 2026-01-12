@@ -262,14 +262,21 @@ install_linux() {
     candidate_url=""
 
     if [[ "$arch" == "x86_64" || "$arch" == "amd64" || "$arch" == "x64" ]]; then
-        candidate_url=$(select_asset_by_pattern "\.deb\|\.AppImage\|\.tar\.gz")
+        # Use ERE syntax with | for alternation (grep -Ei)
+        candidate_url=$(select_asset_by_pattern "\.deb|\.AppImage|\.tar\.gz")
     else
         # For arm machines prefer arm builds or AppImage
-        candidate_url=$(select_asset_by_pattern "\.AppImage\|\.deb\|\.tar\.gz")
+        candidate_url=$(select_asset_by_pattern "\.AppImage|\.deb|\.tar\.gz")
     fi
 
     if [ -z "$candidate_url" ]; then
-        print_error "No Linux assets found in latest release. You can manually provide a direct download URL."
+        # This should rarely happen now since the selector shows all options
+        print_error "No Linux assets found in latest release."
+        print_info "Available assets for this platform:"
+        get_download_urls "\.deb|\.AppImage|\.tar\.gz" | while read -r url; do
+            echo "  - $(basename "$url")" >&2
+        done
+        echo "" >&2
         read -p "Enter a direct download URL (AppImage, .deb, or .tar.gz): " candidate_url < /dev/tty
         if [ -z "$candidate_url" ]; then
             print_error "No URL provided. Aborting."
@@ -287,6 +294,17 @@ install_linux() {
     if [[ "$lower" == *.appimage ]]; then
         APP_PATH="$INSTALL_DIR/$fname"
         TMP_APP_PATH="/tmp/$fname"
+
+        # Remove any previously installed AppImages to avoid stale versions
+        old_appimages=$(find "$INSTALL_DIR" -maxdepth 1 -type f \( -iname "Pedro-Pathing-Visualizer*.AppImage" -o -iname "pedro-pathing-visualizer*.appimage" \) 2>/dev/null)
+        if [ -n "$old_appimages" ]; then
+            print_info "Removing old AppImage(s)..."
+            while IFS= read -r old; do
+                [ -z "$old" ] && continue
+                rm -f "$old"
+            done <<< "$old_appimages"
+        fi
+
         print_info "Downloading AppImage to $TMP_APP_PATH..."
         if ! curl -L -o "$TMP_APP_PATH" "$candidate_url" --fail; then
             print_error "Download failed. Aborting."
@@ -329,7 +347,14 @@ EOL
         print_status "Installation Complete! Launch from your applications menu."
     elif [[ "$lower" == *.tar.gz ]]; then
         TMP_TAR="/tmp/$fname"
-        DEST_DIR="$INSTALL_DIR/pedro-$RANDOM"
+        DEST_DIR="$INSTALL_DIR/pedro-pathing-visualizer"
+
+        # Clean previous extracted version so the new one replaces it
+        if [ -d "$DEST_DIR" ]; then
+            print_info "Removing previous install at $DEST_DIR..."
+            rm -rf "$DEST_DIR"
+        fi
+
         print_info "Downloading tarball to $TMP_TAR..."
         if ! curl -L -o "$TMP_TAR" "$candidate_url" --fail; then
             print_error "Download failed. Aborting."

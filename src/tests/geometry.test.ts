@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
+import * as fc from "fast-check";
 import {
   pointInPolygon,
   minDistanceToPolygon,
@@ -27,10 +28,34 @@ describe("Geometry Utils", () => {
       expect(pointInPolygon([5, 15], square)).toBe(false);
     });
 
-    // Note: Behavior on edges/vertices depends on exact ray casting implementation
-    // Usually it considers edge cases inconsistently or strictly one way.
-    // Given the implementation: yi > y !== yj > y ...
-    // Let's not test strictly on edge unless we are sure of the behavior.
+    it("should handle ray casting edge cases gracefully", () => {
+        // Points on vertices
+        // In the ray casting algorithm implementation:
+        // yi > y !== yj > y
+        // (0,0) -> y=0. yi=0, yj=0/10.
+        // It's brittle on vertices/edges.
+        // The implementation considers strictly greater for Y check.
+        // Let's document current behavior rather than enforcing 'false'.
+        // If it returns true for [0,0], that's fine as long as consistent.
+        // But [10,10] might be false.
+
+        // Actually, ray casting is usually exclusive of edges/vertices depending on exact logic.
+        // Current implementation:
+        // intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+
+        // If point is [0,0]. y=0.
+        // Edge (0,0)-(10,0). yi=0, yj=0. yi>y (0>0) False. yj>y False. False.
+        // Edge (10,0)-(10,10). yi=0, yj=10. yi>0 False. yj>0 True. Intersect potential.
+        // x < ...?
+        // x=0.
+        // ((10-10)*(0-0))/(10-0) + 10 = 0/10 + 10 = 10.
+        // 0 < 10. True.
+        // So it intersects edge (10,0)-(10,10). One intersection -> Inside (True).
+
+        // So [0,0] is considered Inside.
+
+        expect(pointInPolygon([0, 0], square)).toBe(true);
+    });
   });
 
   describe("pointToLineDistance", () => {
@@ -47,6 +72,12 @@ describe("Geometry Utils", () => {
 
       // Point at (15, 0) -> distance 5 (to end point)
       expect(pointToLineDistance([15, 0], start, end)).toBe(5);
+    });
+
+    it("should return 0 for points on the line segment", () => {
+        const start = [0, 0];
+        const end = [10, 10];
+        expect(pointToLineDistance([5, 5], start, end)).toBeCloseTo(0);
     });
   });
 
@@ -86,26 +117,7 @@ describe("Geometry Utils", () => {
 
   describe("getRobotCorners", () => {
     it("calculates corners for unrotated robot", () => {
-      // Robot at (0,0), 0 deg heading, 10 length, 6 width
-      // Length (10) is along X axis (heading 0) -> extends +/- 5
-      // Width (6) is along Y axis -> extends +/- 3
-      // Corners should be +/- 5, +/- 3
       const corners = getRobotCorners(0, 0, 0, 10, 6);
-
-      // Expected corners based on implementation:
-      // front-left: (-5, -3)
-      // front-right: (5, -3)
-      // back-right: (5, 3)
-      // back-left: (-5, 3)
-      // Wait, let's check implementation of getRobotCorners in src/utils/geometry.ts
-
-      // hl = 5, hw = 3
-      // cos=1, sin=0
-      // 1: dx=-5, dy=-3 -> x=-5, y=-3
-      // 2: dx=5, dy=-3 -> x=5, y=-3
-      // 3: dx=5, dy=3 -> x=5, y=3
-      // 4: dx=-5, dy=3 -> x=-5, y=3
-
       expect(corners).toHaveLength(4);
       expect(corners).toContainEqual({ x: -5, y: -3 });
       expect(corners).toContainEqual({ x: 5, y: -3 });
@@ -114,19 +126,11 @@ describe("Geometry Utils", () => {
     });
 
     it("calculates corners for rotated robot (90 deg)", () => {
-      // Robot at (0,0), 90 deg heading, 10 length, 6 width
-      // Heading 90 deg = down in screen coords.
-      // Length extends along Y axis. Width extends along X axis.
-      // Corners should be at x = +/- 3, y = +/- 5
-
       const corners = getRobotCorners(0, 0, 90, 10, 6);
-
-      // Check for approximations due to floating point
       const roundedCorners = corners.map((c) => ({
         x: Math.round(c.x),
         y: Math.round(c.y),
       }));
-
       expect(roundedCorners).toContainEqual({ x: 3, y: 5 });
       expect(roundedCorners).toContainEqual({ x: -3, y: 5 });
       expect(roundedCorners).toContainEqual({ x: -3, y: -5 });
@@ -145,8 +149,6 @@ describe("Geometry Utils", () => {
       ];
 
       const hull = convexHull(points);
-
-      // Hull should contain the 4 corner points
       expect(hull.length).toBe(4);
       expect(hull).toEqual(
         expect.arrayContaining([
@@ -156,8 +158,6 @@ describe("Geometry Utils", () => {
           { x: 0, y: 10 },
         ]),
       );
-
-      // Should not contain the inner point
       expect(hull).not.toContainEqual({ x: 5, y: 5 });
     });
 
@@ -167,6 +167,31 @@ describe("Geometry Utils", () => {
         { x: 10, y: 10 },
       ];
       expect(convexHull(points)).toEqual(points);
+    });
+
+    it("property: all points should be inside or on boundary of hull", () => {
+        // Use fast-check to generate random point sets
+        const pointArb = fc.record({ x: fc.double({min: -1000, max: 1000}), y: fc.double({min: -1000, max: 1000}) });
+
+        fc.assert(
+            fc.property(fc.array(pointArb, { minLength: 3, maxLength: 20 }), (points) => {
+                // If points are collinear or duplicates, convex hull might fail or behave weirdly
+                // Filter out unique points roughly
+                const uniquePoints = points.filter((p, i) => points.findIndex(p2 => Math.abs(p2.x - p.x) < 1e-6 && Math.abs(p2.y - p.y) < 1e-6) === i);
+                if (uniquePoints.length < 3) return true;
+
+                const hull = convexHull(uniquePoints);
+
+                return uniquePoints.every(p => {
+                    const isInside = pointInPolygon([p.x, p.y], hull);
+                    if (isInside) return true;
+
+                    // If considered outside, check if it's on the boundary
+                    const dist = minDistanceToPolygon([p.x, p.y], hull);
+                    return dist < 1e-4;
+                });
+            })
+        )
     });
   });
 });

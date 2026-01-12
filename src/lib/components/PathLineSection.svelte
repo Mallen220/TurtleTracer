@@ -38,6 +38,7 @@ import { onMount, onDestroy } from "svelte";
   let xInput: HTMLInputElement;
   let yInput: HTMLInputElement;
   let headingControls: HeadingControls;
+  let nameInput: HTMLInputElement;
 
   // Container-based responsiveness: observe the grid container's width and
   // toggle a compact layout when it becomes too narrow (e.g., in a small
@@ -70,6 +71,14 @@ import { onMount, onDestroy } from "svelte";
       if ($focusRequest.field === "y" && yInput) yInput.focus();
       if ($focusRequest.field === "heading" && headingControls)
         headingControls.focus();
+    }
+    // Special handling for rename focus which can happen on any selection of this line
+    if (
+      $focusRequest.field === "name" &&
+      $focusRequest.id === line.id &&
+      nameInput
+    ) {
+      nameInput.focus();
     }
   }
 

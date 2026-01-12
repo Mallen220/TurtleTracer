@@ -42,8 +42,8 @@ export function transformAngle(angle: number) {
  * Returns a value between -180 and 180.
  */
 export function getAngularDifference(start: number, end: number): number {
-  const normalizedStart = (start + 360) % 360;
-  const normalizedEnd = (end + 360) % 360;
+  const normalizedStart = ((start % 360) + 360) % 360;
+  const normalizedEnd = ((end % 360) + 360) % 360;
   let diff = normalizedEnd - normalizedStart;
 
   if (diff > 180) diff -= 360;
@@ -146,12 +146,30 @@ export function getCurvePoint(
   // Fallback for N > 4 (or N=1)
   if (len === 1) return points[0];
 
-  // Recursive fallback
-  const newpoints = [];
-  for (let i = 0, j = 1; j < len; i++, j++) {
-    newpoints[i] = lerp2d(t, points[i], points[j]);
+  // Iterative De Casteljau to avoid recursion overhead and excessive allocation
+  // Work on a copy of the points to avoid mutating input
+  const work = points.slice();
+  let n = len;
+  while (n > 1) {
+    for (let i = 0; i < n - 1; i++) {
+      const p0 = work[i];
+      const p1 = work[i + 1];
+      const nx = p0.x + (p1.x - p0.x) * t;
+      const ny = p0.y + (p1.y - p0.y) * t;
+
+      // In the first pass, we must create new objects because 'work' elements
+      // reference the original 'points' objects.
+      // In subsequent passes, we can mutate the objects we created in the first pass.
+      if (n === len) {
+        work[i] = { x: nx, y: ny };
+      } else {
+        work[i].x = nx;
+        work[i].y = ny;
+      }
+    }
+    n--;
   }
-  return getCurvePoint(t, newpoints);
+  return work[0];
 }
 
 // Helpers for Heading Calculation
