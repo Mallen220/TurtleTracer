@@ -8,117 +8,134 @@ on:
 permissions:
   contents: write
 
+env:
+  TAG_NAME: ${{ github.ref_name }}
+
 jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.ensure-release.outputs.upload_url }}
+    steps:
+      - name: Ensure draft release exists
+        id: ensure-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+
+          # Check for an existing draft release for this tag
+          RELEASE_JSON=$(gh release view "$TAG_NAME" --json isDraft,uploadUrl 2>/dev/null || true)
+
+          if echo "$RELEASE_JSON" | grep -q '"isDraft": true'; then
+            echo "Using existing draft release"
+            UPLOAD_URL=$(echo "$RELEASE_JSON" | jq -r '.uploadUrl')
+          else
+            echo "Creating new draft release"
+            gh release create "$TAG_NAME" \
+              --draft \
+              --title "$TAG_NAME" \
+              --notes ""
+            UPLOAD_URL=$(gh release view "$TAG_NAME" --json uploadUrl | jq -r '.uploadUrl')
+          fi
+
+          echo "upload_url=$UPLOAD_URL" >> "$GITHUB_OUTPUT"
+
   release-mac:
+    needs: prepare-release
     runs-on: macos-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
+          cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
+      - run: npm run build
 
-      - name: Build
-        run: npm run build
-
-      - name: Package (mac)
+      - name: Build (Mac)
         run: |
           npx electron-builder --mac --x64 --arm64 --publish never -c.mac.identity=null
 
-      - name: Create or update draft release and upload mac artifacts
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          draft: true
-          files: |
-            release/*.dmg
-            release/*.zip
-            release/*.tar.gz
+      - name: Upload artifacts (Mac)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}},
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          find dist \
+            -type f \
+            ! -name "*.blockmap" \
+            ! -name "*.yml" \
+            ! -name "*.yaml" \
+            -exec gh release upload "$TAG_NAME" {} --clobber \;
 
   release-win:
+    needs: prepare-release
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
+          cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
+      - run: npm run build
 
-      - name: Build
-        run: npm run build
-
-      - name: Package (Windows)
+      - name: Build (Windows)
         run: |
           npx electron-builder --win --x64 --publish never
 
-      - name: Create or update draft release and upload windows artifacts
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          draft: true
-          files: |
-            release/*.exe
-            release/*.zip
-            release/*.nupkg
-            release/*.msi
+      - name: Upload artifacts (Windows)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}},
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          find dist \
+            -type f \
+            ! -name "*.blockmap" \
+            ! -name "*.yml" \
+            ! -name "*.yaml" \
+            -exec gh release upload "$TAG_NAME" {} --clobber \;
 
   release-linux:
+    needs: prepare-release
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
+          cache: npm
 
-      - name: Install System Dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+          sudo apt-get install -y \
+            build-essential \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libjpeg-dev \
+            libgif-dev \
+            librsvg2-dev
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
+      - run: npm run build
 
-      - name: Build
-        run: npm run build
-
-      - name: Package (Linux)
+      - name: Build (Linux)
         run: |
           npx electron-builder --linux --x64 --arm64 --publish never
 
-      - name: Create or update draft release and upload linux artifacts
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          draft: true
-          files: |
-            release/*.AppImage
-            release/*.deb
-            release/*.tar.gz
+      - name: Upload artifacts (Linux)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}}]}]
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          find dist \
+            -type f \
+            ! -name "*.blockmap" \
+            ! -name "*.yml" \
+            ! -name "*.yaml" \
+            -exec gh release upload "$TAG_NAME" {} --clobber \;
