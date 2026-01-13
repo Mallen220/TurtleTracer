@@ -121,6 +121,28 @@ jobs:
 
           echo "upload_url=$UPLOAD_URL" >> "$GITHUB_OUTPUT"
 
+      - name: Upload source code zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${TAG_NAME#v}"
+          SOURCE_ZIP="Pedro-Pathing-Visualizer-${VERSION}-source.zip"
+          
+          # Create zip of the repository (excluding node_modules, dist, build artifacts)
+          zip -r "$SOURCE_ZIP" . \
+            -x "node_modules/*" \
+            "dist/*" \
+            ".git/*" \
+            ".next/*" \
+            "release/*" \
+            ".github/*" \
+            "*.blockmap" \
+            ".DS_Store" \
+            ".gitignore"
+          
+          echo "Uploading source code: $SOURCE_ZIP"
+          gh release upload "$TAG_NAME" "$SOURCE_ZIP" --clobber
+
   release-mac:
     needs: prepare-release
     runs-on: macos-latest
