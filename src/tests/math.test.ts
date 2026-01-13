@@ -11,7 +11,10 @@ import {
   radiansToDegrees,
   getCurvePoint,
   getTangentAngle,
+  getLineStartHeading,
+  getLineEndHeading,
 } from "../utils/math";
+import type { Line, Point } from "../types";
 
 describe("Math Utils", () => {
   describe("transformAngle", () => {
@@ -175,6 +178,239 @@ describe("Math Utils", () => {
       const p1 = { x: 0, y: 0 };
       const p2 = { x: 1, y: 0 };
       expect(getTangentAngle(p1, p2)).toBe(0);
+    });
+  });
+
+  describe("getLineStartHeading", () => {
+    it("returns 0 if line or endpoint is undefined", () => {
+      const p = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      expect(getLineStartHeading(undefined, p)).toBe(0);
+      expect(
+        getLineStartHeading(
+          { endPoint: undefined as unknown as Point } as Line,
+          p,
+        ),
+      ).toBe(0);
+    });
+
+    it("returns degrees for constant heading", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "constant",
+          degrees: 45,
+        } as Point,
+      } as Line;
+      expect(getLineStartHeading(line, prev)).toBe(45);
+    });
+
+    it("returns startDeg for linear heading", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "linear",
+          startDeg: 30,
+          endDeg: 60,
+        } as Point,
+      } as Line;
+      expect(getLineStartHeading(line, prev)).toBe(30);
+    });
+
+    it("returns tangent angle for tangential heading", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "tangential",
+          reverse: false,
+        } as Point,
+      } as Line;
+      // Angle from (0,0) to (10,10) is 45 degrees
+      expect(getLineStartHeading(line, prev)).toBe(45);
+    });
+
+    it("returns reversed tangent angle for tangential heading with reverse=true", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "tangential",
+          reverse: true,
+        } as Point,
+      } as Line;
+      // Angle from (0,0) to (10,10) is 45 degrees, +180 = 225 -> -135
+      expect(getLineStartHeading(line, prev)).toBe(-135);
+    });
+
+    it("uses control points for tangential heading", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        controlPoints: [{ x: 5, y: 0 }],
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "tangential",
+          reverse: false,
+        } as Point,
+      } as Line;
+      // Angle from (0,0) to first CP (5,0) is 0 degrees
+      expect(getLineStartHeading(line, prev)).toBe(0);
+    });
+
+    it("skips overlapping control points for tangential heading", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        controlPoints: [
+          { x: 0, y: 0 }, // Overlaps with prev
+          { x: 5, y: 5 },
+        ],
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "tangential",
+          reverse: false,
+        } as Point,
+      } as Line;
+      // Should skip (0,0) and use (5,5), angle 45
+      expect(getLineStartHeading(line, prev)).toBe(45);
+    });
+  });
+
+  describe("getLineEndHeading", () => {
+    it("returns 0 if line or endpoint is undefined", () => {
+      const p = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      expect(getLineEndHeading(undefined, p)).toBe(0);
+      expect(
+        getLineEndHeading(
+          { endPoint: undefined as unknown as Point } as Line,
+          p,
+        ),
+      ).toBe(0);
+    });
+
+    it("returns degrees for constant heading", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "constant",
+          degrees: 90,
+        } as Point,
+      } as Line;
+      expect(getLineEndHeading(line, prev)).toBe(90);
+    });
+
+    it("returns endDeg for linear heading", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "linear",
+          startDeg: 30,
+          endDeg: 60,
+        } as Point,
+      } as Line;
+      expect(getLineEndHeading(line, prev)).toBe(60);
+    });
+
+    it("returns tangent angle for tangential heading", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "tangential",
+          reverse: false,
+        } as Point,
+      } as Line;
+      // Angle from (0,0) to (10,10) is 45 degrees
+      expect(getLineEndHeading(line, prev)).toBe(45);
+    });
+
+    it("returns reversed tangent angle for tangential heading with reverse=true", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "tangential",
+          reverse: true,
+        } as Point,
+      } as Line;
+      expect(getLineEndHeading(line, prev)).toBe(-135);
+    });
+
+    it("uses last control point for tangential heading", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        controlPoints: [
+          { x: 5, y: 10 }, // Last CP is (5,10)
+        ],
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "tangential",
+          reverse: false,
+        } as Point,
+      } as Line;
+      // Angle from CP (5,10) to End (10,10) is 0 degrees
+      expect(getLineEndHeading(line, prev)).toBe(0);
+    });
+
+    it("skips overlapping control points (overlapping with end point) for tangential heading", () => {
+      const prev = { x: 0, y: 0, heading: "constant", degrees: 0 } as Point;
+      const line = {
+        controlPoints: [
+          { x: 5, y: 5 },
+          { x: 10, y: 10 }, // Overlaps with end
+        ],
+        endPoint: {
+          x: 10,
+          y: 10,
+          heading: "tangential",
+          reverse: false,
+        } as Point,
+      } as Line;
+      // Should skip (10,10) and use (5,5) as prev point for tangent
+      // Tangent from (5,5) to (10,10) is 45 degrees
+      expect(getLineEndHeading(line, prev)).toBe(45);
+    });
+  });
+
+  describe("Fuzz/Property tests", () => {
+    it("transformAngle keeps angle within [-180, 180]", () => {
+      for (let i = 0; i < 1000; i++) {
+        const input = (Math.random() - 0.5) * 10000;
+        const output = transformAngle(input);
+        expect(output).toBeGreaterThanOrEqual(-180);
+        expect(output).toBeLessThan(180);
+        // Check that it's equivalent modulo 360
+        const k = Math.round((input - output) / 360);
+        expect(Math.abs(input - output - k * 360)).toBeLessThan(1e-9);
+      }
+    });
+
+    it("getAngularDifference is consistent", () => {
+      for (let i = 0; i < 1000; i++) {
+        const a = (Math.random() - 0.5) * 720;
+        const b = (Math.random() - 0.5) * 720;
+        const diff = getAngularDifference(a, b);
+        expect(diff).toBeGreaterThanOrEqual(-180);
+        expect(diff).toBeLessThanOrEqual(180);
+
+        // Check consistency: a + diff approx b (mod 360)
+        const target = a + diff;
+        const diff2 = getAngularDifference(target, b);
+        expect(Math.abs(diff2)).toBeLessThan(1e-9);
+      }
     });
   });
 });
