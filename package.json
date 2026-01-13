@@ -138,6 +138,9 @@
       "category": "Development",
       "maintainer": "Matthew Allen <allenmc220@gmail.com>"
     },
+    "appImage": {
+      "artifactName": "Pedro-Pathing-Visualizer-${version}-${arch}.${ext}"
+    },
     "fileAssociations": [
       {
         "ext": "pp",

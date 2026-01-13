@@ -228,7 +228,9 @@ jobs:
             libpango1.0-dev \
             libjpeg-dev \
             libgif-dev \
-            librsvg2-dev
+            librsvg2-dev \
+            zlib1g-dev \
+            libzstd-dev
 
       - run: npm ci
       - run: npm run build
