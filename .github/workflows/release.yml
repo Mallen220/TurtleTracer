@@ -77,12 +77,24 @@ jobs:
         run: |
           npx electron-builder --mac --x64 --arm64 --publish never -c.mac.identity=null
 
+      - name: List build output for debugging
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Listing files in dist folder:"
+          find dist -type f 2>/dev/null || echo "No dist folder"
+          echo "Listing all files recursively:"
+          find . -type f -name "*.dmg" -o -name "*.AppImage" -o -name "*.exe" -o -name "*.deb" 2>/dev/null | head -20
+
       - name: Upload artifacts (Mac)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Upload only the .dmg files for Mac
-          find dist -name "*.dmg" -exec gh release upload "$TAG_NAME" {} --clobber \;
+          # Look for .dmg files in common locations
+          find . -name "*.dmg" -type f | while read file; do
+            echo "Found file: $file"
+            gh release upload "$TAG_NAME" "$file" --clobber
+          done
 
   release-win:
     needs: prepare-release
@@ -102,13 +114,26 @@ jobs:
         run: |
           npx electron-builder --win --x64 --publish never
 
+      - name: List build output for debugging
+        shell: bash
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Listing files in dist folder:"
+          find dist -type f 2>/dev/null || echo "No dist folder"
+          echo "Looking for .exe files:"
+          find . -name "*.exe" -type f 2>/dev/null
+
       - name: Upload artifacts (Windows)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          # Upload only the .exe setup file for Windows
-          find dist -name "Pedro-Pathing-Visualizer-Setup-*.exe" -exec gh release upload "$TAG_NAME" {} --clobber \;
+          # Upload .exe files matching the pattern
+          find . -name "Pedro-Pathing-Visualizer-Setup-*.exe" -type f | while read file; do
+            echo "Uploading: $file"
+            gh release upload "$TAG_NAME" "$file" --clobber
+          done
 
   release-linux:
     needs: prepare-release
@@ -139,9 +164,19 @@ jobs:
         run: |
           npx electron-builder --linux --x64 --arm64 --publish never
 
+      - name: List build output for debugging
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Listing all files in current directory recursively:"
+          find . -type f \( -name "*.AppImage" -o -name "*.deb" \) 2>/dev/null
+
       - name: Upload artifacts (Linux)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Upload only the .AppImage and .deb files for Linux
-          find dist \( -name "*.AppImage" -o -name "*.deb" \) -exec gh release upload "$TAG_NAME" {} --clobber \;
+          # Upload .AppImage and .deb files
+          find . -type f \( -name "*.AppImage" -o -name "*.deb" \) | while read file; do
+            echo "Uploading: $file"
+            gh release upload "$TAG_NAME" "$file" --clobber
+          done
