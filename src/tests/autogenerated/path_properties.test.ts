@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
 import { analyzePathSegment } from "../../utils/timeCalculator";
-import { Point, BasePoint } from "../../types";
+import type { Point, BasePoint } from "../../types";
 
 // Generators for types
 const pointArb = fc.record({

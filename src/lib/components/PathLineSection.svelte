@@ -38,7 +38,7 @@
   let xInput: HTMLInputElement;
   let yInput: HTMLInputElement;
   let headingControls: HeadingControls;
-  let nameInput: HTMLInputElement;
+  let nameInput: HTMLInputElement | undefined;
 
   // Container-based responsiveness: observe the grid container's width and
   // toggle a compact layout when it becomes too narrow (e.g., in a small
@@ -329,11 +329,11 @@
       >
         <!-- Target Position -->
         <div class="space-y-2">
-          <label
+          <span
             class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
           >
             Target Position
-          </label>
+          </span>
           <div class="flex items-center gap-2">
             <div class="relative flex-[0.5] min-w-0 max-w-[200px]">
               <span
@@ -376,11 +376,11 @@
 
         <!-- Heading Control -->
         <div class="space-y-2" class:col-span-2={!isNarrow}>
-          <label
+          <span
             class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
           >
             Heading
-          </label>
+          </span>
           <HeadingControls
             bind:this={headingControls}
             endPoint={line.endPoint}
