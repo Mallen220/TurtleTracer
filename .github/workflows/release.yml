@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to build (e.g., v1.6.1)'
+        description: "Release tag to build (e.g., v1.6.1)"
         required: true
-        default: ''
+        default: ""
 
 permissions:
   contents: write
@@ -81,12 +81,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          find dist \
-            -type f \
-            ! -name "*.blockmap" \
-            ! -name "*.yml" \
-            ! -name "*.yaml" \
-            -exec gh release upload "$TAG_NAME" {} --clobber \;
+          # Upload only the .dmg files for Mac
+          find dist -name "*.dmg" -exec gh release upload "$TAG_NAME" {} --clobber \;
 
   release-win:
     needs: prepare-release
@@ -111,12 +107,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          find dist \
-            -type f \
-            ! -name "*.blockmap" \
-            ! -name "*.yml" \
-            ! -name "*.yaml" \
-            -exec gh release upload "$TAG_NAME" {} --clobber \;
+          # Upload only the .exe setup file for Windows
+          find dist -name "Pedro-Pathing-Visualizer-Setup-*.exe" -exec gh release upload "$TAG_NAME" {} --clobber \;
 
   release-linux:
     needs: prepare-release
@@ -151,9 +143,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          find dist \
-            -type f \
-            ! -name "*.blockmap" \
-            ! -name "*.yml" \
-            ! -name "*.yaml" \
-            -exec gh release upload "$TAG_NAME" {} --clobber \;
+          # Upload only the .AppImage and .deb files for Linux
+          find dist \( -name "*.AppImage" -o -name "*.deb" \) -exec gh release upload "$TAG_NAME" {} --clobber \;
