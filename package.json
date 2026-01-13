@@ -91,6 +91,7 @@
       "output": "release",
       "buildResources": "build"
     },
+    "artifactName": "Pedro-Pathing-Visualizer-${version}-${arch}.${ext}",
     "files": [
       "dist/**/*",
       "public/**/*",
@@ -125,7 +126,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "perMachine": true
+      "perMachine": true,
+      "artifactName": "Pedro-Pathing-Visualizer-Setup-${version}.${ext}"
     },
     "linux": {
       "target": [
