@@ -1,9 +1,5 @@
 ## 1.6.1 (2026-01-13)
 
-- Overhauled the paths tab to match other sections and be much cleaner and more intuitive. Better support on smaller screens. Improved command palette with file access and setting commands. More keybind shortcuts. Added Robot Profile Manager feature, allowing users to have multiple robots saved. Add confirm step to delete buttons. Add GitHub Actions release workflow for all platforms to try to fix broken Linux support. 
-
-## 1.6.1 (2026-01-13)
-
 - Overhauled the paths tab to match other sections and be much cleaner and more intuitive. Better support on smaller screens. Improved command palette with file access and setting commands. More keybind shortcuts. Added Robot Profile Manager feature, allowing users to have multiple robots saved. Add confirm step to delete buttons. Add GitHub Actions release workflow for all platforms to try to fix broken Linux support.
 
 ## 1.6.0 (2026-01-12)
