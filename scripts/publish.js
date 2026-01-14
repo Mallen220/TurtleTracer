@@ -55,7 +55,7 @@ Refer to the README installation section for instructions on installing or updat
 
 This repo is regularly updated with new features and bug fixes but tested primarily on macOS. Should an issue arise, please report it via the GitHub Issues page and revert to the previous stable version if needed.
 
-#### **macOS**
+#### **macOS / Linux**
 Run the following command in terminal and provide your password when prompted:
 \`\`\`bash
 curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
@@ -63,9 +63,6 @@ curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/ma
 
 #### **Windows**
 Download and install via the  \`.exe\` installer below.
-
-#### **Linux**
-Download the \`.deb\`, \`.tar.gz\`, or \`.AppImage\` file. Run in terminal with executable permissions.
 
 ## 📝 Release Notes
 `;

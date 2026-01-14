@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to build (e.g., v1.6.1)'
+        description: "Release tag to build (e.g., v1.6.1)"
         required: true
-        default: ''
+        default: ""
 
 permissions:
   contents: write
@@ -47,7 +47,7 @@ jobs:
 
           This repo is regularly updated with new features and bug fixes but tested primarily on macOS. Should an issue arise, please report it via the GitHub Issues page and revert to the previous stable version if needed.
 
-          #### **macOS**
+          #### **macOS / Linux**
           Run the following command in terminal and provide your password when prompted:
           ```bash
           curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
@@ -56,15 +56,12 @@ jobs:
           #### **Windows**
           Download and install via the `.exe` installer below.
 
-          #### **Linux**
-          Download the `.deb`, `.tar.gz`, or `.AppImage` file. Run in terminal with executable permissions.
-
           ## 📝 Release Notes
           EOF
 
           # 2. Extract version number (remove 'v' prefix)
           VERSION="${TAG_NAME#v}"
-          
+
           # 3. Append Changelog logic
           if [ -f "CHANGELOG.md" ]; then
             # Extract section: matches "## X.Y.Z" and stops at the next "## "
@@ -85,7 +82,7 @@ jobs:
             echo "" >> base_notes.md
             echo "- Bug fixes and improvements" >> base_notes.md
           fi
-          
+
           # 4. Finalize
           mv base_notes.md release-notes.md
           echo "Release notes generated."
@@ -96,7 +93,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          
+
           VERSION="${TAG_NAME#v}"
           TITLE="Pedro Pathing Visualizer ${VERSION}"
 

@@ -80,7 +80,22 @@ _Enter your password when prompted to complete installation._
 
 ### **Linux**
 
-Download the `.deb` (Debian/Ubuntu) or `.AppImage` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
+**One-Line Installer (Recommended):**
+Open Terminal and run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
+```
+
+_Enter your password when prompted to complete installation._
+
+**Manual Installation:**
+
+1.  Download the `.deb` (Debian/Ubuntu) or `.AppImage` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
+2.  Fix permissions for Sandboxing by installing and adding "--no-sandboxing" to the .desktop icons.
+3.  Install using your package manager of choice `libfuse2` and `zlib1g` as well as any sub-dependencies.
+4.  **Important**: Other various errors are likely to occur including depending on your Distro of choice. Testing is varied by Ubuntu is most closely watched. If you would like to become a tester please reach out.
+5.  Launch the application.
 
 **AppImage:**
 
