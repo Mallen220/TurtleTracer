@@ -14,6 +14,7 @@
   import PathStatisticsDialog from "./lib/components/PathStatisticsDialog.svelte";
   import NotificationToast from "./lib/components/NotificationToast.svelte";
   import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
+  import SaveNameDialog from "./lib/components/SaveNameDialog.svelte";
 
   // Stores
   import {
@@ -122,6 +123,27 @@
   let isDraggingFile = false;
   let dragCounter = 0;
 
+  // Custom Prompt State
+  let showSaveNameDialog = false;
+  let saveNameResolve: ((name: string | null) => void) | null = null;
+
+  function openSaveNamePrompt(): Promise<string | null> {
+    return new Promise((resolve) => {
+      saveNameResolve = resolve;
+      showSaveNameDialog = true;
+    });
+  }
+
+  function handleSaveName(name: string) {
+    if (saveNameResolve) saveNameResolve(name);
+    saveNameResolve = null;
+  }
+
+  function handleCancelSaveName() {
+    if (saveNameResolve) saveNameResolve(null);
+    saveNameResolve = null;
+  }
+
   function handleDragEnter(e: DragEvent) {
     e.preventDefault();
     // Check if dragging files
@@ -198,10 +220,7 @@
               // Try to use default directory + prompt
               const savedDir = await api.getSavedDirectory();
               if (savedDir) {
-                const name = prompt(
-                  "Enter a name for your new file (without .pp extension):",
-                  "New Path",
-                );
+                const name = await openSaveNamePrompt();
                 if (name) {
                   const sep = savedDir.includes("\\") ? "\\" : "/";
                   const cleanDir = savedDir.endsWith(sep)
@@ -881,6 +900,12 @@
 
 <WhatsNewDialog show={showWhatsNew} on:close={closeWhatsNew} />
 <NotificationToast />
+
+<SaveNameDialog
+  bind:show={showSaveNameDialog}
+  onSave={handleSaveName}
+  onCancel={handleCancelSaveName}
+/>
 
 <!-- Drag Overlay -->
 {#if isDraggingFile}
