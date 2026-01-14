@@ -42,8 +42,8 @@ Customize the visualizer appearance.
 
 ### Visualization
 
-- **Onion Layers**: Show ghost outlines of the robot along the path.
-- **Spacing**: Adjust distance between ghost layers.
+- **Onion Layers**: Show robot outlines at regular intervals along the path.
+- **Spacing**: Adjust distance between layers.
 
 ### Path Optimization
 

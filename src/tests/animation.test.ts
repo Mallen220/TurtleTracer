@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from "vitest";
 import {
   calculateRobotState,
   createAnimationController,
-  generateGhostPathPoints,
   generateOnionLayers,
 } from "../utils/animation";
 import { scaleLinear } from "d3";
@@ -151,24 +150,6 @@ describe("animation", () => {
 
     // Testing async behavior of requestAnimationFrame is tricky in unit tests without fake timers.
     // We can rely on basic state checks here.
-  });
-
-  describe("generateGhostPathPoints", () => {
-    it("should return empty array for no lines", () => {
-      expect(generateGhostPathPoints(startPoint, [], 10, 10)).toEqual([]);
-    });
-
-    it("should generate points for simple line", () => {
-      const points = generateGhostPathPoints(
-        startPoint,
-        simpleLines,
-        10,
-        10,
-        10,
-      );
-      expect(points.length).toBeGreaterThan(0);
-      // It creates a boundary.
-    });
   });
 
   describe("generateOnionLayers", () => {

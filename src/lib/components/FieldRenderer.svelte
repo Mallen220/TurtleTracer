@@ -38,7 +38,6 @@
   import {
     getCurvePoint,
     quadraticToCubic,
-    generateGhostPathPoints,
     generateOnionLayers,
     getRandomColor,
     loadRobotImage,
@@ -513,67 +512,6 @@
     return _shapes;
   })();
 
-  // Ghost Path
-  $: ghostPathElement = (() => {
-    let ghostPath: Path | null = null;
-    if (settings.showGhostPaths && lines.length > 0) {
-      const ghostPoints = generateGhostPathPoints(
-        startPoint,
-        lines,
-        settings.rLength,
-        settings.rWidth,
-        50,
-      );
-      if (ghostPoints.length >= 3) {
-        let vertices = [];
-        vertices.push(
-          new Two.Anchor(
-            x(ghostPoints[0].x),
-            y(ghostPoints[0].y),
-            0,
-            0,
-            0,
-            0,
-            Two.Commands.move,
-          ),
-        );
-        for (let i = 1; i < ghostPoints.length; i++) {
-          vertices.push(
-            new Two.Anchor(
-              x(ghostPoints[i].x),
-              y(ghostPoints[i].y),
-              0,
-              0,
-              0,
-              0,
-              Two.Commands.line,
-            ),
-          );
-        }
-        vertices.push(
-          new Two.Anchor(
-            x(ghostPoints[0].x),
-            y(ghostPoints[0].y),
-            0,
-            0,
-            0,
-            0,
-            Two.Commands.close,
-          ),
-        );
-        vertices.forEach((point) => (point.relative = false));
-        ghostPath = new Two.Path(vertices);
-        ghostPath.id = "ghost-path";
-        ghostPath.stroke = "#a78bfa";
-        ghostPath.fill = "#a78bfa";
-        ghostPath.opacity = 0.15;
-        ghostPath.linewidth = uiLength(0.5);
-        ghostPath.automatic = false;
-      }
-    }
-    return ghostPath;
-  })();
-
   // Onion Layers
   $: onionLayerElements = (() => {
     let onionLayers: Path[] = [];
@@ -1023,7 +961,6 @@
 
     if (Array.isArray(shapeElements))
       shapeElements.forEach((el) => shapeGroup.add(el));
-    if (ghostPathElement) shapeGroup.add(ghostPathElement);
     onionLayerElements.forEach((el) => shapeGroup.add(el));
 
     path.forEach((el) => lineGroup.add(el));
