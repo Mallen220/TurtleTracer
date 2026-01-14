@@ -123,6 +123,8 @@
   // DEBUG: force open Whats New during development to validate feature loading
   let showWhatsNew = false;
   let setupMode = false;
+  // Set this to true to force the setup dialog for testing
+  const TEST_SETUP_DIALOG = false;
   let activeControlTab: "path" | "field" | "table" = "path";
   let controlTabRef: any = null;
   // DOM container for the ControlTab; used to size/position the stats panel
@@ -361,7 +363,7 @@
         }
       }
 
-      if (needsSetup) {
+      if (needsSetup || TEST_SETUP_DIALOG) {
         setupMode = true;
         showWhatsNew = true;
       } else {
@@ -382,6 +384,12 @@
         setTimeout(() => loader.remove(), 500);
       }
     }, 500);
+
+    // Expose debug trigger for testing setup dialog
+    (window as any).triggerSetupDialog = () => {
+      setupMode = true;
+      showWhatsNew = true;
+    };
 
     // Electron Menu Action Listener
     if (electronAPI) {
