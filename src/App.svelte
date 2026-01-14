@@ -28,6 +28,7 @@
     collisionMarkers,
     showFileManager,
     fileManagerNewFileMode,
+    projectMetadataStore,
   } from "./stores";
   import {
     startPointStore,
@@ -548,7 +549,14 @@
     }
 
     resetPath();
+    // Clear file association for the new project
+    currentFilePath.set(null);
+    projectMetadataStore.set({ filepath: "" });
+
     recordChange();
+    // Mark as clean new project
+    lastSavedState = getCurrentState();
+    isUnsaved.set(false);
   }
 
   function undoAction() {
