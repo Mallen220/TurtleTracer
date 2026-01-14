@@ -12,7 +12,9 @@
     selectedLineId,
     selectedPointId,
     hoveredMarkerId,
+    diskEventNamesStore,
   } from "../../stores";
+  import SearchableDropdown from "./common/SearchableDropdown.svelte";
 
   export let sequence: SequenceItem[];
   export let lines: Line[];
@@ -36,6 +38,16 @@
 
   // Reactive list of all markers with global position
   $: allMarkers = getAllMarkers(sequence, lines, draggingMarkerId);
+
+  // Compute available events from disk and current project
+  $: currentProjectEvents = Array.from(new Set(allMarkers.map((m) => m.name)));
+  $: availableEvents = Array.from(
+    new Set(
+      [...$diskEventNamesStore, ...currentProjectEvents].filter(
+        (n) => n && n.trim() !== "",
+      ),
+    ),
+  ).sort();
 
   function getAllMarkers(
     seq: SequenceItem[],
@@ -352,11 +364,10 @@
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2 flex-1">
                 <div class="w-2 h-2 rounded-full bg-purple-500 shrink-0"></div>
-                <input
-                  type="text"
-                  aria-label="Marker name"
+                <SearchableDropdown
                   bind:value={marker.ref.name}
-                  class="text-sm font-medium bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 rounded px-2 py-0.5 w-full"
+                  options={availableEvents}
+                  placeholder="Search or add new..."
                   on:change={() => {
                     if (marker.parentType === "path") lines = [...lines];
                     else sequence = [...sequence];

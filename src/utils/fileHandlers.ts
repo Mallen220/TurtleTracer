@@ -5,7 +5,9 @@ import {
   isUnsaved,
   notification,
   projectMetadataStore,
+  currentDirectoryStore,
 } from "../stores";
+import { scanEventsInDirectory } from "./eventScanner";
 import {
   startPointStore,
   linesStore,
@@ -123,6 +125,7 @@ export async function loadRecentFile(path: string) {
       undefined,
       undefined,
       false,
+      undefined,
       { quiet: true },
     );
   }
@@ -249,6 +252,8 @@ async function performSave(
             timeout: 3000,
           });
         }
+        const dir = get(currentDirectoryStore);
+        if (dir) scanEventsInDirectory(dir);
         return true;
       } else {
         if (result.error !== "canceled") {
@@ -289,6 +294,8 @@ async function performSave(
           timeout: 3000,
         });
       }
+      const dir = get(currentDirectoryStore);
+      if (dir) scanEventsInDirectory(dir);
       return true;
     }
 
@@ -438,6 +445,7 @@ export async function handleExternalFileOpen(filePath: string) {
       undefined,
       undefined,
       false,
+      undefined,
       { quiet: true },
     );
   }
@@ -545,6 +553,7 @@ export async function loadFile(evt: Event) {
       undefined,
       undefined,
       false,
+      undefined,
       { quiet: true },
     );
   }

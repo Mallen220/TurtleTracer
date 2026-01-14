@@ -39,11 +39,13 @@
     isUnsaved,
     fileManagerSessionState,
     fileManagerNewFileMode,
+    currentDirectoryStore,
   } from "../stores";
   import { settingsStore } from "./projectStore";
   import { saveProject } from "../utils/fileHandlers";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
   import { mirrorPathData, reversePathData } from "../utils/pathTransform";
+  import { scanEventsInDirectory } from "../utils/eventScanner";
 
   import FileManagerToolbar from "./components/filemanager/FileManagerToolbar.svelte";
   import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
@@ -112,6 +114,10 @@
   $: if ($fileManagerNewFileMode) {
     creatingNewFile = true;
     fileManagerNewFileMode.set(false);
+  }
+
+  $: if (currentDirectory) {
+    currentDirectoryStore.set(currentDirectory);
   }
 
   function startResize(e: MouseEvent) {
@@ -260,6 +266,7 @@
 
       sortFiles();
       errorMessage = "";
+      scanEventsInDirectory(currentDirectory);
     } catch (error) {
       console.error("Error refreshing directory:", error);
       errorMessage = `Error accessing directory: ${getErrorMessage(error)}`;
@@ -511,6 +518,7 @@
         undefined,
         undefined,
         false,
+        undefined,
         { quiet: true },
       );
     }
@@ -589,6 +597,7 @@
         undefined,
         undefined,
         false,
+        undefined,
         { quiet: true },
       );
     }
