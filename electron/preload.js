@@ -1,7 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  // Utils
+  getPathForFile: (file) => webUtils.getPathForFile(file),
+
   // File system operations
   getAppDataPath: () => ipcRenderer.invoke("app:get-app-data-path"),
   getDirectory: () => ipcRenderer.invoke("file:get-directory"),

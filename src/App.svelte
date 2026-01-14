@@ -82,6 +82,7 @@
     onOpenFilePath?: (callback: (path: string) => void) => void;
     // Open a link in the system default browser
     openExternal?: (url: string) => Promise<boolean>;
+    getPathForFile?: (file: File) => string;
   }
   const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
 
@@ -166,14 +167,21 @@
         return;
       }
 
-      if (!(file as any).path) {
+      let path = (file as any).path;
+      if (!path && api.getPathForFile) {
+        try {
+          path = api.getPathForFile(file);
+        } catch (e) {
+          console.warn("getPathForFile failed:", e);
+        }
+      }
+
+      if (!path) {
         alert(
           "Cannot determine file path. If you are running in a browser, this feature is not supported.",
         );
         return;
       }
-
-      const path = (file as any).path;
 
       try {
         if (get(isUnsaved)) {
