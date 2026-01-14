@@ -164,7 +164,7 @@
     const item = sequence[targetIndex];
     const newMarker: EventMarker = {
       id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: `Event ${allMarkers.length + 1}`,
+      name: "",
       position: 0.5,
     };
 
@@ -338,7 +338,7 @@
 </script>
 
 <div
-  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden"
+  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800"
 >
   <SectionHeader
     title="Event Markers"
