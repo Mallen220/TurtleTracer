@@ -3,7 +3,11 @@
   import { selectedPointId, selectedLineId } from "../../stores";
   import DeleteButtonWithConfirm from "./common/DeleteButtonWithConfirm.svelte";
   import type { SequenceWaitItem, SequenceItem } from "../../types";
-  import { isWaitLinked, handleWaitRename } from "../../utils/pointLinking";
+  import {
+    isWaitLinked,
+    handleWaitRename,
+    updateLinkedWaits,
+  } from "../../utils/pointLinking";
   import { tooltipPortal } from "../actions/portal";
 
   export let wait: SequenceWaitItem;
@@ -61,6 +65,9 @@
       wait.durationMs = val;
     } else {
       wait.durationMs = 0;
+    }
+    if (linked) {
+      sequence = updateLinkedWaits(sequence, wait.id);
     }
     if (recordChange) recordChange();
   }
@@ -141,7 +148,7 @@
           {#if linked}
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div
-              class="absolute right-0 top-1/2 -translate-y-1/2 text-amber-500 cursor-help"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-amber-500 cursor-help"
               on:mouseenter={(e) => handleWaitHoverEnter(e, wait.id)}
               on:mouseleave={handleWaitHoverLeave}
             >

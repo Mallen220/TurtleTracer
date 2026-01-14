@@ -178,7 +178,7 @@
           {#if line.id && isLineLinked(lines, line.id)}
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div
-              class="absolute right-0 top-1/2 -translate-y-1/2 text-green-500 cursor-help"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500 cursor-help"
               on:mouseenter={(e) => handleLinkHoverEnter(e, line.id || null)}
               on:mouseleave={handleLinkHoverLeave}
             >

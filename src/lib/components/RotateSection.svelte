@@ -3,7 +3,11 @@
   import { selectedPointId, selectedLineId } from "../../stores";
   import DeleteButtonWithConfirm from "./common/DeleteButtonWithConfirm.svelte";
   import type { SequenceRotateItem, SequenceItem } from "../../types";
-  import { isRotateLinked, handleRotateRename } from "../../utils/pointLinking";
+  import {
+    isRotateLinked,
+    handleRotateRename,
+    updateLinkedRotations,
+  } from "../../utils/pointLinking";
   import { tooltipPortal } from "../actions/portal";
 
   export let rotate: SequenceRotateItem;
@@ -56,6 +60,9 @@
     const val = parseFloat(target.value);
     if (!Number.isNaN(val)) {
       rotate.degrees = val;
+      if (linked) {
+        sequence = updateLinkedRotations(sequence, rotate.id);
+      }
     }
     if (recordChange) recordChange();
   }
@@ -138,7 +145,7 @@
           {#if linked}
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div
-              class="absolute right-0 top-1/2 -translate-y-1/2 text-pink-500 cursor-help"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-pink-500 cursor-help"
               on:mouseenter={(e) => handleRotateHoverEnter(e, rotate.id)}
               on:mouseleave={handleRotateHoverLeave}
             >
