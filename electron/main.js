@@ -310,6 +310,35 @@ const createWindow = async () => {
   // Load the app from the local server (retry logic is handled above)
   newWindow.loadURL(`http://localhost:${serverPort}`);
 
+  // Disable certain Chromium keyboard shortcuts that interfere with app UX (reload, close, devtools)
+  newWindow.webContents.on("before-input-event", (event, input) => {
+    try {
+      const key = input.key ? String(input.key).toLowerCase() : "";
+      const isCmdOrCtrl = Boolean(input.control || input.meta);
+      const isShift = Boolean(input.shift);
+
+      // Prevent reloads: Cmd/Ctrl+R, Cmd/Ctrl+Shift+R, F5
+      if ((isCmdOrCtrl && key === "r") || key === "f5" || (isCmdOrCtrl && isShift && key === "r")) {
+        event.preventDefault();
+        return;
+      }
+
+      // Prevent window close: Cmd/Ctrl+W, Cmd/Ctrl+Shift+W, Ctrl+F4
+      if ((isCmdOrCtrl && key === "w") || (isCmdOrCtrl && isShift && key === "w") || (input.control && key === "f4")) {
+        event.preventDefault();
+        return;
+      }
+
+      // Prevent opening devtools via shortcut: Cmd/Ctrl+Shift+I
+      if (isCmdOrCtrl && isShift && key === "i") {
+        event.preventDefault();
+        return;
+      }
+    } catch (err) {
+      console.warn("Error in before-input-event handler:", err);
+    }
+  });
+
   // Handle "Save As" dialog native behavior
   newWindow.webContents.session.on(
     "will-download",
@@ -485,9 +514,15 @@ const createMenu = () => {
     {
       label: "View",
       submenu: [
-        { role: "reload" },
-        { role: "forceReload" },
-        { role: "toggleDevTools" },
+        // Removed default reload/forceReload accelerators to prevent accidental webpage reloads
+        // Provide a menu-only Toggle DevTools (no accelerator) to avoid opening devtools via keyboard shortcut
+        {
+          label: "Toggle DevTools",
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow();
+            if (win) win.webContents.toggleDevTools();
+          },
+        },
         { type: "separator" },
         { role: "resetZoom" },
         { type: "separator" },
