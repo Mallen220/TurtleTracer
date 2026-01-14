@@ -52,6 +52,7 @@ export async function handleResetPathWithConfirmation(
       undefined,
       undefined,
       false,
+      undefined,
       { quiet: true },
     );
   }

@@ -123,6 +123,7 @@ export async function loadRecentFile(path: string) {
       undefined,
       undefined,
       false,
+      undefined,
       { quiet: true },
     );
   }
@@ -438,6 +439,7 @@ export async function handleExternalFileOpen(filePath: string) {
       undefined,
       undefined,
       false,
+      undefined,
       { quiet: true },
     );
   }
@@ -545,6 +547,7 @@ export async function loadFile(evt: Event) {
       undefined,
       undefined,
       false,
+      undefined,
       { quiet: true },
     );
   }
