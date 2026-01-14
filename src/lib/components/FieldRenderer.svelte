@@ -532,8 +532,7 @@
             timePrediction.timeline.find(
               (e: any) =>
                 currentSeconds >= e.startTime && currentSeconds <= e.endTime,
-            ) ||
-            timePrediction.timeline[timePrediction.timeline.length - 1];
+            ) || timePrediction.timeline[timePrediction.timeline.length - 1];
 
           if (
             activeEvent &&

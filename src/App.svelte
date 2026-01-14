@@ -127,9 +127,17 @@
   function performAutosave() {
     const path = get(currentFilePath);
     if (path && get(isUnsaved)) {
-      saveProject(undefined, undefined, undefined, undefined, undefined, false, {
-        quiet: true,
-      });
+      saveProject(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        false,
+        {
+          quiet: true,
+        },
+      );
       console.log("Autosaved project (time-based)");
     }
   }
@@ -826,11 +834,7 @@
   />
 {/if}
 
-<WhatsNewDialog
-  show={showWhatsNew}
-  bind:setupMode
-  on:close={closeWhatsNew}
-/>
+<WhatsNewDialog show={showWhatsNew} bind:setupMode on:close={closeWhatsNew} />
 <NotificationToast />
 
 <!-- Main Container -->

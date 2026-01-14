@@ -318,13 +318,21 @@ const createWindow = async () => {
       const isShift = Boolean(input.shift);
 
       // Prevent reloads: Cmd/Ctrl+R, Cmd/Ctrl+Shift+R, F5
-      if ((isCmdOrCtrl && key === "r") || key === "f5" || (isCmdOrCtrl && isShift && key === "r")) {
+      if (
+        (isCmdOrCtrl && key === "r") ||
+        key === "f5" ||
+        (isCmdOrCtrl && isShift && key === "r")
+      ) {
         event.preventDefault();
         return;
       }
 
       // Prevent window close: Cmd/Ctrl+W, Cmd/Ctrl+Shift+W, Ctrl+F4
-      if ((isCmdOrCtrl && key === "w") || (isCmdOrCtrl && isShift && key === "w") || (input.control && key === "f4")) {
+      if (
+        (isCmdOrCtrl && key === "w") ||
+        (isCmdOrCtrl && isShift && key === "w") ||
+        (input.control && key === "f4")
+      ) {
         event.preventDefault();
         return;
       }
@@ -678,11 +686,7 @@ ipcMain.handle("file:get-directory", async () => {
   }
 
   // Fallback to default directory
-  const defaultDir = path.join(
-    process.env.HOME,
-    "Documents",
-    "AutoPaths",
-  );
+  const defaultDir = path.join(process.env.HOME, "Documents", "AutoPaths");
 
   try {
     await fs.access(defaultDir);

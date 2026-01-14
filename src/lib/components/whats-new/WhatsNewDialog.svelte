@@ -817,12 +817,17 @@
               {@html icons["folder"]}
             </div>
 
-            <h2 class="text-2xl font-bold text-neutral-900 dark:text-white mb-4">
+            <h2
+              class="text-2xl font-bold text-neutral-900 dark:text-white mb-4"
+            >
               Select Your AutoPaths Directory
             </h2>
 
-            <p class="text-neutral-600 dark:text-neutral-300 mb-8 text-lg leading-relaxed">
-              Before we get started, please select where your paths should be stored.
+            <p
+              class="text-neutral-600 dark:text-neutral-300 mb-8 text-lg leading-relaxed"
+            >
+              Before we get started, please select where your paths should be
+              stored.
               <br /><br />
               For most FTC projects, the best place is:<br />
               <code
