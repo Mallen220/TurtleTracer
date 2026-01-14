@@ -93,7 +93,7 @@
   async function fetchFiles() {
     if (!window.electronAPI) return;
     try {
-      let dir = await window.electronAPI.getSavedDirectory();
+      let dir: string | null = await window.electronAPI.getSavedDirectory();
       if (!dir) dir = await window.electronAPI.getDirectory();
       if (dir) {
         const files = await window.electronAPI.listFiles(dir);
