@@ -410,9 +410,11 @@
 
     // Stabilize
     setTimeout(async () => {
+      // Record initial state before marking as loaded to prevent unsaved flag
+      recordChange();
       isLoaded = true;
       lastSavedState = getCurrentState(); // Assume fresh start is "saved" unless loaded
-      recordChange();
+
       // Ensure sequence/line consistency once initial load is stabilized
       try {
         ensureSequenceConsistency();
