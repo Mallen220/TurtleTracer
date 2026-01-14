@@ -288,6 +288,7 @@ export async function saveProject(
   sequence?: SequenceItem[],
   shapes?: Shape[],
   saveAs: boolean = false,
+  specificPath?: string,
 ) {
   const electronAPI = getElectronAPI();
   // If arguments are missing, grab from stores (UI behavior)
@@ -297,7 +298,7 @@ export async function saveProject(
   const seq = sequence || get(sequenceStore);
   const sh = shapes || get(shapesStore);
 
-  let targetPath = get(currentFilePath) || undefined;
+  let targetPath = specificPath || get(currentFilePath) || undefined;
   if (saveAs) {
     targetPath = undefined;
   }

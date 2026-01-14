@@ -190,8 +190,45 @@
               "You have unsaved changes. Press OK to save them before opening. Press Cancel to proceed without saving.",
             )
           ) {
-            const saved = await saveProject();
-            if (!saved) return; // Save failed or cancelled
+            // Check if we need to name the file (new file)
+            const currentPath = get(currentFilePath);
+            let success = false;
+
+            if (!currentPath && api.getSavedDirectory) {
+              // Try to use default directory + prompt
+              const savedDir = await api.getSavedDirectory();
+              if (savedDir) {
+                const name = prompt(
+                  "Enter a name for your new file (without .pp extension):",
+                  "New Path",
+                );
+                if (name) {
+                  const sep = savedDir.includes("\\") ? "\\" : "/";
+                  const cleanDir = savedDir.endsWith(sep)
+                    ? savedDir.slice(0, -1)
+                    : savedDir;
+                  const fullPath = `${cleanDir}${sep}${name}.pp`;
+                  success = await saveProject(
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    false,
+                    fullPath,
+                  );
+                } else {
+                  // User cancelled name input
+                  return;
+                }
+              } else {
+                success = await saveProject();
+              }
+            } else {
+              success = await saveProject();
+            }
+
+            if (!success) return; // Save failed or cancelled
           } else {
             if (
               !confirm(
