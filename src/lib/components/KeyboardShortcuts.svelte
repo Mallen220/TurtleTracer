@@ -865,6 +865,212 @@
     }
   }
 
+  function toggleHeadingMode() {
+    if (isUIElementFocused()) return;
+    const sel = $selectedPointId;
+    if (!sel || !sel.startsWith("point-")) return;
+
+    const parts = sel.split("-");
+    const lineNum = Number(parts[1]);
+    const ptIdx = Number(parts[2]);
+
+    // Only Start Point (lineNum=0, ptIdx=0) and Line End Points (ptIdx=0) have heading modes
+    if (lineNum === 0 && ptIdx === 0) {
+      if (startPoint.locked) return;
+      // Cycle: tangential -> constant -> linear
+      const modes = ["tangential", "constant", "linear"];
+      const current = startPoint.heading;
+      const next = modes[(modes.indexOf(current) + 1) % modes.length];
+
+      // Update start point structure based on new mode
+      // @ts-ignore - Explicitly constructing union types
+      if (next === "tangential") {
+        startPointStore.set({
+          ...startPoint,
+          heading: "tangential",
+          reverse: false,
+          degrees: undefined,
+          startDeg: undefined,
+          endDeg: undefined,
+        });
+      } else if (next === "constant") {
+        // @ts-ignore
+        startPointStore.set({
+          ...startPoint,
+          heading: "constant",
+          degrees: 0,
+          reverse: undefined,
+          startDeg: undefined,
+          endDeg: undefined,
+        });
+      } else {
+        // @ts-ignore
+        startPointStore.set({
+          ...startPoint,
+          heading: "linear",
+          startDeg: 90,
+          endDeg: 180,
+          reverse: undefined,
+          degrees: undefined,
+        });
+      }
+      recordChange();
+      return;
+    }
+
+    if (lineNum > 0 && ptIdx === 0) {
+      const lineIndex = lineNum - 1;
+      const line = lines[lineIndex];
+      if (!line || line.locked) return;
+
+      const modes = ["tangential", "constant", "linear"];
+      const current = line.endPoint.heading;
+      const next = modes[(modes.indexOf(current) + 1) % modes.length];
+
+      // @ts-ignore
+      if (next === "tangential") {
+        line.endPoint = {
+          ...line.endPoint,
+          heading: "tangential",
+          reverse: false,
+          degrees: undefined,
+          startDeg: undefined,
+          endDeg: undefined,
+        };
+      } else if (next === "constant") {
+        // @ts-ignore
+        line.endPoint = {
+          ...line.endPoint,
+          heading: "constant",
+          degrees: 0,
+          reverse: undefined,
+          startDeg: undefined,
+          endDeg: undefined,
+        };
+      } else {
+        // @ts-ignore
+        line.endPoint = {
+          ...line.endPoint,
+          heading: "linear",
+          startDeg: 90,
+          endDeg: 180,
+          reverse: undefined,
+          degrees: undefined,
+        };
+      }
+      linesStore.set(lines);
+      recordChange();
+    }
+  }
+
+  function toggleReverse() {
+    if (isUIElementFocused()) return;
+    const sel = $selectedPointId;
+    if (!sel || !sel.startsWith("point-")) return;
+
+    const parts = sel.split("-");
+    const lineNum = Number(parts[1]);
+    const ptIdx = Number(parts[2]);
+
+    if (lineNum === 0 && ptIdx === 0) {
+      if (startPoint.locked) return;
+      if (startPoint.heading === "tangential") {
+        startPointStore.set({
+          ...startPoint,
+          reverse: !startPoint.reverse,
+        });
+        recordChange();
+      }
+      return;
+    }
+
+    if (lineNum > 0 && ptIdx === 0) {
+      const lineIndex = lineNum - 1;
+      const line = lines[lineIndex];
+      if (!line || line.locked) return;
+
+      if (line.endPoint.heading === "tangential") {
+        line.endPoint.reverse = !line.endPoint.reverse;
+        linesStore.set(lines);
+        recordChange();
+      }
+    }
+  }
+
+  function toggleLock() {
+    if (isUIElementFocused()) return;
+    const sel = $selectedPointId;
+    if (!sel) return;
+
+    if (sel.startsWith("wait-")) {
+      const waitId = sel.substring(5);
+      sequenceStore.update((seq) =>
+        seq.map((s) => {
+          if (s.kind === "wait" && (s as any).id === waitId) {
+            return { ...s, locked: !(s as any).locked };
+          }
+          return s;
+        }),
+      );
+      recordChange();
+      return;
+    }
+
+    if (sel.startsWith("rotate-")) {
+      const rotateId = sel.substring(7);
+      sequenceStore.update((seq) =>
+        seq.map((s) => {
+          if (s.kind === "rotate" && (s as any).id === rotateId) {
+            return { ...s, locked: !(s as any).locked };
+          }
+          return s;
+        }),
+      );
+      recordChange();
+      return;
+    }
+
+    if (sel.startsWith("point-")) {
+      const parts = sel.split("-");
+      const lineNum = Number(parts[1]);
+
+      if (lineNum === 0) {
+        startPointStore.update((p) => ({ ...p, locked: !p.locked }));
+        recordChange();
+        return;
+      }
+
+      const lineIndex = lineNum - 1;
+      linesStore.update((l) => {
+        const newLines = [...l];
+        if (newLines[lineIndex]) {
+          newLines[lineIndex] = {
+            ...newLines[lineIndex],
+            locked: !newLines[lineIndex].locked,
+          };
+        }
+        return newLines;
+      });
+      recordChange();
+      return;
+    }
+
+    if ($selectedLineId) {
+      linesStore.update((l) => {
+        const newLines = [...l];
+        const idx = newLines.findIndex((line) => line.id === $selectedLineId);
+        if (idx !== -1) {
+          newLines[idx] = {
+            ...newLines[idx],
+            locked: !newLines[idx].locked,
+          };
+        }
+        return newLines;
+      });
+      recordChange();
+    }
+  }
+
   function cycleGridSize() {
     const options = [1, 3, 6, 12, 24];
     const current = $gridSize || options[0];
@@ -937,6 +1143,9 @@
     selectPrev: () => cycleSelection(-1),
     increaseValue: () => modifyValue(1),
     decreaseValue: () => modifyValue(-1),
+    toggleHeadingMode: () => toggleHeadingMode(),
+    toggleReverse: () => toggleReverse(),
+    toggleLock: () => toggleLock(),
     toggleOnion: () =>
       settingsStore.update((s) => ({
         ...s,

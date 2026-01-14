@@ -185,6 +185,27 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "deselectAll",
     category: "Navigation",
   },
+  {
+    id: "toggle-heading-mode",
+    key: "shift+h",
+    description: "Toggle Heading Mode",
+    action: "toggleHeadingMode",
+    category: "Editing",
+  },
+  {
+    id: "toggle-reverse",
+    key: "shift+r",
+    description: "Toggle Reverse",
+    action: "toggleReverse",
+    category: "Editing",
+  },
+  {
+    id: "toggle-lock",
+    key: "shift+l",
+    description: "Toggle Locked State",
+    action: "toggleLock",
+    category: "Editing",
+  },
 
   // Playback
   {
