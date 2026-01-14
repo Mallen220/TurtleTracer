@@ -280,7 +280,7 @@
         waitItem.eventMarkers = waitItem.eventMarkers || [];
         waitItem.eventMarkers.push({
           id: `event-${Date.now()}`,
-          name: "Event",
+          name: "",
           position: 0.5,
         });
         sequenceStore.set(sequence);
@@ -297,7 +297,7 @@
       targetLine.eventMarkers = targetLine.eventMarkers || [];
       targetLine.eventMarkers.push({
         id: `event-${Date.now()}`,
-        name: "Event",
+        name: "",
         position: 0.5,
       });
       linesStore.set(lines);

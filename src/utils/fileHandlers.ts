@@ -5,7 +5,9 @@ import {
   isUnsaved,
   notification,
   projectMetadataStore,
+  currentDirectoryStore,
 } from "../stores";
+import { scanEventsInDirectory } from "./eventScanner";
 import {
   startPointStore,
   linesStore,
@@ -250,6 +252,8 @@ async function performSave(
             timeout: 3000,
           });
         }
+        const dir = get(currentDirectoryStore);
+        if (dir) scanEventsInDirectory(dir);
         return true;
       } else {
         if (result.error !== "canceled") {
@@ -290,6 +294,8 @@ async function performSave(
           timeout: 3000,
         });
       }
+      const dir = get(currentDirectoryStore);
+      if (dir) scanEventsInDirectory(dir);
       return true;
     }
 

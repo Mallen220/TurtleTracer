@@ -65,3 +65,9 @@ export const focusRequest = writable<{
   timestamp: number;
   id?: string;
 } | null>(null);
+
+// Store for the current working directory path
+export const currentDirectoryStore = writable<string | null>(null);
+
+// Store for event names found in .pp files on disk
+export const diskEventNamesStore = writable<string[]>([]);

@@ -28,6 +28,7 @@
     collisionMarkers,
     showFileManager,
     fileManagerNewFileMode,
+    currentDirectoryStore,
   } from "./stores";
   import {
     startPointStore,
@@ -61,6 +62,7 @@
     exportAsPP,
     handleExternalFileOpen,
   } from "./utils/fileHandlers";
+  import { scanEventsInDirectory } from "./utils/eventScanner";
 
   // Types
   import type { Settings } from "./types";
@@ -581,6 +583,9 @@
           const dir = await electronAPI.getSavedDirectory();
           if (!dir || dir.trim() === "") {
             needsSetup = true;
+          } else {
+            currentDirectoryStore.set(dir);
+            scanEventsInDirectory(dir);
           }
         } catch (e) {
           console.warn("Failed to check saved directory", e);
