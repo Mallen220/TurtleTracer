@@ -26,6 +26,7 @@
     robotXYStore,
     robotHeadingStore,
     sequenceStore, // Imported for potential use, though main logic uses lines
+    percentStore,
   } from "../projectStore";
   import {
     POINT_RADIUS,
@@ -575,8 +576,6 @@
 
   // Onion Layers
   $: onionLayerElements = (() => {
-    // Reference selectedLineId to trigger updates when selection changes
-    const currentSelectedId = $selectedLineId;
     let onionLayers: Path[] = [];
     if (settings.showOnionLayers && lines.length > 0) {
       const spacing = settings.onionLayerSpacing || 6;
@@ -584,15 +583,35 @@
       let targetLines = lines;
       let targetStartPoint = startPoint;
 
-      // If "Current Path Only" is enabled AND we have a selected line, filter the lines
-      if (settings.onionSkinCurrentPathOnly && currentSelectedId) {
-        const idx = lines.findIndex((l) => l.id === currentSelectedId);
-        if (idx !== -1) {
-          targetLines = [lines[idx]];
-          // Determine the start point for this specific line segment
-          // If idx is 0, startPoint is the global startPoint
-          // Otherwise, it is the endPoint of the previous line
-          targetStartPoint = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+      // If "Current Path Only" is enabled, filter the lines based on animation time
+      if (settings.onionSkinCurrentPathOnly) {
+        if (timePrediction && timePrediction.timeline) {
+          const totalDuration =
+            timePrediction.timeline[timePrediction.timeline.length - 1]
+              ?.endTime || 0;
+          const currentSeconds = ($percentStore / 100) * totalDuration;
+          const activeEvent =
+            timePrediction.timeline.find(
+              (e: any) =>
+                currentSeconds >= e.startTime && currentSeconds <= e.endTime,
+            ) ||
+            timePrediction.timeline[timePrediction.timeline.length - 1];
+
+          if (
+            activeEvent &&
+            activeEvent.type === "travel" &&
+            typeof activeEvent.lineIndex === "number"
+          ) {
+            const idx = activeEvent.lineIndex;
+            if (lines[idx]) {
+              targetLines = [lines[idx]];
+              targetStartPoint =
+                idx === 0 ? startPoint : lines[idx - 1].endPoint;
+            }
+          } else {
+            // Not traveling (e.g. waiting), show nothing
+            targetLines = [];
+          }
         }
       }
 
