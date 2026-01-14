@@ -386,13 +386,13 @@ export function createAnimationController(
 }
 
 /**
- * Generate ghost path points that trace the robot's body along its path
- * Creates swept area by connecting consecutive robot corners properly
+ * Generate ghost path points that trace the robot's swept area along its path.
+ * Considers robot length, width, and rotation to create a correct envelope.
  * @param startPoint - The starting point of the path
  * @param lines - The path lines to trace
  * @param robotLength - Robot length in inches
  * @param robotWidth - Robot width in inches
- * @param samples - Number of samples along the path (default 50)
+ * @param samples - Number of samples (default 200)
  * @returns Array of points forming the boundary of the robot's swept path
  */
 export function generateGhostPathPoints(
@@ -400,21 +400,15 @@ export function generateGhostPathPoints(
   lines: Line[],
   robotLength: number,
   robotWidth: number,
-  samples: number = 200, // Higher default for smoother turns
+  samples: number = 200,
 ): BasePoint[] {
   if (lines.length === 0) return [];
 
-  // Collect robot states with center, heading, and offset rails
-  const robotStates: Array<{
-    center: BasePoint;
-    heading: number;
-    left: BasePoint;
-    right: BasePoint;
-  }> = [];
+  const leftRail: BasePoint[] = [];
+  const rightRail: BasePoint[] = [];
 
   let currentLineStart = startPoint;
 
-  // For each line segment
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx];
     const curvePoints = [
@@ -423,133 +417,153 @@ export function generateGhostPathPoints(
       line.endPoint,
     ];
 
-    // Sample along this line segment with a minimum to better capture curves
-    const samplesPerLine = Math.max(10, Math.ceil(samples / lines.length));
+    // Sample along this line segment
+    // Increase minimum samples to ensure smooth curves
+    const samplesPerLine = Math.max(20, Math.ceil(samples / lines.length));
+
     for (let i = 0; i <= samplesPerLine; i++) {
       const t = i / samplesPerLine;
-      const robotPosInches = getCurvePoint(t, curvePoints);
+      const pos = getCurvePoint(t, curvePoints);
 
-      // Calculate heading at this position
+      // Calculate tangent/normal to the path
+      // Tangent is velocity direction. Normal is perpendicular to left.
+      // Use small epsilon for numerical derivative
+      const epsilon = 0.01;
+      const t1 = Math.max(0, t - epsilon);
+      const t2 = Math.min(1, t + epsilon);
+
+      const p1 = getCurvePoint(t1, curvePoints);
+      const p2 = getCurvePoint(t2, curvePoints);
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // Normal vector (pointing to the "Left" of the path motion)
+      // Screen coords: X Right, Y Down.
+      // If moving Right (1,0), Left is Up (0, -1).
+      // (-dy, dx)? If dx=1, dy=0 => (0, 1) -> Down. Incorrect.
+      // (dy, -dx)? If dx=1, dy=0 => (0, -1) -> Up. Correct.
+      let nx = 0;
+      let ny = 0;
+
+      if (dist > 1e-6) {
+        nx = dy / dist;
+        ny = -dx / dist;
+      }
+
+      // Calculate Heading
       let heading = 0;
       if (line.endPoint.heading === "linear") {
-        heading = shortestRotation(
+        heading = -shortestRotation(
           line.endPoint.startDeg,
           line.endPoint.endDeg,
           t,
         );
       } else if (line.endPoint.heading === "constant") {
-        heading = line.endPoint.degrees;
+        heading = -line.endPoint.degrees;
       } else if (line.endPoint.heading === "tangential") {
-        // Calculate tangent direction
-        const nextT = Math.min(t + 0.01, 1);
-        const nextPos = getCurvePoint(nextT, curvePoints);
-        const dx = nextPos.x - robotPosInches.x;
-        const dy = nextPos.y - robotPosInches.y;
-        if (dx !== 0 || dy !== 0) {
-          heading = radiansToDegrees(Math.atan2(dy, dx));
+        // Tangential heading
+        // Look ahead/behind slightly
+        const lookAheadT = Math.min(t + 0.01, 1);
+        const lookPos = getCurvePoint(lookAheadT, curvePoints);
+        // If reverse, we are looking effectively "back" relative to motion?
+        // Actually, if reverse=true, the robot backs into the path.
+        // Its heading is 180 + angle.
+        // We use the same logic as calculateRobotState for consistency.
+        let tdx = lookPos.x - pos.x;
+        let tdy = lookPos.y - pos.y;
+
+        // At the very end (t=1), lookPos == pos, so tdx=0.
+        // Fallback to looking back
+        if (tdx === 0 && tdy === 0) {
+             const lookBackT = Math.max(t - 0.01, 0);
+             const prevPos = getCurvePoint(lookBackT, curvePoints);
+             tdx = pos.x - prevPos.x;
+             tdy = pos.y - prevPos.y;
+        }
+
+        if (tdx !== 0 || tdy !== 0) {
+          const angle = Math.atan2(tdy, tdx);
+          heading = radiansToDegrees(angle);
+        }
+
+        if (line.endPoint.reverse) heading += 180;
+      }
+
+      // Get robot corners for this position and heading
+      const corners = getRobotCorners(
+        pos.x,
+        pos.y,
+        heading,
+        robotLength,
+        robotWidth,
+      );
+
+      // Find extreme points along the Normal axis
+      // Left-most point maximizes dot product with Normal
+      // Right-most point minimizes dot product with Normal
+      let maxDot = -Infinity;
+      let minDot = Infinity;
+      let leftCorner = corners[0];
+      let rightCorner = corners[0];
+
+      for (const c of corners) {
+        // Dot product of (Corner - Center) and Normal
+        // We can just use Corner . Normal since Center . Normal is constant for all corners
+        const dot = c.x * nx + c.y * ny;
+
+        if (dot > maxDot) {
+          maxDot = dot;
+          leftCorner = c;
+        }
+        if (dot < minDot) {
+          minDot = dot;
+          rightCorner = c;
         }
       }
 
-      // Build left/right rails directly from center + normal offsets
-      const headingRad = (heading * Math.PI) / 180;
-      const nx = -Math.sin(headingRad);
-      const ny = Math.cos(headingRad);
-      const halfW = robotWidth / 2; // Using robotWidth for side rails logic (width is transverse)
-
-      const leftPoint = {
-        x: robotPosInches.x + nx * halfW,
-        y: robotPosInches.y + ny * halfW,
-      };
-      const rightPoint = {
-        x: robotPosInches.x - nx * halfW,
-        y: robotPosInches.y - ny * halfW,
-      };
-
-      robotStates.push({
-        center: { x: robotPosInches.x, y: robotPosInches.y },
-        heading,
-        left: leftPoint,
-        right: rightPoint,
-      });
+      leftRail.push(leftCorner);
+      rightRail.push(rightCorner);
     }
 
     currentLineStart = line.endPoint;
   }
 
-  if (robotStates.length === 0) return [];
-  if (robotStates.length === 1) {
-    // Single pose: return rectangle corners
-    const single = robotStates[0];
-    const heading = single.heading;
-    const corners = getRobotCorners(
-      single.center.x,
-      single.center.y,
-      heading,
-      robotLength,
-      robotWidth,
-    );
-    return corners;
+  if (leftRail.length === 0) return [];
+
+  // Construct the closed polygon
+  const result: BasePoint[] = [...leftRail];
+  for (let i = rightRail.length - 1; i >= 0; i--) {
+    result.push(rightRail[i]);
   }
 
-  // Build swept boundary by tracing left rail forward and right rail backward
-  const leftRail: BasePoint[] = [];
-  const rightRail: BasePoint[] = [];
+  // Filter nearby points to reduce vertex count
+  const filtered: BasePoint[] = [];
+  const threshold = 0.05; // 0.05 inches
 
-  for (let i = 0; i < robotStates.length; i++) {
-    leftRail.push(robotStates[i].left);
-  }
-
-  for (let i = robotStates.length - 1; i >= 0; i--) {
-    rightRail.push(robotStates[i].right);
-  }
-
-  // Build boundary: start bridge (right->left), left rail, end bridge (left->right), right rail
-  const boundary: BasePoint[] = [];
-
-  // Bridge at start from right to left (simple straight connector)
-  const start = robotStates[0];
-  boundary.push(start.right);
-  boundary.push(start.left);
-
-  // Left rail
-  boundary.push(...leftRail);
-
-  // Bridge at end from left to right (simple straight connector)
-  const end = robotStates[robotStates.length - 1];
-  boundary.push(end.right);
-
-  // Right rail
-  boundary.push(...rightRail);
-
-  // Remove consecutive duplicates and ensure closure
-  const result: BasePoint[] = [];
-  const threshold = 1e-4;
-
-  for (let i = 0; i < boundary.length; i++) {
-    const curr = boundary[i];
-    const prev = result[result.length - 1];
-
-    if (
-      !prev ||
-      Math.abs(curr.x - prev.x) > threshold ||
-      Math.abs(curr.y - prev.y) > threshold
-    ) {
-      result.push(curr);
+  for (const p of result) {
+    if (filtered.length === 0) {
+      filtered.push(p);
+    } else {
+      const last = filtered[filtered.length - 1];
+      const d = Math.abs(p.x - last.x) + Math.abs(p.y - last.y);
+      if (d > threshold) {
+        filtered.push(p);
+      }
     }
   }
 
-  if (result.length >= 3) {
-    const first = result[0];
-    const last = result[result.length - 1];
-    if (
-      Math.abs(first.x - last.x) > threshold ||
-      Math.abs(first.y - last.y) > threshold
-    ) {
-      result.push({ ...first });
-    }
+  // Ensure closure
+  if (filtered.length >= 3) {
+      const first = filtered[0];
+      const last = filtered[filtered.length - 1];
+      const d = Math.abs(first.x - last.x) + Math.abs(first.y - last.y);
+      if (d > threshold) {
+          filtered.push({x: first.x, y: first.y});
+      }
   }
 
-  return result.length >= 3 ? result : [];
+  return filtered;
 }
 
 /**
