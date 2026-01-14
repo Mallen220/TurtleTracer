@@ -475,7 +475,7 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
   },
   {
     id: "new-file",
-    key: "cmd+n, ctrl+n",
+    key: "cmd+n, ctrl+n, cmd+r, ctrl+r",
     description: "New Project / Reset Path",
     action: "newProject",
     category: "File",
