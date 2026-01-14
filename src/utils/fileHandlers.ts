@@ -311,6 +311,7 @@ export async function saveProject(
   sequence?: SequenceItem[],
   shapes?: Shape[],
   saveAs: boolean = false,
+  specificPath?: string,
   options: { quiet?: boolean } = {},
 ) {
   // If called with just one argument that happens to be options (common if optional args are skipped)
@@ -330,7 +331,7 @@ export async function saveProject(
   const seq = sequence || get(sequenceStore);
   const sh = shapes || get(shapesStore);
 
-  let targetPath = get(currentFilePath) || undefined;
+  let targetPath = specificPath || get(currentFilePath) || undefined;
   if (saveAs) {
     targetPath = undefined;
   }
