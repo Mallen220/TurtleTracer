@@ -202,6 +202,10 @@ install_icon() {
     print_info "Downloading icon..."
     if curl -L -s -o "$ICON_PATH" "$ICON_URL"; then
         print_status "Icon installed to $ICON_PATH"
+        # Try to update icon cache if possible
+        if command -v gtk-update-icon-cache &> /dev/null; then
+             gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" &>/dev/null || true
+        fi
     else
         print_warning "Failed to download icon. Desktop entry might be missing the icon."
     fi
@@ -449,7 +453,7 @@ EOL
         fi
 
         print_status "Installation Complete!"
-        echo "Run it via: $APP_PATH"
+        echo "Run it via: \"$APP_PATH\" --no-sandbox"
         echo "Note: '--no-sandbox' flag added to desktop entry to ensure compatibility with newer Ubuntu versions."
 
     elif [[ "$lower" == *.deb ]]; then
