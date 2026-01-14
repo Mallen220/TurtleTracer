@@ -133,7 +133,6 @@
     <!-- Left: Title & Name -->
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
-        tabindex="-1"
         on:click|stopPropagation={toggleCollapsed}
         class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
         title="{collapsed ? 'Expand' : 'Collapse'} path"
@@ -163,7 +162,6 @@
       <div class="flex items-center gap-2 flex-1 min-w-0">
         <div class="relative flex-1 min-w-0">
           <input
-            tabindex="-1"
             value={line.name}
             placeholder="Path Name"
             aria-label="Path name"
@@ -216,11 +214,9 @@
         bind:color={line.color}
         title="Change Path Color"
         disabled={line.locked}
-        tabindex={-1}
       />
 
       <button
-        tabindex="-1"
         on:click|stopPropagation={() => {
           line.locked = !line.locked;
           lines = [...lines];
@@ -265,7 +261,6 @@
         class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
       >
         <button
-          tabindex="-1"
           on:click|stopPropagation={() =>
             !line.locked && onMoveUp && onMoveUp()}
           disabled={!canMoveUp || line.locked}
@@ -286,7 +281,6 @@
           </svg>
         </button>
         <button
-          tabindex="-1"
           on:click|stopPropagation={() =>
             !line.locked && onMoveDown && onMoveDown()}
           disabled={!canMoveDown || line.locked}
@@ -342,7 +336,6 @@
               >
               <input
                 bind:this={xInput}
-                tabindex="-1"
                 class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 type="number"
@@ -351,6 +344,8 @@
                 bind:value={line.endPoint.x}
                 disabled={line.locked}
                 title={snapToGridTitle}
+                aria-label="Target X position"
+                placeholder="0"
               />
             </div>
             <div class="relative flex-[0.5] min-w-0 max-w-[200px]">
@@ -360,7 +355,6 @@
               >
               <input
                 bind:this={yInput}
-                tabindex="-1"
                 class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 min="0"
@@ -369,6 +363,8 @@
                 bind:value={line.endPoint.y}
                 disabled={line.locked}
                 title={snapToGridTitle}
+                aria-label="Target Y position"
+                placeholder="0"
               />
             </div>
           </div>
@@ -385,7 +381,6 @@
             bind:this={headingControls}
             endPoint={line.endPoint}
             locked={line.locked}
-            tabindex={-1}
             on:change={() => (lines = [...lines])}
             on:commit={() => {
               lines = [...lines];
@@ -411,7 +406,6 @@
         >
 
         <button
-          tabindex="-1"
           on:click={onInsertAfter}
           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800/30"
           title="Add Path After"
@@ -430,7 +424,6 @@
         </button>
 
         <button
-          tabindex="-1"
           on:click={onAddWaitAfter}
           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200 dark:border-amber-800/30"
           title="Add Wait After"
@@ -449,7 +442,6 @@
         </button>
 
         <button
-          tabindex="-1"
           on:click={onAddRotateAfter}
           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30"
           title="Add Rotate After"
