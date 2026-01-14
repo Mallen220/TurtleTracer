@@ -15,6 +15,7 @@
   import NotificationToast from "./lib/components/NotificationToast.svelte";
   import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
   import SaveNameDialog from "./lib/components/SaveNameDialog.svelte";
+  import UnsavedChangesDialog from "./lib/components/UnsavedChangesDialog.svelte";
 
   // Stores
   import {
@@ -28,6 +29,7 @@
     collisionMarkers,
     showFileManager,
     fileManagerNewFileMode,
+    projectMetadataStore,
     currentDirectoryStore,
   } from "./stores";
   import {
@@ -44,6 +46,8 @@
     playbackSpeedStore,
     ensureSequenceConsistency,
   } from "./lib/projectStore";
+
+  import { resetPath } from "./utils/projectLifecycle";
 
   // Utils
   import { createAnimationController } from "./utils/animation";
@@ -131,6 +135,7 @@
 
   // Custom Prompt State
   let showSaveNameDialog = false;
+  let showUnsavedChangesDialog = false;
   let saveNameResolve: ((name: string | null) => void) | null = null;
 
   function openSaveNamePrompt(): Promise<string | null> {
@@ -148,6 +153,70 @@
   function handleCancelSaveName() {
     if (saveNameResolve) saveNameResolve(null);
     saveNameResolve = null;
+  }
+
+  // --- Unsaved Changes Dialog Logic ---
+  async function handleUnsavedSave() {
+    showUnsavedChangesDialog = false;
+    const api = (window as any).electronAPI;
+    const currentPath = get(currentFilePath);
+    let success = false;
+
+    if (!currentPath && api && api.getSavedDirectory) {
+      // Try to use default directory + prompt
+      const savedDir = await api.getSavedDirectory();
+      if (savedDir) {
+        const name = await openSaveNamePrompt();
+        if (name) {
+          const sep = savedDir.includes("\\") ? "\\" : "/";
+          const cleanDir = savedDir.endsWith(sep)
+            ? savedDir.slice(0, -1)
+            : savedDir;
+          const fullPath = `${cleanDir}${sep}${name}.pp`;
+          success = await saveProject(
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            false,
+            fullPath
+          );
+        } else {
+          // User cancelled name input
+          return;
+        }
+      } else {
+        success = await saveProject();
+      }
+    } else {
+      success = await saveProject();
+    }
+
+    if (success) {
+      performReset();
+    }
+  }
+
+  function handleUnsavedDiscard() {
+    showUnsavedChangesDialog = false;
+    performReset();
+  }
+
+  function handleUnsavedCancel() {
+    showUnsavedChangesDialog = false;
+  }
+
+  function performReset() {
+    resetPath();
+    // Clear file association for the new project
+    currentFilePath.set(null);
+    projectMetadataStore.set({ filepath: "" });
+
+    recordChange();
+    // Mark as clean new project
+    lastSavedState = getCurrentState();
+    isUnsaved.set(false);
   }
 
   function handleDragEnter(e: DragEvent) {
@@ -491,6 +560,14 @@
       fileManagerNewFileMode.set(true);
     } else {
       saveProject();
+    }
+  }
+
+  async function handleResetProject() {
+    if (get(isUnsaved)) {
+      showUnsavedChangesDialog = true;
+    } else {
+      performReset();
     }
   }
 
@@ -953,6 +1030,7 @@
 
 <KeyboardShortcuts
   saveProject={handleSaveProject}
+  resetProject={handleResetProject}
   {saveFileAs}
   {exportGif}
   {undoAction}
@@ -1006,6 +1084,13 @@
   onCancel={handleCancelSaveName}
 />
 
+<UnsavedChangesDialog
+  bind:show={showUnsavedChangesDialog}
+  onSave={handleUnsavedSave}
+  onDiscard={handleUnsavedDiscard}
+  onCancel={handleUnsavedCancel}
+/>
+
 <!-- Drag Overlay -->
 {#if isDraggingFile}
   <div
@@ -1052,6 +1137,7 @@
       bind:showSidebar
       bind:isLargeScreen
       saveProject={handleSaveProject}
+      resetProject={handleResetProject}
       {saveFileAs}
       {exportGif}
       {undoAction}

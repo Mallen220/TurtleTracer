@@ -36,7 +36,6 @@
     updateLinkedRotations,
   } from "../../utils/pointLinking";
   import { loadFile, loadRecentFile } from "../../utils/fileHandlers";
-  import { handleResetPathWithConfirmation } from "../../utils/projectLifecycle";
   import type { Line, SequenceItem } from "../../types";
   import { createTriangle } from "../../utils";
   import {
@@ -50,6 +49,7 @@
 
   // Actions
   export let saveProject: () => void;
+  export let resetProject: () => void;
   export let saveFileAs: () => void;
   export let exportGif: () => void;
   export let undoAction: () => void;
@@ -1253,7 +1253,7 @@
       if (fileInput) fileInput.click();
     },
     newProject: () => {
-      handleResetPathWithConfirmation(recordChange);
+      resetProject();
     },
     toggleFileManager: () => {
       showFileManager.update((v) => !v);
