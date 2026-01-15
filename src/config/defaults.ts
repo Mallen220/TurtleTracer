@@ -541,7 +541,7 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
 export const DEFAULT_SETTINGS: Settings = {
   xVelocity: 30,
   yVelocity: 30,
-  aVelocity: Math.PI,
+  aVelocity: Math.PI / 2, // 90 deg/s
   kFriction: 0.4,
   rLength: DEFAULT_ROBOT_LENGTH,
   rWidth: DEFAULT_ROBOT_WIDTH,
