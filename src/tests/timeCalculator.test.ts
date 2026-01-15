@@ -143,9 +143,9 @@ describe("Time Calculator", () => {
     );
 
     expect(rotationEvents.length).toBeGreaterThan(0);
-    // With angular acceleration logic (maxAccel=5, rWidth=18 -> alpha=0.55),
-    // time to rotate 90 deg (1.57 rad) is ~3.36s (triangle profile).
-    expect(rotationEvents[0].duration).toBeCloseTo(3.36, 1);
+    // With simplified velocity-based logic (infinite acceleration),
+    // time to rotate 90 deg at 90 deg/s is 1.0s.
+    expect(rotationEvents[0].duration).toBeCloseTo(1.0, 1);
   });
 
   describe("analyzePathSegment", () => {

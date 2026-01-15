@@ -440,32 +440,7 @@ function calculateRotationTime(
   const diffRad = angleDiffDegrees * (Math.PI / 180);
   const maxVel = Math.max(settings.aVelocity, 0.001);
 
-  // Estimate max angular acceleration from linear acceleration and robot width
-  // alpha = a_linear / r
-  // Assuming rotation around center, wheels are at width/2
-  // We use width/2 as the lever arm for conservative estimate
-  const leverArm = Math.max(settings.rWidth / 2, 1); // Avoid division by zero
-  const maxAccel = settings.maxAcceleration || 30;
-  const maxAngAccel = maxAccel / leverArm;
-
-  // Motion profile:
-  const accDist = (maxVel * maxVel) / (2 * maxAngAccel);
-  const decDist = accDist; // Symmetric
-
-  if (diffRad >= accDist + decDist) {
-    // Trapezoid
-    const accTime = maxVel / maxAngAccel;
-    const decTime = accTime;
-    const constDist = diffRad - accDist - decDist;
-    const constTime = constDist / maxVel;
-    return accTime + constTime + decTime;
-  } else {
-    // Triangle (don't reach max speed)
-    const vPeak = Math.sqrt(diffRad * maxAngAccel);
-    const accTime = vPeak / maxAngAccel;
-    const decTime = accTime;
-    return accTime + decTime;
-  }
+  return diffRad / maxVel;
 }
 
 /**
