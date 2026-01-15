@@ -438,7 +438,12 @@
                         class:ring-2={recordingKeyFor === binding.id}
                         class:ring-indigo-500={recordingKeyFor === binding.id}
                         class:bg-white={recordingKeyFor !== binding.id}
-                        class:text-neutral-700={recordingKeyFor !== binding.id}
+                        class:text-neutral-700={recordingKeyFor !== binding.id &&
+                          binding.key}
+                        class:text-neutral-400={recordingKeyFor !==
+                          binding.id && !binding.key}
+                        class:italic={!binding.key &&
+                          recordingKeyFor !== binding.id}
                         class:border-neutral-200={recordingKeyFor !==
                           binding.id}
                         class:dark:bg-indigo-900={recordingKeyFor ===
@@ -450,15 +455,19 @@
                         class:dark:bg-neutral-800={recordingKeyFor !==
                           binding.id}
                         class:dark:text-neutral-300={recordingKeyFor !==
-                          binding.id}
+                          binding.id && binding.key}
+                        class:dark:text-neutral-500={recordingKeyFor !==
+                          binding.id && !binding.key}
                         class:dark:border-neutral-700={recordingKeyFor !==
                           binding.id}
                         on:click={() => startRecordingKey(binding.id)}
                       >
                         {#if recordingKeyFor === binding.id}
                           <span class="animate-pulse">Listening...</span>
-                        {:else}
+                        {:else if binding.key}
                           {binding.key}
+                        {:else}
+                          Unbound
                         {/if}
                       </button>
                     </div>
