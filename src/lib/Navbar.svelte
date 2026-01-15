@@ -237,16 +237,17 @@
                   : $gitStatusStore[$currentFilePath] === 'staged'
                     ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/50 dark:border-green-700 dark:text-green-300'
                     : 'bg-neutral-100 border-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:border-neutral-600 dark:text-neutral-300'}"
-                title={$gitStatusStore[$currentFilePath]
-                  .charAt(0)
-                  .toUpperCase() +
-                  $gitStatusStore[$currentFilePath].slice(1)}
+                title={$gitStatusStore[$currentFilePath] === 'modified'
+                  ? 'Git: Modified (Unstaged Changes)'
+                  : $gitStatusStore[$currentFilePath] === 'staged'
+                    ? 'Git: Staged (Ready to Commit)'
+                    : 'Git: Untracked (New File)'}
               >
                 {$gitStatusStore[$currentFilePath] === "modified"
-                  ? "M"
+                  ? "Modified"
                   : $gitStatusStore[$currentFilePath] === "staged"
-                    ? "S"
-                    : "U"}
+                    ? "Staged"
+                    : "Untracked"}
               </div>
             {/if}
           {#if $isUnsaved}
