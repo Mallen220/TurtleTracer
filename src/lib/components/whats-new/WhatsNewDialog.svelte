@@ -853,8 +853,8 @@
                 Install PedroPathingPlus
               </h3>
               <p class="text-neutral-600 dark:text-neutral-300 text-sm mb-3">
-                To use the visualizer effectively, you should install <strong>PedroPathingPlus</strong>.
-                It allows running <code>.pp</code> files directly and more.
+                Install <strong>PedroPathingPlus</strong> to run <code>.pp</code> files
+                directly and enable advanced commands.
               </p>
               <button
                 class="text-purple-600 dark:text-purple-400 font-bold hover:underline text-sm flex items-center gap-1"

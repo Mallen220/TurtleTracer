@@ -58,7 +58,8 @@ export const pages: Page[] = [
   {
     id: "pedro-pathing-plus",
     title: "PedroPathingPlus",
-    description: "Learn about the advanced command-based library.",
+    description:
+      "Unlock direct path execution and advanced command-based features.",
     type: "page",
     content: pedroPathingPlusContent,
     icon: "sparkles",
