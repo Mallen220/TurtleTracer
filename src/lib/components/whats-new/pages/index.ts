@@ -22,6 +22,8 @@ import settingsContent from "./settings.md?raw";
 import eventMarkersContent from "./event-markers.md?raw";
 // @ts-ignore
 import optimizationContent from "./optimization.md?raw";
+// @ts-ignore
+import pedroPathingPlusContent from "./pedro-pathing-plus.md?raw";
 
 export interface Page {
   id: string;
@@ -52,6 +54,15 @@ export const pages: Page[] = [
     description: "View highlights from previous versions.",
     type: "release-list",
     icon: "clock",
+  },
+  {
+    id: "pedro-pathing-plus",
+    title: "PedroPathingPlus",
+    description:
+      "Unlock direct path execution and advanced command-based features.",
+    type: "page",
+    content: pedroPathingPlusContent,
+    icon: "sparkles",
   },
   {
     id: "getting-started",
