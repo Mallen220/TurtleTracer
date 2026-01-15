@@ -5,16 +5,17 @@
   export let onCancel: () => void;
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") onCancel();
+    if (show && e.key === "Escape") onCancel();
   }
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 {#if show}
   <div
     class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
     role="dialog"
     aria-modal="true"
-    on:keydown={handleKeydown}
   >
     <div
       class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-200"
