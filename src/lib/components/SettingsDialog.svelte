@@ -118,7 +118,13 @@
 
   function handleMaxAngularAccelerationInput(e: Event) {
     const target = e.target as HTMLInputElement;
-    handleNumberInput(target.value, "maxAngularAcceleration", 0, undefined, true);
+    handleNumberInput(
+      target.value,
+      "maxAngularAcceleration",
+      0,
+      undefined,
+      true,
+    );
   }
 
   async function handleReset() {
@@ -846,17 +852,25 @@
                   >
                     Angular Velocity
                   </label>
-                  <div class="flex items-center text-xs border border-neutral-300 dark:border-neutral-600 rounded overflow-hidden">
+                  <div
+                    class="flex items-center text-xs border border-neutral-300 dark:border-neutral-600 rounded overflow-hidden"
+                  >
                     <button
-                      class="px-2 py-0.5 {angularVelocityUnit === 'rad' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700'}"
-                      on:click={() => angularVelocityUnit = 'rad'}
+                      class="px-2 py-0.5 {angularVelocityUnit === 'rad'
+                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium'
+                        : 'bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700'}"
+                      on:click={() => (angularVelocityUnit = "rad")}
                     >
                       π rad/s
                     </button>
-                    <div class="w-px h-full bg-neutral-300 dark:bg-neutral-600"></div>
+                    <div
+                      class="w-px h-full bg-neutral-300 dark:bg-neutral-600"
+                    ></div>
                     <button
-                      class="px-2 py-0.5 {angularVelocityUnit === 'deg' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700'}"
-                      on:click={() => angularVelocityUnit = 'deg'}
+                      class="px-2 py-0.5 {angularVelocityUnit === 'deg'
+                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium'
+                        : 'bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700'}"
+                      on:click={() => (angularVelocityUnit = "deg")}
                     >
                       deg/s
                     </button>
@@ -868,13 +882,17 @@
                   type="number"
                   value={angularVelocityDisplay}
                   min="0"
-                  step={angularVelocityUnit === 'rad' ? 0.1 : 10}
+                  step={angularVelocityUnit === "rad" ? 0.1 : 10}
                   on:input={handleAngularVelocityInput}
                   on:change={handleAngularVelocityChange}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <div class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                  {angularVelocityUnit === 'rad' ? 'Multiplier of π radians per second' : 'Degrees per second'}
+                <div
+                  class="text-xs text-neutral-500 dark:text-neutral-400 mt-1"
+                >
+                  {angularVelocityUnit === "rad"
+                    ? "Multiplier of π radians per second"
+                    : "Degrees per second"}
                 </div>
               </div>
 
