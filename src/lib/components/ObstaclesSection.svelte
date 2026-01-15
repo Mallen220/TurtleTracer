@@ -91,6 +91,7 @@
                   bind:value={shape.name}
                   placeholder="Obstacle {shapeIdx + 1}"
                   class="pl-1.5 rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm font-medium h-7"
+                  disabled={shape.locked ?? false}
                 />
                 <div
                   class="relative size-6 rounded-full overflow-hidden shadow-sm border border-neutral-300 dark:border-neutral-600 shrink-0"
@@ -101,11 +102,52 @@
                     bind:value={shape.color}
                     class="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
                     title="Change Obstacle Color"
+                    disabled={shape.locked ?? false}
                   />
                 </div>
               </div>
 
               <div class="flex flex-row gap-1">
+                <button
+                  title={shape.locked ? "Unlock Obstacle" : "Lock Obstacle"}
+                  aria-label={shape.locked ? "Unlock Obstacle" : "Lock Obstacle"}
+                  aria-pressed={shape.locked ?? false}
+                  on:click={() => {
+                    shape.locked = !(shape.locked ?? false);
+                    shapes = [...shapes];
+                  }}
+                  class="p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
+                >
+                  {#if shape.locked}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      class="size-4 text-amber-500"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  {:else}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width={2}
+                      stroke="currentColor"
+                      class="size-4"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                      />
+                    </svg>
+                  {/if}
+                </button>
                 <button
                   title="Remove Shape"
                   on:click={() => {
@@ -115,7 +157,8 @@
                     collapsedObstacles.splice(shapeIdx, 1);
                     collapsedObstacles = [...collapsedObstacles];
                   }}
-                  class="text-neutral-400 hover:text-red-500 transition-colors p-1"
+                  class="text-neutral-400 hover:text-red-500 transition-colors p-1 disabled:opacity-50 disabled:hover:text-neutral-400"
+                  disabled={shape.locked ?? false}
                 >
                   <TrashIcon className="size-4" />
                 </button>
@@ -147,6 +190,7 @@
                           step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                           title={snapToGridTitle}
                           class="pl-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-purple-500 w-20 text-sm font-mono"
+                          disabled={shape.locked ?? false}
                         />
                       </div>
                       <div class="flex items-center gap-1">
@@ -162,6 +206,7 @@
                           step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                           class="pl-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-purple-500 w-20 text-sm font-mono"
                           title={snapToGridTitle}
+                          disabled={shape.locked ?? false}
                         />
                       </div>
                       {#if $snapToGrid && $showGrid}
@@ -180,6 +225,7 @@
                             shape.vertices.splice(vertexIdx + 1, 0, newVertex);
                             shape.vertices = shape.vertices;
                           }}
+                          disabled={shape.locked ?? false}
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -199,11 +245,12 @@
                         {#if shape.vertices.length > 3}
                           <button
                             title="Remove Vertex"
-                            class="text-neutral-400 hover:text-red-500 transition-colors p-1"
+                            class="text-neutral-400 hover:text-red-500 transition-colors p-1 disabled:opacity-50 disabled:hover:text-neutral-400"
                             on:click={() => {
                               shape.vertices.splice(vertexIdx, 1);
                               shape.vertices = shape.vertices;
                             }}
+                            disabled={shape.locked ?? false}
                           >
                             <TrashIcon className="size-4" strokeWidth={2} />
                           </button>

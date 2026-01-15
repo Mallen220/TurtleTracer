@@ -19,6 +19,7 @@ describe("Shape Utilities", () => {
       expect(shape.vertices[2]).toEqual({ x: 72, y: 84 });
       expect(shape.color).toBe("#dc2626");
       expect(shape.fillColor).toBe("#fca5a5");
+      expect(shape.locked).toBe(false);
     });
 
     it("should increment ID based on existing shapes count", () => {
@@ -39,6 +40,7 @@ describe("Shape Utilities", () => {
       expect(shape.vertices[3]).toEqual({ x: 30, y: 50 });
       expect(shape.color).toBe("#dc2626");
       expect(shape.fillColor).toBe("#fca5a5");
+      expect(shape.locked).toBe(false);
     });
 
     it("should increment ID and name based on existing shapes count", () => {
@@ -57,6 +59,7 @@ describe("Shape Utilities", () => {
       // Check first vertex (angle 0)
       expect(shape.vertices[0].x).toBeCloseTo(45 + 15, 5); // 60
       expect(shape.vertices[0].y).toBeCloseTo(45, 5);
+      expect(shape.locked).toBe(false);
     });
 
     it("should create an octagon (8-sided polygon)", () => {

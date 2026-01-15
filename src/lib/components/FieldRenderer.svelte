@@ -1114,6 +1114,7 @@
         if (currentElem.startsWith("obstacle-")) {
           const parts = currentElem.split("-");
           const shapeIdx = Number(parts[1]);
+          if (shapes[shapeIdx]?.locked) return;
           const vertexIdx = Number(parts[2]);
           shapes[shapeIdx].vertices[vertexIdx].x = inchX;
           shapes[shapeIdx].vertices[vertexIdx].y = inchY;
@@ -1307,6 +1308,12 @@
         if (currentElem.startsWith("obstacle-")) {
           const parts = currentElem.split("-");
           const shapeIdx = Number(parts[1]);
+          if (shapes[shapeIdx]?.locked) {
+            // Prevent dragging locked obstacle vertices
+            isDown = false;
+            currentElem = null;
+            return;
+          }
           const vertexIdx = Number(parts[2]);
           if (shapes[shapeIdx]?.vertices[vertexIdx]) {
             objectX = shapes[shapeIdx].vertices[vertexIdx].x;

@@ -164,6 +164,7 @@ export interface Shape {
   vertices: BasePoint[];
   color: string;
   fillColor: string;
+  locked?: boolean;
 }
 
 export type TimelineEventType = "travel" | "wait";

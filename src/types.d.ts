@@ -218,6 +218,7 @@ interface Shape {
   vertices: BasePoint[];
   color: string;
   fillColor: string;
+  locked?: boolean;
 }
 
 interface EventMarker {
