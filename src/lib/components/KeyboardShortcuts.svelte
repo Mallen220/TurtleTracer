@@ -1159,61 +1159,6 @@
      }
   }
 
-  function deleteAllLines() {
-    if (lines.length === 0) return;
-    if (confirm("Are you sure you want to delete all path lines?")) {
-        linesStore.set([]);
-        sequenceStore.set([]); // Clear sequence too or keep start? Usually clear.
-        // Actually keep non-path items?
-        // Let's clear paths from sequence.
-        sequenceStore.update(s => s.filter(i => i.kind !== 'path'));
-        selectedPointId.set('point-0-0');
-        selectedLineId.set(null);
-        recordChange();
-    }
-  }
-
-  function resetStartPoint() {
-    if (startPoint.locked) return;
-    const def = getDefaultStartPoint();
-    startPointStore.set(def);
-    recordChange();
-  }
-
-  function panToStart() {
-    // Ideally we would center the view on start point
-    // Since we don't have viewport dimensions here easily without binding or store,
-    // we can reset zoom and pan to 0,0 which is default.
-    // However, if the field is panned, we want to reset that.
-    // Let's just reset zoom for now as a "Home" function.
-    resetZoom();
-  }
-
-  function panToEnd() {
-     if(lines.length > 0) {
-         const lastLineIdx = lines.length - 1;
-         // Selecting it will not auto-pan unless the FieldRenderer watches selection.
-         // Assuming user wants to select it.
-         selectedPointId.set(`point-${lastLineIdx+1}-0`);
-         selectedLineId.set(lines[lastLineIdx].id!);
-     }
-  }
-
-  function selectStart() {
-    selectedPointId.set('point-0-0');
-    selectedLineId.set(null);
-  }
-
-  function selectLast() {
-    if(lines.length > 0) {
-         const lastLineIdx = lines.length - 1;
-         selectedPointId.set(`point-${lastLineIdx+1}-0`);
-         selectedLineId.set(lines[lastLineIdx].id!);
-    } else {
-        selectStart();
-    }
-  }
-
   function copyPathJson() {
       const data = {
           startPoint,
@@ -1376,24 +1321,29 @@
     exportPP: () => exportDialogState.set({ isOpen: true, format: "json" }),
     // New Actions
     snapSelection: () => snapSelection(),
-    deleteAllLines: () => deleteAllLines(),
-    resetStartPoint: () => resetStartPoint(),
-    panToStart: () => panToStart(),
-    panToEnd: () => panToEnd(),
-    selectStart: () => selectStart(),
-    selectLast: () => selectLast(),
     copyPathJson: () => copyPathJson(),
-    toggleGhostPaths: () => settingsStore.update(s => ({...s, showGhostPaths: !s.showGhostPaths})),
-    toggleDebugSequence: () => settingsStore.update(s => ({...s, showDebugSequence: !((s as any).showDebugSequence)})),
     toggleFieldBoundaries: () => settingsStore.update(s => ({...s, validateFieldBoundaries: !s.validateFieldBoundaries})),
     toggleDragRestriction: () => settingsStore.update(s => ({...s, restrictDraggingToField: !s.restrictDraggingToField})),
     setTheme: (theme: any) => settingsStore.update(s => ({...s, theme})),
-    setAutosave: (interval: any) => {
-        if(interval === 'never') settingsStore.update(s => ({...s, autosaveMode: 'never'}));
-        else settingsStore.update(s => ({...s, autosaveMode: 'time', autosaveInterval: interval}));
+    setAutosave: (mode: any, interval?: any) => {
+        if(mode === 'never') settingsStore.update(s => ({...s, autosaveMode: 'never'}));
+        else if (mode === 'time') settingsStore.update(s => ({...s, autosaveMode: 'time', autosaveInterval: interval}));
+        else if (mode === 'change') settingsStore.update(s => ({...s, autosaveMode: 'change'}));
+        else if (mode === 'close') settingsStore.update(s => ({...s, autosaveMode: 'close'}));
     },
-    openDocs: () => window.open('https://github.com/pedro-pathing/pedro-pathing/wiki', '_blank'),
-    reportIssue: () => window.open('https://github.com/pedro-pathing/pedro-pathing/issues', '_blank')
+    openDocs: () => {
+       if (openWhatsNew) openWhatsNew();
+    },
+    reportIssue: () => {
+       const url = 'https://github.com/pedro-pathing/pedro-pathing/issues';
+       // @ts-ignore
+       if (window.electronAPI && window.electronAPI.openExternal) {
+           // @ts-ignore
+           window.electronAPI.openExternal(url);
+       } else {
+           window.open(url, '_blank');
+       }
+    }
   };
 
   // Derive commands list for Command Palette
@@ -1459,23 +1409,17 @@
     },
     // New Commands
     { id: 'zoom-fit', label: 'Zoom to Fit', category: 'View', action: (actions as any).zoomReset },
-    { id: 'toggle-ghost', label: 'Toggle Ghost Paths', category: 'View', action: (actions as any).toggleGhostPaths },
-    // { id: 'toggle-debug', label: 'Toggle Debug Sequence', category: 'View', action: (actions as any).toggleDebugSequence }, // Developer only maybe?
     { id: 'toggle-bounds', label: 'Toggle Field Boundaries', category: 'View', action: (actions as any).toggleFieldBoundaries },
     { id: 'toggle-drag', label: 'Toggle Drag Restriction', category: 'View', action: (actions as any).toggleDragRestriction },
-    { id: 'pan-start', label: 'Pan to Start Point', category: 'View', action: (actions as any).panToStart },
-    { id: 'pan-end', label: 'Pan to End Point', category: 'View', action: (actions as any).panToEnd },
-    { id: 'select-start', label: 'Select Start Point', category: 'Editing', action: (actions as any).selectStart },
-    { id: 'select-last', label: 'Select Last Point', category: 'Editing', action: (actions as any).selectLast },
-    { id: 'delete-all', label: 'Clear All Lines', category: 'Editing', action: (actions as any).deleteAllLines },
-    { id: 'reset-start', label: 'Reset Start Point', category: 'Editing', action: (actions as any).resetStartPoint },
     { id: 'snap-select', label: 'Snap Selection to Grid', category: 'Editing', action: (actions as any).snapSelection },
     { id: 'copy-json', label: 'Copy Path JSON to Clipboard', category: 'Export', action: (actions as any).copyPathJson },
     { id: 'theme-light', label: 'Set Theme: Light', category: 'Settings', action: () => (actions as any).setTheme('light') },
     { id: 'theme-dark', label: 'Set Theme: Dark', category: 'Settings', action: () => (actions as any).setTheme('dark') },
     { id: 'auto-save-never', label: 'Autosave: Never', category: 'Settings', action: () => (actions as any).setAutosave('never') },
-    { id: 'auto-save-1m', label: 'Autosave: 1 Minute', category: 'Settings', action: () => (actions as any).setAutosave(1) },
-    { id: 'auto-save-5m', label: 'Autosave: 5 Minutes', category: 'Settings', action: () => (actions as any).setAutosave(5) },
+    { id: 'auto-save-1m', label: 'Autosave: 1 Minute', category: 'Settings', action: () => (actions as any).setAutosave('time', 1) },
+    { id: 'auto-save-5m', label: 'Autosave: 5 Minutes', category: 'Settings', action: () => (actions as any).setAutosave('time', 5) },
+    { id: 'auto-save-change', label: 'Autosave: On Change', category: 'Settings', action: () => (actions as any).setAutosave('change') },
+    { id: 'auto-save-close', label: 'Autosave: On Close', category: 'Settings', action: () => (actions as any).setAutosave('close') },
     { id: 'docs', label: 'Open Documentation', category: 'Help', action: (actions as any).openDocs },
     { id: 'issues', label: 'Report Issue', category: 'Help', action: (actions as any).reportIssue },
   ];
