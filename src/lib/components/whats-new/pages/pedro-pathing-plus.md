@@ -15,7 +15,7 @@ To use PedroPathingPlus in your FTC project, follow these steps:
 Add the following Maven repositories to your module `build.gradle` (Module: app) or `settings.gradle` file:
 
 ```groovy
-    maven { url 'https://repo.dairy.foundation/releases' }
+   maven { url 'https://repo.dairy.foundation/releases' }
     maven { url 'https://mymaven.bylazar.com/releases' }
     maven { url 'https://jitpack.io' }
 ```

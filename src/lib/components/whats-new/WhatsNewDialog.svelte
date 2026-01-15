@@ -512,6 +512,26 @@
   $: if (activeContentHtml && currentView === "content") {
     updateHeaders();
   }
+
+  // Show/hide table of contents (On this page). Persist preference to localStorage.
+  let showToc = true;
+  onMount(() => {
+    try {
+      const v = localStorage.getItem("whatsnew.showToc");
+      if (v !== null) showToc = v === "1";
+    } catch (e) {
+      /* ignore */
+    }
+  });
+
+  function toggleToc() {
+    showToc = !showToc;
+    try {
+      localStorage.setItem("whatsnew.showToc", showToc ? "1" : "0");
+    } catch (e) {
+      /* ignore */
+    }
+  }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -627,7 +647,7 @@
 
           {#if !setupMode}
             <button
-              class="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors hidden md:block"
+              class="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors md:ml-1"
               on:click={close}
               aria-label="Close"
             >
@@ -922,15 +942,45 @@
             </div>
 
             <!-- Sidebar (TOC) -->
-            {#if headers.length > 0}
+            {#if headers.length > 0 && !showToc}
+              <!-- Collapsed TOC - Expand button -->
+              <div class="hidden md:block w-12 border-l border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 shrink-0">
+                <div class="sticky top-4 flex justify-center pt-4">
+                  <button
+                    class="p-2 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-all"
+                    on:click={toggleToc}
+                    aria-label="Expand table of contents"
+                    title="Show table of contents"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+                      <line x1="3" y1="6" x2="21" y2="6"></line>
+                      <line x1="3" y1="12" x2="21" y2="12"></line>
+                      <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            {:else if headers.length > 0 && showToc}
               <div
                 class="hidden md:block w-64 border-l border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 overflow-y-auto p-4 shrink-0 custom-scrollbar"
               >
-                <h4
-                  class="font-bold text-sm text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-4"
-                >
-                  On this page
-                </h4>
+                <div class="flex items-center justify-between mb-4">
+                  <h4
+                    class="font-bold text-sm text-neutral-500 dark:text-neutral-400 uppercase tracking-wider"
+                  >
+                    On this page
+                  </h4>
+                  <button
+                    class="p-1.5 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-all"
+                    on:click={toggleToc}
+                    aria-label="Collapse table of contents"
+                    title="Collapse table of contents"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                      <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                  </button>
+                </div>
                 <ul class="space-y-2 text-sm">
                   {#each headers as header}
                     <li style="padding-left: {(header.level - 1) * 0.5}rem">
