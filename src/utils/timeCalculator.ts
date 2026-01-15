@@ -440,7 +440,41 @@ function calculateRotationTime(
   const diffRad = angleDiffDegrees * (Math.PI / 180);
   const maxVel = Math.max(settings.aVelocity, 0.001);
 
-  return diffRad / maxVel;
+  // If maxAngularAcceleration is provided (and > 0), use that directly.
+  // Otherwise, use the derived logic from linear acceleration + robot width.
+  // If maxAngularAcceleration is 0 (auto), we fall back to derived.
+  let maxAngAccel = settings.maxAngularAcceleration;
+
+  if (!maxAngAccel || maxAngAccel <= 0) {
+    // Estimate max angular acceleration from linear acceleration and robot width
+    // alpha = a_linear / r
+    // Assuming rotation around center, wheels are at width/2
+    // We use width/2 as the lever arm for conservative estimate
+    const leverArm = Math.max(settings.rWidth / 2, 1); // Avoid division by zero
+    const maxAccel = settings.maxAcceleration || 30;
+    maxAngAccel = maxAccel / leverArm;
+  }
+
+  // Motion profile:
+  // t_accel = v_max / a_max
+  // dist_accel = 0.5 * a_max * t_accel^2 = 0.5 * v_max^2 / a_max
+  const accDist = (maxVel * maxVel) / (2 * maxAngAccel);
+  const decDist = accDist; // Symmetric
+
+  if (diffRad >= accDist + decDist) {
+    // Trapezoid Profile (reaches max speed)
+    const accTime = maxVel / maxAngAccel;
+    const decTime = accTime;
+    const constDist = diffRad - accDist - decDist;
+    const constTime = constDist / maxVel;
+    return accTime + constTime + decTime;
+  } else {
+    // Triangle Profile (does not reach max speed)
+    // dist = 0.5 * a * t_accel^2 + 0.5 * a * t_decel^2
+    // t_total = 2 * sqrt(dist / a)
+    // v_peak = sqrt(dist * a)
+    return 2 * Math.sqrt(diffRad / maxAngAccel);
+  }
 }
 
 /**

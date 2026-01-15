@@ -143,9 +143,57 @@ describe("Time Calculator", () => {
     );
 
     expect(rotationEvents.length).toBeGreaterThan(0);
-    // With simplified velocity-based logic (infinite acceleration),
-    // time to rotate 90 deg at 90 deg/s is 1.0s.
-    expect(rotationEvents[0].duration).toBeCloseTo(1.0, 1);
+    // With restored acceleration logic:
+    // maxAccel = 5, rWidth = 18 => maxAngAccel = 5 / 9 = 0.555 rad/s^2
+    // Angle = 90 deg = 1.57 rad.
+    // Triangle profile: t = 2 * sqrt(dist / a) = 2 * sqrt(1.57 / 0.555) = 2 * 1.68 = 3.36s.
+    // NOTE: This confirms we are back to physics-based logic (acceleration limited).
+    expect(rotationEvents[0].duration).toBeCloseTo(3.36, 1);
+  });
+
+  it("calculates rotation time with user-defined maxAngularAcceleration", () => {
+    const customSettings: Settings = {
+      ...defaultSettings,
+      maxAngularAcceleration: 10, // High acceleration!
+    };
+
+    const diffDegrees = 90;
+    const diffRad = diffDegrees * (Math.PI / 180);
+    // maxVel = PI/2 = 1.57 rad/s
+    // maxAccel = 10 rad/s^2
+    // Time to reach maxVel: 1.57 / 10 = 0.157s.
+    // Dist to reach: 0.5 * 10 * 0.157^2 = 0.123 rad.
+    // Total accel+decel dist = 0.246 rad.
+    // Total dist = 1.57 rad.
+    // Trapezoid profile!
+    // t_accel = 0.157s.
+    // t_decel = 0.157s.
+    // dist_const = 1.57 - 0.246 = 1.324.
+    // t_const = 1.324 / 1.57 = 0.843s.
+    // Total = 0.157 + 0.157 + 0.843 = 1.157s.
+
+    // Let's create a fake timeline test or call calculateRotationTime directly if exported?
+    // It's not exported. So we use calculatePathTime with a rotate sequence.
+
+    const lines: Line[] = [
+      {
+        id: "line1",
+        endPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
+        controlPoints: [],
+        color: "#fff",
+      },
+    ];
+    const sequence: SequenceItem[] = [
+        { kind: "rotate", id: "rot1", name: "Rotate", degrees: 90 }
+    ];
+
+    // Need to set initial heading to 0.
+    const startPoint: Point = { x: 0, y: 0, heading: "constant", degrees: 0 };
+
+    const result = calculatePathTime(startPoint, lines, customSettings, sequence);
+    const rotationEvents = result.timeline.filter(e => e.waitId === "rot1");
+    expect(rotationEvents.length).toBe(1);
+    expect(rotationEvents[0].duration).toBeCloseTo(1.157, 2);
   });
 
   describe("analyzePathSegment", () => {

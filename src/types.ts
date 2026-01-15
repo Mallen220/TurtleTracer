@@ -119,6 +119,7 @@ export interface Settings {
   maxVelocity: number; // inches/sec
   maxAcceleration: number; // inches/sec²
   maxDeceleration?: number; // inches/sec²
+  maxAngularAcceleration?: number; // rad/sec²
   fieldMap: string;
   fieldRotation?: number; // 0, 90, 180, 270
   robotImage?: string;

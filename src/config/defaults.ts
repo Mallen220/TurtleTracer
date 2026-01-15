@@ -549,6 +549,7 @@ export const DEFAULT_SETTINGS: Settings = {
   maxVelocity: 40,
   maxAcceleration: 30,
   maxDeceleration: 30,
+  maxAngularAcceleration: 0, // 0 = Auto-calculate from linear acceleration
   fieldMap: "decode.webp",
   fieldRotation: 0,
   robotImage: "/robot.png",
