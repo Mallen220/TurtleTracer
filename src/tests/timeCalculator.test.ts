@@ -184,14 +184,19 @@ describe("Time Calculator", () => {
       },
     ];
     const sequence: SequenceItem[] = [
-        { kind: "rotate", id: "rot1", name: "Rotate", degrees: 90 }
+      { kind: "rotate", id: "rot1", name: "Rotate", degrees: 90 },
     ];
 
     // Need to set initial heading to 0.
     const startPoint: Point = { x: 0, y: 0, heading: "constant", degrees: 0 };
 
-    const result = calculatePathTime(startPoint, lines, customSettings, sequence);
-    const rotationEvents = result.timeline.filter(e => e.waitId === "rot1");
+    const result = calculatePathTime(
+      startPoint,
+      lines,
+      customSettings,
+      sequence,
+    );
+    const rotationEvents = result.timeline.filter((e) => e.waitId === "rot1");
     expect(rotationEvents.length).toBe(1);
     expect(rotationEvents[0].duration).toBeCloseTo(1.157, 2);
   });

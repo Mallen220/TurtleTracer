@@ -1113,51 +1113,55 @@
   // --- New Capabilities ---
 
   function snapSelection() {
-     const sel = $selectedPointId;
-     if (!sel || !sel.startsWith('point-')) return;
-     const gridStep = $gridSize || 1;
+    const sel = $selectedPointId;
+    if (!sel || !sel.startsWith("point-")) return;
+    const gridStep = $gridSize || 1;
 
-     const snap = (v: number) => Math.round(v / gridStep) * gridStep;
+    const snap = (v: number) => Math.round(v / gridStep) * gridStep;
 
-     const parts = sel.split('-');
-     const lineNum = Number(parts[1]);
-     const ptIdx = Number(parts[2]);
+    const parts = sel.split("-");
+    const lineNum = Number(parts[1]);
+    const ptIdx = Number(parts[2]);
 
-     if (lineNum === 0 && ptIdx === 0) {
-        if(startPoint.locked) return;
-        startPointStore.update(p => ({
-            ...p,
-            x: snap(p.x),
-            y: snap(p.y)
-        }));
-        recordChange();
-        return;
-     }
+    if (lineNum === 0 && ptIdx === 0) {
+      if (startPoint.locked) return;
+      startPointStore.update((p) => ({
+        ...p,
+        x: snap(p.x),
+        y: snap(p.y),
+      }));
+      recordChange();
+      return;
+    }
 
-     const lineIdx = lineNum - 1;
-     const line = lines[lineIdx];
-     if (!line || line.locked) return;
+    const lineIdx = lineNum - 1;
+    const line = lines[lineIdx];
+    if (!line || line.locked) return;
 
-     if (ptIdx === 0) {
-        linesStore.update(l => {
-            const newLines = [...l];
-            newLines[lineIdx].endPoint.x = snap(newLines[lineIdx].endPoint.x);
-            newLines[lineIdx].endPoint.y = snap(newLines[lineIdx].endPoint.y);
-            return newLines;
+    if (ptIdx === 0) {
+      linesStore.update((l) => {
+        const newLines = [...l];
+        newLines[lineIdx].endPoint.x = snap(newLines[lineIdx].endPoint.x);
+        newLines[lineIdx].endPoint.y = snap(newLines[lineIdx].endPoint.y);
+        return newLines;
+      });
+      recordChange();
+    } else {
+      const cpIdx = ptIdx - 1;
+      if (line.controlPoints[cpIdx]) {
+        linesStore.update((l) => {
+          const newLines = [...l];
+          newLines[lineIdx].controlPoints[cpIdx].x = snap(
+            newLines[lineIdx].controlPoints[cpIdx].x,
+          );
+          newLines[lineIdx].controlPoints[cpIdx].y = snap(
+            newLines[lineIdx].controlPoints[cpIdx].y,
+          );
+          return newLines;
         });
         recordChange();
-     } else {
-        const cpIdx = ptIdx - 1;
-        if(line.controlPoints[cpIdx]) {
-             linesStore.update(l => {
-                const newLines = [...l];
-                newLines[lineIdx].controlPoints[cpIdx].x = snap(newLines[lineIdx].controlPoints[cpIdx].x);
-                newLines[lineIdx].controlPoints[cpIdx].y = snap(newLines[lineIdx].controlPoints[cpIdx].y);
-                return newLines;
-            });
-            recordChange();
-        }
-     }
+      }
+    }
   }
 
   function resetStartPoint() {
@@ -1177,36 +1181,37 @@
   }
 
   function panToEnd() {
-     if(lines.length > 0) {
-         const lastLineIdx = lines.length - 1;
-         const endPoint = lines[lastLineIdx].endPoint;
-         if (fieldRenderer && fieldRenderer.panToField) {
-           fieldRenderer.panToField(endPoint.x, endPoint.y);
-         } else {
-           // Fallback
-           selectedPointId.set(`point-${lastLineIdx+1}-0`);
-           selectedLineId.set(lines[lastLineIdx].id!);
-         }
-     }
+    if (lines.length > 0) {
+      const lastLineIdx = lines.length - 1;
+      const endPoint = lines[lastLineIdx].endPoint;
+      if (fieldRenderer && fieldRenderer.panToField) {
+        fieldRenderer.panToField(endPoint.x, endPoint.y);
+      } else {
+        // Fallback
+        selectedPointId.set(`point-${lastLineIdx + 1}-0`);
+        selectedLineId.set(lines[lastLineIdx].id!);
+      }
+    }
   }
 
   function selectLast() {
-    if(lines.length > 0) {
-         const lastLineIdx = lines.length - 1;
-         selectedPointId.set(`point-${lastLineIdx+1}-0`);
-         selectedLineId.set(lines[lastLineIdx].id!);
+    if (lines.length > 0) {
+      const lastLineIdx = lines.length - 1;
+      selectedPointId.set(`point-${lastLineIdx + 1}-0`);
+      selectedLineId.set(lines[lastLineIdx].id!);
     }
   }
 
   function copyPathJson() {
-      const data = {
-          startPoint,
-          lines,
-          shapes
-      };
-      navigator.clipboard.writeText(JSON.stringify(data, null, 2))
-        .then(() => alert("Path data copied to clipboard!"))
-        .catch(err => console.error("Failed to copy", err));
+    const data = {
+      startPoint,
+      lines,
+      shapes,
+    };
+    navigator.clipboard
+      .writeText(JSON.stringify(data, null, 2))
+      .then(() => alert("Path data copied to clipboard!"))
+      .catch((err) => console.error("Failed to copy", err));
   }
 
   // --- Registration ---
@@ -1365,29 +1370,80 @@
     panToEnd: () => panToEnd(),
     selectLast: () => selectLast(),
     copyPathJson: () => copyPathJson(),
-    toggleDebugSequence: () => settingsStore.update(s => ({...s, showDebugSequence: !((s as any).showDebugSequence)})),
-    toggleFieldBoundaries: () => settingsStore.update(s => ({...s, validateFieldBoundaries: !s.validateFieldBoundaries})),
-    toggleDragRestriction: () => settingsStore.update(s => ({...s, restrictDraggingToField: !s.restrictDraggingToField})),
-    setTheme: (theme: any) => settingsStore.update(s => ({...s, theme})),
+    toggleDebugSequence: () =>
+      settingsStore.update((s) => ({
+        ...s,
+        showDebugSequence: !(s as any).showDebugSequence,
+      })),
+    toggleFieldBoundaries: () =>
+      settingsStore.update((s) => ({
+        ...s,
+        validateFieldBoundaries: !s.validateFieldBoundaries,
+      })),
+    toggleDragRestriction: () =>
+      settingsStore.update((s) => ({
+        ...s,
+        restrictDraggingToField: !s.restrictDraggingToField,
+      })),
+    setTheme: (theme: any) => settingsStore.update((s) => ({ ...s, theme })),
     setAutosave: (mode: any, interval?: any) => {
-        if(mode === 'never') settingsStore.update(s => ({...s, autosaveMode: 'never'}));
-        else if (mode === 'time') settingsStore.update(s => ({...s, autosaveMode: 'time', autosaveInterval: interval}));
-        else if (mode === 'change') settingsStore.update(s => ({...s, autosaveMode: 'change'}));
-        else if (mode === 'close') settingsStore.update(s => ({...s, autosaveMode: 'close'}));
+      if (mode === "never")
+        settingsStore.update((s) => ({ ...s, autosaveMode: "never" }));
+      else if (mode === "time")
+        settingsStore.update((s) => ({
+          ...s,
+          autosaveMode: "time",
+          autosaveInterval: interval,
+        }));
+      else if (mode === "change")
+        settingsStore.update((s) => ({ ...s, autosaveMode: "change" }));
+      else if (mode === "close")
+        settingsStore.update((s) => ({ ...s, autosaveMode: "close" }));
     },
     openDocs: () => {
-       if (openWhatsNew) openWhatsNew();
+      if (openWhatsNew) openWhatsNew();
     },
     reportIssue: () => {
-       const url = 'https://github.com/Mallen220/PedroPathingVisualizer/issues';
-       // @ts-ignore
-       if (window.electronAPI && window.electronAPI.openExternal) {
-           // @ts-ignore
-           window.electronAPI.openExternal(url);
-       } else {
-           window.open(url, '_blank');
-       }
-    }
+      const url = "https://github.com/Mallen220/PedroPathingVisualizer/issues";
+      // @ts-ignore
+      if (window.electronAPI && window.electronAPI.openExternal) {
+        // @ts-ignore
+        window.electronAPI.openExternal(url);
+      } else {
+        window.open(url, "_blank");
+      }
+    },
+    setFileManagerDirectory: async () => {
+      if (window.electronAPI && window.electronAPI.setDirectory) {
+        await window.electronAPI.setDirectory();
+        // Optionally refresh files after setting directory
+        fetchFiles();
+      }
+    },
+    resetKeybinds: () => {
+      settingsStore.update((s) => ({
+        ...s,
+        keyBindings: DEFAULT_KEY_BINDINGS.map((b) => ({ ...b })),
+      }));
+    },
+    resetSettings: () => {
+      settingsStore.set(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)));
+    },
+    cycleTheme: () => {
+      settingsStore.update((s) => {
+        const themes: ("light" | "dark" | "auto")[] = ["light", "dark", "auto"];
+        const currentIndex = themes.indexOf(s.theme);
+        const nextIndex = (currentIndex + 1) % themes.length;
+        return { ...s, theme: themes[nextIndex] };
+      });
+    },
+    setThemeLight: () => (actions as any).setTheme("light"),
+    setThemeDark: () => (actions as any).setTheme("dark"),
+    setAutoSaveNever: () => (actions as any).setAutosave("never"),
+    setAutoSave1m: () => (actions as any).setAutosave("time", 1),
+    setAutoSave5m: () => (actions as any).setAutosave("time", 5),
+    setAutoSaveChange: () => (actions as any).setAutosave("change"),
+    setAutoSaveClose: () => (actions as any).setAutosave("close"),
   };
 
   // Derive commands list for Command Palette
@@ -1402,75 +1458,6 @@
         action: (actions as any)[b.action],
       })),
     ...fileCommands,
-    // Extra commands requested by user
-    {
-      id: "set-file-manager-directory",
-      label: "Set File Manager Directory",
-      category: "File",
-      action: async () => {
-        if (window.electronAPI && window.electronAPI.setDirectory) {
-          await window.electronAPI.setDirectory();
-          // Optionally refresh files after setting directory
-          fetchFiles();
-        }
-      },
-    },
-    {
-      id: "reset-keybinds",
-      label: "Reset Keybinds",
-      category: "Settings",
-      action: () => {
-        settingsStore.update((s) => ({
-          ...s,
-          keyBindings: DEFAULT_KEY_BINDINGS.map((b) => ({ ...b })),
-        }));
-      },
-    },
-    {
-      id: "reset-settings",
-      label: "Reset Settings",
-      category: "Settings",
-      action: () => {
-        settingsStore.set(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)));
-      },
-    },
-    {
-      id: "cycle-theme",
-      label: "Cycle Light/Dark Mode",
-      category: "View",
-      action: () => {
-        settingsStore.update((s) => {
-          const themes: ("light" | "dark" | "auto")[] = [
-            "light",
-            "dark",
-            "auto",
-          ];
-          const currentIndex = themes.indexOf(s.theme);
-          const nextIndex = (currentIndex + 1) % themes.length;
-          return { ...s, theme: themes[nextIndex] };
-        });
-      },
-    },
-    // New Commands
-    { id: 'zoom-fit', label: 'Zoom to Fit', category: 'View', action: (actions as any).zoomReset },
-    { id: 'show-debug', label: 'Show/Hide Debug Sequence', category: 'View', action: (actions as any).toggleDebugSequence },
-    { id: 'toggle-bounds', label: 'Toggle Field Boundaries', category: 'View', action: (actions as any).toggleFieldBoundaries },
-    { id: 'toggle-drag', label: 'Toggle Drag Restriction', category: 'View', action: (actions as any).toggleDragRestriction },
-    { id: 'pan-start', label: 'Pan to Start Point', category: 'View', action: (actions as any).panToStart },
-    { id: 'pan-end', label: 'Pan to End Point', category: 'View', action: (actions as any).panToEnd },
-    { id: 'select-last', label: 'Select Last Point', category: 'Editing', action: (actions as any).selectLast },
-    { id: 'reset-start', label: 'Reset Start Point', category: 'Editing', action: (actions as any).resetStartPoint },
-    { id: 'snap-select', label: 'Snap Selection to Grid', category: 'Editing', action: (actions as any).snapSelection },
-    { id: 'copy-json', label: 'Copy Path JSON to Clipboard', category: 'Export', action: (actions as any).copyPathJson },
-    { id: 'theme-light', label: 'Set Theme: Light', category: 'Settings', action: () => (actions as any).setTheme('light') },
-    { id: 'theme-dark', label: 'Set Theme: Dark', category: 'Settings', action: () => (actions as any).setTheme('dark') },
-    { id: 'auto-save-never', label: 'Autosave: Never', category: 'Settings', action: () => (actions as any).setAutosave('never') },
-    { id: 'auto-save-1m', label: 'Autosave: 1 Minute', category: 'Settings', action: () => (actions as any).setAutosave('time', 1) },
-    { id: 'auto-save-5m', label: 'Autosave: 5 Minutes', category: 'Settings', action: () => (actions as any).setAutosave('time', 5) },
-    { id: 'auto-save-change', label: 'Autosave: On Change', category: 'Settings', action: () => (actions as any).setAutosave('change') },
-    { id: 'auto-save-close', label: 'Autosave: On Close', category: 'Settings', action: () => (actions as any).setAutosave('close') },
-    { id: 'docs', label: 'Open Documentation', category: 'Help', action: (actions as any).openDocs },
-    { id: 'issues', label: 'Report Issue', category: 'Help', action: (actions as any).reportIssue },
   ];
 
   $: if (settings && settings.keyBindings) {

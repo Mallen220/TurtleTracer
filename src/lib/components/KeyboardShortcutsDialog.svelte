@@ -88,28 +88,38 @@
     }
 
     if (recordingKeyFor) {
-      // Ensure Escape during recording always reverts to the DEFAULT binding value
       handleRecordingKeyDown(event);
     }
   }
 
   function handleRecordingKeyDown(event: KeyboardEvent) {
-    const bindingIndex = settings.keyBindings?.findIndex(
+    // Ensure keyBindings exists in settings and is a copy before trying to modify it
+    if (
+      !settings.keyBindings ||
+      settings.keyBindings === DEFAULT_KEY_BINDINGS
+    ) {
+      settings.keyBindings = (
+        settings.keyBindings || DEFAULT_KEY_BINDINGS
+      ).map((b) => ({ ...b }));
+    }
+
+    const bindingIndex = settings.keyBindings.findIndex(
       (b) => b.id === recordingKeyFor,
     );
-    if (bindingIndex === undefined || bindingIndex === -1) {
+
+    if (bindingIndex === -1) {
       recordingKeyFor = null;
       return;
     }
-    const binding = settings.keyBindings![bindingIndex];
+    const binding = settings.keyBindings[bindingIndex];
 
     event.preventDefault();
     event.stopPropagation();
 
-    // If Escape is pressed, reset this binding to the default and stop recording
-    // OR if the binding is empty/being cleared
+    // If Escape is pressed, set binding to unbound ("") and stop recording
     if (event.key === "Escape") {
-      resetBinding(binding.id);
+      settings.keyBindings[bindingIndex].key = "";
+      settings = { ...settings }; // Force reactivity
       recordingKeyFor = null;
       return;
     }
@@ -220,9 +230,10 @@
     );
     return defaultBinding && binding.key !== defaultBinding.key;
   }
+
 </script>
 
-<svelte:window on:keydown={handleKeyDown} />
+<svelte:window on:keydown|capture={handleKeyDown} />
 
 {#if isOpen}
   <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -438,7 +449,12 @@
                         class:ring-2={recordingKeyFor === binding.id}
                         class:ring-indigo-500={recordingKeyFor === binding.id}
                         class:bg-white={recordingKeyFor !== binding.id}
-                        class:text-neutral-700={recordingKeyFor !== binding.id}
+                        class:text-neutral-700={recordingKeyFor !== binding.id &&
+                          binding.key}
+                        class:text-neutral-400={recordingKeyFor !==
+                          binding.id && !binding.key}
+                        class:italic={!binding.key &&
+                          recordingKeyFor !== binding.id}
                         class:border-neutral-200={recordingKeyFor !==
                           binding.id}
                         class:dark:bg-indigo-900={recordingKeyFor ===
@@ -450,15 +466,19 @@
                         class:dark:bg-neutral-800={recordingKeyFor !==
                           binding.id}
                         class:dark:text-neutral-300={recordingKeyFor !==
-                          binding.id}
+                          binding.id && binding.key}
+                        class:dark:text-neutral-500={recordingKeyFor !==
+                          binding.id && !binding.key}
                         class:dark:border-neutral-700={recordingKeyFor !==
                           binding.id}
                         on:click={() => startRecordingKey(binding.id)}
                       >
                         {#if recordingKeyFor === binding.id}
                           <span class="animate-pulse">Listening...</span>
-                        {:else}
+                        {:else if binding.key}
                           {binding.key}
+                        {:else}
+                          Unbound
                         {/if}
                       </button>
                     </div>
@@ -504,7 +524,7 @@
               >Click a keybinding to record a new one. Press <kbd
                 class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1 rounded"
                 >Esc</kbd
-              > while recording to reset.</span
+              > while recording to unbind.</span
             >
           </div>
         </div>
