@@ -88,28 +88,38 @@
     }
 
     if (recordingKeyFor) {
-      // Ensure Escape during recording always reverts to the DEFAULT binding value
       handleRecordingKeyDown(event);
     }
   }
 
   function handleRecordingKeyDown(event: KeyboardEvent) {
-    const bindingIndex = settings.keyBindings?.findIndex(
+    // Ensure keyBindings exists in settings and is a copy before trying to modify it
+    if (
+      !settings.keyBindings ||
+      settings.keyBindings === DEFAULT_KEY_BINDINGS
+    ) {
+      settings.keyBindings = (
+        settings.keyBindings || DEFAULT_KEY_BINDINGS
+      ).map((b) => ({ ...b }));
+    }
+
+    const bindingIndex = settings.keyBindings.findIndex(
       (b) => b.id === recordingKeyFor,
     );
-    if (bindingIndex === undefined || bindingIndex === -1) {
+
+    if (bindingIndex === -1) {
       recordingKeyFor = null;
       return;
     }
-    const binding = settings.keyBindings![bindingIndex];
+    const binding = settings.keyBindings[bindingIndex];
 
     event.preventDefault();
     event.stopPropagation();
 
-    // If Escape is pressed, reset this binding to the default and stop recording
-    // OR if the binding is empty/being cleared
+    // If Escape is pressed, set binding to unbound ("") and stop recording
     if (event.key === "Escape") {
-      resetBinding(binding.id);
+      settings.keyBindings[bindingIndex].key = "";
+      settings = { ...settings }; // Force reactivity
       recordingKeyFor = null;
       return;
     }
@@ -220,9 +230,10 @@
     );
     return defaultBinding && binding.key !== defaultBinding.key;
   }
+
 </script>
 
-<svelte:window on:keydown={handleKeyDown} />
+<svelte:window on:keydown|capture={handleKeyDown} />
 
 {#if isOpen}
   <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -513,7 +524,7 @@
               >Click a keybinding to record a new one. Press <kbd
                 class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1 rounded"
                 >Esc</kbd
-              > while recording to reset.</span
+              > while recording to unbind.</span
             >
           </div>
         </div>
