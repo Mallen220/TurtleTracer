@@ -9,6 +9,7 @@
     gridSize,
     snapToGrid,
     showGrid,
+    isPresentationMode,
     selectedPointId,
     selectedLineId,
     showRuler,
@@ -966,11 +967,12 @@
     path.forEach((el) => lineGroup.add(el));
     previewPathElements.forEach((el) => lineGroup.add(el));
 
-    points.forEach((el) => pointGroup.add(el));
-    eventMarkerElements.forEach((el) => eventGroup.add(el));
-
-    // Ensure collisionElements is used in the reactive block to trigger updates
-    collisionElements.forEach((el) => collisionGroup.add(el));
+    if (!$isPresentationMode) {
+      points.forEach((el) => pointGroup.add(el));
+      eventMarkerElements.forEach((el) => eventGroup.add(el));
+      // Ensure collisionElements is used in the reactive block to trigger updates
+      collisionElements.forEach((el) => collisionGroup.add(el));
+    }
 
     two.add(shapeGroup);
     two.add(lineGroup);
@@ -1486,93 +1488,95 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
       }}
     />
   </div>
-  <FieldCoordinates
-    x={currentMouseX}
-    y={currentMouseY}
-    visible={isMouseOverField}
-    isObstructed={isObstructingHUD}
-  />
+  {#if !$isPresentationMode}
+    <FieldCoordinates
+      x={currentMouseX}
+      y={currentMouseY}
+      visible={isMouseOverField}
+      isObstructed={isObstructingHUD}
+    />
 
-  <!-- Zoom Controls -->
-  <div
-    class="absolute bottom-2 right-2 flex flex-col gap-1 z-30 bg-white/80 dark:bg-neutral-800/80 p-1 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
-  >
-    <button
-      class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-      on:click={() => {
-        const step = computeZoomStep(zoom, 1);
-        const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
-        const focus = isMouseOverField
-          ? { x: x(currentMouseX), y: y(currentMouseY) }
-          : { x: width / 2, y: height / 2 };
-        zoomTo(newZoom, focus);
-      }}
-      aria-label="Zoom in"
-      title="Zoom In (Cmd/Ctrl + +)"
+    <!-- Zoom Controls -->
+    <div
+      class="absolute bottom-2 right-2 flex flex-col gap-1 z-30 bg-white/80 dark:bg-neutral-800/80 p-1 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-        class="w-4 h-4"
+      <button
+        class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+        on:click={() => {
+          const step = computeZoomStep(zoom, 1);
+          const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
+          const focus = isMouseOverField
+            ? { x: x(currentMouseX), y: y(currentMouseY) }
+            : { x: width / 2, y: height / 2 };
+          zoomTo(newZoom, focus);
+        }}
+        aria-label="Zoom in"
+        title="Zoom In (Cmd/Ctrl + +)"
       >
-        <path
-          d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
-        />
-      </svg>
-    </button>
-    <button
-      class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-      on:click={() => {
-        const step = computeZoomStep(zoom, -1);
-        const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
-        const focus = isMouseOverField
-          ? { x: x(currentMouseX), y: y(currentMouseY) }
-          : { x: width / 2, y: height / 2 };
-        zoomTo(newZoom, focus);
-      }}
-      aria-label="Zoom out"
-      title="Zoom Out (Cmd/Ctrl + -)"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-        class="w-4 h-4"
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          class="w-4 h-4"
+        >
+          <path
+            d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
+          />
+        </svg>
+      </button>
+      <button
+        class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+        on:click={() => {
+          const step = computeZoomStep(zoom, -1);
+          const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
+          const focus = isMouseOverField
+            ? { x: x(currentMouseX), y: y(currentMouseY) }
+            : { x: width / 2, y: height / 2 };
+          zoomTo(newZoom, focus);
+        }}
+        aria-label="Zoom out"
+        title="Zoom Out (Cmd/Ctrl + -)"
       >
-        <path
-          fill-rule="evenodd"
-          d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
-          clip-rule="evenodd"
-        />
-      </svg>
-    </button>
-    <button
-      class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-      on:click={() => {
-        fieldZoom.set(1.0);
-        fieldPan.set({ x: 0, y: 0 });
-      }}
-      aria-label="Reset zoom"
-      title="Reset Zoom (Cmd/Ctrl + 0)"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="w-4 h-4"
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          class="w-4 h-4"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </button>
+      <button
+        class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+        on:click={() => {
+          fieldZoom.set(1.0);
+          fieldPan.set({ x: 0, y: 0 });
+        }}
+        aria-label="Reset zoom"
+        title="Reset Zoom (Cmd/Ctrl + 0)"
       >
-        <polyline points="4 9 4 4 9 4" />
-        <polyline points="15 4 20 4 20 9" />
-        <polyline points="20 15 20 20 15 20" />
-        <polyline points="9 20 4 20 4 15" />
-      </svg>
-    </button>
-  </div>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="w-4 h-4"
+        >
+          <polyline points="4 9 4 4 9 4" />
+          <polyline points="15 4 20 4 20 9" />
+          <polyline points="20 15 20 20 15 20" />
+          <polyline points="9 20 4 20 4 15" />
+        </svg>
+      </button>
+    </div>
+  {/if}
 </div>
 
 <style>

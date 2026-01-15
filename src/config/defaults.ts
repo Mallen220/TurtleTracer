@@ -337,6 +337,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "View",
   },
   {
+    id: "toggle-presentation-mode",
+    key: "alt+p",
+    description: "Toggle Presentation Mode",
+    action: "togglePresentationMode",
+    category: "View",
+  },
+  {
     id: "toggle-velocity-heatmap",
     key: "v",
     description: "Toggle Velocity Heatmap",

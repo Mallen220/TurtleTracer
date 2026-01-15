@@ -22,6 +22,7 @@
     currentFilePath,
     isUnsaved,
     showSettings,
+    isPresentationMode,
     showExportGif,
     showShortcuts,
     exportDialogState,
@@ -441,6 +442,8 @@
 
   // --- Layout State ---
   let showSidebar = true;
+  $: effectiveShowSidebar = $isPresentationMode ? false : showSidebar;
+
   // DEBUG: force open Whats New during development to validate feature loading
   let showWhatsNew = false;
   let setupMode = false;
@@ -926,7 +929,7 @@
 
   $: if (!isLargeScreen) {
     // On small screens, when sidebar is closed, wait for animation then hide
-    if (!showSidebar) {
+    if (!effectiveShowSidebar) {
       if (hideControlTabTimeout) clearTimeout(hideControlTabTimeout);
       hideControlTabTimeout = setTimeout(() => {
         controlTabHidden = true;
@@ -958,7 +961,7 @@
   }
   $: leftPaneWidth = (() => {
     if (!isLargeScreen) return mainContentWidth;
-    if (!showSidebar) return mainContentWidth;
+    if (!effectiveShowSidebar) return mainContentWidth;
     let target = userFieldLimit ?? mainContentWidth * 0.55;
     const max = mainContentWidth - MIN_SIDEBAR_WIDTH;
     const min = MIN_FIELD_PANE_WIDTH;
@@ -980,7 +983,7 @@
   $: fieldContainerTargetHeight = (() => {
     if (isLargeScreen) return "100%";
     // when sidebar is visible, reserve space for it (use userFieldHeightLimit or default fraction)
-    if (showSidebar) {
+    if (effectiveShowSidebar) {
       const h = userFieldHeightLimit ?? mainContentHeight * 0.6;
       // ensure we don't exceed the available height
       const target = Math.min(h, mainContentHeight);
@@ -993,8 +996,8 @@
 
   function startResize(mode: "horizontal" | "vertical") {
     if (
-      (mode === "horizontal" && (!isLargeScreen || !showSidebar)) ||
-      (mode === "vertical" && (isLargeScreen || !showSidebar))
+      (mode === "horizontal" && (!isLargeScreen || !effectiveShowSidebar)) ||
+      (mode === "vertical" && (isLargeScreen || !effectiveShowSidebar))
     )
       return;
     resizeMode = mode;
@@ -1183,29 +1186,31 @@
 <div
   class="h-screen w-full flex flex-col overflow-hidden bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-sans"
 >
-  <div class="flex-none z-50">
-    <Navbar
-      bind:lines={$linesStore}
-      bind:startPoint={$startPointStore}
-      bind:shapes={$shapesStore}
-      bind:sequence={$sequenceStore}
-      bind:settings={$settingsStore}
-      bind:robotLength
-      bind:robotWidth
-      bind:showSidebar
-      bind:isLargeScreen
-      saveProject={handleSaveProject}
-      resetProject={handleResetProject}
-      {saveFileAs}
-      {exportGif}
-      {undoAction}
-      {redoAction}
-      {recordChange}
-      {canUndo}
-      {canRedo}
-      on:previewOptimizedLines={(e) => (previewOptimizedLines = e.detail)}
-    />
-  </div>
+  {#if !$isPresentationMode}
+    <div class="flex-none z-50">
+      <Navbar
+        bind:lines={$linesStore}
+        bind:startPoint={$startPointStore}
+        bind:shapes={$shapesStore}
+        bind:sequence={$sequenceStore}
+        bind:settings={$settingsStore}
+        bind:robotLength
+        bind:robotWidth
+        bind:showSidebar
+        bind:isLargeScreen
+        saveProject={handleSaveProject}
+        resetProject={handleResetProject}
+        {saveFileAs}
+        {exportGif}
+        {undoAction}
+        {redoAction}
+        {recordChange}
+        {canUndo}
+        {canRedo}
+        on:previewOptimizedLines={(e) => (previewOptimizedLines = e.detail)}
+      />
+    </div>
+  {/if}
 
   <div
     class="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch lg:overflow-hidden relative gap-0"
@@ -1217,7 +1222,7 @@
     <div
       class="flex-none flex justify-center items-center relative transition-all duration-300 ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
       style={`
-        width: ${isLargeScreen && showSidebar ? leftPaneWidth + "px" : "100%"};
+        width: ${isLargeScreen && effectiveShowSidebar ? leftPaneWidth + "px" : "100%"};
         height: ${isLargeScreen ? "100%" : fieldContainerTargetHeight};
         min-height: ${!isLargeScreen ? (userFieldHeightLimit ? "0" : "60vh") : "0"};
       `}
@@ -1237,7 +1242,7 @@
     </div>
 
     <!-- Resizer Handle (Desktop) -->
-    {#if isLargeScreen && showSidebar}
+    {#if isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
       <button
         class="w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
         on:mousedown={() => startResize("horizontal")}
@@ -1254,7 +1259,7 @@
     {/if}
 
     <!-- Resizer Handle (Mobile) -->
-    {#if !isLargeScreen && showSidebar}
+    {#if !isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
       <button
         class="h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
         on:mousedown={() => startResize("vertical")}
@@ -1278,9 +1283,9 @@
     <div
       bind:this={controlTabContainer}
       class="relative flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-transform duration-300 ease-in-out transform bg-neutral-50 dark:bg-neutral-900"
-      class:translate-x-full={!showSidebar && isLargeScreen}
-      class:translate-y-full={!showSidebar && !isLargeScreen}
-      class:overflow-hidden={!showSidebar}
+      class:translate-x-full={!effectiveShowSidebar && isLargeScreen}
+      class:translate-y-full={!effectiveShowSidebar && !isLargeScreen}
+      class:overflow-hidden={!effectiveShowSidebar}
       class:hidden={controlTabHidden}
       class:controlTabBlurred={statsOpen}
     >
