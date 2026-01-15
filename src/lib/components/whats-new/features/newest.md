@@ -2,6 +2,14 @@
 
 ## **Features:**
 
+- **PedroPathingPlus**
+  - Added native support and documentation for PedroPathingPlus, an advanced command-based pathing library.
+  - Learn how to integrate direct `.pp` execution and advanced features into your auto.
+
+- **Lock Obstacles**
+  - You can now lock individual obstacles to prevent accidental changes.
+  - Locked obstacles cannot be moved, resized, or deleted until unlocked.
+
 - **Autosave is Here!**
   - Your work is now saved automatically as you make changes. No more panic over lost progress.
   - Safe file switching ensures your data is secure before moving to another project.
@@ -15,6 +23,10 @@
   - No more automatic folder creation in unexpected places.
 
 ## **Improvements:**
+
+- **Better Dialog Handling**
+  - The "Unsaved Changes" dialog now correctly closes when pressing `Escape`.
+  - Improved keyboard accessibility for dialogs.
 
 - **Better Keyboard Shortcuts**
   - `Cmd+R` (or `Ctrl+R`) now creates a **New Project** instead of reloading the window.
