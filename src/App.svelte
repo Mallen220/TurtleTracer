@@ -68,6 +68,7 @@
   } from "./utils/fileHandlers";
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { PluginManager } from "./lib/pluginManager";
+  import { themesStore } from "./lib/pluginsStore";
 
   // Types
   import type { Settings } from "./types";
@@ -996,15 +997,35 @@
 
   // --- Apply Theme ---
   $: {
+    // Depend on themesStore so we re-run when plugins load
+    const registeredThemes = $themesStore;
     if (settings?.theme) {
       let t = settings.theme;
-      if (t === "auto") {
-        t = window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light";
+
+      // Remove any existing custom theme style
+      const existingStyle = document.getElementById("custom-theme-style");
+      if (existingStyle) existingStyle.remove();
+
+      // Check if it's a custom theme
+      const customTheme = registeredThemes.find((th) => th.name === t);
+
+      if (customTheme) {
+        const style = document.createElement("style");
+        style.id = "custom-theme-style";
+        style.textContent = customTheme.css;
+        document.head.appendChild(style);
+
+        // Default to dark base for custom themes
+        document.documentElement.classList.add("dark");
+      } else {
+        if (t === "auto") {
+          t = window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+        }
+        if (t === "dark") document.documentElement.classList.add("dark");
+        else document.documentElement.classList.remove("dark");
       }
-      if (t === "dark") document.documentElement.classList.add("dark");
-      else document.documentElement.classList.remove("dark");
     }
   }
 </script>

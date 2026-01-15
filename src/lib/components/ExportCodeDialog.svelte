@@ -379,7 +379,8 @@
             {#if exportFormat === "java"}Export Java Code
             {:else if exportFormat === "points"}Export Points
             {:else if exportFormat === "json"}Project Data
-            {:else if exportFormat === "custom"}{customExporterName || "Plugin Output"}
+            {:else if exportFormat === "custom"}{customExporterName ||
+                "Plugin Output"}
             {:else}Sequential Command{/if}
           </h2>
           <p class="text-xs text-neutral-500 dark:text-neutral-400">

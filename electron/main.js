@@ -121,6 +121,7 @@ if (!gotTheLock) {
     createMenu();
     updateDockMenu();
     updateJumpList();
+    ensureDefaultPlugins();
 
     // Check for updates (only once)
     // We pass the first window for dialogs if needed, or handle it inside AppUpdater
@@ -649,6 +650,61 @@ ipcMain.handle("app:open-external", async (event, url) => {
     return false;
   }
 });
+
+async function ensureDefaultPlugins() {
+  const pluginsDir = getPluginsDirectory();
+  try {
+    await fs.mkdir(pluginsDir, { recursive: true });
+
+    const csvPlugin = `pedro.registerExporter("Custom CSV", (data) => {
+  let csv = "Type,X,Y,Heading\\n";
+  if (data.startPoint) {
+      const h = data.startPoint.heading === 'constant' ? data.startPoint.degrees : 'Tangential';
+      csv += \`Start,\${data.startPoint.x},\${data.startPoint.y},\${h}\\n\`;
+  }
+  if (data.lines) {
+      data.lines.forEach(line => {
+          const h = line.endPoint.heading === 'constant' ? line.endPoint.degrees : 'Tangential';
+          csv += \`Point,\${line.endPoint.x},\${line.endPoint.y},\${h}\\n\`;
+      });
+  }
+  return csv;
+});`;
+
+    const pinkPlugin = `pedro.registerTheme("Pink", \`
+.bg-blue-500 { background-color: #ec4899 !important; }
+.bg-blue-600 { background-color: #db2777 !important; }
+.text-blue-500 { color: #ec4899 !important; }
+.text-blue-600 { color: #db2777 !important; }
+.text-blue-700 { color: #be185d !important; }
+.border-blue-500 { border-color: #ec4899 !important; }
+.ring-blue-500 { --tw-ring-color: #ec4899 !important; }
+.focus\\\\:ring-blue-500:focus { --tw-ring-color: #ec4899 !important; }
+.bg-indigo-500 { background-color: #d946ef !important; }
+.text-indigo-500 { color: #d946ef !important; }
+.ring-indigo-500 { --tw-ring-color: #d946ef !important; }
+.focus\\\\:ring-indigo-500:focus { --tw-ring-color: #d946ef !important; }
+::selection { background-color: #fce7f3; color: #831843; }
+\`);`;
+
+    const csvPath = path.join(pluginsDir, "csv-exporter.js");
+    const pinkPath = path.join(pluginsDir, "pink-theme.js");
+
+    try {
+      await fs.access(csvPath);
+    } catch {
+      await fs.writeFile(csvPath, csvPlugin, "utf-8");
+    }
+
+    try {
+      await fs.access(pinkPath);
+    } catch {
+      await fs.writeFile(pinkPath, pinkPlugin, "utf-8");
+    }
+  } catch (err) {
+    console.error("Failed to ensure default plugins", err);
+  }
+}
 
 // Add handler for file copy
 ipcMain.handle("file:copy", async (event, srcPath, destPath) => {

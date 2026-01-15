@@ -1,6 +1,11 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PluginManager } from "../lib/pluginManager";
-import { customExportersStore, pluginsStore } from "../lib/pluginsStore";
+import {
+  customExportersStore,
+  pluginsStore,
+  themesStore,
+} from "../lib/pluginsStore";
 import { get } from "svelte/store";
 
 describe("PluginManager", () => {
@@ -8,6 +13,7 @@ describe("PluginManager", () => {
     // Reset stores
     customExportersStore.set([]);
     pluginsStore.set([]);
+    themesStore.set([]);
     vi.clearAllMocks();
   });
 
@@ -60,5 +66,24 @@ describe("PluginManager", () => {
     expect(plugins).toHaveLength(1);
     expect(plugins[0].loaded).toBe(false);
     expect(plugins[0].error).toContain("Boom");
+  });
+
+  it("should register themes", async () => {
+    const mockListPlugins = vi.fn().mockResolvedValue(["theme-plugin.js"]);
+    const mockReadPlugin = vi.fn().mockResolvedValue(`
+      pedro.registerTheme("Pink", ".bg-blue { color: pink; }");
+    `);
+
+    (window as any).electronAPI = {
+      listPlugins: mockListPlugins,
+      readPlugin: mockReadPlugin,
+    };
+
+    await PluginManager.init();
+
+    const themes = get(themesStore);
+    expect(themes).toHaveLength(1);
+    expect(themes[0].name).toBe("Pink");
+    expect(themes[0].css).toBe(".bg-blue { color: pink; }");
   });
 });
