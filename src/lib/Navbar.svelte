@@ -19,6 +19,7 @@
   import { getRandomColor } from "../utils";
   import FileManager from "./FileManager.svelte";
   import SettingsDialog from "./components/SettingsDialog.svelte";
+  import PluginManagerDialog from "./components/PluginManagerDialog.svelte";
   import KeyboardShortcutsDialog from "./components/KeyboardShortcutsDialog.svelte";
   import ExportCodeDialog from "./components/ExportCodeDialog.svelte";
   import { SaveIcon } from "./components/icons";
@@ -53,6 +54,7 @@
   export let canRedo: boolean;
 
   let shortcutsOpen = false;
+  let showPlugins = false;
   let exportMenuOpen = false;
   let exportDialog: ExportCodeDialog;
 
@@ -206,6 +208,7 @@
 />
 
 <SettingsDialog bind:isOpen={$showSettings} bind:settings />
+<PluginManagerDialog bind:isOpen={showPlugins} />
 <KeyboardShortcutsDialog bind:isOpen={shortcutsOpen} bind:settings />
 
 <div
@@ -943,6 +946,29 @@
             stroke-linecap="round"
             stroke-linejoin="round"
             d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+          />
+        </svg>
+      </button>
+
+      <!-- Plugin Manager Button -->
+      <button
+        title="Plugin Manager"
+        aria-label="Plugin Manager"
+        on:click={() => (showPlugins = true)}
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 0 1-.657.643 48.39 48.39 0 0 1-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 0 1-.658.663v0c-.355 0-.676-.186-.959-.401a2.873 2.873 0 0 0-1.603-.784A1.875 1.875 0 0 0 1.5 12c0 1.036.84 2.25 1.875 2.25a2.873 2.873 0 0 0 1.603-.784c.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 0 1-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 0 1 .663.64v0c0 .355-.186.676-.401.959a2.873 2.873 0 0 0-.784 1.603c0 1.242.84 2.25 1.875 2.25s1.875-1.008 1.875-2.25a2.873 2.873 0 0 0-.784-1.603c-.215-.283-.401-.604-.401-.959v0a.64.64 0 0 1 .643-.657c1.613.186 3.25.293 4.907.315.068-.32.12-.642.152-.966a.64.64 0 0 1 .663-.658v0c.355 0 .676.186.959.401.29.221.634.349 1.003.349 1.035 0 1.875-1.007 1.875-2.25s-.84-2.25-1.875-2.25a2.873 2.873 0 0 0-1.003.349c-.283.215-.604.401-.959.401v0a.656.656 0 0 1-.658-.663 48.422 48.422 0 0 0-.315-4.907c-.32-.068-.642-.12-.966-.152a.64.64 0 0 1-.658-.663v0c0-.355.186-.676.401-.959a2.873 2.873 0 0 0 .784-1.603c0-1.242-.84-2.25-1.875-2.25S15.75 2.508 15.75 3.75c0 .613.232 1.18.618 1.603.215.283.401.604.401.959v0a.64.64 0 0 1-.643.657c-1.613-.186-3.25-.293-4.907-.315-.068.32-.12.642-.152.966a.64.64 0 0 1-.663.658Z"
           />
         </svg>
       </button>
