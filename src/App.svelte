@@ -89,6 +89,8 @@
     writeFileBase64?: (path: string, content: string) => Promise<boolean>;
     rendererReady?: () => Promise<void>;
     onOpenFilePath?: (callback: (path: string) => void) => void;
+    onAppCloseRequested?: (callback: () => void) => void;
+    sendCloseApproved?: () => void;
     // Open a link in the system default browser
     openExternal?: (url: string) => Promise<boolean>;
     getPathForFile?: (file: File) => string;
@@ -138,6 +140,7 @@
   // Custom Prompt State
   let showSaveNameDialog = false;
   let showUnsavedChangesDialog = false;
+  let pendingAction: "reset" | "close" | null = null;
   let saveNameResolve: ((name: string | null) => void) | null = null;
 
   function openSaveNamePrompt(): Promise<string | null> {
@@ -196,17 +199,33 @@
     }
 
     if (success) {
-      performReset();
+      if (pendingAction === "close") {
+        if (api && api.sendCloseApproved) {
+          api.sendCloseApproved();
+        }
+      } else {
+        performReset();
+      }
     }
+    pendingAction = null;
   }
 
   function handleUnsavedDiscard() {
     showUnsavedChangesDialog = false;
-    performReset();
+    if (pendingAction === "close") {
+      const api = (window as any).electronAPI;
+      if (api && api.sendCloseApproved) {
+        api.sendCloseApproved();
+      }
+    } else {
+      performReset();
+    }
+    pendingAction = null;
   }
 
   function handleUnsavedCancel() {
     showUnsavedChangesDialog = false;
+    pendingAction = null;
   }
 
   function performReset() {
@@ -381,17 +400,44 @@
 
   // Handle On Close Autosave
   function handleBeforeUnload(e: BeforeUnloadEvent) {
-    if (settings?.autosaveMode === "close") {
-      const path = get(currentFilePath);
-      if (path && get(isUnsaved)) {
-        saveProject();
-      }
-    }
-
-    // Always warn if unsaved, even if we tried to autosave (async save might not finish)
-    if (get(isUnsaved)) {
+    // Legacy web behavior - mostly unused in Electron due to main process interception
+    // but kept for safety if running in browser
+    if (!electronAPI && get(isUnsaved)) {
       e.preventDefault();
       e.returnValue = "";
+    }
+  }
+
+  async function handleAppCloseRequested() {
+    const unsaved = get(isUnsaved);
+    const autosaveMode = settings?.autosaveMode;
+
+    if (autosaveMode === "close") {
+      // Autosave and close
+      const path = get(currentFilePath);
+      if (path && unsaved) {
+        await saveProject();
+        if (electronAPI && electronAPI.sendCloseApproved) {
+          electronAPI.sendCloseApproved();
+        }
+        return;
+      } else if (!unsaved) {
+        // Nothing to save
+        if (electronAPI && electronAPI.sendCloseApproved) {
+          electronAPI.sendCloseApproved();
+        }
+        return;
+      }
+      // If unsaved and no path (new file), fall through to prompt
+    }
+
+    if (unsaved) {
+      pendingAction = "close";
+      showUnsavedChangesDialog = true;
+    } else {
+      if (electronAPI && electronAPI.sendCloseApproved) {
+        electronAPI.sendCloseApproved();
+      }
     }
   }
 
@@ -567,6 +613,7 @@
 
   async function handleResetProject() {
     if (get(isUnsaved)) {
+      pendingAction = "reset";
       showUnsavedChangesDialog = true;
     } else {
       performReset();
@@ -714,6 +761,12 @@
       // Signal main process that we are ready to receive file paths
       if (electronAPI.rendererReady) {
         electronAPI.rendererReady();
+      }
+
+      if (electronAPI.onAppCloseRequested) {
+        electronAPI.onAppCloseRequested(() => {
+          handleAppCloseRequested();
+        });
       }
 
       if (electronAPI.onMenuAction) {

@@ -1413,6 +1413,37 @@
         window.open(url, "_blank");
       }
     },
+    setFileManagerDirectory: async () => {
+      if (window.electronAPI && window.electronAPI.setDirectory) {
+        await window.electronAPI.setDirectory();
+        // Optionally refresh files after setting directory
+        fetchFiles();
+      }
+    },
+    resetKeybinds: () => {
+      settingsStore.update((s) => ({
+        ...s,
+        keyBindings: DEFAULT_KEY_BINDINGS.map((b) => ({ ...b })),
+      }));
+    },
+    resetSettings: () => {
+      settingsStore.set(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)));
+    },
+    cycleTheme: () => {
+      settingsStore.update((s) => {
+        const themes: ("light" | "dark" | "auto")[] = ["light", "dark", "auto"];
+        const currentIndex = themes.indexOf(s.theme);
+        const nextIndex = (currentIndex + 1) % themes.length;
+        return { ...s, theme: themes[nextIndex] };
+      });
+    },
+    setThemeLight: () => (actions as any).setTheme("light"),
+    setThemeDark: () => (actions as any).setTheme("dark"),
+    setAutoSaveNever: () => (actions as any).setAutosave("never"),
+    setAutoSave1m: () => (actions as any).setAutosave("time", 1),
+    setAutoSave5m: () => (actions as any).setAutosave("time", 5),
+    setAutoSaveChange: () => (actions as any).setAutosave("change"),
+    setAutoSaveClose: () => (actions as any).setAutosave("close"),
   };
 
   // Derive commands list for Command Palette

@@ -25,8 +25,7 @@
         Unsaved Changes
       </h2>
       <p class="mb-6 text-neutral-600 dark:text-neutral-400">
-        You have unsaved changes. Do you want to save them before creating a new
-        project?
+        You have unsaved changes. Do you want to save them?
       </p>
 
       <div class="flex justify-end gap-3 flex-wrap">

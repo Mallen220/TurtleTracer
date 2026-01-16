@@ -360,6 +360,21 @@ const createWindow = async () => {
     },
   );
 
+  // Intercept close event to handle unsaved changes
+  newWindow.on("close", (e) => {
+    // If we have already approved the close, let it proceed
+    if (newWindow.isCloseApproved) {
+      return;
+    }
+
+    // Prevent default closing behavior
+    e.preventDefault();
+
+    // Ask the renderer if it's okay to close (check for unsaved changes)
+    // We send this to the specific window trying to close
+    newWindow.webContents.send("app-close-requested");
+  });
+
   newWindow.on("closed", () => {
     windows.delete(newWindow);
     newWindow = null;
@@ -863,6 +878,15 @@ ipcMain.handle("directory:save-settings", async (event, settings) => {
 ipcMain.handle("directory:get-saved-directory", async () => {
   const settings = await loadDirectorySettings();
   return settings.autoPathsDirectory || "";
+});
+
+// Handle app close approval from renderer
+ipcMain.handle("app-close-approved", (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) {
+    win.isCloseApproved = true;
+    win.close();
+  }
 });
 
 // Add to existing IPC handlers
