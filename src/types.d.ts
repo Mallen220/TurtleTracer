@@ -26,6 +26,7 @@ declare global {
         path?: string,
       ) => Promise<{ success: boolean; filepath: string; error?: string }>;
       copyFile?: (src: string, dest: string) => Promise<boolean>;
+      gitShow?: (filePath: string) => Promise<string | null>;
     };
   }
 }

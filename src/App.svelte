@@ -102,6 +102,7 @@
     openExternal?: (url: string) => Promise<boolean>;
     getPathForFile?: (file: File) => string;
     getSavedDirectory?: () => Promise<string>;
+    gitShow?: (filePath: string) => Promise<string | null>;
   }
   const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
 

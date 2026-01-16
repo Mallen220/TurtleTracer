@@ -31,6 +31,17 @@
     percentStore,
   } from "../projectStore";
   import {
+    diffMode,
+    toggleDiff,
+    committedData,
+    diffResult,
+    isLoadingDiff,
+  } from "../diffStore";
+  import {
+    currentFilePath,
+    gitStatusStore,
+  } from "../../stores";
+  import {
     POINT_RADIUS,
     LINE_WIDTH,
     FIELD_SIZE,
@@ -182,6 +193,14 @@
   $: sequence = $sequenceStore; // Needed for wait markers
   $: markers = $collisionMarkers;
 
+  // Diff Mode State
+  $: isDiffMode = $diffMode;
+  $: diffData = $diffResult;
+  $: oldData = $committedData;
+  $: currentFile = $currentFilePath;
+  $: gitStatus = $gitStatusStore;
+  $: isDirty = currentFile && gitStatus[currentFile] && gitStatus[currentFile] !== "clean";
+
   function updateRects() {
     if (two?.renderer?.domElement) {
       cachedRect = two.renderer.domElement.getBoundingClientRect();
@@ -304,19 +323,17 @@
     return _points;
   })();
 
-  // Paths (Lines)
-  $: path = (() => {
-    // Reference selectedLineId to trigger updates when selection changes
-    const currentSelectedId = $selectedLineId;
+  // Reusable path generation function
+  function generatePathElements(targetLines: Line[], targetStartPoint: Point, getColor: (line: Line) => string, getWidth: (line: Line) => number, idPrefix: string, isHeatmapEnabled: boolean = false) {
     let _path: (Path | PathLine)[] = [];
-    lines.forEach((line, idx) => {
+    targetLines.forEach((line, idx) => {
       if (!line || !line.endPoint) return;
       let _startPoint =
-        idx === 0 ? startPoint : lines[idx - 1]?.endPoint || null;
+        idx === 0 ? targetStartPoint : targetLines[idx - 1]?.endPoint || null;
       if (!_startPoint) return;
 
-      // Check for Velocity Heatmap Mode
-      const showHeatmap = settings.showVelocityHeatmap && timePrediction;
+      // Check for Velocity Heatmap Mode (only for main path)
+      const showHeatmap = isHeatmapEnabled && settings.showVelocityHeatmap && timePrediction;
       let heatmapSegments: PathLine[] = [];
 
       if (showHeatmap) {
@@ -365,11 +382,8 @@
               y(currPt.y),
             );
             seg.stroke = color;
-            seg.linewidth =
-              line.id === currentSelectedId
-                ? uiLength(LINE_WIDTH * 2.5)
-                : uiLength(LINE_WIDTH);
-            seg.id = `line-${idx + 1}-seg-${i}`;
+            seg.linewidth = getWidth(line);
+            seg.id = `${idPrefix}-line-${idx + 1}-seg-${i}`;
             if (line.locked) {
               seg.dashes = [uiLength(2), uiLength(2)];
               seg.opacity = 0.7;
@@ -460,12 +474,9 @@
           y(line.endPoint.y),
         );
       }
-      lineElem.id = `line-${idx + 1}`;
-      lineElem.stroke = line.color;
-      const isSelected = line.id === currentSelectedId;
-      lineElem.linewidth = isSelected
-        ? uiLength(LINE_WIDTH * 2.5)
-        : uiLength(LINE_WIDTH);
+      lineElem.id = `${idPrefix}-line-${idx + 1}`;
+      lineElem.stroke = getColor(line);
+      lineElem.linewidth = getWidth(line);
       lineElem.noFill();
       if (line.locked) {
         lineElem.dashes = [uiLength(2), uiLength(2)];
@@ -477,6 +488,52 @@
       _path.push(lineElem);
     });
     return _path;
+  }
+
+  // Paths (Lines) - Standard
+  $: path = (() => {
+    if (isDiffMode) return []; // Don't render standard path in diff mode
+    const currentSelectedId = $selectedLineId;
+    return generatePathElements(
+      lines,
+      startPoint,
+      (l) => l.color,
+      (l) => l.id === currentSelectedId ? uiLength(LINE_WIDTH * 2.5) : uiLength(LINE_WIDTH),
+      "",
+      true
+    );
+  })();
+
+  // Diff Paths
+  $: diffPathElements = (() => {
+    if (!isDiffMode) return [];
+
+    // 1. Committed Path (Old) - Red
+    const committedPaths = oldData ? generatePathElements(
+      oldData.lines,
+      oldData.startPoint,
+      () => "#ef4444", // Red
+      () => uiLength(LINE_WIDTH),
+      "diff-old",
+      false
+    ) : [];
+
+    // 2. Current Path (New/Same)
+    const currentPaths = generatePathElements(
+      lines,
+      startPoint,
+      (l) => {
+        // Check if same
+        const isSame = diffData?.sameLines.some(sl => sl.id === l.id);
+        if (isSame) return "#3b82f6"; // Blue
+        return "#22c55e"; // Green
+      },
+      (l) => uiLength(LINE_WIDTH), // No selection highlight in diff mode? Or maybe yes.
+      "diff-new",
+      false
+    );
+
+    return [...committedPaths, ...currentPaths];
   })();
 
   // Shapes (Obstacles)
@@ -987,9 +1044,10 @@
     onionLayerElements.forEach((el) => shapeGroup.add(el));
 
     path.forEach((el) => lineGroup.add(el));
+    diffPathElements.forEach((el) => lineGroup.add(el));
     previewPathElements.forEach((el) => lineGroup.add(el));
 
-    if (!$isPresentationMode) {
+    if (!$isPresentationMode && !isDiffMode) {
       points.forEach((el) => pointGroup.add(el));
       eventMarkerElements.forEach((el) => eventGroup.add(el));
       // Ensure collisionElements is used in the reactive block to trigger updates
@@ -1591,6 +1649,28 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
       visible={isMouseOverField}
       isObstructed={isObstructingHUD}
     />
+
+    {#if isDirty}
+      <div class="absolute top-2 left-2 z-30">
+        <button
+          class="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm backdrop-blur-sm transition-all duration-200 flex items-center gap-2 border {isDiffMode ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700' : 'bg-white/90 dark:bg-neutral-800/90 text-neutral-700 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'}"
+          on:click={toggleDiff}
+          title="Toggle Visual Diff"
+        >
+          {#if $isLoadingDiff}
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          {:else}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-4 h-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          {/if}
+          {isDiffMode ? "Exit Diff" : "Compare"}
+        </button>
+      </div>
+    {/if}
 
     <!-- Zoom Controls -->
     <div

@@ -14,6 +14,8 @@
   import PathTab from "./components/tabs/PathTab.svelte";
   import FieldTab from "./components/tabs/FieldTab.svelte";
   import TableTab from "./components/tabs/TableTab.svelte";
+  import DiffTab from "./components/tabs/DiffTab.svelte";
+  import { diffMode } from "./diffStore";
 
   // Register default tabs
   tabRegistry.register({
@@ -264,6 +266,21 @@
 <div
   class="flex-1 flex flex-col justify-start items-center gap-2 h-full relative"
 >
+  {#if $diffMode}
+    <div class="w-full px-4 pt-4 flex-none z-10">
+      <div class="bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200 px-4 py-3 rounded-xl border border-purple-200 dark:border-purple-800 flex items-center justify-between">
+        <span class="font-semibold flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="size-5" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Diff View
+        </span>
+      </div>
+    </div>
+    <div class="flex-1 w-full overflow-y-auto overflow-x-hidden relative">
+      <DiffTab />
+    </div>
+  {:else}
   <!-- Tab Switcher -->
   <div class="w-full px-4 pt-4 flex-none z-10 flex gap-3">
     <div
@@ -339,6 +356,7 @@
       </div>
     {/each}
   </div>
+  {/if}
 
   <div
     class="flex-none w-full bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
