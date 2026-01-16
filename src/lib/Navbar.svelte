@@ -26,6 +26,7 @@
   import { showShortcuts } from "../stores";
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
+  import { menuNavigation } from "./actions/menuNavigation";
 
   // svelte-ignore unused-export-let
   // export let loadFile: (evt: any) => any;
@@ -517,11 +518,8 @@
         <div
           bind:this={viewOptionsRef}
           on:click|stopPropagation
-          on:keydown={(e) => {
-            if (e.key === "Escape") {
-              viewOptionsOpen = false;
-            }
-          }}
+          use:menuNavigation
+          on:close={() => (viewOptionsOpen = false)}
           role="menu"
           tabindex="0"
           class="absolute right-0 mt-2 w-44 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-2 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100"
@@ -797,6 +795,8 @@
         {#if saveDropdownOpen}
           <div
             bind:this={saveDropdownRef}
+            use:menuNavigation
+            on:close={() => (saveDropdownOpen = false)}
             class="absolute right-0 mt-2 w-48 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100"
           >
             <button
@@ -849,6 +849,8 @@
         {#if exportMenuOpen}
           <div
             bind:this={exportMenuRef}
+            use:menuNavigation
+            on:close={() => (exportMenuOpen = false)}
             class="absolute right-0 mt-2 w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100"
           >
             <button
