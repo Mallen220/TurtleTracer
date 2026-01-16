@@ -544,6 +544,8 @@
   $: shapeElements = (() => {
     let _shapes: Path[] = [];
     shapes.forEach((shape, idx) => {
+      if (shape.visible === false) return; // Skip hidden shapes
+
       if (shape.vertices.length >= 3) {
         let vertices = [];
         vertices.push(
@@ -584,10 +586,23 @@
         vertices.forEach((point) => (point.relative = false));
         let shapeElement = new Two.Path(vertices);
         shapeElement.id = `shape-${idx}`;
-        shapeElement.stroke = shape.color;
-        shapeElement.fill = shape.color;
-        shapeElement.opacity = 0.4;
-        shapeElement.linewidth = uiLength(0.8);
+
+        // Styling based on type
+        if (shape.type === "keep-in") {
+          shapeElement.stroke = shape.color;
+          shapeElement.fill = shape.color;
+          shapeElement.opacity = 0.04; // Very low occupancy fill ~4%
+          shapeElement.linewidth = uiLength(1.0);
+          shapeElement.dashes = [uiLength(4), uiLength(4)]; // Dashed lines
+        } else {
+          // Standard Obstacle
+          shapeElement.stroke = shape.color;
+          shapeElement.fill = shape.color;
+          shapeElement.opacity = 0.4;
+          shapeElement.linewidth = uiLength(0.8);
+          shapeElement.dashes = [];
+        }
+
         shapeElement.automatic = false;
         _shapes.push(shapeElement);
       }
@@ -967,6 +982,7 @@
         const group = new Two.Group();
         const isBoundary = marker.type === "boundary";
         const isZeroLength = marker.type === "zero-length";
+        const isKeepIn = marker.type === "keep-in";
 
         const circle = new Two.Circle(x(marker.x), y(marker.y), uiLength(2));
         if (isBoundary) {
@@ -975,6 +991,9 @@
         } else if (isZeroLength) {
           circle.fill = "rgba(217, 70, 239, 0.5)"; // Fuchsia-500 (Magenta-ish)
           circle.stroke = "#d946ef";
+        } else if (isKeepIn) {
+          circle.fill = "rgba(59, 130, 246, 0.5)"; // Blue-500
+          circle.stroke = "#3b82f6";
         } else {
           circle.fill = "rgba(239, 68, 68, 0.5)"; // Red-500
           circle.stroke = "#ef4444";
@@ -1008,6 +1027,9 @@
         } else if (isZeroLength) {
           glow.fill = "rgba(217, 70, 239, 0.3)";
           glow.stroke = "rgba(217, 70, 239, 0.5)";
+        } else if (isKeepIn) {
+          glow.fill = "rgba(59, 130, 246, 0.3)";
+          glow.stroke = "rgba(59, 130, 246, 0.5)";
         } else {
           glow.fill = "rgba(239, 68, 68, 0.3)";
           glow.stroke = "rgba(239, 68, 68, 0.5)";

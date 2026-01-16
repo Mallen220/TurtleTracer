@@ -64,7 +64,9 @@
                   class="flex items-center gap-2 font-medium text-sm hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors"
                   title="{collapsedObstacles[shapeIdx]
                     ? 'Expand'
-                    : 'Collapse'} obstacle"
+                    : 'Collapse'} {shape.type === 'keep-in'
+                    ? 'Keep-In'
+                    : 'Obstacle'}"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -84,15 +86,32 @@
                       d="m8.25 4.5 7.5 7.5-7.5 7.5"
                     />
                   </svg>
-                  Obstacle {shapeIdx + 1}
+                  {shape.type === "keep-in" ? "Keep-In" : "Obstacle"}
+                  {shapeIdx + 1}
                 </button>
 
                 <input
                   bind:value={shape.name}
-                  placeholder="Obstacle {shapeIdx + 1}"
+                  placeholder="{shape.type === 'keep-in'
+                    ? 'Keep-In'
+                    : 'Obstacle'} {shapeIdx + 1}"
                   class="pl-1.5 rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm font-medium h-7"
                   disabled={shape.locked ?? false}
                 />
+
+                <select
+                  bind:value={shape.type}
+                  class="h-7 text-xs rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  disabled={shape.locked ?? false}
+                  on:change={() => {
+                    // Initialize default if needed, though bind should handle it
+                    if (!shape.type) shape.type = "obstacle";
+                  }}
+                >
+                  <option value="obstacle">Obstacle</option>
+                  <option value="keep-in">Keep-In</option>
+                </select>
+
                 <div
                   class="relative size-6 rounded-full overflow-hidden shadow-sm border border-neutral-300 dark:border-neutral-600 shrink-0"
                   style="background-color: {shape.color}"
@@ -108,6 +127,53 @@
               </div>
 
               <div class="flex flex-row gap-1">
+                <button
+                  title={shape.visible !== false ? "Hide Shape" : "Show Shape"}
+                  on:click={() => {
+                    shape.visible = !(shape.visible !== false);
+                    shapes = [...shapes];
+                  }}
+                  class="p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
+                >
+                  {#if shape.visible !== false}
+                    <!-- Eye Open -->
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      class="size-4"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+                      />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                      />
+                    </svg>
+                  {:else}
+                    <!-- Eye Slash -->
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      class="size-4"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
+                      />
+                    </svg>
+                  {/if}
+                </button>
                 <button
                   title={shape.locked ? "Unlock Obstacle" : "Lock Obstacle"}
                   aria-label={shape.locked

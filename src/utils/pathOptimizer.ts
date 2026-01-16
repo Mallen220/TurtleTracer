@@ -39,7 +39,9 @@ export class PathOptimizer {
   private settings: Settings;
   private sequence: SequenceItem[];
   private shapes: Shape[];
-  private activeShapes: Shape[];
+  private activeShapes: Shape[]; // All active shapes
+  private activeObstacles: Shape[]; // Only obstacle type
+  private activeKeepInZones: Shape[]; // Only keep-in type
 
   constructor(
     startPoint: Point,
@@ -54,6 +56,12 @@ export class PathOptimizer {
     this.sequence = sequence;
     this.shapes = shapes;
     this.activeShapes = this.shapes.filter((s) => s.vertices.length >= 3);
+    this.activeObstacles = this.activeShapes.filter(
+      (s) => s.type !== "keep-in",
+    );
+    this.activeKeepInZones = this.activeShapes.filter(
+      (s) => s.type === "keep-in",
+    );
     // Use settings values if provided, else defaults
     this.generations = settings.optimizationIterations ?? 100;
     this.populationSize = settings.optimizationPopulationSize ?? 50;
@@ -314,7 +322,7 @@ export class PathOptimizer {
       const corners = getRobotCorners(x, y, heading, rLength, rWidth);
 
       let isColliding = false;
-      let collisionType: "obstacle" | "boundary" = "obstacle";
+      let collisionType: "obstacle" | "boundary" | "keep-in" = "obstacle";
 
       // 1. Boundary Checks (if enabled)
       if (this.settings.validateFieldBoundaries !== false) {
@@ -346,19 +354,9 @@ export class PathOptimizer {
         }
       }
 
-      // 2. Obstacle Checks (only if no boundary violation yet, or check both?)
-      // We prioritize showing obstacle collisions if both happen, OR we show both?
-      // Let's stick to flagging the first one found or prioritizing obstacles?
-      // Actually, if we hit a boundary, we might also be in an obstacle (outside field?)
-      // But typically boundaries are walls.
-      // Let's check obstacles if not already colliding with boundary, or just check anyway
-      // and let the marker type reflect the most severe? Or just one marker per timestamp?
-      // The `markers` array can hold multiple for same time? Yes.
-      // But let's just push one marker per time step to avoid clutter.
-      // If boundary hit, we mark it. If obstacle hit, we mark it.
-
+      // 2. Obstacle Checks
       if (!isColliding) {
-        for (const shape of this.activeShapes) {
+        for (const shape of this.activeObstacles) {
           // Check if any robot corner is in shape
           for (const corner of corners) {
             if (pointInPolygon([corner.x, corner.y], shape.vertices)) {
@@ -376,6 +374,39 @@ export class PathOptimizer {
             }
           }
           if (isColliding) break;
+        }
+      }
+
+      // 3. Keep-In Zone Checks
+      // Robot must be strictly INSIDE at least one keep-in zone
+      if (!isColliding && this.activeKeepInZones.length > 0) {
+        // Recalculate corners WITHOUT safety margin
+        const rawCorners = getRobotCorners(
+          x,
+          y,
+          heading,
+          this.settings.rLength,
+          this.settings.rWidth,
+        );
+
+        let insideAnyZone = false;
+        for (const zone of this.activeKeepInZones) {
+          let allCornersIn = true;
+          for (const corner of rawCorners) {
+            if (!pointInPolygon([corner.x, corner.y], zone.vertices)) {
+              allCornersIn = false;
+              break;
+            }
+          }
+          if (allCornersIn) {
+            insideAnyZone = true;
+            break;
+          }
+        }
+
+        if (!insideAnyZone) {
+          isColliding = true;
+          collisionType = "keep-in";
         }
       }
 

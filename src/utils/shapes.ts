@@ -20,6 +20,8 @@ export function createTriangle(existingShapesCount: number): Shape {
     color: "#dc2626",
     fillColor: "#fca5a5",
     locked: false,
+    type: "obstacle",
+    visible: true,
   };
 }
 
@@ -39,6 +41,8 @@ export function createRectangle(existingShapesCount: number): Shape {
     color: "#dc2626",
     fillColor: "#fca5a5",
     locked: false,
+    type: "obstacle",
+    visible: true,
   };
 }
 
@@ -66,6 +70,8 @@ export function createNGon(sides: number, existingShapesCount: number): Shape {
     color: "#dc2626",
     fillColor: "#fca5a5",
     locked: false,
+    type: "obstacle",
+    visible: true,
   };
 }
 
