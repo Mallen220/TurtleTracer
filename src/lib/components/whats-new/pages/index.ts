@@ -24,6 +24,8 @@ import eventMarkersContent from "./event-markers.md?raw";
 import optimizationContent from "./optimization.md?raw";
 // @ts-ignore
 import pedroPathingPlusContent from "./pedro-pathing-plus.md?raw";
+// @ts-ignore
+import pluginsContent from "./plugins.md?raw";
 
 export interface Page {
   id: string;
@@ -62,6 +64,14 @@ export const pages: Page[] = [
       "Unlock direct path execution and advanced command-based features.",
     type: "page",
     content: pedroPathingPlusContent,
+    icon: "sparkles",
+  },
+  {
+    id: "plugins",
+    title: "Plugins",
+    description: "Extend the visualizer with custom exporters, themes, and more.",
+    type: "page",
+    content: pluginsContent,
     icon: "sparkles",
   },
   {
