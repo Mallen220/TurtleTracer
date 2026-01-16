@@ -726,8 +726,9 @@
       if (!_startPoint) return;
 
       line.eventMarkers.forEach((ev, evIdx) => {
-        // Only show marker if it's being hovered
-        if ($hoveredMarkerId !== ev.id) return;
+        const isHovered = $hoveredMarkerId === ev.id;
+        const radius = isHovered ? 1.8 : 0.9;
+        const color = isHovered ? "#a78bfa" : "#c4b5fd";
 
         const t = Math.max(0, Math.min(1, ev.position ?? 0.5));
         let pos = { x: 0, y: 0 };
@@ -744,8 +745,9 @@
         const py = y(pos.y);
         let grp = new Two.Group();
         grp.id = `event-${idx}-${evIdx}`;
-        let circle = new Two.Circle(px, py, uiLength(1.8));
-        circle.fill = "#a78bfa";
+        let circle = new Two.Circle(px, py, uiLength(radius));
+        circle.id = `event-circle-${idx}-${evIdx}`;
+        circle.fill = color;
         circle.noStroke();
         grp.add(circle);
         twoMarkers.push(grp);
@@ -775,15 +777,15 @@
           return;
         const point = ev.atPoint;
         seqWait.eventMarkers.forEach((event: any, eventIdx: number) => {
-          // Only show marker if it's being hovered
-          if ($hoveredMarkerId !== event.id) return;
+          const isHovered = $hoveredMarkerId === event.id;
+          const radiusMult = isHovered ? 1.3 : 0.9;
 
           const markerGroup = new Two.Group();
           markerGroup.id = `wait-event-${ev.waitId}-${eventIdx}`;
           const markerCircle = new Two.Circle(
             x(point.x),
             y(point.y),
-            uiLength(POINT_RADIUS * 1.3),
+            uiLength(POINT_RADIUS * radiusMult),
           );
           markerCircle.id = `wait-event-circle-${ev.waitId}-${eventIdx}`;
           const waitSelected = $selectedPointId === `wait-${ev.waitId}`;
@@ -792,11 +794,11 @@
             markerCircle.stroke = "#fffbeb";
             markerCircle.linewidth = uiLength(0.6);
           } else {
-            markerCircle.fill = "#8b5cf6";
+            markerCircle.fill = isHovered ? "#8b5cf6" : "#a78bfa";
             markerCircle.stroke = "#ffffff";
             markerCircle.linewidth = uiLength(0.3);
           }
-          const flagSize = uiLength(1);
+          const flagSize = uiLength(isHovered ? 1 : 0.6);
           const flagPoints = [
             new Two.Anchor(x(point.x), y(point.y) - flagSize / 2),
             new Two.Anchor(x(point.x) + flagSize / 2, y(point.y)),
@@ -824,15 +826,15 @@
           return;
         const point = ev.atPoint;
         seqRotate.eventMarkers.forEach((event: any, eventIdx: number) => {
-          // Only show marker if it's being hovered
-          if ($hoveredMarkerId !== event.id) return;
+          const isHovered = $hoveredMarkerId === event.id;
+          const radiusMult = isHovered ? 1.3 : 0.9;
 
           const markerGroup = new Two.Group();
           markerGroup.id = `rotate-event-${ev.waitId}-${eventIdx}`;
           const markerCircle = new Two.Circle(
             x(point.x),
             y(point.y),
-            uiLength(POINT_RADIUS * 1.3),
+            uiLength(POINT_RADIUS * radiusMult),
           );
           markerCircle.id = `rotate-event-circle-${ev.waitId}-${eventIdx}`;
           const rotateSelected = $selectedPointId === `rotate-${ev.waitId}`;
@@ -841,12 +843,12 @@
             markerCircle.stroke = "#fffbeb";
             markerCircle.linewidth = uiLength(0.6);
           } else {
-            markerCircle.fill = "#06b6d4";
+            markerCircle.fill = isHovered ? "#06b6d4" : "#67e8f9";
             markerCircle.stroke = "#ffffff";
             markerCircle.linewidth = uiLength(0.3);
           }
           // Arrow/rotation indicator shape (circular arrow segment)
-          const arrowSize = uiLength(1);
+          const arrowSize = uiLength(isHovered ? 1 : 0.6);
           const arrowPoints = [
             new Two.Anchor(
               x(point.x) - arrowSize / 3,
@@ -1007,6 +1009,7 @@
 
     two.renderer.domElement.addEventListener("mouseleave", () => {
       isMouseOverField = false;
+      hoveredMarkerId.set(null);
       // Optimization: Stop listening when user leaves field to avoid global overhead
       window.removeEventListener("resize", updateRects);
       window.removeEventListener("scroll", updateRects, true);
@@ -1188,6 +1191,7 @@
         ) {
           two.renderer.domElement.style.cursor = "pointer";
           currentElem = target.id;
+          hoveredMarkerId.set(null);
         } else if (
           target?.id &&
           (target.id.startsWith("event-") ||
@@ -1195,7 +1199,10 @@
             target.id.startsWith("event-flag-") ||
             target.id.startsWith("wait-event-") ||
             target.id.startsWith("wait-event-circle-") ||
-            target.id.startsWith("wait-event-flag-"))
+            target.id.startsWith("wait-event-flag-") ||
+            target.id.startsWith("rotate-event-") ||
+            target.id.startsWith("rotate-event-circle-") ||
+            target.id.startsWith("rotate-event-arrow-"))
         ) {
           two.renderer.domElement.style.cursor = "pointer";
           // Normalize ID logic
@@ -1208,6 +1215,14 @@
             } else {
               currentElem = target.id;
             }
+          } else if (target.id.startsWith("rotate-event-")) {
+            if (idParts.length >= 4) {
+              const rotateId = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              currentElem = `rotate-event-${rotateId}-${evIdx}`;
+            } else {
+              currentElem = target.id;
+            }
           } else {
             if (idParts.length >= 3) {
               const lineIdx = idParts[idParts.length - 2];
@@ -1217,9 +1232,50 @@
               currentElem = target.id;
             }
           }
+          // Lookup actual event ID for hover highlighting
+          let actualHoverId = null;
+          if (currentElem.startsWith("event-")) {
+            const parts = currentElem.split("-");
+            // event-{lineIdx}-{evIdx}
+            if (parts.length >= 3) {
+              const lIdx = Number(parts[1]);
+              const eIdx = Number(parts[2]);
+              if (lines[lIdx]?.eventMarkers?.[eIdx]) {
+                actualHoverId = lines[lIdx].eventMarkers[eIdx].id;
+              }
+            }
+          } else if (currentElem.startsWith("wait-event-")) {
+            const parts = currentElem.split("-");
+            // wait-event-{waitId}-{evIdx}
+            if (parts.length >= 4) {
+              const waitId = parts[2];
+              const eIdx = Number(parts[3]);
+              const waitItem = sequence.find(
+                (s) => s.kind === "wait" && (s as any).id === waitId,
+              );
+              if (waitItem && (waitItem as any).eventMarkers?.[eIdx]) {
+                actualHoverId = (waitItem as any).eventMarkers[eIdx].id;
+              }
+            }
+          } else if (currentElem.startsWith("rotate-event-")) {
+            const parts = currentElem.split("-");
+            // rotate-event-{rotateId}-{evIdx}
+            if (parts.length >= 4) {
+              const rotateId = parts[2];
+              const eIdx = Number(parts[3]);
+              const rotateItem = sequence.find(
+                (s) => s.kind === "rotate" && (s as any).id === rotateId,
+              );
+              if (rotateItem && (rotateItem as any).eventMarkers?.[eIdx]) {
+                actualHoverId = (rotateItem as any).eventMarkers[eIdx].id;
+              }
+            }
+          }
+          hoveredMarkerId.set(actualHoverId);
         } else {
           two.renderer.domElement.style.cursor = "grab";
           currentElem = null;
+          hoveredMarkerId.set(null);
         }
       }
     });
