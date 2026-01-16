@@ -6,6 +6,7 @@
     showGrid,
     protractorLockToRobot,
     gridSize,
+    isPresentationMode,
   } from "../stores";
   import type * as d3 from "d3";
 
@@ -135,7 +136,7 @@
 
 <svelte:window on:mousemove={handleMouseMove} on:mouseup={handleMouseUp} />
 
-{#if $showGrid}
+{#if $showGrid && !$isPresentationMode}
   <svg class="absolute top-0 left-0 w-full h-full pointer-events-none z-20">
     <!-- Vertical grid lines -->
     {#each gridPositions as position, i}
@@ -181,7 +182,7 @@
   </svg>
 {/if}
 
-{#if $showRuler}
+{#if $showRuler && !$isPresentationMode}
   <svg class="absolute top-0 left-0 w-full h-full z-40 pointer-events-none">
     <!-- Ruler line -->
     <line
@@ -232,7 +233,7 @@
   </svg>
 {/if}
 
-{#if $showProtractor}
+{#if $showProtractor && !$isPresentationMode}
   <svg class="absolute top-0 left-0 w-full h-full z-40 pointer-events-none">
     <g
       transform="translate({x(actualProtractorPos.x)}, {y(

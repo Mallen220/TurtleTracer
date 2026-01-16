@@ -10,6 +10,7 @@
     showProtractor,
     showShortcuts,
     showSettings,
+    isPresentationMode,
     selectedPointId,
     selectedLineId,
     toggleCollapseAllTrigger,
@@ -1317,6 +1318,7 @@
     toggleSidebar: () => {
       if (toggleSidebar) toggleSidebar();
     },
+    togglePresentationMode: () => isPresentationMode.update((v) => !v),
     toggleVelocityHeatmap: () =>
       settingsStore.update((s) => ({
         ...s,
