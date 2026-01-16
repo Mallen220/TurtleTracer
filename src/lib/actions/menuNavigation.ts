@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-
 /**
  * Action to handle keyboard navigation within a menu.
  * Supports Arrow keys (Up/Down), Home, End, and Escape.
@@ -55,7 +54,7 @@ export function menuNavigation(
       event.preventDefault();
       items[items.length - 1]?.focus();
     } else if (event.key === "Tab") {
-        // Default Tab behavior
+      // Default Tab behavior
     } else if (
       event.key.length === 1 &&
       !event.ctrlKey &&

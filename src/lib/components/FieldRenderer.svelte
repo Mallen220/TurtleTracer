@@ -1537,8 +1537,10 @@
     style:transform={`rotate(${settings.fieldRotation || 0}deg)`}
     style:transition="transform 0.3s ease-in-out"
   >
-    {#if settings.customMaps?.some(m => m.id === settings.fieldMap)}
-      {@const activeMap = settings.customMaps.find(m => m.id === settings.fieldMap)}
+    {#if settings.customMaps?.some((m) => m.id === settings.fieldMap)}
+      {@const activeMap = settings.customMaps.find(
+        (m) => m.id === settings.fieldMap,
+      )}
       {#if activeMap}
         <img
           src={activeMap.imageData}

@@ -6,7 +6,7 @@
     SequenceItem,
     SequenceWaitItem,
     SequenceRotateItem,
-    Settings
+    Settings,
   } from "../../../types";
   import _ from "lodash";
   import {

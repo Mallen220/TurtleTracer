@@ -1,6 +1,13 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Point, Line, SequenceItem, Shape, Settings, BasePoint } from "../../../types";
+  import type {
+    Point,
+    Line,
+    SequenceItem,
+    Shape,
+    Settings,
+    BasePoint,
+  } from "../../../types";
   import { tick } from "svelte";
   import { slide } from "svelte/transition";
   import RobotPositionDisplay from "../RobotPositionDisplay.svelte";

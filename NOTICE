@@ -156,3 +156,5 @@ src/lib/components/whats-new/features/v1.6.2.md
 src/lib/components/tabs/TableTab.svelte
 src/lib/registries.ts
 src/tests/expandedPluginAPI.test.ts
+src/lib/actions/menuNavigation.ts
+src/lib/components/settings/CustomFieldWizard.svelte

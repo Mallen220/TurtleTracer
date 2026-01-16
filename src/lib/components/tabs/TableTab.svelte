@@ -1,6 +1,12 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Point, Line, SequenceItem, Shape, Settings } from "../../../types";
+  import type {
+    Point,
+    Line,
+    SequenceItem,
+    Shape,
+    Settings,
+  } from "../../../types";
   // Fixed incorrect relative import: WaypointTable is one level up from the tabs folder
   import WaypointTable from "../WaypointTable.svelte";
   import { validatePath } from "../../../utils/validation";

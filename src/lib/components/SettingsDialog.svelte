@@ -13,8 +13,8 @@
   import KeyboardShortcutsDialog from "./KeyboardShortcutsDialog.svelte";
   import RobotProfileManager from "./settings/RobotProfileManager.svelte";
   import CustomFieldWizard from "./settings/CustomFieldWizard.svelte";
-import { PluginManager } from "../pluginManager";
-import { pluginsStore, themesStore } from "../pluginsStore";
+  import { PluginManager } from "../pluginManager";
+  import { pluginsStore, themesStore } from "../pluginsStore";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -294,7 +294,7 @@ import { pluginsStore, themesStore } from "../pluginsStore";
     if (!settings.customMaps) settings.customMaps = [];
 
     // Check if we are updating an existing map
-    const index = settings.customMaps.findIndex(m => m.id === newConfig.id);
+    const index = settings.customMaps.findIndex((m) => m.id === newConfig.id);
     if (index >= 0) {
       settings.customMaps[index] = newConfig;
     } else {
@@ -311,13 +311,14 @@ import { pluginsStore, themesStore } from "../pluginsStore";
   }
 
   function handleEditCustomMap(id: string) {
-    editingCustomConfig = settings.customMaps?.find(m => m.id === id);
+    editingCustomConfig = settings.customMaps?.find((m) => m.id === id);
     isCustomFieldWizardOpen = true;
   }
 
   function handleDeleteCustomMap(id: string) {
     if (confirm("Are you sure you want to delete this custom field map?")) {
-      settings.customMaps = settings.customMaps?.filter(m => m.id !== id) || [];
+      settings.customMaps =
+        settings.customMaps?.filter((m) => m.id !== id) || [];
       // If the deleted map was selected, switch to default
       if (settings.fieldMap === id) {
         settings.fieldMap = "centerstage.webp";
@@ -328,7 +329,10 @@ import { pluginsStore, themesStore } from "../pluginsStore";
 
   $: availableMaps = [
     ...AVAILABLE_FIELD_MAPS,
-    ...(settings.customMaps || []).map(m => ({ value: m.id, label: m.name || "Custom Field" }))
+    ...(settings.customMaps || []).map((m) => ({
+      value: m.id,
+      label: m.name || "Custom Field",
+    })),
   ];
 </script>
 
@@ -1250,20 +1254,31 @@ import { pluginsStore, themesStore } from "../pluginsStore";
                     {/each}
                   </select>
 
-                  {#if settings.customMaps?.some(m => m.id === settings.fieldMap)}
-                     <button
-                        title="Delete Custom Map"
-                        class="p-2 text-neutral-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
-                        on:click={() => handleDeleteCustomMap(settings.fieldMap)}
-                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                     </button>
+                  {#if settings.customMaps?.some((m) => m.id === settings.fieldMap)}
+                    <button
+                      title="Delete Custom Map"
+                      class="p-2 text-neutral-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+                      on:click={() => handleDeleteCustomMap(settings.fieldMap)}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
                   {/if}
                 </div>
 
-                {#if settings.customMaps?.some(m => m.id === settings.fieldMap)}
+                {#if settings.customMaps?.some((m) => m.id === settings.fieldMap)}
                   <button
                     class="mt-2 w-full px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
                     on:click={() => handleEditCustomMap(settings.fieldMap)}
@@ -1273,10 +1288,10 @@ import { pluginsStore, themesStore } from "../pluginsStore";
                 {/if}
 
                 <button
-                    class="mt-2 w-full px-3 py-2 text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors border border-neutral-200 dark:border-neutral-700 border-dashed"
-                    on:click={handleAddCustomMap}
+                  class="mt-2 w-full px-3 py-2 text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors border border-neutral-200 dark:border-neutral-700 border-dashed"
+                  on:click={handleAddCustomMap}
                 >
-                    + Add Custom Field Map
+                  + Add Custom Field Map
                 </button>
               </div>
 
