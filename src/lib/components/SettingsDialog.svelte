@@ -13,8 +13,8 @@
   import KeyboardShortcutsDialog from "./KeyboardShortcutsDialog.svelte";
   import RobotProfileManager from "./settings/RobotProfileManager.svelte";
   import CustomFieldWizard from "./settings/CustomFieldWizard.svelte";
-  import { PluginManager } from "../pluginManager";
-  import { pluginsStore, themesStore } from "../pluginsStore";
+  import { themesStore } from "../pluginsStore";
+  import { showPluginManager } from "../../stores";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -26,7 +26,6 @@
     file: true,
     advanced: true,
     theme: true,
-    plugins: true,
     credits: true,
   };
 
@@ -454,6 +453,38 @@
             </div>
             <div class="text-sm text-blue-600 dark:text-blue-400 font-medium">
               Open Editor
+            </div>
+          </button>
+        </div>
+
+        <!-- Plugin Manager Section -->
+        <div class="mb-4">
+          <button
+            on:click={() => {
+              isOpen = false;
+              showPluginManager.set(true);
+            }}
+            class="flex items-center justify-between w-full py-2 px-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          >
+            <div class="flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width={1.5}
+                stroke="currentColor"
+                class="size-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 0 1-.657.643 48.39 48.39 0 0 1-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 0 1-.658.663v0c-.355 0-.676-.186-.959-.401a2.873 2.873 0 0 0-1.603-.784A1.875 1.875 0 0 0 1.5 12c0 1.036.84 2.25 1.875 2.25a2.873 2.873 0 0 0 1.603-.784c.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 0 1-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 0 1 .663.64v0c0 .355-.186.676-.401.959a2.873 2.873 0 0 0-.784 1.603c0 1.242.84 2.25 1.875 2.25s1.875-1.008 1.875-2.25a2.873 2.873 0 0 0-.784-1.603c-.215-.283-.401-.604-.401-.959v0a.64.64 0 0 1 .643-.657c1.613.186 3.25.293 4.907.315.068-.32.12-.642.152-.966a.64.64 0 0 1 .663-.658v0c.355 0 .676.186.959.401.29.221.634.349 1.003.349 1.035 0 1.875-1.007 1.875-2.25s-.84-2.25-1.875-2.25a2.873 2.873 0 0 0-1.003.349c-.283.215-.604.401-.959.401v0a.656.656 0 0 1-.658-.663 48.422 48.422 0 0 0-.315-4.907c-.32-.068-.642-.12-.966-.152a.64.64 0 0 1-.658-.663v0c0-.355.186-.676.401-.959a2.873 2.873 0 0 0 .784-1.603c0-1.242-.84-2.25-1.875-2.25S15.75 2.508 15.75 3.75c0 .613.232 1.18.618 1.603.215.283.401.604.401.959v0a.64.64 0 0 1-.643.657c-1.613-.186-3.25-.293-4.907-.315-.068.32-.12.642-.152.966a.64.64 0 0 1-.663.658Z"
+                />
+              </svg>
+              <span class="font-semibold">Plugin Manager</span>
+            </div>
+            <div class="text-sm text-blue-600 dark:text-blue-400 font-medium">
+              Open Manager
             </div>
           </button>
         </div>
@@ -1627,120 +1658,6 @@
                 Turn to logic, export options, start/end states, and so, so much
                 more!
               </p>
-            </div>
-          {/if}
-        </div>
-
-        <!-- Plugins Section -->
-        <div class="mb-4">
-          <button
-            on:click={() =>
-              (collapsedSections.plugins = !collapsedSections.plugins)}
-            class="flex items-center justify-between w-full py-2 px-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-            aria-expanded={!collapsedSections.plugins}
-          >
-            <div class="flex items-center gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width={1.5}
-                stroke="currentColor"
-                class="size-5"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 0 1-.657.643 48.39 48.39 0 0 1-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 0 1-.658.663v0c-.355 0-.676-.186-.959-.401a2.873 2.873 0 0 0-1.603-.784A1.875 1.875 0 0 0 1.5 12c0 1.036.84 2.25 1.875 2.25a2.873 2.873 0 0 0 1.603-.784c.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 0 1-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 0 1 .663.64v0c0 .355-.186.676-.401.959a2.873 2.873 0 0 0-.784 1.603c0 1.242.84 2.25 1.875 2.25s1.875-1.008 1.875-2.25a2.873 2.873 0 0 0-.784-1.603c-.215-.283-.401-.604-.401-.959v0a.64.64 0 0 1 .643-.657c1.613.186 3.25.293 4.907.315.068-.32.12-.642.152-.966a.64.64 0 0 1 .663-.658v0c.355 0 .676.186.959.401.29.221.634.349 1.003.349 1.035 0 1.875-1.007 1.875-2.25s-.84-2.25-1.875-2.25a2.873 2.873 0 0 0-1.003.349c-.283.215-.604.401-.959.401v0a.656.656 0 0 1-.658-.663 48.422 48.422 0 0 0-.315-4.907c-.32-.068-.642-.12-.966-.152a.64.64 0 0 1-.658-.663v0c0-.355.186-.676.401-.959a2.873 2.873 0 0 0 .784-1.603c0-1.242-.84-2.25-1.875-2.25S15.75 2.508 15.75 3.75c0 .613.232 1.18.618 1.603.215.283.401.604.401.959v0a.64.64 0 0 1-.643.657c-1.613-.186-3.25-.293-4.907-.315-.068.32-.12.642-.152.966a.64.64 0 0 1-.663.658Z"
-                />
-              </svg>
-              <span class="font-semibold">Plugins</span>
-            </div>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width={2}
-              stroke="currentColor"
-              class="size-5 transition-transform duration-200"
-              class:rotate-180={collapsedSections.plugins}
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="m19.5 8.25-7.5 7.5-7.5-7.5"
-              />
-            </svg>
-          </button>
-
-          {#if !collapsedSections.plugins}
-            <div
-              class="mt-2 space-y-3 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg"
-            >
-              <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
-                Loaded plugins from your user data folder.
-              </p>
-
-              {#if $pluginsStore.length === 0}
-                <div class="text-sm text-neutral-500 dark:text-neutral-400">
-                  No plugins found.
-                </div>
-              {:else}
-                <ul class="space-y-1">
-                  {#each $pluginsStore as plugin}
-                    <li
-                      class="text-sm flex justify-between items-center bg-white dark:bg-neutral-900 p-2 rounded border border-neutral-200 dark:border-neutral-800"
-                    >
-                      <div
-                        class="flex items-center gap-2 overflow-hidden flex-1 mr-2"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={plugin.enabled}
-                          on:change={(e) =>
-                            PluginManager.togglePlugin(
-                              plugin.name,
-                              e.currentTarget.checked,
-                            )}
-                          class="w-4 h-4 rounded border-neutral-300 dark:border-neutral-600 text-purple-600 focus:ring-purple-500 cursor-pointer flex-shrink-0"
-                          title={plugin.enabled
-                            ? "Disable Plugin"
-                            : "Enable Plugin"}
-                        />
-                        <span class="truncate" title={plugin.name}
-                          >{plugin.name}</span
-                        >
-                      </div>
-
-                      {#if plugin.loaded}
-                        <span class="text-green-500 text-xs font-medium"
-                          >Loaded</span
-                        >
-                      {:else}
-                        <span
-                          class="text-red-500 text-xs font-medium"
-                          title={plugin.error}>Error</span
-                        >
-                      {/if}
-                    </li>
-                  {/each}
-                </ul>
-              {/if}
-
-              <div class="flex gap-2 mt-4">
-                <button
-                  on:click={() => PluginManager.openPluginsFolder()}
-                  class="flex-1 px-3 py-2 text-sm bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded-md transition-colors text-neutral-800 dark:text-neutral-200"
-                >
-                  Open Plugins Folder
-                </button>
-                <button
-                  on:click={() => PluginManager.reloadPlugins()}
-                  class="flex-1 px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-md transition-colors text-blue-700 dark:text-blue-300"
-                >
-                  Reload
-                </button>
-              </div>
             </div>
           {/if}
         </div>

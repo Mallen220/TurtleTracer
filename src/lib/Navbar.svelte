@@ -15,10 +15,13 @@
     exportDialogState,
     showFileManager,
     gitStatusStore,
+    showPluginManager,
   } from "../stores";
   import { getRandomColor } from "../utils";
+  import hotkeys from "hotkeys-js";
   import FileManager from "./FileManager.svelte";
   import SettingsDialog from "./components/SettingsDialog.svelte";
+  import PluginManagerDialog from "./components/PluginManagerDialog.svelte";
   import KeyboardShortcutsDialog from "./components/KeyboardShortcutsDialog.svelte";
   import ExportCodeDialog from "./components/ExportCodeDialog.svelte";
   import { SaveIcon } from "./components/icons";
@@ -177,6 +180,10 @@
   onMount(() => {
     document.addEventListener("click", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
+
+    hotkeys("ctrl+shift+p", () => {
+      showPluginManager.update((v) => !v);
+    });
   });
 
   onDestroy(() => {
@@ -206,6 +213,7 @@
 />
 
 <SettingsDialog bind:isOpen={$showSettings} bind:settings />
+<PluginManagerDialog bind:isOpen={$showPluginManager} />
 <KeyboardShortcutsDialog bind:isOpen={shortcutsOpen} bind:settings />
 
 <div
