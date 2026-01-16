@@ -1595,6 +1595,115 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
       </button>
     </div>
   {/if}
+
+  {#if $isPresentationMode}
+    <!-- Presentation Mode Controls (Hover to show) -->
+    <div
+      class="absolute bottom-4 right-4 flex flex-col items-end gap-2 z-50 opacity-0 hover:opacity-100 transition-opacity duration-300"
+    >
+      <div
+        class="flex flex-col gap-1 bg-white/90 dark:bg-neutral-800/90 p-1.5 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
+      >
+        <button
+          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+          on:click={() => {
+            const step = computeZoomStep(zoom, 1);
+            const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
+            const focus = isMouseOverField
+              ? { x: x(currentMouseX), y: y(currentMouseY) }
+              : { x: width / 2, y: height / 2 };
+            zoomTo(newZoom, focus);
+          }}
+          aria-label="Zoom in"
+          title="Zoom In"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
+            />
+          </svg>
+        </button>
+        <button
+          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+          on:click={() => {
+            const step = computeZoomStep(zoom, -1);
+            const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
+            const focus = isMouseOverField
+              ? { x: x(currentMouseX), y: y(currentMouseY) }
+              : { x: width / 2, y: height / 2 };
+            zoomTo(newZoom, focus);
+          }}
+          aria-label="Zoom out"
+          title="Zoom Out"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+        <button
+          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+          on:click={() => {
+            fieldZoom.set(1.0);
+            fieldPan.set({ x: 0, y: 0 });
+          }}
+          aria-label="Reset zoom"
+          title="Reset Zoom"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="w-5 h-5"
+          >
+            <polyline points="4 9 4 4 9 4" />
+            <polyline points="15 4 20 4 20 9" />
+            <polyline points="20 15 20 20 15 20" />
+            <polyline points="9 20 4 20 4 15" />
+          </svg>
+        </button>
+        <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
+        <button
+          class="w-8 h-8 flex items-center justify-center rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
+          on:click={() => isPresentationMode.set(false)}
+          aria-label="Exit Presentation Mode"
+          title="Exit Presentation Mode (Alt+P)"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="w-5 h-5"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
