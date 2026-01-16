@@ -23,6 +23,7 @@
   import { SaveIcon } from "./components/icons";
   import { calculatePathTime, formatTime } from "../utils";
   import { showShortcuts } from "../stores";
+  import { customExportersStore } from "./pluginsStore";
 
   // svelte-ignore unused-export-let
   // export let loadFile: (evt: any) => any;
@@ -89,7 +90,10 @@
 
   // Sync export dialog state
   $: if ($exportDialogState.isOpen && exportDialog) {
-    exportDialog.openWithFormat($exportDialogState.format);
+    exportDialog.openWithFormat(
+      $exportDialogState.format,
+      $exportDialogState.exporterName,
+    );
   }
 
   function handleGridSizeChange(event: Event) {
@@ -98,9 +102,12 @@
     gridSize.set(value);
   }
 
-  function handleExport(format: "java" | "points" | "sequential" | "json") {
+  function handleExport(
+    format: "java" | "points" | "sequential" | "json" | "custom",
+    exporterName?: string,
+  ) {
     exportMenuOpen = false;
-    exportDialogState.set({ isOpen: true, format });
+    exportDialogState.set({ isOpen: true, format, exporterName });
   }
 
   $: if (settings) {
@@ -765,6 +772,7 @@
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
               >.pp File</button
             >
+
             <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
             <button
               on:click={() => {
@@ -774,6 +782,23 @@
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
               >Export Animated</button
             >
+
+            {#if $customExportersStore.length > 0}
+              <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
+              <div
+                class="px-4 py-1 text-xs font-semibold text-neutral-500 uppercase tracking-wider"
+              >
+                Plugins
+              </div>
+              {#each $customExportersStore as exporter}
+                <button
+                  on:click={() => handleExport("custom", exporter.name)}
+                  class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                >
+                  {exporter.name}
+                </button>
+              {/each}
+            {/if}
           </div>
         {/if}
       </div>

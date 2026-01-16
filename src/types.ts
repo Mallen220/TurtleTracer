@@ -124,7 +124,7 @@ export interface Settings {
   fieldRotation?: number; // 0, 90, 180, 270
   robotImage?: string;
   javaPackageName?: string;
-  theme: "light" | "dark" | "auto";
+  theme: "light" | "dark" | "auto" | string;
   autosaveMode?: "time" | "change" | "close" | "never";
   autosaveInterval?: number; // minutes
   showVelocityHeatmap?: boolean; // Show velocity heatmap overlay

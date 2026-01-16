@@ -1,0 +1,89 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { PluginManager } from "../lib/pluginManager";
+import {
+  customExportersStore,
+  pluginsStore,
+  themesStore,
+} from "../lib/pluginsStore";
+import { get } from "svelte/store";
+
+describe("PluginManager", () => {
+  beforeEach(() => {
+    // Reset stores
+    customExportersStore.set([]);
+    pluginsStore.set([]);
+    themesStore.set([]);
+    vi.clearAllMocks();
+  });
+
+  it("should load plugins from electronAPI", async () => {
+    const mockListPlugins = vi.fn().mockResolvedValue(["test-plugin.js"]);
+    const mockReadPlugin = vi.fn().mockResolvedValue(`
+      pedro.registerExporter("Test CSV", (data) => {
+        return "csv,data";
+      });
+    `);
+
+    (window as any).electronAPI = {
+      listPlugins: mockListPlugins,
+      readPlugin: mockReadPlugin,
+    };
+
+    await PluginManager.init();
+
+    expect(mockListPlugins).toHaveBeenCalled();
+    expect(mockReadPlugin).toHaveBeenCalledWith("test-plugin.js");
+
+    const plugins = get(pluginsStore);
+    expect(plugins).toHaveLength(1);
+    expect(plugins[0].name).toBe("test-plugin.js");
+    expect(plugins[0].loaded).toBe(true);
+
+    const exporters = get(customExportersStore);
+    expect(exporters).toHaveLength(1);
+    expect(exporters[0].name).toBe("Test CSV");
+
+    // Test the handler
+    const result = exporters[0].handler({} as any);
+    expect(result).toBe("csv,data");
+  });
+
+  it("should handle execution errors", async () => {
+    const mockListPlugins = vi.fn().mockResolvedValue(["bad-plugin.js"]);
+    const mockReadPlugin = vi.fn().mockResolvedValue(`
+      throw new Error("Boom");
+    `);
+
+    (window as any).electronAPI = {
+      listPlugins: mockListPlugins,
+      readPlugin: mockReadPlugin,
+    };
+
+    await PluginManager.init();
+
+    const plugins = get(pluginsStore);
+    expect(plugins).toHaveLength(1);
+    expect(plugins[0].loaded).toBe(false);
+    expect(plugins[0].error).toContain("Boom");
+  });
+
+  it("should register themes", async () => {
+    const mockListPlugins = vi.fn().mockResolvedValue(["Example-pink-theme.js"]);
+    const mockReadPlugin = vi.fn().mockResolvedValue(`
+      pedro.registerTheme("Pink Plugin Theme", ".bg-blue { color: pink; }");
+    `);
+
+    (window as any).electronAPI = {
+      listPlugins: mockListPlugins,
+      readPlugin: mockReadPlugin,
+    };
+
+    await PluginManager.init();
+
+    const themes = get(themesStore);
+    expect(themes).toHaveLength(1);
+    expect(themes[0].name).toBe("Pink Plugin Theme");
+    expect(themes[0].css).toBe(".bg-blue { color: pink; }");
+  });
+});

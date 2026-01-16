@@ -121,6 +121,7 @@ if (!gotTheLock) {
     createMenu();
     updateDockMenu();
     updateJumpList();
+    ensureDefaultPlugins();
 
     // Check for updates (only once)
     // We pass the first window for dialogs if needed, or handle it inside AppUpdater
@@ -623,7 +624,13 @@ const loadDirectorySettings = async () => {
     return JSON.parse(data);
   } catch (error) {
     // Return default settings if file doesn't exist
-    return { autoPathsDirectory: "" };
+    return {
+      autoPathsDirectory: "",
+      plugins: {
+        "Example-csv-exporter.js": false,
+        "Example-pink-theme.js": false,
+      },
+    };
   }
 };
 
@@ -664,6 +671,129 @@ ipcMain.handle("app:open-external", async (event, url) => {
     return false;
   }
 });
+
+async function ensureDefaultPlugins() {
+  const pluginsDir = getPluginsDirectory();
+  try {
+    await fs.mkdir(pluginsDir, { recursive: true });
+
+    const csvPlugin = `pedro.registerExporter("Custom CSV", (data) => {
+  let csv = "Type,X,Y,Heading\\n";
+  if (data.startPoint) {
+      const h = data.startPoint.heading === 'constant' ? data.startPoint.degrees : 'Tangential';
+      csv += \`Start,\${data.startPoint.x},\${data.startPoint.y},\${h}\\n\`;
+  }
+  if (data.lines) {
+      data.lines.forEach(line => {
+          const h = line.endPoint.heading === 'constant' ? line.endPoint.degrees : 'Tangential';
+          csv += \`Point,\${line.endPoint.x},\${line.endPoint.y},\${h}\\n\`;
+      });
+  }
+  return csv;
+});`;
+
+    const pinkPlugin = `pedro.registerTheme("Pink Plugin Theme", \`
+/* Global Backgrounds */
+html.dark body,
+html.dark .bg-neutral-900,
+html.dark .dark\\\\:bg-neutral-900 {
+    background-color: #2a0a18 !important; /* Deepest Pink/Black */
+}
+
+html.dark .bg-neutral-800,
+html.dark .dark\\\\:bg-neutral-800 {
+    background-color: #4a0e22 !important; /* Deep Pink panel */
+}
+
+html.dark .bg-neutral-700,
+html.dark .dark\\\\:bg-neutral-700 {
+    background-color: #6d1533 !important;
+}
+
+/* Interactive Elements */
+html.dark .hover\\\\:bg-neutral-800:hover,
+html.dark .dark\\\\:hover\\\\:bg-neutral-800:hover {
+    background-color: #6d1533 !important;
+}
+html.dark .hover\\\\:bg-neutral-700:hover,
+html.dark .dark\\\\:hover\\\\:bg-neutral-700:hover {
+    background-color: #891d41 !important;
+}
+
+/* Borders */
+html.dark .border-neutral-800,
+html.dark .dark\\\\:border-neutral-800,
+html.dark .border-neutral-700,
+html.dark .dark\\\\:border-neutral-700,
+html.dark .border-neutral-600,
+html.dark .dark\\\\:border-neutral-600,
+html.dark .border-neutral-500,
+html.dark .dark\\\\:border-neutral-500 {
+    border-color: #831843 !important;
+}
+
+/* Text Colors */
+html.dark .text-neutral-100,
+html.dark .dark\\\\:text-neutral-100,
+html.dark .text-white,
+html.dark .dark\\\\:text-white {
+    color: #ffe4e6 !important; /* Rose 100 */
+}
+
+html.dark .text-neutral-200,
+html.dark .dark\\\\:text-neutral-200,
+html.dark .text-neutral-300,
+html.dark .dark\\\\:text-neutral-300 {
+    color: #fecdd3 !important; /* Rose 200 */
+}
+
+html.dark .text-neutral-400,
+html.dark .dark\\\\:text-neutral-400,
+html.dark .text-neutral-500,
+html.dark .dark\\\\:text-neutral-500 {
+    color: #fda4af !important; /* Rose 300 */
+}
+
+/* Accents (Blue, Indigo, Purple -> Hot Pink) */
+.bg-blue-500, .bg-blue-600, .bg-indigo-500, .bg-purple-500, .bg-purple-600 {
+    background-color: #ec4899 !important; /* Pink 500 */
+}
+
+.text-blue-500, .text-blue-600, .text-indigo-500, .text-purple-500, .text-purple-400 {
+    color: #f472b6 !important; /* Pink 400 */
+}
+
+.border-blue-500, .border-indigo-500, .border-purple-500 {
+    border-color: #ec4899 !important;
+}
+
+.ring-blue-500, .ring-indigo-500, .ring-purple-500,
+.focus\\\\:ring-blue-500:focus, .focus\\\\:ring-indigo-500:focus {
+    --tw-ring-color: #ec4899 !important;
+}
+
+/* Selection */
+::selection {
+    background-color: #fce7f3;
+    color: #831843;
+}
+\`);`;
+
+    const csvPath = path.join(pluginsDir, "Example-csv-exporter.js");
+    const pinkPath = path.join(pluginsDir, "Example-pink-theme.js");
+
+    try {
+      await fs.access(csvPath);
+    } catch {
+      await fs.writeFile(csvPath, csvPlugin, "utf-8");
+    }
+
+    // Always update Pink theme to ensure users get the latest styles
+    await fs.writeFile(pinkPath, pinkPlugin, "utf-8");
+  } catch (err) {
+    console.error("Failed to ensure default plugins", err);
+  }
+}
 
 // Add handler for file copy
 ipcMain.handle("file:copy", async (event, srcPath, destPath) => {
@@ -989,6 +1119,50 @@ ipcMain.handle("file:exists", async (event, filePath) => {
     await fs.access(filePath);
     return true;
   } catch {
+    return false;
+  }
+});
+
+// Plugin System IPC Handlers
+const getPluginsDirectory = () => {
+  return path.join(app.getPath("userData"), "plugins");
+};
+
+ipcMain.handle("plugins:list", async () => {
+  const pluginsDir = getPluginsDirectory();
+  try {
+    await fs.mkdir(pluginsDir, { recursive: true });
+    const files = await fs.readdir(pluginsDir);
+    return files.filter((f) => f.endsWith(".js"));
+  } catch (error) {
+    console.error("Error listing plugins:", error);
+    return [];
+  }
+});
+
+ipcMain.handle("plugins:read", async (event, filename) => {
+  const pluginsDir = getPluginsDirectory();
+  // Security check: ensure filename doesn't contain path separators to prevent traversal
+  if (filename.includes("/") || filename.includes("\\")) {
+    throw new Error("Invalid plugin filename");
+  }
+  const filePath = path.join(pluginsDir, filename);
+  try {
+    return await fs.readFile(filePath, "utf-8");
+  } catch (error) {
+    console.error("Error reading plugin:", error);
+    throw error;
+  }
+});
+
+ipcMain.handle("plugins:open-folder", async () => {
+  const pluginsDir = getPluginsDirectory();
+  try {
+    await fs.mkdir(pluginsDir, { recursive: true });
+    await shell.openPath(pluginsDir);
+    return true;
+  } catch (error) {
+    console.error("Error opening plugins folder:", error);
     return false;
   }
 });

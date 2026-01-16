@@ -70,4 +70,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getAppVersion: () => ipcRenderer.invoke("app:get-version"),
   // Open external URL in the user's default browser
   openExternal: (url) => ipcRenderer.invoke("app:open-external", url),
+
+  // Plugin System
+  listPlugins: () => ipcRenderer.invoke("plugins:list"),
+  readPlugin: (filename) => ipcRenderer.invoke("plugins:read", filename),
+  openPluginsFolder: () => ipcRenderer.invoke("plugins:open-folder"),
 });
