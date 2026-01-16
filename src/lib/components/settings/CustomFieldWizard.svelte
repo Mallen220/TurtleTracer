@@ -12,6 +12,7 @@
 
   let step = 1; // 1: Upload, 2: Calibrate P1, 3: Calibrate P2, 4: Review
   let imageData: string | null = null;
+  let mapName = "My Custom Field";
 
   // Calibration points (Image Pixels)
   let p1: { x: number; y: number } | null = null;
@@ -24,12 +25,23 @@
   let imageElement: HTMLImageElement;
   let imageContainer: HTMLDivElement;
 
-  // Initialize from existing config if available
-  $: if (isOpen && currentConfig && step === 1 && !imageData) {
-      imageData = currentConfig.imageData;
-      // If we have config, maybe jump to review or allow re-calibration?
-      // For now, let's start at step 1 but with image loaded.
+  let wasOpen = false;
+  $: if (isOpen && !wasOpen) {
+      wasOpen = true;
+      // Reset state on open
       step = 1;
+      p1 = null;
+      p2 = null;
+
+      if (currentConfig) {
+          imageData = currentConfig.imageData;
+          mapName = currentConfig.name || "My Custom Field";
+      } else {
+          imageData = null;
+          mapName = "My Custom Field";
+      }
+  } else if (!isOpen && wasOpen) {
+      wasOpen = false;
   }
 
   function handleClose() {
@@ -107,22 +119,12 @@
       const ppi = distPx / distIn;
 
       // Calculate Image Dimensions in Inches
-      // Use naturalWidth/Height from imageElement if available, but we can't guarantee it's mounted in calculate().
-      // However, calculate() is called in render, so image should be loaded.
-      // We can also create a temporary Image object.
-      // But simpler: we know p1, p2 are in natural pixels.
-      // We need image dimensions.
-      // Let's grab them from imageElement which should be present in Step 4.
       if (!imageElement) return null;
 
       const widthIn = imageElement.naturalWidth / ppi;
       const heightIn = imageElement.naturalHeight / ppi;
 
-      // Calculate Field Coordinates of Image Top-Left (0,0 in image pixels)
-      // w1.x = Left + (p1.x / ppi) => Left = w1.x - p1.x / ppi
-      // w1.y = Top - (p1.y / ppi)  => Top = w1.y + p1.y / ppi
-      // (Remember Field Y increases Up, Image Y increases Down)
-
+      // Calculate Field Coordinates of Image Top-Left
       const left1 = w1.x - p1.x / ppi;
       const top1 = w1.y + p1.y / ppi;
 
@@ -134,6 +136,8 @@
       const y = (top1 + top2) / 2;
 
       return {
+          id: currentConfig?.id || crypto.randomUUID(), // Maintain ID if editing, else generate new
+          name: mapName,
           imageData,
           x,
           y,
@@ -195,6 +199,18 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-neutral-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
+                <div class="w-full max-w-sm mb-4">
+                    <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                        Map Name
+                    </label>
+                    <input
+                        type="text"
+                        bind:value={mapName}
+                        placeholder="e.g. My Practice Field"
+                        class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+
                 <p class="text-neutral-600 dark:text-neutral-400 mb-4">Upload a custom field map image</p>
                 <label class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer transition-colors">
                     Select Image

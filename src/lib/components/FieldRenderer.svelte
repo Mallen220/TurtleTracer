@@ -1535,22 +1535,25 @@
     style:transform={`rotate(${settings.fieldRotation || 0}deg)`}
     style:transition="transform 0.3s ease-in-out"
   >
-    {#if settings.fieldMap === "custom" && settings.customFieldConfig}
-      <img
-        src={settings.customFieldConfig.imageData}
-        alt="Custom Field"
-        class="absolute z-10 max-w-none"
-        style={`
-            left: ${x(settings.customFieldConfig.x)}px;
-            top: ${y(settings.customFieldConfig.y)}px;
-            width: ${x(settings.customFieldConfig.x + settings.customFieldConfig.width) - x(settings.customFieldConfig.x)}px;
-            height: ${y(settings.customFieldConfig.y - settings.customFieldConfig.height) - y(settings.customFieldConfig.y)}px;
-        `}
-        draggable="false"
-      />
+    {#if settings.customMaps?.some(m => m.id === settings.fieldMap)}
+      {@const activeMap = settings.customMaps.find(m => m.id === settings.fieldMap)}
+      {#if activeMap}
+        <img
+          src={activeMap.imageData}
+          alt="Custom Field"
+          class="absolute z-10 max-w-none"
+          style={`
+              left: ${x(activeMap.x)}px;
+              top: ${y(activeMap.y)}px;
+              width: ${x(activeMap.x + activeMap.width) - x(activeMap.x)}px;
+              height: ${y(activeMap.y - activeMap.height) - y(activeMap.y)}px;
+          `}
+          draggable="false"
+        />
+      {/if}
     {:else}
       <img
-        src={settings.fieldMap && settings.fieldMap !== "custom"
+        src={settings.fieldMap && !settings.fieldMap.includes("custom") // Safe fallback check
           ? `/fields/${settings.fieldMap}`
           : "/fields/decode.webp"}
         alt="Field"

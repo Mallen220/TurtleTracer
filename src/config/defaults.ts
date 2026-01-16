@@ -22,7 +22,6 @@ export const AVAILABLE_FIELD_MAPS = [
   { value: "decode.webp", label: "DECODE Field (2025-2026)" },
   { value: "intothedeep.webp", label: "Into The Deep Field (2024-2025)" },
   { value: "centerstage.webp", label: "Centerstage (2023-2024)" },
-  { value: "custom", label: "Custom Field Map..." },
 ];
 
 /**
@@ -731,6 +730,7 @@ export const DEFAULT_SETTINGS: Settings = {
   optimizationMutationStrength: 6.0,
   validateFieldBoundaries: true,
   restrictDraggingToField: true,
+  customMaps: [],
   keyBindings: DEFAULT_KEY_BINDINGS,
   recentFiles: [],
   lastSeenVersion: "",
