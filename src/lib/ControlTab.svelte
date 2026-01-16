@@ -45,8 +45,8 @@
   export let startPoint: Point;
   export let lines: Line[];
   export let sequence: SequenceItem[];
-  export let robotLength: number = 16;
-  export let robotWidth: number = 16;
+  export const robotLength: number = 16; // Can be removed?
+  export const robotWidth: number = 16; // Can be removed?
   export let robotXY: BasePoint;
   export let robotHeading: number;
   export let settings: Settings;
