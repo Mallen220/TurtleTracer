@@ -40,6 +40,7 @@
   import {
     currentFilePath,
     gitStatusStore,
+    isUnsaved,
   } from "../../stores";
   import {
     POINT_RADIUS,
@@ -199,7 +200,8 @@
   $: oldData = $committedData;
   $: currentFile = $currentFilePath;
   $: gitStatus = $gitStatusStore;
-  $: isDirty = currentFile && gitStatus[currentFile] && gitStatus[currentFile] !== "clean";
+  // Show diff toggle if file is modified in git OR has unsaved in-memory changes
+  $: isDirty = (currentFile && gitStatus[currentFile] && gitStatus[currentFile] !== "clean") || (currentFile && $isUnsaved);
 
   function updateRects() {
     if (two?.renderer?.domElement) {
@@ -1650,32 +1652,58 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
       isObstructed={isObstructingHUD}
     />
 
-    {#if isDirty}
-      <div class="absolute top-2 left-2 z-30">
-        <button
-          class="px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm backdrop-blur-sm transition-all duration-200 flex items-center gap-2 border {isDiffMode ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700' : 'bg-white/90 dark:bg-neutral-800/90 text-neutral-700 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-700'}"
-          on:click={toggleDiff}
-          title="Toggle Visual Diff"
-        >
-          {#if $isLoadingDiff}
-            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          {:else}
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="w-4 h-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-          {/if}
-          {isDiffMode ? "Exit Diff" : "Compare"}
-        </button>
-      </div>
-    {/if}
-
     <!-- Zoom Controls -->
     <div
       class="absolute bottom-2 right-2 flex flex-col gap-1 z-30 bg-white/80 dark:bg-neutral-800/80 p-1 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
     >
+      {#if isDirty}
+        <button
+          class="w-7 h-7 flex items-center justify-center rounded transition-colors {isDiffMode
+            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+            : 'hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200'}"
+          on:click={toggleDiff}
+          aria-label={isDiffMode ? "Exit Visual Diff" : "Toggle Visual Diff"}
+          title={isDiffMode ? "Exit Diff Mode" : "Compare with Saved"}
+        >
+          {#if $isLoadingDiff}
+            <svg
+              class="animate-spin w-4 h-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          {:else}
+            <!-- Diff Icon -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-4 h-4"
+            >
+              <path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          {/if}
+        </button>
+        <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
+      {/if}
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
         on:click={() => {

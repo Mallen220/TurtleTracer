@@ -19,11 +19,11 @@
     >
       <span class="flex gap-1">
         <span class="font-bold text-neutral-800 dark:text-neutral-200">X:</span>
-        <span>{x.toFixed(1)}"</span>
+        <span>{(x || 0).toFixed(1)}"</span>
       </span>
       <span class="flex gap-1">
         <span class="font-bold text-neutral-800 dark:text-neutral-200">Y:</span>
-        <span>{y.toFixed(1)}"</span>
+        <span>{(y || 0).toFixed(1)}"</span>
       </span>
     </div>
   </div>
