@@ -3,12 +3,12 @@
   import type { Point, Line, SequenceItem, Shape, Settings, BasePoint } from "../../types";
   import { tick } from "svelte";
   import { slide } from "svelte/transition";
-  import RobotPositionDisplay from "../components/RobotPositionDisplay.svelte";
-  import CollapseAllButton from "../components/CollapseAllButton.svelte";
-  import OptimizationDialog from "../components/OptimizationDialog.svelte";
-  import GlobalEventMarkers from "../components/GlobalEventMarkers.svelte";
-  import ObstaclesSection from "../components/ObstaclesSection.svelte";
-  import { validatePath } from "../../utils/validation";
+  import RobotPositionDisplay from "../RobotPositionDisplay.svelte";
+  import CollapseAllButton from "../CollapseAllButton.svelte";
+  import OptimizationDialog from "../OptimizationDialog.svelte";
+  import GlobalEventMarkers from "../GlobalEventMarkers.svelte";
+  import ObstaclesSection from "../ObstaclesSection.svelte";
+  import { validatePath } from "../../../utils/validation";
 
   export let robotXY: BasePoint;
   export let robotHeading: number;

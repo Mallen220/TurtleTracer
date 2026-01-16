@@ -1,8 +1,9 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import type { Point, Line, SequenceItem, Shape, Settings } from "../../types";
-  import WaypointTable from "../components/WaypointTable.svelte";
-  import { validatePath } from "../../utils/validation";
+  // Fixed incorrect relative import: WaypointTable is one level up from the tabs folder
+  import WaypointTable from "../WaypointTable.svelte";
+  import { validatePath } from "../../../utils/validation";
 
   export let startPoint: Point;
   export let lines: Line[];

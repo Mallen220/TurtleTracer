@@ -14,14 +14,14 @@
     reorderSequence,
     getClosestTarget,
     type DragPosition,
-  } from "../../utils/dragDrop";
-  import { getRandomColor } from "../../utils";
-  import { makeId, renumberDefaultPathNames } from "../../utils/nameGenerator";
-  import StartingPointSection from "../components/StartingPointSection.svelte";
-  import PathLineSection from "../components/PathLineSection.svelte";
-  import WaitSection from "../components/WaitSection.svelte";
-  import RotateSection from "../components/RotateSection.svelte";
-  import { selectedLineId, selectedPointId, toggleCollapseAllTrigger } from "../../stores";
+  } from "../../../utils/dragDrop";
+  import { getRandomColor } from "../../../utils";
+  import { makeId, renumberDefaultPathNames } from "../../../utils/nameGenerator";
+  import StartingPointSection from "../StartingPointSection.svelte";
+  import PathLineSection from "../PathLineSection.svelte";
+  import WaitSection from "../WaitSection.svelte";
+  import RotateSection from "../RotateSection.svelte";
+  import { selectedLineId, selectedPointId, toggleCollapseAllTrigger } from "../../../stores";
 
   export let startPoint: Point;
   export let lines: Line[];
