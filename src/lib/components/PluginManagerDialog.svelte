@@ -154,7 +154,9 @@
                           </svg>
                         </div>
                         <div>
-                          <div class="font-medium text-neutral-900 dark:text-white">
+                          <div
+                            class="font-medium text-neutral-900 dark:text-white"
+                          >
                             {plugin.name}
                           </div>
                           <div
@@ -225,7 +227,9 @@
                           </svg>
                         </div>
                         <div class="flex-1 min-w-0">
-                          <div class="font-medium text-red-900 dark:text-red-200">
+                          <div
+                            class="font-medium text-red-900 dark:text-red-200"
+                          >
                             {plugin.name}
                           </div>
                           <div

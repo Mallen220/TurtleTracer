@@ -955,7 +955,6 @@
         </svg>
       </button>
 
-
       <!-- Settings Button -->
       <button
         title="Settings"
