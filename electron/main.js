@@ -673,6 +673,23 @@ ipcMain.handle("app:open-external", async (event, url) => {
   }
 });
 
+ipcMain.handle("git:show", async (event, filePath) => {
+  try {
+    const git = simpleGit(path.dirname(filePath));
+    const isRepo = await git.checkIsRepo();
+    if (!isRepo) return null;
+
+    const root = await git.revparse(["--show-toplevel"]);
+    // normalize paths for git
+    const relativePath = path.relative(root.trim(), filePath).replace(/\\/g, "/");
+    const content = await git.show([`HEAD:${relativePath}`]);
+    return content;
+  } catch (error) {
+    console.warn("Error running git show:", error);
+    return null;
+  }
+});
+
 async function ensureDefaultPlugins() {
   const pluginsDir = getPluginsDirectory();
   try {

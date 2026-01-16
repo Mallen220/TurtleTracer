@@ -47,6 +47,7 @@
     playbackSpeedStore,
     ensureSequenceConsistency,
   } from "./lib/projectStore";
+  import { diffMode, committedData } from "./lib/diffStore";
 
   import { resetPath } from "./utils/projectLifecycle";
 
@@ -102,6 +103,7 @@
     openExternal?: (url: string) => Promise<boolean>;
     getPathForFile?: (file: File) => string;
     getSavedDirectory?: () => Promise<string>;
+    gitShow?: (filePath: string) => Promise<string | null>;
   }
   const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
 
@@ -837,10 +839,31 @@
 
   // --- Animation Logic ---
   $: timePrediction = calculatePathTime(startPoint, lines, settings, sequence);
-  $: animationDuration = getAnimationDuration(
-    timePrediction.totalTime / 1000,
-    playbackSpeed,
-  );
+
+  // Diff Mode Animation Logic
+  $: isDiffMode = $diffMode;
+  $: committed = $committedData;
+  $: committedTimePrediction =
+    isDiffMode && committed
+      ? calculatePathTime(
+          committed.startPoint,
+          committed.lines,
+          committed.settings,
+          committed.sequence,
+        )
+      : null;
+
+  $: currentTotalTime = timePrediction.totalTime / 1000;
+  $: committedTotalTime = committedTimePrediction
+    ? committedTimePrediction.totalTime / 1000
+    : 0;
+
+  // If in diff mode, duration is the max of both paths
+  $: effectiveDuration = isDiffMode
+    ? Math.max(currentTotalTime, committedTotalTime)
+    : currentTotalTime;
+
+  $: animationDuration = getAnimationDuration(effectiveDuration, playbackSpeed);
 
   onMount(() => {
     animationController = createAnimationController(
@@ -867,11 +890,26 @@
   }
 
   // Sync controller updates to Robot State
+  let committedRobotState:
+    | { x: number; y: number; heading: number }
+    | null = null;
+
   $: {
     if (timePrediction && timePrediction.timeline && lines.length > 0) {
+      // Calculate Global Time based on effective duration
+      const globalTime = (percent / 100) * effectiveDuration;
+
+      // 1. Current Robot State
+      // Map global time to current path percent
+      let currentPercent = 0;
+      if (currentTotalTime > 0) {
+        currentPercent = (globalTime / currentTotalTime) * 100;
+        if (currentPercent > 100) currentPercent = 100;
+      }
+
       // Pass identity scales to get inches
       const state = calculateRobotState(
-        percent,
+        currentPercent,
         timePrediction.timeline,
         lines,
         startPoint,
@@ -880,12 +918,38 @@
       );
       robotXYStore.set({ x: state.x, y: state.y });
       robotHeadingStore.set(state.heading);
+
+      // 2. Committed Robot State (if in diff mode)
+      if (isDiffMode && committed && committedTimePrediction) {
+        let committedPercent = 0;
+        if (committedTotalTime > 0) {
+          committedPercent = (globalTime / committedTotalTime) * 100;
+          if (committedPercent > 100) committedPercent = 100;
+        }
+
+        const commState = calculateRobotState(
+          committedPercent,
+          committedTimePrediction.timeline,
+          committed.lines,
+          committed.startPoint,
+          d3.scaleLinear(),
+          d3.scaleLinear(),
+        );
+        committedRobotState = {
+          x: commState.x,
+          y: commState.y,
+          heading: commState.heading,
+        };
+      } else {
+        committedRobotState = null;
+      }
     } else {
       // Store position in inches
       robotXYStore.set({ x: startPoint.x, y: startPoint.y });
       robotHeadingStore.set(
         startPoint.heading === "constant" ? -startPoint.degrees : 0,
       );
+      committedRobotState = null;
     }
   }
 
@@ -1277,6 +1341,7 @@
           width={fieldRenderWidth}
           height={fieldRenderHeight}
           {timePrediction}
+          {committedRobotState}
           {previewOptimizedLines}
           {onRecordChange}
         />

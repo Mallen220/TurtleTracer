@@ -31,6 +31,18 @@
     percentStore,
   } from "../projectStore";
   import {
+    diffMode,
+    toggleDiff,
+    committedData,
+    diffResult,
+    isLoadingDiff,
+  } from "../diffStore";
+  import {
+    currentFilePath,
+    gitStatusStore,
+    isUnsaved,
+  } from "../../stores";
+  import {
     POINT_RADIUS,
     LINE_WIDTH,
     FIELD_SIZE,
@@ -63,6 +75,7 @@
   export let width = 0;
   export let height = 0;
   export let timePrediction: any = null;
+  export let committedRobotState: { x: number; y: number; heading: number } | null = null;
   export let previewOptimizedLines: Line[] | null = null;
   export let isMouseOverField = false;
   export let currentMouseX = 0;
@@ -181,6 +194,16 @@
   $: robotHeading = $robotHeadingStore;
   $: sequence = $sequenceStore; // Needed for wait markers
   $: markers = $collisionMarkers;
+
+  // Diff Mode State
+  $: isDiffMode = $diffMode;
+  $: diffData = $diffResult;
+  $: oldData = $committedData;
+  $: currentFile = $currentFilePath;
+  $: gitStatus = $gitStatusStore;
+  // Show diff toggle if file is modified/staged in git OR has unsaved in-memory changes
+  // Exclude untracked files since they have no committed version to compare against
+  $: isDirty = (currentFile && gitStatus[currentFile] && gitStatus[currentFile] !== "clean" && gitStatus[currentFile] !== "untracked") || (currentFile && $isUnsaved);
 
   function updateRects() {
     if (two?.renderer?.domElement) {
@@ -304,19 +327,17 @@
     return _points;
   })();
 
-  // Paths (Lines)
-  $: path = (() => {
-    // Reference selectedLineId to trigger updates when selection changes
-    const currentSelectedId = $selectedLineId;
+  // Reusable path generation function
+  function generatePathElements(targetLines: Line[], targetStartPoint: Point, getColor: (line: Line) => string, getWidth: (line: Line) => number, idPrefix: string, isHeatmapEnabled: boolean = false) {
     let _path: (Path | PathLine)[] = [];
-    lines.forEach((line, idx) => {
+    targetLines.forEach((line, idx) => {
       if (!line || !line.endPoint) return;
       let _startPoint =
-        idx === 0 ? startPoint : lines[idx - 1]?.endPoint || null;
+        idx === 0 ? targetStartPoint : targetLines[idx - 1]?.endPoint || null;
       if (!_startPoint) return;
 
-      // Check for Velocity Heatmap Mode
-      const showHeatmap = settings.showVelocityHeatmap && timePrediction;
+      // Check for Velocity Heatmap Mode (only for main path)
+      const showHeatmap = isHeatmapEnabled && settings.showVelocityHeatmap && timePrediction;
       let heatmapSegments: PathLine[] = [];
 
       if (showHeatmap) {
@@ -365,11 +386,8 @@
               y(currPt.y),
             );
             seg.stroke = color;
-            seg.linewidth =
-              line.id === currentSelectedId
-                ? uiLength(LINE_WIDTH * 2.5)
-                : uiLength(LINE_WIDTH);
-            seg.id = `line-${idx + 1}-seg-${i}`;
+            seg.linewidth = getWidth(line);
+            seg.id = `${idPrefix}-line-${idx + 1}-seg-${i}`;
             if (line.locked) {
               seg.dashes = [uiLength(2), uiLength(2)];
               seg.opacity = 0.7;
@@ -460,12 +478,9 @@
           y(line.endPoint.y),
         );
       }
-      lineElem.id = `line-${idx + 1}`;
-      lineElem.stroke = line.color;
-      const isSelected = line.id === currentSelectedId;
-      lineElem.linewidth = isSelected
-        ? uiLength(LINE_WIDTH * 2.5)
-        : uiLength(LINE_WIDTH);
+      lineElem.id = `${idPrefix}-line-${idx + 1}`;
+      lineElem.stroke = getColor(line);
+      lineElem.linewidth = getWidth(line);
       lineElem.noFill();
       if (line.locked) {
         lineElem.dashes = [uiLength(2), uiLength(2)];
@@ -477,6 +492,52 @@
       _path.push(lineElem);
     });
     return _path;
+  }
+
+  // Paths (Lines) - Standard
+  $: path = (() => {
+    if (isDiffMode) return []; // Don't render standard path in diff mode
+    const currentSelectedId = $selectedLineId;
+    return generatePathElements(
+      lines,
+      startPoint,
+      (l) => l.color,
+      (l) => l.id === currentSelectedId ? uiLength(LINE_WIDTH * 2.5) : uiLength(LINE_WIDTH),
+      "",
+      true
+    );
+  })();
+
+  // Diff Paths
+  $: diffPathElements = (() => {
+    if (!isDiffMode) return [];
+
+    // 1. Committed Path (Old) - Red
+    const committedPaths = oldData ? generatePathElements(
+      oldData.lines,
+      oldData.startPoint,
+      () => "#ef4444", // Red
+      () => uiLength(LINE_WIDTH),
+      "diff-old",
+      false
+    ) : [];
+
+    // 2. Current Path (New/Same)
+    const currentPaths = generatePathElements(
+      lines,
+      startPoint,
+      (l) => {
+        // Check if same
+        const isSame = diffData?.sameLines.some(sl => sl.id === l.id);
+        if (isSame) return "#3b82f6"; // Blue
+        return "#22c55e"; // Green
+      },
+      (l) => uiLength(LINE_WIDTH), // No selection highlight in diff mode? Or maybe yes.
+      "diff-new",
+      false
+    );
+
+    return [...committedPaths, ...currentPaths];
   })();
 
   // Shapes (Obstacles)
@@ -987,9 +1048,10 @@
     onionLayerElements.forEach((el) => shapeGroup.add(el));
 
     path.forEach((el) => lineGroup.add(el));
+    diffPathElements.forEach((el) => lineGroup.add(el));
     previewPathElements.forEach((el) => lineGroup.add(el));
 
-    if (!$isPresentationMode) {
+    if (!$isPresentationMode && !isDiffMode) {
       points.forEach((el) => pointGroup.add(el));
       eventMarkerElements.forEach((el) => eventGroup.add(el));
       // Ensure collisionElements is used in the reactive block to trigger updates
@@ -1571,18 +1633,32 @@
       />
     {/if}
     <MathTools {x} {y} {twoElement} {robotXY} />
-    <img
-      src={settings.robotImage || "/robot.png"}
-      alt="Robot"
-      class="max-w-none"
-      style={`position: absolute; top: ${y(robotXY.y)}px;
+    {#if !isDiffMode}
+      <img
+        src={settings.robotImage || "/robot.png"}
+        alt="Robot"
+        class="max-w-none"
+        style={`position: absolute; top: ${y(robotXY.y)}px;
 left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
-      draggable="false"
-      on:error={(e) => {
-        // @ts-ignore
-        e.target.src = "/robot.png";
-      }}
-    />
+        draggable="false"
+        on:error={(e) => {
+          // @ts-ignore
+          e.target.src = "/robot.png";
+        }}
+      />
+    {:else}
+      <!-- Current (Green) -->
+      <div
+        style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.5); border: 2px solid #16a34a;`}
+      ></div>
+
+      <!-- Committed (Red) -->
+      {#if committedRobotState}
+        <div
+          style={`position: absolute; top: ${y(committedRobotState.y)}px; left: ${x(committedRobotState.x)}px; transform: translate(-50%, -50%) rotate(${committedRobotState.heading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(239, 68, 68, 0.5); border: 2px solid #dc2626;`}
+        ></div>
+      {/if}
+    {/if}
   </div>
   {#if !$isPresentationMode}
     <FieldCoordinates
@@ -1596,6 +1672,54 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
     <div
       class="absolute bottom-2 right-2 flex flex-col gap-1 z-30 bg-white/80 dark:bg-neutral-800/80 p-1 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
     >
+      {#if isDirty}
+        <button
+          class="w-7 h-7 flex items-center justify-center rounded transition-colors {isDiffMode
+            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+            : 'hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200'}"
+          on:click={toggleDiff}
+          aria-label={isDiffMode ? "Exit Visual Diff" : "Toggle Visual Diff"}
+          title={isDiffMode ? "Exit Diff Mode" : "Compare with Saved"}
+        >
+          {#if $isLoadingDiff}
+            <svg
+              class="animate-spin w-4 h-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          {:else}
+            <!-- Diff Icon -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-4 h-4"
+            >
+              <path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          {/if}
+        </button>
+        <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
+      {/if}
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
         on:click={() => {

@@ -131,7 +131,7 @@
       class="flex items-center gap-2 px-3 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-sm text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
       tabindex="0"
     >
-      <span class="font-medium">{(playbackSpeed || 1).toFixed(2)}x</span>
+      <span class="font-medium">{(playbackSpeed ?? 1).toFixed(2)}x</span>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"

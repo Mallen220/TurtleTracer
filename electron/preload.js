@@ -48,6 +48,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   copyFile: (srcPath, destPath) =>
     ipcRenderer.invoke("file:copy", srcPath, destPath),
 
+  // Git operations
+  gitShow: (filePath) => ipcRenderer.invoke("git:show", filePath),
+
   // Renderer ready signal
   rendererReady: () => ipcRenderer.invoke("renderer-ready"),
 
