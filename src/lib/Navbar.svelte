@@ -250,7 +250,7 @@
           >
           {#if settings.gitIntegration && $gitStatusStore[$currentFilePath] && $gitStatusStore[$currentFilePath] !== "clean"}
             <div
-              class="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded border
+              class="ml-2 text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 whitespace-nowrap
                 {$gitStatusStore[$currentFilePath] === 'modified'
                 ? 'bg-amber-100 border-amber-200 text-amber-700 dark:bg-amber-900/50 dark:border-amber-700 dark:text-amber-300'
                 : $gitStatusStore[$currentFilePath] === 'staged'
@@ -269,7 +269,7 @@
                   viewBox="0 0 24 24"
                   stroke-width="2"
                   stroke="currentColor"
-                  class="size-3"
+                  class="size-3 flex-shrink-0"
                 >
                   <path
                     stroke-linecap="round"
@@ -277,7 +277,7 @@
                     d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
                   />
                 </svg>
-                <span class="ml-1">Modified</span>
+                <span>Modified</span>
               {:else if $gitStatusStore[$currentFilePath] === "staged"}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -285,7 +285,7 @@
                   viewBox="0 0 24 24"
                   stroke-width="2.5"
                   stroke="currentColor"
-                  class="size-3"
+                  class="size-3 flex-shrink-0"
                 >
                   <path
                     stroke-linecap="round"
@@ -293,7 +293,7 @@
                     d="m4.5 12.75 6 6 9-13.5"
                   />
                 </svg>
-                <span class="ml-1">Staged</span>
+                <span>Staged</span>
               {:else}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -301,7 +301,7 @@
                   viewBox="0 0 24 24"
                   stroke-width="2"
                   stroke="currentColor"
-                  class="size-3"
+                  class="size-3 flex-shrink-0"
                 >
                   <path
                     stroke-linecap="round"
@@ -309,7 +309,7 @@
                     d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
                   />
                 </svg>
-                <span class="ml-1">Untracked</span>
+                <span>Untracked</span>
               {/if}
             </div>
           {/if}

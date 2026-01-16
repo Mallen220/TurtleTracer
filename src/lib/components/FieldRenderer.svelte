@@ -201,8 +201,9 @@
   $: oldData = $committedData;
   $: currentFile = $currentFilePath;
   $: gitStatus = $gitStatusStore;
-  // Show diff toggle if file is modified in git OR has unsaved in-memory changes
-  $: isDirty = (currentFile && gitStatus[currentFile] && gitStatus[currentFile] !== "clean") || (currentFile && $isUnsaved);
+  // Show diff toggle if file is modified/staged in git OR has unsaved in-memory changes
+  // Exclude untracked files since they have no committed version to compare against
+  $: isDirty = (currentFile && gitStatus[currentFile] && gitStatus[currentFile] !== "clean" && gitStatus[currentFile] !== "untracked") || (currentFile && $isUnsaved);
 
   function updateRects() {
     if (two?.renderer?.domElement) {
