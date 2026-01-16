@@ -543,7 +543,6 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "exportPP",
     category: "Export",
   },
-  // New Keybindings
   {
     id: "move-item-up",
     key: "alt+up",
