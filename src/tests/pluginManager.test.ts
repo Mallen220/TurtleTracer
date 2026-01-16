@@ -69,9 +69,9 @@ describe("PluginManager", () => {
   });
 
   it("should register themes", async () => {
-    const mockListPlugins = vi.fn().mockResolvedValue(["theme-plugin.js"]);
+    const mockListPlugins = vi.fn().mockResolvedValue(["Example-pink-theme.js"]);
     const mockReadPlugin = vi.fn().mockResolvedValue(`
-      pedro.registerTheme("Pink", ".bg-blue { color: pink; }");
+      pedro.registerTheme("Pink Plugin Theme", ".bg-blue { color: pink; }");
     `);
 
     (window as any).electronAPI = {
@@ -83,7 +83,7 @@ describe("PluginManager", () => {
 
     const themes = get(themesStore);
     expect(themes).toHaveLength(1);
-    expect(themes[0].name).toBe("Pink");
+    expect(themes[0].name).toBe("Pink Plugin Theme");
     expect(themes[0].css).toBe(".bg-blue { color: pink; }");
   });
 });

@@ -609,7 +609,13 @@ const loadDirectorySettings = async () => {
     return JSON.parse(data);
   } catch (error) {
     // Return default settings if file doesn't exist
-    return { autoPathsDirectory: "" };
+    return {
+      autoPathsDirectory: "",
+      plugins: {
+        "Example-csv-exporter.js": false,
+        "Example-pink-theme.js": false,
+      },
+    };
   }
 };
 
@@ -671,7 +677,7 @@ async function ensureDefaultPlugins() {
   return csv;
 });`;
 
-    const pinkPlugin = `pedro.registerTheme("Pink", \`
+    const pinkPlugin = `pedro.registerTheme("Pink Plugin Theme", \`
 /* Global Backgrounds */
 html.dark body,
 html.dark .bg-neutral-900,
@@ -758,8 +764,8 @@ html.dark .dark\\\\:text-neutral-500 {
 }
 \`);`;
 
-    const csvPath = path.join(pluginsDir, "csv-exporter.js");
-    const pinkPath = path.join(pluginsDir, "pink-theme.js");
+    const csvPath = path.join(pluginsDir, "Example-csv-exporter.js");
+    const pinkPath = path.join(pluginsDir, "Example-pink-theme.js");
 
     try {
       await fs.access(csvPath);
