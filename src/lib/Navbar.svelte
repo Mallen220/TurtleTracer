@@ -25,6 +25,7 @@
   import { calculatePathTime, formatTime } from "../utils";
   import { showShortcuts } from "../stores";
   import { customExportersStore } from "./pluginsStore";
+  import { navbarActionRegistry } from "./registries";
 
   // svelte-ignore unused-export-let
   // export let loadFile: (evt: any) => any;
@@ -161,6 +162,10 @@
   let viewOptionsOpen = false;
   let viewOptionsRef: HTMLElement;
   let viewOptionsButtonRef: HTMLElement;
+
+  $: leftActions = $navbarActionRegistry.filter(a => a.location === 'left').sort((a,b) => (a.order||0) - (b.order||0));
+  $: centerActions = $navbarActionRegistry.filter(a => a.location === 'center').sort((a,b) => (a.order||0) - (b.order||0));
+  $: rightActions = $navbarActionRegistry.filter(a => !a.location || a.location === 'right').sort((a,b) => (a.order||0) - (b.order||0));
 
   onMount(() => {
     document.addEventListener("click", handleClickOutside);
@@ -313,6 +318,17 @@
         >
       {/if}
     </div>
+
+    {#each leftActions as action (action.id)}
+      <button
+        title={action.title}
+        aria-label={action.title}
+        on:click={action.onClick}
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+      >
+        {@html action.icon}
+      </button>
+    {/each}
   </div>
 
   <!-- Center: Contextual Info (Desktop only usually) -->
@@ -346,6 +362,17 @@
       <span>{formatTime(timePrediction.totalTime)}</span>
       <span>{timePrediction.totalDistance.toFixed(0)} in</span>
     </div>
+
+    {#each centerActions as action (action.id)}
+      <button
+        title={action.title}
+        aria-label={action.title}
+        on:click={action.onClick}
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors hidden md:block"
+      >
+        {@html action.icon}
+      </button>
+    {/each}
   {/if}
 
   <!-- Right: Toolbar Actions -->
@@ -872,6 +899,18 @@
 
     <!-- More Options -->
     <div class="flex items-center gap-1 ml-2">
+
+      {#each rightActions as action (action.id)}
+        <button
+          title={action.title}
+          aria-label={action.title}
+          on:click={action.onClick}
+          class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+        >
+          {@html action.icon}
+        </button>
+      {/each}
+
       <div
         class="h-6 border-l border-neutral-300 dark:border-neutral-700 mx-4"
         aria-hidden="true"

@@ -70,6 +70,12 @@
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { PluginManager } from "./lib/pluginManager";
   import { themesStore } from "./lib/pluginsStore";
+  import { componentRegistry } from "./lib/registries";
+
+  // Register Default Components
+  componentRegistry.register("Navbar", Navbar);
+  componentRegistry.register("FieldRenderer", FieldRenderer);
+  componentRegistry.register("ControlTab", ControlTab);
 
   // Types
   import type { Settings } from "./types";
@@ -1216,7 +1222,8 @@
 >
   {#if !$isPresentationMode}
     <div class="flex-none z-50">
-      <Navbar
+      <svelte:component
+        this={$componentRegistry.Navbar || Navbar}
         bind:lines={$linesStore}
         bind:startPoint={$startPointStore}
         bind:shapes={$shapesStore}
@@ -1258,7 +1265,8 @@
       <div
         class="relative shadow-inner w-full h-full flex justify-center items-center"
       >
-        <FieldRenderer
+        <svelte:component
+          this={$componentRegistry.FieldRenderer || FieldRenderer}
           bind:this={fieldRenderer}
           width={fieldRenderWidth}
           height={fieldRenderHeight}
@@ -1331,7 +1339,8 @@
         ></div>
       {/if}
 
-      <ControlTab
+      <svelte:component
+        this={$componentRegistry.ControlTab || ControlTab}
         bind:this={controlTabRef}
         bind:playing={$playingStore}
         {play}

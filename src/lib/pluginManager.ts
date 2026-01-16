@@ -8,12 +8,21 @@ import {
   type CustomExporter,
   type CustomTheme,
 } from "./pluginsStore";
+import * as projectStore from "./projectStore";
+import * as appStores from "../stores";
 import {
+  componentRegistry,
+  tabRegistry,
+  navbarActionRegistry,
+  hookRegistry,
+} from "./registries";
+
+const {
   startPointStore,
   linesStore,
   shapesStore,
   sequenceStore,
-} from "./projectStore";
+} = projectStore;
 
 export class PluginManager {
   private static allExporters: CustomExporter[] = [];
@@ -114,6 +123,18 @@ export class PluginManager {
           shapes: get(shapesStore),
           sequence: get(sequenceStore),
         };
+      },
+      // Expanded API
+      registries: {
+        components: componentRegistry,
+        tabs: tabRegistry,
+        navbarActions: navbarActionRegistry,
+        hooks: hookRegistry,
+      },
+      stores: {
+        project: projectStore,
+        app: appStores,
+        get: get,
       },
     };
 
