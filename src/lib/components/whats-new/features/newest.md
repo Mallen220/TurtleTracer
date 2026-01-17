@@ -2,6 +2,12 @@
 
 ## **Features:**
 
+### **Visual Diff Overlay**
+Review your changes with confidence using the new visual comparison tool.
+*   **Instant Comparison:** Toggle the diff overlay to see your current path overlaid on the last saved version.
+*   **Color-Coded Feedback:** Easily distinguish between current changes (Green) and the committed state (Red).
+*   **Smart Activation:** The diff toggle automatically appears when you have unsaved or staged changes.
+
 ### **Expanded Plugin System**
 The plugin system has been significantly expanded, allowing for deeper integration and more powerful extensions.
 *   **Custom Tabs:** Plugins can now add their own tabs to the Control Panel.
