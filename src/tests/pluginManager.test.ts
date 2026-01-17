@@ -15,7 +15,24 @@ describe("PluginManager", () => {
     pluginsStore.set([]);
     themesStore.set([]);
     vi.clearAllMocks();
-    localStorage.clear();
+
+    // Mock localStorage
+    const storage: Record<string, string> = {};
+    Object.defineProperty(window, "localStorage", {
+      value: {
+        getItem: vi.fn((key: string) => storage[key] || null),
+        setItem: vi.fn((key: string, value: string) => {
+          storage[key] = value;
+        }),
+        clear: vi.fn(() => {
+          for (const key in storage) delete storage[key];
+        }),
+        removeItem: vi.fn((key: string) => {
+          delete storage[key];
+        }),
+      },
+      writable: true,
+    });
   });
 
   it("should load plugins from electronAPI", async () => {
