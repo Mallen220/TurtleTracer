@@ -21,11 +21,18 @@ export interface ProjectData {
   settings: Settings;
 }
 
+export interface EventChangeDetail {
+  property: string;
+  oldVal: string | number;
+  newVal: string | number;
+}
+
 export interface EventChange {
   id: string;
   name: string;
   changeType: "added" | "removed" | "changed";
   description: string;
+  details?: EventChangeDetail[];
 }
 
 export interface DiffResult {
@@ -225,12 +232,32 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
       });
     } else {
       const changes: string[] = [];
-      if (m.name !== oldM.name) changes.push(`renamed to "${m.name}"`);
-      if (m.parentName !== oldM.parentName) changes.push(`moved to ${m.parentName}`);
+      const details: EventChangeDetail[] = [];
+
+      if (m.name !== oldM.name) {
+        changes.push(`renamed to "${m.name}"`);
+        details.push({ property: "Name", oldVal: oldM.name, newVal: m.name });
+      }
+      if (m.parentName !== oldM.parentName) {
+        changes.push(`moved to ${m.parentName}`);
+        details.push({
+          property: "Location",
+          oldVal: oldM.parentName,
+          newVal: m.parentName,
+        });
+      }
 
       const posDiff = m.position - oldM.position;
-      if (Math.abs(posDiff) > 0.005) { // 0.5% tolerance
-        changes.push(`position changed ${(oldM.position * 100).toFixed(0)}% -> ${(m.position * 100).toFixed(0)}%`);
+      if (Math.abs(posDiff) > 0.005) {
+        // 0.5% tolerance
+        changes.push(
+          `position changed ${(oldM.position * 100).toFixed(0)}% -> ${(m.position * 100).toFixed(0)}%`,
+        );
+        details.push({
+          property: "Position",
+          oldVal: `${(oldM.position * 100).toFixed(0)}%`,
+          newVal: `${(m.position * 100).toFixed(0)}%`,
+        });
       }
 
       if (changes.length > 0) {
@@ -238,7 +265,8 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
           id,
           name: m.name,
           changeType: "changed",
-          description: `Changed "${oldM.name}": ${changes.join(", ")}`
+          description: `Changed "${oldM.name}": ${changes.join(", ")}`,
+          details,
         });
       }
     }

@@ -690,48 +690,6 @@ ipcMain.handle("git:show", async (event, filePath) => {
   }
 });
 
-ipcMain.handle("git:add", async (event, filePath) => {
-  try {
-    const git = simpleGit(path.dirname(filePath));
-    const isRepo = await git.checkIsRepo();
-    if (!isRepo) return false;
-
-    await git.add(filePath);
-    return true;
-  } catch (error) {
-    console.warn("Error running git add:", error);
-    return false;
-  }
-});
-
-ipcMain.handle("git:commit", async (event, filePath, message) => {
-  try {
-    const git = simpleGit(path.dirname(filePath));
-    const isRepo = await git.checkIsRepo();
-    if (!isRepo) return false;
-
-    await git.commit(message);
-    return true;
-  } catch (error) {
-    console.warn("Error running git commit:", error);
-    return false;
-  }
-});
-
-ipcMain.handle("git:push", async (event, filePath) => {
-  try {
-    const git = simpleGit(path.dirname(filePath));
-    const isRepo = await git.checkIsRepo();
-    if (!isRepo) return false;
-
-    await git.push();
-    return true;
-  } catch (error) {
-    console.warn("Error running git push:", error);
-    return false;
-  }
-});
-
 async function ensureDefaultPlugins() {
   const pluginsDir = getPluginsDirectory();
   try {

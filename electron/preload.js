@@ -50,10 +50,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Git operations
   gitShow: (filePath) => ipcRenderer.invoke("git:show", filePath),
-  gitAdd: (filePath) => ipcRenderer.invoke("git:add", filePath),
-  gitCommit: (filePath, message) =>
-    ipcRenderer.invoke("git:commit", filePath, message),
-  gitPush: (filePath) => ipcRenderer.invoke("git:push", filePath),
 
   // Renderer ready signal
   rendererReady: () => ipcRenderer.invoke("renderer-ready"),
