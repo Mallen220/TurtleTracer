@@ -496,6 +496,8 @@
 
   // Paths (Lines) - Standard
   $: path = (() => {
+    x;
+    y; // Trigger reactivity on pan/zoom
     if (isDiffMode) return []; // Don't render standard path in diff mode
     const currentSelectedId = $selectedLineId;
     return generatePathElements(
@@ -510,6 +512,8 @@
 
   // Diff Paths
   $: diffPathElements = (() => {
+    x;
+    y; // Trigger reactivity on pan/zoom
     if (!isDiffMode) return [];
 
     // 1. Committed Path (Old) - Red
