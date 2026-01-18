@@ -98,6 +98,7 @@
       "dist/**/*",
       "public/**/*",
       "electron/**/*",
+      "plugins/**/*",
       "package.json"
     ],
     "extraResources": [
