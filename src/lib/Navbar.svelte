@@ -16,6 +16,7 @@
     showFileManager,
     gitStatusStore,
     showPluginManager,
+    startTutorial,
   } from "../stores";
   import { getRandomColor } from "../utils";
   import hotkeys from "hotkeys-js";
@@ -408,6 +409,7 @@
 
     <!-- Sidebar Toggle -->
     <button
+      id="sidebar-toggle-btn"
       title={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
       aria-label={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
       on:click={() => (showSidebar = !showSidebar)}
@@ -738,6 +740,7 @@
       <!-- Save -->
       <div class="relative">
         <button
+          id="save-project-btn"
           bind:this={saveButtonRef}
           on:click={() => (saveDropdownOpen = !saveDropdownOpen)}
           class="flex items-center gap-1 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
@@ -795,6 +798,7 @@
       <!-- Export -->
       <div class="relative">
         <button
+          id="export-project-btn"
           bind:this={exportButtonRef}
           on:click={() => (exportMenuOpen = !exportMenuOpen)}
           class="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md shadow-sm transition-colors text-sm font-medium"
@@ -896,6 +900,7 @@
 
       <!-- New Project -->
       <button
+        id="new-project-btn"
         title="New Project"
         aria-label="New Project"
         on:click={() => resetProject()}
@@ -919,6 +924,7 @@
 
       <!-- Settings Button -->
       <button
+        id="settings-btn"
         title="Settings"
         aria-label="Settings"
         on:click={() => showSettings.set(true)}
@@ -941,6 +947,29 @@
             stroke-linecap="round"
             stroke-linejoin="round"
             d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+          />
+        </svg>
+      </button>
+
+      <!-- Tutorial Button -->
+      <button
+        title="Start Tutorial"
+        aria-label="Start Tutorial"
+        on:click={() => startTutorial.set(true)}
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
           />
         </svg>
       </button>

@@ -77,3 +77,6 @@ export const diskEventNamesStore = writable<string[]>([]);
 
 // Git status map for files (filepath -> status)
 export const gitStatusStore = writable<Record<string, string>>({});
+
+// Tutorial Trigger
+export const startTutorial = writable(false);

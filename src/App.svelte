@@ -13,6 +13,7 @@
   import ExportGifDialog from "./lib/components/ExportGifDialog.svelte";
   import PathStatisticsDialog from "./lib/components/PathStatisticsDialog.svelte";
   import NotificationToast from "./lib/components/NotificationToast.svelte";
+  import OnboardingTutorial from "./lib/components/OnboardingTutorial.svelte";
   import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
   import SaveNameDialog from "./lib/components/SaveNameDialog.svelte";
   import UnsavedChangesDialog from "./lib/components/UnsavedChangesDialog.svelte";
@@ -1256,6 +1257,7 @@
   on:close={closeWhatsNew}
 />
 <NotificationToast />
+<OnboardingTutorial whatsNewOpen={showWhatsNew} />
 
 <SaveNameDialog
   bind:show={showSaveNameDialog}
@@ -1366,6 +1368,7 @@
   >
     <!-- Field Container -->
     <div
+      id="field-container"
       class="flex-none flex justify-center items-center relative transition-all duration-300 ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
       style={`
         width: ${isLargeScreen && effectiveShowSidebar ? leftPaneWidth + "px" : "100%"};
