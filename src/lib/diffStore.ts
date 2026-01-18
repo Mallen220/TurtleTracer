@@ -9,14 +9,7 @@ import {
   settingsStore,
   normalizeLines,
 } from "./projectStore";
-import type {
-  Line,
-  Point,
-  SequenceItem,
-  Shape,
-  Settings,
-  EventMarker,
-} from "../types";
+import type { Line, Point, SequenceItem, Shape, Settings, EventMarker } from "../types";
 import { calculatePathTime } from "../utils";
 import _ from "lodash";
 
@@ -28,11 +21,19 @@ export interface ProjectData {
   settings: Settings;
 }
 
+export interface EventChangeDetail {
+  property: string;
+  oldVal: string | number;
+  newVal: string | number;
+}
+
 export interface EventChange {
   id: string;
   name: string;
+  parentName?: string;
   changeType: "added" | "removed" | "changed";
   description: string;
+  details?: EventChangeDetail[];
 }
 
 export interface DiffResult {
@@ -90,12 +91,7 @@ export async function toggleDiff() {
 
       // Normalize data similar to projectStore.loadProjectData
       const normalizedCommitted: ProjectData = {
-        startPoint: parsed.startPoint || {
-          x: 0,
-          y: 0,
-          heading: "tangential",
-          reverse: false,
-        },
+        startPoint: parsed.startPoint || { x: 0, y: 0, heading: "tangential", reverse: false },
         lines: normalizeLines(parsed.lines || []),
         sequence: parsed.sequence || [],
         shapes: parsed.shapes || [],
@@ -145,21 +141,21 @@ function extractMarkers(data: ProjectData): Map<string, MarkerInfo> {
       id,
       name: m.name,
       parentName,
-      position: m.position,
+      position: m.position
     });
   };
 
   // Line markers
   data.lines.forEach((l, idx) => {
     const parentName = l.name || `Path ${idx + 1}`;
-    l.eventMarkers?.forEach((m) => add(m, parentName));
+    l.eventMarkers?.forEach(m => add(m, parentName));
   });
 
   // Sequence markers
   data.sequence.forEach((s) => {
-    if (s.kind === "wait" || s.kind === "rotate") {
-      const parentName = s.name || (s.kind === "wait" ? "Wait" : "Rotate");
-      s.eventMarkers?.forEach((m) => add(m, parentName));
+    if (s.kind === 'wait' || s.kind === 'rotate') {
+      const parentName = s.name || (s.kind === 'wait' ? 'Wait' : 'Rotate');
+      s.eventMarkers?.forEach(m => add(m, parentName));
     }
   });
 
@@ -180,11 +176,11 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
   };
 
   // 1. Compare Lines
-  const currentLinesMap = new Map(current.lines.map((l) => [l.id, l]));
-  const oldLinesMap = new Map(old.lines.map((l) => [l.id, l]));
+  const currentLinesMap = new Map(current.lines.map(l => [l.id, l]));
+  const oldLinesMap = new Map(old.lines.map(l => [l.id, l]));
 
   // Check for added and changed/same
-  current.lines.forEach((line) => {
+  current.lines.forEach(line => {
     const oldLine = oldLinesMap.get(line.id);
     if (!oldLine) {
       result.addedLines.push(line);
@@ -198,37 +194,27 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
   });
 
   // Check for removed
-  old.lines.forEach((line) => {
+  old.lines.forEach(line => {
     if (!currentLinesMap.has(line.id)) {
       result.removedLines.push(line);
     }
   });
 
   // 2. Stats Diff
-  const currentStats = calculatePathTime(
-    current.startPoint,
-    current.lines,
-    current.settings,
-    current.sequence,
-  );
-  const oldStats = calculatePathTime(
-    old.startPoint,
-    old.lines,
-    old.settings,
-    old.sequence,
-  );
+  const currentStats = calculatePathTime(current.startPoint, current.lines, current.settings, current.sequence);
+  const oldStats = calculatePathTime(old.startPoint, old.lines, old.settings, old.sequence);
 
   result.statsDiff = {
     time: {
       old: oldStats.totalTime,
       new: currentStats.totalTime,
-      diff: currentStats.totalTime - oldStats.totalTime,
+      diff: currentStats.totalTime - oldStats.totalTime
     },
     distance: {
       old: oldStats.totalDistance,
       new: currentStats.totalDistance,
-      diff: currentStats.totalDistance - oldStats.totalDistance,
-    },
+      diff: currentStats.totalDistance - oldStats.totalDistance
+    }
   };
 
   // 3. Event Diff
@@ -242,14 +228,26 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
       result.eventDiff.push({
         id,
         name: m.name,
+        parentName: m.parentName,
         changeType: "added",
-        description: `Added "${m.name}" to ${m.parentName} at ${(m.position * 100).toFixed(0)}%`,
+        description: `Added "${m.name}" to ${m.parentName} at ${(m.position * 100).toFixed(0)}%`
       });
     } else {
       const changes: string[] = [];
-      if (m.name !== oldM.name) changes.push(`renamed to "${m.name}"`);
-      if (m.parentName !== oldM.parentName)
+      const details: EventChangeDetail[] = [];
+
+      if (m.name !== oldM.name) {
+        changes.push(`renamed to "${m.name}"`);
+        details.push({ property: "Name", oldVal: oldM.name, newVal: m.name });
+      }
+      if (m.parentName !== oldM.parentName) {
         changes.push(`moved to ${m.parentName}`);
+        details.push({
+          property: "Location",
+          oldVal: oldM.parentName,
+          newVal: m.parentName,
+        });
+      }
 
       const posDiff = m.position - oldM.position;
       if (Math.abs(posDiff) > 0.005) {
@@ -257,14 +255,21 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
         changes.push(
           `position changed ${(oldM.position * 100).toFixed(0)}% -> ${(m.position * 100).toFixed(0)}%`,
         );
+        details.push({
+          property: "Position",
+          oldVal: `${(oldM.position * 100).toFixed(0)}%`,
+          newVal: `${(m.position * 100).toFixed(0)}%`,
+        });
       }
 
       if (changes.length > 0) {
         result.eventDiff.push({
           id,
           name: m.name,
+          parentName: m.parentName,
           changeType: "changed",
           description: `Changed "${oldM.name}": ${changes.join(", ")}`,
+          details,
         });
       }
     }
@@ -276,8 +281,9 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
       result.eventDiff.push({
         id,
         name: m.name,
+        parentName: m.parentName,
         changeType: "removed",
-        description: `Removed "${m.name}" from ${m.parentName}`,
+        description: `Removed "${m.name}" from ${m.parentName}`
       });
     }
   });
@@ -286,9 +292,7 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
 }
 
 function areLinesEqual(l1: Line, l2: Line): boolean {
-  return (
-    _.isEqual(l1.endPoint, l2.endPoint) &&
-    _.isEqual(l1.controlPoints, l2.controlPoints) &&
-    l1.name === l2.name
-  );
+  return _.isEqual(l1.endPoint, l2.endPoint) &&
+         _.isEqual(l1.controlPoints, l2.controlPoints) &&
+         l1.name === l2.name;
 }
