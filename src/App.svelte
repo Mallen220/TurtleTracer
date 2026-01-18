@@ -746,9 +746,11 @@
         // Check for What's New
         const currentVersion = pkg.version;
         const lastSeen = get(settingsStore).lastSeenVersion;
+        const hasSeenTutorial = localStorage.getItem("hasSeenTutorial");
 
         // If version mismatch or never seen, show dialog
-        if (lastSeen !== currentVersion) {
+        // But only if we have already seen the tutorial (otherwise tutorial runs first)
+        if (lastSeen !== currentVersion && hasSeenTutorial) {
           showWhatsNew = true;
         }
       }
@@ -1257,7 +1259,11 @@
   on:close={closeWhatsNew}
 />
 <NotificationToast />
-<OnboardingTutorial whatsNewOpen={showWhatsNew} />
+<OnboardingTutorial
+  whatsNewOpen={showWhatsNew}
+  {isLoaded}
+  on:tutorialComplete={() => (showWhatsNew = true)}
+/>
 
 <SaveNameDialog
   bind:show={showSaveNameDialog}

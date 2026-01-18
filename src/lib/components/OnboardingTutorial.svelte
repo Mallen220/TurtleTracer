@@ -1,13 +1,18 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { createEventDispatcher } from "svelte";
   import { driver } from "driver.js";
   import "driver.js/dist/driver.css";
   import { startTutorial } from "../../stores";
 
   export let whatsNewOpen = false;
+  export let isLoaded = false;
+
+  const dispatch = createEventDispatcher();
 
   // Dev flag to force start tutorial
   const FORCE_START_DEV = false;
+
+  let isFirstRun = false;
 
   // Use a customized theme for the driver.js overlay
   const driverObj = driver({
@@ -49,7 +54,7 @@
         },
       },
       {
-        element: "#path-tab", // This assumes the tab content or the tab button? #path-tab is the button.
+        element: "#path-tab",
         popover: {
           title: "Path Tools",
           description:
@@ -116,33 +121,44 @@
       }
       // Reset store so it can be triggered again later
       startTutorial.set(false);
+
+      // If this was the initial first-run tutorial, trigger the "What's New" / Docs
+      if (isFirstRun) {
+        isFirstRun = false;
+        dispatch("tutorialComplete");
+      }
     },
   });
 
   // Reactive trigger
   $: if ($startTutorial) {
-    // Check if already active to prevent double activation?
-    // driver.js usually handles this, but good to be safe.
     if (!driverObj.isActive()) {
       driverObj.drive();
       localStorage.setItem("hasSeenTutorial", "true");
     }
   }
 
+  // Auto-start logic
   $: {
-    // Check dev flag or logic
-    if (FORCE_START_DEV && !$startTutorial) {
-      setTimeout(() => startTutorial.set(true), 500);
-    } else if (!whatsNewOpen) {
-      const hasSeen = localStorage.getItem("hasSeenTutorial");
-      if (!hasSeen && !$startTutorial) {
-        // Small delay to ensure UI is ready
+    // Only check if loaded
+    if (isLoaded) {
+      if (FORCE_START_DEV && !$startTutorial) {
         setTimeout(() => {
-          // Check again inside timeout
-          if (!localStorage.getItem("hasSeenTutorial") && !whatsNewOpen) {
-            startTutorial.set(true);
-          }
-        }, 1000);
+             isFirstRun = true;
+             startTutorial.set(true);
+        }, 500);
+      } else if (!whatsNewOpen) {
+        const hasSeen = localStorage.getItem("hasSeenTutorial");
+        if (!hasSeen && !$startTutorial) {
+          // Small delay to ensure UI is ready
+          setTimeout(() => {
+            // Check again inside timeout
+            if (!localStorage.getItem("hasSeenTutorial") && !whatsNewOpen) {
+              isFirstRun = true;
+              startTutorial.set(true);
+            }
+          }, 1000);
+        }
       }
     }
   }
