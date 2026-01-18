@@ -98,6 +98,15 @@
       : (settings.aVelocity * 180) / Math.PI
     : 1;
 
+  // Display value for max angular acceleration
+  // If rad: value in rad/s^2
+  // If deg: value in deg/s^2
+  $: maxAngularAccelerationDisplay = settings
+    ? angularVelocityUnit === "rad"
+      ? settings.maxAngularAcceleration
+      : (settings.maxAngularAcceleration * 180) / Math.PI
+    : 0;
+
   function handleAngularVelocityInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const val = parseFloat(target.value);
@@ -123,13 +132,16 @@
 
   function handleMaxAngularAccelerationInput(e: Event) {
     const target = e.target as HTMLInputElement;
-    handleNumberInput(
-      target.value,
-      "maxAngularAcceleration",
-      0,
-      undefined,
-      true,
-    );
+    let val = parseFloat(target.value);
+    if (isNaN(val)) val = 0;
+    if (val < 0) val = 0;
+
+    if (angularVelocityUnit === "rad") {
+      settings.maxAngularAcceleration = val;
+    } else {
+      settings.maxAngularAcceleration = (val * Math.PI) / 180;
+    }
+    settings = { ...settings };
   }
 
   async function handleReset() {
@@ -910,7 +922,9 @@
                   for="max-angular-acceleration"
                   class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1"
                 >
-                  Max Angular Acceleration (rad/s²)
+                  Max Angular Acceleration ({angularVelocityUnit === "rad"
+                    ? "rad/s²"
+                    : "deg/s²"})
                   <div class="text-xs text-neutral-500 dark:text-neutral-400">
                     Set to 0 to auto-calculate from linear acceleration
                   </div>
@@ -918,10 +932,10 @@
                 <input
                   id="max-angular-acceleration"
                   type="number"
-                  bind:value={settings.maxAngularAcceleration}
+                  value={Number(maxAngularAccelerationDisplay.toFixed(2))}
                   min="0"
-                  step="0.1"
-                  on:change={handleMaxAngularAccelerationInput}
+                  step={angularVelocityUnit === "rad" ? 0.1 : 10}
+                  on:input={handleMaxAngularAccelerationInput}
                   class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
