@@ -136,6 +136,8 @@
         on:click|stopPropagation={toggleCollapsed}
         class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
         title="{collapsed ? 'Expand' : 'Collapse'} path"
+        aria-label="{collapsed ? 'Expand' : 'Collapse'} Path {idx + 1}"
+        aria-expanded={!collapsed}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -223,6 +225,7 @@
         }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
         title={line.locked ? "Unlock Path" : "Lock Path"}
+        aria-label={line.locked ? "Unlock Path" : "Lock Path"}
       >
         {#if line.locked}
           <svg
@@ -266,6 +269,7 @@
           disabled={!canMoveUp || line.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
           title="Move Up"
+          aria-label="Move Up"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -286,6 +290,7 @@
           disabled={!canMoveDown || line.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
           title="Move Down"
+          aria-label="Move Down"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

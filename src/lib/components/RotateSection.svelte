@@ -100,10 +100,11 @@
     <!-- Left: Title & Name -->
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
-        tabindex="-1"
         on:click|stopPropagation={toggleCollapsed}
         class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
         title="{collapsed ? 'Expand' : 'Collapse'} rotate"
+        aria-label="{collapsed ? 'Expand' : 'Collapse'} rotate"
+        aria-expanded={!collapsed}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -130,7 +131,6 @@
       <div class="flex items-center gap-2 flex-1 min-w-0">
         <div class="relative flex-1 min-w-0">
           <input
-            tabindex="-1"
             value={rotate.name}
             placeholder="Rotate"
             aria-label="Rotate name"
@@ -180,13 +180,13 @@
     <!-- Right: Controls -->
     <div class="flex items-center gap-1">
       <button
-        tabindex="-1"
         on:click|stopPropagation={() => {
           rotate.locked = !rotate.locked;
           if (recordChange) recordChange();
         }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
         title={rotate.locked ? "Unlock Rotate" : "Lock Rotate"}
+        aria-label={rotate.locked ? "Unlock Rotate" : "Lock Rotate"}
       >
         {#if rotate.locked}
           <svg
@@ -225,13 +225,13 @@
         class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
       >
         <button
-          tabindex="-1"
           on:click|stopPropagation={() => {
             if (!rotate.locked && canMoveUp && onMoveUp) onMoveUp();
           }}
           disabled={!canMoveUp || rotate.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
           title="Move Up"
+          aria-label="Move Up"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -247,13 +247,13 @@
           </svg>
         </button>
         <button
-          tabindex="-1"
           on:click|stopPropagation={() => {
             if (!rotate.locked && canMoveDown && onMoveDown) onMoveDown();
           }}
           disabled={!canMoveDown || rotate.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
           title="Move Down"
+          aria-label="Move Down"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -326,7 +326,6 @@
           </svg>
           <input
             id="rotate-heading-{rotate.id}"
-            tabindex="-1"
             class="w-full pl-9 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
             type="number"
             step="any"
@@ -347,7 +346,6 @@
         >
 
         <button
-          tabindex="-1"
           on:click|stopPropagation={onAddPathAfter}
           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800/30"
           title="Add Path After"
@@ -366,7 +364,6 @@
         </button>
 
         <button
-          tabindex="-1"
           on:click|stopPropagation={onAddWaitAfter}
           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200 dark:border-amber-800/30"
           title="Add Wait After"
@@ -385,7 +382,6 @@
         </button>
 
         <button
-          tabindex="-1"
           on:click|stopPropagation={onInsertAfter}
           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30"
           title="Add Rotate After"
