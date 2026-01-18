@@ -16,6 +16,7 @@ import {
   navbarActionRegistry,
   hookRegistry,
 } from "./registries";
+import * as ts from "typescript";
 
 const { startPointStore, linesStore, shapesStore, sequenceStore } =
   projectStore;
@@ -101,6 +102,23 @@ export class PluginManager {
   }
 
   static executePlugin(filename: string, code: string) {
+    let codeToExecute = code;
+
+    // Transpile TypeScript if needed
+    if (filename.endsWith(".ts")) {
+      try {
+        const result = ts.transpileModule(code, {
+          compilerOptions: {
+            target: ts.ScriptTarget.ES2020,
+            module: ts.ModuleKind.None,
+          },
+        });
+        codeToExecute = result.outputText;
+      } catch (e) {
+        throw new Error(`Transpilation failed: ${e}`);
+      }
+    }
+
     // Restricted API exposed to plugins
     const pedroAPI = {
       registerExporter: (name: string, handler: (data: any) => string) => {
@@ -138,7 +156,7 @@ export class PluginManager {
     // Execute safely-ish
     try {
       // We pass 'pedro' as the argument name
-      const fn = new Function("pedro", code);
+      const fn = new Function("pedro", codeToExecute);
       fn(pedroAPI);
     } catch (e) {
       throw new Error(`Execution failed: ${e}`);

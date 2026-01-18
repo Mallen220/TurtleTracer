@@ -702,7 +702,12 @@ async function ensureDefaultPlugins() {
     try {
       const files = await fs.readdir(sourcePluginsDir);
       for (const file of files) {
-        if (!file.endsWith(".js")) continue;
+        if (
+          !file.endsWith(".js") &&
+          !file.endsWith(".ts") &&
+          !file.endsWith(".d.ts")
+        )
+          continue;
 
         const srcFile = path.join(sourcePluginsDir, file);
         const destFile = path.join(pluginsDir, file);

@@ -108,4 +108,30 @@ describe("PluginManager", () => {
     expect(themes[0].name).toBe("Pink Plugin Theme");
     expect(themes[0].css).toBe(".bg-blue { color: pink; }");
   });
+
+  it("should load and transpile TypeScript plugins", async () => {
+    const mockListPlugins = vi.fn().mockResolvedValue(["test-ts-plugin.ts"]);
+    const mockReadPlugin = vi.fn().mockResolvedValue(`
+      // TypeScript syntax
+      const handler = (data: any): string => {
+        return "ts-result";
+      };
+      pedro.registerExporter("TS Exporter", handler);
+    `);
+
+    (window as any).electronAPI = {
+      listPlugins: mockListPlugins,
+      readPlugin: mockReadPlugin,
+    };
+
+    localStorage.setItem("plugin_enabled_test-ts-plugin.ts", "true");
+    await PluginManager.init();
+
+    const exporters = get(customExportersStore);
+    expect(exporters).toHaveLength(1);
+    expect(exporters[0].name).toBe("TS Exporter");
+
+    const result = exporters[0].handler({} as any);
+    expect(result).toBe("ts-result");
+  });
 });
