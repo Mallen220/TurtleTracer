@@ -13,6 +13,7 @@
   import ExportGifDialog from "./lib/components/ExportGifDialog.svelte";
   import PathStatisticsDialog from "./lib/components/PathStatisticsDialog.svelte";
   import NotificationToast from "./lib/components/NotificationToast.svelte";
+  import OnboardingTutorial from "./lib/components/OnboardingTutorial.svelte";
   import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
   import SaveNameDialog from "./lib/components/SaveNameDialog.svelte";
   import UnsavedChangesDialog from "./lib/components/UnsavedChangesDialog.svelte";
@@ -744,10 +745,13 @@
       } else {
         // Check for What's New
         const currentVersion = pkg.version;
-        const lastSeen = get(settingsStore).lastSeenVersion;
+        const s = get(settingsStore);
+        const lastSeen = s.lastSeenVersion;
+        const hasSeenTutorial = s.hasSeenOnboarding;
 
         // If version mismatch or never seen, show dialog
-        if (lastSeen !== currentVersion) {
+        // But only if we have already seen the tutorial (otherwise tutorial runs first)
+        if (lastSeen !== currentVersion && hasSeenTutorial) {
           showWhatsNew = true;
         }
       }
@@ -1256,6 +1260,11 @@
   on:close={closeWhatsNew}
 />
 <NotificationToast />
+<OnboardingTutorial
+  whatsNewOpen={showWhatsNew}
+  {isLoaded}
+  on:tutorialComplete={() => (showWhatsNew = true)}
+/>
 
 <SaveNameDialog
   bind:show={showSaveNameDialog}
@@ -1366,6 +1375,7 @@
   >
     <!-- Field Container -->
     <div
+      id="field-container"
       class="flex-none flex justify-center items-center relative transition-all duration-300 ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
       style={`
         width: ${isLargeScreen && effectiveShowSidebar ? leftPaneWidth + "px" : "100%"};

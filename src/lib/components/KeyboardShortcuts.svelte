@@ -1478,6 +1478,11 @@
     setAutoSave5m: () => (actions as any).setAutosave("time", 5),
     setAutoSaveChange: () => (actions as any).setAutosave("change"),
     setAutoSaveClose: () => (actions as any).setAutosave("close"),
+    startTutorial: () => {
+      import("../../stores").then(({ startTutorial }) => {
+        startTutorial.set(true);
+      });
+    },
   };
 
   // --- Derived Commands for Search ---
@@ -1574,6 +1579,13 @@
 
   // Derive commands list for Command Palette
   $: paletteCommands = [
+    {
+      id: "start-tutorial",
+      label: "Start Tutorial",
+      shortcut: "",
+      category: "Help",
+      action: (actions as any).startTutorial,
+    },
     ...(settings?.keyBindings || DEFAULT_KEY_BINDINGS)
       .filter((b) => (actions as any)[b.action])
       .map((b) => ({

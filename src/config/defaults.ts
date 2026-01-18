@@ -783,6 +783,7 @@ export const DEFAULT_SETTINGS: Settings = {
   keyBindings: DEFAULT_KEY_BINDINGS,
   recentFiles: [],
   lastSeenVersion: "",
+  hasSeenOnboarding: false,
   gitIntegration: true,
   // Developer/debugging aids
   // @ts-ignore

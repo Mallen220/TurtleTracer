@@ -47,9 +47,11 @@
 </script>
 
 <div
+  id="playback-controls"
   class="w-full bg-neutral-50 dark:bg-neutral-900 rounded-lg p-3 flex flex-row justify-start items-center gap-3 shadow-lg"
 >
   <button
+    id="play-pause-btn"
     title="Play/Pause"
     aria-label={playing ? "Pause animation" : "Play animation"}
     on:click={() => {
@@ -263,6 +265,7 @@
 
     <!-- The Slider -->
     <input
+      id="timeline-slider"
       bind:value={percent}
       type="range"
       min="0"

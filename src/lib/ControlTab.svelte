@@ -314,6 +314,7 @@
     <!-- Tab Switcher -->
     <div class="w-full px-4 pt-4 flex-none z-10 flex gap-3">
       <div
+        id="tab-switcher"
         class="flex-1 flex flex-row bg-neutral-200/60 dark:bg-neutral-800/60 p-1.5 gap-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm overflow-x-auto"
         role="tablist"
         aria-label="Editor View Selection"
@@ -338,6 +339,7 @@
         {/each}
       </div>
       <button
+        id="stats-btn"
         on:click={() => (statsOpen = !statsOpen)}
         class="flex-none flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:text-neutral-900 dark:hover:text-neutral-200 gap-2 shadow-sm"
         title="Path Statistics"
