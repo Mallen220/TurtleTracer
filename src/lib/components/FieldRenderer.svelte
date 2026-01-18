@@ -517,14 +517,16 @@
     if (!isDiffMode) return [];
 
     // 1. Committed Path (Old) - Red
-    const committedPaths = oldData ? generatePathElements(
-      oldData.lines,
-      oldData.startPoint,
-      () => "#ef4444", // Red
-      () => uiLength(LINE_WIDTH),
-      "diff-old",
-      false
-    ) : [];
+    const committedPaths = oldData
+      ? generatePathElements(
+          oldData.lines,
+          oldData.startPoint,
+          () => "#ef4444", // Red
+          () => uiLength(LINE_WIDTH),
+          "diff-old",
+          false,
+        )
+      : [];
 
     // 2. Current Path (New/Same)
     const currentPaths = generatePathElements(
@@ -532,16 +534,164 @@
       startPoint,
       (l) => {
         // Check if same
-        const isSame = diffData?.sameLines.some(sl => sl.id === l.id);
+        const isSame = diffData?.sameLines.some((sl) => sl.id === l.id);
         if (isSame) return "#3b82f6"; // Blue
         return "#22c55e"; // Green
       },
       (l) => uiLength(LINE_WIDTH), // No selection highlight in diff mode? Or maybe yes.
       "diff-new",
-      false
+      false,
     );
 
     return [...committedPaths, ...currentPaths];
+  })();
+
+  // Diff Event Markers
+  $: diffEventMarkerElements = (() => {
+    if (!isDiffMode || !diffData) return [];
+
+    const elems: InstanceType<typeof Two.Group>[] = [];
+
+    // Helper to extract marker positions from a dataset
+    const getMarkerMap = (
+      dataLines: Line[],
+      dataStart: Point,
+      dataSequence: SequenceItem[],
+    ) => {
+      const map = new Map<string, { x: number; y: number }>();
+
+      // Lines
+      dataLines.forEach((l, idx) => {
+        const parentName = l.name || `Path ${idx + 1}`;
+        const start = idx === 0 ? dataStart : dataLines[idx - 1].endPoint;
+        if (!start) return;
+
+        l.eventMarkers?.forEach((m) => {
+          const id = m.id || `${parentName}-${m.name}-${m.position}`;
+          const t = Math.max(0, Math.min(1, m.position ?? 0.5));
+          let pos = { x: 0, y: 0 };
+          if (l.controlPoints.length > 0) {
+            const cps = [start, ...l.controlPoints, l.endPoint];
+            const pt = getCurvePoint(t, cps);
+            pos.x = pt.x;
+            pos.y = pt.y;
+          } else {
+            pos.x = start.x + (l.endPoint.x - start.x) * t;
+            pos.y = start.y + (l.endPoint.y - start.y) * t;
+          }
+          map.set(id, pos);
+        });
+      });
+
+      // Sequence
+      dataSequence.forEach((s) => {
+        if (s.kind === "wait" || s.kind === "rotate") {
+          const parentName = s.name || (s.kind === "wait" ? "Wait" : "Rotate");
+          // Finding position for sequence events is harder without simulation (TimePrediction)
+          // But usually they are attached to the end of a line.
+          // For now, let's skip sequence events in diff view on field unless we have position data.
+          // Or we can rely on `TimePrediction` but that matches `lines`.
+          // For `oldData`, we don't have a `TimePrediction` computed.
+          // We could compute it, but that's expensive.
+          // Let's stick to Path Events for field visualization for now as they are spatial.
+        }
+      });
+
+      return map;
+    };
+
+    const currentMap = getMarkerMap(lines, startPoint, sequence);
+    const oldMap = oldData
+      ? getMarkerMap(oldData.lines, oldData.startPoint, oldData.sequence)
+      : new Map();
+
+    diffData.eventDiff.forEach((change) => {
+      // Helper to create marker
+      const createMarker = (
+        pos: { x: number; y: number },
+        color: string,
+        label: string,
+        idSuffix: string,
+      ) => {
+        const grp = new Two.Group();
+        // ID format for hover: diff-event-{id}-{suffix}
+        // suffix: old or new
+        grp.id = `diff-event-${change.id}-${idSuffix}`;
+
+        const isHovered = $hoveredMarkerId === change.id; // Match base ID
+        const radius = isHovered ? 2.5 : 1.5;
+
+        const circle = new Two.Circle(x(pos.x), y(pos.y), uiLength(radius));
+        circle.fill = color;
+        circle.noStroke();
+        grp.add(circle);
+
+        if (isHovered) {
+             const text = new Two.Text(label, x(pos.x), y(pos.y) - uiLength(3));
+             text.fill = "white"; // Dark mode friendly? or switch based on theme
+             // Actually, Two.js text rendering might be tricky with themes.
+             // Let's stick to simple tooltips via DOM or just the name.
+             // But for now, we rely on the `hoveredMarkerId` logic to just highlight.
+             // The user said "Hovering over the points should show the name."
+             // Standard FieldRenderer doesn't seem to show names on hover, just highlights?
+             // Ah, `FieldCoordinates.svelte` or `MathTools`?
+             // Wait, `FieldRenderer` sets `hoveredMarkerId`. Where is it used?
+             // It's exported from stores. Other components might use it.
+             // But if I want to show name ON FIELD, I might need to add text here.
+             // Let's add a text label that appears on hover.
+
+             // Background for text
+             const textMetrics = { width: label.length * 8, height: 14 }; // Approx
+             const bg = new Two.Rectangle(x(pos.x), y(pos.y) - uiLength(3), uiLength(textMetrics.width/ppI), uiLength(1));
+             // Two.Text is easier.
+             text.weight = 700;
+             text.size = uiLength(1.5);
+             text.stroke = "black";
+             text.linewidth = 2;
+             grp.add(text);
+        }
+
+        return grp;
+      };
+
+      if (change.changeType === "added") {
+        const pos = currentMap.get(change.id);
+        if (pos) {
+          elems.push(createMarker(pos, "#22c55e", change.name, "new")); // Green
+        }
+      } else if (change.changeType === "removed") {
+        const pos = oldMap.get(change.id);
+        if (pos) {
+          elems.push(createMarker(pos, "#ef4444", change.name, "old")); // Red
+        }
+      } else if (change.changeType === "changed") {
+        const oldPos = oldMap.get(change.id);
+        const newPos = currentMap.get(change.id);
+        if (oldPos)
+          elems.push(createMarker(oldPos, "#ef4444", change.name + " (Old)", "old"));
+        if (newPos)
+          elems.push(createMarker(newPos, "#22c55e", change.name + " (New)", "new"));
+
+        // Optional: Draw arrow connecting them
+        if (oldPos && newPos) {
+          const arrowGroup = new Two.Group();
+          arrowGroup.id = `diff-event-arrow-${change.id}`;
+          const arrow = new Two.Line(
+            x(oldPos.x),
+            y(oldPos.y),
+            x(newPos.x),
+            y(newPos.y),
+          );
+          arrow.stroke = "#fbbf24"; // Amber
+          arrow.linewidth = uiLength(0.5);
+          arrow.dashes = [uiLength(1), uiLength(1)];
+          arrowGroup.add(arrow);
+          elems.push(arrowGroup);
+        }
+      }
+    });
+
+    return elems;
   })();
 
   // Shapes (Obstacles)
@@ -1084,6 +1234,10 @@
       collisionElements.forEach((el) => collisionGroup.add(el));
     }
 
+    if (isDiffMode) {
+        diffEventMarkerElements.forEach(el => eventGroup.add(el));
+    }
+
     two.add(shapeGroup);
     two.add(lineGroup);
     two.add(eventGroup);
@@ -1305,6 +1459,7 @@
         } else if (
           target?.id &&
           (target.id.startsWith("event-") ||
+            target.id.startsWith("diff-event-") ||
             target.id.startsWith("event-circle-") ||
             target.id.startsWith("event-flag-") ||
             target.id.startsWith("wait-event-") ||
@@ -1344,7 +1499,20 @@
           }
           // Lookup actual event ID for hover highlighting
           let actualHoverId = null;
-          if (currentElem.startsWith("event-")) {
+          if (currentElem.startsWith("diff-event-")) {
+              // diff-event-{id}-{suffix}
+              // We need the ID. The ID is the 3rd part onwards... wait.
+              // ID might contain dashes.
+              // ID logic: `${parentName}-${m.name}-${m.position}`.
+              // So split by '-'.
+              // We know suffix is last ('old' or 'new').
+              const parts = currentElem.split("-");
+              const suffix = parts.pop(); // remove suffix
+              // Remove 'diff' and 'event'
+              parts.shift(); // diff
+              parts.shift(); // event
+              actualHoverId = parts.join("-");
+          } else if (currentElem.startsWith("event-")) {
             const parts = currentElem.split("-");
             // event-{lineIdx}-{evIdx}
             if (parts.length >= 3) {
