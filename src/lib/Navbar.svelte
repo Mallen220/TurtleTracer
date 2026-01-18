@@ -32,6 +32,7 @@
 
   export let startPoint: Point;
   export let lines: Line[];
+  // svelte-ignore unused-export-let
   export let shapes: Shape[];
   export let sequence: SequenceItem[];
   export let robotLength: number;

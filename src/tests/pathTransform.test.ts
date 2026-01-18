@@ -99,7 +99,7 @@ describe("pathTransform", () => {
         lines: [],
         shapes: [
           {
-            type: "polygon",
+            type: "obstacle",
             vertices: [
               { x: 10, y: 10 },
               { x: 20, y: 20 },
