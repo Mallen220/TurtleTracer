@@ -124,10 +124,44 @@
     if (!el) return false;
     const tag = el.tagName;
     return (
-      ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(tag) ||
-      el.getAttribute("role") === "button" ||
+      ["INPUT", "TEXTAREA", "SELECT"].includes(tag) ||
       (el as any).isContentEditable
     );
+  }
+
+  function isInputFocused(): boolean {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el) return false;
+    const tag = el.tagName;
+    return (
+      ["INPUT", "TEXTAREA", "SELECT"].includes(tag) ||
+      (el as any).isContentEditable
+    );
+  }
+
+  function isButtonFocused(): boolean {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el) return false;
+    const tag = el.tagName;
+    return tag === "BUTTON" || el.getAttribute("role") === "button";
+  }
+
+  function shouldBlockShortcut(e: KeyboardEvent): boolean {
+    if (isInputFocused()) return true;
+    if (isButtonFocused()) {
+      // If focused on a button, only block interaction keys (Space, Enter)
+      // BUT allow them if modifiers are present (e.g. Shift+Enter)
+      if (
+        (e.key === " " || e.key === "Enter") &&
+        !e.shiftKey &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function getKey(action: string): string {
@@ -1196,6 +1230,11 @@
     }
   }
 
+  function panView(dx: number, dy: number) {
+    if (isUIElementFocused()) return;
+    fieldPan.update((p) => ({ x: p.x + dx, y: p.y + dy }));
+  }
+
   function selectLast() {
     if (lines.length > 0) {
       const lastLineIdx = lines.length - 1;
@@ -1303,6 +1342,12 @@
       else activeControlTab = "field";
     },
     toggleCollapseAll: () => toggleCollapseAllTrigger.update((v) => v + 1),
+    toggleCollapseSelected: () => {
+      if (isUIElementFocused()) return;
+      if (controlTabRef && controlTabRef.toggleCollapseSelected) {
+        controlTabRef.toggleCollapseSelected();
+      }
+    },
     showHelp: () => showShortcuts.update((v) => !v),
     openSettings: () => showSettings.update((v) => !v),
     openWhatsNew: () => {
@@ -1402,6 +1447,10 @@
     resetStartPoint: () => resetStartPoint(),
     panToStart: () => panToStart(),
     panToEnd: () => panToEnd(),
+    panViewUp: () => panView(0, 50),
+    panViewDown: () => panView(0, -50),
+    panViewLeft: () => panView(50, 0),
+    panViewRight: () => panView(-50, 0),
     selectLast: () => selectLast(),
     copyPathJson: () => copyPathJson(),
     toggleDebugSequence: () =>
@@ -1610,7 +1659,7 @@
       const handler = (actions as any)[binding.action];
       if (handler && binding.key) {
         hotkeys(binding.key, (e) => {
-          if (isUIElementFocused()) return;
+          if (shouldBlockShortcut(e)) return;
           e.preventDefault();
           handler(e);
         });

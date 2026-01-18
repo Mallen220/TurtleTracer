@@ -1,4 +1,7 @@
-pedro.registerTheme("Pink Plugin Theme", `
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+pedro.registerTheme(
+  "Pink Plugin Theme",
+  `
 /* Global Backgrounds */
 html.dark body,
 html.dark .bg-neutral-900,
@@ -83,4 +86,5 @@ html.dark .dark\\:text-neutral-500 {
     background-color: #fce7f3;
     color: #831843;
 }
-`);
+`,
+);

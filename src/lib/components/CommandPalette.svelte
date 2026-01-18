@@ -96,8 +96,12 @@
         );
       }
 
-      command.action();
+      if (inputElement) inputElement.blur();
       onClose();
+      // Execute after close/blur to ensure focus is returned/cleared so actions guarded by isUIElementFocused work
+      setTimeout(() => {
+        command.action();
+      }, 0);
     }
   }
 </script>

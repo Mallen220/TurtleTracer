@@ -139,6 +139,12 @@
     }
   }
 
+  export function toggleCollapseSelected() {
+    if (activeTabInstance && activeTabInstance.toggleCollapseSelected) {
+      activeTabInstance.toggleCollapseSelected();
+    }
+  }
+
   export async function scrollToItem(type: string, id: string) {
     if (type === "path" || type === "wait" || type === "rotate") {
       activeTab = "path";

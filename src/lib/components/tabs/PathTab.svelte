@@ -661,6 +661,27 @@
       }
     }
   }
+
+  export function toggleCollapseSelected() {
+    const sel = $selectedPointId;
+    if (!sel) return;
+
+    if (sel.startsWith("wait-")) {
+      const id = sel.substring(5);
+      collapsedSections.waits[id] = !collapsedSections.waits[id];
+    } else if (sel.startsWith("rotate-")) {
+      const id = sel.substring(7);
+      collapsedSections.rotates[id] = !collapsedSections.rotates[id];
+    } else if (sel.startsWith("point-")) {
+      const parts = sel.split("-");
+      const lineNum = Number(parts[1]);
+      if (lineNum > 0) {
+        const lineIdx = lineNum - 1;
+        collapsedSections.lines[lineIdx] = !collapsedSections.lines[lineIdx];
+      }
+    }
+    collapsedSections = { ...collapsedSections };
+  }
 </script>
 
 <div class="w-full flex flex-col gap-4 p-4 pb-32">

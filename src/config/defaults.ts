@@ -330,6 +330,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "View",
   },
   {
+    id: "toggle-collapse-selected",
+    key: "c",
+    description: "Toggle collapse selected item",
+    action: "toggleCollapseSelected",
+    category: "View",
+  },
+  {
     id: "toggle-sidebar",
     key: "b",
     description: "Toggle sidebar / control tab",
@@ -654,6 +661,34 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     key: "end",
     description: "Pan to End Point",
     action: "panToEnd",
+    category: "View",
+  },
+  {
+    id: "pan-view-up",
+    key: "cmd+shift+up, ctrl+shift+up",
+    description: "Pan View Up",
+    action: "panViewUp",
+    category: "View",
+  },
+  {
+    id: "pan-view-down",
+    key: "cmd+shift+down, ctrl+shift+down",
+    description: "Pan View Down",
+    action: "panViewDown",
+    category: "View",
+  },
+  {
+    id: "pan-view-left",
+    key: "cmd+shift+left, ctrl+shift+left",
+    description: "Pan View Left",
+    action: "panViewLeft",
+    category: "View",
+  },
+  {
+    id: "pan-view-right",
+    key: "cmd+shift+right, ctrl+shift+right",
+    description: "Pan View Right",
+    action: "panViewRight",
     category: "View",
   },
   {
