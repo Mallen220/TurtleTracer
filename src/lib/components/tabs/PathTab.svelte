@@ -8,6 +8,7 @@
     SequenceRotateItem,
     Settings,
   } from "../../../types";
+  import { tick } from "svelte";
   import _ from "lodash";
   import {
     calculateDragPosition,
@@ -626,6 +627,40 @@
     }
     return getWait(item).locked ?? false;
   }
+
+  export async function scrollToItem(itemId: string) {
+    const seqIndex = sequence.findIndex((s) => {
+      if (s.kind === "path") return s.lineId === itemId;
+      if (s.kind === "wait") return (s as any).id === itemId;
+      if (s.kind === "rotate") return (s as any).id === itemId;
+      return false;
+    });
+
+    if (seqIndex !== -1) {
+      const item = sequence[seqIndex];
+
+      if (item.kind === "path") {
+        const lineId = (item as any).lineId;
+        const lineIdx = lines.findIndex((l) => l.id === lineId);
+        if (lineIdx !== -1) {
+          collapsedSections.lines[lineIdx] = false;
+        }
+      } else if (item.kind === "wait") {
+        collapsedSections.waits[(item as any).id] = false;
+      } else if (item.kind === "rotate") {
+        collapsedSections.rotates[(item as any).id] = false;
+      }
+
+      collapsedSections = { ...collapsedSections };
+
+      await tick();
+
+      const el = document.getElementById(`sequence-item-${itemId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }
 </script>
 
 <div class="w-full flex flex-col gap-4 p-4 pb-32">
@@ -664,6 +699,7 @@
     <div
       role="listitem"
       data-index={sIdx}
+      id={`sequence-item-${item.kind === "path" ? getPathLineId(item) : item.kind === "wait" ? getWait(item).id : getRotate(item).id}`}
       class="w-full transition-all duration-200 rounded-lg"
       draggable={!isItemLocked(item, lines)}
       on:dragstart={(e) => handleDragStart(e, sIdx)}

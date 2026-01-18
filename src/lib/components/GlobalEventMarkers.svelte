@@ -6,6 +6,7 @@
     SequenceWaitItem,
     EventMarker,
   } from "../../types";
+  import { tick } from "svelte";
   import TrashIcon from "./icons/TrashIcon.svelte";
   import SectionHeader from "./common/SectionHeader.svelte";
   import {
@@ -335,6 +336,17 @@
 
     updateMarkerPosition(marker, newVal, true);
   }
+
+  export async function scrollToMarker(markerId: string) {
+    if (collapsedMarkers) {
+      collapsedMarkers = false;
+      await tick();
+    }
+    const el = document.getElementById(`global-marker-${markerId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
 </script>
 
 <div
@@ -357,6 +369,7 @@
         {#each allMarkers as marker (marker.id)}
           <div
             role="group"
+            id={`global-marker-${marker.id}`}
             class="flex flex-col p-2 border border-purple-200 dark:border-purple-800 rounded-md bg-purple-50/50 dark:bg-purple-900/10 gap-2"
             on:mouseenter={() => hoveredMarkerId.set(marker.id)}
             on:mouseleave={() => hoveredMarkerId.set(null)}

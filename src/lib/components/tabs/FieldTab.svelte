@@ -30,6 +30,7 @@
   // Local state for optimization
   let optimizationOpen = false;
   let optDialogRef: any = null;
+  let globalMarkersRef: GlobalEventMarkers;
   let optIsRunning: boolean = false;
   let optOptimizedLines: Line[] | null = null;
   let optFailed: boolean = false;
@@ -132,6 +133,12 @@
       optimizationFailed: optFailed,
     };
   }
+
+  export async function scrollToMarker(markerId: string) {
+    if (globalMarkersRef) {
+      await globalMarkersRef.scrollToMarker(markerId);
+    }
+  }
 </script>
 
 <div class="p-4 w-full flex flex-col gap-6">
@@ -172,6 +179,7 @@
   {/if}
 
   <GlobalEventMarkers
+    bind:this={globalMarkersRef}
     bind:sequence
     bind:lines
     bind:collapsedMarkers={collapsedSections.globalMarkers}

@@ -1480,6 +1480,98 @@
     setAutoSaveClose: () => (actions as any).setAutosave("close"),
   };
 
+  // --- Derived Commands for Search ---
+  $: lineCommands = lines.map((l, i) => ({
+    id: `cmd-line-${l.id}`,
+    label: l.name ? `Path: ${l.name}` : `Path ${i + 1}`,
+    category: "Path Segment",
+    action: () => {
+      selectedLineId.set(l.id || null);
+      const idx = lines.findIndex((ln) => ln.id === l.id);
+      if (idx !== -1) {
+        selectedPointId.set(`point-${idx + 1}-0`);
+      }
+
+      if (controlTabRef && controlTabRef.scrollToItem) {
+        controlTabRef.scrollToItem("path", l.id || "");
+      }
+    },
+  }));
+
+  $: waitCommands = sequence
+    .filter((s) => s.kind === "wait")
+    .map((s: any) => ({
+      id: `cmd-wait-${s.id}`,
+      label: s.name ? `Wait: ${s.name}` : "Wait",
+      category: "Wait",
+      action: () => {
+        selectedPointId.set(`wait-${s.id}`);
+        selectedLineId.set(null);
+        if (controlTabRef && controlTabRef.scrollToItem) {
+          controlTabRef.scrollToItem("wait", s.id);
+        }
+      },
+    }));
+
+  $: rotateCommands = sequence
+    .filter((s) => s.kind === "rotate")
+    .map((s: any) => ({
+      id: `cmd-rotate-${s.id}`,
+      label: s.name ? `Rotate: ${s.name}` : "Rotate",
+      category: "Rotate",
+      action: () => {
+        selectedPointId.set(`rotate-${s.id}`);
+        selectedLineId.set(null);
+        if (controlTabRef && controlTabRef.scrollToItem) {
+          controlTabRef.scrollToItem("rotate", s.id);
+        }
+      },
+    }));
+
+  $: eventCommands = (() => {
+    const cmds: any[] = [];
+
+    lines.forEach((l, lIdx) => {
+      if (l.eventMarkers) {
+        l.eventMarkers.forEach((m) => {
+          cmds.push({
+            id: `cmd-event-${m.id}`,
+            label: m.name ? `Event: ${m.name}` : `Event (Path ${lIdx + 1})`,
+            category: "Event Marker",
+            action: () => {
+              if (controlTabRef && controlTabRef.scrollToItem) {
+                controlTabRef.scrollToItem("event", m.id);
+              }
+            },
+          });
+        });
+      }
+    });
+
+    sequence.forEach((s) => {
+      if (s.kind === "wait" || s.kind === "rotate") {
+        const item = s as any;
+        if (item.eventMarkers) {
+          item.eventMarkers.forEach((m: any) => {
+            cmds.push({
+              id: `cmd-event-${m.id}`,
+              label: m.name
+                ? `Event: ${m.name}`
+                : `Event (${s.kind === "wait" ? "Wait" : "Rotate"})`,
+              category: "Event Marker",
+              action: () => {
+                if (controlTabRef && controlTabRef.scrollToItem) {
+                  controlTabRef.scrollToItem("event", m.id);
+                }
+              },
+            });
+          });
+        }
+      }
+    });
+    return cmds;
+  })();
+
   // Derive commands list for Command Palette
   $: paletteCommands = [
     ...(settings?.keyBindings || DEFAULT_KEY_BINDINGS)
@@ -1492,6 +1584,10 @@
         action: (actions as any)[b.action],
       })),
     ...fileCommands,
+    ...lineCommands,
+    ...waitCommands,
+    ...rotateCommands,
+    ...eventCommands,
   ];
 
   $: if (settings && settings.keyBindings) {

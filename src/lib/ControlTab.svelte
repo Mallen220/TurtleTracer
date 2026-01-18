@@ -8,6 +8,7 @@
     Shape,
     SequenceItem,
   } from "../types";
+  import { tick } from "svelte";
   import PlaybackControls from "./components/PlaybackControls.svelte";
   import { calculatePathTime } from "../utils";
   import { tabRegistry } from "./registries";
@@ -135,6 +136,22 @@
   export function moveSequenceItem(seqIndex: number, delta: number) {
     if (tabInstances["path"] && tabInstances["path"].moveSequenceItem) {
       tabInstances["path"].moveSequenceItem(seqIndex, delta);
+    }
+  }
+
+  export async function scrollToItem(type: string, id: string) {
+    if (type === "path" || type === "wait" || type === "rotate") {
+      activeTab = "path";
+      await tick();
+      if (tabInstances["path"] && tabInstances["path"].scrollToItem) {
+        tabInstances["path"].scrollToItem(id);
+      }
+    } else if (type === "event") {
+      activeTab = "field";
+      await tick();
+      if (tabInstances["field"] && tabInstances["field"].scrollToMarker) {
+        tabInstances["field"].scrollToMarker(id);
+      }
     }
   }
 
