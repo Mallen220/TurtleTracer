@@ -1504,10 +1504,16 @@
       }
     },
     resetKeybinds: () => {
-      settingsStore.update((s) => ({
-        ...s,
-        keyBindings: DEFAULT_KEY_BINDINGS.map((b) => ({ ...b })),
-      }));
+      if (
+        confirm(
+          "Reset all key bindings to defaults? This will overwrite any custom key bindings.",
+        )
+      ) {
+        settingsStore.update((s) => ({
+          ...s,
+          keyBindings: DEFAULT_KEY_BINDINGS.map((b) => ({ ...b })),
+        }));
+      }
     },
     resetSettings: () => {
       settingsStore.set(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)));

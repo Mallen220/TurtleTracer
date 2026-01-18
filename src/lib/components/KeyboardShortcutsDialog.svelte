@@ -61,9 +61,19 @@
     const _dup = duplicateCheckVersion;
     duplicateMap = (keyBindings || []).reduce(
       (acc, b) => {
-        const k = (b.key || "").toLowerCase().trim();
-        if (!k) return acc;
-        (acc[k] = acc[k] || []).push(b);
+        const keyString = (b.key || "").toLowerCase();
+        if (!keyString) return acc;
+
+        // Split by comma to handle multiple keys per binding
+        const keys = keyString
+          .split(",")
+          .map((k) => k.trim())
+          .filter((k) => k !== "");
+
+        keys.forEach((k) => {
+          (acc[k] = acc[k] || []).push(b);
+        });
+
         return acc;
       },
       {} as Record<string, (typeof keyBindings)[number][] | undefined>,
@@ -73,6 +83,27 @@
   $: duplicateKeys = Object.entries(duplicateMap).filter(
     ([, arr]) => (arr || []).length > 1,
   ) as [string, (typeof keyBindings)[number][]][];
+
+  function getConflicts(binding: (typeof keyBindings)[number]) {
+    if (!binding.key) return [];
+    const keys = binding.key
+      .toLowerCase()
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k);
+    const conflicts = new Set<(typeof keyBindings)[number]>();
+
+    keys.forEach((k) => {
+      const dups = duplicateMap[k];
+      if (dups && dups.length > 1) {
+        dups.forEach((d) => {
+          if (d.id !== binding.id) conflicts.add(d);
+        });
+      }
+    });
+
+    return Array.from(conflicts);
+  }
 
   function startRecordingKey(actionId: string) {
     recordingKeyFor = actionId;
@@ -403,14 +434,11 @@
                         {binding.description}
                       </span>
 
-                      {#if binding.key && duplicateMap[(binding.key || "").toLowerCase()] && (duplicateMap[(binding.key || "").toLowerCase()] || []).length > 1}
+                      {#if getConflicts(binding).length > 0}
                         <span
                           class="text-xs text-red-600 dark:text-red-300 px-2 py-0.5 rounded bg-red-50 dark:bg-red-900/20"
                         >
-                          Conflicts with: {duplicateMap[
-                            (binding.key || "").toLowerCase()
-                          ]
-                            ?.filter((b) => b.id !== binding.id)
+                          Conflicts with: {getConflicts(binding)
                             .map((b) => b.description)
                             .join(", ")}
                         </span>
