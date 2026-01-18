@@ -52,6 +52,7 @@
     getRandomColor,
     loadRobotImage,
     updateRobotImageDisplay,
+    easeInOutQuad,
   } from "../../utils";
   import { updateLinkedWaypoints } from "../../utils/pointLinking";
   import type {
@@ -1153,59 +1154,144 @@
         const isZeroLength = marker.type === "zero-length";
         const isKeepIn = marker.type === "keep-in";
 
-        const circle = new Two.Circle(x(marker.x), y(marker.y), uiLength(2));
+        let fillColor = "rgba(239, 68, 68, 0.5)"; // Red-500
+        let strokeColor = "#ef4444";
+        let glowFill = "rgba(239, 68, 68, 0.3)";
+        let glowStroke = "rgba(239, 68, 68, 0.5)";
+
         if (isBoundary) {
-          circle.fill = "rgba(249, 115, 22, 0.5)"; // Orange-500
-          circle.stroke = "#f97316";
+          fillColor = "rgba(249, 115, 22, 0.5)"; // Orange-500
+          strokeColor = "#f97316";
+          glowFill = "rgba(249, 115, 22, 0.3)";
+          glowStroke = "rgba(249, 115, 22, 0.5)";
         } else if (isZeroLength) {
-          circle.fill = "rgba(217, 70, 239, 0.5)"; // Fuchsia-500 (Magenta-ish)
-          circle.stroke = "#d946ef";
+          fillColor = "rgba(217, 70, 239, 0.5)"; // Fuchsia-500
+          strokeColor = "#d946ef";
+          glowFill = "rgba(217, 70, 239, 0.3)";
+          glowStroke = "rgba(217, 70, 239, 0.5)";
         } else if (isKeepIn) {
-          circle.fill = "rgba(59, 130, 246, 0.5)"; // Blue-500
-          circle.stroke = "#3b82f6";
-        } else {
-          circle.fill = "rgba(239, 68, 68, 0.5)"; // Red-500
-          circle.stroke = "#ef4444";
+          fillColor = "rgba(59, 130, 246, 0.5)"; // Blue-500
+          strokeColor = "#3b82f6";
+          glowFill = "rgba(59, 130, 246, 0.3)";
+          glowStroke = "rgba(59, 130, 246, 0.5)";
         }
-        circle.linewidth = uiLength(0.5);
 
-        const crossLength = uiLength(1.5);
-        const l1 = new Two.Line(
-          x(marker.x) - crossLength,
-          y(marker.y) - crossLength,
-          x(marker.x) + crossLength,
-          y(marker.y) + crossLength,
-        );
-        l1.stroke = "#ffffff";
-        l1.linewidth = uiLength(0.5);
+        // Check for range
+        if (
+          marker.endTime !== undefined &&
+          marker.endTime > marker.time &&
+          timePrediction &&
+          timePrediction.timeline
+        ) {
+          // Range Rendering
+          const start = marker.time;
+          const end = marker.endTime;
 
-        const l2 = new Two.Line(
-          x(marker.x) + crossLength,
-          y(marker.y) - crossLength,
-          x(marker.x) - crossLength,
-          y(marker.y) + crossLength,
-        );
-        l2.stroke = "#ffffff";
-        l2.linewidth = uiLength(0.5);
+          const events = timePrediction.timeline.filter(
+            (e: any) => e.endTime >= start && e.startTime <= end,
+          );
 
-        // Add a larger transparent circle for visibility/glow
-        const glow = new Two.Circle(x(marker.x), y(marker.y), uiLength(6));
-        if (isBoundary) {
-          glow.fill = "rgba(249, 115, 22, 0.3)";
-          glow.stroke = "rgba(249, 115, 22, 0.5)";
-        } else if (isZeroLength) {
-          glow.fill = "rgba(217, 70, 239, 0.3)";
-          glow.stroke = "rgba(217, 70, 239, 0.5)";
-        } else if (isKeepIn) {
-          glow.fill = "rgba(59, 130, 246, 0.3)";
-          glow.stroke = "rgba(59, 130, 246, 0.5)";
+          events.forEach((ev: any) => {
+            const segStart = Math.max(start, ev.startTime);
+            const segEnd = Math.min(end, ev.endTime);
+
+            if (ev.type === "wait") {
+              // Render point if wait is involved
+              if (ev.atPoint) {
+                const circle = new Two.Circle(
+                  x(ev.atPoint.x),
+                  y(ev.atPoint.y),
+                  uiLength(2),
+                );
+                circle.fill = fillColor;
+                circle.stroke = strokeColor;
+                circle.linewidth = uiLength(0.5);
+                group.add(circle);
+              }
+            } else if (ev.type === "travel") {
+              const lineIdx = ev.lineIndex;
+              const line = lines[lineIdx];
+              if (line) {
+                const lineStartPoint =
+                  lineIdx === 0 ? startPoint : lines[lineIdx - 1].endPoint;
+                let t1 = 0;
+                let t2 = 1;
+
+                if (ev.duration > 0) {
+                  t1 = Math.max(0, (segStart - ev.startTime) / ev.duration);
+                  t2 = Math.min(1, (segEnd - ev.startTime) / ev.duration);
+                }
+
+                // Generate segment points
+                const samples = 30;
+                const points = [];
+                const cps = [
+                  lineStartPoint,
+                  ...line.controlPoints,
+                  line.endPoint,
+                ];
+
+                for (let i = 0; i <= samples; i++) {
+                  const t = t1 + (t2 - t1) * (i / samples);
+                  // Apply easing to match robot path movement
+                  const spatialT = easeInOutQuad(t);
+                  const pt = getCurvePoint(spatialT, cps);
+                  points.push(new Two.Anchor(x(pt.x), y(pt.y)));
+                }
+
+                const path = new Two.Path(points, false, false);
+                path.noFill();
+                path.stroke = strokeColor;
+                path.linewidth = uiLength(2.0);
+                path.cap = "round";
+                path.join = "round";
+                group.add(path);
+
+                // Add glow
+                const glowPath = new Two.Path(points, false, false);
+                glowPath.noFill();
+                glowPath.stroke = glowStroke;
+                glowPath.linewidth = uiLength(6.0);
+                glowPath.opacity = 0.5;
+                glowPath.cap = "round";
+                glowPath.join = "round";
+                group.add(glowPath);
+              }
+            }
+          });
         } else {
-          glow.fill = "rgba(239, 68, 68, 0.3)";
-          glow.stroke = "rgba(239, 68, 68, 0.5)";
-        }
-        glow.linewidth = uiLength(0.5);
+          // Point Rendering
+          const circle = new Two.Circle(x(marker.x), y(marker.y), uiLength(2));
+          circle.fill = fillColor;
+          circle.stroke = strokeColor;
+          circle.linewidth = uiLength(0.5);
 
-        group.add(glow, circle, l1, l2);
+          const crossLength = uiLength(1.5);
+          const l1 = new Two.Line(
+            x(marker.x) - crossLength,
+            y(marker.y) - crossLength,
+            x(marker.x) + crossLength,
+            y(marker.y) + crossLength,
+          );
+          l1.stroke = "#ffffff";
+          l1.linewidth = uiLength(0.5);
+
+          const l2 = new Two.Line(
+            x(marker.x) + crossLength,
+            y(marker.y) - crossLength,
+            x(marker.x) - crossLength,
+            y(marker.y) + crossLength,
+          );
+          l2.stroke = "#ffffff";
+          l2.linewidth = uiLength(0.5);
+
+          const glow = new Two.Circle(x(marker.x), y(marker.y), uiLength(6));
+          glow.fill = glowFill;
+          glow.stroke = glowStroke;
+          glow.linewidth = uiLength(0.5);
+
+          group.add(glow, circle, l1, l2);
+        }
         elems.push(group);
       });
     }

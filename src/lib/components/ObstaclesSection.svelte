@@ -273,12 +273,12 @@
                           disabled={shape.locked ?? false}
                         />
                       </div>
-                      {#if $snapToGrid && $showGrid}
+                      <!-- {#if $snapToGrid && $showGrid}
                         <span
                           class="text-xs text-green-500"
                           title="Snapping enabled">✓</span
                         >
-                      {/if}
+                      {/if} -->
                       <div class="flex items-center gap-1 ml-auto">
                         <button
                           title="Add Vertex After"

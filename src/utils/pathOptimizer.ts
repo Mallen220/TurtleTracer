@@ -226,6 +226,7 @@ export class PathOptimizer {
 
     const step = 0.2; // Check every 0.2 seconds for performance
     const markers: CollisionMarker[] = [];
+    let currentCollision: CollisionMarker | null = null;
 
     // Robot dimensions with safety margin
     const rLength =
@@ -412,22 +413,60 @@ export class PathOptimizer {
       }
 
       if (isColliding) {
-        markers.push({
-          x,
-          y,
-          time: t,
-          segmentIndex:
-            activeEvent.type === "travel" ? activeEvent.lineIndex : undefined,
-          type: collisionType,
-        });
+        if (currentCollision && currentCollision.type === collisionType) {
+          // Extend current collision
+          currentCollision.endTime = t;
+          currentCollision.endX = x;
+          currentCollision.endY = y;
+          currentCollision.segmentEndIndex =
+            activeEvent.type === "travel" ? activeEvent.lineIndex : undefined;
+        } else {
+          // Close previous collision if it exists (e.g. type change)
+          if (currentCollision) {
+            markers.push(currentCollision);
+          }
+          // Start new collision
+          currentCollision = {
+            x,
+            y,
+            time: t,
+            segmentIndex:
+              activeEvent.type === "travel" ? activeEvent.lineIndex : undefined,
+            type: collisionType,
+            endTime: t,
+            endX: x,
+            endY: y,
+            segmentEndIndex:
+              activeEvent.type === "travel" ? activeEvent.lineIndex : undefined,
+          };
+        }
+      } else {
+        if (currentCollision) {
+          markers.push(currentCollision);
+          currentCollision = null;
+        }
       }
     }
+
+    if (currentCollision) {
+      markers.push(currentCollision);
+    }
+
     return markers;
   }
 
   // Backward-compatible method for fitness calculation that returns count only
   private getCollisionCount(timeline: TimelineEvent[], lines: Line[]): number {
-    return this.getCollisions(timeline, lines).length;
+    const markers = this.getCollisions(timeline, lines);
+    let count = 0;
+    const step = 0.2;
+    for (const m of markers) {
+      // Each marker is at least 1 step
+      const duration = (m.endTime ?? m.time) - m.time;
+      // Add 1 for the point itself, plus extra steps
+      count += 1 + Math.round(duration / step);
+    }
+    return count;
   }
 
   private calculateFitness(lines: Line[]): number {
