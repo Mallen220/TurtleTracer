@@ -226,4 +226,46 @@ describe("Validation Utils", () => {
       expect(lastCall.message).toContain(part);
     });
   });
+
+  it("should report range markers correctly", () => {
+    const startPoint: Point = {
+      x: 0,
+      y: 0,
+      heading: "tangential",
+      reverse: false,
+    };
+    const lines: Line[] = [
+      {
+        id: "1",
+        name: "L1",
+        color: "black",
+        endPoint: { x: 10, y: 10, heading: "tangential", reverse: false },
+        controlPoints: [],
+      },
+    ];
+
+    mocks.getCollisions.mockReturnValue([
+      {
+        x: 5,
+        y: 5,
+        time: 1,
+        segmentIndex: 0,
+        type: "obstacle",
+        endTime: 2,
+        endX: 8,
+        endY: 8,
+      },
+    ]);
+
+    validatePath(startPoint, lines, dummySettings, dummySequence, dummyShapes);
+
+    expect(mocks.collisionMarkersSet).toHaveBeenCalledWith([
+      expect.objectContaining({ type: "obstacle", endTime: 2 }),
+    ]);
+    expect(mocks.notificationSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining("1 obstacle"),
+      }),
+    );
+  });
 });

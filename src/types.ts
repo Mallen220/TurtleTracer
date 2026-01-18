@@ -231,6 +231,11 @@ export interface CollisionMarker {
   time: number;
   segmentIndex?: number;
   type?: "obstacle" | "boundary" | "zero-length" | "keep-in";
+  // Range properties
+  endTime?: number;
+  endX?: number;
+  endY?: number;
+  segmentEndIndex?: number;
 }
 
 export interface Notification {
