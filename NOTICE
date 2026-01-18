@@ -163,3 +163,6 @@ src/lib/components/whats-new/pages/plugins.md
 src/lib/components/tabs/DiffTab.svelte
 src/lib/diffStore.ts
 src/tests/keepInZones.test.ts
+plugins/Example-csv-exporter.js
+plugins/Example-pink-theme.js
+src/lib/components/OnboardingTutorial.svelte

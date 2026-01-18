@@ -1,3 +1,4 @@
+<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { driver } from "driver.js";
@@ -139,7 +140,7 @@
       // Usually marking as seen on start is safer to avoid loops if they crash or exit early
       // but 'hasSeenOnboarding' implies we don't need to force it again.
       // We update the settings store.
-      settingsStore.update(s => ({...s, hasSeenOnboarding: true}));
+      settingsStore.update((s) => ({ ...s, hasSeenOnboarding: true }));
     }
   }
 
@@ -149,8 +150,8 @@
     if (isLoaded) {
       if (FORCE_START_DEV && !$startTutorial) {
         setTimeout(() => {
-             isFirstRun = true;
-             startTutorial.set(true);
+          isFirstRun = true;
+          startTutorial.set(true);
         }, 500);
       } else if (!whatsNewOpen) {
         const hasSeen = $settingsStore.hasSeenOnboarding;
@@ -164,7 +165,9 @@
             // So we are good.
             // Double check store value here just in case of race condition during timeout
             let currentSeen = false;
-            const unsubscribe = settingsStore.subscribe(s => currentSeen = !!s.hasSeenOnboarding);
+            const unsubscribe = settingsStore.subscribe(
+              (s) => (currentSeen = !!s.hasSeenOnboarding),
+            );
             unsubscribe();
 
             if (!currentSeen && !whatsNewOpen) {

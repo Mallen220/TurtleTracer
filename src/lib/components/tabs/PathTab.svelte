@@ -682,39 +682,6 @@
     }
     collapsedSections = { ...collapsedSections };
   }
-
-  export function focusValue() {
-    const sel = $selectedPointId;
-    if (!sel) return;
-
-    if (sel.startsWith("wait-")) {
-      const id = sel.substring(5);
-      collapsedSections.waits[id] = false;
-      collapsedSections = { ...collapsedSections };
-      tick().then(() => {
-        document.getElementById(`wait-duration-${id}`)?.focus();
-      });
-    } else if (sel.startsWith("rotate-")) {
-      const id = sel.substring(7);
-      collapsedSections.rotates[id] = false;
-      collapsedSections = { ...collapsedSections };
-      tick().then(() => {
-        document.getElementById(`rotate-heading-${id}`)?.focus();
-      });
-    } else if (sel.startsWith("point-")) {
-      // Focus X by default for points
-      const parts = sel.split("-");
-      const lineNum = Number(parts[1]);
-      if (lineNum > 0) {
-        const lineIdx = lineNum - 1;
-        collapsedSections.lines[lineIdx] = false;
-        collapsedSections = { ...collapsedSections };
-      }
-      tick().then(() => {
-        focusRequest.set({ field: "x", timestamp: Date.now(), id: sel });
-      });
-    }
-  }
 </script>
 
 <div class="w-full flex flex-col gap-4 p-4 pb-32">

@@ -150,8 +150,14 @@
     if (isInputFocused()) return true;
     if (isButtonFocused()) {
       // If focused on a button, only block interaction keys (Space, Enter)
-      // BUT allow them if modifiers are present (e.g. Shift+Enter for focusValue)
-      if ((e.key === " " || e.key === "Enter") && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      // BUT allow them if modifiers are present (e.g. Shift+Enter)
+      if (
+        (e.key === " " || e.key === "Enter") &&
+        !e.shiftKey &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey
+      ) {
         return true;
       }
     }
@@ -1386,12 +1392,6 @@
     focusY: () => focusRequest.set({ field: "y", timestamp: Date.now() }),
     focusHeading: () =>
       focusRequest.set({ field: "heading", timestamp: Date.now() }),
-    focusValue: () => {
-      if (isUIElementFocused()) return;
-      if (controlTabRef && controlTabRef.focusValue) {
-        controlTabRef.focusValue();
-      }
-    },
     togglePlay: () => {
       if (playing) pause();
       else play();

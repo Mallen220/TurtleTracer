@@ -488,13 +488,6 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "Editing",
   },
   {
-    id: "focus-value",
-    key: "shift+enter",
-    description: "Focus Value Input",
-    action: "focusValue",
-    category: "Editing",
-  },
-  {
     id: "open-whats-new",
     key: "shift+n",
     description: "Open What's New",
