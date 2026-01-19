@@ -1898,13 +1898,6 @@
 
   // Derive commands list for Command Palette
   $: paletteCommands = [
-    {
-      id: "start-tutorial",
-      label: "Start Tutorial",
-      shortcut: "",
-      category: "Help",
-      action: (actions as any).startTutorial,
-    },
     ...(settings?.keyBindings || DEFAULT_KEY_BINDINGS)
       .filter((b) => (actions as any)[b.action])
       .map((b) => ({
