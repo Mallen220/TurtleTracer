@@ -298,6 +298,14 @@ export interface HookRegistry {
   clear: () => void;
 }
 
+export interface ContextMenuItem {
+  id: string;
+  label: string;
+  icon?: string; // SVG string
+  onClick: (args: { x: number; y: number }) => void;
+  condition?: (args: { x: number; y: number }) => boolean;
+}
+
 // Writable Store Interface (simplified from Svelte)
 export interface Writable<T> {
   set: (value: T) => void;
@@ -313,6 +321,21 @@ export interface ProjectStore {
   sequenceStore: Writable<SequenceItem[]>;
   settingsStore: Writable<any>; // Using any for Settings to avoid circular or huge types for now
   extraDataStore: Writable<Record<string, any>>;
+}
+
+export type ScaleFunction = ((val: number) => number) & {
+  invert?: (val: number) => number;
+};
+
+export interface FieldView {
+  xScale: ScaleFunction;
+  yScale: ScaleFunction;
+  width: number;
+  height: number;
+}
+
+export interface AppStore {
+  fieldViewStore: Writable<FieldView>;
 }
 
 export interface PedroAPI {
@@ -343,7 +366,7 @@ export interface PedroAPI {
     tabs: Registry<TabDefinition>;
     navbarActions: Registry<NavbarAction>;
     hooks: HookRegistry;
-    contextMenuItems: Registry<any>; // ContextMenuItem
+    contextMenuItems: Registry<ContextMenuItem>;
   };
 
   /**
@@ -351,7 +374,7 @@ export interface PedroAPI {
    */
   stores: {
     project: ProjectStore;
-    app: any; // App stores
+    app: AppStore;
     get: (store: Writable<any>) => any;
   };
 }

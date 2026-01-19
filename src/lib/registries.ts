@@ -95,13 +95,8 @@ const createNavbarActionRegistry = () => {
 export const navbarActionRegistry = createNavbarActionRegistry();
 
 // --- Field Context Menu Registry ---
-export interface ContextMenuItem {
-  id: string;
-  label: string;
-  icon?: string;
-  onClick: (args: { x: number; y: number }) => void;
-  condition?: (args: { x: number; y: number }) => boolean;
-}
+import type { ContextMenuItem } from "../types";
+export type { ContextMenuItem };
 
 const createFieldContextMenuRegistry = () => {
   const { subscribe, update, set } = writable<ContextMenuItem[]>([]);
