@@ -932,7 +932,9 @@
                 <input
                   id="max-angular-acceleration"
                   type="number"
-                  value={Number((maxAngularAccelerationDisplay ?? 0).toFixed(2))}
+                  value={Number(
+                    (maxAngularAccelerationDisplay ?? 0).toFixed(2),
+                  )}
                   min="0"
                   step={angularVelocityUnit === "rad" ? 0.1 : 10}
                   on:input={handleMaxAngularAccelerationInput}

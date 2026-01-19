@@ -145,27 +145,27 @@
 
         // Check for rotation
         const diff = Math.abs(
-          getAngularDifference(ev.startHeading || 0, ev.targetHeading || 0)
+          getAngularDifference(ev.startHeading || 0, ev.targetHeading || 0),
         );
 
         if (diff > 0.1) {
-           // Rotation
-           const maxAngVel = (diff * (Math.PI / 180)) / ev.duration;
-           // Trapezoid visualization
-           addDataPoint(startTime, 0, 0);
-           addDataPoint(startTime + ev.duration * 0.1, 0, maxAngVel);
-           addDataPoint(endTime - ev.duration * 0.1, 0, maxAngVel);
-           addDataPoint(endTime, 0, 0);
+          // Rotation
+          const maxAngVel = (diff * (Math.PI / 180)) / ev.duration;
+          // Trapezoid visualization
+          addDataPoint(startTime, 0, 0);
+          addDataPoint(startTime + ev.duration * 0.1, 0, maxAngVel);
+          addDataPoint(endTime - ev.duration * 0.1, 0, maxAngVel);
+          addDataPoint(endTime, 0, 0);
         } else {
-           // Pure Wait
-           addDataPoint(startTime, 0, 0);
-           addDataPoint(endTime, 0, 0);
+          // Pure Wait
+          addDataPoint(startTime, 0, 0);
+          addDataPoint(endTime, 0, 0);
         }
       } else if (ev.type === "travel") {
-         // This is handled by the main path logic usually, but if called separately:
-         // We would need the full profile extraction logic here.
-         // Since we inline it for the main path item, we won't use this helper for 'travel'
-         // events linked to a sequence item unless we refactor fully.
+        // This is handled by the main path logic usually, but if called separately:
+        // We would need the full profile extraction logic here.
+        // Since we inline it for the main path item, we won't use this helper for 'travel'
+        // events linked to a sequence item unless we refactor fully.
       }
     };
 
@@ -181,29 +181,40 @@
         const tEv = timeline[i];
         let isMatch = false;
 
-        if (item.kind === "wait" && tEv.type === "wait" && (tEv as any).waitId === item.id) {
-           isMatch = true;
-        } else if (item.kind === "rotate" && tEv.type === "wait" && (tEv as any).waitId === item.id) {
-           isMatch = true;
+        if (
+          item.kind === "wait" &&
+          tEv.type === "wait" &&
+          (tEv as any).waitId === item.id
+        ) {
+          isMatch = true;
+        } else if (
+          item.kind === "rotate" &&
+          tEv.type === "wait" &&
+          (tEv as any).waitId === item.id
+        ) {
+          isMatch = true;
         } else if (item.kind === "path" && tEv.type === "travel") {
-           const line = lineById.get(item.lineId);
-           if (line && tEv.lineIndex === lines.findIndex((l) => l.id === line.id)) {
-              isMatch = true;
-           }
+          const line = lineById.get(item.lineId);
+          if (
+            line &&
+            tEv.lineIndex === lines.findIndex((l) => l.id === line.id)
+          ) {
+            isMatch = true;
+          }
         }
 
         if (isMatch) {
-           targetEventIndex = i;
-           break;
+          targetEventIndex = i;
+          break;
         }
       }
 
       // If we found the target event, process everything before it as intermediate
       if (targetEventIndex !== -1) {
-         for (let i = timelineIndex; i < targetEventIndex; i++) {
-            processEventForGraph(timeline[i]);
-         }
-         timelineIndex = targetEventIndex; // Move cursor to target
+        for (let i = timelineIndex; i < targetEventIndex; i++) {
+          processEventForGraph(timeline[i]);
+        }
+        timelineIndex = targetEventIndex; // Move cursor to target
       }
 
       // Now process the sequence item itself (which corresponds to timeline[timelineIndex] if found)
@@ -213,11 +224,11 @@
       if (item.kind === "wait") {
         let event: any = null;
         if (targetEventIndex !== -1) {
-           event = timeline[targetEventIndex];
-           timelineIndex++;
+          event = timeline[targetEventIndex];
+          timelineIndex++;
 
-           // Add data for explicit wait
-           processEventForGraph(event);
+          // Add data for explicit wait
+          processEventForGraph(event);
         }
 
         const duration = event ? event.duration : item.durationMs / 1000;
@@ -238,11 +249,11 @@
       if (item.kind === "rotate") {
         let event: any = null;
         if (targetEventIndex !== -1) {
-           event = timeline[targetEventIndex];
-           timelineIndex++;
+          event = timeline[targetEventIndex];
+          timelineIndex++;
 
-           // Add data for explicit rotate
-           processEventForGraph(event);
+          // Add data for explicit rotate
+          processEventForGraph(event);
         }
 
         const duration = event ? event.duration : 0;
@@ -279,8 +290,8 @@
 
       let event: any = null;
       if (targetEventIndex !== -1) {
-         event = timeline[targetEventIndex];
-         timelineIndex++;
+        event = timeline[targetEventIndex];
+        timelineIndex++;
       }
 
       if (!event) return;
