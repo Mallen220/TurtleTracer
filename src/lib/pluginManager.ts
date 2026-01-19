@@ -170,6 +170,14 @@ export class PluginManager {
     }
   }
 
+  static async deletePlugin(name: string) {
+    const electronAPI = (window as any).electronAPI;
+    if (electronAPI && electronAPI.deletePlugin) {
+      await electronAPI.deletePlugin(name);
+      await this.reloadPlugins();
+    }
+  }
+
   static async reloadPlugins() {
     // Reset stores and re-init
     customExportersStore.set([]);

@@ -134,4 +134,31 @@ describe("PluginManager", () => {
     const result = exporters[0].handler({} as any);
     expect(result).toBe("ts-result");
   });
+
+  it("should delete plugin and reload", async () => {
+    const mockDeletePlugin = vi.fn().mockResolvedValue(true);
+    // Reload calls init, which calls listPlugins
+    const mockListPlugins = vi
+      .fn()
+      .mockResolvedValueOnce(["test.js"]) // First call (simulated init or before delete)
+      .mockResolvedValueOnce([]); // Second call (after delete)
+
+    const mockReadPlugin = vi.fn().mockResolvedValue("");
+
+    (window as any).electronAPI = {
+      listPlugins: mockListPlugins,
+      readPlugin: mockReadPlugin,
+      deletePlugin: mockDeletePlugin,
+    };
+
+    // Simulate initial load
+    await PluginManager.init();
+
+    // Call delete
+    await PluginManager.deletePlugin("test.js");
+
+    expect(mockDeletePlugin).toHaveBeenCalledWith("test.js");
+    // Should have reloaded (called listPlugins again)
+    expect(mockListPlugins).toHaveBeenCalledTimes(2);
+  });
 });
