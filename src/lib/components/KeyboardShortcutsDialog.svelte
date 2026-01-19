@@ -271,12 +271,13 @@
   <div
     transition:fade={{ duration: 200, easing: cubicInOut }}
     class="fixed inset-0 z-[1006] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="shortcuts-title"
+    role="presentation"
     on:click|self={() => (isOpen = false)}
   >
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="shortcuts-title"
       transition:fly={{ duration: 300, y: 20, easing: cubicInOut }}
       class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col border border-neutral-200 dark:border-neutral-800"
     >
