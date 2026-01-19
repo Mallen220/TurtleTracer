@@ -1,13 +1,22 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+
+/**
+ * Type definitions for Pedro Pathing Visualizer Plugins.
+ * These types are automatically available in your .ts plugins.
+ *
+ * AUTO-GENERATED - DO NOT EDIT MANUALLY
+ */
+
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 // Exported type definitions for use in Svelte and TS modules
 
-export interface BasePoint {
+interface BasePoint {
   x: number;
   y: number;
   locked?: boolean;
 }
 
-export type Point = BasePoint &
+type Point = BasePoint &
   (
     | {
         heading: "linear";
@@ -32,9 +41,9 @@ export type Point = BasePoint &
       }
   );
 
-export type ControlPoint = BasePoint;
+type ControlPoint = BasePoint;
 
-export interface EventMarker {
+interface EventMarker {
   id: string;
   name: string;
   position: number; // 0-1 within the path segment
@@ -47,13 +56,13 @@ export interface EventMarker {
   parameters?: Record<string, any>;
 }
 
-export interface WaitSegment {
+interface WaitSegment {
   name?: string;
   durationMs: number;
   position?: "before" | "after";
 }
 
-export interface Line {
+interface Line {
   id?: string;
   endPoint: Point;
   controlPoints: ControlPoint[];
@@ -70,12 +79,12 @@ export interface Line {
   _linkedName?: string; // Metadata for linked names
 }
 
-export type SequencePathItem = {
+type SequencePathItem = {
   kind: "path";
   lineId: string;
 };
 
-export type SequenceWaitItem = {
+type SequenceWaitItem = {
   kind: "wait";
   id: string;
   name: string;
@@ -85,7 +94,7 @@ export type SequenceWaitItem = {
   _linkedName?: string; // Metadata for linked names
 };
 
-export type SequenceRotateItem = {
+type SequenceRotateItem = {
   kind: "rotate";
   id: string;
   name: string;
@@ -95,12 +104,12 @@ export type SequenceRotateItem = {
   _linkedName?: string; // Metadata for linked names
 };
 
-export type SequenceItem =
+type SequenceItem =
   | SequencePathItem
   | SequenceWaitItem
   | SequenceRotateItem;
 
-export interface KeyBinding {
+interface KeyBinding {
   id: string;
   key: string;
   description: string;
@@ -108,7 +117,7 @@ export interface KeyBinding {
   category?: string;
 }
 
-export interface CustomFieldConfig {
+interface CustomFieldConfig {
   id: string;
   name: string;
   imageData: string;
@@ -118,7 +127,7 @@ export interface CustomFieldConfig {
   height: number;
 }
 
-export interface Settings {
+interface Settings {
   xVelocity: number;
   yVelocity: number;
   aVelocity: number;
@@ -157,7 +166,7 @@ export interface Settings {
   gitIntegration?: boolean; // Enable/Disable Git integration
 }
 
-export interface RobotProfile {
+interface RobotProfile {
   id: string;
   name: string;
   rLength: number;
@@ -172,7 +181,7 @@ export interface RobotProfile {
   robotImage?: string;
 }
 
-export interface Shape {
+interface Shape {
   id: string;
   name?: string;
   vertices: BasePoint[];
@@ -183,9 +192,9 @@ export interface Shape {
   visible?: boolean;
 }
 
-export type TimelineEventType = "travel" | "wait";
+type TimelineEventType = "travel" | "wait";
 
-export interface TimelineEvent {
+interface TimelineEvent {
   type: TimelineEventType;
   duration: number;
   startTime: number;
@@ -206,18 +215,18 @@ export interface TimelineEvent {
   headingProfile?: number[];
 }
 
-export interface TimePrediction {
+interface TimePrediction {
   totalTime: number;
   segmentTimes: number[];
   totalDistance: number;
   timeline: TimelineEvent[];
 }
 
-export interface DirectorySettings {
+interface DirectorySettings {
   autoPathsDirectory: string;
 }
 
-export interface FileInfo {
+interface FileInfo {
   name: string;
   path: string;
   size: number;
@@ -226,7 +235,7 @@ export interface FileInfo {
   gitStatus?: "modified" | "staged" | "untracked" | "ignored" | "clean";
 }
 
-export interface CollisionMarker {
+interface CollisionMarker {
   x: number;
   y: number;
   time: number;
@@ -239,7 +248,7 @@ export interface CollisionMarker {
   segmentEndIndex?: number;
 }
 
-export interface Notification {
+interface Notification {
   message: string;
   type: "success" | "warning" | "error" | "info";
   timeout?: number; // milliseconds
@@ -252,7 +261,7 @@ export interface Notification {
 // Plugin System Interfaces
 // ------------------------------------------------------------------
 
-export interface PedroData {
+interface PedroData {
   startPoint: Point;
   lines: Line[];
   shapes: Shape[];
@@ -260,7 +269,7 @@ export interface PedroData {
 }
 
 // Registry Interfaces
-export interface Registry<T> {
+interface Registry<T> {
   subscribe: (run: (value: any) => void) => () => void;
   register: (item: T) => void;
   unregister?: (id: string) => void;
@@ -268,11 +277,11 @@ export interface Registry<T> {
   reset: () => void;
 }
 
-export interface ComponentRegistryState {
+interface ComponentRegistryState {
   [key: string]: any;
 }
 
-export interface TabDefinition {
+interface TabDefinition {
   id: string;
   label: string;
   component: any;
@@ -280,7 +289,7 @@ export interface TabDefinition {
   order?: number;
 }
 
-export interface NavbarAction {
+interface NavbarAction {
   id: string;
   icon: string; // SVG string
   title?: string;
@@ -289,23 +298,23 @@ export interface NavbarAction {
   order?: number;
 }
 
-export type HookCallback = (...args: any[]) => void | Promise<void>;
+type HookCallback = (...args: any[]) => void | Promise<void>;
 
-export interface HookRegistry {
+interface HookRegistry {
   register: (hookName: string, callback: HookCallback) => void;
   run: (hookName: string, ...args: any[]) => Promise<void>;
   clear: () => void;
 }
 
 // Writable Store Interface (simplified from Svelte)
-export interface Writable<T> {
+interface Writable<T> {
   set: (value: T) => void;
   update: (updater: (value: T) => T) => void;
   subscribe: (run: (value: T) => void) => () => void;
 }
 
 // Project Store Interface
-export interface ProjectStore {
+interface ProjectStore {
   startPointStore: Writable<Point>;
   linesStore: Writable<Line[]>;
   shapesStore: Writable<Shape[]>;
@@ -314,7 +323,7 @@ export interface ProjectStore {
   // ... other stores
 }
 
-export interface PedroAPI {
+interface PedroAPI {
   /**
    * Register a custom code exporter.
    * @param name The display name of the exporter.
@@ -352,4 +361,10 @@ export interface PedroAPI {
     app: any; // App stores
     get: (store: Writable<any>) => any;
   };
+}
+
+
+// Global variable exposed to plugins
+declare global {
+  const pedro: PedroAPI;
 }

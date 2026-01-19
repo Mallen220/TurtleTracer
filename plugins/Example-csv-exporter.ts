@@ -1,4 +1,6 @@
+/// <reference path="./pedro.d.ts" />
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+
 pedro.registerExporter("Custom CSV", (data) => {
   let csv = "Type,X,Y,Heading\n";
   if (data.startPoint) {
