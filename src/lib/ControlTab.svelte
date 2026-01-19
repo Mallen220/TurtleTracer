@@ -1,4 +1,40 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<script context="module" lang="ts">
+  import { tabRegistry as tabRegistryModule } from "./registries";
+  import PathTab from "./components/tabs/PathTab.svelte";
+  import FieldTab from "./components/tabs/FieldTab.svelte";
+  import TableTab from "./components/tabs/TableTab.svelte";
+  import DiffTab from "./components/tabs/DiffTab.svelte";
+
+  // Register default tabs; callable so plugin reloads can restore baseline tabs
+  export const registerDefaultControlTabs = () => {
+    tabRegistryModule.register({
+      id: "path",
+      label: "Paths",
+      component: PathTab,
+      order: 0,
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="size-4" aria-hidden="true"><path d="M4 15c3-6 9-6 14-3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="4" cy="15" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="9" r="1.8" fill="currentColor" stroke="none"/><circle cx="20" cy="12" r="1.8" fill="currentColor" stroke="none"/></svg>`,
+    });
+    tabRegistryModule.register({
+      id: "field",
+      label: "Field",
+      component: FieldTab,
+      order: 1,
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="size-4" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5" stroke-width="2"/><path d="M3 4 L21 4 L12 12 Z" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M3 4 L12 12 M21 4 L12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    });
+    tabRegistryModule.register({
+      id: "table",
+      label: "Table",
+      component: TableTab,
+      order: 2,
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="size-4" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5" stroke-width="2"/><rect x="3" y="4" width="18" height="5" rx="1.5" fill="currentColor" opacity="0.06" stroke="none"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="10" x2="9" y2="20" stroke-width="1.5" stroke-linecap="round"/><line x1="15" y1="10" x2="15" y2="20" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    });
+  };
+
+  // Ensure defaults are present for initial render
+  registerDefaultControlTabs();
+</script>
+
 <script lang="ts">
   import type {
     Point,
@@ -12,34 +48,8 @@
   import PlaybackControls from "./components/PlaybackControls.svelte";
   import { calculatePathTime } from "../utils";
   import { tabRegistry } from "./registries";
-  import PathTab from "./components/tabs/PathTab.svelte";
-  import FieldTab from "./components/tabs/FieldTab.svelte";
-  import TableTab from "./components/tabs/TableTab.svelte";
-  import DiffTab from "./components/tabs/DiffTab.svelte";
   import { diffMode } from "./diffStore";
 
-  // Register default tabs
-  tabRegistry.register({
-    id: "path",
-    label: "Paths",
-    component: PathTab,
-    order: 0,
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="size-4" aria-hidden="true"><path d="M4 15c3-6 9-6 14-3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="4" cy="15" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="9" r="1.8" fill="currentColor" stroke="none"/><circle cx="20" cy="12" r="1.8" fill="currentColor" stroke="none"/></svg>`,
-  });
-  tabRegistry.register({
-    id: "field",
-    label: "Field",
-    component: FieldTab,
-    order: 1,
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="size-4" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5" stroke-width="2"/><path d="M3 4 L21 4 L12 12 Z" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M3 4 L12 12 M21 4 L12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  });
-  tabRegistry.register({
-    id: "table",
-    label: "Table",
-    component: TableTab,
-    order: 2,
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="size-4" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5" stroke-width="2"/><rect x="3" y="4" width="18" height="5" rx="1.5" fill="currentColor" opacity="0.06" stroke="none"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="10" x2="9" y2="20" stroke-width="1.5" stroke-linecap="round"/><line x1="15" y1="10" x2="15" y2="20" stroke-width="1.5" stroke-linecap="round"/></svg>`,
-  });
 
   export let percent: number;
   export let playing: boolean;

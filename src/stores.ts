@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { writable } from "svelte/store";
-import type { CollisionMarker, Notification } from "./types";
+import type { CollisionMarker, Notification, FieldView } from "./types";
 
 // Math tools stores
 export const showRuler = writable(false);
@@ -80,3 +80,11 @@ export const gitStatusStore = writable<Record<string, string>>({});
 
 // Tutorial Trigger
 export const startTutorial = writable(false);
+
+// Field View State (exposed for plugins)
+export const fieldViewStore = writable<FieldView>({
+  xScale: (v) => v,
+  yScale: (v) => v,
+  width: 0,
+  height: 0,
+});

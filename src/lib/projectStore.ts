@@ -89,6 +89,7 @@ export const sequenceStore = writable<SequenceItem[]>(
   })),
 );
 export const settingsStore = writable<Settings>({ ...DEFAULT_SETTINGS });
+export const extraDataStore = writable<Record<string, any>>({});
 
 // Animation state
 export const percentStore = writable(0);
@@ -111,6 +112,7 @@ export function resetProject() {
       lineId: ln.id!,
     })),
   );
+  extraDataStore.set({});
   // We don't reset settings usually, or maybe we do?
   // The original App.svelte reset code:
   // startPoint = getDefaultStartPoint();
@@ -172,6 +174,7 @@ export function loadProjectData(data: any) {
   linesStore.set(renamedLines);
   shapesStore.set(data.shapes || []);
   sequenceStore.set(sanitized);
+  extraDataStore.set(data.extraData || {});
 
   // settings are usually loaded separately or merged?
   // In App.svelte loadData does NOT load settings from the file data usually,

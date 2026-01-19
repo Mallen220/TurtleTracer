@@ -78,12 +78,11 @@
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { PluginManager } from "./lib/pluginManager";
   import { themesStore } from "./lib/pluginsStore";
+  import { registerCoreUI } from "./lib/coreRegistrations";
   import { componentRegistry } from "./lib/registries";
 
-  // Register Default Components
-  componentRegistry.register("Navbar", Navbar);
-  componentRegistry.register("FieldRenderer", FieldRenderer);
-  componentRegistry.register("ControlTab", ControlTab);
+  // Register Default Components/Tabs
+  registerCoreUI();
 
   // Types
   import type { Settings } from "./types";

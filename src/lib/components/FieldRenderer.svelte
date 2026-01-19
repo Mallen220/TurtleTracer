@@ -19,7 +19,14 @@
     fieldZoom,
     fieldPan,
     hoveredMarkerId,
+    fieldViewStore,
   } from "../../stores";
+  import {
+    hookRegistry,
+    fieldContextMenuRegistry,
+    type ContextMenuItem,
+  } from "../registries";
+  import ContextMenu from "./ContextMenu.svelte";
   import {
     linesStore,
     startPointStore,
@@ -90,6 +97,14 @@
   let two: Two;
   let twoElement: HTMLDivElement;
   let wrapperDiv: HTMLDivElement;
+  let overlayContainer: HTMLDivElement;
+
+  // Context Menu State
+  let showContextMenu = false;
+  let contextMenuX = 0;
+  let contextMenuY = 0;
+  let contextMenuItems: any[] = [];
+
   // Optimization: Cache bounding rects to avoid reflows during drag
   let cachedRect: DOMRect | null = null;
   let cachedWrapperRect: DOMRect | null = null;
@@ -118,6 +133,10 @@
       height / 2 + (baseSize * scaleFactor) / 2 + pan.y,
       height / 2 - (baseSize * scaleFactor) / 2 + pan.y,
     ]);
+
+  $: {
+    fieldViewStore.set({ xScale: x, yScale: y, width, height });
+  }
 
   function zoomTo(newZoom: number, focus?: { x: number; y: number }) {
     const fx = focus?.x ?? width / 2;
@@ -1364,6 +1383,9 @@
 
     updateRobotImageDisplay();
 
+    // Trigger hook for plugins to initialize overlays
+    hookRegistry.run("fieldOverlayInit", overlayContainer);
+
     // Event Listeners
     two.renderer.domElement.addEventListener("mouseenter", () => {
       // Optimization: Start caching rects when user interacts with field
@@ -1861,6 +1883,58 @@
     fieldPan.set({ x: px, y: py });
   }
 
+  function handleContextMenu(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Hide if already open
+    if (showContextMenu) {
+      showContextMenu = false;
+      return;
+    }
+
+    // Only allow if clicking empty space (currentElem is null)
+    if (currentElem) return;
+
+    // Calculate field coordinates
+    const rect = twoElement.getBoundingClientRect();
+    const transformed = getTransformedCoordinates(
+      e.clientX,
+      e.clientY,
+      rect,
+      settings.fieldRotation || 0,
+    );
+    const fieldX = x.invert(transformed.x);
+    const fieldY = y.invert(transformed.y);
+
+    // Get items from registry
+    const registryItems = get(fieldContextMenuRegistry);
+    if (!registryItems || registryItems.length === 0) return;
+
+    const validItems = registryItems.filter((item) => {
+      if (item.condition) {
+        return item.condition({ x: fieldX, y: fieldY });
+      }
+      return true;
+    });
+
+    if (validItems.length === 0) return;
+
+    // Map to ContextMenu format
+    contextMenuItems = validItems.map((item) => ({
+      label: item.label,
+      icon: item.icon,
+      onClick: () => {
+        item.onClick({ x: fieldX, y: fieldY });
+        showContextMenu = false;
+      },
+    }));
+
+    contextMenuX = e.clientX;
+    contextMenuY = e.clientY;
+    showContextMenu = true;
+  }
+
   onDestroy(() => {
     if (typeof window !== "undefined") {
       window.removeEventListener("resize", updateRects);
@@ -1885,11 +1959,18 @@
       user-drag: none;
       -webkit-user-drag: none;
     "
-    on:contextmenu={(e) => e.preventDefault()}
+    on:contextmenu={handleContextMenu}
     on:dragstart={(e) => e.preventDefault()}
     style:transform={`rotate(${settings.fieldRotation || 0}deg)`}
     style:transition="transform 0.3s ease-in-out"
   >
+    <!-- Plugin Overlay Container -->
+    <div
+      bind:this={overlayContainer}
+      id="field-overlay-layer"
+      class="absolute inset-0 pointer-events-none z-30"
+    ></div>
+
     {#if settings.customMaps?.some((m) => m.id === settings.fieldMap)}
       {@const activeMap = settings.customMaps.find(
         (m) => m.id === settings.fieldMap,

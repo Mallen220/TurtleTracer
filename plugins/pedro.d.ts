@@ -262,6 +262,7 @@ interface PedroData {
   lines: Line[];
   shapes: Shape[];
   sequence: SequenceItem[];
+  extraData?: Record<string, any>;
 }
 
 // Registry Interfaces
@@ -302,6 +303,14 @@ interface HookRegistry {
   clear: () => void;
 }
 
+interface ContextMenuItem {
+  id: string;
+  label: string;
+  icon?: string; // SVG string
+  onClick: (args: { x: number; y: number }) => void;
+  condition?: (args: { x: number; y: number }) => boolean;
+}
+
 // Writable Store Interface (simplified from Svelte)
 interface Writable<T> {
   set: (value: T) => void;
@@ -316,7 +325,22 @@ interface ProjectStore {
   shapesStore: Writable<Shape[]>;
   sequenceStore: Writable<SequenceItem[]>;
   settingsStore: Writable<any>; // Using any for Settings to avoid circular or huge types for now
-  // ... other stores
+  extraDataStore: Writable<Record<string, any>>;
+}
+
+type ScaleFunction = ((val: number) => number) & {
+  invert?: (val: number) => number;
+};
+
+interface FieldView {
+  xScale: ScaleFunction;
+  yScale: ScaleFunction;
+  width: number;
+  height: number;
+}
+
+interface AppStore {
+  fieldViewStore: Writable<FieldView>;
 }
 
 interface PedroAPI {
@@ -347,6 +371,7 @@ interface PedroAPI {
     tabs: Registry<TabDefinition>;
     navbarActions: Registry<NavbarAction>;
     hooks: HookRegistry;
+    contextMenuItems: Registry<ContextMenuItem>;
   };
 
   /**
@@ -354,10 +379,13 @@ interface PedroAPI {
    */
   stores: {
     project: ProjectStore;
-    app: any; // App stores
+    app: AppStore;
     get: (store: Writable<any>) => any;
   };
 }
+
+
+export {};
 
 // Global variable exposed to plugins
 declare global {

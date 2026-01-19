@@ -15,8 +15,9 @@ import {
   tabRegistry,
   navbarActionRegistry,
   hookRegistry,
+  fieldContextMenuRegistry,
 } from "./registries";
-import * as ts from "typescript";
+import { registerCoreUI } from "./coreRegistrations";
 
 const { startPointStore, linesStore, shapesStore, sequenceStore } =
   projectStore;
@@ -38,19 +39,27 @@ export class PluginManager {
       const plugins: PluginInfo[] = [];
 
       for (const file of files) {
-        try {
-          const code = await electronAPI.readPlugin(file);
-          this.executePlugin(file, code);
+        const enabled = this.getEnabledState(file);
 
-          const enabled = this.getEnabledState(file);
+        try {
+          if (enabled) {
+            let code = await electronAPI.readPlugin(file);
+            if (file.endsWith(".ts")) {
+              code = await electronAPI.transpilePlugin(code);
+            }
+            this.executePlugin(file, code);
+          }
+          // "loaded" means we successfully discovered and (if enabled) executed the plugin
+          // Disabled plugins should still appear as loaded to avoid showing a false error state in the UI
           plugins.push({ name: file, loaded: true, enabled });
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Failed to load plugin ${file}:`, error);
+          const errorMessage = error?.message || String(error);
           plugins.push({
             name: file,
             loaded: false,
-            error: String(error),
-            enabled: false,
+            error: errorMessage,
+            enabled: enabled,
           });
         }
       }
@@ -65,8 +74,11 @@ export class PluginManager {
     try {
       const key = `plugin_enabled_${name}`;
       const val = localStorage.getItem(key);
-      // Default to false (disabled) if not explicitly enabled
-      return val === null ? false : val === "true";
+      // StickyNotes is enabled by default, others are disabled
+      if (val === null) {
+        return name === "StickyNotes.ts" || name === "StickyNotes.js";
+      }
+      return val === "true";
     } catch {
       return false;
     }
@@ -81,7 +93,8 @@ export class PluginManager {
       plugins.map((p) => (p.name === name ? { ...p, enabled } : p)),
     );
 
-    this.refreshActiveResources();
+    // Reload all plugins to ensure proper cleanup/registration
+    this.reloadPlugins();
   }
 
   private static refreshActiveResources() {
@@ -103,21 +116,6 @@ export class PluginManager {
 
   static executePlugin(filename: string, code: string) {
     let codeToExecute = code;
-
-    // Transpile TypeScript if needed
-    if (filename.endsWith(".ts")) {
-      try {
-        const result = ts.transpileModule(code, {
-          compilerOptions: {
-            target: ts.ScriptTarget.ES2020,
-            module: ts.ModuleKind.None,
-          },
-        });
-        codeToExecute = result.outputText;
-      } catch (e) {
-        throw new Error(`Transpilation failed: ${e}`);
-      }
-    }
 
     // Restricted API exposed to plugins
     const pedroAPI = {
@@ -145,6 +143,7 @@ export class PluginManager {
         tabs: tabRegistry,
         navbarActions: navbarActionRegistry,
         hooks: hookRegistry,
+        contextMenuItems: fieldContextMenuRegistry,
       },
       stores: {
         project: projectStore,
@@ -182,6 +181,17 @@ export class PluginManager {
     // Reset stores and re-init
     customExportersStore.set([]);
     themesStore.set([]);
+
+    // Clear registries
+    componentRegistry.reset();
+    tabRegistry.reset();
+    navbarActionRegistry.reset();
+    hookRegistry.reset();
+    fieldContextMenuRegistry.reset();
+
+    // Restore built-in components/tabs before loading plugins so the UI baseline persists
+    registerCoreUI();
+
     await this.init();
   }
 }

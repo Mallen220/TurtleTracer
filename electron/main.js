@@ -8,6 +8,7 @@ import fs from "fs/promises";
 import AppUpdater from "./updater.js";
 import rateLimit from "express-rate-limit";
 import simpleGit from "simple-git";
+import ts from "typescript";
 
 // Handle __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -670,6 +671,21 @@ ipcMain.handle("app:open-external", async (event, url) => {
   } catch (err) {
     console.warn("Failed to open external url", url, err);
     return false;
+  }
+});
+
+ipcMain.handle("plugins:transpile", async (event, code) => {
+  try {
+    const result = ts.transpileModule(code, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2020,
+        module: ts.ModuleKind.None,
+      },
+    });
+    return result.outputText;
+  } catch (error) {
+    console.error("Error transpiling plugin:", error);
+    throw new Error(`Transpilation failed: ${error.message}`);
   }
 });
 

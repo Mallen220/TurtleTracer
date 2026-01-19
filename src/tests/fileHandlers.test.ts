@@ -37,6 +37,7 @@ vi.mock("../lib/projectStore", async () => {
     sequenceStore: writable([]),
     shapesStore: writable([]),
     settingsStore: writable({}), // Re-export if needed, but usually main stores handles it
+    extraDataStore: writable({}),
   };
 });
 

@@ -14,6 +14,7 @@ import {
   shapesStore,
   sequenceStore,
   settingsStore,
+  extraDataStore,
 } from "../lib/projectStore";
 import { loadTrajectoryFromFile, downloadTrajectory } from "./index";
 import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
@@ -94,6 +95,8 @@ export function loadProjectData(data: any) {
     sequenceStore.set(seq);
   }
   if (data.shapes) shapesStore.set(data.shapes);
+  if (data.extraData) extraDataStore.set(data.extraData);
+  else extraDataStore.set({});
 }
 
 function addToRecentFiles(path: string, settings?: Settings) {
@@ -171,6 +174,7 @@ async function performSave(
   options: { quiet?: boolean } = {},
 ) {
   const electronAPI = getElectronAPI();
+  const extraData = get(extraDataStore);
   try {
     // Basic validation
     if (!sequence || sequence.length === 0) {
@@ -230,6 +234,7 @@ async function performSave(
       settings,
       sequence: sequenceToSave,
       shapes,
+      extraData,
     };
 
     const jsonString = JSON.stringify(projectData, null, 2);
@@ -365,6 +370,7 @@ export function saveFileAs() {
     get(linesStore),
     get(shapesStore),
     get(sequenceStore),
+    get(extraDataStore),
     `${filename}.pp`,
   );
 }
@@ -386,6 +392,7 @@ export async function exportAsPP() {
       lines: get(linesStore),
       shapes: get(shapesStore),
       sequence: get(sequenceStore),
+      extraData: get(extraDataStore),
     },
     null,
     2,
@@ -426,6 +433,7 @@ export async function exportAsPP() {
     get(linesStore),
     get(shapesStore),
     get(sequenceStore),
+    get(extraDataStore),
     defaultName,
   );
 }
