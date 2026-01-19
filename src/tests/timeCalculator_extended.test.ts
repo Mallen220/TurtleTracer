@@ -93,8 +93,8 @@ describe("Time Calculator Extended", () => {
         // Sequence: Path L1 -> Wait 1s -> Rotate to 45 -> Path L2
         const sequence: SequenceItem[] = [
             { kind: "path", lineId: "L1" },
-            { kind: "wait", durationMs: 1000 },
-            { kind: "rotate", degrees: 45, name: "Turn" },
+            { kind: "wait", id: "w1", name: "w1", durationMs: 1000 },
+            { kind: "rotate", id: "r1", degrees: 45, name: "Turn" },
             { kind: "path", lineId: "L2" }
         ];
 

@@ -85,6 +85,7 @@
   $: playbackSpeed = $playbackSpeedStore;
 
   // Internal State
+  let clipboard: SequenceItem | Line | null = null;
   let showCommandPalette = false;
   let fileInput: HTMLInputElement;
   let fileCommands: {
@@ -377,45 +378,45 @@
     }
   }
 
+  // Helper to generate unique name
+  const generateName = (baseName: string, existingNames: string[]) => {
+    // Regex to match "Name duplicate" or "Name duplicate N"
+    const match = baseName.match(/^(.*?) duplicate(?: (\d+))?$/);
+
+    let rootName = baseName;
+    let startNum = 1;
+
+    if (match) {
+      rootName = match[1];
+      startNum = match[2] ? parseInt(match[2], 10) : 1;
+      // If we are duplicating a duplicate, we probably want to start incrementing from its number + 1
+      startNum++;
+    }
+
+    // Try candidates starting from the determined number
+    let candidate = "";
+    let i = startNum;
+
+    // Safety/Sanity: loop limit to prevent infinite hangs in weird edge cases
+    while (i < 1000) {
+      if (i === 1) {
+        candidate = rootName + " duplicate";
+      } else {
+        candidate = rootName + " duplicate " + i;
+      }
+
+      if (!existingNames.includes(candidate)) {
+        return candidate;
+      }
+      i++;
+    }
+    return rootName + " duplicate " + Date.now(); // Fallback
+  };
+
   function duplicate() {
     if (isUIElementFocused()) return;
     const sel = $selectedPointId;
     if (!sel) return;
-
-    // Helper to generate unique name
-    const generateName = (baseName: string, existingNames: string[]) => {
-      // Regex to match "Name duplicate" or "Name duplicate N"
-      const match = baseName.match(/^(.*?) duplicate(?: (\d+))?$/);
-
-      let rootName = baseName;
-      let startNum = 1;
-
-      if (match) {
-        rootName = match[1];
-        startNum = match[2] ? parseInt(match[2], 10) : 1;
-        // If we are duplicating a duplicate, we probably want to start incrementing from its number + 1
-        startNum++;
-      }
-
-      // Try candidates starting from the determined number
-      let candidate = "";
-      let i = startNum;
-
-      // Safety/Sanity: loop limit to prevent infinite hangs in weird edge cases
-      while (i < 1000) {
-        if (i === 1) {
-          candidate = rootName + " duplicate";
-        } else {
-          candidate = rootName + " duplicate " + i;
-        }
-
-        if (!existingNames.includes(candidate)) {
-          return candidate;
-        }
-        i++;
-      }
-      return rootName + " duplicate " + Date.now(); // Fallback
-    };
 
     if (sel.startsWith("wait-")) {
       const waitId = sel.substring(5);
@@ -557,6 +558,258 @@
 
       selectedLineId.set(newLine.id!);
       selectedPointId.set(`point-${lineIndex + 2}-0`); // Selected the end point of new line
+      recordChange();
+    }
+  }
+
+  function copy() {
+    if (isUIElementFocused()) return;
+    const sel = $selectedPointId;
+    if (!sel) return;
+
+    if (sel.startsWith("wait-")) {
+      const waitId = sel.substring(5);
+      const waitItem = $sequenceStore.find(
+        (s) => s.kind === "wait" && (s as any).id === waitId,
+      ) as any;
+      if (waitItem) {
+        clipboard = _.cloneDeep(waitItem);
+      }
+      return;
+    }
+
+    if (sel.startsWith("rotate-")) {
+      const rotateId = sel.substring(7);
+      const rotateItem = $sequenceStore.find(
+        (s) => s.kind === "rotate" && (s as any).id === rotateId,
+      ) as any;
+      if (rotateItem) {
+        clipboard = _.cloneDeep(rotateItem);
+      }
+      return;
+    }
+
+    let targetLineId: string | null = null;
+    if (sel.startsWith("point-")) {
+      const parts = sel.split("-");
+      const lineNum = Number(parts[1]);
+      if (lineNum > 0) {
+        targetLineId = lines[lineNum - 1].id || null;
+      }
+    }
+    if ($selectedLineId) targetLineId = $selectedLineId;
+
+    if (targetLineId) {
+      const line = lines.find((l) => l.id === targetLineId);
+      if (line) {
+        clipboard = _.cloneDeep(line);
+      }
+    }
+  }
+
+  function cut() {
+    if (isUIElementFocused()) return;
+    copy();
+    removeSelected();
+  }
+
+  function paste() {
+    if (isUIElementFocused()) return;
+    if (!clipboard) return;
+
+    // Handle Wait
+    if ((clipboard as any).kind === "wait") {
+      const waitItem = clipboard as SequenceItem;
+      const newWait = _.cloneDeep(waitItem) as any;
+      newWait.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+      // Generate unique name
+      const existingWaitNames = sequence
+        .filter((s) => s.kind === "wait")
+        .map((s) => (s as any).name || "");
+      if (newWait.name && newWait.name.trim() !== "") {
+        newWait.name = generateName(newWait.name, existingWaitNames);
+      } else {
+        newWait.name = "";
+      }
+
+      const insertIdx = getSelectedSequenceIndex();
+      if (insertIdx !== null) {
+        sequenceStore.update((s) => {
+          const s2 = [...s];
+          s2.splice(insertIdx + 1, 0, newWait);
+          return s2;
+        });
+      } else {
+        sequenceStore.update((s) => [...s, newWait]);
+      }
+      selectedPointId.set(`wait-${newWait.id}`);
+      recordChange();
+      return;
+    }
+
+    // Handle Rotate
+    if ((clipboard as any).kind === "rotate") {
+      const rotateItem = clipboard as SequenceItem;
+      const newRotate = _.cloneDeep(rotateItem) as any;
+      newRotate.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+      // Generate unique name
+      const existingRotateNames = sequence
+        .filter((s) => s.kind === "rotate")
+        .map((s) => (s as any).name || "");
+      if (newRotate.name && newRotate.name.trim() !== "") {
+        newRotate.name = generateName(newRotate.name, existingRotateNames);
+      } else {
+        newRotate.name = "";
+      }
+
+      const insertIdx = getSelectedSequenceIndex();
+      if (insertIdx !== null) {
+        sequenceStore.update((s) => {
+          const s2 = [...s];
+          s2.splice(insertIdx + 1, 0, newRotate);
+          return s2;
+        });
+      } else {
+        sequenceStore.update((s) => [...s, newRotate]);
+      }
+      selectedPointId.set(`rotate-${newRotate.id}`);
+      recordChange();
+      return;
+    }
+
+    // Handle Path (Line)
+    // Clipboard doesn't strictly have 'kind' property for Line type, but we can check properties or if it doesn't have kind.
+    // Line interface has 'id', 'endPoint', 'controlPoints'
+    if (!(clipboard as any).kind && (clipboard as any).endPoint) {
+      const originalLine = clipboard as Line;
+
+      // Logic similar to duplicate for path placement
+      // We need to determine where to place this new line spatially.
+      // Usually Paste puts it after the selection.
+
+      // Determine insertion point
+      const insertIdx = getSelectedSequenceIndex(); // index in sequence
+      let prevPoint: { x: number; y: number } = startPoint;
+
+      // If we are inserting after a specific path, use its endpoint as reference
+      if (insertIdx !== null) {
+        // Find path element at or before insertIdx
+        for (let i = insertIdx; i >= 0; i--) {
+          if (sequence[i].kind === "path") {
+            const lineId = (sequence[i] as any).lineId;
+            const l = lines.find((line) => line.id === lineId);
+            if (l) {
+              prevPoint = l.endPoint;
+              break;
+            }
+          }
+        }
+      } else if (lines.length > 0) {
+        prevPoint = lines[lines.length - 1].endPoint;
+      }
+
+      // We need to calculate the relative vector of the copied line
+      // But we don't have the original 'previous point' of the copied line easily available here unless we store it.
+      // However, usually copy/paste of a path segment implies copying the shape/vector.
+      // If we simply copy endPoint, it will snap to the original location.
+      // For now, let's paste it "relative" if possible, or just exact copy if we can't determine relation.
+      // Wait, `duplicate` calculates delta from the line BEFORE the duplicated line.
+      // `clipboard` is just the line object. We lost context of where it came from.
+      // So we can either:
+      // 1. Paste it exactly (might overlap if not moved).
+      // 2. Paste it with a small offset from previous point?
+      // 3. Assume the clipboard line vector is (endPoint - origin_of_copy). We don't know origin_of_copy.
+
+      // Let's assume the user wants an exact copy of the properties (heading, etc) but positioned after current selection.
+      // If we just use the coordinate in clipboard, it jumps back to where it was copied.
+      // If we want "continuation", we probably want to preserve the relative vector?
+      // But we don't have the relative vector in `Line` object (it stores absolute coordinates).
+
+      // Heuristic: If we paste, maybe we just offset it slightly from the insertion point?
+      // Or we can try to "guess" a delta.
+      // Let's just paste it with a small offset (e.g. 10, 10) from the previous point, similar to "Add Path".
+      // But preserving control points relative structure?
+
+      // Better approach: Calculate the vector of the copied line relative to (0,0)? No.
+      // Let's just Paste it exactly as is?
+      // If I copy a segment at (50,50), and paste it, and it appears at (50,50), that's standard "Copy/Paste" behavior in vector apps often.
+      // "Duplicate" is the one that often does "Step and Repeat" or relative offset.
+      // So for Paste, exact coordinates might be safer/expected, OR offset by a bit if it overlaps exactly.
+
+      // Let's stick to: Paste exactly, but regenerate ID and Name.
+      // If it overlaps, user can move it.
+
+      const newLine = _.cloneDeep(originalLine);
+      newLine.id = `line-${Math.random().toString(36).slice(2)}`;
+
+      const existingLineNames = lines.map((l) => l.name || "");
+      if (newLine.name && newLine.name.trim() !== "") {
+        newLine.name = generateName(newLine.name, existingLineNames);
+      } else {
+        newLine.name = "";
+      }
+
+      // Insert
+      if (insertIdx !== null) {
+        // We need to find the line index corresponding to insertIdx
+        // This is tricky because sequence and lines indices aren't 1:1.
+        // But we insert into `lines` array based on where the sequence item at `insertIdx` is.
+        // If sequence[insertIdx] is a path, we insert after that line in `lines`.
+        // If sequence[insertIdx] is a wait, we need to find the path before it to know where in `lines` to insert?
+        // Actually `lines` order usually matches `sequence` path order.
+        // Let's find the last path item in sequence up to insertIdx.
+
+        let insertionLineIndex = -1;
+        for (let i = insertIdx; i >= 0; i--) {
+          if (sequence[i].kind === "path") {
+            const lid = (sequence[i] as any).lineId;
+            insertionLineIndex = lines.findIndex((l) => l.id === lid);
+            break;
+          }
+        }
+
+        // If no path found before, insert at 0?
+        // If found, insert after.
+        if (insertionLineIndex === -1) {
+          linesStore.update((l) => {
+            const newLines = [...l];
+            newLines.splice(0, 0, newLine);
+            return renumberDefaultPathNames(newLines);
+          });
+        } else {
+          linesStore.update((l) => {
+            const newLines = [...l];
+            newLines.splice(insertionLineIndex + 1, 0, newLine);
+            return renumberDefaultPathNames(newLines);
+          });
+        }
+
+        sequenceStore.update((s) => {
+          const s2 = [...s];
+          s2.splice(insertIdx + 1, 0, { kind: "path", lineId: newLine.id! });
+          return s2;
+        });
+      } else {
+        // Append
+        linesStore.update((l) => renumberDefaultPathNames([...l, newLine]));
+        sequenceStore.update((s) => [
+          ...s,
+          { kind: "path", lineId: newLine.id! },
+        ]);
+      }
+
+      selectedLineId.set(newLine.id!);
+      // Select end point
+      // We need to find new index of line
+      // It's either last, or we need to look it up.
+      // Since `linesStore` update is async/reactive, we might not have it immediately in `lines` variable here
+      // unless we force update or look at what we pushed.
+      // But we are inside the component so `lines` is reactive prop. It won't update until next tick.
+      // We can just set selectedLineId and let the UI handle it, or try to guess point ID.
+      // Point ID depends on index.
+      // Let's record change.
       recordChange();
     }
   }
@@ -1235,6 +1488,13 @@
     fieldPan.update((p) => ({ x: p.x + dx, y: p.y + dy }));
   }
 
+  function selectFirst() {
+    if (lines.length > 0) {
+      selectedPointId.set(`point-0-0`);
+      selectedLineId.set(null);
+    }
+  }
+
   function selectLast() {
     if (lines.length > 0) {
       const lastLineIdx = lines.length - 1;
@@ -1269,6 +1529,9 @@
     addControlPoint: () => addControlPoint(),
     removeControlPoint: () => removeControlPoint(),
     duplicate: () => duplicate(),
+    copy: () => copy(),
+    cut: () => cut(),
+    paste: () => paste(),
     removeSelected: () => removeSelected(),
     undo: () => undoAction(),
     redo: () => redoAction(),
@@ -1452,6 +1715,7 @@
     panViewLeft: () => panView(50, 0),
     panViewRight: () => panView(-50, 0),
     selectLast: () => selectLast(),
+    selectFirst: () => selectFirst(),
     copyPathJson: () => copyPathJson(),
     toggleDebugSequence: () =>
       settingsStore.update((s) => ({
