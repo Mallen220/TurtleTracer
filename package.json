@@ -166,5 +166,8 @@
       "owner": "Mallen220",
       "repo": "PedroPathingVisualizer"
     }
+  },
+  "overrides": {
+    "tar": "7.5.3"
   }
 }
