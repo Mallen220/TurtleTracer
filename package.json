@@ -19,7 +19,7 @@
     "tests": "vitest",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
     "test:e2e": "playwright test",
-    "dev": "npm run generate:types && npm run fix:headers && npm run format && npm run fix:notice && vite build && electron .",
+    "dev": "npm run fix:headers && npm run format && npm run fix:notice && npm run build && electron .",
     "start": "npm run build && electron .",
     "dist:mac": "npm run build && electron-builder --mac --arm64 --publish=never",
     "dist:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --publish=never",

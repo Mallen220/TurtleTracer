@@ -1100,7 +1100,10 @@ ipcMain.handle("plugins:list", async () => {
   try {
     await fs.mkdir(pluginsDir, { recursive: true });
     const files = await fs.readdir(pluginsDir);
-    return files.filter((f) => f.endsWith(".js") || f.endsWith(".ts"));
+    return files.filter(
+      (f) =>
+        (f.endsWith(".js") || f.endsWith(".ts")) && !f.endsWith("pedro.d.ts"),
+    );
   } catch (error) {
     console.error("Error listing plugins:", error);
     return [];
