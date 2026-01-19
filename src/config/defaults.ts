@@ -841,6 +841,7 @@ export const DEFAULT_SETTINGS: Settings = {
   optimizationMutationRate: 0.4,
   optimizationMutationStrength: 6.0,
   validateFieldBoundaries: true,
+  continuousValidation: false,
   restrictDraggingToField: true,
   customMaps: [],
   keyBindings: DEFAULT_KEY_BINDINGS,
