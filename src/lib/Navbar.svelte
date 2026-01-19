@@ -26,14 +26,8 @@
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
   import { menuNavigation } from "./actions/menuNavigation";
-
-  // svelte-ignore unused-export-let
-  // export let loadFile: (evt: any) => any;
-
   export let startPoint: Point;
   export let lines: Line[];
-  // svelte-ignore unused-export-let
-  export let shapes: Shape[];
   export let sequence: SequenceItem[];
   export let robotLength: number;
   export let robotWidth: number;

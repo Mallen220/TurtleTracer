@@ -103,8 +103,8 @@
   // If deg: value in deg/s^2
   $: maxAngularAccelerationDisplay = settings
     ? angularVelocityUnit === "rad"
-      ? settings.maxAngularAcceleration
-      : (settings.maxAngularAcceleration * 180) / Math.PI
+      ? (settings.maxAngularAcceleration ?? 0)
+      : ((settings.maxAngularAcceleration ?? 0) * 180) / Math.PI
     : 0;
 
   function handleAngularVelocityInput(e: Event) {
@@ -932,7 +932,7 @@
                 <input
                   id="max-angular-acceleration"
                   type="number"
-                  value={Number(maxAngularAccelerationDisplay.toFixed(2))}
+                  value={Number((maxAngularAccelerationDisplay ?? 0).toFixed(2))}
                   min="0"
                   step={angularVelocityUnit === "rad" ? 0.1 : 10}
                   on:input={handleMaxAngularAccelerationInput}
