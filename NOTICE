@@ -166,3 +166,6 @@ src/tests/keepInZones.test.ts
 plugins/Example-csv-exporter.js
 plugins/Example-pink-theme.js
 src/lib/components/OnboardingTutorial.svelte
+src/lib/components/SimpleChart.svelte
+src/tests/PathStatisticsDialog.test.ts
+src/tests/timeCalculator_extended.test.ts

@@ -1250,6 +1250,7 @@
     settings={$settingsStore}
     startPoint={$startPointStore}
     controlRect={controlTabRect}
+    percent={$percentStore}
     onClose={() => (statsOpen = false)}
   />
 {/if}
