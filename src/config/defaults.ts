@@ -810,6 +810,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "reportIssue",
     category: "Help",
   },
+  {
+    id: "start-tutorial",
+    key: "",
+    description: "Start Interactive Tutorial",
+    action: "startTutorial",
+    category: "Help",
+  },
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
