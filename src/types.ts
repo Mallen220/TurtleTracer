@@ -147,6 +147,7 @@ export interface Settings {
   optimizationMutationRate?: number; // Mutation rate for optimizer
   optimizationMutationStrength?: number; // Mutation strength for optimizer
   validateFieldBoundaries?: boolean; // Check if robot goes out of bounds
+  continuousValidation?: boolean; // Run validation continuously
   restrictDraggingToField?: boolean; // Restrict dragging to field bounds
   customMaps?: CustomFieldConfig[];
   keyBindings?: KeyBinding[];

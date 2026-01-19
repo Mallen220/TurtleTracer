@@ -65,6 +65,7 @@
     getAnimationDuration,
     calculateRobotState,
   } from "./utils";
+  import { validatePath } from "./utils/validation";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { createHistory, type AppState } from "./utils/history";
   import {
@@ -559,19 +560,36 @@
   $: canUndo = $canUndoStore;
   $: canRedo = $canRedoStore;
 
-  // Clear collision markers when path/settings change
-  // Note: We avoid depending on $collisionMarkers to prevent loops
-  $: ($linesStore,
-    $startPointStore,
-    $shapesStore,
-    $settingsStore,
-    (() => {
-      // Use get() to read without subscribing
-      const current = get(collisionMarkers);
-      if (current && current.length > 0) {
-        collisionMarkers.set([]);
-      }
-    })());
+  // Continuous validation when path/settings change
+  $: {
+    // We depend on timePrediction to ensure we validate with the latest timeline
+    // The stores are also dependencies, but timePrediction aggregates most of them
+    if (
+      $startPointStore &&
+      $linesStore &&
+      $settingsStore &&
+      $sequenceStore &&
+      $shapesStore &&
+      timePrediction &&
+      $settingsStore.continuousValidation
+    ) {
+      validatePath(
+        $startPointStore,
+        $linesStore,
+        $settingsStore,
+        $sequenceStore,
+        $shapesStore,
+        true, // silent
+        timePrediction.timeline,
+      );
+    } else if (
+      // Clear markers if continuous validation is disabled but markers exist
+      !$settingsStore?.continuousValidation &&
+      get(collisionMarkers).length > 0
+    ) {
+      collisionMarkers.set([]);
+    }
+  }
 
   let isLoaded = false;
   let lastSavedState: string = "";
