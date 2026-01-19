@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-
 /**
  * Type definitions for Pedro Pathing Visualizer Plugins.
  * These types are automatically available in your .ts plugins.
@@ -104,10 +103,7 @@ type SequenceRotateItem = {
   _linkedName?: string; // Metadata for linked names
 };
 
-type SequenceItem =
-  | SequencePathItem
-  | SequenceWaitItem
-  | SequenceRotateItem;
+type SequenceItem = SequencePathItem | SequenceWaitItem | SequenceRotateItem;
 
 interface KeyBinding {
   id: string;
@@ -362,7 +358,6 @@ interface PedroAPI {
     get: (store: Writable<any>) => any;
   };
 }
-
 
 // Global variable exposed to plugins
 declare global {

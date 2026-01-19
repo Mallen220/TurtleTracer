@@ -1136,3 +1136,19 @@ ipcMain.handle("plugins:open-folder", async () => {
     return false;
   }
 });
+
+ipcMain.handle("plugins:delete", async (event, filename) => {
+  const pluginsDir = getPluginsDirectory();
+  // Security check: ensure filename doesn't contain path separators
+  if (filename.includes("/") || filename.includes("\\")) {
+    throw new Error("Invalid plugin filename");
+  }
+  const filePath = path.join(pluginsDir, filename);
+  try {
+    await fs.unlink(filePath);
+    return true;
+  } catch (error) {
+    console.error("Error deleting plugin:", error);
+    throw error;
+  }
+});

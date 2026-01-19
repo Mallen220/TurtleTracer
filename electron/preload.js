@@ -77,5 +77,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Plugin System
   listPlugins: () => ipcRenderer.invoke("plugins:list"),
   readPlugin: (filename) => ipcRenderer.invoke("plugins:read", filename),
+  deletePlugin: (filename) => ipcRenderer.invoke("plugins:delete", filename),
   openPluginsFolder: () => ipcRenderer.invoke("plugins:open-folder"),
 });

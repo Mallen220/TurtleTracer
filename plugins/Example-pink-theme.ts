@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 /// <reference path="./pedro.d.ts" />
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 
