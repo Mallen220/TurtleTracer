@@ -15,7 +15,7 @@
     getClosestTarget,
     type DragPosition,
   } from "../../utils/dragDrop";
-  import TrashIcon from "./icons/TrashIcon.svelte";
+  import DeleteButtonWithConfirm from "./common/DeleteButtonWithConfirm.svelte";
 
   export let line: Line;
   export let lineIdx: number;
@@ -206,6 +206,7 @@
       id="control-points-list-{lineIdx}"
       class="w-full mt-2 space-y-2"
       bind:this={containerRef}
+      role="list"
     >
       {#each line.controlPoints as point, idx (idx)}
         <div
@@ -255,7 +256,7 @@
 
               <!-- Reorder Buttons -->
               <div
-                class="flex items-center bg-white dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                class="flex items-center bg-white dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
               >
                 <button
                   title={line.locked ? "Locked" : "Move up"}
@@ -306,20 +307,16 @@
               </div>
 
               <!-- Delete Button -->
-              <button
+              <DeleteButtonWithConfirm
                 on:click={() => {
                   let _pts = line.controlPoints;
                   _pts.splice(idx, 1);
                   line.controlPoints = _pts;
                   recordChange();
                 }}
-                class="text-neutral-400 hover:text-red-500 p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                title="Remove Control Point"
-                aria-label="Remove Control Point"
                 disabled={line.locked}
-              >
-                <TrashIcon className="size-3.5" strokeWidth={2} />
-              </button>
+                title="Remove Control Point"
+              />
             </div>
 
             <!-- Position Inputs -->
