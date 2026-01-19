@@ -8,15 +8,24 @@
   export let label: string = "";
   export let unit: string = "";
   export let height: number = 200;
+  export let currentTime: number | null = null;
 
   let container: HTMLDivElement;
   let tooltip: HTMLDivElement;
   let width = 0;
 
-  // Make reactive to data/dimensions
+  // Make reactive to data/dimensions/time
   $: if (container && data.length > 0 && width > 0) {
     draw();
   }
+
+  $: if (currentTime !== null && width > 0) {
+    updatePlayhead();
+  }
+
+  // Keep references to update efficiently
+  let playheadSelection: any;
+  let xScale: d3.ScaleLinear<number, number>;
 
   function draw() {
     if (!container) return;
@@ -39,6 +48,7 @@
       .scaleLinear()
       .domain([0, d3.max(data, (d) => d.time) || 1])
       .range([0, chartWidth]);
+    xScale = x;
 
     // Y Scale (Value)
     // Handle both positive and negative values by checking extents
@@ -117,7 +127,7 @@
 
     // Add Zero Line (if within domain)
     if (minVal < 0 && maxVal > 0) {
-       svg
+      svg
         .append("line")
         .attr("x1", 0)
         .attr("x2", chartWidth)
@@ -128,6 +138,17 @@
         .attr("stroke-dasharray", "4 2")
         .attr("opacity", 0.5);
     }
+
+    // Playhead (Vertical Line)
+    playheadSelection = svg
+      .append("line")
+      .attr("y1", 0)
+      .attr("y2", chartHeight)
+      .attr("stroke", "#ef4444") // Red
+      .attr("stroke-width", 2)
+      .attr("opacity", 0); // Initially hidden
+
+    updatePlayhead();
 
     // X Axis
     svg
@@ -207,6 +228,16 @@
     if (container) {
       width = container.clientWidth;
       draw();
+    }
+  }
+
+  function updatePlayhead() {
+    if (!playheadSelection || !xScale) return;
+    if (currentTime !== null && currentTime >= 0) {
+      const xPos = xScale(currentTime);
+      playheadSelection.attr("x1", xPos).attr("x2", xPos).attr("opacity", 1);
+    } else {
+      playheadSelection.attr("opacity", 0);
     }
   }
 

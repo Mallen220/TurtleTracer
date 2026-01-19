@@ -16,6 +16,7 @@
   export let lines: Line[];
   export let sequence: SequenceItem[];
   export let settings: Settings;
+  export let percent: number = 0;
   export let isOpen: boolean = false;
   export let onClose: () => void;
   // If provided, position/size will match this rect (from the Control Tab container)
@@ -63,9 +64,14 @@
 
   let pathStats: PathStats | null = null;
   let activeTab: "summary" | "graphs" = "summary";
+  let currentTime = 0;
 
   $: if (isOpen && lines && sequence && settings) {
     calculateStats();
+  }
+
+  $: if (pathStats) {
+    currentTime = (percent / 100) * pathStats.totalTime;
   }
 
   function calculateStats() {
@@ -369,6 +375,14 @@
     };
   }
 
+  function handleCopy() {
+    if (activeTab === "summary") {
+      copyToMarkdown();
+    } else {
+      copyGraphs();
+    }
+  }
+
   function copyToMarkdown() {
     if (!pathStats) return;
 
@@ -380,6 +394,24 @@
     navigator.clipboard.writeText(md).then(() => {
       notification.set({
         message: "Copied stats to clipboard!",
+        type: "success",
+      });
+    });
+  }
+
+  function copyGraphs() {
+    // Select the graph containers
+    const graphs = document.querySelectorAll(".simple-chart-container svg");
+    if (graphs.length === 0) return;
+
+    let svgContent = "";
+    graphs.forEach((svg) => {
+      svgContent += svg.outerHTML + "\n";
+    });
+
+    navigator.clipboard.writeText(svgContent).then(() => {
+      notification.set({
+        message: "Copied graph SVGs to clipboard!",
         type: "success",
       });
     });
@@ -430,25 +462,46 @@
 
       <div class="flex items-center gap-2">
         <button
-          on:click={copyToMarkdown}
+          on:click={handleCopy}
           class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-          title="Copy as Markdown"
-          aria-label="Copy statistics table as Markdown"
+          title={activeTab === "summary"
+            ? "Copy as Markdown"
+            : "Copy SVG to Clipboard"}
+          aria-label="Copy content"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            class="size-5"
-          >
-            <path
+          {#if activeTab === "summary"}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              class="size-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+              />
+            </svg>
+          {:else}
+            <!-- Copy Image/SVG Icon -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-            />
-          </svg>
+              class="size-5"
+            >
+              <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+              <path
+                d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+              />
+            </svg>
+          {/if}
         </button>
         <button
           on:click={onClose}
@@ -611,7 +664,7 @@
       {:else if activeTab === "graphs"}
         <div class="overflow-y-auto flex-1 p-4 min-h-0 space-y-6">
           <div
-            class="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 p-4"
+            class="simple-chart-container bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 p-4"
           >
             <h3
               class="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300"
@@ -624,11 +677,12 @@
               label="Velocity"
               unit="in/s"
               height={200}
+              {currentTime}
             />
           </div>
 
           <div
-            class="bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 p-4"
+            class="simple-chart-container bg-white dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700 p-4"
           >
             <h3
               class="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300"
@@ -641,6 +695,7 @@
               label="Angular Velocity"
               unit="rad/s"
               height={200}
+              {currentTime}
             />
           </div>
 
