@@ -117,6 +117,13 @@
     errorMsg = "";
     showTelemetry.set(true);
   }
+
+  function handleClear() {
+    telemetryData.set(null);
+    summary = "";
+    errorMsg = "";
+    if (fileInput) fileInput.value = "";
+  }
 </script>
 
 {#if isOpen}
@@ -175,9 +182,15 @@
 
         {#if summary}
           <div
-            class="p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm"
+            class="p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm flex justify-between items-center"
           >
-            {summary}
+            <span>{summary}</span>
+            <button
+              on:click={handleClear}
+              class="text-xs px-2 py-1 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 rounded hover:bg-green-300 dark:hover:bg-green-700 transition-colors"
+            >
+              Clear Data
+            </button>
           </div>
         {/if}
 
