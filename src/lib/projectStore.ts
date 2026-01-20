@@ -97,6 +97,9 @@ export const settingsStore = writable<Settings>({ ...DEFAULT_SETTINGS });
 export const extraDataStore = writable<Record<string, any>>({});
 export const macrosStore = writable<Map<string, PedroData>>(new Map());
 
+// Track currently loading macros to prevent infinite recursion
+const loadingMacros = new Set<string>();
+
 // Animation state
 export const percentStore = writable(0);
 export const playingStore = writable(false);
@@ -182,10 +185,17 @@ export async function loadMacro(filePath: string, force = false) {
   // Check if already loaded
   const currentMacros = get(macrosStore);
   if (!force && currentMacros.has(filePath)) {
-    // Even if loaded, we might need to refresh if the sequence has unexpanded macros
     refreshMacros();
     return;
   }
+
+  // Prevent infinite recursion during loading cycle
+  if (loadingMacros.has(filePath)) {
+    console.warn(`[projectStore] Cyclic dependency detected while loading: ${filePath}`);
+    return;
+  }
+
+  loadingMacros.add(filePath);
 
   // Use electronAPI to read file
   const api = (window as any).electronAPI;
@@ -205,23 +215,29 @@ export async function loadMacro(filePath: string, force = false) {
         console.log(`[projectStore] Loaded macro: ${filePath}`);
 
         // Recursively load any macros nested within this macro
+        const promises: Promise<void>[] = [];
         if (data.sequence && data.sequence.length > 0) {
           data.sequence.forEach((item: SequenceItem) => {
             if (item.kind === "macro") {
-              loadMacro(item.filePath);
+              promises.push(loadMacro(item.filePath));
             }
           });
         }
+        await Promise.all(promises);
 
         refreshMacros();
       }
     } catch (e) {
       console.error("Failed to load macro:", filePath, e);
+    } finally {
+      loadingMacros.delete(filePath);
     }
+  } else {
+    loadingMacros.delete(filePath);
   }
 }
 
-export function loadProjectData(data: any) {
+export async function loadProjectData(data: any) {
   const sp = data.startPoint || {
     x: 72,
     y: 72,
@@ -276,11 +292,17 @@ export function loadProjectData(data: any) {
   extraDataStore.set(data.extraData || {});
 
   // Load referenced macros
+  const promises: Promise<void>[] = [];
   sanitized.forEach((item) => {
     if (item.kind === "macro") {
-      loadMacro(item.filePath);
+      promises.push(loadMacro(item.filePath));
     }
   });
+
+  // Wait for macros to load before refreshing to prevent flickering/clearing
+  if (promises.length > 0) {
+    await Promise.all(promises);
+  }
 
   // Refresh macros immediately in case they are already loaded
   refreshMacros();
