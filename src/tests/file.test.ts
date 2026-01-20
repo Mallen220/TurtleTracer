@@ -76,6 +76,7 @@ describe("File Utils", () => {
         mockLines,
         mockShapes,
         mockSequence,
+        undefined,
         "custom_name.txt",
       );
 

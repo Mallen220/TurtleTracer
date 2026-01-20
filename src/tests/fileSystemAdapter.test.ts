@@ -28,6 +28,7 @@ vi.mock("../lib/projectStore", () => ({
   linesStore: { value: [], subscribe: vi.fn() },
   shapesStore: { value: [], subscribe: vi.fn() },
   sequenceStore: { value: [], subscribe: vi.fn() },
+  extraDataStore: { value: {}, subscribe: vi.fn(), set: vi.fn() },
   settingsStore: {
     value: { recentFiles: [] },
     set: vi.fn(),
