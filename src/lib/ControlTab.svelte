@@ -201,7 +201,9 @@
         const lineIndex = ev.lineIndex as number;
         const line = (ev as any).line || lines[lineIndex]; // Use timeline line if available
         const color = line?.color || "#ffffff";
-        const name = line?.name || (lineIndex >= 0 ? `Path ${lineIndex + 1}` : "Macro/Bridge Path");
+        const name =
+          line?.name ||
+          (lineIndex >= 0 ? `Path ${lineIndex + 1}` : "Macro/Bridge Path");
         items.push({ type: "dot", percent: startPct, color, name });
       } else if (ev.type === "wait") {
         const startPct = toPct(ev.startTime);

@@ -223,10 +223,14 @@
     <div class="px-3 pb-3 space-y-4">
       <!-- File Path Display -->
       <div class="space-y-1">
-        <div class="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+        <div
+          class="text-xs font-semibold text-neutral-500 uppercase tracking-wide"
+        >
           File Path
         </div>
-        <div class="text-xs text-neutral-700 dark:text-neutral-300 break-all bg-neutral-100 dark:bg-neutral-900/50 p-2 rounded border border-neutral-200 dark:border-neutral-700/50">
+        <div
+          class="text-xs text-neutral-700 dark:text-neutral-300 break-all bg-neutral-100 dark:bg-neutral-900/50 p-2 rounded border border-neutral-200 dark:border-neutral-700/50"
+        >
           {macro.filePath}
         </div>
       </div>

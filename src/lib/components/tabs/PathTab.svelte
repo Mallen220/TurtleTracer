@@ -777,8 +777,7 @@
     </EmptyState>
   {/if}
 
-    {#each sequence as item, sIdx (item.kind === "path" ? getPathLineId(item) : item.kind === "wait" ? getWait(item).id : item.kind === "rotate" ? getRotate(item).id : getMacro(item).id)}
-
+  {#each sequence as item, sIdx (item.kind === "path" ? getPathLineId(item) : item.kind === "wait" ? getWait(item).id : item.kind === "rotate" ? getRotate(item).id : getMacro(item).id)}
     {@const isLocked =
       item.kind === "path"
         ? (lines.find((l) => l.id === getPathLineId(item))?.locked ?? false)

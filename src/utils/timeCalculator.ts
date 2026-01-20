@@ -742,7 +742,7 @@ export function calculatePathTime(
               [],
               bridgeLine.endPoint,
               50,
-              currentHeading
+              currentHeading,
             );
 
             const bridgeLength = bridgeAnalysis.length;
@@ -750,24 +750,28 @@ export function calculatePathTime(
 
             let bridgeTime = 0;
             if (useMotionProfile) {
-                // Approximate with linear motion for bridge
-                // Or better, use calculateMotionProfileDetailed
-                const result = calculateMotionProfileDetailed(bridgeAnalysis.steps, safeSettings);
-                bridgeTime = result.totalTime;
+              // Approximate with linear motion for bridge
+              // Or better, use calculateMotionProfileDetailed
+              const result = calculateMotionProfileDetailed(
+                bridgeAnalysis.steps,
+                safeSettings,
+              );
+              bridgeTime = result.totalTime;
             } else {
-                const avgVel = (safeSettings.xVelocity + safeSettings.yVelocity) / 2;
-                bridgeTime = bridgeLength / avgVel;
+              const avgVel =
+                (safeSettings.xVelocity + safeSettings.yVelocity) / 2;
+              bridgeTime = bridgeLength / avgVel;
             }
 
             timeline.push({
-                type: "travel",
-                duration: bridgeTime,
-                startTime: currentTime,
-                endTime: currentTime + bridgeTime,
-                lineIndex: -1, // Special index for synthetic lines? Or just leave undefined
-                line: bridgeLine,
-                prevPoint: lastPoint,
-                name: "Bridge Path"
+              type: "travel",
+              duration: bridgeTime,
+              startTime: currentTime,
+              endTime: currentTime + bridgeTime,
+              lineIndex: -1, // Special index for synthetic lines? Or just leave undefined
+              line: bridgeLine,
+              prevPoint: lastPoint,
+              name: "Bridge Path",
             });
             currentTime += bridgeTime;
             lastPoint = bridgeLine.endPoint; // Snap to macro start
@@ -775,18 +779,18 @@ export function calculatePathTime(
             // Update heading after bridge
             currentHeading = currentHeading + bridgeAnalysis.netRotation;
           } else {
-             // Snap exactly if close enough to avoid drift
-             lastPoint = macroData.startPoint;
+            // Snap exactly if close enough to avoid drift
+            lastPoint = macroData.startPoint;
           }
 
           // Use macro sequence if available, otherwise derive from macro lines
           const macroSeq =
             macroData.sequence && macroData.sequence.length > 0
               ? macroData.sequence
-              : macroData.lines.map((ln) => ({
+              : (macroData.lines.map((ln) => ({
                   kind: "path",
                   lineId: ln.id!,
-                })) as SequenceItem[];
+                })) as SequenceItem[]);
 
           processSequence(macroSeq, macroData.lines, recursionDepth + 1);
         }

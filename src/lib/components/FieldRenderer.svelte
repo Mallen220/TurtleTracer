@@ -549,34 +549,38 @@
 
     // Instead, let's iterate the timeline events directly if available.
     if (timePrediction && timePrediction.timeline) {
-        const paths: any[] = [];
+      const paths: any[] = [];
 
-        // Filter travel events
-        const travelEvents = timePrediction.timeline.filter((e: any) => e.type === "travel" && e.line);
+      // Filter travel events
+      const travelEvents = timePrediction.timeline.filter(
+        (e: any) => e.type === "travel" && e.line,
+      );
 
-        travelEvents.forEach((ev: any, idx: number) => {
-            const line = ev.line!;
-            const start = ev.prevPoint!;
+      travelEvents.forEach((ev: any, idx: number) => {
+        const line = ev.line!;
+        const start = ev.prevPoint!;
 
-            // Check if this is a main line or macro/bridge line
-            const isMainLine = lines.some(l => l.id === line.id);
-            const isSelected = line.id === currentSelectedId;
-            const width = isSelected ? uiLength(LINE_WIDTH * 2.5) : uiLength(LINE_WIDTH);
+        // Check if this is a main line or macro/bridge line
+        const isMainLine = lines.some((l) => l.id === line.id);
+        const isSelected = line.id === currentSelectedId;
+        const width = isSelected
+          ? uiLength(LINE_WIDTH * 2.5)
+          : uiLength(LINE_WIDTH);
 
-            // Generate single path element
-            // We pass a single-item array to reuse generatePathElements logic
-            const elems = generatePathElements(
-                [line],
-                start,
-                (l) => l.color || "#60a5fa",
-                (l) => width,
-                `timeline-path-${idx}`, // unique prefix
-                isMainLine // only heatmap for main lines? or all? Let's say all for now if possible
-            );
-            paths.push(...elems);
-        });
+        // Generate single path element
+        // We pass a single-item array to reuse generatePathElements logic
+        const elems = generatePathElements(
+          [line],
+          start,
+          (l) => l.color || "#60a5fa",
+          (l) => width,
+          `timeline-path-${idx}`, // unique prefix
+          isMainLine, // only heatmap for main lines? or all? Let's say all for now if possible
+        );
+        paths.push(...elems);
+      });
 
-        return paths;
+      return paths;
     }
 
     // Fallback if no simulation (e.g. initial load or error)
