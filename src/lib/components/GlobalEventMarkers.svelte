@@ -9,6 +9,7 @@
   import { tick } from "svelte";
   import TrashIcon from "./icons/TrashIcon.svelte";
   import SectionHeader from "./common/SectionHeader.svelte";
+  import EmptyState from "./common/EmptyState.svelte";
   import {
     selectedLineId,
     selectedPointId,
@@ -362,9 +363,28 @@
   {#if !collapsedMarkers}
     <div class="p-2 flex flex-col gap-2">
       {#if allMarkers.length === 0}
-        <div class="text-xs text-neutral-500 italic p-2 text-center">
-          No event markers defined. Click + to add one.
-        </div>
+        <EmptyState
+          title="No event markers"
+          description="Click + to add an event marker at the end of the sequence."
+          compact={true}
+        >
+          <div slot="icon">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="size-6 text-neutral-400"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"
+              />
+            </svg>
+          </div>
+        </EmptyState>
       {:else}
         {#each allMarkers as marker (marker.id)}
           <div
