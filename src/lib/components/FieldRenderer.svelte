@@ -533,6 +533,53 @@
     y; // Trigger reactivity on pan/zoom
     if (isDiffMode) return []; // Don't render standard path in diff mode
     const currentSelectedId = $selectedLineId;
+
+    // Use timeline events to find all lines (including bridge & macros)
+    // Extract unique lines from timeline events of type 'travel'
+    let renderLines: Line[] = [];
+    let lineStartPoints = new Map<string, Point>(); // lineId -> startPoint
+
+    // Start with standard lines
+    // This handles the basic "lines" array
+    // But we want to include macro lines.
+    // The issue with generatePathElements is it iterates an array and assumes continuity (prev.endPoint).
+    // For timeline-based lines, we might have disjoint segments or bridge lines.
+    // Let's manually construct the array for generatePathElements or call it multiple times?
+    // generatePathElements expects a contiguous list.
+
+    // Instead, let's iterate the timeline events directly if available.
+    if (timePrediction && timePrediction.timeline) {
+        const paths: any[] = [];
+
+        // Filter travel events
+        const travelEvents = timePrediction.timeline.filter((e: any) => e.type === "travel" && e.line);
+
+        travelEvents.forEach((ev: any, idx: number) => {
+            const line = ev.line!;
+            const start = ev.prevPoint!;
+
+            // Check if this is a main line or macro/bridge line
+            const isMainLine = lines.some(l => l.id === line.id);
+            const isSelected = line.id === currentSelectedId;
+            const width = isSelected ? uiLength(LINE_WIDTH * 2.5) : uiLength(LINE_WIDTH);
+
+            // Generate single path element
+            // We pass a single-item array to reuse generatePathElements logic
+            const elems = generatePathElements(
+                [line],
+                start,
+                (l) => l.color || "#60a5fa",
+                (l) => width,
+                `timeline-path-${idx}`, // unique prefix
+                isMainLine // only heatmap for main lines? or all? Let's say all for now if possible
+            );
+            paths.push(...elems);
+        });
+
+        return paths;
+    }
+
+    // Fallback if no simulation (e.g. initial load or error)
     return generatePathElements(
       lines,
       startPoint,

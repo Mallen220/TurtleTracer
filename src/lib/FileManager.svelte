@@ -42,7 +42,7 @@
     currentDirectoryStore,
     gitStatusStore,
   } from "../stores";
-  import { settingsStore } from "./projectStore";
+  import { settingsStore, loadMacro } from "./projectStore";
   import { saveProject } from "../utils/fileHandlers";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
   import { mirrorPathData, reversePathData } from "../utils/pathTransform";
@@ -589,6 +589,9 @@
       await refreshDirectory();
       isUnsaved.set(false);
       showToast(`Saved to: ${targetFile.name}`, "success");
+
+      // Reload macro if it's being used somewhere
+      loadMacro(targetFile.path, true);
 
       // Updated saved file — refresh its preview
       if (fileGrid && targetFile && targetFile.path)

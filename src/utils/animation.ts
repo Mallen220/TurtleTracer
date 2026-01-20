@@ -74,9 +74,17 @@ export function calculateRobotState(
     };
   } else {
     // --- MOVEMENT TRAVEL ---
-    const lineIdx = activeEvent.lineIndex!;
-    const currentLine = lines[lineIdx];
-    const prevPoint = lineIdx === 0 ? startPoint : lines[lineIdx - 1].endPoint;
+    let currentLine: Line;
+    let prevPoint: Point;
+
+    if (activeEvent.line && activeEvent.prevPoint) {
+      currentLine = activeEvent.line;
+      prevPoint = activeEvent.prevPoint;
+    } else {
+      const lineIdx = activeEvent.lineIndex!;
+      currentLine = lines[lineIdx];
+      prevPoint = lineIdx === 0 ? startPoint : lines[lineIdx - 1].endPoint;
+    }
 
     let linePercent = 0;
     let interpolatedHeading: number | null = null;

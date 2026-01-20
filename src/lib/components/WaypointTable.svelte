@@ -1,6 +1,13 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Point, Line, ControlPoint, SequenceItem } from "../../types";
+  import type {
+    Point,
+    Line,
+    ControlPoint,
+    SequenceItem,
+    SequenceMacroItem,
+  } from "../../types";
+  import { loadMacro } from "../projectStore";
   import {
     reorderSequence,
     getClosestTarget,
@@ -193,6 +200,14 @@
     }
   }
 
+  function updateMacroName(item: SequenceItem, name: string) {
+    if (item.kind === "macro") {
+      item.name = name;
+      sequence = [...sequence]; // trigger reactivity
+      recordChange();
+    }
+  }
+
   // Debug helper to log mapping between line, index and control points when rows render
   function debugPointRow(
     line: Line,
@@ -303,6 +318,31 @@
   }
 
   function handleWindowDrop(e: DragEvent) {
+    // Check for macro drop
+    if (
+      e.dataTransfer &&
+      e.dataTransfer.types.includes("application/x-pedro-macro")
+    ) {
+      e.preventDefault();
+      const filePath = e.dataTransfer.getData("application/x-pedro-macro");
+      if (!filePath) return;
+
+      const target = getClosestTarget(e, "tr[data-seq-index]", document.body);
+      let dropIndex = sequence.length;
+      if (target) {
+        const idx = parseInt(
+          target.element.getAttribute("data-seq-index") || "",
+        );
+        if (!isNaN(idx)) {
+          dropIndex = target.position === "bottom" ? idx + 1 : idx;
+        }
+      }
+
+      insertMacro(dropIndex, filePath);
+      handleDragEnd();
+      return;
+    }
+
     if (draggingIndex === null) return;
     e.preventDefault();
 
@@ -432,6 +472,18 @@
     const item = sequence[index];
     if (!item) return;
     if (item.kind === "rotate" && item.locked) return;
+
+    sequence.splice(index, 1);
+    sequence = [...sequence];
+    syncLinesToSequence(sequence);
+    if (recordChange) recordChange();
+    selectedPointId.set(null);
+  }
+
+  function deleteMacro(index: number) {
+    const item = sequence[index];
+    if (!item) return;
+    if (item.kind === "macro" && item.locked) return;
 
     sequence.splice(index, 1);
     sequence = [...sequence];
@@ -657,7 +709,9 @@
           ? deleteLine(item.lineId)
           : item.kind === "wait"
             ? deleteWait(seqIndex)
-            : deleteRotate(seqIndex),
+            : item.kind === "rotate"
+              ? deleteRotate(seqIndex)
+              : deleteMacro(seqIndex),
       danger: true,
       disabled: isLocked || (lines.length <= 1 && item.kind === "path"),
     });
@@ -835,6 +889,30 @@
     sequence = newSeq;
     syncLinesToSequence(newSeq);
     recordChange();
+  }
+
+  function insertMacro(index: number, filePath: string) {
+    // Extract name from path
+    const parts = filePath.split(/[/\\]/);
+    const fileName = parts.pop() || filePath;
+    const baseName = fileName.replace(/\.pp$/, "");
+
+    const newMacro: SequenceMacroItem = {
+      kind: "macro",
+      id: makeId(),
+      filePath,
+      name: baseName,
+      locked: false,
+    };
+
+    const newSeq = [...sequence];
+    newSeq.splice(index, 0, newMacro);
+    sequence = newSeq;
+    syncLinesToSequence(newSeq);
+    recordChange();
+
+    // Trigger load
+    loadMacro(filePath);
   }
 
   function insertPath(index: number) {
@@ -1743,6 +1821,138 @@
                     on:click|stopPropagation={() => deleteRotate(seqIndex)}
                     title="Delete rotate"
                     aria-label="Delete rotate"
+                    class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  >
+                    <TrashIcon className="size-4" strokeWidth={2} />
+                  </button>
+                {:else}
+                  <span class="h-6 w-6" aria-hidden="true"></span>
+                {/if}
+              </td>
+            </tr>
+          {:else if item.kind === "macro"}
+            <!-- Macro Item -->
+            {@const seqIndex = findSequenceIndex(item)}
+            <tr
+              data-seq-index={seqIndex}
+              draggable={!item.locked}
+              on:dragstart={(e) => handleDragStart(e, seqIndex)}
+              on:dragend={handleDragEnd}
+              on:contextmenu={(e) => handleContextMenu(e, seqIndex)}
+              class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-teal-50 dark:bg-teal-900/20 transition-colors duration-150"
+              class:border-t-2={dragOverIndex === seqIndex &&
+                dragPosition === "top"}
+              class:border-b-2={dragOverIndex === seqIndex &&
+                dragPosition === "bottom"}
+              class:border-blue-500={dragOverIndex === seqIndex}
+              class:dark:border-blue-400={dragOverIndex === seqIndex}
+              class:opacity-50={draggingIndex === seqIndex}
+            >
+              <td
+                class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  class="w-4 h-4 mx-auto"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </td>
+              <td class="px-3 py-2">
+                <div class="relative w-full max-w-[160px]">
+                  <input
+                    class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-teal-500 focus:outline-none text-xs pr-6"
+                    value={item.name}
+                    on:input={(e) =>
+                      // @ts-ignore
+                      updateMacroName(item, e.target.value)}
+                    disabled={item.locked}
+                    placeholder="Macro"
+                    aria-label="Macro Name"
+                  />
+                  <!-- Macro Icon -->
+                  <div
+                    class="absolute right-1 top-1/2 -translate-y-1/2 text-teal-500 flex items-center justify-center"
+                    title={`Macro: ${item.filePath}`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      class="w-3.5 h-3.5"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M2 10a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm6.39-2.9a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0 1.06-1.06l-2.22-2.22 2.22-2.22ZM11.61 7.1a.75.75 0 1 0-1.22.872l2.22 2.22-2.22 2.22a.75.75 0 1 0 1.06 1.06l3.236-4.53-3.076-1.842Z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </td>
+              <td
+                class="px-3 py-2 text-neutral-400 text-xs italic truncate max-w-[100px]"
+                title={item.filePath}
+              >
+                {item.filePath.split(/[/\\]/).pop()}
+              </td>
+              <td class="px-3 py-2 text-neutral-400 text-xs italic"> - </td>
+              <td
+                class="px-3 py-2 text-left flex items-center justify-start gap-1"
+              >
+                <!-- Lock toggle for macro -->
+                <button
+                  on:click|stopPropagation={() => toggleWaitLock(seqIndex)}
+                  title={item.locked ? "Unlock macro" : "Lock macro"}
+                  aria-label={item.locked ? "Unlock macro" : "Lock macro"}
+                  class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                  aria-pressed={item.locked}
+                >
+                  {#if item.locked}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      class="size-5 stroke-yellow-500"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                      />
+                    </svg>
+                  {:else}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      class="size-5 stroke-gray-400"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                      />
+                    </svg>
+                  {/if}
+                </button>
+
+                <!-- Delete slot (hidden when locked) -->
+                {#if !item.locked}
+                  <button
+                    on:click|stopPropagation={() => deleteMacro(seqIndex)}
+                    title="Delete macro"
+                    aria-label="Delete macro"
                     class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                   >
                     <TrashIcon className="size-4" strokeWidth={2} />

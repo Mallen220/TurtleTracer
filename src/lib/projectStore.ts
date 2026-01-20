@@ -7,6 +7,7 @@ import type {
   Shape,
   Settings,
   SequencePathItem,
+  PedroData,
 } from "../types";
 import {
   getDefaultStartPoint,
@@ -90,6 +91,7 @@ export const sequenceStore = writable<SequenceItem[]>(
 );
 export const settingsStore = writable<Settings>({ ...DEFAULT_SETTINGS });
 export const extraDataStore = writable<Record<string, any>>({});
+export const macrosStore = writable<Map<string, PedroData>>(new Map());
 
 // Animation state
 export const percentStore = writable(0);
@@ -120,6 +122,34 @@ export function resetProject() {
   // sequence = ...
   // shapes = getDefaultShapes();
   // currentFilePath.set(null);
+}
+
+export async function loadMacro(filePath: string, force = false) {
+  // Check if already loaded
+  const currentMacros = get(macrosStore);
+  if (!force && currentMacros.has(filePath)) return;
+
+  // Use electronAPI to read file
+  const api = (window as any).electronAPI;
+  if (api && api.readFile) {
+    try {
+      const content = await api.readFile(filePath);
+      const data = JSON.parse(content);
+      // Validate data
+      if (data.startPoint && data.lines) {
+        // Normalize lines in macro
+        data.lines = normalizeLines(data.lines);
+        macrosStore.update((map) => {
+          const newMap = new Map(map);
+          newMap.set(filePath, data);
+          return newMap;
+        });
+        console.log(`[projectStore] Loaded macro: ${filePath}`);
+      }
+    } catch (e) {
+      console.error("Failed to load macro:", filePath, e);
+    }
+  }
 }
 
 export function loadProjectData(data: any) {
@@ -175,6 +205,13 @@ export function loadProjectData(data: any) {
   shapesStore.set(data.shapes || []);
   sequenceStore.set(sanitized);
   extraDataStore.set(data.extraData || {});
+
+  // Load referenced macros
+  sanitized.forEach((item) => {
+    if (item.kind === "macro") {
+      loadMacro(item.filePath);
+    }
+  });
 
   // settings are usually loaded separately or merged?
   // In App.svelte loadData does NOT load settings from the file data usually,

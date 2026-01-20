@@ -89,6 +89,13 @@ export function lerp2d(
   };
 }
 
+export function getDistance(
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+) {
+  return Math.hypot(p2.x - p1.x, p2.y - p1.y);
+}
+
 /**
  * Optimized De Casteljau's algorithm for Bezier curves.
  * Uses explicit Bernstein basis polynomials for common degrees (1-3)

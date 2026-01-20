@@ -6,6 +6,7 @@
     SequenceItem,
     SequenceWaitItem,
     SequenceRotateItem,
+    SequenceMacroItem,
     Settings,
   } from "../../../types";
   import { tick } from "svelte";
@@ -26,6 +27,7 @@
   import PathLineSection from "../PathLineSection.svelte";
   import WaitSection from "../WaitSection.svelte";
   import RotateSection from "../RotateSection.svelte";
+  import MacroSection from "../MacroSection.svelte";
   import {
     selectedLineId,
     selectedPointId,
@@ -52,6 +54,8 @@
     waits: {} as Record<string, boolean>,
     // Track collapsed state for rotates by their ID
     rotates: {} as Record<string, boolean>,
+    // Track collapsed state for macros by their ID
+    macros: {} as Record<string, boolean>,
   };
 
   // Debug helpers
@@ -213,6 +217,10 @@
     return i as SequenceRotateItem;
   }
 
+  function getMacro(i: any) {
+    return i as SequenceMacroItem;
+  }
+
   function getPathLineId(item: SequenceItem) {
     return item.kind === "path" ? (item as any).lineId : undefined;
   }
@@ -351,6 +359,14 @@
     });
     collapsedSections.rotates = newRotates;
 
+    const newMacros = { ...collapsedSections.macros };
+    sequence.forEach((s) => {
+      if (s.kind === "macro") {
+        newMacros[s.id] = true;
+      }
+    });
+    collapsedSections.macros = newMacros;
+
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
   }
@@ -376,6 +392,14 @@
     });
     collapsedSections.rotates = newRotates;
 
+    const newMacros = { ...collapsedSections.macros };
+    sequence.forEach((s) => {
+      if (s.kind === "macro") {
+        newMacros[s.id] = false;
+      }
+    });
+    collapsedSections.macros = newMacros;
+
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
   }
@@ -392,7 +416,11 @@
     (sequence.filter((s) => s.kind === "rotate").length === 0 ||
       sequence
         .filter((s) => s.kind === "rotate")
-        .every((s) => collapsedSections.rotates[s.id]));
+        .every((s) => collapsedSections.rotates[s.id])) &&
+    (sequence.filter((s) => s.kind === "macro").length === 0 ||
+      sequence
+        .filter((s) => s.kind === "macro")
+        .every((s) => collapsedSections.macros[s.id]));
 
   function toggleCollapseAll() {
     if (allCollapsed) expandAll();
@@ -604,6 +632,9 @@
       if (it.kind === "rotate") {
         return (it as any).locked ?? false;
       }
+      if (it.kind === "macro") {
+        return (it as any).locked ?? false;
+      }
       return false;
     };
 
@@ -626,6 +657,9 @@
     if (item.kind === "rotate") {
       return getRotate(item).locked ?? false;
     }
+    if (item.kind === "macro") {
+      return getMacro(item).locked ?? false;
+    }
     return getWait(item).locked ?? false;
   }
 
@@ -634,6 +668,7 @@
       if (s.kind === "path") return s.lineId === itemId;
       if (s.kind === "wait") return (s as any).id === itemId;
       if (s.kind === "rotate") return (s as any).id === itemId;
+      if (s.kind === "macro") return (s as any).id === itemId;
       return false;
     });
 
@@ -650,6 +685,8 @@
         collapsedSections.waits[(item as any).id] = false;
       } else if (item.kind === "rotate") {
         collapsedSections.rotates[(item as any).id] = false;
+      } else if (item.kind === "macro") {
+        collapsedSections.macros[(item as any).id] = false;
       }
 
       collapsedSections = { ...collapsedSections };
@@ -673,6 +710,9 @@
     } else if (sel.startsWith("rotate-")) {
       const id = sel.substring(7);
       collapsedSections.rotates[id] = !collapsedSections.rotates[id];
+    } else if (sel.startsWith("macro-")) {
+      const id = sel.substring(6);
+      collapsedSections.macros[id] = !collapsedSections.macros[id];
     } else if (sel.startsWith("point-")) {
       const parts = sel.split("-");
       const lineNum = Number(parts[1]);
@@ -737,7 +777,8 @@
     </EmptyState>
   {/if}
 
-  {#each sequence as item, sIdx (item.kind === "path" ? getPathLineId(item) : item.kind === "wait" ? getWait(item).id : getRotate(item).id)}
+    {#each sequence as item, sIdx (item.kind === "path" ? getPathLineId(item) : item.kind === "wait" ? getWait(item).id : item.kind === "rotate" ? getRotate(item).id : getMacro(item).id)}
+
     {@const isLocked =
       item.kind === "path"
         ? (lines.find((l) => l.id === getPathLineId(item))?.locked ?? false)
@@ -745,7 +786,7 @@
     <div
       role="listitem"
       data-index={sIdx}
-      id={`sequence-item-${item.kind === "path" ? getPathLineId(item) : item.kind === "wait" ? getWait(item).id : getRotate(item).id}`}
+      id={`sequence-item-${item.kind === "path" ? getPathLineId(item) : item.kind === "wait" ? getWait(item).id : item.kind === "rotate" ? getRotate(item).id : getMacro(item).id}`}
       class="w-full transition-all duration-200 rounded-lg"
       draggable={!isItemLocked(item, lines)}
       on:dragstart={(e) => handleDragStart(e, sIdx)}
@@ -795,6 +836,29 @@
           onInsertAfter={() => insertRotateAfter(sIdx)}
           onAddPathAfter={() => insertPathAfter(sIdx)}
           onAddWaitAfter={() => insertWaitAfter(sIdx)}
+          onMoveUp={() => moveSequenceItem(sIdx, -1)}
+          onMoveDown={() => moveSequenceItem(sIdx, 1)}
+          canMoveUp={sIdx !== 0}
+          canMoveDown={sIdx !== sequence.length - 1}
+          {recordChange}
+        />
+      {:else if item.kind === "macro"}
+        <MacroSection
+          bind:macro={item}
+          bind:sequence
+          bind:collapsed={collapsedSections.macros[getMacro(item).id]}
+          onRemove={() => {
+            const newSeq = [...sequence];
+            newSeq.splice(sIdx, 1);
+            sequence = newSeq;
+            recordChange?.();
+          }}
+          onInsertAfter={() => {
+            // Not implemented for Macro currently in UI buttons, but interface requires it
+          }}
+          onAddPathAfter={() => insertPathAfter(sIdx)}
+          onAddWaitAfter={() => insertWaitAfter(sIdx)}
+          onAddRotateAfter={() => insertRotateAfter(sIdx)}
           onMoveUp={() => moveSequenceItem(sIdx, -1)}
           onMoveDown={() => moveSequenceItem(sIdx, 1)}
           canMoveUp={sIdx !== 0}

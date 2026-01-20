@@ -349,6 +349,13 @@
   export function refreshAll() {
     files.forEach((f) => refreshPreview(f.path));
   }
+
+  function handleDragStart(e: DragEvent, file: FileInfo) {
+    if (!e.dataTransfer) return;
+    e.dataTransfer.setData("application/x-pedro-macro", file.path);
+    e.dataTransfer.setData("text/plain", file.path);
+    e.dataTransfer.effectAllowed = "copy";
+  }
 </script>
 
 <div
@@ -383,6 +390,8 @@
           tabindex="0"
           aria-label={file.name}
           use:observeElement={file.path}
+          draggable="true"
+          on:dragstart={(e) => handleDragStart(e, file)}
           on:keydown={(e) => {
             if (e.key === "Enter") dispatch("open", file);
           }}

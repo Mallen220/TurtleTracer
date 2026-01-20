@@ -53,6 +53,7 @@
     loopAnimationStore,
     playbackSpeedStore,
     ensureSequenceConsistency,
+    macrosStore,
   } from "./lib/projectStore";
   import { diffMode, committedData } from "./lib/diffStore";
 
@@ -532,6 +533,7 @@
   $: lines = $linesStore;
   $: shapes = $shapesStore;
   $: sequence = $sequenceStore;
+  $: macros = $macrosStore;
   $: percent = $percentStore;
   $: playing = $playingStore;
   $: loopAnimation = $loopAnimationStore;
@@ -865,7 +867,13 @@
   $: if (settings) debouncedSaveSettings(settings);
 
   // --- Animation Logic ---
-  $: timePrediction = calculatePathTime(startPoint, lines, settings, sequence);
+  $: timePrediction = calculatePathTime(
+    startPoint,
+    lines,
+    settings,
+    sequence,
+    macros,
+  );
 
   // Diff Mode Animation Logic
   $: isDiffMode = $diffMode;
@@ -877,6 +885,7 @@
           committed.lines,
           committed.settings,
           committed.sequence,
+          macros,
         )
       : null;
 

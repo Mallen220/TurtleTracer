@@ -13,7 +13,9 @@ import {
   getLineStartHeading,
   getLineEndHeading,
   getAngularDifference,
+  getDistance,
 } from "./math";
+import { getRandomColor } from "./draw";
 
 /**
  * Calculates the first derivative of a Bezier curve of degree N at t.
@@ -574,6 +576,7 @@ export function calculatePathTime(
   lines: Line[],
   settings: Settings,
   sequence?: SequenceItem[],
+  macros?: Map<string, import("../types").PedroData>,
 ): TimePrediction {
   const msToSeconds = (value?: number | string) => {
     const numeric = Number(value);
@@ -597,6 +600,7 @@ export function calculatePathTime(
 
   let currentTime = 0;
   let currentHeading = 0;
+  let isFirstPathItem = true;
 
   // Initialize heading based on start point settings
   // Note: We don't have a previous reference, so we take the raw value.
@@ -621,199 +625,325 @@ export function calculatePathTime(
 
   if (!Number.isFinite(currentHeading)) currentHeading = 0;
 
-  const lineById = new Map<string, Line>();
-  lines.forEach((ln) => {
-    if (!ln.id) ln.id = `line-${Math.random().toString(36).slice(2)}`;
-    lineById.set(ln.id, ln);
-  });
-
-  const seq: SequenceItem[] =
-    sequence && sequence.length
-      ? sequence
-      : lines.map((ln) => ({ kind: "path", lineId: ln.id! }));
-
   let lastPoint: Point = startPoint;
 
-  seq.forEach((item, idx) => {
-    if (item.kind === "wait") {
-      const waitSeconds = msToSeconds(item.durationMs);
-      if (waitSeconds > 0) {
-        timeline.push({
-          type: "wait",
-          name: item.name,
-          duration: waitSeconds,
-          startTime: currentTime,
-          endTime: currentTime + waitSeconds,
-          waitId: item.id,
-          startHeading: currentHeading,
-          targetHeading: currentHeading,
-          atPoint: lastPoint,
-        });
-        currentTime += waitSeconds;
-      }
+  const processSequence = (
+    seq: SequenceItem[],
+    contextLines: Line[],
+    recursionDepth: number = 0,
+  ) => {
+    if (recursionDepth > 10) {
+      console.warn("Max recursion depth reached for macro expansion");
       return;
     }
 
-    if (item.kind === "rotate") {
-      // Calculate rotation duration
-      const targetHeading = unwrapAngle(item.degrees, currentHeading);
-      const diff = Math.abs(currentHeading - targetHeading);
-      const rotTime = calculateRotationTime(diff, safeSettings);
+    const lineById = new Map<string, Line>();
+    contextLines.forEach((ln) => {
+      if (!ln.id) ln.id = `line-${Math.random().toString(36).slice(2)}`;
+      lineById.set(ln.id, ln);
+    });
 
-      if (rotTime > 0) {
+    seq.forEach((item, idx) => {
+      if (item.kind === "wait") {
+        const waitSeconds = msToSeconds(item.durationMs);
+        if (waitSeconds > 0) {
+          timeline.push({
+            type: "wait",
+            name: item.name,
+            duration: waitSeconds,
+            startTime: currentTime,
+            endTime: currentTime + waitSeconds,
+            waitId: item.id,
+            startHeading: currentHeading,
+            targetHeading: currentHeading,
+            atPoint: lastPoint,
+          });
+          currentTime += waitSeconds;
+        }
+        return;
+      }
+
+      if (item.kind === "rotate") {
+        // Calculate rotation duration
+        const targetHeading = unwrapAngle(item.degrees, currentHeading);
+        const diff = Math.abs(currentHeading - targetHeading);
+        const rotTime = calculateRotationTime(diff, safeSettings);
+
+        if (rotTime > 0) {
+          timeline.push({
+            type: "wait", // Reuse wait type for stationary actions
+            name: item.name,
+            duration: rotTime,
+            startTime: currentTime,
+            endTime: currentTime + rotTime,
+            waitId: item.id,
+            startHeading: currentHeading,
+            targetHeading: targetHeading,
+            atPoint: lastPoint,
+          });
+          currentTime += rotTime;
+          currentHeading = targetHeading;
+        }
+        return;
+      }
+
+      if (item.kind === "macro") {
+        if (macros && macros.has(item.filePath)) {
+          const macroData = macros.get(item.filePath)!;
+
+          // Bridge Path Logic
+          const dist = getDistance(lastPoint, macroData.startPoint);
+          if (dist > 0.1) {
+            // Determine bridge heading based on macro start point preferences
+            let bridgeEndPoint: Point;
+            const target = macroData.startPoint;
+
+            if (target.heading === "constant") {
+              bridgeEndPoint = {
+                x: target.x,
+                y: target.y,
+                heading: "constant",
+                degrees: target.degrees,
+              };
+            } else if (target.heading === "linear") {
+              // Bridge ends where macro starts.
+              // If macro start is linear, it implies it starts at `startDeg`.
+              // So bridge should interpolate to that `startDeg`.
+              bridgeEndPoint = {
+                x: target.x,
+                y: target.y,
+                heading: "linear",
+                startDeg: 0, // Ignored by calculator (uses current)
+                endDeg: target.startDeg,
+              };
+            } else {
+              // Tangential
+              bridgeEndPoint = {
+                x: target.x,
+                y: target.y,
+                heading: "tangential",
+                reverse: target.reverse,
+              };
+            }
+
+            // Create a bridge line
+            const bridgeLine: Line = {
+              id: `bridge-${item.id}`,
+              startPoint: lastPoint, // Implicit start
+              endPoint: bridgeEndPoint,
+              controlPoints: [],
+              color: "rgba(100, 100, 100, 0.5)", // Ghostly gray
+              name: `Bridge to ${item.name}`,
+            };
+
+            // Analyze bridge segment
+            const bridgeAnalysis = analyzePathSegment(
+              lastPoint,
+              [],
+              bridgeLine.endPoint,
+              50,
+              currentHeading
+            );
+
+            const bridgeLength = bridgeAnalysis.length;
+            segmentLengths.push(bridgeLength);
+
+            let bridgeTime = 0;
+            if (useMotionProfile) {
+                // Approximate with linear motion for bridge
+                // Or better, use calculateMotionProfileDetailed
+                const result = calculateMotionProfileDetailed(bridgeAnalysis.steps, safeSettings);
+                bridgeTime = result.totalTime;
+            } else {
+                const avgVel = (safeSettings.xVelocity + safeSettings.yVelocity) / 2;
+                bridgeTime = bridgeLength / avgVel;
+            }
+
+            timeline.push({
+                type: "travel",
+                duration: bridgeTime,
+                startTime: currentTime,
+                endTime: currentTime + bridgeTime,
+                lineIndex: -1, // Special index for synthetic lines? Or just leave undefined
+                line: bridgeLine,
+                prevPoint: lastPoint,
+                name: "Bridge Path"
+            });
+            currentTime += bridgeTime;
+            lastPoint = bridgeLine.endPoint; // Snap to macro start
+
+            // Update heading after bridge
+            currentHeading = currentHeading + bridgeAnalysis.netRotation;
+          } else {
+             // Snap exactly if close enough to avoid drift
+             lastPoint = macroData.startPoint;
+          }
+
+          // Use macro sequence if available, otherwise derive from macro lines
+          const macroSeq =
+            macroData.sequence && macroData.sequence.length > 0
+              ? macroData.sequence
+              : macroData.lines.map((ln) => ({
+                  kind: "path",
+                  lineId: ln.id!,
+                })) as SequenceItem[];
+
+          processSequence(macroSeq, macroData.lines, recursionDepth + 1);
+        }
+        return;
+      }
+
+      const line = lineById.get((item as any).lineId);
+      if (!line || !line.endPoint) {
+        return;
+      }
+      const prevPoint = lastPoint;
+
+      // --- ROTATION CHECK (Initial Turn-to-Face or Wait) ---
+      // Unwind requiredStartHeading relative to currentHeading
+      let requiredStartHeadingRaw = getLineStartHeading(line, prevPoint);
+      // Unwind: find value closest to currentHeading
+      let requiredStartHeading = unwrapAngle(
+        requiredStartHeadingRaw,
+        currentHeading,
+      );
+
+      if (!Number.isFinite(requiredStartHeading))
+        requiredStartHeading = currentHeading;
+
+      // If this is the very first path segment of the entire routine, we snap heading
+      if (isFirstPathItem) {
+        currentHeading = requiredStartHeading;
+        isFirstPathItem = false;
+      }
+
+      const diff = Math.abs(currentHeading - requiredStartHeading);
+
+      // Use a small epsilon
+      if (diff > 0.1) {
+        // Convert diff to rotation time WITH ACCELERATION logic for Wait events
+        const rotTime = calculateRotationTime(diff, safeSettings);
+
         timeline.push({
-          type: "wait", // Reuse wait type for stationary actions
-          name: item.name,
+          type: "wait",
           duration: rotTime,
           startTime: currentTime,
           endTime: currentTime + rotTime,
-          waitId: item.id,
           startHeading: currentHeading,
-          targetHeading: targetHeading,
-          atPoint: lastPoint,
+          targetHeading: requiredStartHeading,
+          atPoint: prevPoint,
         });
         currentTime += rotTime;
-        currentHeading = targetHeading;
+        currentHeading = requiredStartHeading;
       }
-      return;
-    }
 
-    const line = lineById.get((item as any).lineId);
-    if (!line || !line.endPoint) {
-      return;
-    }
-    const prevPoint = lastPoint;
-
-    // --- ROTATION CHECK (Initial Turn-to-Face or Wait) ---
-    // Unwind requiredStartHeading relative to currentHeading
-    let requiredStartHeadingRaw = getLineStartHeading(line, prevPoint);
-    // Unwind: find value closest to currentHeading
-    let requiredStartHeading = unwrapAngle(
-      requiredStartHeadingRaw,
-      currentHeading,
-    );
-
-    if (!Number.isFinite(requiredStartHeading))
-      requiredStartHeading = currentHeading;
-
-    if (idx === 0) currentHeading = requiredStartHeading;
-
-    const diff = Math.abs(currentHeading - requiredStartHeading);
-
-    // Use a small epsilon
-    if (diff > 0.1) {
-      // Convert diff to rotation time WITH ACCELERATION logic for Wait events
-      const rotTime = calculateRotationTime(diff, safeSettings);
-
-      timeline.push({
-        type: "wait",
-        duration: rotTime,
-        startTime: currentTime,
-        endTime: currentTime + rotTime,
-        startHeading: currentHeading,
-        targetHeading: requiredStartHeading,
-        atPoint: prevPoint,
-      });
-      currentTime += rotTime;
-      currentHeading = requiredStartHeading;
-    }
-
-    // --- TRAVEL ANALYSIS ---
-    // Pass currentHeading to start tracking
-    const analysis = analyzePathSegment(
-      prevPoint,
-      line.controlPoints as any,
-      line.endPoint as any,
-      100,
-      currentHeading,
-    );
-    const length = analysis.length;
-    segmentLengths.push(length);
-
-    let translationTime = 0;
-    let motionProfile: number[] | undefined = undefined;
-    let velocityProfile: number[] | undefined = undefined;
-    let headingProfile: number[] | undefined = undefined;
-
-    if (useMotionProfile) {
-      const result = calculateMotionProfileDetailed(
-        analysis.steps,
-        safeSettings,
+      // --- TRAVEL ANALYSIS ---
+      // Pass currentHeading to start tracking
+      const analysis = analyzePathSegment(
+        prevPoint,
+        line.controlPoints as any,
+        line.endPoint as any,
+        100,
+        currentHeading,
       );
-      translationTime = result.totalTime;
-      motionProfile = result.profile;
-      velocityProfile = result.velocityProfile;
+      const length = analysis.length;
+      segmentLengths.push(length);
 
-      // Build heading profile if Tangential
-      if (line.endPoint.heading === "tangential") {
-        headingProfile = [analysis.startHeading]; // Start
-        for (const step of analysis.steps) {
-          headingProfile.push(step.heading);
-        }
-      }
-    } else {
-      const avgVelocity = (safeSettings.xVelocity + safeSettings.yVelocity) / 2;
-      translationTime = length / avgVelocity;
-    }
-
-    // Calculate Rotation Time (for non-profile logic)
-    let rotationRequired = 0;
-
-    // Determine End Heading (Unwound)
-    let endHeadingRaw = getLineEndHeading(line, prevPoint);
-    let endHeading = endHeadingRaw;
-
-    if (line.endPoint.heading === "tangential") {
-      endHeading = currentHeading + analysis.netRotation;
-      rotationRequired = analysis.tangentRotation;
-    } else if (line.endPoint.heading === "constant") {
-      // Rotate to specific constant heading
-      endHeading = unwrapAngle(line.endPoint.degrees, currentHeading);
-      rotationRequired = 0;
-    } else if (line.endPoint.heading === "linear") {
-      // Linear: Interpolate from start to end.
-      endHeading = unwrapAngle(line.endPoint.endDeg, currentHeading);
-      rotationRequired = Math.abs(endHeading - currentHeading);
+      let translationTime = 0;
+      let motionProfile: number[] | undefined = undefined;
+      let velocityProfile: number[] | undefined = undefined;
+      let headingProfile: number[] | undefined = undefined;
 
       if (useMotionProfile) {
-        headingProfile = [currentHeading];
-        const samples = analysis.steps.length; // 100
-        for (let i = 1; i <= samples; i++) {
-          const ratio = i / samples;
-          headingProfile!.push(
-            currentHeading + (endHeading - currentHeading) * ratio,
-          );
+        const result = calculateMotionProfileDetailed(
+          analysis.steps,
+          safeSettings,
+        );
+        translationTime = result.totalTime;
+        motionProfile = result.profile;
+        velocityProfile = result.velocityProfile;
+
+        // Build heading profile if Tangential
+        if (line.endPoint.heading === "tangential") {
+          headingProfile = [analysis.startHeading]; // Start
+          for (const step of analysis.steps) {
+            headingProfile.push(step.heading);
+          }
+        }
+      } else {
+        const avgVelocity =
+          (safeSettings.xVelocity + safeSettings.yVelocity) / 2;
+        translationTime = length / avgVelocity;
+      }
+
+      // Calculate Rotation Time (for non-profile logic)
+      let rotationRequired = 0;
+
+      // Determine End Heading (Unwound)
+      let endHeadingRaw = getLineEndHeading(line, prevPoint);
+      let endHeading = endHeadingRaw;
+
+      if (line.endPoint.heading === "tangential") {
+        endHeading = currentHeading + analysis.netRotation;
+        rotationRequired = analysis.tangentRotation;
+      } else if (line.endPoint.heading === "constant") {
+        // Rotate to specific constant heading
+        endHeading = unwrapAngle(line.endPoint.degrees, currentHeading);
+        rotationRequired = 0;
+      } else if (line.endPoint.heading === "linear") {
+        // Linear: Interpolate from start to end.
+        endHeading = unwrapAngle(line.endPoint.endDeg, currentHeading);
+        rotationRequired = Math.abs(endHeading - currentHeading);
+
+        if (useMotionProfile) {
+          headingProfile = [currentHeading];
+          const samples = analysis.steps.length; // 100
+          for (let i = 1; i <= samples; i++) {
+            const ratio = i / samples;
+            headingProfile!.push(
+              currentHeading + (endHeading - currentHeading) * ratio,
+            );
+          }
         }
       }
-    }
 
-    if (!Number.isFinite(endHeading)) endHeading = currentHeading;
+      if (!Number.isFinite(endHeading)) endHeading = currentHeading;
 
-    // Use simple velocity check for segment duration max check
-    // This maintains continuity with previous logic that didn't penalize smooth travel
-    const rotationTime =
-      (rotationRequired * (Math.PI / 180)) / safeSettings.aVelocity;
+      // Use simple velocity check for segment duration max check
+      // This maintains continuity with previous logic that didn't penalize smooth travel
+      const rotationTime =
+        (rotationRequired * (Math.PI / 180)) / safeSettings.aVelocity;
 
-    const segmentTime = Math.max(translationTime, rotationTime);
+      const segmentTime = Math.max(translationTime, rotationTime);
 
-    segmentTimes.push(segmentTime);
-    const lineIndex = lines.findIndex((l) => l.id === line.id);
-    timeline.push({
-      type: "travel",
-      duration: segmentTime,
-      startTime: currentTime,
-      endTime: currentTime + segmentTime,
-      lineIndex,
-      motionProfile: motionProfile,
-      velocityProfile: velocityProfile,
-      headingProfile: headingProfile,
+      segmentTimes.push(segmentTime);
+      const lineIndex = contextLines.findIndex((l) => l.id === line.id);
+      timeline.push({
+        type: "travel",
+        duration: segmentTime,
+        startTime: currentTime,
+        endTime: currentTime + segmentTime,
+        lineIndex,
+        line: line, // Pass direct reference
+        prevPoint: prevPoint as Point, // Pass direct reference
+        motionProfile: motionProfile,
+        velocityProfile: velocityProfile,
+        headingProfile: headingProfile,
+      });
+      currentTime += segmentTime;
+
+      // Update state
+      currentHeading = endHeading;
+      lastPoint = line.endPoint as Point;
     });
-    currentTime += segmentTime;
+  };
 
-    // Update state
-    currentHeading = endHeading;
-    lastPoint = line.endPoint as Point;
-  });
+  const initialSeq =
+    sequence && sequence.length
+      ? sequence
+      : lines.map((ln) => ({ kind: "path", lineId: ln.id! }) as SequenceItem);
+
+  processSequence(initialSeq, lines);
 
   const totalTime = currentTime;
   const totalDistance = segmentLengths.reduce((sum, length) => sum + length, 0);

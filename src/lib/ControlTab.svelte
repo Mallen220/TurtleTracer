@@ -199,9 +199,9 @@
       if (ev.type === "travel") {
         const startPct = toPct(ev.startTime);
         const lineIndex = ev.lineIndex as number;
-        const line = lines[lineIndex];
+        const line = (ev as any).line || lines[lineIndex]; // Use timeline line if available
         const color = line?.color || "#ffffff";
-        const name = line?.name || `Path ${lineIndex + 1}`;
+        const name = line?.name || (lineIndex >= 0 ? `Path ${lineIndex + 1}` : "Macro/Bridge Path");
         items.push({ type: "dot", percent: startPct, color, name });
       } else if (ev.type === "wait") {
         const startPct = toPct(ev.startTime);
@@ -239,8 +239,8 @@
     });
 
     timeline.forEach((ev) => {
-      if (ev.type === "travel" && typeof ev.lineIndex === "number") {
-        const line = lines[ev.lineIndex];
+      if (ev.type === "travel") {
+        const line = (ev as any).line || lines[ev.lineIndex as number];
         if (line && line.eventMarkers) {
           line.eventMarkers.forEach((m) => {
             let timeOffset = 0;
