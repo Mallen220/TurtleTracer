@@ -620,6 +620,27 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "clearObstacles",
     category: "Editing",
   },
+  {
+    id: "toggle-diff",
+    key: "alt+d",
+    description: "Toggle Diff View",
+    action: "toggleDiff",
+    category: "View",
+  },
+  {
+    id: "toggle-plugin-manager",
+    key: "cmd+shift+p, ctrl+shift+p",
+    description: "Toggle Plugin Manager",
+    action: "togglePluginManager",
+    category: "View",
+  },
+  {
+    id: "toggle-ruler",
+    key: "alt+m",
+    description: "Toggle Ruler",
+    action: "toggleRuler",
+    category: "View",
+  },
   // Extended Commands
   {
     id: "set-file-manager-directory",

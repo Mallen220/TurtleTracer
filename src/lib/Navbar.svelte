@@ -19,7 +19,6 @@
     startTutorial,
   } from "../stores";
   import { getRandomColor } from "../utils";
-  import hotkeys from "hotkeys-js";
   import { SaveIcon } from "./components/icons";
   import { calculatePathTime, formatTime } from "../utils";
   import { showShortcuts } from "../stores";
@@ -162,10 +161,6 @@
   onMount(() => {
     document.addEventListener("click", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
-
-    hotkeys("ctrl+shift+p", () => {
-      showPluginManager.update((v) => !v);
-    });
   });
 
   onDestroy(() => {

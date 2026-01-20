@@ -20,6 +20,8 @@
     exportDialogState,
     showFileManager,
     fileManagerNewFileMode,
+    showPluginManager,
+    showRuler,
   } from "../../stores";
   import {
     startPointStore,
@@ -40,6 +42,7 @@
   import { validatePath } from "../../utils/validation";
   import type { Line, SequenceItem } from "../../types";
   import { createTriangle } from "../../utils";
+  import { toggleDiff } from "../../lib/diffStore";
   import {
     DEFAULT_KEY_BINDINGS,
     FIELD_SIZE,
@@ -1802,6 +1805,9 @@
         startTutorial.set(true);
       });
     },
+    toggleDiff: () => toggleDiff(),
+    togglePluginManager: () => showPluginManager.update((v) => !v),
+    toggleRuler: () => showRuler.update((v) => !v),
   };
 
   // --- Derived Commands for Search ---
