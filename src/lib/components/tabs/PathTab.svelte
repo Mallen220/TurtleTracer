@@ -33,6 +33,7 @@
     selectedPointId,
     toggleCollapseAllTrigger,
   } from "../../../stores";
+  import { loadMacro } from "../../../lib/projectStore";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -163,7 +164,12 @@
   }
 
   function handleWindowDragOver(e: DragEvent) {
-    if (draggingIndex === null || !isActive) return;
+    if (!isActive) return;
+    const isInternalReorder = draggingIndex !== null;
+    const isMacroDrop =
+      e.dataTransfer?.types.includes("application/x-pedro-macro") ?? false;
+
+    if (!isInternalReorder && !isMacroDrop) return;
     e.preventDefault();
 
     const target = getClosestTarget(e, '[role="listitem"]', document.body);
@@ -179,30 +185,78 @@
     }
   }
 
-  function handleWindowDrop(e: DragEvent) {
-    if (draggingIndex === null || !isActive) return;
+  async function handleWindowDrop(e: DragEvent) {
+    if (!isActive) return;
+
+    const isInternalReorder = draggingIndex !== null;
+    const isMacroDrop =
+      e.dataTransfer?.types.includes("application/x-pedro-macro") ?? false;
+
+    if (!isInternalReorder && !isMacroDrop) return;
+
     e.preventDefault();
 
     if (
       dragOverIndex === null ||
       dragPosition === null ||
-      draggingIndex === dragOverIndex
+      (draggingIndex !== null && draggingIndex === dragOverIndex)
     ) {
       handleDragEnd();
       return;
     }
 
-    const newSequence = reorderSequence(
-      sequence,
-      draggingIndex,
-      dragOverIndex,
-      dragPosition,
-    );
-    sequence = newSequence;
-    syncLinesToSequence(newSequence);
-    recordChange?.();
+    if (isInternalReorder && draggingIndex !== null) {
+      const newSequence = reorderSequence(
+        sequence,
+        draggingIndex,
+        dragOverIndex,
+        dragPosition,
+      );
+      sequence = newSequence;
+      syncLinesToSequence(newSequence);
+      recordChange?.();
+    } else if (isMacroDrop) {
+      const filePath = e.dataTransfer?.getData("application/x-pedro-macro");
+      if (filePath) {
+        // Calculate insertion index
+        let insertIndex = dragOverIndex;
+        if (dragPosition === "bottom") insertIndex++;
+
+        await addMacroToSequence(filePath, insertIndex);
+      }
+    }
 
     handleDragEnd();
+  }
+
+  async function addMacroToSequence(filePath: string, index: number) {
+    const macroId = makeId();
+    // Default name from filename
+    let name = filePath.split(/[\\/]/).pop() || "Macro";
+    name = name.replace(/\.pp$/, "");
+
+    const newItem: SequenceMacroItem = {
+      kind: "macro",
+      id: macroId,
+      filePath: filePath,
+      name: name,
+      locked: false,
+    };
+
+    // Load the macro data into the store so it can be expanded
+    await loadMacro(filePath);
+
+    const newSeq = [...sequence];
+    if (index >= 0 && index <= newSeq.length) {
+      newSeq.splice(index, 0, newItem);
+    } else {
+      newSeq.push(newItem);
+    }
+    sequence = newSeq;
+
+    collapsedSections.macros[macroId] = false;
+    collapsedSections = { ...collapsedSections };
+    recordChange?.();
   }
 
   function handleDragEnd() {

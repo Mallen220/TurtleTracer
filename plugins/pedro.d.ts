@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+
 /**
  * Type definitions for Pedro Pathing Visualizer Plugins.
  * These types are automatically available in your .ts plugins.
@@ -13,6 +14,9 @@ interface BasePoint {
   x: number;
   y: number;
   locked?: boolean;
+  isMacroElement?: boolean;
+  macroId?: string;
+  originalId?: string;
 }
 
 type Point = BasePoint &
@@ -77,6 +81,9 @@ interface Line {
   waitBeforeName?: string;
   waitAfterName?: string;
   _linkedName?: string; // Metadata for linked names
+  isMacroElement?: boolean;
+  macroId?: string;
+  originalId?: string;
 }
 
 type SequencePathItem = {
@@ -111,6 +118,7 @@ type SequenceMacroItem = {
   name: string;
   locked?: boolean;
   eventMarkers?: EventMarker[]; // Maybe macros can have markers too?
+  sequence?: SequenceItem[]; // The expanded sequence for this macro instance
 };
 
 type SequenceItem =
@@ -400,6 +408,7 @@ interface PedroAPI {
     get: (store: Writable<any>) => any;
   };
 }
+
 
 export {};
 

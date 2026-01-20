@@ -55,6 +55,7 @@
     ensureSequenceConsistency,
     macrosStore,
     refreshMacros,
+    loadMacro,
   } from "./lib/projectStore";
   import { diffMode, committedData } from "./lib/diffStore";
 
@@ -667,6 +668,19 @@
       shapesStore.set(prev.shapes);
       sequenceStore.set(prev.sequence);
 
+      // Check for macros that need reloading (e.g. after undoing a reset)
+      const currentMacros = get(macrosStore);
+      if (prev.sequence) {
+        prev.sequence.forEach((item) => {
+          if (item.kind === "macro") {
+            // If missing from cache, trigger load
+            if (!currentMacros.has(item.filePath)) {
+              loadMacro(item.filePath);
+            }
+          }
+        });
+      }
+
       // Preserve the current onion layer visibility when undoing so that
       // toggling onion layers isn't overwritten by history operations.
       const currentShowOnion = get(settingsStore).showOnionLayers;
@@ -692,6 +706,18 @@
       linesStore.set(next.lines);
       shapesStore.set(next.shapes);
       sequenceStore.set(next.sequence);
+
+      // Check for macros that need reloading
+      const currentMacros = get(macrosStore);
+      if (next.sequence) {
+        next.sequence.forEach((item) => {
+          if (item.kind === "macro") {
+            if (!currentMacros.has(item.filePath)) {
+              loadMacro(item.filePath);
+            }
+          }
+        });
+      }
 
       // Preserve onion layer visibility when redoing as well.
       const currentShowOnion = get(settingsStore).showOnionLayers;

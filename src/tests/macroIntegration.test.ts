@@ -32,7 +32,8 @@ describe("Macro Integration", () => {
   };
 
   it("expandMacro should generate bridge and expand lines", () => {
-    const result = expandMacro(macroItem, prevPoint, 0, macroData);
+    const macrosMap = new Map<string, PedroData>();
+    const result = expandMacro(macroItem, prevPoint, 0, macroData, macrosMap, new Set());
 
     // Check lines
     expect(result.lines.length).toBeGreaterThan(1); // Bridge + Macro Line

@@ -163,6 +163,13 @@
     files.forEach((f) => refreshPreview(f.path));
   }
 
+  function handleDragStart(e: DragEvent, file: FileInfo) {
+    if (!e.dataTransfer) return;
+    e.dataTransfer.setData("application/x-pedro-macro", file.path);
+    e.dataTransfer.setData("text/plain", file.path);
+    e.dataTransfer.effectAllowed = "copy";
+  }
+
   function formatDate(date: Date): string {
     return new Date(date).toLocaleDateString();
   }
@@ -339,6 +346,8 @@
           role="button"
           tabindex="0"
           aria-label={file.name}
+          draggable="true"
+          on:dragstart={(e) => handleDragStart(e, file)}
           on:keydown={(e) => {
             if (e.key === "Enter") dispatch("open", file);
           }}
