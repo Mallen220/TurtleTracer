@@ -15,6 +15,8 @@ import {
   sequenceStore,
   settingsStore,
   extraDataStore,
+  macrosStore,
+  updateMacroContent,
 } from "../lib/projectStore";
 import { loadTrajectoryFromFile, downloadTrajectory } from "./index";
 import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
@@ -257,6 +259,13 @@ async function performSave(
             timeout: 3000,
           });
         }
+
+        // Update macro cache if this file is being used as a macro in the current project
+        const macros = get(macrosStore);
+        if (result.filepath && macros.has(result.filepath)) {
+          updateMacroContent(result.filepath, projectData as any);
+        }
+
         const dir = get(currentDirectoryStore);
         if (dir) scanEventsInDirectory(dir);
         return true;
@@ -299,6 +308,13 @@ async function performSave(
           timeout: 3000,
         });
       }
+
+      // Update macro cache if this file is being used as a macro
+      const macros = get(macrosStore);
+      if (targetPath && macros.has(targetPath)) {
+        updateMacroContent(targetPath, projectData as any);
+      }
+
       const dir = get(currentDirectoryStore);
       if (dir) scanEventsInDirectory(dir);
       return true;

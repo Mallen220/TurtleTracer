@@ -239,7 +239,7 @@
           .map((s) => (s as any).lineId),
       );
       lines.forEach((l) => {
-        if (l.id && !pathIds.has(l.id)) {
+        if (l.id && !pathIds.has(l.id) && !l.isMacroElement) {
           seqCopy.push({ kind: "path", lineId: l.id });
         }
       });
@@ -403,6 +403,7 @@
   $: if (Array.isArray(lines) && Array.isArray(sequence) && !repairedOnce) {
     const missing = lines.filter(
       (l) =>
+        !l.isMacroElement &&
         !sequence.some((s) => s.kind === "path" && (s as any).lineId === l.id),
     );
     if (missing.length) {

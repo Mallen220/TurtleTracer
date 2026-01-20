@@ -16,6 +16,8 @@ import {
   DEFAULT_SETTINGS,
 } from "../config";
 import { getRandomColor } from "../utils";
+import { regenerateProjectMacros } from "./macroUtils";
+import { notification } from "../stores";
 
 export function normalizeLines(input: Line[]): Line[] {
   return (input || []).map((line) => ({
@@ -55,7 +57,9 @@ export function sanitizeSequence(
   const presentIds = new Set(
     pruned.filter((s) => s.kind === "path").map((s) => (s as any).lineId),
   );
-  const missing = lines.filter((l) => !presentIds.has(l.id));
+  const missing = lines.filter(
+    (l) => !presentIds.has(l.id) && !l.isMacroElement,
+  );
 
   return [
     ...pruned,
@@ -115,6 +119,7 @@ export function resetProject() {
     })),
   );
   extraDataStore.set({});
+  macrosStore.set(new Map());
   // We don't reset settings usually, or maybe we do?
   // The original App.svelte reset code:
   // startPoint = getDefaultStartPoint();
@@ -124,10 +129,63 @@ export function resetProject() {
   // currentFilePath.set(null);
 }
 
+export function updateMacroContent(filePath: string, data: PedroData) {
+  macrosStore.update((map) => {
+    const newMap = new Map(map);
+    // Normalize before storing
+    if (data.lines) {
+      data.lines = normalizeLines(data.lines);
+    }
+    newMap.set(filePath, data);
+    return newMap;
+  });
+  refreshMacros();
+}
+
+export function refreshMacros() {
+  const lines = get(linesStore);
+  const sequence = get(sequenceStore);
+  const startPoint = get(startPointStore);
+  const macros = get(macrosStore);
+
+  // Optimization: Check if any macros exist before doing heavy work
+  const hasMacro = sequence.some((s) => s.kind === "macro");
+  if (!hasMacro) return;
+
+  try {
+    const result = regenerateProjectMacros(startPoint, lines, sequence, macros);
+
+    const oldLinesJson = JSON.stringify(lines);
+    const newLinesJson = JSON.stringify(result.lines);
+
+    if (oldLinesJson !== newLinesJson) {
+      linesStore.set(result.lines);
+    }
+
+    const oldSeqJson = JSON.stringify(sequence);
+    const newSeqJson = JSON.stringify(result.sequence);
+
+    if (oldSeqJson !== newSeqJson) {
+      sequenceStore.set(result.sequence);
+    }
+  } catch (error: any) {
+    console.error("Failed to regenerate macros:", error);
+    notification.set({
+      message: `Macro Error: ${error.message}`,
+      type: "error",
+      timeout: 5000,
+    });
+  }
+}
+
 export async function loadMacro(filePath: string, force = false) {
   // Check if already loaded
   const currentMacros = get(macrosStore);
-  if (!force && currentMacros.has(filePath)) return;
+  if (!force && currentMacros.has(filePath)) {
+    // Even if loaded, we might need to refresh if the sequence has unexpanded macros
+    refreshMacros();
+    return;
+  }
 
   // Use electronAPI to read file
   const api = (window as any).electronAPI;
@@ -145,6 +203,17 @@ export async function loadMacro(filePath: string, force = false) {
           return newMap;
         });
         console.log(`[projectStore] Loaded macro: ${filePath}`);
+
+        // Recursively load any macros nested within this macro
+        if (data.sequence && data.sequence.length > 0) {
+          data.sequence.forEach((item: SequenceItem) => {
+            if (item.kind === "macro") {
+              loadMacro(item.filePath);
+            }
+          });
+        }
+
+        refreshMacros();
       }
     } catch (e) {
       console.error("Failed to load macro:", filePath, e);
@@ -212,6 +281,9 @@ export function loadProjectData(data: any) {
       loadMacro(item.filePath);
     }
   });
+
+  // Refresh macros immediately in case they are already loaded
+  refreshMacros();
 
   // settings are usually loaded separately or merged?
   // In App.svelte loadData does NOT load settings from the file data usually,

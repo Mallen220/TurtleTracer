@@ -1,0 +1,105 @@
+import { describe, it, expect } from "vitest";
+import { expandMacro, regenerateProjectMacros } from "../lib/macroUtils";
+import type { Line, Point, SequenceItem, PedroData, SequenceMacroItem } from "../types";
+
+describe("Nested Macros and Recursion", () => {
+  const startPoint: Point = { x: 0, y: 0, heading: "tangential", reverse: false };
+  const prevPoint: Point = { x: 10, y: 10, heading: "tangential", reverse: false };
+
+  const macroLine1: Line = {
+    id: "m1-line",
+    endPoint: { x: 20, y: 20, heading: "tangential", reverse: false },
+    controlPoints: [],
+    color: "#000000",
+    name: "Macro1 Line"
+  };
+
+  const macroData1: PedroData = {
+    startPoint: { x: 15, y: 15, heading: "tangential", reverse: false },
+    lines: [macroLine1],
+    shapes: [],
+    sequence: [{ kind: "path", lineId: "m1-line" }],
+    extraData: {}
+  };
+
+  const macroItem1: SequenceMacroItem = {
+    kind: "macro",
+    id: "macro-1",
+    filePath: "macro1.pp",
+    name: "Macro 1",
+    locked: false
+  };
+
+  const macroData2: PedroData = {
+    startPoint: { x: 25, y: 25, heading: "tangential", reverse: false },
+    lines: [],
+    shapes: [],
+    sequence: [macroItem1], // Nested macro 1 inside macro 2
+    extraData: {}
+  };
+
+  const macroItem2: SequenceMacroItem = {
+    kind: "macro",
+    id: "macro-2",
+    filePath: "macro2.pp",
+    name: "Macro 2",
+    locked: false
+  };
+
+  it("should expand nested macros", () => {
+    const macrosMap = new Map<string, PedroData>();
+    macrosMap.set("macro1.pp", macroData1);
+    macrosMap.set("macro2.pp", macroData2);
+
+    const result = expandMacro(macroItem2, prevPoint, 0, macroData2, macrosMap, new Set());
+
+    // Should contain expanded content from macro 1 (which is nested in macro 2)
+    // Macro 2 has no lines of its own, so all lines come from Macro 1 via expansion
+    expect(result.lines.length).toBeGreaterThan(0);
+
+    // Check sequence structure
+    // Top level sequence of Macro 2 has 1 item (macro1)
+    // After expansion, it should be a SequenceMacroItem for Macro 1, which in turn has a sequence
+    expect(result.sequence.length).toBe(1);
+    const expandedMacro1 = result.sequence[0] as SequenceMacroItem;
+    expect(expandedMacro1.kind).toBe("macro");
+    expect(expandedMacro1.sequence).toBeDefined();
+    expect(expandedMacro1.sequence!.length).toBeGreaterThan(0);
+  });
+
+  it("should detect recursion loops", () => {
+    const macrosMap = new Map<string, PedroData>();
+
+    // Macro A includes Macro B
+    const macroDataA: PedroData = {
+        startPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
+        lines: [],
+        shapes: [],
+        sequence: [{ kind: "macro", id: "m-b", filePath: "macroB.pp", name: "B" }],
+        extraData: {}
+    };
+
+    // Macro B includes Macro A
+    const macroDataB: PedroData = {
+        startPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
+        lines: [],
+        shapes: [],
+        sequence: [{ kind: "macro", id: "m-a", filePath: "macroA.pp", name: "A" }],
+        extraData: {}
+    };
+
+    macrosMap.set("macroA.pp", macroDataA);
+    macrosMap.set("macroB.pp", macroDataB);
+
+    const macroItemA: SequenceMacroItem = {
+        kind: "macro",
+        id: "root",
+        filePath: "macroA.pp",
+        name: "A"
+    };
+
+    expect(() => {
+        expandMacro(macroItemA, prevPoint, 0, macroDataA, macrosMap, new Set());
+    }).toThrow("Recursion detected");
+  });
+});

@@ -5,6 +5,9 @@ export interface BasePoint {
   x: number;
   y: number;
   locked?: boolean;
+  isMacroElement?: boolean;
+  macroId?: string;
+  originalId?: string;
 }
 
 export type Point = BasePoint &
@@ -69,6 +72,9 @@ export interface Line {
   waitBeforeName?: string;
   waitAfterName?: string;
   _linkedName?: string; // Metadata for linked names
+  isMacroElement?: boolean;
+  macroId?: string;
+  originalId?: string;
 }
 
 export type SequencePathItem = {
@@ -103,6 +109,7 @@ export type SequenceMacroItem = {
   name: string;
   locked?: boolean;
   eventMarkers?: EventMarker[]; // Maybe macros can have markers too?
+  sequence?: SequenceItem[]; // The expanded sequence for this macro instance
 };
 
 export type SequenceItem =

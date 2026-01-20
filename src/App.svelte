@@ -54,6 +54,7 @@
     playbackSpeedStore,
     ensureSequenceConsistency,
     macrosStore,
+    refreshMacros,
   } from "./lib/projectStore";
   import { diffMode, committedData } from "./lib/diffStore";
 
@@ -615,6 +616,7 @@
   }
 
   function recordChange() {
+    refreshMacros();
     previewOptimizedLines = null;
     history.record(getAppState());
     if (isLoaded) isUnsaved.set(true);

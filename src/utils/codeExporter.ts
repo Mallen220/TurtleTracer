@@ -40,8 +40,23 @@ export async function generateJavaCode(
       eventMarkerNames.add(event.name);
     });
   });
+  const flattenSequence = (seq: SequenceItem[]): SequenceItem[] => {
+    const result: SequenceItem[] = [];
+    seq.forEach((item) => {
+      if (item.kind === "macro") {
+        if (item.sequence && item.sequence.length > 0) {
+          result.push(...flattenSequence(item.sequence));
+        }
+      } else {
+        result.push(item);
+      }
+    });
+    return result;
+  };
+
   if (sequence) {
-    sequence.forEach((item) => {
+    const flatSeq = flattenSequence(sequence);
+    flatSeq.forEach((item) => {
       if ((item as any).kind === "wait" && (item as any).eventMarkers) {
         (item as any).eventMarkers.forEach((event: any) => {
           eventMarkerNames.add(event.name);
@@ -165,7 +180,7 @@ export async function generateJavaCode(
   let stateMachineCode = "";
   let stateStep = 0;
 
-  const targetSequence =
+  const rawSequence =
     sequence && sequence.length > 0
       ? sequence
       : lines.map(
@@ -175,6 +190,8 @@ export async function generateJavaCode(
               lineId: line.id || `line-${i + 1}`,
             }) as any,
         );
+
+  const targetSequence = flattenSequence(rawSequence);
 
   targetSequence.forEach((item) => {
     stateMachineCode += `\n        case ${stateStep}:`;
@@ -589,7 +606,21 @@ export async function generateSequentialCommandCode(
     lineId: ln.id || `line-${idx + 1}`,
   }));
 
-  const seq = sequence && sequence.length ? sequence : defaultSequence;
+  const flattenSequence = (seq: SequenceItem[]): SequenceItem[] => {
+    const result: SequenceItem[] = [];
+    seq.forEach((item) => {
+      if (item.kind === "macro") {
+        if (item.sequence && item.sequence.length > 0) {
+          result.push(...flattenSequence(item.sequence));
+        }
+      } else {
+        result.push(item);
+      }
+    });
+    return result;
+  };
+
+  const seq = flattenSequence(sequence && sequence.length ? sequence : defaultSequence);
 
   seq.forEach((item, idx) => {
     if (item.kind === "rotate") {
