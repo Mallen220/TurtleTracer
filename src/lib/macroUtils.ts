@@ -345,9 +345,28 @@ export function regenerateProjectMacros(
               newSequence.push(item);
               // Attempt to preserve existing lines for this macro if they exist in the input
               // This handles cases where data is loading or failed to load
-              const preservedLines = lines.filter(l => l.macroId === item.id);
+              // Match lines that belong to this macro instance, including nested ones
+              // ID format: macro-{instanceId}-... or bridge-{instanceId}
+              const prefix = `macro-${item.id}-`;
+              const bridgePrefix = `bridge-${item.id}`;
+              const preservedLines = lines.filter(l =>
+                  l.macroId === item.id ||
+                  (l.id && (l.id.startsWith(prefix) || l.id === bridgePrefix))
+              );
+
               if (preservedLines.length > 0) {
                   newLines.push(...preservedLines);
+
+                  // Reconstruct sequence if missing so that logic persists
+                  if (!item.sequence || item.sequence.length === 0) {
+                      const reconstructedSeq: SequenceItem[] = preservedLines.map(l => ({
+                          kind: "path",
+                          lineId: l.id!
+                      }));
+                      const newItem: SequenceMacroItem = { ...item, sequence: reconstructedSeq };
+                      newSequence[newSequence.length - 1] = newItem;
+                  }
+
                   // Update current point to end of last line to maintain continuity for subsequent items
                   const lastLine = preservedLines[preservedLines.length - 1];
                   currentPoint = lastLine.endPoint;
