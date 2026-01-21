@@ -5,7 +5,12 @@
     formatTime,
     calculatePathTime,
   } from "../../../utils/timeCalculator";
-  import type { Point, Line, SequenceItem, Settings } from "../../../types/index";
+  import type {
+    Point,
+    Line,
+    SequenceItem,
+    Settings,
+  } from "../../../types/index";
   import { slide } from "svelte/transition";
   import { onMount } from "svelte";
   import { getAngularDifference } from "../../../utils/math";

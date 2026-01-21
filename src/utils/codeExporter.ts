@@ -620,7 +620,9 @@ export async function generateSequentialCommandCode(
     return result;
   };
 
-  const seq = flattenSequence(sequence && sequence.length ? sequence : defaultSequence);
+  const seq = flattenSequence(
+    sequence && sequence.length ? sequence : defaultSequence,
+  );
 
   seq.forEach((item, idx) => {
     if (item.kind === "rotate") {

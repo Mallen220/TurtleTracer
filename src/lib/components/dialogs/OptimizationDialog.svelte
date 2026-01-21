@@ -2,7 +2,13 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
-  import type { Line, Point, SequenceItem, Settings, Shape } from "../../../types/index";
+  import type {
+    Line,
+    Point,
+    SequenceItem,
+    Settings,
+    Shape,
+  } from "../../../types/index";
   import {
     PathOptimizer,
     type OptimizationResult,

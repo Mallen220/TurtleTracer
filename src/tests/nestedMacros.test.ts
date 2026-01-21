@@ -1,17 +1,34 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
 import { expandMacro, regenerateProjectMacros } from "../lib/macroUtils";
-import type { Line, Point, SequenceItem, PedroData, SequenceMacroItem } from "../types";
+import type {
+  Line,
+  Point,
+  SequenceItem,
+  PedroData,
+  SequenceMacroItem,
+} from "../types";
 
 describe("Nested Macros and Recursion", () => {
-  const startPoint: Point = { x: 0, y: 0, heading: "tangential", reverse: false };
-  const prevPoint: Point = { x: 10, y: 10, heading: "tangential", reverse: false };
+  const startPoint: Point = {
+    x: 0,
+    y: 0,
+    heading: "tangential",
+    reverse: false,
+  };
+  const prevPoint: Point = {
+    x: 10,
+    y: 10,
+    heading: "tangential",
+    reverse: false,
+  };
 
   const macroLine1: Line = {
     id: "m1-line",
     endPoint: { x: 20, y: 20, heading: "tangential", reverse: false },
     controlPoints: [],
     color: "#000000",
-    name: "Macro1 Line"
+    name: "Macro1 Line",
   };
 
   const macroData1: PedroData = {
@@ -19,7 +36,7 @@ describe("Nested Macros and Recursion", () => {
     lines: [macroLine1],
     shapes: [],
     sequence: [{ kind: "path", lineId: "m1-line" }],
-    extraData: {}
+    extraData: {},
   };
 
   const macroItem1: SequenceMacroItem = {
@@ -27,7 +44,7 @@ describe("Nested Macros and Recursion", () => {
     id: "macro-1",
     filePath: "macro1.pp",
     name: "Macro 1",
-    locked: false
+    locked: false,
   };
 
   const macroData2: PedroData = {
@@ -35,7 +52,7 @@ describe("Nested Macros and Recursion", () => {
     lines: [],
     shapes: [],
     sequence: [macroItem1], // Nested macro 1 inside macro 2
-    extraData: {}
+    extraData: {},
   };
 
   const macroItem2: SequenceMacroItem = {
@@ -43,7 +60,7 @@ describe("Nested Macros and Recursion", () => {
     id: "macro-2",
     filePath: "macro2.pp",
     name: "Macro 2",
-    locked: false
+    locked: false,
   };
 
   it("should expand nested macros", () => {
@@ -51,7 +68,14 @@ describe("Nested Macros and Recursion", () => {
     macrosMap.set("macro1.pp", macroData1);
     macrosMap.set("macro2.pp", macroData2);
 
-    const result = expandMacro(macroItem2, prevPoint, 0, macroData2, macrosMap, new Set());
+    const result = expandMacro(
+      macroItem2,
+      prevPoint,
+      0,
+      macroData2,
+      macrosMap,
+      new Set(),
+    );
 
     // Should contain expanded content from macro 1 (which is nested in macro 2)
     // Macro 2 has no lines of its own, so all lines come from Macro 1 via expansion
@@ -63,7 +87,9 @@ describe("Nested Macros and Recursion", () => {
     // A bridge path is also generated because start points differ
     expect(result.sequence.length).toBeGreaterThanOrEqual(1);
 
-    const expandedMacro1 = result.sequence.find(s => s.kind === "macro") as SequenceMacroItem;
+    const expandedMacro1 = result.sequence.find(
+      (s) => s.kind === "macro",
+    ) as SequenceMacroItem;
     expect(expandedMacro1).toBeDefined();
     expect(expandedMacro1.kind).toBe("macro");
     expect(expandedMacro1.sequence).toBeDefined();
@@ -75,34 +101,38 @@ describe("Nested Macros and Recursion", () => {
 
     // Macro A includes Macro B
     const macroDataA: PedroData = {
-        startPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
-        lines: [],
-        shapes: [],
-        sequence: [{ kind: "macro", id: "m-b", filePath: "macroB.pp", name: "B" }],
-        extraData: {}
+      startPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
+      lines: [],
+      shapes: [],
+      sequence: [
+        { kind: "macro", id: "m-b", filePath: "macroB.pp", name: "B" },
+      ],
+      extraData: {},
     };
 
     // Macro B includes Macro A
     const macroDataB: PedroData = {
-        startPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
-        lines: [],
-        shapes: [],
-        sequence: [{ kind: "macro", id: "m-a", filePath: "macroA.pp", name: "A" }],
-        extraData: {}
+      startPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
+      lines: [],
+      shapes: [],
+      sequence: [
+        { kind: "macro", id: "m-a", filePath: "macroA.pp", name: "A" },
+      ],
+      extraData: {},
     };
 
     macrosMap.set("macroA.pp", macroDataA);
     macrosMap.set("macroB.pp", macroDataB);
 
     const macroItemA: SequenceMacroItem = {
-        kind: "macro",
-        id: "root",
-        filePath: "macroA.pp",
-        name: "A"
+      kind: "macro",
+      id: "root",
+      filePath: "macroA.pp",
+      name: "A",
     };
 
     expect(() => {
-        expandMacro(macroItemA, prevPoint, 0, macroDataA, macrosMap, new Set());
+      expandMacro(macroItemA, prevPoint, 0, macroDataA, macrosMap, new Set());
     }).toThrow("Recursion detected");
   });
 });

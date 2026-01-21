@@ -1,3 +1,4 @@
+<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
   import {
@@ -64,7 +65,9 @@
     // Try to detect header
     let header = lines[0].toLowerCase();
     let hasHeader =
-      header.includes("time") || header.includes("x") || header.includes("heading");
+      header.includes("time") ||
+      header.includes("x") ||
+      header.includes("heading");
     let startIdx = hasHeader ? 1 : 0;
 
     // Detect column indices based on header if present, otherwise assume standard order: time, x, y, heading
@@ -82,10 +85,7 @@
       yIdx = headers.findIndex((h) => h === "y" || h === "ypos");
       hIdx = headers.findIndex(
         (h) =>
-          h.includes("heading") ||
-          h === "h" ||
-          h === "theta" ||
-          h === "angle",
+          h.includes("heading") || h === "h" || h === "theta" || h === "angle",
       );
     }
 

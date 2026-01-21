@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-
 /**
  * Type definitions for Pedro Pathing Visualizer Plugins.
  * These types are automatically available in your .ts plugins.
@@ -211,7 +210,6 @@ interface Shape {
   visible?: boolean;
 }
 
-
 interface ObstaclePreset {
   id: string;
   name: string;
@@ -415,7 +413,6 @@ interface PedroAPI {
     get: (store: Writable<any>) => any;
   };
 }
-
 
 export {};
 

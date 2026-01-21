@@ -62,7 +62,8 @@
   export let onPreviewChange: (
     lines: import("../../types/index").Line[] | null,
   ) => void;
-  export let settings: import("../../types/index").Settings | undefined = undefined;
+  export let settings: import("../../types/index").Settings | undefined =
+    undefined;
 
   // Shapes and collapsedObstacles binding for ObstaclesSection
   export let shapes: import("../../types/index").Shape[];

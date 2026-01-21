@@ -5,9 +5,6 @@
 
 {#each $dialogRegistry as dialog (dialog.id)}
   {#if dialog.component}
-    <svelte:component
-      this={dialog.component}
-      {...dialog.props}
-    />
+    <svelte:component this={dialog.component} {...dialog.props} />
   {/if}
 {/each}

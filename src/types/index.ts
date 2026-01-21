@@ -202,7 +202,6 @@ export interface Shape {
   visible?: boolean;
 }
 
-
 export interface ObstaclePreset {
   id: string;
   name: string;

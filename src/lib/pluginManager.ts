@@ -22,8 +22,13 @@ import {
 } from "./registries";
 import { registerCoreUI } from "./coreRegistrations";
 
-const { startPointStore, linesStore, shapesStore, sequenceStore, settingsStore } =
-  projectStore;
+const {
+  startPointStore,
+  linesStore,
+  shapesStore,
+  sequenceStore,
+  settingsStore,
+} = projectStore;
 
 export class PluginManager {
   private static allExporters: CustomExporter[] = [];

@@ -1,6 +1,12 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Point, Line, SequenceItem, Shape, Settings } from "../../../types/index";
+  import type {
+    Point,
+    Line,
+    SequenceItem,
+    Shape,
+    Settings,
+  } from "../../../types/index";
   import { copy } from "svelte-copy";
   import Highlight from "svelte-highlight";
   import { java } from "svelte-highlight/languages";
@@ -16,7 +22,10 @@
   } from "../../../utils";
   import { tick, onMount } from "svelte";
   import { get } from "svelte/store";
-  import { loadSettings, saveSettings } from "../../../utils/settingsPersistence";
+  import {
+    loadSettings,
+    saveSettings,
+  } from "../../../utils/settingsPersistence";
   import { customExportersStore } from "../../pluginsStore";
   import { exportAsPP } from "../../../utils/fileHandlers";
 

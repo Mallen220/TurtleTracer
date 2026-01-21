@@ -5,9 +5,16 @@
   import ControlPointsSection from "./ControlPointsSection.svelte";
   import HeadingControls from "../HeadingControls.svelte";
   import ColorPicker from "../tools/ColorPicker.svelte";
-  import { selectedLineId, selectedPointId, focusRequest } from "../../../stores";
+  import {
+    selectedLineId,
+    selectedPointId,
+    focusRequest,
+  } from "../../../stores";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
-  import { handleWaypointRename, isLineLinked } from "../../../utils/pointLinking";
+  import {
+    handleWaypointRename,
+    isLineLinked,
+  } from "../../../utils/pointLinking";
   import { tooltipPortal } from "../../actions/portal";
   import { onMount, onDestroy } from "svelte";
 
