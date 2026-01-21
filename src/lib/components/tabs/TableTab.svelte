@@ -18,6 +18,7 @@
   export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
   export let shapes: Shape[];
   export let settings: Settings;
+  export let isActive: boolean = false;
 
   let waypointTableRef: any = null;
   let optimizationOpen = false;
@@ -84,6 +85,7 @@
 <div class="p-4 w-full">
   <WaypointTable
     bind:this={waypointTableRef}
+    {isActive}
     bind:startPoint
     bind:lines
     bind:sequence

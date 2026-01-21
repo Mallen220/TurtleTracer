@@ -67,6 +67,7 @@
   // Shapes and collapsedObstacles binding for ObstaclesSection
   export let shapes: import("../../types").Shape[];
   export let collapsedObstacles: boolean[];
+  export let isActive: boolean = true;
 
   // Prevent Svelte unused-export warnings
   $: shapes;
@@ -297,6 +298,7 @@
   }
 
   function handleWindowDragOver(e: DragEvent) {
+    if (!isActive) return;
     if (draggingIndex === null) return;
     e.preventDefault();
 
@@ -318,6 +320,8 @@
   }
 
   function handleWindowDrop(e: DragEvent) {
+    if (!isActive) return;
+
     // Check for macro drop
     if (
       e.dataTransfer &&
