@@ -25,6 +25,11 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
+    // Stop propagation to prevent global hotkeys (like 'h' for heading) from firing
+    // while typing in this dialog.
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
     if (e.key === "Enter") handleSave();
     if (e.key === "Escape") handleCancel();
   }
@@ -61,6 +66,8 @@
         type="text"
         bind:value={name}
         on:keydown={handleKeydown}
+        on:keyup={(e) => e.stopPropagation()}
+        on:keypress={(e) => e.stopPropagation()}
         class="w-full px-3 py-2 border rounded-md mb-6 bg-neutral-50 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
         placeholder="Filename"
       />
