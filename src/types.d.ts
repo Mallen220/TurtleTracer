@@ -12,6 +12,7 @@ declare global {
       getSavedDirectory: () => Promise<string>;
       createDirectory: (dirPath: string) => Promise<boolean>;
       getDirectoryStats: (dirPath: string) => Promise<any>;
+      resolvePath: (base: string, relative: string) => Promise<string>;
       renameFile: (
         oldPath: string,
         newPath: string,

@@ -244,7 +244,7 @@
       if (ev.type === "travel") {
         const line = (ev as any).line || lines[ev.lineIndex as number];
         if (line && line.eventMarkers) {
-          line.eventMarkers.forEach((m) => {
+          line.eventMarkers.forEach((m: any) => {
             let timeOffset = 0;
             if (ev.motionProfile) {
               const steps = ev.motionProfile.length - 1;

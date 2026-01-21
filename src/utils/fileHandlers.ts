@@ -17,10 +17,13 @@ import {
   extraDataStore,
   macrosStore,
   updateMacroContent,
+  loadProjectData,
 } from "../lib/projectStore";
 import { loadTrajectoryFromFile, downloadTrajectory } from "./index";
 import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
 import { makeId } from "./nameGenerator";
+
+export { loadProjectData };
 
 interface ExtendedElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<boolean>;
@@ -46,60 +49,6 @@ function getElectronAPI(): ExtendedElectronAPI | undefined {
   return (window as any).electronAPI as ExtendedElectronAPI | undefined;
 }
 
-export function loadProjectData(data: any) {
-  if (data.startPoint) startPointStore.set(data.startPoint);
-  // Helper to strip " (##)" suffix from names to restore linkage
-  const stripSuffix = (name: string) => {
-    if (!name) return name;
-    const match = name.match(/^(.*) \(\d+\)$/);
-    return match ? match[1] : name;
-  };
-
-  let loadedLines: Line[] = [];
-
-  if (data.lines) {
-    // Ensure loaded lines have IDs and restore linked names
-    loadedLines = (data.lines as Line[]).map((l) => {
-      const newLine = { ...l, id: l.id || makeId() };
-      // Restore name from metadata if present
-      if (newLine._linkedName) {
-        newLine.name = newLine._linkedName;
-      } else if (newLine.name) {
-        // Attempt to strip suffix to restore linkage for older files
-        newLine.name = stripSuffix(newLine.name);
-      }
-      return newLine;
-    });
-    linesStore.set(loadedLines);
-  }
-  if (data.settings) settingsStore.set(data.settings);
-  if (data.sequence) {
-    // Note: If no lines were loaded (loadedLines empty), we should probably use linesStore if data.sequence exists?
-    // But usually sequence depends on lines from the same file.
-    // If lines were missing but sequence exists, we might have issues.
-    // But we are focusing on suffix stripping here.
-
-    const seq = (data.sequence as SequenceItem[]).map((s) => {
-      if (s.kind === "wait") {
-        const newWait = { ...s };
-        if (!newWait.id) newWait.id = makeId();
-        // Restore name from metadata if present
-        if ((newWait as any)._linkedName) {
-          newWait.name = (newWait as any)._linkedName;
-        } else if (newWait.name) {
-          // Attempt to strip suffix
-          newWait.name = stripSuffix(newWait.name);
-        }
-        return newWait;
-      }
-      return s;
-    });
-    sequenceStore.set(seq);
-  }
-  if (data.shapes) shapesStore.set(data.shapes);
-  if (data.extraData) extraDataStore.set(data.extraData);
-  else extraDataStore.set({});
-}
 
 function addToRecentFiles(path: string, settings?: Settings) {
   const currentSettings = settings || get(settingsStore);
@@ -155,7 +104,7 @@ export async function loadRecentFile(path: string) {
     }
     const content = await electronAPI.readFile(path);
     const data = JSON.parse(content);
-    loadProjectData(data);
+    await loadProjectData(data, path);
     currentFilePath.set(path);
     projectMetadataStore.set({ filepath: path, lastSaved: new Date() });
     addToRecentFiles(path);
@@ -488,7 +437,7 @@ export async function handleExternalFileOpen(filePath: string) {
 
     // If no directory saved, just load it
     if (!savedDir) {
-      loadProjectData(data);
+      await loadProjectData(data, filePath);
       currentFilePath.set(filePath);
       addToRecentFiles(filePath);
       return;
@@ -501,7 +450,7 @@ export async function handleExternalFileOpen(filePath: string) {
 
     if (normFilePath.startsWith(normSavedDir)) {
       // Already in directory
-      loadProjectData(data);
+      await loadProjectData(data, filePath);
       currentFilePath.set(filePath);
       addToRecentFiles(filePath);
     } else {
@@ -528,7 +477,7 @@ export async function handleExternalFileOpen(filePath: string) {
             )
           ) {
             // User cancelled overwrite, just load original
-            loadProjectData(data);
+            await loadProjectData(data, filePath);
             currentFilePath.set(filePath);
             addToRecentFiles(filePath);
             return;
@@ -539,19 +488,19 @@ export async function handleExternalFileOpen(filePath: string) {
         if (electronAPI.copyFile) {
           await electronAPI.copyFile(filePath, destPath);
           // Load the NEW path
-          loadProjectData(data); // data is same
+          await loadProjectData(data, destPath); // data is same
           currentFilePath.set(destPath);
           addToRecentFiles(destPath);
         } else {
           // Fallback if copyFile not available (should be)
           await electronAPI.writeFile(destPath, content);
-          loadProjectData(data);
+          await loadProjectData(data, destPath);
           currentFilePath.set(destPath);
           addToRecentFiles(destPath);
         }
       } else {
         // User said no to copy
-        loadProjectData(data);
+        await loadProjectData(data, filePath);
         currentFilePath.set(filePath);
         addToRecentFiles(filePath);
       }
@@ -612,12 +561,12 @@ export async function loadFile(evt: Event) {
               `File "${file.name}" already exists in the current directory. Overwrite?`,
             )
           ) {
-            loadProjectData(data);
+            await loadProjectData(data);
             return;
           }
         }
         await electronAPI.writeFile(destPath, content);
-        loadProjectData(data);
+        await loadProjectData(data, destPath);
         currentFilePath.set(destPath);
         addToRecentFiles(destPath);
       };
@@ -627,12 +576,14 @@ export async function loadFile(evt: Event) {
     }
   } else {
     // Web load
-    loadTrajectoryFromFile(evt, (data) => {
+    loadTrajectoryFromFile(evt, async (data) => {
+      let path = undefined;
       if ((file as any).path) {
-        addToRecentFiles((file as any).path);
-        currentFilePath.set((file as any).path);
+        path = (file as any).path;
+        addToRecentFiles(path);
+        currentFilePath.set(path);
       }
-      loadProjectData(data);
+      await loadProjectData(data, path);
       isUnsaved.set(false);
     });
   }

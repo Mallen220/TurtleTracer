@@ -495,7 +495,11 @@
 
   function toggleWaitLock(index: number) {
     const item = sequence[index];
-    if (item.kind === "wait" || item.kind === "rotate") {
+    if (
+      item.kind === "wait" ||
+      item.kind === "rotate" ||
+      item.kind === "macro"
+    ) {
       (item as any).locked = !(item.locked ?? false);
       sequence = [...sequence];
       if (recordChange) recordChange();
@@ -725,19 +729,20 @@
 
   function toggleLock(seqIndex: number) {
     const item = sequence[seqIndex];
-    if (item.kind === "wait") {
+    if (item.kind === "path") {
+      const line = lines.find((l) => l.id === item.lineId);
+      if (line) {
+        line.locked = !line.locked;
+        lines = [...lines]; // Trigger reactivity
+      }
+    } else {
+      // wait, rotate, macro
       const newSeq = [...sequence];
       newSeq[seqIndex] = {
         ...item,
         locked: !item.locked,
       };
       sequence = newSeq;
-    } else if (item.kind === "path") {
-      const line = lines.find((l) => l.id === item.lineId);
-      if (line) {
-        line.locked = !line.locked;
-        lines = [...lines]; // Trigger reactivity
-      }
     }
     if (recordChange) recordChange();
   }
@@ -989,11 +994,8 @@
         const ln = lines.find((l) => l.id === it.lineId);
         return ln?.locked ?? false;
       }
-      // wait
-      if (it.kind === "wait") {
-        return (it as any).locked ?? false;
-      }
-      return false;
+      // wait, rotate, macro
+      return (it as any).locked ?? false;
     };
 
     if (isLockedSequenceItem(seqIndex) || isLockedSequenceItem(targetIndex))

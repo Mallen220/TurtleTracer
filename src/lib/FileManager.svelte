@@ -42,7 +42,7 @@
     currentDirectoryStore,
     gitStatusStore,
   } from "../stores";
-  import { settingsStore, loadMacro } from "./projectStore";
+import { settingsStore, loadMacro, loadProjectData } from "./projectStore";
   import { saveProject } from "../utils/fileHandlers";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
   import { mirrorPathData, reversePathData } from "../utils/pathTransform";
@@ -553,10 +553,7 @@
       if (!data.startPoint || !data.lines)
         throw new Error("Invalid file format");
 
-      startPoint = data.startPoint;
-      lines = normalizeLines(data.lines || []);
-      shapes = data.shapes || [];
-      sequence = deriveSequence(data, lines);
+      await loadProjectData(data, file.path);
 
       currentFilePath.set(file.path);
       isUnsaved.set(false);

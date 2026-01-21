@@ -217,11 +217,24 @@ export async function loadMacro(filePath: string, force = false) {
         // Recursively load any macros nested within this macro
         const promises: Promise<void>[] = [];
         if (data.sequence && data.sequence.length > 0) {
-          data.sequence.forEach((item: SequenceItem) => {
+          for (const item of data.sequence) {
             if (item.kind === "macro") {
-              promises.push(loadMacro(item.filePath));
+              if (api.resolvePath) {
+                // Resolve potential relative paths against the current macro file path
+                promises.push(
+                  (async () => {
+                    const resolved = await api.resolvePath(
+                      filePath,
+                      item.filePath,
+                    );
+                    await loadMacro(resolved);
+                  })(),
+                );
+              } else {
+                promises.push(loadMacro(item.filePath));
+              }
             }
-          });
+          }
         }
         await Promise.all(promises);
 
@@ -237,7 +250,7 @@ export async function loadMacro(filePath: string, force = false) {
   }
 }
 
-export async function loadProjectData(data: any) {
+export async function loadProjectData(data: any, projectFilePath?: string) {
   const sp = data.startPoint || {
     x: 72,
     y: 72,
@@ -292,12 +305,25 @@ export async function loadProjectData(data: any) {
   extraDataStore.set(data.extraData || {});
 
   // Load referenced macros
+  const api = (window as any).electronAPI;
   const promises: Promise<void>[] = [];
-  sanitized.forEach((item) => {
+  for (const item of sanitized) {
     if (item.kind === "macro") {
-      promises.push(loadMacro(item.filePath));
+      if (projectFilePath && api && api.resolvePath) {
+        promises.push(
+          (async () => {
+            const resolved = await api.resolvePath(
+              projectFilePath,
+              item.filePath,
+            );
+            await loadMacro(resolved);
+          })(),
+        );
+      } else {
+        promises.push(loadMacro(item.filePath));
+      }
     }
-  });
+  }
 
   // Wait for macros to load before refreshing to prevent flickering/clearing
   if (promises.length > 0) {
