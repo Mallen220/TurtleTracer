@@ -2,12 +2,12 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
-  import type { Line, Point, SequenceItem, Settings, Shape } from "../../types";
+  import type { Line, Point, SequenceItem, Settings, Shape } from "../../../types/index";
   import {
     PathOptimizer,
     type OptimizationResult,
-  } from "../../utils/pathOptimizer";
-  import { formatTime } from "../../utils"; // Assuming formatTime is exported from index or timeCalculator
+  } from "../../../utils/pathOptimizer";
+  import { formatTime } from "../../../utils"; // Assuming formatTime is exported from index or timeCalculator
 
   export let isOpen = false;
   export let startPoint: Point;

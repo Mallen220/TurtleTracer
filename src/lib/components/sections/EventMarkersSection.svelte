@@ -1,7 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import TrashIcon from "./icons/TrashIcon.svelte";
-  import type { Line } from "../../types";
+  import TrashIcon from "../icons/TrashIcon.svelte";
+  import type { Line } from "../../../types/index";
 
   export let line: Line;
   export let lineIdx: number;

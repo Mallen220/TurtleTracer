@@ -40,7 +40,7 @@
   } from "../../utils/pointLinking";
   import { loadFile, loadRecentFile } from "../../utils/fileHandlers";
   import { validatePath } from "../../utils/validation";
-  import type { Line, SequenceItem } from "../../types";
+  import type { Line, SequenceItem } from "../../types/index";
   import { createTriangle } from "../../utils";
   import { toggleDiff } from "../../lib/diffStore";
   import {

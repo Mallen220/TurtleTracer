@@ -1,14 +1,14 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import { selectedPointId, selectedLineId } from "../../stores";
-  import DeleteButtonWithConfirm from "./common/DeleteButtonWithConfirm.svelte";
-  import type { SequenceWaitItem, SequenceItem } from "../../types";
+  import { selectedPointId, selectedLineId } from "../../../stores";
+  import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
+  import type { SequenceWaitItem, SequenceItem } from "../../../types/index";
   import {
     isWaitLinked,
     handleWaitRename,
     updateLinkedWaits,
-  } from "../../utils/pointLinking";
-  import { tooltipPortal } from "../actions/portal";
+  } from "../../../utils/pointLinking";
+  import { tooltipPortal } from "../../actions/portal";
 
   export let wait: SequenceWaitItem;
   export let sequence: SequenceItem[];

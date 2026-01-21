@@ -6,7 +6,7 @@
     showTelemetryGhost,
     telemetryOffset,
     type TelemetryPoint,
-  } from "../telemetryStore";
+  } from "../../telemetryStore";
   import { tick } from "svelte";
 
   export let isOpen = false;

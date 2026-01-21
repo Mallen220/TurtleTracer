@@ -8,7 +8,7 @@
     SequenceRotateItem,
     SequenceMacroItem,
     Settings,
-  } from "../../../types";
+  } from "../../../types/index";
   import { tick } from "svelte";
   import _ from "lodash";
   import {
@@ -22,12 +22,12 @@
     makeId,
     renumberDefaultPathNames,
   } from "../../../utils/nameGenerator";
-  import StartingPointSection from "../StartingPointSection.svelte";
+  import StartingPointSection from "../sections/StartingPointSection.svelte";
   import EmptyState from "../common/EmptyState.svelte";
-  import PathLineSection from "../PathLineSection.svelte";
-  import WaitSection from "../WaitSection.svelte";
-  import RotateSection from "../RotateSection.svelte";
-  import MacroSection from "../MacroSection.svelte";
+  import PathLineSection from "../sections/PathLineSection.svelte";
+  import WaitSection from "../sections/WaitSection.svelte";
+  import RotateSection from "../sections/RotateSection.svelte";
+  import MacroSection from "../sections/MacroSection.svelte";
   import {
     selectedLineId,
     selectedPointId,

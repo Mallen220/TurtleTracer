@@ -15,8 +15,8 @@ vi.mock("../stores", () => ({
 describe("GlobalEventMarkers", () => {
   it("skips macros in global position calculation", () => {
     const lines: Line[] = [
-      { id: "line-1", endPoint: { x: 0, y: 0 }, controlPoints: [], color: "red" },
-      { id: "line-2", endPoint: { x: 0, y: 0 }, controlPoints: [], color: "blue", eventMarkers: [{ id: "m1", name: "Marker 1", position: 0.5 }] },
+      { id: "line-1", endPoint: { x: 0, y: 0, heading: "tangential", reverse: false }, controlPoints: [], color: "red" },
+      { id: "line-2", endPoint: { x: 0, y: 0, heading: "tangential", reverse: false }, controlPoints: [], color: "blue", eventMarkers: [{ id: "m1", name: "Marker 1", position: 0.5 }] },
     ];
 
     const sequence: SequenceItem[] = [
@@ -41,8 +41,8 @@ describe("GlobalEventMarkers", () => {
 
   it("calculates correctly without macros", () => {
     const lines: Line[] = [
-      { id: "line-1", endPoint: { x: 0, y: 0 }, controlPoints: [], color: "red" },
-      { id: "line-2", endPoint: { x: 0, y: 0 }, controlPoints: [], color: "blue", eventMarkers: [{ id: "m1", name: "Marker 1", position: 0.5 }] },
+      { id: "line-1", endPoint: { x: 0, y: 0, heading: "tangential", reverse: false }, controlPoints: [], color: "red" },
+      { id: "line-2", endPoint: { x: 0, y: 0, heading: "tangential", reverse: false }, controlPoints: [], color: "blue", eventMarkers: [{ id: "m1", name: "Marker 1", position: 0.5 }] },
     ];
 
     const sequence: SequenceItem[] = [

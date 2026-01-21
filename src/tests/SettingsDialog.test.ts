@@ -1,7 +1,7 @@
 import { render, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Mock } from "vitest";
-import SettingsDialog from "../lib/components/SettingsDialog.svelte";
+import SettingsDialog from "../lib/components/dialogs/SettingsDialog.svelte";
 import { DEFAULT_SETTINGS } from "../config/defaults";
 
 vi.mock("../utils/settingsPersistence", () => {

@@ -33,7 +33,7 @@
     Shape,
     SequenceItem,
     Settings,
-  } from "../types";
+  } from "../types/index";
   import {
     currentFilePath,
     isUnsaved,

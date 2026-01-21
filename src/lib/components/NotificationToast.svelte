@@ -5,7 +5,7 @@
   import { onDestroy } from "svelte";
 
   let visible = false;
-  let currentNotification: import("../../types").Notification | null = null;
+  let currentNotification: import("../../types/index").Notification | null = null;
   let timeoutId: any;
   let cleanupTimeoutId: any;
 

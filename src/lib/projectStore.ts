@@ -8,7 +8,7 @@ import type {
   Settings,
   SequencePathItem,
   PedroData,
-} from "../types";
+} from "../types/index";
 import {
   getDefaultStartPoint,
   getDefaultLines,

@@ -1,8 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, fireEvent } from "@testing-library/svelte";
-import PathStatisticsDialog from "../lib/components/PathStatisticsDialog.svelte";
-import type { Point, Line, SequenceItem, Settings } from "../types";
+import PathStatisticsDialog from "../lib/components/dialogs/PathStatisticsDialog.svelte";
+import type { Point, Line, SequenceItem, Settings } from "../types/index";
 
 // Mock d3 since we are testing in a headless environment and JSDOM might struggle with some SVG details
 // But actually, we want to test if the component renders. SimpleChart uses d3.

@@ -7,15 +7,15 @@
     gridSize,
     selectedPointId,
     focusRequest,
-  } from "../../stores";
-  import type { Line } from "../../types";
+  } from "../../../stores";
+  import type { Line } from "../../../types/index";
   import {
     calculateDragPosition,
     reorderSequence,
     getClosestTarget,
     type DragPosition,
-  } from "../../utils/dragDrop";
-  import DeleteButtonWithConfirm from "./common/DeleteButtonWithConfirm.svelte";
+  } from "../../../utils/dragDrop";
+  import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
 
   export let line: Line;
   export let lineIdx: number;

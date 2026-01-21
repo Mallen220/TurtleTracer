@@ -1,12 +1,12 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Point } from "../../types";
-  import { selectedPointId, focusRequest } from "../../stores";
+  import type { Point } from "../../../types/index";
+  import { selectedPointId, focusRequest } from "../../../stores";
   export let startPoint: Point;
   export let addPathAtStart: () => void;
   export let addWaitAtStart: () => void;
   export let addRotateAtStart: () => void;
-  import CollapseAllButton from "./CollapseAllButton.svelte";
+  import CollapseAllButton from "../tools/CollapseAllButton.svelte";
   import { tick } from "svelte";
   export let toggleCollapseAll: () => void;
   export let allCollapsed: boolean;
