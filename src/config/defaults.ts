@@ -641,6 +641,34 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "toggleRuler",
     category: "View",
   },
+  {
+    id: "cycle-field-map",
+    key: "shift+f",
+    description: "Cycle Field Map",
+    action: "cycleFieldMap",
+    category: "View",
+  },
+  {
+    id: "rotate-field",
+    key: "alt+shift+f",
+    description: "Rotate Field 90°",
+    action: "rotateField",
+    category: "View",
+  },
+  {
+    id: "toggle-continuous-validation",
+    key: "alt+v",
+    description: "Toggle Continuous Validation",
+    action: "toggleContinuousValidation",
+    category: "Tools",
+  },
+  {
+    id: "toggle-onion-current-path",
+    key: "alt+o",
+    description: "Toggle Onion Skin (Current Path Only)",
+    action: "toggleOnionCurrentPath",
+    category: "View",
+  },
   // Extended Commands
   {
     id: "set-file-manager-directory",
@@ -860,7 +888,6 @@ export const DEFAULT_SETTINGS: Settings = {
   autosaveMode: "never",
   autosaveInterval: 5,
   showVelocityHeatmap: false,
-  showGhostPaths: false,
   showOnionLayers: false,
   onionSkinCurrentPathOnly: false,
   onionLayerSpacing: 6, // inches between each robot body trace
