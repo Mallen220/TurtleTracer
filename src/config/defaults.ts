@@ -877,6 +877,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lastSeenVersion: "",
   hasSeenOnboarding: false,
   gitIntegration: true,
+  obstaclePresets: [],
   // Developer/debugging aids
   // @ts-ignore
   showDebugSequence: false,

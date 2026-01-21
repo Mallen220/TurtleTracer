@@ -183,6 +183,7 @@ interface Settings {
   lastSeenVersion?: string; // Version of the app the user last saw (for What's New dialog)
   hasSeenOnboarding?: boolean; // Whether the user has seen the onboarding tutorial
   gitIntegration?: boolean; // Enable/Disable Git integration
+  obstaclePresets?: ObstaclePreset[]; // User-saved obstacle presets
 }
 
 interface RobotProfile {
@@ -209,6 +210,12 @@ interface Shape {
   locked?: boolean;
   type?: "obstacle" | "keep-in";
   visible?: boolean;
+}
+
+interface ObstaclePreset {
+  id: string;
+  name: string;
+  shapes: Shape[];
 }
 
 type TimelineEventType = "travel" | "wait";
@@ -408,7 +415,6 @@ interface PedroAPI {
     get: (store: Writable<any>) => any;
   };
 }
-
 
 export {};
 

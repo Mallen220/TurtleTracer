@@ -61,3 +61,11 @@ I will also include **Acceleration Profiles** if possible, but velocity is the m
 Let's start by creating a reproduction/test case or just implementing it directly since I can't easily run the UI in this environment (headless). I'll have to rely on code review and `npm run build` / `npm run test`.
 
 I'll first read `src/utils/timeCalculator.ts` to see how `velocityProfile` is populated, to ensure I understand the data format.
+
+2026-01-21 - Formatting Noise
+Learning: Running 'npm run format' on the entire project can introduce significant noise in PRs, making review difficult.
+Action: Restore unrelated files after formatting using 'git restore' or 'git checkout', or scope formatting to changed files.
+
+2026-01-21 - Playwright Verification
+Learning: Frontend verification scripts must handle application-level overlays (like Onboarding and What's New dialogs) that can intercept clicks.
+Action: Always check for and dismiss potential overlays in verification scripts before interacting with the main UI.

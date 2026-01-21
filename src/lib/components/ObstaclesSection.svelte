@@ -2,17 +2,67 @@
 <script lang="ts">
   import { createTriangle } from "../../utils";
   import { snapToGrid, showGrid, gridSize } from "../../stores";
+  import { settingsStore } from "../projectStore";
   import TrashIcon from "./icons/TrashIcon.svelte";
   import SectionHeader from "./common/SectionHeader.svelte";
   import EmptyState from "./common/EmptyState.svelte";
-  import type { Shape } from "../../types";
+  import type { Shape, ObstaclePreset } from "../../types";
 
   export let shapes: Shape[];
   export let collapsedObstacles: boolean[];
   export let collapsed: boolean = false;
 
+  let selectedPresetId: string = "";
+
   $: snapToGridTitle =
     $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping";
+
+  function savePreset() {
+    if (shapes.length === 0) {
+      alert("No obstacles to save.");
+      return;
+    }
+    const name = prompt("Enter a name for this obstacle preset:");
+    if (!name) return;
+
+    const newPreset: ObstaclePreset = {
+      id: `preset-${Math.random().toString(36).slice(2)}`,
+      name: name,
+      shapes: JSON.parse(JSON.stringify(shapes)), // Deep copy
+    };
+
+    $settingsStore.obstaclePresets = [
+      ...($settingsStore.obstaclePresets || []),
+      newPreset,
+    ];
+    selectedPresetId = newPreset.id;
+  }
+
+  function loadPreset() {
+    if (!selectedPresetId) return;
+    const preset = ($settingsStore.obstaclePresets || []).find(
+      (p) => p.id === selectedPresetId,
+    );
+    if (!preset) return;
+
+    if (shapes.length > 0) {
+      if (!confirm("This will replace current obstacles. Continue?")) return;
+    }
+
+    shapes = JSON.parse(JSON.stringify(preset.shapes)); // Deep copy
+    // Reset collapsed states
+    collapsedObstacles = new Array(shapes.length).fill(false);
+  }
+
+  function deletePreset() {
+    if (!selectedPresetId) return;
+    if (!confirm("Are you sure you want to delete this preset?")) return;
+
+    $settingsStore.obstaclePresets = (
+      $settingsStore.obstaclePresets || []
+    ).filter((p) => p.id !== selectedPresetId);
+    selectedPresetId = "";
+  }
 
   function toggleObstacle(index: number) {
     collapsedObstacles[index] = !collapsedObstacles[index];
@@ -48,6 +98,43 @@
   />
 
   {#if !collapsed}
+    <!-- Preset Controls -->
+    <div
+      class="p-2 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50 flex flex-wrap gap-2 items-center"
+    >
+      <select
+        bind:value={selectedPresetId}
+        class="flex-1 min-w-[120px] text-xs h-7 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
+      >
+        <option value="">Select Preset...</option>
+        {#each $settingsStore.obstaclePresets || [] as preset}
+          <option value={preset.id}>{preset.name}</option>
+        {/each}
+      </select>
+      <button
+        on:click={loadPreset}
+        disabled={!selectedPresetId}
+        class="px-2 py-1 h-7 text-xs font-medium rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        Load
+      </button>
+      <button
+        on:click={savePreset}
+        disabled={shapes.length === 0}
+        class="px-2 py-1 h-7 text-xs font-medium rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        Save Current
+      </button>
+      <button
+        on:click={deletePreset}
+        disabled={!selectedPresetId}
+        title="Delete Selected Preset"
+        class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-400 hover:text-red-500 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:hover:text-neutral-400 transition-colors"
+      >
+        <TrashIcon className="size-4" />
+      </button>
+    </div>
+
     <div class="p-2 flex flex-col gap-2">
       {#if shapes.length === 0}
         <EmptyState
