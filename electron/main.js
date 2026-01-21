@@ -1106,6 +1106,16 @@ ipcMain.handle("file:exists", async (event, filePath) => {
   }
 });
 
+ipcMain.handle("file:resolve-path", (event, base, relative) => {
+  if (!base || !relative) return relative;
+  try {
+    return path.resolve(path.dirname(base), relative);
+  } catch (e) {
+    console.error("Error resolving path:", base, relative, e);
+    return relative;
+  }
+});
+
 // Plugin System IPC Handlers
 const getPluginsDirectory = () => {
   return path.join(app.getPath("userData"), "plugins");
