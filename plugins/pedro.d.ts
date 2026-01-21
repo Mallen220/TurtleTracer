@@ -210,7 +210,7 @@ interface Shape {
   visible?: boolean;
 }
 
-type TimelineEventType = "travel" | "wait";
+type TimelineEventType = "travel" | "wait" | "macro";
 
 interface TimelineEvent {
   type: TimelineEventType;
