@@ -1140,6 +1140,18 @@
   // Event Markers
   $: eventMarkerElements = (() => {
     let twoMarkers: InstanceType<typeof Two.Group>[] = [];
+
+    // Build a map of lineId -> startPoint from timePrediction if available
+    // This handles cases where lines are out of order in the array (e.g. mixed with macros)
+    const startPointMap = new Map<string, Point>();
+    if (timePrediction && timePrediction.timeline) {
+      timePrediction.timeline.forEach((ev: any) => {
+        if (ev.type === "travel" && ev.line && ev.prevPoint) {
+          startPointMap.set(ev.line.id, ev.prevPoint);
+        }
+      });
+    }
+
     lines.forEach((line, idx) => {
       if (
         !line ||
@@ -1148,8 +1160,13 @@
         line.eventMarkers.length === 0
       )
         return;
-      const _startPoint =
-        idx === 0 ? startPoint : lines[idx - 1]?.endPoint || null;
+
+      let _startPoint = startPointMap.get(line.id!);
+      if (!_startPoint) {
+        // Fallback for lines not in timeline or if timeline missing
+        _startPoint = idx === 0 ? startPoint : lines[idx - 1]?.endPoint || null;
+      }
+
       if (!_startPoint) return;
 
       line.eventMarkers.forEach((ev, evIdx) => {
