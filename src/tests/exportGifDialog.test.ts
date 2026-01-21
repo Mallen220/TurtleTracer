@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { render, fireEvent, waitFor } from "@testing-library/svelte";
-import ExportGifDialog from "../lib/components/ExportGifDialog.svelte";
+import ExportGifDialog from "../lib/components/dialogs/ExportGifDialog.svelte";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
 // Mock the exporter so it respects AbortSignal

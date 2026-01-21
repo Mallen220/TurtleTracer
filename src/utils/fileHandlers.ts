@@ -50,7 +50,6 @@ function getElectronAPI(): ExtendedElectronAPI | undefined {
   return (window as any).electronAPI as ExtendedElectronAPI | undefined;
 }
 
-
 function addToRecentFiles(path: string, settings?: Settings) {
   const currentSettings = settings || get(settingsStore);
   let recent = currentSettings.recentFiles || [];

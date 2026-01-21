@@ -43,7 +43,7 @@
     Settings,
     Shape,
     SequenceItem,
-  } from "../types";
+  } from "../types/index";
   import { tick } from "svelte";
   import PlaybackControls from "./components/PlaybackControls.svelte";
   import { calculatePathTime } from "../utils";

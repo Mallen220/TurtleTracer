@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { render, fireEvent, waitFor } from "@testing-library/svelte";
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import ExportCodeDialog from "../lib/components/ExportCodeDialog.svelte";
+import ExportCodeDialog from "../lib/components/dialogs/ExportCodeDialog.svelte";
 
 // Mock the utils module used by the component so we can control generated code
 vi.mock("../utils", () => {

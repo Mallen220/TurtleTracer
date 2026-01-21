@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const typesPath = path.join(__dirname, "../src/types.ts");
+const typesPath = path.join(__dirname, "../src/types/index.ts");
 const outputPath = path.join(__dirname, "../plugins/pedro.d.ts");
 
 function generate() {

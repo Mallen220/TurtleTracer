@@ -1,4 +1,4 @@
-
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { render, screen } from "@testing-library/svelte";
 import { describe, it, expect, vi } from "vitest";
 import GlobalEventMarkers from "../lib/components/GlobalEventMarkers.svelte";
@@ -9,26 +9,48 @@ vi.mock("../stores", () => ({
   selectedLineId: { subscribe: vi.fn() },
   selectedPointId: { subscribe: vi.fn() },
   hoveredMarkerId: { set: vi.fn(), subscribe: vi.fn() },
-  diskEventNamesStore: { subscribe: (run: any) => { run([]); return () => {}; } },
+  diskEventNamesStore: {
+    subscribe: (run: any) => {
+      run([]);
+      return () => {};
+    },
+  },
 }));
 
 describe("GlobalEventMarkers", () => {
   it("skips macros in global position calculation", () => {
     const lines: Line[] = [
-      { id: "line-1", endPoint: { x: 0, y: 0 }, controlPoints: [], color: "red" },
-      { id: "line-2", endPoint: { x: 0, y: 0 }, controlPoints: [], color: "blue", eventMarkers: [{ id: "m1", name: "Marker 1", position: 0.5 }] },
+      {
+        id: "line-1",
+        endPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
+        controlPoints: [],
+        color: "red",
+      },
+      {
+        id: "line-2",
+        endPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
+        controlPoints: [],
+        color: "blue",
+        eventMarkers: [{ id: "m1", name: "Marker 1", position: 0.5 }],
+      },
     ];
 
     const sequence: SequenceItem[] = [
       { kind: "path", lineId: "line-1" },
-      { kind: "macro", id: "macro-1", filePath: "test.pp", name: "Macro", sequence: [] },
+      {
+        kind: "macro",
+        id: "macro-1",
+        filePath: "test.pp",
+        name: "Macro",
+        sequence: [],
+      },
       { kind: "path", lineId: "line-2" },
     ];
 
     render(GlobalEventMarkers, {
-        sequence,
-        lines,
-        collapsedMarkers: false
+      sequence,
+      lines,
+      collapsedMarkers: false,
     });
 
     // Line 1 is index 0.
@@ -41,8 +63,19 @@ describe("GlobalEventMarkers", () => {
 
   it("calculates correctly without macros", () => {
     const lines: Line[] = [
-      { id: "line-1", endPoint: { x: 0, y: 0 }, controlPoints: [], color: "red" },
-      { id: "line-2", endPoint: { x: 0, y: 0 }, controlPoints: [], color: "blue", eventMarkers: [{ id: "m1", name: "Marker 1", position: 0.5 }] },
+      {
+        id: "line-1",
+        endPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
+        controlPoints: [],
+        color: "red",
+      },
+      {
+        id: "line-2",
+        endPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
+        controlPoints: [],
+        color: "blue",
+        eventMarkers: [{ id: "m1", name: "Marker 1", position: 0.5 }],
+      },
     ];
 
     const sequence: SequenceItem[] = [
@@ -51,9 +84,9 @@ describe("GlobalEventMarkers", () => {
     ];
 
     render(GlobalEventMarkers, {
-        sequence,
-        lines,
-        collapsedMarkers: false
+      sequence,
+      lines,
+      collapsedMarkers: false,
     });
 
     // Line 1 is index 0.

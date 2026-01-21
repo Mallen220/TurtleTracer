@@ -2,9 +2,9 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
-  import type { Settings } from "../../types";
-  import { DEFAULT_KEY_BINDINGS } from "../../config/defaults";
-  import { notification } from "../../stores";
+  import type { Settings } from "../../../types/index";
+  import { DEFAULT_KEY_BINDINGS } from "../../../config/defaults";
+  import { notification } from "../../../stores";
 
   export let isOpen = false;
   export let settings: Settings;

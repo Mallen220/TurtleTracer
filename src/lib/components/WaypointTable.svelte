@@ -6,7 +6,7 @@
     ControlPoint,
     SequenceItem,
     SequenceMacroItem,
-  } from "../../types";
+  } from "../../types/index";
   import { loadMacro } from "../projectStore";
   import {
     reorderSequence,
@@ -21,13 +21,13 @@
     selectedPointId,
   } from "../../stores";
   import { slide } from "svelte/transition";
-  import OptimizationDialog from "./OptimizationDialog.svelte";
+  import OptimizationDialog from "./dialogs/OptimizationDialog.svelte";
   import { tick } from "svelte";
   import { tooltipPortal } from "../actions/portal";
-  import ObstaclesSection from "./ObstaclesSection.svelte";
+  import ObstaclesSection from "./sections/ObstaclesSection.svelte";
   import TrashIcon from "./icons/TrashIcon.svelte";
-  import ColorPicker from "./ColorPicker.svelte";
-  import ContextMenu from "./ContextMenu.svelte";
+  import ColorPicker from "./tools/ColorPicker.svelte";
+  import ContextMenu from "./tools/ContextMenu.svelte";
   import {
     makeId,
     generateName,
@@ -57,15 +57,16 @@
   // Props for inline optimization panel
   export let optimizationOpen: boolean = false;
   export let handleOptimizationApply: (
-    newLines: import("../../types").Line[],
+    newLines: import("../../types/index").Line[],
   ) => void;
   export let onPreviewChange: (
-    lines: import("../../types").Line[] | null,
+    lines: import("../../types/index").Line[] | null,
   ) => void;
-  export let settings: import("../../types").Settings | undefined = undefined;
+  export let settings: import("../../types/index").Settings | undefined =
+    undefined;
 
   // Shapes and collapsedObstacles binding for ObstaclesSection
-  export let shapes: import("../../types").Shape[];
+  export let shapes: import("../../types/index").Shape[];
   export let collapsedObstacles: boolean[];
   export let isActive: boolean = true;
 

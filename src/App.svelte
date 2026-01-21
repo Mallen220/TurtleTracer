@@ -10,18 +10,18 @@
   import Navbar from "./lib/Navbar.svelte";
   import FieldRenderer from "./lib/components/FieldRenderer.svelte";
   import KeyboardShortcuts from "./lib/components/KeyboardShortcuts.svelte";
-  import ExportGifDialog from "./lib/components/ExportGifDialog.svelte";
-  import PathStatisticsDialog from "./lib/components/PathStatisticsDialog.svelte";
+  import ExportGifDialog from "./lib/components/dialogs/ExportGifDialog.svelte";
+  import PathStatisticsDialog from "./lib/components/dialogs/PathStatisticsDialog.svelte";
   import NotificationToast from "./lib/components/NotificationToast.svelte";
   import OnboardingTutorial from "./lib/components/OnboardingTutorial.svelte";
   import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
-  import SaveNameDialog from "./lib/components/SaveNameDialog.svelte";
-  import UnsavedChangesDialog from "./lib/components/UnsavedChangesDialog.svelte";
+  import SaveNameDialog from "./lib/components/dialogs/SaveNameDialog.svelte";
+  import UnsavedChangesDialog from "./lib/components/dialogs/UnsavedChangesDialog.svelte";
   import FileManager from "./lib/FileManager.svelte";
-  import SettingsDialog from "./lib/components/SettingsDialog.svelte";
-  import PluginManagerDialog from "./lib/components/PluginManagerDialog.svelte";
-  import KeyboardShortcutsDialog from "./lib/components/KeyboardShortcutsDialog.svelte";
-  import ExportCodeDialog from "./lib/components/ExportCodeDialog.svelte";
+  import SettingsDialog from "./lib/components/dialogs/SettingsDialog.svelte";
+  import PluginManagerDialog from "./lib/components/dialogs/PluginManagerDialog.svelte";
+  import KeyboardShortcutsDialog from "./lib/components/dialogs/KeyboardShortcutsDialog.svelte";
+  import ExportCodeDialog from "./lib/components/dialogs/ExportCodeDialog.svelte";
   import DialogHost from "./lib/components/DialogHost.svelte";
 
   // Stores
@@ -90,7 +90,7 @@
   registerCoreUI();
 
   // Types
-  import type { Settings } from "./types";
+  import type { Settings } from "./types/index";
   import {
     DEFAULT_SETTINGS,
     FIELD_SIZE,

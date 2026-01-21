@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-
 /**
  * Type definitions for Pedro Pathing Visualizer Plugins.
  * These types are automatically available in your .ts plugins.
@@ -211,13 +210,13 @@ interface Shape {
   visible?: boolean;
 }
 
-type TimelineEventType = "travel" | "wait" | "macro";
 interface ObstaclePreset {
   id: string;
   name: string;
   shapes: Shape[];
 }
 
+type TimelineEventType = "travel" | "wait" | "macro";
 
 interface TimelineEvent {
   type: TimelineEventType;
@@ -414,7 +413,6 @@ interface PedroAPI {
     get: (store: Writable<any>) => any;
   };
 }
-
 
 export {};
 

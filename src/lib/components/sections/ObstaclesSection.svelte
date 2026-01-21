@@ -1,14 +1,14 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import { createTriangle } from "../../utils";
-  import { snapToGrid, showGrid, gridSize } from "../../stores";
-  import { settingsStore } from "../projectStore";
-  import TrashIcon from "./icons/TrashIcon.svelte";
-  import SaveIcon from "./icons/SaveIcon.svelte";
-  import SectionHeader from "./common/SectionHeader.svelte";
-  import EmptyState from "./common/EmptyState.svelte";
-  import SaveNameDialog from "./SaveNameDialog.svelte";
-  import type { Shape, ObstaclePreset } from "../../types";
+  import { createTriangle } from "../../../utils";
+  import { snapToGrid, showGrid, gridSize } from "../../../stores";
+  import { settingsStore } from "../../projectStore";
+  import TrashIcon from "../icons/TrashIcon.svelte";
+  import SaveIcon from "../icons/SaveIcon.svelte";
+  import SectionHeader from "../common/SectionHeader.svelte";
+  import EmptyState from "../common/EmptyState.svelte";
+  import SaveNameDialog from "../dialogs/SaveNameDialog.svelte";
+  import type { Shape, ObstaclePreset } from "../../../types/index";
 
   export let shapes: Shape[];
   export let collapsedObstacles: boolean[];

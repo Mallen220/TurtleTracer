@@ -1,14 +1,21 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Line } from "../../types";
-  import { snapToGrid, showGrid, gridSize } from "../../stores";
+  import type { Line } from "../../../types/index";
+  import { snapToGrid, showGrid, gridSize } from "../../../stores";
   import ControlPointsSection from "./ControlPointsSection.svelte";
-  import HeadingControls from "./HeadingControls.svelte";
-  import ColorPicker from "./ColorPicker.svelte";
-  import { selectedLineId, selectedPointId, focusRequest } from "../../stores";
-  import DeleteButtonWithConfirm from "./common/DeleteButtonWithConfirm.svelte";
-  import { handleWaypointRename, isLineLinked } from "../../utils/pointLinking";
-  import { tooltipPortal } from "../actions/portal";
+  import HeadingControls from "../HeadingControls.svelte";
+  import ColorPicker from "../tools/ColorPicker.svelte";
+  import {
+    selectedLineId,
+    selectedPointId,
+    focusRequest,
+  } from "../../../stores";
+  import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
+  import {
+    handleWaypointRename,
+    isLineLinked,
+  } from "../../../utils/pointLinking";
+  import { tooltipPortal } from "../../actions/portal";
   import { onMount, onDestroy } from "svelte";
 
   export let line: Line;

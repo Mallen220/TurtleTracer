@@ -143,95 +143,123 @@ export function expandMacro(
       ...line.endPoint,
       isMacroElement: true,
       macroId: macroItem.id,
-      locked: true
+      locked: true,
     };
-    line.controlPoints = line.controlPoints.map(cp => ({
+    line.controlPoints = line.controlPoints.map((cp) => ({
       ...cp,
       isMacroElement: true,
       macroId: macroItem.id,
-      locked: true
+      locked: true,
     }));
 
     generatedLines.push(line);
   });
 
-  const sourceSeq = macroData.sequence && macroData.sequence.length > 0
-    ? macroData.sequence
-    : macroData.lines.map(l => ({ kind: "path", lineId: l.id! } as SequenceItem));
+  const sourceSeq =
+    macroData.sequence && macroData.sequence.length > 0
+      ? macroData.sequence
+      : macroData.lines.map(
+          (l) => ({ kind: "path", lineId: l.id! }) as SequenceItem,
+        );
 
-  sourceSeq.forEach(item => {
+  sourceSeq.forEach((item) => {
     if (item.kind === "path") {
-        const newId = lineIdMap.get(item.lineId);
-        if (newId) {
-            // Check rotation requirement
-            const line = generatedLines.find(l => l.id === newId);
-            if (line) {
-                const requiredStartHeadingRaw = getLineStartHeading(line, currentPoint);
-                const requiredStartHeading = unwrapAngle(requiredStartHeadingRaw, currentHeading);
+      const newId = lineIdMap.get(item.lineId);
+      if (newId) {
+        // Check rotation requirement
+        const line = generatedLines.find((l) => l.id === newId);
+        if (line) {
+          const requiredStartHeadingRaw = getLineStartHeading(
+            line,
+            currentPoint,
+          );
+          const requiredStartHeading = unwrapAngle(
+            requiredStartHeadingRaw,
+            currentHeading,
+          );
 
-                if (Math.abs(currentHeading - requiredStartHeading) > 0.1) {
-                    generatedSequence.push({
-                        kind: "rotate",
-                        id: `rotate-align-${newId}`,
-                        name: "Align Rotation",
-                        degrees: requiredStartHeading,
-                        locked: true
-                    });
-                    currentHeading = requiredStartHeading;
-                }
+          if (Math.abs(currentHeading - requiredStartHeading) > 0.1) {
+            generatedSequence.push({
+              kind: "rotate",
+              id: `rotate-align-${newId}`,
+              name: "Align Rotation",
+              degrees: requiredStartHeading,
+              locked: true,
+            });
+            currentHeading = requiredStartHeading;
+          }
 
-                generatedSequence.push({
-                    kind: "path",
-                    lineId: newId
-                });
+          generatedSequence.push({
+            kind: "path",
+            lineId: newId,
+          });
 
-                // Update state
-                const endHeadingRaw = getLineEndHeading(line, currentPoint);
-                if (line.endPoint.heading === "tangential") {
-                    const tangent = endHeadingRaw;
-                    currentHeading = unwrapAngle(tangent, currentHeading);
-                } else if (line.endPoint.heading === "constant") {
-                   currentHeading = line.endPoint.degrees;
-                } else if (line.endPoint.heading === "linear") {
-                   currentHeading = line.endPoint.endDeg;
-                }
+          // Update state
+          const endHeadingRaw = getLineEndHeading(line, currentPoint);
+          if (line.endPoint.heading === "tangential") {
+            const tangent = endHeadingRaw;
+            currentHeading = unwrapAngle(tangent, currentHeading);
+          } else if (line.endPoint.heading === "constant") {
+            currentHeading = line.endPoint.degrees;
+          } else if (line.endPoint.heading === "linear") {
+            currentHeading = line.endPoint.endDeg;
+          }
 
-                currentPoint = line.endPoint;
-            }
+          currentPoint = line.endPoint;
         }
+      }
     } else if (item.kind === "wait") {
-        generatedSequence.push({ ...item, id: `macro-${macroItem.id}-${item.id}`, locked: true });
+      generatedSequence.push({
+        ...item,
+        id: `macro-${macroItem.id}-${item.id}`,
+        locked: true,
+      });
     } else if (item.kind === "rotate") {
-        generatedSequence.push({ ...item, id: `macro-${macroItem.id}-${item.id}`, locked: true });
-        currentHeading = item.degrees;
+      generatedSequence.push({
+        ...item,
+        id: `macro-${macroItem.id}-${item.id}`,
+        locked: true,
+      });
+      currentHeading = item.degrees;
     } else if (item.kind === "macro") {
-        const nestedData = macrosMap.get(item.filePath);
-        if (nestedData) {
-            const nestedId = `macro-${macroItem.id}-${item.id}`;
-            const nestedItem: SequenceMacroItem = {
-              ...item,
-              id: nestedId,
-              locked: true
-            };
+      const nestedData = macrosMap.get(item.filePath);
+      if (nestedData) {
+        const nestedId = `macro-${macroItem.id}-${item.id}`;
+        const nestedItem: SequenceMacroItem = {
+          ...item,
+          id: nestedId,
+          locked: true,
+        };
 
-            const result = expandMacro(nestedItem, currentPoint, currentHeading, nestedData, macrosMap, nextVisited);
+        const result = expandMacro(
+          nestedItem,
+          currentPoint,
+          currentHeading,
+          nestedData,
+          macrosMap,
+          nextVisited,
+        );
 
-            generatedLines.push(...result.lines);
+        generatedLines.push(...result.lines);
 
-            const expandedNestedItem: SequenceMacroItem = {
-                ...nestedItem,
-                sequence: result.sequence
-            };
-            generatedSequence.push(expandedNestedItem);
+        const expandedNestedItem: SequenceMacroItem = {
+          ...nestedItem,
+          sequence: result.sequence,
+        };
+        generatedSequence.push(expandedNestedItem);
 
-            currentPoint = result.endPoint;
-            currentHeading = result.endHeading;
-        } else {
-            // Missing data for nested macro, push placeholder or skip
-            // We can push it, but it won't have sequence expanded.
-            // When data loads, refreshMacros will re-run.
-            generatedSequence.push({ ...item, id: `macro-${macroItem.id}-${item.id}`, locked: true });
-        }
+        currentPoint = result.endPoint;
+        currentHeading = result.endHeading;
+      } else {
+        // Missing data for nested macro, push placeholder or skip
+        // We can push it, but it won't have sequence expanded.
+        // When data loads, refreshMacros will re-run.
+        generatedSequence.push({
+          ...item,
+          id: `macro-${macroItem.id}-${item.id}`,
+          locked: true,
+        });
+      }
     }
   });
 
@@ -239,7 +267,7 @@ export function expandMacro(
     lines: generatedLines,
     sequence: generatedSequence,
     endPoint: currentPoint,
-    endHeading: currentHeading
+    endHeading: currentHeading,
   };
 }
 
@@ -251,15 +279,15 @@ export function regenerateProjectMacros(
   startPoint: Point,
   lines: Line[],
   sequence: SequenceItem[],
-  macrosMap: Map<string, PedroData>
+  macrosMap: Map<string, PedroData>,
 ): { lines: Line[]; sequence: SequenceItem[] } {
   const newLines: Line[] = [];
   // Separate user lines from macro lines to keep user edits
-  const userLines = lines.filter(l => !l.isMacroElement);
+  const userLines = lines.filter((l) => !l.isMacroElement);
   newLines.push(...userLines);
 
   // Index user lines for fast lookup
-  const lineMap = new Map(userLines.map(l => [l.id!, l]));
+  const lineMap = new Map(userLines.map((l) => [l.id!, l]));
 
   const newSequence: SequenceItem[] = []; // Top level sequence
 
@@ -269,114 +297,134 @@ export function regenerateProjectMacros(
 
   // Initialize start heading
   if (startPoint.heading === "linear") currentHeading = startPoint.startDeg;
-  else if (startPoint.heading === "constant") currentHeading = startPoint.degrees;
+  else if (startPoint.heading === "constant")
+    currentHeading = startPoint.degrees;
   // Tangential start depends on first line... handled inside loop logic or special case?
   // If first item is macro, we need to know heading.
   // If first item is path, we process it.
 
   // Special handling for initial tangential heading
   if (startPoint.heading === "tangential") {
-      // Look ahead at first path line
-      const firstPathItem = sequence.find(s => s.kind === "path");
-      if (firstPathItem) {
-          const l = lineMap.get((firstPathItem as any).lineId);
-          if (l) {
-            const nextP = l.controlPoints.length > 0 ? l.controlPoints[0] : l.endPoint;
-            const angle = Math.atan2(nextP.y - startPoint.y, nextP.x - startPoint.x) * (180 / Math.PI);
-            currentHeading = startPoint.reverse ? angle + 180 : angle;
-          }
+    // Look ahead at first path line
+    const firstPathItem = sequence.find((s) => s.kind === "path");
+    if (firstPathItem) {
+      const l = lineMap.get((firstPathItem as any).lineId);
+      if (l) {
+        const nextP =
+          l.controlPoints.length > 0 ? l.controlPoints[0] : l.endPoint;
+        const angle =
+          Math.atan2(nextP.y - startPoint.y, nextP.x - startPoint.x) *
+          (180 / Math.PI);
+        currentHeading = startPoint.reverse ? angle + 180 : angle;
       }
+    }
   }
 
-  sequence.forEach(item => {
-      if (item.kind === "path") {
-          newSequence.push(item);
-          const line = lineMap.get(item.lineId);
-          if (line) {
-              const requiredStartHeadingRaw = getLineStartHeading(line, currentPoint);
-              const requiredStartHeading = unwrapAngle(requiredStartHeadingRaw, currentHeading);
-              currentHeading = requiredStartHeading; // Snap?
+  sequence.forEach((item) => {
+    if (item.kind === "path") {
+      newSequence.push(item);
+      const line = lineMap.get(item.lineId);
+      if (line) {
+        const requiredStartHeadingRaw = getLineStartHeading(line, currentPoint);
+        const requiredStartHeading = unwrapAngle(
+          requiredStartHeadingRaw,
+          currentHeading,
+        );
+        currentHeading = requiredStartHeading; // Snap?
 
-              const endHeadingRaw = getLineEndHeading(line, currentPoint);
-              if (line.endPoint.heading === "tangential") {
-                  const tangent = endHeadingRaw;
-                  currentHeading = unwrapAngle(tangent, currentHeading);
-              } else if (line.endPoint.heading === "constant") {
-                  currentHeading = line.endPoint.degrees;
-              } else if (line.endPoint.heading === "linear") {
-                  currentHeading = line.endPoint.endDeg;
-              }
-              currentPoint = line.endPoint;
-          }
-      } else if (item.kind === "wait") {
-          newSequence.push(item);
-          // Wait doesn't change heading or point
-      } else if (item.kind === "rotate") {
-          newSequence.push(item);
-          currentHeading = item.degrees;
-      } else if (item.kind === "macro") {
-          const macroData = macrosMap.get(item.filePath);
-          if (macroData) {
-              // Expand with recursion support
-              const result = expandMacro(
-                item,
-                currentPoint,
-                currentHeading,
-                macroData,
-                macrosMap,
-                new Set() // Initial visited paths
-              );
-
-              // Add generated lines to master list
-              newLines.push(...result.lines);
-
-              // Update macro item with new sequence
-              const newMacroItem: SequenceMacroItem = {
-                  ...item,
-                  sequence: result.sequence
-              };
-              newSequence.push(newMacroItem);
-
-              // Update state
-              currentPoint = result.endPoint;
-              currentHeading = result.endHeading;
-          } else {
-              // Macro data missing, just push item as is
-              newSequence.push(item);
-              // Attempt to preserve existing lines for this macro if they exist in the input
-              // This handles cases where data is loading or failed to load
-              // Match lines that belong to this macro instance, including nested ones
-              // ID format: macro-{instanceId}-... or bridge-{instanceId}
-              const prefix = `macro-${item.id}-`;
-              const bridgePrefix = `bridge-${item.id}`;
-              const preservedLines = lines.filter(l =>
-                  l.macroId === item.id ||
-                  (l.id && (l.id.startsWith(prefix) || l.id === bridgePrefix))
-              );
-
-              if (preservedLines.length > 0) {
-                  newLines.push(...preservedLines);
-
-                  // Reconstruct sequence if missing so that logic persists
-                  if (!item.sequence || item.sequence.length === 0) {
-                      const reconstructedSeq: SequenceItem[] = preservedLines.map(l => ({
-                          kind: "path",
-                          lineId: l.id!
-                      }));
-                      const newItem: SequenceMacroItem = { ...item, sequence: reconstructedSeq };
-                      newSequence[newSequence.length - 1] = newItem;
-                  }
-
-                  // Update current point to end of last line to maintain continuity for subsequent items
-                  const lastLine = preservedLines[preservedLines.length - 1];
-                  currentPoint = lastLine.endPoint;
-                  currentHeading = getLineEndHeading(lastLine, preservedLines.length > 1 ? preservedLines[preservedLines.length - 2].endPoint : currentPoint);
-                  // Approximate heading if we can't calculate perfectly
-                  if (lastLine.endPoint.heading === 'constant') currentHeading = lastLine.endPoint.degrees;
-                  else if (lastLine.endPoint.heading === 'linear') currentHeading = lastLine.endPoint.endDeg;
-              }
-          }
+        const endHeadingRaw = getLineEndHeading(line, currentPoint);
+        if (line.endPoint.heading === "tangential") {
+          const tangent = endHeadingRaw;
+          currentHeading = unwrapAngle(tangent, currentHeading);
+        } else if (line.endPoint.heading === "constant") {
+          currentHeading = line.endPoint.degrees;
+        } else if (line.endPoint.heading === "linear") {
+          currentHeading = line.endPoint.endDeg;
+        }
+        currentPoint = line.endPoint;
       }
+    } else if (item.kind === "wait") {
+      newSequence.push(item);
+      // Wait doesn't change heading or point
+    } else if (item.kind === "rotate") {
+      newSequence.push(item);
+      currentHeading = item.degrees;
+    } else if (item.kind === "macro") {
+      const macroData = macrosMap.get(item.filePath);
+      if (macroData) {
+        // Expand with recursion support
+        const result = expandMacro(
+          item,
+          currentPoint,
+          currentHeading,
+          macroData,
+          macrosMap,
+          new Set(), // Initial visited paths
+        );
+
+        // Add generated lines to master list
+        newLines.push(...result.lines);
+
+        // Update macro item with new sequence
+        const newMacroItem: SequenceMacroItem = {
+          ...item,
+          sequence: result.sequence,
+        };
+        newSequence.push(newMacroItem);
+
+        // Update state
+        currentPoint = result.endPoint;
+        currentHeading = result.endHeading;
+      } else {
+        // Macro data missing, just push item as is
+        newSequence.push(item);
+        // Attempt to preserve existing lines for this macro if they exist in the input
+        // This handles cases where data is loading or failed to load
+        // Match lines that belong to this macro instance, including nested ones
+        // ID format: macro-{instanceId}-... or bridge-{instanceId}
+        const prefix = `macro-${item.id}-`;
+        const bridgePrefix = `bridge-${item.id}`;
+        const preservedLines = lines.filter(
+          (l) =>
+            l.macroId === item.id ||
+            (l.id && (l.id.startsWith(prefix) || l.id === bridgePrefix)),
+        );
+
+        if (preservedLines.length > 0) {
+          newLines.push(...preservedLines);
+
+          // Reconstruct sequence if missing so that logic persists
+          if (!item.sequence || item.sequence.length === 0) {
+            const reconstructedSeq: SequenceItem[] = preservedLines.map(
+              (l) => ({
+                kind: "path",
+                lineId: l.id!,
+              }),
+            );
+            const newItem: SequenceMacroItem = {
+              ...item,
+              sequence: reconstructedSeq,
+            };
+            newSequence[newSequence.length - 1] = newItem;
+          }
+
+          // Update current point to end of last line to maintain continuity for subsequent items
+          const lastLine = preservedLines[preservedLines.length - 1];
+          currentPoint = lastLine.endPoint;
+          currentHeading = getLineEndHeading(
+            lastLine,
+            preservedLines.length > 1
+              ? preservedLines[preservedLines.length - 2].endPoint
+              : currentPoint,
+          );
+          // Approximate heading if we can't calculate perfectly
+          if (lastLine.endPoint.heading === "constant")
+            currentHeading = lastLine.endPoint.degrees;
+          else if (lastLine.endPoint.heading === "linear")
+            currentHeading = lastLine.endPoint.endDeg;
+        }
+      }
+    }
   });
 
   return { lines: newLines, sequence: newSequence };

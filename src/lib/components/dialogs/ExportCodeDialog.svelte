@@ -1,6 +1,12 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Point, Line, SequenceItem, Shape, Settings } from "../../types";
+  import type {
+    Point,
+    Line,
+    SequenceItem,
+    Shape,
+    Settings,
+  } from "../../../types/index";
   import { copy } from "svelte-copy";
   import Highlight from "svelte-highlight";
   import { java } from "svelte-highlight/languages";
@@ -8,17 +14,20 @@
   import plaintext from "svelte-highlight/languages/plaintext";
   import codeStyle from "svelte-highlight/styles/androidstudio";
   import { fade, fly } from "svelte/transition";
-  import { currentFilePath } from "../../stores";
+  import { currentFilePath } from "../../../stores";
   import {
     generateJavaCode,
     generatePointsArray,
     generateSequentialCommandCode,
-  } from "../../utils";
+  } from "../../../utils";
   import { tick, onMount } from "svelte";
   import { get } from "svelte/store";
-  import { loadSettings, saveSettings } from "../../utils/settingsPersistence";
-  import { customExportersStore } from "../pluginsStore";
-  import { exportAsPP } from "../../utils/fileHandlers";
+  import {
+    loadSettings,
+    saveSettings,
+  } from "../../../utils/settingsPersistence";
+  import { customExportersStore } from "../../pluginsStore";
+  import { exportAsPP } from "../../../utils/fileHandlers";
 
   export let isOpen = false;
   export let startPoint: Point;

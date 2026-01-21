@@ -6,7 +6,7 @@
     SequenceItem,
     Shape,
     Settings,
-  } from "../../../types";
+  } from "../../../types/index";
   // Fixed incorrect relative import: WaypointTable is one level up from the tabs folder
   import WaypointTable from "../WaypointTable.svelte";
   import { validatePath } from "../../../utils/validation";

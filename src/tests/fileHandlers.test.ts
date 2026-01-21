@@ -29,7 +29,6 @@ vi.mock("../stores", async () => {
   };
 });
 
-
 describe("fileHandlers", () => {
   const mockElectronAPI = {
     writeFile: vi.fn(),
@@ -135,7 +134,7 @@ describe("fileHandlers", () => {
 
       // Also verify readFile is called with the resolved path
       expect(mockElectronAPI.readFile).toHaveBeenCalledWith(
-        "/resolved/relative/path/macro.pp"
+        "/resolved/relative/path/macro.pp",
       );
 
       // Verify sequenceStore has absolute path

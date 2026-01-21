@@ -1,45 +1,30 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import { selectedPointId, selectedLineId } from "../../stores";
-  import DeleteButtonWithConfirm from "./common/DeleteButtonWithConfirm.svelte";
-  import type { SequenceRotateItem, SequenceItem } from "../../types";
-  import {
-    isRotateLinked,
-    handleRotateRename,
-    updateLinkedRotations,
-  } from "../../utils/pointLinking";
-  import { tooltipPortal } from "../actions/portal";
+  import { selectedPointId, selectedLineId } from "../../../stores";
+  import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
+  import type { SequenceMacroItem, SequenceItem } from "../../../types/index";
 
-  export let rotate: SequenceRotateItem;
+  export let macro: SequenceMacroItem;
   export let sequence: SequenceItem[];
 
-  // Collapsed state
+  // Collapsed state (for consistency, though macros might not have inner content to collapse yet)
   export let collapsed: boolean = false;
 
   export let onRemove: () => void;
-  export let onInsertAfter: () => void; // Usually insert wait after
-  export let onAddPathAfter: () => void;
+  // onInsertAfter was previously an exported prop but unused internally.
+  // If external code depends on its presence, export it as a const to avoid Svelte unused-export warning.
+  export const onInsertAfter: (() => void) | undefined = undefined;
+  // PathTab usually passes specific inserters.
   export let onAddWaitAfter: () => void;
+  export let onAddPathAfter: () => void;
+  export let onAddRotateAfter: () => void;
   export let onMoveUp: () => void;
   export let onMoveDown: () => void;
   export let canMoveUp: boolean = true;
   export let canMoveDown: boolean = true;
   export let recordChange: (() => void) | undefined = undefined;
 
-  $: isSelected = $selectedPointId === `rotate-${rotate.id}`;
-  $: linked = isRotateLinked(sequence, rotate.id);
-
-  let hoveredRotateId: string | null = null;
-  let hoveredRotateAnchor: HTMLElement | null = null;
-
-  function handleRotateHoverEnter(e: MouseEvent, id: string | null) {
-    hoveredRotateId = id;
-    hoveredRotateAnchor = e.currentTarget as HTMLElement;
-  }
-  function handleRotateHoverLeave() {
-    hoveredRotateId = null;
-    hoveredRotateAnchor = null;
-  }
+  $: isSelected = $selectedPointId === `macro-${macro.id}`;
 
   function toggleCollapsed() {
     collapsed = !collapsed;
@@ -47,23 +32,11 @@
 
   function handleNameInput(e: Event) {
     const input = e.target as HTMLInputElement;
-    const newName = input.value;
-    sequence = handleRotateRename(sequence, rotate.id, newName);
+    macro.name = input.value;
+    sequence = [...sequence]; // trigger reactivity
   }
 
   function handleBlur() {
-    if (recordChange) recordChange();
-  }
-
-  function handleDegreesChange(e: Event) {
-    const target = e.currentTarget as HTMLInputElement;
-    const val = parseFloat(target.value);
-    if (!Number.isNaN(val)) {
-      rotate.degrees = val;
-      if (linked) {
-        sequence = updateLinkedRotations(sequence, rotate.id);
-      }
-    }
     if (recordChange) recordChange();
   }
 </script>
@@ -76,20 +49,20 @@
   aria-pressed={isSelected}
   class={`bg-white dark:bg-neutral-800 rounded-xl shadow-sm border transition-all duration-200 ${
     isSelected
-      ? "border-pink-500 ring-1 ring-pink-500/20"
+      ? "border-teal-400 ring-1 ring-teal-400/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
   }`}
   on:click|stopPropagation={() => {
-    if (!rotate.locked) {
-      selectedPointId.set(`rotate-${rotate.id}`);
+    if (!macro.locked) {
+      selectedPointId.set(`macro-${macro.id}`);
       selectedLineId.set(null);
     }
   }}
   on:keydown|stopPropagation={(e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      if (!rotate.locked) {
-        selectedPointId.set(`rotate-${rotate.id}`);
+      if (!macro.locked) {
+        selectedPointId.set(`macro-${macro.id}`);
         selectedLineId.set(null);
       }
     }
@@ -102,8 +75,8 @@
       <button
         on:click|stopPropagation={toggleCollapsed}
         class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
-        title="{collapsed ? 'Expand' : 'Collapse'} rotate"
-        aria-label="{collapsed ? 'Expand' : 'Collapse'} rotate"
+        title="{collapsed ? 'Expand' : 'Collapse'} macro"
+        aria-label="{collapsed ? 'Expand' : 'Collapse'} macro"
         aria-expanded={!collapsed}
       >
         <svg
@@ -123,56 +96,24 @@
           />
         </svg>
         <span
-          class="text-xs font-bold uppercase tracking-wider text-pink-500 whitespace-nowrap"
-          >Rotate</span
+          class="text-xs font-bold uppercase tracking-wider text-teal-500 whitespace-nowrap"
+          >Macro</span
         >
       </button>
 
       <div class="flex items-center gap-2 flex-1 min-w-0">
         <div class="relative flex-1 min-w-0">
           <input
-            value={rotate.name}
-            placeholder="Rotate"
-            aria-label="Rotate name"
-            title="Edit rotate name"
-            class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all placeholder-neutral-400 truncate"
-            class:text-pink-500={hoveredRotateId === rotate.id}
-            disabled={rotate.locked}
+            value={macro.name}
+            placeholder="Macro Name"
+            aria-label="Macro name"
+            title="Edit macro name"
+            class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all placeholder-neutral-400 truncate"
+            disabled={macro.locked}
             on:input={handleNameInput}
             on:blur={handleBlur}
             on:click|stopPropagation
           />
-          {#if linked}
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div
-              class="absolute right-2 top-1/2 -translate-y-1/2 text-pink-500 cursor-help"
-              on:mouseenter={(e) => handleRotateHoverEnter(e, rotate.id)}
-              on:mouseleave={handleRotateHoverLeave}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                class="w-3.5 h-3.5"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-              {#if hoveredRotateId === rotate.id}
-                <div
-                  use:tooltipPortal={hoveredRotateAnchor}
-                  class="w-64 p-2 bg-pink-100 dark:bg-pink-900 border border-pink-300 dark:border-pink-700 rounded shadow-lg text-xs text-pink-900 dark:text-pink-100 z-50 pointer-events-none"
-                >
-                  <strong>Linked Rotate</strong><br />
-                  Logic: Same Name = Shared Degrees.<br />
-                  This rotate event shares its degrees with other rotates named '{rotate.name}'.
-                </div>
-              {/if}
-            </div>
-          {/if}
         </div>
       </div>
     </div>
@@ -180,20 +121,20 @@
     <!-- Right: Controls -->
     <div class="flex items-center gap-1">
       <button
+        title={macro.locked ? "Unlock Macro" : "Lock Macro"}
+        aria-label={macro.locked ? "Unlock Macro" : "Lock Macro"}
         on:click|stopPropagation={() => {
-          rotate.locked = !rotate.locked;
+          macro.locked = !macro.locked;
           if (recordChange) recordChange();
         }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
-        title={rotate.locked ? "Unlock Rotate" : "Lock Rotate"}
-        aria-label={rotate.locked ? "Unlock Rotate" : "Lock Rotate"}
       >
-        {#if rotate.locked}
+        {#if macro.locked}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="currentColor"
-            class="size-4 text-amber-500"
+            class="size-4 text-teal-500"
           >
             <path
               fill-rule="evenodd"
@@ -226,9 +167,9 @@
       >
         <button
           on:click|stopPropagation={() => {
-            if (!rotate.locked && canMoveUp && onMoveUp) onMoveUp();
+            if (!macro.locked && canMoveUp && onMoveUp) onMoveUp();
           }}
-          disabled={!canMoveUp || rotate.locked}
+          disabled={!canMoveUp || macro.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
           title="Move Up"
           aria-label="Move Up"
@@ -248,9 +189,9 @@
         </button>
         <button
           on:click|stopPropagation={() => {
-            if (!rotate.locked && canMoveDown && onMoveDown) onMoveDown();
+            if (!macro.locked && canMoveDown && onMoveDown) onMoveDown();
           }}
-          disabled={!canMoveDown || rotate.locked}
+          disabled={!canMoveDown || macro.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
           title="Move Down"
           aria-label="Move Down"
@@ -272,68 +213,27 @@
 
       <DeleteButtonWithConfirm
         on:click={() => {
-          if (!rotate.locked && onRemove) onRemove();
+          if (!macro.locked && onRemove) onRemove();
         }}
-        disabled={rotate.locked}
-        title="Remove Rotate"
+        disabled={macro.locked}
+        title="Remove Macro"
       />
     </div>
   </div>
 
   {#if !collapsed}
     <div class="px-3 pb-3 space-y-4">
-      <!-- Degrees Input -->
-      <div class="space-y-2">
-        <label
-          for="rotate-heading-{rotate.id}"
-          class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
+      <!-- File Path Display -->
+      <div class="space-y-1">
+        <div
+          class="text-xs font-semibold text-neutral-500 uppercase tracking-wide"
         >
-          Heading (deg)
-        </label>
-        <div class="relative">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            class="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-neutral-400"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <!-- Semicircle protractor arc -->
-            <path d="M3 12a9 9 0 0 1 18 0" />
-
-            <!-- Major tick marks at 0,30,60,90,120,150,180 degrees -->
-            <line x1="21" y1="12" x2="19.2" y2="12" />
-            <line x1="19.794" y1="7.5" x2="18.235" y2="8.4" />
-            <line x1="16.5" y1="4.206" x2="15.6" y2="5.765" />
-            <line x1="12" y1="3" x2="12" y2="4.8" />
-            <line x1="7.5" y1="4.206" x2="8.4" y2="5.765" />
-            <line x1="4.206" y1="7.5" x2="5.765" y2="8.4" />
-            <line x1="3" y1="12" x2="4.8" y2="12" />
-
-            <!-- Needle indicating an angle (visual hint) -->
-            <line x1="12" y1="12" x2="17" y2="7" stroke-width="1.8" />
-            <!-- Small degree symbol near needle tip -->
-            <circle
-              cx="17.6"
-              cy="6.4"
-              r="0.9"
-              fill="currentColor"
-              stroke="none"
-            />
-          </svg>
-          <input
-            id="rotate-heading-{rotate.id}"
-            class="w-full pl-9 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-            type="number"
-            step="any"
-            value={rotate.degrees}
-            on:change={handleDegreesChange}
-            on:click|stopPropagation
-            disabled={rotate.locked}
-          />
+          File Path
+        </div>
+        <div
+          class="text-xs text-neutral-700 dark:text-neutral-300 break-all bg-neutral-100 dark:bg-neutral-900/50 p-2 rounded border border-neutral-200 dark:border-neutral-700/50"
+        >
+          {macro.filePath}
         </div>
       </div>
 
@@ -382,7 +282,7 @@
         </button>
 
         <button
-          on:click|stopPropagation={onInsertAfter}
+          on:click|stopPropagation={onAddRotateAfter}
           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30"
           title="Add Rotate After"
         >

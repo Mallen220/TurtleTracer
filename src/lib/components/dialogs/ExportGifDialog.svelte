@@ -5,7 +5,7 @@
   import {
     exportPathToGif,
     exportPathToApng,
-  } from "../../utils/exportAnimation";
+  } from "../../../utils/exportAnimation";
 
   export let show = false;
   export let twoInstance: any;

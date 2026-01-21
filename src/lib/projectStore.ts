@@ -8,7 +8,7 @@ import type {
   Settings,
   SequencePathItem,
   PedroData,
-} from "../types";
+} from "../types/index";
 import {
   getDefaultStartPoint,
   getDefaultLines,
@@ -192,7 +192,9 @@ export async function loadMacro(filePath: string, force = false) {
 
   // Prevent infinite recursion during loading cycle
   if (loadingMacros.has(filePath)) {
-    console.warn(`[projectStore] Cyclic dependency detected while loading: ${filePath}`);
+    console.warn(
+      `[projectStore] Cyclic dependency detected while loading: ${filePath}`,
+    );
     return;
   }
 

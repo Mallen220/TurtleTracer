@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 // src/tests/WaypointTableDrop.test.ts
 import { render, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -13,7 +14,13 @@ vi.mock("../lib/projectStore", () => ({
 
 describe("WaypointTable Drop Handling", () => {
   const defaultProps = {
-    startPoint: { x: 0, y: 0, heading: "tangential", reverse: false, locked: false } as Point,
+    startPoint: {
+      x: 0,
+      y: 0,
+      heading: "tangential",
+      reverse: false,
+      locked: false,
+    } as Point,
     lines: [],
     sequence: [],
     recordChange: vi.fn(),

@@ -27,7 +27,7 @@
     fieldRenderRegistry,
     type ContextMenuItem,
   } from "../registries";
-  import ContextMenu from "./ContextMenu.svelte";
+  import ContextMenu from "./tools/ContextMenu.svelte";
   import {
     linesStore,
     startPointStore,
@@ -78,7 +78,7 @@
     Settings,
     BasePoint,
     SequenceItem,
-  } from "../../types";
+  } from "../../types/index";
   import MathTools from "../MathTools.svelte";
   import FieldCoordinates from "./FieldCoordinates.svelte";
   import type { Path } from "two.js/src/path";

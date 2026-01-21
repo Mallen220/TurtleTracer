@@ -3,18 +3,18 @@
   import { onMount } from "svelte";
   import { cubicInOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
-  import { resetSettings } from "../../utils/settingsPersistence";
+  import { resetSettings } from "../../../utils/settingsPersistence";
   import {
     AVAILABLE_FIELD_MAPS,
     DEFAULT_SETTINGS,
     DEFAULT_KEY_BINDINGS,
-  } from "../../config/defaults";
-  import type { Settings, CustomFieldConfig } from "../../types";
+  } from "../../../config/defaults";
+  import type { Settings, CustomFieldConfig } from "../../../types/index";
   import KeyboardShortcutsDialog from "./KeyboardShortcutsDialog.svelte";
-  import RobotProfileManager from "./settings/RobotProfileManager.svelte";
-  import CustomFieldWizard from "./settings/CustomFieldWizard.svelte";
-  import { themesStore } from "../pluginsStore";
-  import { showPluginManager } from "../../stores";
+  import RobotProfileManager from "../settings/RobotProfileManager.svelte";
+  import CustomFieldWizard from "../settings/CustomFieldWizard.svelte";
+  import { themesStore } from "../../pluginsStore";
+  import { showPluginManager } from "../../../stores";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -34,7 +34,7 @@
   let editingCustomConfig: CustomFieldConfig | undefined = undefined;
 
   // Get version from package. json
-  import packageJson from "../../../package.json";
+  import packageJson from "../../../../package.json";
   let appVersion = packageJson.version;
 
   let downloadCount: number | null = null;
@@ -144,7 +144,7 @@
     settings = { ...settings };
   }
 
-  import { saveSettings } from "../../utils/settingsPersistence";
+  import { saveSettings } from "../../../utils/settingsPersistence";
 
   async function handleReset() {
     if (

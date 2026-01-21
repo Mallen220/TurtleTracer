@@ -33,7 +33,7 @@
     Shape,
     SequenceItem,
     Settings,
-  } from "../types";
+  } from "../types/index";
   import {
     currentFilePath,
     isUnsaved,
@@ -42,7 +42,7 @@
     currentDirectoryStore,
     gitStatusStore,
   } from "../stores";
-import { settingsStore, loadMacro, loadProjectData } from "./projectStore";
+  import { settingsStore, loadMacro, loadProjectData } from "./projectStore";
   import { saveProject } from "../utils/fileHandlers";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
   import { hookRegistry } from "./registries";

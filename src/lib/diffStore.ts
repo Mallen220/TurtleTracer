@@ -16,7 +16,7 @@ import type {
   Shape,
   Settings,
   EventMarker,
-} from "../types";
+} from "../types/index";
 import { calculatePathTime } from "../utils";
 import _ from "lodash";
 

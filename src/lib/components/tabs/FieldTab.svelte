@@ -7,14 +7,14 @@
     Shape,
     Settings,
     BasePoint,
-  } from "../../../types";
+  } from "../../../types/index";
   import { tick } from "svelte";
   import { slide } from "svelte/transition";
   import RobotPositionDisplay from "../RobotPositionDisplay.svelte";
-  import CollapseAllButton from "../CollapseAllButton.svelte";
-  import OptimizationDialog from "../OptimizationDialog.svelte";
+  import CollapseAllButton from "../tools/CollapseAllButton.svelte";
+  import OptimizationDialog from "../dialogs/OptimizationDialog.svelte";
   import GlobalEventMarkers from "../GlobalEventMarkers.svelte";
-  import ObstaclesSection from "../ObstaclesSection.svelte";
+  import ObstaclesSection from "../sections/ObstaclesSection.svelte";
   import { validatePath } from "../../../utils/validation";
 
   export let robotXY: BasePoint;

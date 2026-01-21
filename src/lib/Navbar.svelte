@@ -25,7 +25,7 @@
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
   import { menuNavigation } from "./actions/menuNavigation";
-  import TelemetryDialog from "./components/TelemetryDialog.svelte";
+  import TelemetryDialog from "./components/dialogs/TelemetryDialog.svelte";
   export let startPoint: Point;
   export let lines: Line[];
   export let sequence: SequenceItem[];

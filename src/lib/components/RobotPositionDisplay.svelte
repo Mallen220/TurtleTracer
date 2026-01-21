@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { BasePoint } from "../../types";
+  import type { BasePoint } from "../../types/index";
 
   export let robotXY: BasePoint;
   export let robotHeading: number;

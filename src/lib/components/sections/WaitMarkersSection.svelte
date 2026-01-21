@@ -1,7 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { EventMarker, SequenceWaitItem } from "../../types";
-  import TrashIcon from "./icons/TrashIcon.svelte";
+  import type { EventMarker, SequenceWaitItem } from "../../../types/index";
+  import TrashIcon from "../icons/TrashIcon.svelte";
 
   export let wait: SequenceWaitItem;
   // When a global collapse/expand-all is triggered, wait marker sections should respect it

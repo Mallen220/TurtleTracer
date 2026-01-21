@@ -2,8 +2,8 @@
 <script lang="ts">
   import { cubicInOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
-  import { PluginManager } from "../pluginManager";
-  import { pluginsStore, type PluginInfo } from "../pluginsStore";
+  import { PluginManager } from "../../pluginManager";
+  import { pluginsStore, type PluginInfo } from "../../pluginsStore";
 
   export let isOpen = false;
 

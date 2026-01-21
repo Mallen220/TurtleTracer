@@ -4,13 +4,18 @@
     analyzePathSegment,
     formatTime,
     calculatePathTime,
-  } from "../../utils/timeCalculator";
-  import type { Point, Line, SequenceItem, Settings } from "../../types";
+  } from "../../../utils/timeCalculator";
+  import type {
+    Point,
+    Line,
+    SequenceItem,
+    Settings,
+  } from "../../../types/index";
   import { slide } from "svelte/transition";
   import { onMount } from "svelte";
-  import { getAngularDifference } from "../../utils/math";
-  import { notification } from "../../stores";
-  import SimpleChart from "./SimpleChart.svelte";
+  import { getAngularDifference } from "../../../utils/math";
+  import { notification } from "../../../stores";
+  import SimpleChart from "../tools/SimpleChart.svelte";
 
   export let startPoint: Point;
   export let lines: Line[];
