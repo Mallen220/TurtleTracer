@@ -1,5 +1,6 @@
 import { render, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { Mock } from "vitest";
 import SettingsDialog from "../lib/components/SettingsDialog.svelte";
 import { DEFAULT_SETTINGS } from "../config/defaults";
 
@@ -35,7 +36,7 @@ describe("SettingsDialog", () => {
     expect(resetSettings).toHaveBeenCalled();
     expect(saveSettings).toHaveBeenCalled();
 
-    const savedArg = (saveSettings as unknown as vi.Mock).mock.calls[0][0];
+    const savedArg = (saveSettings as unknown as Mock).mock.calls[0][0];
     expect(savedArg.hasSeenOnboarding).toBe(true);
 
     // Restore confirm

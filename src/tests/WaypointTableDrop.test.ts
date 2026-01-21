@@ -1,8 +1,10 @@
 // src/tests/WaypointTableDrop.test.ts
 import { render, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Point } from "../types";
 import WaypointTable from "../lib/components/WaypointTable.svelte";
 import { loadMacro } from "../lib/projectStore";
+import { DEFAULT_SETTINGS } from "../config/defaults";
 
 // Mock loadMacro
 vi.mock("../lib/projectStore", () => ({
@@ -11,13 +13,13 @@ vi.mock("../lib/projectStore", () => ({
 
 describe("WaypointTable Drop Handling", () => {
   const defaultProps = {
-    startPoint: { x: 0, y: 0, heading: 0, locked: false },
+    startPoint: { x: 0, y: 0, heading: "tangential", reverse: false, locked: false } as Point,
     lines: [],
     sequence: [],
     recordChange: vi.fn(),
     shapes: [],
     collapsedObstacles: [],
-    settings: {},
+    settings: DEFAULT_SETTINGS,
     // Added missing props
     onToggleOptimization: vi.fn(),
     handleOptimizationApply: vi.fn(),

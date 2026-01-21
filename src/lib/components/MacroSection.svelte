@@ -11,7 +11,9 @@
   export let collapsed: boolean = false;
 
   export let onRemove: () => void;
-  export let onInsertAfter: () => void; // Insert Macro After (if supported?) or generic insert?
+  // onInsertAfter was previously an exported prop but unused internally.
+  // If external code depends on its presence, export it as a const to avoid Svelte unused-export warning.
+  export const onInsertAfter: (() => void) | undefined = undefined;
   // PathTab usually passes specific inserters.
   export let onAddWaitAfter: () => void;
   export let onAddPathAfter: () => void;
