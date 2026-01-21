@@ -48,6 +48,7 @@
     FIELD_SIZE,
     DEFAULT_SETTINGS,
     getDefaultStartPoint,
+    AVAILABLE_FIELD_MAPS,
   } from "../../config";
   import { getRandomColor } from "../../utils";
   import { computeZoomStep } from "../zoomHelpers";
@@ -1518,6 +1519,42 @@
       .catch((err) => console.error("Failed to copy", err));
   }
 
+  function cycleFieldMap() {
+    settingsStore.update((s) => {
+      const current = s.fieldMap;
+      const idx = AVAILABLE_FIELD_MAPS.findIndex((m) => m.value === current);
+      const nextIdx = (idx + 1) % AVAILABLE_FIELD_MAPS.length;
+      const nextMap = AVAILABLE_FIELD_MAPS[idx === -1 ? 0 : nextIdx].value;
+      return { ...s, fieldMap: nextMap };
+    });
+  }
+
+  function rotateField() {
+    settingsStore.update((s) => {
+      const current = s.fieldRotation || 0;
+      const next = (current + 90) % 360;
+      return { ...s, fieldRotation: next };
+    });
+  }
+
+  function toggleGhostPaths() {
+    settingsStore.update((s) => ({ ...s, showGhostPaths: !s.showGhostPaths }));
+  }
+
+  function toggleContinuousValidation() {
+    settingsStore.update((s) => ({
+      ...s,
+      continuousValidation: !s.continuousValidation,
+    }));
+  }
+
+  function toggleOnionCurrentPath() {
+    settingsStore.update((s) => ({
+      ...s,
+      onionSkinCurrentPathOnly: !s.onionSkinCurrentPathOnly,
+    }));
+  }
+
   // --- Registration ---
 
   // Create map of actionId -> handler
@@ -1808,6 +1845,11 @@
     toggleDiff: () => toggleDiff(),
     togglePluginManager: () => showPluginManager.update((v) => !v),
     toggleRuler: () => showRuler.update((v) => !v),
+    cycleFieldMap: () => cycleFieldMap(),
+    rotateField: () => rotateField(),
+    toggleGhostPaths: () => toggleGhostPaths(),
+    toggleContinuousValidation: () => toggleContinuousValidation(),
+    toggleOnionCurrentPath: () => toggleOnionCurrentPath(),
   };
 
   // --- Derived Commands for Search ---
