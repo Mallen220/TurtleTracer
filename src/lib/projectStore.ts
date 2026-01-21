@@ -304,7 +304,6 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
 
   linesStore.set(renamedLines);
   shapesStore.set(data.shapes || []);
-  sequenceStore.set(sanitized);
   extraDataStore.set(data.extraData || {});
 
   // Load referenced macros
@@ -319,6 +318,8 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
               projectFilePath,
               item.filePath,
             );
+            // Update the sequence item to use the absolute path for this session
+            item.filePath = resolved;
             await loadMacro(resolved);
           })(),
         );
@@ -332,6 +333,9 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
   if (promises.length > 0) {
     await Promise.all(promises);
   }
+
+  // Set sequence store AFTER updating paths to absolute
+  sequenceStore.set(sanitized);
 
   // Refresh macros immediately in case they are already loaded
   refreshMacros();

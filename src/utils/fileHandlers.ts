@@ -42,6 +42,7 @@ interface ExtendedElectronAPI {
     content: string,
     path?: string,
   ) => Promise<{ success: boolean; filepath: string; error?: string }>;
+  makeRelativePath?: (base: string, target: string) => Promise<string>;
 }
 
 // Access electronAPI dynamically to allow mocking/runtime changes
@@ -177,6 +178,35 @@ async function performSave(
       }
     });
 
+    // --- DETERMINE SAVE PATH EARLY ---
+    // Always try to get the path first so we can relativize macros
+    if (!targetPath && electronAPI) {
+      if (electronAPI.showSaveDialog) {
+        const filePath = await electronAPI.showSaveDialog({
+          title: "Save Project",
+          defaultPath: "trajectory.pp",
+          filters: [{ name: "Pedro Path", extensions: ["pp"] }],
+        });
+        if (!filePath) return false;
+        targetPath = filePath;
+      } else {
+        return false;
+      }
+    }
+
+    // --- RELATIVIZE MACRO PATHS ---
+    // Now that we have a target path, convert macro paths to be relative
+    if (targetPath && electronAPI && electronAPI.makeRelativePath) {
+      for (const item of sequenceToSave) {
+        if (item.kind === "macro") {
+          item.filePath = await electronAPI.makeRelativePath(
+            targetPath,
+            item.filePath,
+          );
+        }
+      }
+    }
+
     // Create the project data structure
     const projectData = {
       version: 1,
@@ -229,21 +259,7 @@ async function performSave(
         return false;
       }
     } else if (electronAPI && electronAPI.writeFile) {
-      // Fallback to legacy writeFile if saveFile not present
-      if (!targetPath) {
-        // We need a path. If not provided (Save As), we might need dialog.
-        if (electronAPI.showSaveDialog) {
-          const filePath = await electronAPI.showSaveDialog({
-            title: "Save Project",
-            defaultPath: "trajectory.pp",
-            filters: [{ name: "Pedro Path", extensions: ["pp"] }],
-          });
-          if (!filePath) return false;
-          targetPath = filePath;
-        } else {
-          return false;
-        }
-      }
+      if (!targetPath) return false; // Should have been determined above
 
       await electronAPI.writeFile(targetPath, jsonString);
       projectMetadataStore.update((m) => ({ ...m, filepath: targetPath! }));
@@ -351,6 +367,51 @@ export async function exportAsPP() {
   }
   const defaultName = `${filename}.pp`;
 
+  if (electronAPI) {
+    // Prefer the exported convenience method if available
+    // BUT we skip it now because we need to relativize paths, which requires knowing the target path first.
+    // The main process exportPP helper doesn't support that logic injection.
+
+    // Use save dialog + writeFile
+    if (electronAPI.showSaveDialog && electronAPI.writeFile) {
+      const filePath = await electronAPI.showSaveDialog({
+        title: "Export .pp File",
+        defaultPath: defaultName,
+        filters: [{ name: "Pedro Path", extensions: ["pp"] }],
+      });
+      if (!filePath) return;
+
+      // Relativize paths
+      const sequence = structuredClone(get(sequenceStore));
+      if (electronAPI.makeRelativePath) {
+        for (const item of sequence) {
+          if (item.kind === "macro") {
+            item.filePath = await electronAPI.makeRelativePath(
+              filePath,
+              item.filePath,
+            );
+          }
+        }
+      }
+
+      const jsonString = JSON.stringify(
+        {
+          startPoint: get(startPointStore),
+          lines: get(linesStore),
+          shapes: get(shapesStore),
+          sequence: sequence,
+          extraData: get(extraDataStore),
+        },
+        null,
+        2,
+      );
+
+      await electronAPI.writeFile(filePath, jsonString);
+      console.log("Exported to", filePath);
+      return;
+    }
+  }
+
   const jsonString = JSON.stringify(
     {
       startPoint: get(startPointStore),
@@ -362,35 +423,6 @@ export async function exportAsPP() {
     null,
     2,
   );
-
-  if (electronAPI) {
-    // Prefer the exported convenience method if available
-    if ((electronAPI as any).exportPP) {
-      try {
-        const exportedPath = await (electronAPI as any).exportPP(
-          jsonString,
-          defaultName,
-        );
-        if (exportedPath) console.log("Exported to", exportedPath);
-        return;
-      } catch (err) {
-        console.error("exportPP failed, falling back:", err);
-      }
-    }
-
-    // Fallback: use save dialog + writeFile
-    if (electronAPI.showSaveDialog && electronAPI.writeFile) {
-      const filePath = await electronAPI.showSaveDialog({
-        title: "Export .pp File",
-        defaultPath: defaultName,
-        filters: [{ name: "Pedro Path", extensions: ["pp"] }],
-      });
-      if (!filePath) return;
-      await electronAPI.writeFile(filePath, jsonString);
-      console.log("Exported to", filePath);
-      return;
-    }
-  }
 
   // Browser fallback
   downloadTrajectory(

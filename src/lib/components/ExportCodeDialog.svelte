@@ -13,12 +13,12 @@
     generateJavaCode,
     generatePointsArray,
     generateSequentialCommandCode,
-    downloadTrajectory,
   } from "../../utils";
   import { tick, onMount } from "svelte";
   import { get } from "svelte/store";
   import { loadSettings, saveSettings } from "../../utils/settingsPersistence";
   import { customExportersStore } from "../pluginsStore";
+  import { exportAsPP } from "../../utils/fileHandlers";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -51,6 +51,28 @@
   let searchInputRef: HTMLInputElement;
 
   const electronAPI = (window as any).electronAPI;
+
+  async function relativizeSequenceForPreview(seq: SequenceItem[]) {
+    const cloned = structuredClone(seq);
+
+    const base = get(currentFilePath);
+    if (!electronAPI?.makeRelativePath || !base) return cloned;
+
+    for (const item of cloned) {
+      if (item.kind === "macro" && item.filePath) {
+        try {
+          item.filePath = await electronAPI.makeRelativePath(
+            base,
+            item.filePath,
+          );
+        } catch (err) {
+          console.warn("Failed to relativize macro path for preview", err);
+        }
+      }
+    }
+
+    return cloned;
+  }
 
   // Update sequential class name when file changes
   $: if ($currentFilePath) {
@@ -120,8 +142,9 @@
         );
         currentLanguage = java;
       } else if (exportFormat === "json") {
+        const relativeSequence = await relativizeSequenceForPreview(sequence);
         exportedCode = JSON.stringify(
-          { startPoint, lines, shapes, sequence },
+          { startPoint, lines, shapes, sequence: relativeSequence },
           null,
           2,
         );
@@ -750,22 +773,7 @@
           {#if exportFormat === "json"}
             <button
               class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-              on:click={() => {
-                const filePath = $currentFilePath;
-                let filename = "trajectory";
-                if (filePath) {
-                  const baseName = filePath.split(/[\\/]/).pop() || "";
-                  filename = baseName.replace(".pp", "");
-                }
-                downloadTrajectory(
-                  startPoint,
-                  lines,
-                  shapes,
-                  sequence,
-                  undefined,
-                  `${filename}.pp`,
-                );
-              }}
+              on:click={exportAsPP}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

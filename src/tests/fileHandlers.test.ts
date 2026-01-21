@@ -29,17 +29,6 @@ vi.mock("../stores", async () => {
   };
 });
 
-vi.mock("../lib/projectStore", async () => {
-  const { writable } = await import("svelte/store");
-  return {
-    startPointStore: writable({ x: 0, y: 0, heading: 0 }),
-    linesStore: writable([]),
-    sequenceStore: writable([]),
-    shapesStore: writable([]),
-    settingsStore: writable({}), // Re-export if needed, but usually main stores handles it
-    extraDataStore: writable({}),
-  };
-});
 
 describe("fileHandlers", () => {
   const mockElectronAPI = {
@@ -50,6 +39,8 @@ describe("fileHandlers", () => {
     showSaveDialog: vi.fn(),
     getSavedDirectory: vi.fn(),
     copyFile: vi.fn(),
+    makeRelativePath: vi.fn(),
+    resolvePath: vi.fn(),
   };
 
   beforeEach(() => {
@@ -73,13 +64,13 @@ describe("fileHandlers", () => {
         lines: [
           {
             id: "1",
-            name: "Path 1",
+            name: "MyPath",
             startPoint: { x: 0, y: 0 },
             endPoint: { x: 10, y: 10 },
           },
           {
             id: "2",
-            name: "Path 1 (2)",
+            name: "MyPath (2)",
             startPoint: { x: 10, y: 10 },
             endPoint: { x: 20, y: 20 },
           },
@@ -90,8 +81,8 @@ describe("fileHandlers", () => {
       fileHandlers.loadProjectData(data);
       const lines = get(linesStore);
 
-      expect(lines[0].name).toBe("Path 1");
-      expect(lines[1].name).toBe("Path 1"); // Suffix stripped
+      expect(lines[0].name).toBe("MyPath");
+      expect(lines[1].name).toBe("MyPath"); // Suffix stripped
     });
 
     it("restores linked names from _linkedName metadata", () => {
@@ -108,6 +99,48 @@ describe("fileHandlers", () => {
 
       expect(lines[0].name).toBe("Shared Name");
       expect(lines[1].name).toBe("Shared Name");
+    });
+
+    it("resolves relative macro paths using resolvePath", async () => {
+      const data = {
+        lines: [],
+        sequence: [
+          {
+            kind: "macro",
+            filePath: "relative/path/macro.pp",
+            name: "Macro",
+            id: "1",
+          },
+        ],
+      };
+
+      mockElectronAPI.resolvePath.mockImplementation((base, relative) => {
+        return "/resolved/" + relative;
+      });
+
+      // We need to mock loadMacro to verify it gets the resolved path
+      // But loadMacro is internal to projectStore.
+      // However, loadProjectData calls loadMacro, which calls electronAPI.readFile.
+      // So checking resolvePath call is enough to verify resolution logic trigger.
+      // And we can check if readFile is called with resolved path if we want deep verification.
+
+      mockElectronAPI.readFile.mockResolvedValue(JSON.stringify({ lines: [] }));
+
+      await fileHandlers.loadProjectData(data, "/project/base/path.pp");
+
+      expect(mockElectronAPI.resolvePath).toHaveBeenCalledWith(
+        "/project/base/path.pp",
+        "relative/path/macro.pp",
+      );
+
+      // Also verify readFile is called with the resolved path
+      expect(mockElectronAPI.readFile).toHaveBeenCalledWith(
+        "/resolved/relative/path/macro.pp"
+      );
+
+      // Verify sequenceStore has absolute path
+      const seq = get(sequenceStore);
+      expect((seq[0] as any).filePath).toBe("/resolved/relative/path/macro.pp");
     });
   });
 
@@ -162,6 +195,7 @@ describe("fileHandlers", () => {
 
   describe("saveProject", () => {
     it("uses saveFile API when available", async () => {
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.pp");
       mockElectronAPI.saveFile.mockResolvedValue({
         success: true,
         filepath: "/saved/file.pp",
@@ -177,6 +211,7 @@ describe("fileHandlers", () => {
     });
 
     it("handles save failures", async () => {
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.pp");
       mockElectronAPI.saveFile.mockResolvedValue({
         success: false,
         error: "Permission denied",
@@ -186,6 +221,48 @@ describe("fileHandlers", () => {
 
       const notif = get(notification);
       expect(notif?.type).toBe("error");
+    });
+
+    it("relativizes macro paths when saving with writeFile", async () => {
+      // Setup: Disable saveFile to force writeFile path
+      const originalSaveFile = mockElectronAPI.saveFile;
+      delete (mockElectronAPI as any).saveFile;
+
+      // Mock makeRelativePath
+      mockElectronAPI.makeRelativePath.mockImplementation((base, target) => {
+        return "relative/" + target.split("/").pop();
+      });
+
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/project.pp");
+
+      // Setup data with macro
+      linesStore.set([]);
+      sequenceStore.set([
+        {
+          kind: "macro",
+          id: "m1",
+          name: "Macro",
+          filePath: "/absolute/path/to/macro.pp",
+        } as any,
+      ]);
+
+      await fileHandlers.saveProject();
+
+      expect(mockElectronAPI.showSaveDialog).toHaveBeenCalled();
+      expect(mockElectronAPI.makeRelativePath).toHaveBeenCalledWith(
+        "/saved/project.pp",
+        "/absolute/path/to/macro.pp",
+      );
+      expect(mockElectronAPI.writeFile).toHaveBeenCalled();
+
+      // Verify the content written has relative path
+      const writtenContent = JSON.parse(
+        mockElectronAPI.writeFile.mock.calls[0][1],
+      );
+      expect(writtenContent.sequence[0].filePath).toBe("relative/macro.pp");
+
+      // Restore saveFile
+      mockElectronAPI.saveFile = originalSaveFile;
     });
   });
 

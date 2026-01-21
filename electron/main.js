@@ -1116,6 +1116,16 @@ ipcMain.handle("file:resolve-path", (event, base, relative) => {
   }
 });
 
+ipcMain.handle("file:make-relative-path", (event, base, target) => {
+  if (!base || !target) return target;
+  try {
+    return path.relative(path.dirname(base), target);
+  } catch (e) {
+    console.error("Error making relative path:", base, target, e);
+    return target;
+  }
+});
+
 // Plugin System IPC Handlers
 const getPluginsDirectory = () => {
   return path.join(app.getPath("userData"), "plugins");
