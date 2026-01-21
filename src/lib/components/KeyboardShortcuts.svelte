@@ -1537,10 +1537,6 @@
     });
   }
 
-  function toggleGhostPaths() {
-    settingsStore.update((s) => ({ ...s, showGhostPaths: !s.showGhostPaths }));
-  }
-
   function toggleContinuousValidation() {
     settingsStore.update((s) => ({
       ...s,
@@ -1847,7 +1843,6 @@
     toggleRuler: () => showRuler.update((v) => !v),
     cycleFieldMap: () => cycleFieldMap(),
     rotateField: () => rotateField(),
-    toggleGhostPaths: () => toggleGhostPaths(),
     toggleContinuousValidation: () => toggleContinuousValidation(),
     toggleOnionCurrentPath: () => toggleOnionCurrentPath(),
   };

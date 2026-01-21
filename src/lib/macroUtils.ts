@@ -102,7 +102,7 @@ export function expandMacro(
       startPoint: { ...prevPoint, isMacroElement: true, macroId: macroItem.id },
       endPoint: bridgeEndPoint,
       controlPoints: [],
-      color: "rgba(100, 100, 100, 0.5)", // Ghostly gray
+      color: "rgba(100, 100, 100, 0.5)", // gray
       name: `Bridge to ${macroItem.name}`,
       isMacroElement: true,
       macroId: macroItem.id,

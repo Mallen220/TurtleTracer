@@ -656,13 +656,6 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "View",
   },
   {
-    id: "toggle-ghost-paths",
-    key: "shift+g",
-    description: "Toggle Ghost Paths",
-    action: "toggleGhostPaths",
-    category: "View",
-  },
-  {
     id: "toggle-continuous-validation",
     key: "alt+v",
     description: "Toggle Continuous Validation",
@@ -895,7 +888,6 @@ export const DEFAULT_SETTINGS: Settings = {
   autosaveMode: "never",
   autosaveInterval: 5,
   showVelocityHeatmap: false,
-  showGhostPaths: false,
   showOnionLayers: false,
   onionSkinCurrentPathOnly: false,
   onionLayerSpacing: 6, // inches between each robot body trace

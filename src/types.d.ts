@@ -164,7 +164,6 @@ interface Settings {
   autosaveInterval?: number; // minutes
   javaPackageName?: string;
   showVelocityHeatmap?: boolean;
-  showGhostPaths?: boolean;
   showOnionLayers?: boolean;
   onionLayerSpacing?: number;
   optimizationIterations?: number;
