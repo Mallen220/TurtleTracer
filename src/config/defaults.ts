@@ -904,6 +904,95 @@ export const DEFAULT_SETTINGS: Settings = {
   lastSeenVersion: "",
   hasSeenOnboarding: false,
   gitIntegration: true,
+  obstaclePresets: [
+    {
+      id: "preset-decode-2025",
+      name: "DECODE Field (2025-2026)",
+      shapes: [
+        {
+          id: "triangle-1",
+          name: "Red Goal",
+          vertices: [
+            { x: 144, y: 70 },
+            { x: 144, y: 144 },
+            { x: 118, y: 144 },
+            { x: 138, y: 118 },
+            { x: 138, y: 70 },
+          ],
+          color: "#dc2626",
+          fillColor: "#fca5a5",
+          type: "obstacle",
+        },
+        {
+          id: "triangle-2",
+          name: "Blue Goal",
+          vertices: [
+            { x: 7, y: 118 },
+            { x: 26, y: 144 },
+            { x: 0, y: 144 },
+            { x: 0, y: 70 },
+            { x: 7, y: 70 },
+          ],
+          color: "#0b08d9",
+          fillColor: "#fca5a5",
+          type: "obstacle",
+        },
+      ],
+    },
+    {
+      id: "preset-centerstage-2023",
+      name: "Centerstage (2023-2024)",
+      shapes: [
+        {
+          id: "cs-scoring-1",
+          name: "Scoring 1",
+          vertices: [
+            { x: 48, y: 132 },
+            { x: 48, y: 144 },
+            { x: 24, y: 144 },
+            { x: 24, y: 132 },
+          ],
+          color: "#1c1c1c",
+          fillColor: "#fca5a5",
+          type: "obstacle",
+        },
+        {
+          id: "cs-scoring-2",
+          name: "Scoring 2",
+          vertices: [
+            { x: 120, y: 144 },
+            { x: 96, y: 144 },
+            { x: 96, y: 132 },
+            { x: 120, y: 132 },
+          ],
+          color: "#1c1c1c",
+          fillColor: "#fca5a5",
+          locked: false,
+          type: "obstacle",
+          visible: true,
+        },
+      ],
+    },
+    {
+      id: "preset-intothedeep-2024",
+      name: "Into The Deep Field (2024-2025)",
+      shapes: [
+        {
+          id: "itd-red-goal",
+          name: "Center Structure",
+          vertices: [
+            { x: 96, y: 57 },
+            { x: 96, y: 87 },
+            { x: 48, y: 87 },
+            { x: 48, y: 57 },
+          ],
+          color: "#fbf42d",
+          fillColor: "#fca5a5",
+          type: "obstacle",
+        },
+      ],
+    },
+  ],
   // Developer/debugging aids
   // @ts-ignore
   showDebugSequence: false,

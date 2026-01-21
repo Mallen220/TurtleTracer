@@ -2,17 +2,72 @@
 <script lang="ts">
   import { createTriangle } from "../../utils";
   import { snapToGrid, showGrid, gridSize } from "../../stores";
+  import { settingsStore } from "../projectStore";
   import TrashIcon from "./icons/TrashIcon.svelte";
+  import SaveIcon from "./icons/SaveIcon.svelte";
   import SectionHeader from "./common/SectionHeader.svelte";
   import EmptyState from "./common/EmptyState.svelte";
-  import type { Shape } from "../../types";
+  import SaveNameDialog from "./SaveNameDialog.svelte";
+  import type { Shape, ObstaclePreset } from "../../types";
 
   export let shapes: Shape[];
   export let collapsedObstacles: boolean[];
   export let collapsed: boolean = false;
 
+  let selectedPresetId: string = "";
+  let showSaveDialog = false;
+
   $: snapToGridTitle =
     $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping";
+
+  function openSaveDialog() {
+    if (shapes.length === 0) {
+      // Should ideally use a toast, but this is a fallback
+      return;
+    }
+    showSaveDialog = true;
+  }
+
+  function handleSavePreset(name: string) {
+    const newPreset: ObstaclePreset = {
+      id: `preset-${Math.random().toString(36).slice(2)}`,
+      name: name,
+      shapes: JSON.parse(JSON.stringify(shapes)), // Deep copy
+    };
+
+    $settingsStore.obstaclePresets = [
+      ...($settingsStore.obstaclePresets || []),
+      newPreset,
+    ];
+    selectedPresetId = newPreset.id;
+  }
+
+  function loadPreset() {
+    if (!selectedPresetId) return;
+    const preset = ($settingsStore.obstaclePresets || []).find(
+      (p) => p.id === selectedPresetId,
+    );
+    if (!preset) return;
+
+    if (shapes.length > 0) {
+      // Safe replacement check - ideally use a better dialog but standard confirm is robust
+      if (!confirm("This will replace current obstacles. Continue?")) return;
+    }
+
+    shapes = JSON.parse(JSON.stringify(preset.shapes)); // Deep copy
+    // Reset collapsed states
+    collapsedObstacles = new Array(shapes.length).fill(false);
+  }
+
+  function deletePreset() {
+    if (!selectedPresetId) return;
+    if (!confirm("Are you sure you want to delete this preset?")) return;
+
+    $settingsStore.obstaclePresets = (
+      $settingsStore.obstaclePresets || []
+    ).filter((p) => p.id !== selectedPresetId);
+    selectedPresetId = "";
+  }
 
   function toggleObstacle(index: number) {
     collapsedObstacles[index] = !collapsedObstacles[index];
@@ -48,6 +103,81 @@
   />
 
   {#if !collapsed}
+    <!-- Preset Controls (Compact Toolbar) -->
+    <div
+      class="p-2 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50 flex flex-row gap-2 items-center"
+    >
+      <div
+        class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider shrink-0"
+      >
+        Presets
+      </div>
+      <div class="flex-1 min-w-0">
+        <select
+          bind:value={selectedPresetId}
+          class="w-full text-xs h-7 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
+        >
+          <option value="">Select...</option>
+          {#each $settingsStore.obstaclePresets || [] as preset}
+            <option value={preset.id}>{preset.name}</option>
+          {/each}
+        </select>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-1 shrink-0">
+        <button
+          on:click={loadPreset}
+          disabled={!selectedPresetId}
+          title="Load Selected Preset"
+          class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <!-- Download/Load Icon -->
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="size-4"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75l-3 3m0 0 3 3m-3-3H21"
+            />
+          </svg>
+        </button>
+
+        <button
+          on:click={openSaveDialog}
+          disabled={shapes.length === 0}
+          title="Save Current as Preset"
+          class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <SaveIcon className="size-4" />
+        </button>
+
+        <button
+          on:click={deletePreset}
+          disabled={!selectedPresetId}
+          title="Delete Selected Preset"
+          class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:text-red-500 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:hover:text-neutral-500 disabled:cursor-not-allowed transition-colors"
+        >
+          <TrashIcon className="size-4" />
+        </button>
+      </div>
+    </div>
+
+    <SaveNameDialog
+      bind:show={showSaveDialog}
+      title="Save Obstacle Preset"
+      prompt="Enter a name for this preset:"
+      defaultName="My Preset"
+      onSave={handleSavePreset}
+      onCancel={() => (showSaveDialog = false)}
+    />
+
     <div class="p-2 flex flex-col gap-2">
       {#if shapes.length === 0}
         <EmptyState

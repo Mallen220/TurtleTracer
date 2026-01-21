@@ -4,6 +4,8 @@
 
   export let show = false;
   export let defaultName = "New Path";
+  export let title = "Save New File";
+  export let prompt = "Enter a name for your new file:";
   export let onSave: (name: string) => void;
   export let onCancel: () => void;
 
@@ -23,18 +25,28 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
+    // Stop propagation to prevent global hotkeys (like 'h' for heading) from firing
+    // while typing in this dialog.
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
     if (e.key === "Enter") handleSave();
     if (e.key === "Escape") handleCancel();
   }
 
-  $: if (show) {
+  let wasShown = false;
+  $: if (show && !wasShown) {
     name = defaultName;
+    wasShown = true;
     tick().then(() => {
       if (inputElement) {
         inputElement.focus();
         inputElement.select();
       }
     });
+  }
+  $: if (!show) {
+    wasShown = false;
   }
 </script>
 
@@ -48,10 +60,10 @@
       class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-700"
     >
       <h2 class="text-xl font-bold mb-4 text-neutral-900 dark:text-white">
-        Save New File
+        {title}
       </h2>
       <p class="mb-4 text-neutral-600 dark:text-neutral-400">
-        Enter a name for your new file:
+        {prompt}
       </p>
 
       <input
@@ -59,6 +71,8 @@
         type="text"
         bind:value={name}
         on:keydown={handleKeydown}
+        on:keyup={(e) => e.stopPropagation()}
+        on:keypress={(e) => e.stopPropagation()}
         class="w-full px-3 py-2 border rounded-md mb-6 bg-neutral-50 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
         placeholder="Filename"
       />
