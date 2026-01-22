@@ -1545,6 +1545,7 @@
         bind:statsOpen
         bind:activeTab={activeControlTab}
         onPreviewChange={handlePreviewChange}
+        totalSeconds={effectiveDuration * 1000}
       />
     </div>
   </div>

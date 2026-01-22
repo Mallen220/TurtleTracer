@@ -18,14 +18,18 @@
   }[] = [];
   export let playbackSpeed: number = 1.0;
   export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
+  export let totalSeconds: number = 0;
 
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
   import { menuNavigation } from "../actions/menuNavigation";
+  import { formatTime } from "../../utils";
 
   // Speed dropdown state & helpers
   let showSpeedMenu = false;
   const speedOptions = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0];
+
+  $: currentTime = (percent / 100) * totalSeconds;
 
   function toggleSpeedMenu() {
     showSpeedMenu = !showSpeedMenu;
@@ -198,6 +202,13 @@
         {/each}
       </ul>
     {/if}
+  </div>
+
+  <!-- Time Display -->
+  <div
+    class="px-2 font-mono text-xs text-neutral-600 dark:text-neutral-400 select-none whitespace-nowrap"
+  >
+    {formatTime(currentTime)} / {formatTime(totalSeconds)}
   </div>
 
   <div class="w-full relative h-6 flex items-center">
