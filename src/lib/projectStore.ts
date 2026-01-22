@@ -230,6 +230,9 @@ export async function loadMacro(filePath: string, force = false) {
                       filePath,
                       item.filePath,
                     );
+                    // Update the sequence item to use the absolute path for this session
+                    // This ensures that when we expand the macro later, we can look it up in the map
+                    item.filePath = resolved;
                     await loadMacro(resolved);
                   })(),
                 );
