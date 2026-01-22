@@ -10,11 +10,10 @@
     DEFAULT_KEY_BINDINGS,
   } from "../../../config/defaults";
   import type { Settings, CustomFieldConfig } from "../../../types/index";
-  import KeyboardShortcutsDialog from "./KeyboardShortcutsDialog.svelte";
   import RobotProfileManager from "../settings/RobotProfileManager.svelte";
   import CustomFieldWizard from "../settings/CustomFieldWizard.svelte";
   import { themesStore } from "../../pluginsStore";
-  import { showPluginManager } from "../../../stores";
+  import { showPluginManager, showShortcuts } from "../../../stores";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -29,7 +28,6 @@
     credits: true,
   };
 
-  let isShortcutsDialogOpen = false;
   let isCustomFieldWizardOpen = false;
   let editingCustomConfig: CustomFieldConfig | undefined = undefined;
 
@@ -455,7 +453,7 @@
         <!-- Keyboard Shortcuts Section -->
         <div class="mb-4">
           <button
-            on:click={() => (isShortcutsDialogOpen = true)}
+            on:click={() => showShortcuts.set(true)}
             class="flex items-center justify-between w-full py-2 px-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           >
             <div class="flex items-center gap-2">
@@ -1922,7 +1920,6 @@
   </div>
 {/if}
 
-<KeyboardShortcutsDialog bind:isOpen={isShortcutsDialogOpen} bind:settings />
 <CustomFieldWizard
   bind:isOpen={isCustomFieldWizardOpen}
   currentConfig={editingCustomConfig}
