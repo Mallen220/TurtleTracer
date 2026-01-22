@@ -67,7 +67,7 @@
   }
 
   function formatPivot(t: Transformation) {
-    if (!t.pivot || t.pivot === "origin") return "Origin (0,0)";
+    if (!t.pivot || t.pivot === "origin") return "Origin (72,72)";
     if (t.pivot === "center") return "Center";
     return `(${t.pivot.x.toFixed(1)}, ${t.pivot.y.toFixed(1)})`;
   }
@@ -134,7 +134,8 @@
                             </label>
                             <label class="flex items-center gap-1.5 cursor-pointer">
                                 <input type="radio" bind:group={pivotType} value="origin" class="w-3 h-3 text-blue-600 focus:ring-blue-500" />
-                                <span class="text-xs">Origin</span>
+                                <span class="text-xs">Origin (72,72)</span>
+                                <span class="text-xs">Origin (72,72)</span>
                             </label>
                             <label class="flex items-center gap-1.5 cursor-pointer">
                                 <input type="radio" bind:group={pivotType} value="custom" class="w-3 h-3 text-blue-600 focus:ring-blue-500" />

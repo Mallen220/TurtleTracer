@@ -33,7 +33,7 @@ function resolvePivot(
   pivot: Transformation["pivot"],
   center: { x: number; y: number },
 ): { x: number; y: number } {
-  if (!pivot || pivot === "origin") return { x: 0, y: 0 };
+  if (!pivot || pivot === "origin") return { x: 72, y: 72 };
   if (pivot === "center") return center;
   return pivot; // it's {x,y}
 }
