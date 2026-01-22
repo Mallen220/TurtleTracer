@@ -82,10 +82,6 @@ export class PluginManager {
     try {
       const key = `plugin_enabled_${name}`;
       const val = localStorage.getItem(key);
-      // StickyNotes is enabled by default, others are disabled
-      if (val === null) {
-        return name === "StickyNotes.ts" || name === "StickyNotes.js";
-      }
       return val === "true";
     } catch {
       return false;
