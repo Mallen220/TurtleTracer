@@ -88,3 +88,6 @@ export const fieldViewStore = writable<FieldView>({
   width: 0,
   height: 0,
 });
+
+// Plugin Redraw Trigger
+export const pluginRedrawTrigger = writable(0);

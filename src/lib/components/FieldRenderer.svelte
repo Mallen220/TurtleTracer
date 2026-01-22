@@ -20,6 +20,7 @@
     fieldPan,
     hoveredMarkerId,
     fieldViewStore,
+    pluginRedrawTrigger,
   } from "../../stores";
   import {
     hookRegistry,
@@ -1477,6 +1478,8 @@
 
   // Render Loop
   $: if (two) {
+    $pluginRedrawTrigger; // Subscribe to plugin redraw requests
+
     // Update dimensions if changed
     if (width && height && (two.width !== width || two.height !== height)) {
       if (two.renderer) two.renderer.setSize(width, height);

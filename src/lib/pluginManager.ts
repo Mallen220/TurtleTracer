@@ -21,6 +21,13 @@ import {
   fieldRenderRegistry,
 } from "./registries";
 import { registerCoreUI } from "./coreRegistrations";
+import PluginPromptDialog from "./components/dialogs/PluginPromptDialog.svelte";
+import PluginConfirmDialog from "./components/dialogs/PluginConfirmDialog.svelte";
+import type {
+  PluginFeature,
+  PluginGraphicsContext,
+  PluginGraphicsOptions,
+} from "../types";
 
 const {
   startPointStore,
@@ -132,6 +139,162 @@ export class PluginManager {
         this.allThemes = this.allThemes.filter((t) => t.name !== name);
         this.allThemes.push({ name, css, pluginName: filename });
       },
+      registerFeature: (feature: PluginFeature) => {
+        try {
+          // Unified Registration Logic
+          // 1. Navbar Action
+          if (feature.navbar) {
+            navbarActionRegistry.register({
+              id: `${filename}-${feature.name}-navbar`,
+              icon: feature.navbar.icon,
+              title: feature.navbar.title || feature.name,
+              onClick: () => {
+                try {
+                  feature.navbar!.onClick();
+                } catch (e) {
+                  console.error(`Error in plugin ${filename} navbar action:`, e);
+                  appStores.notification.set({
+                    message: `Error in plugin: ${e}`,
+                    type: "error",
+                  });
+                }
+              },
+              location: feature.navbar.location,
+            });
+          }
+
+          // 2. Context Menu
+          if (feature.contextMenu) {
+            fieldContextMenuRegistry.register({
+              id:
+                feature.contextMenu.id ||
+                `${filename}-${feature.name}-context-menu`,
+              label: feature.contextMenu.label,
+              icon: feature.contextMenu.icon,
+              onClick: (args) => {
+                try {
+                  feature.contextMenu!.onClick(args);
+                } catch (e) {
+                  console.error(
+                    `Error in plugin ${filename} context menu action:`,
+                    e,
+                  );
+                  appStores.notification.set({
+                    message: `Error in plugin: ${e}`,
+                    type: "error",
+                  });
+                }
+              },
+              condition: (args) => {
+                try {
+                  return feature.contextMenu!.condition
+                    ? feature.contextMenu!.condition(args)
+                    : true;
+                } catch (e) {
+                  return false;
+                }
+              },
+            });
+          }
+
+          // 3. Render Callback
+          if (feature.render) {
+            fieldRenderRegistry.register({
+              id: `${filename}-${feature.name}-renderer`,
+              fn: (two: any) => {
+                try {
+                  // Create Graphics Context
+                  const fieldView = get(appStores.fieldViewStore);
+                  const ctx: PluginGraphicsContext = {
+                    two,
+                    width: fieldView.width,
+                    height: fieldView.height,
+                    drawRect: (opts: PluginGraphicsOptions) => {
+                      // Convert field coordinates (inches) to screen coordinates (pixels)
+                      const px = fieldView.xScale(opts.x);
+                      const py = fieldView.yScale(opts.y);
+                      const w = Math.abs(
+                        fieldView.xScale(opts.width || 0) - fieldView.xScale(0),
+                      );
+                      const h = Math.abs(
+                        fieldView.yScale(opts.height || 0) - fieldView.yScale(0),
+                      );
+
+                      const rect = new two.constructor.Rectangle(px, py, w, h);
+                      rect.fill = opts.fill || "transparent";
+                      rect.stroke = opts.stroke || opts.color || "black";
+                      rect.linewidth = opts.strokeWidth || 1;
+                      rect.opacity = opts.opacity ?? 1;
+                      two.add(rect);
+                      return rect;
+                    },
+                    drawCircle: (opts: PluginGraphicsOptions) => {
+                      const px = fieldView.xScale(opts.x);
+                      const py = fieldView.yScale(opts.y);
+                      const r = Math.abs(
+                        fieldView.xScale(opts.radius || 0) - fieldView.xScale(0),
+                      );
+
+                      const circle = new two.constructor.Circle(px, py, r);
+                      circle.fill = opts.fill || "transparent";
+                      circle.stroke = opts.stroke || opts.color || "black";
+                      circle.linewidth = opts.strokeWidth || 1;
+                      circle.opacity = opts.opacity ?? 1;
+                      two.add(circle);
+                      return circle;
+                    },
+                    drawLine: (opts: PluginGraphicsOptions) => {
+                      if (opts.points) {
+                        const anchors = opts.points.map((pt) => {
+                          return new two.constructor.Anchor(
+                            fieldView.xScale(pt.x),
+                            fieldView.yScale(pt.y),
+                          );
+                        });
+                        const path = new two.constructor.Path(
+                          anchors,
+                          opts.closed,
+                          false,
+                        );
+                        path.fill = opts.fill || "transparent";
+                        path.stroke = opts.stroke || opts.color || "black";
+                        path.linewidth = opts.strokeWidth || 1;
+                        path.opacity = opts.opacity ?? 1;
+                        two.add(path);
+                        return path;
+                      }
+                    },
+                    drawText: (opts: PluginGraphicsOptions) => {
+                      const px = fieldView.xScale(opts.x);
+                      const py = fieldView.yScale(opts.y);
+                      const text = new two.constructor.Text(opts.text, px, py);
+                      text.fill = opts.fill || opts.color || "black";
+                      text.size = opts.fontSize || 12;
+                      text.alignment = opts.align || "center";
+                      text.baseline = "middle";
+                      text.opacity = opts.opacity ?? 1;
+                      two.add(text);
+                      return text;
+                    },
+                  };
+
+                  feature.render!(ctx);
+                } catch (e) {
+                  console.error(
+                    `Error in plugin ${filename} render callback:`,
+                    e,
+                  );
+                }
+              },
+            });
+          }
+        } catch (e) {
+          console.error(
+            `Failed to register feature for plugin ${filename}:`,
+            e,
+          );
+        }
+      },
       getData: () => {
         // Expose current state read-only
         return {
@@ -157,6 +320,82 @@ export class PluginManager {
         project: projectStore,
         app: appStores,
         get: get,
+      },
+      // UI API
+      ui: {
+        prompt: (options: {
+          title: string;
+          message: string;
+          defaultText?: string;
+        }): Promise<string | null> => {
+          return new Promise((resolve) => {
+            const id = `plugin-prompt-${Date.now()}-${Math.random()}`;
+            dialogRegistry.register({
+              id,
+              component: PluginPromptDialog,
+              props: {
+                show: true,
+                title: options.title,
+                message: options.message,
+                defaultText: options.defaultText,
+                onConfirm: (val: string) => {
+                  resolve(val);
+                  dialogRegistry.unregister!(id);
+                },
+                onCancel: () => {
+                  resolve(null);
+                  dialogRegistry.unregister!(id);
+                },
+              },
+            });
+          });
+        },
+        confirm: (options: {
+          title: string;
+          message: string;
+          confirmText?: string;
+          cancelText?: string;
+        }): Promise<boolean> => {
+          return new Promise((resolve) => {
+            const id = `plugin-confirm-${Date.now()}-${Math.random()}`;
+            dialogRegistry.register({
+              id,
+              component: PluginConfirmDialog,
+              props: {
+                show: true,
+                title: options.title,
+                message: options.message,
+                confirmText: options.confirmText,
+                cancelText: options.cancelText,
+                onConfirm: () => {
+                  resolve(true);
+                  dialogRegistry.unregister!(id);
+                },
+                onCancel: () => {
+                  resolve(false);
+                  dialogRegistry.unregister!(id);
+                },
+              },
+            });
+          });
+        },
+        toast: (
+          message: string,
+          type: "success" | "warning" | "error" | "info" = "info",
+          timeout: number = 3000,
+        ) => {
+          appStores.notification.set({
+            message,
+            type,
+            timeout,
+          });
+        },
+      },
+      // Graphics API
+      graphics: {
+        requestRedraw: () => {
+          appStores.pluginRedrawTrigger.update((n) => n + 1);
+        },
       },
     };
 

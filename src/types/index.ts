@@ -378,6 +378,63 @@ export interface AppStore {
   fieldViewStore: Writable<FieldView>;
 }
 
+export interface DialogDefinition {
+  id: string;
+  component: any;
+  props?: any;
+}
+
+export interface PluginGraphicsOptions {
+  x: number;
+  y: number;
+  // Common visual properties
+  color?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  fill?: string;
+  opacity?: number;
+  // Shape specific
+  width?: number; // Rect
+  height?: number; // Rect
+  radius?: number; // Circle
+  text?: string; // Text
+  fontSize?: number; // Text
+  align?: "left" | "center" | "right"; // Text
+  // Path specific
+  points?: {x: number, y: number}[]; // Path/Line
+  closed?: boolean; // Path
+}
+
+export interface PluginGraphicsContext {
+  two: any; // Raw Two instance
+  width: number; // Viewport width
+  height: number; // Viewport height
+
+  // Helpers
+  drawRect(options: PluginGraphicsOptions): any; // Returns Two.Rectangle
+  drawCircle(options: PluginGraphicsOptions): any; // Returns Two.Circle
+  drawLine(options: PluginGraphicsOptions): any; // Returns Two.Line or Path
+  drawText(options: PluginGraphicsOptions): any; // Returns Two.Text
+}
+
+export interface PluginFeature {
+  name: string;
+  navbar?: {
+    icon: string;
+    onClick: () => void;
+    title?: string;
+    location?: "left" | "right" | "center";
+  };
+  contextMenu?: {
+    id?: string;
+    label: string;
+    icon?: string;
+    onClick: (args: { x: number; y: number }) => void;
+    condition?: (args: { x: number; y: number }) => boolean;
+  };
+  render?: (ctx: PluginGraphicsContext) => void;
+}
+
 export interface PedroAPI {
   /**
    * Register a custom code exporter.
@@ -392,6 +449,12 @@ export interface PedroAPI {
    * @param css The CSS string for the theme.
    */
   registerTheme(name: string, css: string): void;
+
+  /**
+   * Register a plugin feature (unified registration).
+   * @param feature The feature definition.
+   */
+  registerFeature(feature: PluginFeature): void;
 
   /**
    * Get the current snapshot of the project data.
@@ -416,5 +479,21 @@ export interface PedroAPI {
     project: ProjectStore;
     app: AppStore;
     get: (store: Writable<any>) => any;
+  };
+
+  /**
+   * UI utilities.
+   */
+  ui: {
+    prompt: (options: { title: string; message: string; defaultText?: string }) => Promise<string | null>;
+    confirm: (options: { title: string; message: string; confirmText?: string; cancelText?: string }) => Promise<boolean>;
+    toast: (message: string, type?: "success" | "warning" | "error" | "info", timeout?: number) => void;
+  };
+
+  /**
+   * Graphics utilities.
+   */
+  graphics: {
+    requestRedraw: () => void;
   };
 }
