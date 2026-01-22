@@ -67,6 +67,7 @@
   export let playbackSpeed: number = 1.0;
   export const resetPlaybackSpeed = undefined as unknown as () => void;
   export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
+  export let totalSeconds: number = 0;
 
   export const resetAnimation = undefined as unknown as () => void;
 
@@ -444,6 +445,7 @@
       {timelineItems}
       {playbackSpeed}
       {setPlaybackSpeed}
+      {totalSeconds}
     />
   </div>
 </div>
