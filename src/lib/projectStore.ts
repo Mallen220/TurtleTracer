@@ -152,9 +152,11 @@ export function refreshMacros() {
   const startPoint = get(startPointStore);
   const macros = get(macrosStore);
 
-  // Optimization: Check if any macros exist before doing heavy work
+  // Optimization: Check if any macros exist or if there are leftover macro elements before doing heavy work
   const hasMacro = sequence.some((s) => s.kind === "macro");
-  if (!hasMacro) return;
+  const hasMacroElements = lines.some((l) => l.isMacroElement);
+
+  if (!hasMacro && !hasMacroElements) return;
 
   try {
     const result = regenerateProjectMacros(startPoint, lines, sequence, macros);
