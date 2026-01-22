@@ -191,3 +191,4 @@ src/tests/WaypointTableDrop.test.ts
 src/tests/macroIntegration.test.ts
 src/tests/nestedMacros.test.ts
 src/types/index.ts
+src/tests/recursiveMacroLoading.test.ts

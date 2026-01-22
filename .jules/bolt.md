@@ -1,1 +1,0 @@
-## 2024-05-23 - [Math Optimization] **Learning:** Recursive algorithms for geometric calculations (like De Casteljau) can cause significant GC pressure in high-frequency loops (e.g., rendering or sampling curves). **Action:** Prefer iterative implementations with reused object buffers for core math utilities.
