@@ -29,8 +29,14 @@
     | "interface"
     | "advanced"
     | "about";
-  let activeTab: TabId = "robot";
+  let activeTab: TabId = "general";
   let searchQuery = "";
+
+  // Reset tab when closed so it's fresh on next open
+  $: if (!isOpen) {
+    activeTab = "general";
+    searchQuery = "";
+  }
 
   let isCustomFieldWizardOpen = false;
   let editingCustomConfig: CustomFieldConfig | undefined = undefined;
@@ -174,6 +180,11 @@
   }
 
   import { saveSettings } from "../../../utils/settingsPersistence";
+
+  async function handleSave() {
+    await saveSettings(settings);
+    isOpen = false;
+  }
 
   async function handleReset() {
     if (
@@ -471,6 +482,30 @@
               </button>
             {/each}
           </nav>
+
+          <!-- Sidebar Footer (Reset) -->
+          <div class="p-4 border-t border-neutral-200 dark:border-neutral-800">
+            <button
+              on:click={handleReset}
+              class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width={1.5}
+                stroke="currentColor"
+                class="size-4"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                />
+              </svg>
+              Reset Defaults
+            </button>
+          </div>
         </div>
 
         <!-- Content Area -->
@@ -488,13 +523,12 @@
                 {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
               {/if}
             </h3>
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-center">
               <button
-                on:click={handleReset}
-                class="px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded transition-colors"
-                title="Reset all settings to default values"
+                on:click={handleSave}
+                class="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors shadow-sm"
               >
-                Reset Defaults
+                Save
               </button>
               <button
                 on:click={() => (isOpen = false)}
