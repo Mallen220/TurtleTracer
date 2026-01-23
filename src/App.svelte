@@ -87,6 +87,7 @@
   import { themesStore } from "./lib/pluginsStore";
   import { registerCoreUI } from "./lib/coreRegistrations";
   import { componentRegistry } from "./lib/registries";
+  import { POTATO_THEME_CSS, firePotatoConfetti } from "./utils/potatoTheme";
 
   // Register Default Components/Tabs
   registerCoreUI();
@@ -1209,32 +1210,48 @@
   $: {
     // Depend on themesStore so we re-run when plugins load
     const registeredThemes = $themesStore;
-    if (settings?.theme) {
-      let t = settings.theme;
+    if (settings) {
+      // Check for Potato Mode first!
+      const isPotatoMode = settings.robotImage === "/JefferyThePotato.png";
 
       // Remove any existing custom theme style
       const existingStyle = document.getElementById("custom-theme-style");
       if (existingStyle) existingStyle.remove();
 
-      // Check if it's a custom theme
-      const customTheme = registeredThemes.find((th) => th.name === t);
-
-      if (customTheme) {
+      if (isPotatoMode) {
         const style = document.createElement("style");
         style.id = "custom-theme-style";
-        style.textContent = customTheme.css;
+        style.textContent = POTATO_THEME_CSS;
         document.head.appendChild(style);
 
-        // Default to dark base for custom themes
-        document.documentElement.classList.add("dark");
+        // Potato mode works best with light mode base (colors are overridden anyway)
+        document.documentElement.classList.remove("dark");
+        document.documentElement.classList.add("potato-mode");
       } else {
-        if (t === "auto") {
-          t = window.matchMedia("(prefers-color-scheme: dark)").matches
-            ? "dark"
-            : "light";
+        document.documentElement.classList.remove("potato-mode");
+
+        let t = settings.theme || "auto";
+
+        // Check if it's a custom theme
+        const customTheme = registeredThemes.find((th) => th.name === t);
+
+        if (customTheme) {
+          const style = document.createElement("style");
+          style.id = "custom-theme-style";
+          style.textContent = customTheme.css;
+          document.head.appendChild(style);
+
+          // Default to dark base for custom themes
+          document.documentElement.classList.add("dark");
+        } else {
+          if (t === "auto") {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          }
+          if (t === "dark") document.documentElement.classList.add("dark");
+          else document.documentElement.classList.remove("dark");
         }
-        if (t === "dark") document.documentElement.classList.add("dark");
-        else document.documentElement.classList.remove("dark");
       }
     }
   }
@@ -1252,6 +1269,11 @@
 <svelte:window
   bind:innerWidth
   bind:innerHeight
+  on:click={(e) => {
+    if (settings?.robotImage === "/JefferyThePotato.png") {
+      firePotatoConfetti(e.clientX, e.clientY);
+    }
+  }}
   on:dragenter={handleDragEnter}
   on:dragleave={handleDragLeave}
   on:dragover={handleDragOver}
