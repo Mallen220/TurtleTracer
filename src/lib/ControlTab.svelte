@@ -384,7 +384,7 @@
         id="stats-btn"
         on:click={() => (statsOpen = !statsOpen)}
         class="flex-none flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:text-neutral-900 dark:hover:text-neutral-200 gap-2 shadow-sm"
-        title="Path Statistics"
+        title="Path Statistics (S)"
         aria-label="View path statistics"
       >
         <svg

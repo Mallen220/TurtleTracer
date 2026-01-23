@@ -56,7 +56,7 @@
 >
   <button
     id="play-pause-btn"
-    title="Play/Pause"
+    title="Play/Pause (Space)"
     aria-label={playing ? "Pause animation" : "Play animation"}
     on:click={() => {
       if (playing) {

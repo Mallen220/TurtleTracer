@@ -19,7 +19,7 @@
   } from "../stores";
   import { getRandomColor } from "../utils";
   import { SaveIcon } from "./components/icons";
-  import { calculatePathTime, formatTime } from "../utils";
+  import { calculatePathTime, formatTime, modKey } from "../utils";
   import { showShortcuts } from "../stores";
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
@@ -348,7 +348,7 @@
     <!-- Undo/Redo Group -->
     <div class="flex items-center gap-1">
       <button
-        title="Undo"
+        title={`Undo (${modKey}+Z)`}
         aria-label="Undo"
         on:click={undoAction}
         disabled={!canUndo}
@@ -370,7 +370,7 @@
         </svg>
       </button>
       <button
-        title="Redo"
+        title={`Redo (${modKey}+Shift+Z)`}
         aria-label="Redo"
         on:click={redoAction}
         disabled={!canRedo}
@@ -734,7 +734,7 @@
           bind:this={saveButtonRef}
           on:click={() => (saveDropdownOpen = !saveDropdownOpen)}
           class="flex items-center gap-1 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
-          title="Save Options"
+          title={`Save Options (${modKey}+S)`}
           aria-label="Save Options"
         >
           <SaveIcon className="size-5" />
@@ -891,7 +891,7 @@
       <!-- New Project -->
       <button
         id="new-project-btn"
-        title="New Project"
+        title={`New Project (${modKey}+N)`}
         aria-label="New Project"
         on:click={() => resetProject()}
         class="relative group p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
@@ -915,7 +915,7 @@
       <!-- Settings Button -->
       <button
         id="settings-btn"
-        title="Settings"
+        title={`Settings (${modKey}+,)`}
         aria-label="Settings"
         on:click={() => showSettings.set(true)}
         class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
