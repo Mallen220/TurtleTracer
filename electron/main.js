@@ -9,6 +9,7 @@ import AppUpdater from "./updater.js";
 import rateLimit from "express-rate-limit";
 import simpleGit from "simple-git";
 import ts from "typescript";
+import { WebSocket } from "ws";
 
 // Handle __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -1124,6 +1125,73 @@ ipcMain.handle("file:make-relative-path", (event, base, target) => {
     console.error("Error making relative path:", base, target, e);
     return target;
   }
+});
+
+// Telemetry IPC Handlers
+let telemetrySocket = null;
+
+ipcMain.handle("telemetry:connect", async (event, ip, port) => {
+  if (telemetrySocket) {
+    try {
+      telemetrySocket.terminate();
+    } catch (e) {
+      console.warn("Error terminating existing socket:", e);
+    }
+    telemetrySocket = null;
+  }
+
+  const url = `ws://${ip}:${port}/telemetry`;
+  console.log(`Attempting to connect to telemetry at ${url}`);
+
+  try {
+    telemetrySocket = new WebSocket(url);
+
+    telemetrySocket.on("open", () => {
+      console.log("Telemetry connected");
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("telemetry:status", "CONNECTED");
+      }
+    });
+
+    telemetrySocket.on("message", (data) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("telemetry:data", data.toString());
+      }
+    });
+
+    telemetrySocket.on("close", () => {
+      console.log("Telemetry disconnected");
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("telemetry:status", "DISCONNECTED");
+      }
+      telemetrySocket = null;
+    });
+
+    telemetrySocket.on("error", (err) => {
+      console.error("Telemetry error:", err);
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("telemetry:status", "ERROR");
+      }
+    });
+
+    // Notify UI that we are trying to connect
+    event.sender.send("telemetry:status", "CONNECTING");
+    return true;
+  } catch (e) {
+    console.error("Failed to create WebSocket:", e);
+    return false;
+  }
+});
+
+ipcMain.handle("telemetry:disconnect", async (event) => {
+  if (telemetrySocket) {
+    telemetrySocket.terminate();
+    telemetrySocket = null;
+    if (!event.sender.isDestroyed()) {
+      event.sender.send("telemetry:status", "DISCONNECTED");
+    }
+  }
+  return true;
 });
 
 // Plugin System IPC Handlers

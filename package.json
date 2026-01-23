@@ -41,6 +41,7 @@
     "@types/jsdom": "^27.0.0",
     "@types/markdown-it": "^14.1.2",
     "@types/upng-js": "^2.1.5",
+    "@types/ws": "^8.18.1",
     "autoprefixer": "^10.4.20",
     "cli-progress": "^3.12.0",
     "electron": "^39.2.3",
@@ -60,7 +61,6 @@
     "vitest": "^2.1.8"
   },
   "dependencies": {
-    "typescript": "^5.5.3",
     "@types/d3": "^7.4.3",
     "@types/lodash": "^4.17.7",
     "canvas": "^3.2.0",
@@ -81,8 +81,10 @@
     "svelte-dnd-action": "^0.9.67",
     "svelte-highlight": "^7.7.0",
     "two.js": "^0.8.14",
+    "typescript": "^5.5.3",
     "update-electron-app": "^3.1.1",
-    "upng-js": "^2.1.0"
+    "upng-js": "^2.1.0",
+    "ws": "^8.19.0"
   },
   "build": {
     "appId": "com.pedropathing.visualizer",

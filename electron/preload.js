@@ -84,4 +84,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   deletePlugin: (filename) => ipcRenderer.invoke("plugins:delete", filename),
   openPluginsFolder: () => ipcRenderer.invoke("plugins:open-folder"),
   transpilePlugin: (code) => ipcRenderer.invoke("plugins:transpile", code),
+
+  // Telemetry
+  telemetry: {
+    connect: (ip, port) => ipcRenderer.invoke("telemetry:connect", ip, port),
+    disconnect: () => ipcRenderer.invoke("telemetry:disconnect"),
+    onData: (callback) =>
+      ipcRenderer.on("telemetry:data", (_event, data) => callback(data)),
+    onStatus: (callback) =>
+      ipcRenderer.on("telemetry:status", (_event, status) => callback(status)),
+  },
 });

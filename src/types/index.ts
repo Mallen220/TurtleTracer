@@ -511,3 +511,52 @@ export interface PedroAPI {
     requestRedraw: () => void;
   };
 }
+
+// Telemetry Types
+export interface RobotPose {
+  x: number;
+  y: number;
+  heading: number; // radians
+}
+
+export type FieldOperation =
+  | {
+      type: "circle";
+      x: number;
+      y: number;
+      r: number;
+      color: string;
+      stroke?: boolean;
+    }
+  | {
+      type: "line";
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      color: string;
+      strokeWidth?: number;
+    }
+  | {
+      type: "polygon";
+      xPoints: number[];
+      yPoints: number[];
+      color: string;
+      fill?: boolean;
+      stroke?: boolean;
+    }
+  | {
+      type: "text";
+      x: number;
+      y: number;
+      content: string;
+      color: string;
+      fontSize?: number;
+    };
+
+export interface TelemetryPacket {
+  timestamp: number;
+  robotPose?: RobotPose;
+  data: Record<string, string | number | boolean>;
+  fieldOverlay?: FieldOperation | FieldOperation[];
+}

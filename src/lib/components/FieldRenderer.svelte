@@ -47,12 +47,11 @@
     isLoadingDiff,
   } from "../diffStore";
   import {
-    telemetryData,
     showTelemetry,
     showTelemetryGhost,
-    telemetryOffset,
-    type TelemetryPoint,
   } from "../telemetryStore";
+  import LiveRobotLayer from "./telemetry/LiveRobotLayer.svelte";
+  import LiveFieldLayer from "./telemetry/LiveFieldLayer.svelte";
   import { currentFilePath, gitStatusStore, isUnsaved } from "../../stores";
   import {
     POINT_RADIUS,
@@ -226,10 +225,8 @@
   $: markers = $collisionMarkers;
 
   // Telemetry State
-  $: telemetry = $telemetryData;
   $: isTelemetryVisible = $showTelemetry;
   $: isTelemetryGhostVisible = $showTelemetryGhost;
-  $: tOffset = $telemetryOffset;
 
   // Diff Mode State
   $: isDiffMode = $diffMode;
@@ -964,81 +961,6 @@
     return onionLayers;
   })();
 
-  // Telemetry Path
-  $: telemetryPathElements = (() => {
-    x;
-    y; // Trigger reactivity on pan/zoom
-    if (!isTelemetryVisible || !telemetry || telemetry.length < 2) return [];
-
-    const vertices = telemetry.map(
-      (pt: TelemetryPoint) =>
-        new Two.Anchor(x(pt.x), y(pt.y), 0, 0, 0, 0, Two.Commands.line),
-    );
-    vertices[0].command = Two.Commands.move;
-
-    const path = new Two.Path(vertices, false, false);
-    path.noFill();
-    path.stroke = "#6b7280"; // Gray-500
-    path.linewidth = uiLength(1.0);
-    path.opacity = 0.6;
-    path.dashes = [uiLength(4), uiLength(4)];
-
-    return [path];
-  })();
-
-  // Ghost Robot State for Telemetry
-  $: ghostRobotState = (() => {
-    if (
-      !isTelemetryVisible ||
-      !isTelemetryGhostVisible ||
-      !telemetry ||
-      telemetry.length === 0
-    )
-      return null;
-
-    // Calculate current simulation time from percentStore
-    // If timePrediction is available, use it to map percent to seconds
-    let currentSimTime = 0;
-
-    if (timePrediction && timePrediction.totalTime > 0) {
-      currentSimTime = ($percentStore / 100) * timePrediction.totalTime;
-    } else {
-      // If no path, we can't really sync.
-      return null;
-    }
-
-    // Apply offset
-    const targetTime = currentSimTime + tOffset;
-
-    // Find point just before targetTime
-    let idx = -1;
-    for (let i = 0; i < telemetry.length; i++) {
-      if (telemetry[i].time > targetTime) {
-        break;
-      }
-      idx = i;
-    }
-
-    if (idx === -1) return null; // Before start
-    if (idx === telemetry.length - 1) return telemetry[idx]; // After end
-
-    // Interpolate
-    const p1 = telemetry[idx];
-    const p2 = telemetry[idx + 1];
-    const t = (targetTime - p1.time) / (p2.time - p1.time);
-
-    // Interpolate heading with wrapping
-    const h1 = p1.heading;
-    const h2 = p2.heading;
-    const diff = getAngularDifference(h1, h2);
-
-    return {
-      x: p1.x + (p2.x - p1.x) * t,
-      y: p1.y + (p2.y - p1.y) * t,
-      heading: h1 + diff * t,
-    };
-  })();
-
   // Preview Paths
   $: previewPathElements = (() => {
     let _previewPaths: Path[] = [];
@@ -1507,7 +1429,6 @@
     path.forEach((el) => lineGroup.add(el));
     diffPathElements.forEach((el) => lineGroup.add(el));
     previewPathElements.forEach((el) => lineGroup.add(el));
-    telemetryPathElements.forEach((el) => lineGroup.add(el));
 
     if (!$isPresentationMode && !isDiffMode) {
       points.forEach((el) => pointGroup.add(el));
@@ -2142,6 +2063,17 @@
       class="absolute inset-0 pointer-events-none z-30"
     ></div>
 
+    {#if isTelemetryVisible}
+      <LiveFieldLayer {x} {y} {width} {height} />
+      <svg
+        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20;"
+      >
+        {#if isTelemetryGhostVisible}
+          <LiveRobotLayer {x} {y} />
+        {/if}
+      </svg>
+    {/if}
+
     {#if settings.customMaps?.some((m) => m.id === settings.fieldMap)}
       {@const activeMap = settings.customMaps.find(
         (m) => m.id === settings.fieldMap,
@@ -2201,22 +2133,6 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
           style={`position: absolute; top: ${y(committedRobotState.y)}px; left: ${x(committedRobotState.x)}px; transform: translate(-50%, -50%) rotate(${committedRobotState.heading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(239, 68, 68, 0.5); border: 2px solid #dc2626;`}
         ></div>
       {/if}
-    {/if}
-
-    <!-- Telemetry Ghost Robot -->
-    {#if ghostRobotState}
-      <img
-        src={settings.robotImage || "/robot.png"}
-        alt="Ghost Robot"
-        class="max-w-none grayscale opacity-50"
-        style={`position: absolute; top: ${y(ghostRobotState.y)}px;
-left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghostRobotState.heading}deg); z-index: 19; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; border: 2px dashed #6b7280; border-radius: 4px;`}
-        draggable="false"
-        on:error={(e) => {
-          // @ts-ignore
-          e.target.src = "/robot.png";
-        }}
-      />
     {/if}
   </div>
   {#if !$isPresentationMode}
