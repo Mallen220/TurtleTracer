@@ -564,6 +564,23 @@
                 </SettingsItem>
 
                 <SettingsItem
+                  label="Welcome Tutorial"
+                  description="Learn how to use the application"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <button
+                    on:click={() => {
+                      isOpen = false;
+                      startTutorial.set(true);
+                    }}
+                    class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Start Tutorial
+                  </button>
+                </SettingsItem>
+
+                <SettingsItem
                   label="Plugin Manager"
                   description="Manage installed plugins"
                   {searchQuery}
@@ -579,6 +596,7 @@
                     Open Manager
                   </button>
                 </SettingsItem>
+
 
                 <SettingsItem
                   label="Git Integration"
