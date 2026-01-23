@@ -16,7 +16,6 @@
     showFileManager,
     gitStatusStore,
     showPluginManager,
-    startTutorial,
   } from "../stores";
   import { getRandomColor } from "../utils";
   import { SaveIcon } from "./components/icons";
@@ -25,7 +24,6 @@
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
   import { menuNavigation } from "./actions/menuNavigation";
-  import TelemetryDialog from "./components/dialogs/TelemetryDialog.svelte";
   export let startPoint: Point;
   export let lines: Line[];
   export let sequence: SequenceItem[];
@@ -48,7 +46,6 @@
 
   let shortcutsOpen = false;
   let exportMenuOpen = false;
-  let showTelemetryDialog = false;
 
   let saveDropdownOpen = false;
   let saveDropdownRef: HTMLElement;
@@ -915,29 +912,6 @@
         </svg>
       </button>
 
-      <!-- Telemetry Button -->
-      <button
-        title="Telemetry"
-        aria-label="Telemetry"
-        on:click={() => (showTelemetryDialog = true)}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z"
-          />
-        </svg>
-      </button>
-
       <!-- Settings Button -->
       <button
         id="settings-btn"
@@ -963,29 +937,6 @@
             stroke-linecap="round"
             stroke-linejoin="round"
             d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-          />
-        </svg>
-      </button>
-
-      <!-- Tutorial Button -->
-      <button
-        title="Start Tutorial"
-        aria-label="Start Tutorial"
-        on:click={() => startTutorial.set(true)}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
           />
         </svg>
       </button>
@@ -1032,5 +983,3 @@
     </div>
   </div>
 </div>
-
-<TelemetryDialog bind:isOpen={showTelemetryDialog} />
