@@ -13,7 +13,11 @@
   import RobotProfileManager from "../settings/RobotProfileManager.svelte";
   import CustomFieldWizard from "../settings/CustomFieldWizard.svelte";
   import { themesStore } from "../../pluginsStore";
-  import { showPluginManager, showShortcuts, startTutorial } from "../../../stores";
+  import {
+    showPluginManager,
+    showShortcuts,
+    startTutorial,
+  } from "../../../stores";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -450,7 +454,6 @@
 
       <!-- Settings Content -->
       <div class="w-full flex-1 overflow-y-auto pr-2">
-
         <!-- Welcome Tutorial Section -->
         <div class="mb-4">
           <button
@@ -482,7 +485,7 @@
             </div>
           </button>
         </div>
-        
+
         <!-- Keyboard Shortcuts Section -->
         <div class="mb-4">
           <button
@@ -511,8 +514,6 @@
             </div>
           </button>
         </div>
-
-        
 
         <!-- Plugin Manager Section -->
         <div class="mb-4">

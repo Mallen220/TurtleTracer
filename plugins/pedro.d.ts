@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-
 /**
  * Type definitions for Pedro Pathing Visualizer Plugins.
  * These types are automatically available in your .ts plugins.
@@ -411,7 +410,7 @@ interface PluginGraphicsOptions {
   fontSize?: number; // Text
   align?: "left" | "center" | "right"; // Text
   // Path specific
-  points?: {x: number, y: number}[]; // Path/Line
+  points?: { x: number; y: number }[]; // Path/Line
   closed?: boolean; // Path
 }
 
@@ -495,9 +494,22 @@ interface PedroAPI {
    * UI utilities.
    */
   ui: {
-    prompt: (options: { title: string; message: string; defaultText?: string }) => Promise<string | null>;
-    confirm: (options: { title: string; message: string; confirmText?: string; cancelText?: string }) => Promise<boolean>;
-    toast: (message: string, type?: "success" | "warning" | "error" | "info", timeout?: number) => void;
+    prompt: (options: {
+      title: string;
+      message: string;
+      defaultText?: string;
+    }) => Promise<string | null>;
+    confirm: (options: {
+      title: string;
+      message: string;
+      confirmText?: string;
+      cancelText?: string;
+    }) => Promise<boolean>;
+    toast: (
+      message: string,
+      type?: "success" | "warning" | "error" | "info",
+      timeout?: number,
+    ) => void;
   };
 
   /**
@@ -507,7 +519,6 @@ interface PedroAPI {
     requestRedraw: () => void;
   };
 }
-
 
 export {};
 

@@ -31,7 +31,9 @@
       <h2 class="text-xl font-bold mb-4 text-neutral-900 dark:text-white">
         {title}
       </h2>
-      <p class="mb-6 text-neutral-600 dark:text-neutral-400 whitespace-pre-wrap">
+      <p
+        class="mb-6 text-neutral-600 dark:text-neutral-400 whitespace-pre-wrap"
+      >
         {message}
       </p>
 

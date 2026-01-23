@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 export const POTATO_THEME_CSS = `
 :root {
   --potato-flesh: #F9F3D8;
@@ -101,17 +102,17 @@ export function firePotatoConfetti(x: number, y: number) {
   const spread = 50;
 
   for (let i = 0; i < count; i++) {
-    const potato = document.createElement('img');
-    potato.src = '/Potato.png';
-    potato.style.position = 'fixed';
-    potato.style.width = '30px';
-    potato.style.height = 'auto';
-    potato.style.left = x + 'px';
-    potato.style.top = y + 'px';
-    potato.style.pointerEvents = 'none';
-    potato.style.zIndex = '9999';
-    potato.style.backgroundColor = 'transparent'; // Ensure transparent
-    potato.style.transition = 'all 1s ease-out';
+    const potato = document.createElement("img");
+    potato.src = "/Potato.png";
+    potato.style.position = "fixed";
+    potato.style.width = "30px";
+    potato.style.height = "auto";
+    potato.style.left = x + "px";
+    potato.style.top = y + "px";
+    potato.style.pointerEvents = "none";
+    potato.style.zIndex = "9999";
+    potato.style.backgroundColor = "transparent"; // Ensure transparent
+    potato.style.transition = "all 1s ease-out";
     potato.style.transform = `translate(-50%, -50%) rotate(${Math.random() * 360}deg)`;
 
     document.body.appendChild(potato);
@@ -124,7 +125,7 @@ export function firePotatoConfetti(x: number, y: number) {
       const ty = Math.sin(angle) * velocity + 100; // Add gravity
 
       potato.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) rotate(${Math.random() * 720}deg)`;
-      potato.style.opacity = '0';
+      potato.style.opacity = "0";
     });
 
     // Cleanup

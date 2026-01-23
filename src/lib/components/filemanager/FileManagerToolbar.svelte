@@ -178,8 +178,6 @@
       class="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1 shrink-0"
     ></div>
 
-    
-
     <!-- Import -->
     <label
       class="p-1.5 text-neutral-500 hover:text-purple-600 dark:text-neutral-400 dark:hover:text-purple-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer shrink-0"
@@ -202,8 +200,6 @@
         />
       </svg>
     </label>
-
-    
 
     <!-- New File -->
     <button

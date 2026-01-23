@@ -402,7 +402,7 @@ export interface PluginGraphicsOptions {
   fontSize?: number; // Text
   align?: "left" | "center" | "right"; // Text
   // Path specific
-  points?: {x: number, y: number}[]; // Path/Line
+  points?: { x: number; y: number }[]; // Path/Line
   closed?: boolean; // Path
 }
 
@@ -486,9 +486,22 @@ export interface PedroAPI {
    * UI utilities.
    */
   ui: {
-    prompt: (options: { title: string; message: string; defaultText?: string }) => Promise<string | null>;
-    confirm: (options: { title: string; message: string; confirmText?: string; cancelText?: string }) => Promise<boolean>;
-    toast: (message: string, type?: "success" | "warning" | "error" | "info", timeout?: number) => void;
+    prompt: (options: {
+      title: string;
+      message: string;
+      defaultText?: string;
+    }) => Promise<string | null>;
+    confirm: (options: {
+      title: string;
+      message: string;
+      confirmText?: string;
+      cancelText?: string;
+    }) => Promise<boolean>;
+    toast: (
+      message: string,
+      type?: "success" | "warning" | "error" | "info",
+      timeout?: number,
+    ) => void;
   };
 
   /**

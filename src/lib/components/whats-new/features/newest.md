@@ -128,14 +128,14 @@ A new view mode designed for showcasing your paths without distractions.
 More powerful editing with expanded keyboard support.
 
 - **Copy, Cut, Paste:** Standard clipboard operations for efficient path editing.
-- **Always More:** Check the Keyboard Shortcuts dialog for a complete list of available binds. It is always recommended to reset your keybinds after every update because the list is always growing with rapid new support. 
+- **Always More:** Check the Keyboard Shortcuts dialog for a complete list of available binds. It is always recommended to reset your keybinds after every update because the list is always growing with rapid new support.
 
 ### **Customizable Interface**
 
 Make Pedro work the way you want.
 
 - **Font Size Control:** Adjust the UI scale to your preference (75% - 150%).
-- **Theme Support:** Choose between light, dark, or system-default themes, plus custom theme plugins that can now be added. Including an example pink theme and secret theme. 
+- **Theme Support:** Choose between light, dark, or system-default themes, plus custom theme plugins that can now be added. Including an example pink theme and secret theme.
 
 ## **Improvements:**
 

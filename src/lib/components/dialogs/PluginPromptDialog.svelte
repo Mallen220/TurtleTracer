@@ -58,14 +58,16 @@
       <h2 class="text-xl font-bold mb-4 text-neutral-900 dark:text-white">
         {title}
       </h2>
-      <p class="mb-4 text-neutral-600 dark:text-neutral-400 whitespace-pre-wrap">
+      <p
+        class="mb-4 text-neutral-600 dark:text-neutral-400 whitespace-pre-wrap"
+      >
         {message}
       </p>
 
       <input
         bind:this={inputElement}
         type="text"
-        bind:value={value}
+        bind:value
         on:keydown={handleKeydown}
         on:keyup={(e) => e.stopPropagation()}
         on:keypress={(e) => e.stopPropagation()}

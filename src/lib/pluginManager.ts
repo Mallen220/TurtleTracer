@@ -152,7 +152,10 @@ export class PluginManager {
                 try {
                   feature.navbar!.onClick();
                 } catch (e) {
-                  console.error(`Error in plugin ${filename} navbar action:`, e);
+                  console.error(
+                    `Error in plugin ${filename} navbar action:`,
+                    e,
+                  );
                   appStores.notification.set({
                     message: `Error in plugin: ${e}`,
                     type: "error",
@@ -217,7 +220,8 @@ export class PluginManager {
                         fieldView.xScale(opts.width || 0) - fieldView.xScale(0),
                       );
                       const h = Math.abs(
-                        fieldView.yScale(opts.height || 0) - fieldView.yScale(0),
+                        fieldView.yScale(opts.height || 0) -
+                          fieldView.yScale(0),
                       );
 
                       const rect = new two.constructor.Rectangle(px, py, w, h);
@@ -232,7 +236,8 @@ export class PluginManager {
                       const px = fieldView.xScale(opts.x);
                       const py = fieldView.yScale(opts.y);
                       const r = Math.abs(
-                        fieldView.xScale(opts.radius || 0) - fieldView.xScale(0),
+                        fieldView.xScale(opts.radius || 0) -
+                          fieldView.xScale(0),
                       );
 
                       const circle = new two.constructor.Circle(px, py, r);

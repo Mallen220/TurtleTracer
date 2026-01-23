@@ -193,3 +193,7 @@ src/tests/nestedMacros.test.ts
 src/types/index.ts
 src/tests/recursiveMacroLoading.test.ts
 src/lib/components/sections/MacroTransformControls.svelte
+src/lib/components/dialogs/PluginConfirmDialog.svelte
+src/lib/components/dialogs/PluginPromptDialog.svelte
+src/lib/components/dialogs/SettingsDialog.svelte
+src/utils/potatoTheme.ts
