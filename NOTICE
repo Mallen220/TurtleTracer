@@ -196,4 +196,6 @@ src/lib/components/sections/MacroTransformControls.svelte
 src/lib/components/dialogs/PluginConfirmDialog.svelte
 src/lib/components/dialogs/PluginPromptDialog.svelte
 src/lib/components/dialogs/SettingsDialog.svelte
+src/lib/components/dialogs/SettingsItem.svelte
+verify_settings_v2.py
 src/utils/potatoTheme.ts
