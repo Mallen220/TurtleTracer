@@ -13,7 +13,11 @@
   import CustomFieldWizard from "../settings/CustomFieldWizard.svelte";
   import SettingsItem from "./SettingsItem.svelte";
   import { themesStore } from "../../pluginsStore";
-  import { showPluginManager, showShortcuts } from "../../../stores";
+  import {
+    showPluginManager,
+    showShortcuts,
+    startTutorial,
+  } from "../../../stores";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -399,10 +403,19 @@
           <div class="p-4 border-b border-neutral-200 dark:border-neutral-800">
             <h2
               id="settings-title"
-              class="text-xl font-bold text-neutral-900 dark:text-white mb-4 pl-1"
+              class="text-xl font-bold text-neutral-900 dark:text-white pl-1"
             >
               Settings
             </h2>
+            <div
+              class="flex items-center gap-2 mb-4 pl-1 text-xs font-medium text-neutral-500 dark:text-neutral-400"
+            >
+              <span>Version {appVersion}</span>
+              {#if downloadCount}
+                <span>• {downloadCount.toLocaleString()} Downloads</span>
+              {/if}
+            </div>
+
             <div class="relative">
               <input
                 type="text"
@@ -519,7 +532,7 @@
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                stroke-width="1.5"
+                stroke-width={1.5}
                 stroke="currentColor"
                 class="size-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
               >
@@ -596,7 +609,6 @@
                     Open Manager
                   </button>
                 </SettingsItem>
-
 
                 <SettingsItem
                   label="Git Integration"
@@ -859,7 +871,7 @@
                           document.getElementById("robot-image-input")?.click()}
                         class="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
                       >
-                        Upload Image
+                        Upload Robot Image
                       </button>
                       <button
                         on:click={() => {
@@ -870,7 +882,7 @@
                         disabled={!settings.robotImage ||
                           settings.robotImage === "/robot.png"}
                       >
-                        Default
+                        Use Default Image
                       </button>
                       <button
                         on:click={() => {
@@ -880,7 +892,7 @@
                         class="potato-tooltip px-3 py-1.5 text-xs bg-amber-700 hover:bg-amber-800 text-white rounded-md transition-colors flex items-center gap-1 overflow-hidden relative"
                         style="background-image: linear-gradient(45deg, #a16207 25%, #ca8a04 25%, #ca8a04 50%, #a16207 50%, #a16207 75%, #ca8a04 75%, #ca8a04 100%); background-size: 20px 20px;"
                       >
-                        <span>🥔</span> Potato
+                        <span>🥔</span> Use Potato Robot
                       </button>
                     </div>
                   </div>
@@ -1455,6 +1467,26 @@
                           <li>Pedro Pathing Developers</li>
                           <li>FIRST Community</li>
                         </ul>
+                      </div>
+                      <div>
+                        <h4 class="font-semibold mb-2">Project Links</h4>
+                        <div class="flex gap-3 text-xs">
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingVisualizer/issues"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >Issues</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingVisualizer/releases"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >Releases</a
+                          >
+                        </div>
                       </div>
                     </div>
                   </div>
