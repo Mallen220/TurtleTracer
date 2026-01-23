@@ -19,7 +19,7 @@
   } from "../stores";
   import { getRandomColor } from "../utils";
   import { SaveIcon } from "./components/icons";
-  import { calculatePathTime, formatTime, modKey } from "../utils";
+  import { calculatePathTime, formatTime, getShortcutFromSettings } from "../utils";
   import { showShortcuts } from "../stores";
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
@@ -176,7 +176,7 @@
     <!-- Menu Button (Mobile/Sidebar toggle for consistency if desired, or just File Manager) -->
     <button
       id="file-manager-btn"
-      title="Open File Manager"
+      title={`Open File Manager${getShortcutFromSettings(settings, "toggle-file-manager")}`}
       aria-label="Open File Manager"
       on:click={() => showFileManager.set(true)}
       class="text-neutral-700 dark:text-neutral-200 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
@@ -348,7 +348,7 @@
     <!-- Undo/Redo Group -->
     <div class="flex items-center gap-1">
       <button
-        title={`Undo (${modKey}+Z)`}
+        title={`Undo${getShortcutFromSettings(settings, "undo")}`}
         aria-label="Undo"
         on:click={undoAction}
         disabled={!canUndo}
@@ -370,7 +370,7 @@
         </svg>
       </button>
       <button
-        title={`Redo (${modKey}+Shift+Z)`}
+        title={`Redo${getShortcutFromSettings(settings, "redo")}`}
         aria-label="Redo"
         on:click={redoAction}
         disabled={!canRedo}
@@ -400,7 +400,7 @@
     <!-- Sidebar Toggle -->
     <button
       id="sidebar-toggle-btn"
-      title={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
+      title={`${showSidebar ? "Hide Sidebar" : "Show Sidebar"}${getShortcutFromSettings(settings, "toggle-sidebar")}`}
       aria-label={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
       on:click={() => (showSidebar = !showSidebar)}
       class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
@@ -500,7 +500,7 @@
 
           <div class="px-2 py-2 grid grid-cols-1 gap-1">
             <button
-              title="Toggle Ruler"
+              title={`Toggle Ruler${getShortcutFromSettings(settings, "toggle-ruler")}`}
               aria-label="Toggle Ruler"
               role="menuitemcheckbox"
               aria-checked={$showRuler}
@@ -538,7 +538,7 @@
             </button>
 
             <button
-              title="Toggle Protractor"
+              title={`Toggle Protractor${getShortcutFromSettings(settings, "toggle-protractor")}`}
               aria-label="Toggle Protractor"
               role="menuitemcheckbox"
               aria-checked={$showProtractor}
@@ -630,7 +630,7 @@
             {/if}
 
             <button
-              title="Toggle Grid"
+              title={`Toggle Grid${getShortcutFromSettings(settings, "toggle-grid")}`}
               aria-label="Toggle Grid"
               role="menuitemcheckbox"
               aria-checked={$showGrid}
@@ -669,7 +669,7 @@
               <div class="flex items-center justify-between px-2 py-1.5">
                 <div class="flex items-center gap-2 w-full">
                   <button
-                    title={$snapToGrid ? "Disable Snap" : "Enable Snap"}
+                    title={`Toggle Snap${getShortcutFromSettings(settings, "toggle-snap")}`}
                     aria-label={$snapToGrid ? "Disable Snap" : "Enable Snap"}
                     role="menuitemcheckbox"
                     aria-checked={$snapToGrid}
@@ -734,7 +734,7 @@
           bind:this={saveButtonRef}
           on:click={() => (saveDropdownOpen = !saveDropdownOpen)}
           class="flex items-center gap-1 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
-          title={`Save Options (${modKey}+S)`}
+          title={`Save Options${getShortcutFromSettings(settings, "save-project")}`}
           aria-label="Save Options"
         >
           <SaveIcon className="size-5" />
@@ -769,6 +769,7 @@
                 saveDropdownOpen = false;
               }}
               class="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Save${getShortcutFromSettings(settings, "save-project")}`}
             >
               <span class="font-medium">Save</span>
             </button>
@@ -778,6 +779,7 @@
                 saveDropdownOpen = false;
               }}
               class="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Save As${getShortcutFromSettings(settings, "save-file-as")}`}
             >
               <span class="font-medium">Save As...</span>
             </button>
@@ -821,21 +823,25 @@
             <button
               on:click={() => handleExport("java")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Export Java${getShortcutFromSettings(settings, "export-java")}`}
               >Java Code</button
             >
             <button
               on:click={() => handleExport("points")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Export Points${getShortcutFromSettings(settings, "export-points")}`}
               >Points Array</button
             >
             <button
               on:click={() => handleExport("sequential")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Export Sequential${getShortcutFromSettings(settings, "export-sequential")}`}
               >Sequential Command</button
             >
             <button
               on:click={() => handleExport("json")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Export .pp${getShortcutFromSettings(settings, "export-pp")}`}
               >.pp File</button
             >
 
@@ -846,6 +852,7 @@
                 exportGif && exportGif();
               }}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Export GIF${getShortcutFromSettings(settings, "export-gif")}`}
               >Export Animated</button
             >
 
@@ -891,7 +898,7 @@
       <!-- New Project -->
       <button
         id="new-project-btn"
-        title={`New Project (${modKey}+N)`}
+        title={`New Project${getShortcutFromSettings(settings, "new-file")}`}
         aria-label="New Project"
         on:click={() => resetProject()}
         class="relative group p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
@@ -915,7 +922,7 @@
       <!-- Settings Button -->
       <button
         id="settings-btn"
-        title={`Settings (${modKey}+,)`}
+        title={`Settings${getShortcutFromSettings(settings, "open-settings")}`}
         aria-label="Settings"
         on:click={() => showSettings.set(true)}
         class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"

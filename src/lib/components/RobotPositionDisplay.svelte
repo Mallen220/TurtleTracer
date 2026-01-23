@@ -1,9 +1,11 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { BasePoint } from "../../types/index";
+  import type { BasePoint, Settings } from "../../types/index";
+  import { getShortcutFromSettings } from "../../utils";
 
   export let robotXY: BasePoint;
   export let robotHeading: number;
+  export let settings: Settings;
   // x and y scales are no longer needed as robotXY is now in inches
   // export let x: d3.ScaleLinear<number, number, number>;
   // export let y: d3.ScaleLinear<number, number, number>;
@@ -27,7 +29,7 @@
 
     <div class="flex items-center gap-2">
       <button
-        title="Validate Path"
+        title={`Validate Path${getShortcutFromSettings(settings, "validate-path")}`}
         on:click={() => onValidate && onValidate()}
         class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-blue-500"
       >
@@ -48,7 +50,7 @@
         </svg>
       </button>
       <button
-        title="Optimize Path"
+        title={`Optimize Path${getShortcutFromSettings(settings, "optimize-start")}`}
         on:click={() => onToggleOptimization && onToggleOptimization()}
         class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-purple-500"
       >

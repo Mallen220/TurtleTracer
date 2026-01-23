@@ -1,8 +1,11 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Point } from "../../../types/index";
+  import type { Point, Settings } from "../../../types/index";
   import { selectedPointId, focusRequest } from "../../../stores";
+  import { getShortcutFromSettings } from "../../../utils";
+
   export let startPoint: Point;
+  export let settings: Settings;
   export let addPathAtStart: () => void;
   export let addWaitAtStart: () => void;
   export let addRotateAtStart: () => void;
@@ -140,6 +143,7 @@
     <button
       on:click={addPathAtStart}
       aria-label="Add Path after start"
+      title={`Add Path${getShortcutFromSettings(settings, "add-path-start")}`}
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800/30"
     >
       <svg
@@ -157,6 +161,7 @@
     <button
       on:click={addWaitAtStart}
       aria-label="Add Wait after start"
+      title={`Add Wait${getShortcutFromSettings(settings, "add-wait-start")}`}
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200 dark:border-amber-800/30"
     >
       <svg
@@ -174,6 +179,7 @@
     <button
       on:click={addRotateAtStart}
       aria-label="Add Rotate after start"
+      title={`Add Rotate${getShortcutFromSettings(settings, "add-rotate-start")}`}
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30"
     >
       <svg

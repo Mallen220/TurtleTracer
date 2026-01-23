@@ -34,6 +34,7 @@
     toggleCollapseAllTrigger,
   } from "../../../stores";
   import { loadMacro } from "../../../lib/projectStore";
+  import { getShortcutFromSettings } from "../../../utils";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -790,6 +791,7 @@
       {addRotateAtStart}
       {toggleCollapseAll}
       {allCollapsed}
+      {settings}
     />
   </div>
 
@@ -958,6 +960,7 @@
   <div class="flex flex-row justify-center items-center gap-3 pt-4">
     <button
       on:click={addLine}
+      title={`Add Path${getShortcutFromSettings(settings, "add-path")}`}
       class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
       aria-label="Add new path segment"
     >
@@ -980,6 +983,7 @@
 
     <button
       on:click={addWait}
+      title={`Add Wait${getShortcutFromSettings(settings, "add-wait")}`}
       class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-500 dark:bg-amber-600 rounded-md shadow-sm hover:bg-amber-600 dark:hover:bg-amber-500 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-200 dark:focus:ring-amber-500"
       aria-label="Add wait command"
     >
@@ -999,6 +1003,7 @@
 
     <button
       on:click={addRotate}
+      title={`Add Rotate${getShortcutFromSettings(settings, "add-rotate")}`}
       class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-pink-500 dark:bg-pink-600 rounded-md shadow-sm hover:bg-pink-600 dark:hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500"
       aria-label="Add rotate command"
     >

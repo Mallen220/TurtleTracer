@@ -19,11 +19,13 @@
   export let playbackSpeed: number = 1.0;
   export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
   export let totalSeconds: number = 0;
+  export let settings: Settings;
 
+  import type { Settings } from "../../types";
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
   import { menuNavigation } from "../actions/menuNavigation";
-  import { formatTime } from "../../utils";
+  import { formatTime, getShortcutFromSettings } from "../../utils";
 
   // Speed dropdown state & helpers
   let showSpeedMenu = false;
@@ -56,7 +58,7 @@
 >
   <button
     id="play-pause-btn"
-    title="Play/Pause (Space)"
+    title={`Play/Pause${getShortcutFromSettings(settings, "toggle-playback")}`}
     aria-label={playing ? "Pause animation" : "Play animation"}
     on:click={() => {
       if (playing) {

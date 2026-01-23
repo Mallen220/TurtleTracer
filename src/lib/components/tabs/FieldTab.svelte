@@ -146,6 +146,7 @@
     <RobotPositionDisplay
       {robotXY}
       {robotHeading}
+      {settings}
       onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
       onValidate={handleValidate}
     />
