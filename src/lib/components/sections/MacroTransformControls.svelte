@@ -132,42 +132,42 @@
       {#if activeTab === "translate"}
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500 mb-1"
-              >X Delta</label
-            >
-            <input
-              type="number"
-              bind:value={dx}
-              class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
-            />
+            <label class="block text-[10px] font-medium text-neutral-500">
+              <span class="block mb-1">X Delta</span>
+              <input
+                type="number"
+                bind:value={dx}
+                class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+              />
+            </label>
           </div>
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500 mb-1"
-              >Y Delta</label
-            >
-            <input
-              type="number"
-              bind:value={dy}
-              class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
-            />
+            <label class="block text-[10px] font-medium text-neutral-500">
+              <span class="block mb-1">Y Delta</span>
+              <input
+                type="number"
+                bind:value={dy}
+                class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+              />
+            </label>
           </div>
         </div>
       {:else if activeTab === "rotate"}
         <div class="space-y-2">
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500 mb-1"
-              >Angle (deg)</label
-            >
-            <input
-              type="number"
-              bind:value={degrees}
-              class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
-            />
+            <label class="block text-[10px] font-medium text-neutral-500">
+              <span class="block mb-1">Angle (deg)</span>
+              <input
+                type="number"
+                bind:value={degrees}
+                class="w-full px-2 py-1 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+              />
+            </label>
           </div>
 
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500 mb-1"
-              >Pivot</label
+            <div class="block text-[10px] font-medium text-neutral-500 mb-1"
+              >Pivot</div
             >
             <div class="flex flex-wrap gap-2">
               <label class="flex items-center gap-1.5 cursor-pointer">
@@ -222,8 +222,8 @@
       {:else}
         <div class="space-y-2">
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500 mb-1"
-              >Axis</label
+            <div class="block text-[10px] font-medium text-neutral-500 mb-1"
+              >Axis</div
             >
             <div class="flex gap-2">
               <label
@@ -252,8 +252,8 @@
           </div>
 
           <div>
-            <label class="block text-[10px] font-medium text-neutral-500 mb-1"
-              >Around</label
+            <div class="block text-[10px] font-medium text-neutral-500 mb-1"
+              >Around</div
             >
             <div class="flex flex-wrap gap-2">
               <label class="flex items-center gap-1.5 cursor-pointer">
