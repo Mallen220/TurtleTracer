@@ -2,6 +2,7 @@
 import { dialog, app, shell } from "electron";
 import * as fs from "fs";
 import * as path from "path";
+import { spawn, spawnSync } from "child_process";
 
 class AppUpdater {
   constructor(mainWindow) {
@@ -105,29 +106,110 @@ class AppUpdater {
         title: "Update Available",
         message: `A new version of Pedro Pathing Visualizer is available!`,
         detail: `Current version: ${this.currentVersion}\nLatest version: ${releaseData.tag_name}\n\n\nWould you like to download the update?`,
-        buttons: ["Download Update", "Skip This Version", "Remind Me Later"],
+        buttons: [
+          "Download and Install",
+          "Open Releases Page",
+          "Skip This Version",
+          "Remind Me Later",
+        ],
         defaultId: 0,
-        cancelId: 2,
+        cancelId: 3,
       });
 
+      const version = releaseData.tag_name.replace("v", "");
+
       switch (result) {
-        case 0: // Download Update
+        case 0: // Download and Install
+          this.handleDownloadAndInstall(version, releaseData.html_url);
+          break;
+        case 1: // Open Releases Page
           shell.openExternal(releaseData.html_url);
           break;
-        case 1: // Skip This Version
+        case 2: // Skip This Version
           const skippedVersions = this.loadSkippedVersions();
-          const versionToSkip = releaseData.tag_name.replace("v", "");
+          const versionToSkip = version;
           if (!skippedVersions.includes(versionToSkip)) {
             skippedVersions.push(versionToSkip);
             this.saveSkippedVersions(skippedVersions);
             console.log(`User skipped version ${versionToSkip}`);
           }
           break;
-        case 2: // Remind Me Later
+        case 3: // Remind Me Later
           // Do nothing, will check again on next startup
           break;
       }
     }, 3000);
+  }
+
+  handleDownloadAndInstall(version, releasesUrl) {
+    try {
+      if (process.platform === "win32") {
+        const downloadUrl = `https://github.com/Mallen220/PedroPathingVisualizer/releases/download/v${version}/Pedro-Pathing-Visualizer-Setup-${version}.exe`;
+        shell.openExternal(downloadUrl);
+      } else if (process.platform === "darwin") {
+        const command =
+          "curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash";
+        const appleScript = `tell application "Terminal" to do script "${command}"`;
+        spawn("osascript", ["-e", appleScript]);
+        spawn("osascript", ["-e", 'tell application "Terminal" to activate']);
+      } else if (process.platform === "linux") {
+        const command =
+          "curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash";
+        if (!this.openTerminalLinux(command)) {
+          // Fallback
+          shell.openExternal(releasesUrl);
+        }
+      } else {
+        // Unknown OS
+        shell.openExternal(releasesUrl);
+      }
+    } catch (err) {
+      console.error("Error launching installer:", err);
+      shell.openExternal(releasesUrl);
+    }
+  }
+
+  openTerminalLinux(command) {
+    // Try to find a terminal emulator and run the command
+    // We try them in order of preference
+    const terminals = [
+      {
+        cmd: "gnome-terminal",
+        args: ["--", "bash", "-c", command],
+      },
+      {
+        cmd: "x-terminal-emulator",
+        args: ["-e", "bash", "-c", command],
+      },
+      {
+        cmd: "konsole",
+        args: ["-e", "bash", "-c", command],
+      },
+      {
+        cmd: "xterm",
+        args: ["-e", "bash", "-c", command],
+      },
+    ];
+
+    for (const term of terminals) {
+      if (this.trySpawnLinux(term.cmd, term.args)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  trySpawnLinux(terminal, args) {
+    try {
+      // Check if the terminal executable exists
+      if (spawnSync("which", [terminal]).status === 0) {
+        spawn(terminal, args, { detached: true, stdio: "ignore" }).unref();
+        return true;
+      }
+    } catch (e) {
+      // Ignore errors (e.g. if 'which' fails)
+    }
+    return false;
   }
 }
 
