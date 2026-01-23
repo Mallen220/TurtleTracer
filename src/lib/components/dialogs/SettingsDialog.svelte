@@ -1841,6 +1841,17 @@
                 <h4 class="font-semibold mb-2">Contact & Support</h4>
                 <ul class="list-disc pl-5 space-y-1 text-sm">
                   <li>
+                    Discord:
+                    <a
+                      href="https://discord.gg/ku59afNBBM"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Join the new server!
+                    </a>
+                  </li>
+                  <li>
                     Report bugs on
                     <a
                       href="https://github.com/Mallen220/PedroPathingVisualizer/issues"
@@ -1849,18 +1860,6 @@
                       class="text-blue-600 dark:text-blue-400 hover:underline"
                     >
                       GitHub Issues
-                    </a>
-                  </li>
-                  <li>
-                    Discord: <span class="font-medium">mallen20</span>
-                  </li>
-                  <li>
-                    Email:
-                    <a
-                      href="mailto:allenmc220@gmail.com"
-                      class="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      allenmc220@gmail.com
                     </a>
                   </li>
                 </ul>
