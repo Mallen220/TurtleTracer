@@ -19,6 +19,26 @@
   let inputElement: HTMLInputElement;
   let recentCommandIds: string[] = [];
 
+  function getDisplayShortcut(shortcut: string): string {
+    if (!shortcut) return "";
+    const isMac =
+      /Mac|iPod|iPhone|iPad/.test(navigator.platform) ||
+      /Mac/.test(navigator.userAgent);
+    const parts = shortcut.split(",").map((s) => s.trim());
+    let best = parts[0];
+    if (isMac) {
+      const mac = parts.find((p) => p.toLowerCase().includes("cmd"));
+      if (mac) best = mac;
+    } else {
+      const nonMac = parts.find(
+        (p) =>
+          !p.toLowerCase().includes("cmd") || p.toLowerCase().includes("ctrl"),
+      );
+      if (nonMac) best = nonMac;
+    }
+    return best;
+  }
+
   onMount(() => {
     try {
       const stored = localStorage.getItem("pedro-pathing-recent-commands");
@@ -188,8 +208,8 @@
                 </div>
                 {#if command.shortcut}
                   <div class="flex items-center gap-1">
-                    <!-- Show only the first shortcut if multiple are defined -->
-                    {#each command.shortcut.split(",")[0].split("+") as key}
+                    <!-- Show appropriate shortcut for platform -->
+                    {#each getDisplayShortcut(command.shortcut).split("+") as key}
                       <kbd
                         class="text-xs font-mono font-bold px-1.5 py-0.5 rounded border
                        {index === selectedIndex
