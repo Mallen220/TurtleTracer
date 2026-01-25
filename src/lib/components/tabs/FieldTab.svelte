@@ -26,6 +26,7 @@
   export let settings: Settings;
   export let recordChange: () => void;
   export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
+  export let isActive: boolean = false;
 
   // Local state for optimization
   let optimizationOpen = false;
@@ -190,5 +191,6 @@
     bind:shapes
     bind:collapsedObstacles={collapsedSections.obstacles}
     bind:collapsed={collapsedSections.obstaclesSection}
+    {isActive}
   />
 </div>

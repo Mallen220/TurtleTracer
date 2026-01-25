@@ -669,6 +669,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "toggleOnionCurrentPath",
     category: "View",
   },
+  {
+    id: "edit-item",
+    key: "enter",
+    description: "Edit selected item properties",
+    action: "editItem",
+    category: "Editing",
+  },
   // Extended Commands
   {
     id: "set-file-manager-directory",

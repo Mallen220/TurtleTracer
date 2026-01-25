@@ -19,6 +19,7 @@
     gridSize,
     selectedLineId,
     selectedPointId,
+    focusRequest,
   } from "../../stores";
   import { slide } from "svelte/transition";
   import OptimizationDialog from "./dialogs/OptimizationDialog.svelte";
@@ -79,6 +80,32 @@
   $: _collapsedObstaclesCount = Array.isArray(collapsedObstacles)
     ? collapsedObstacles.length
     : 0;
+
+  // Focus Handling Action
+  function focusOnRequest(
+    node: HTMLElement,
+    params: { id: string; field: string },
+  ) {
+    const unsubscribe = focusRequest.subscribe((req) => {
+      if (
+        isActive &&
+        req &&
+        req.id === params.id &&
+        req.field === params.field
+      ) {
+        node.focus();
+        if (node instanceof HTMLInputElement) node.select();
+      }
+    });
+    return {
+      update(newParams: { id: string; field: string }) {
+        params = newParams;
+      },
+      destroy() {
+        unsubscribe();
+      },
+    };
+  }
 
   // Optimization dialog refs and programmatic control
   let optDialogRef: any = null;
@@ -1217,6 +1244,7 @@
               value={startPoint.x}
               aria-label="Start Point X"
               on:input={(e) => handleInput(e, startPoint, "x")}
+              use:focusOnRequest={{ id: "point-0-0", field: "x" }}
               disabled={startPoint.locked}
             />
           </td>
@@ -1228,6 +1256,7 @@
               value={startPoint.y}
               aria-label="Start Point Y"
               on:input={(e) => handleInput(e, startPoint, "y")}
+              use:focusOnRequest={{ id: "point-0-0", field: "y" }}
               disabled={startPoint.locked}
             />
           </td>
@@ -1320,6 +1349,10 @@
                         on:input={(e) =>
                           // @ts-ignore
                           updateLineName(item.lineId, e.target.value)}
+                        use:focusOnRequest={{
+                          id: line.id || "",
+                          field: "name",
+                        }}
                         disabled={line.locked}
                         placeholder="Path {lineIdx + 1}"
                         aria-label="Path Name"
@@ -1371,6 +1404,7 @@
                       aria-label="{line.name || `Path ${lineIdx + 1}`} X"
                       on:input={(e) =>
                         handleInput(e, line.endPoint, "x", line.id)}
+                      use:focusOnRequest={{ id: endPointId, field: "x" }}
                       disabled={line.locked}
                     />
                     <span class="text-xs text-neutral-500"
@@ -1387,6 +1421,7 @@
                     aria-label="{line.name || `Path ${lineIdx + 1}`} Y"
                     on:input={(e) =>
                       handleInput(e, line.endPoint, "y", line.id)}
+                    use:focusOnRequest={{ id: endPointId, field: "y" }}
                     disabled={line.locked}
                   />
                 </td>
@@ -1486,6 +1521,7 @@
                       aria-label="Control Point {j + 1} X for {line.name ||
                         `Path ${lineIdx + 1}`}"
                       on:input={(e) => handleInput(e, cp, "x")}
+                      use:focusOnRequest={{ id: pointId, field: "x" }}
                       disabled={line.locked}
                     />
                   </td>
@@ -1498,6 +1534,7 @@
                       aria-label="Control Point {j + 1} Y for {line.name ||
                         `Path ${lineIdx + 1}`}"
                       on:input={(e) => handleInput(e, cp, "y")}
+                      use:focusOnRequest={{ id: pointId, field: "y" }}
                       disabled={line.locked}
                     />
                   </td>
@@ -1581,6 +1618,10 @@
                     on:input={(e) =>
                       // @ts-ignore
                       updateWaitName(item, e.target.value)}
+                    use:focusOnRequest={{
+                      id: `wait-${item.id}`,
+                      field: "name",
+                    }}
                     disabled={item.locked}
                     placeholder="Wait"
                     aria-label="Wait"
@@ -1632,6 +1673,7 @@
                       // @ts-ignore
                       parseFloat(e.target.value),
                     )}
+                  use:focusOnRequest={{ id: `wait-${item.id}`, field: "x" }}
                   disabled={item.locked}
                 />
               </td>
@@ -1737,6 +1779,10 @@
                     on:input={(e) =>
                       // @ts-ignore
                       updateRotateName(item, e.target.value)}
+                    use:focusOnRequest={{
+                      id: `rotate-${item.id}`,
+                      field: "name",
+                    }}
                     disabled={item.locked}
                     placeholder="Rotate"
                     aria-label="Rotate"
@@ -1776,6 +1822,10 @@
                       // @ts-ignore
                       parseFloat(e.target.value),
                     )}
+                  use:focusOnRequest={{
+                    id: `rotate-${item.id}`,
+                    field: "heading",
+                  }}
                   disabled={item.locked}
                 />
               </td>
@@ -1880,6 +1930,10 @@
                     on:input={(e) =>
                       // @ts-ignore
                       updateMacroName(item, e.target.value)}
+                    use:focusOnRequest={{
+                      id: `macro-${item.id}`,
+                      field: "name",
+                    }}
                     disabled={item.locked}
                     placeholder="Macro"
                     aria-label="Macro Name"

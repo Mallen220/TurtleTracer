@@ -1,7 +1,12 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import { createTriangle } from "../../../utils";
-  import { snapToGrid, showGrid, gridSize } from "../../../stores";
+  import {
+    snapToGrid,
+    showGrid,
+    gridSize,
+    focusRequest,
+  } from "../../../stores";
   import { settingsStore } from "../../projectStore";
   import TrashIcon from "../icons/TrashIcon.svelte";
   import SaveIcon from "../icons/SaveIcon.svelte";
@@ -13,9 +18,36 @@
   export let shapes: Shape[];
   export let collapsedObstacles: boolean[];
   export let collapsed: boolean = false;
+  export let isActive: boolean = true;
 
   let selectedPresetId: string = "";
   let showSaveDialog = false;
+
+  // Focus Handling Action
+  function focusOnRequest(
+    node: HTMLElement,
+    params: { id: string; field: string },
+  ) {
+    const unsubscribe = focusRequest.subscribe((req) => {
+      if (
+        isActive &&
+        req &&
+        req.id === params.id &&
+        req.field === params.field
+      ) {
+        node.focus();
+        if (node instanceof HTMLInputElement) node.select();
+      }
+    });
+    return {
+      update(newParams: { id: string; field: string }) {
+        params = newParams;
+      },
+      destroy() {
+        unsubscribe();
+      },
+    };
+  }
 
   $: snapToGridTitle =
     $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping";
@@ -405,6 +437,10 @@
                           title={snapToGridTitle}
                           class="pl-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-purple-500 w-20 text-sm font-mono"
                           disabled={shape.locked ?? false}
+                          use:focusOnRequest={{
+                            id: `obstacle-${shapeIdx}-${vertexIdx}`,
+                            field: "x",
+                          }}
                         />
                       </div>
                       <div class="flex items-center gap-1">
@@ -421,6 +457,10 @@
                           class="pl-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-purple-500 w-20 text-sm font-mono"
                           title={snapToGridTitle}
                           disabled={shape.locked ?? false}
+                          use:focusOnRequest={{
+                            id: `obstacle-${shapeIdx}-${vertexIdx}`,
+                            field: "y",
+                          }}
                         />
                       </div>
                       <!-- {#if $snapToGrid && $showGrid}
