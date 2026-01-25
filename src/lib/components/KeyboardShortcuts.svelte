@@ -75,9 +75,6 @@
 
   // Optional callback provided by App.svelte to open the What's New dialog
   export let openWhatsNew: () => void;
-  // This is no longer passed as a prop, handled internally, but kept for compatibility if needed.
-  // We'll mark it optional or ignore if passed.
-  export let toggleCommandPalette: (() => void) | undefined = undefined;
 
   // Reactive Values
   $: settings = $settingsStore;
@@ -151,7 +148,13 @@
     return tag === "BUTTON" || el.getAttribute("role") === "button";
   }
 
-  function shouldBlockShortcut(e: KeyboardEvent): boolean {
+  function shouldBlockShortcut(
+    e: KeyboardEvent,
+    actionId?: string,
+  ): boolean {
+    // Whitelist specific actions that should work even when input is focused
+    if (actionId === "toggle-command-palette") return false;
+
     if (isInputFocused()) return true;
     if (isButtonFocused()) {
       // If focused on a button, only block interaction keys (Space, Enter)
@@ -167,12 +170,6 @@
       }
     }
     return false;
-  }
-
-  function getKey(action: string): string {
-    const bindings = settings?.keyBindings || DEFAULT_KEY_BINDINGS;
-    const binding = bindings.find((b) => b.action === action);
-    return binding ? binding.key : "";
   }
 
   // --- Logic Extracted from App.svelte ---
@@ -1653,9 +1650,7 @@
       if (openWhatsNew) openWhatsNew();
     },
     toggleCommandPalette: () => {
-      if (toggleCommandPalette)
-        toggleCommandPalette(); // external override?
-      else showCommandPalette = !showCommandPalette; // internal toggle
+      showCommandPalette = !showCommandPalette;
     },
     toggleStats: () => {
       if (toggleStats) toggleStats();
@@ -1965,7 +1960,7 @@
       const handler = (actions as any)[binding.action];
       if (handler && binding.key) {
         hotkeys(binding.key, (e) => {
-          if (shouldBlockShortcut(e)) return;
+          if (shouldBlockShortcut(e, binding.id)) return;
           e.preventDefault();
           handler(e);
         });
