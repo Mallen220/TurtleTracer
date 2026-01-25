@@ -76,4 +76,26 @@ describe("PathStatisticsDialog", () => {
     expect(getByText("Velocity Profile (in/s)")).toBeTruthy();
     expect(getByText("Angular Velocity Profile (rad/s)")).toBeTruthy();
   });
+
+  it("shows acceleration graphs and insights tab", async () => {
+    const { getByText } = render(PathStatisticsDialog, {
+      startPoint: defaultStartPoint,
+      lines: defaultLines,
+      sequence: defaultSequence,
+      settings: { ...defaultSettings, kFriction: 0.5 },
+      isOpen: true,
+      onClose: vi.fn(),
+    });
+
+    // Check Graphs
+    const graphsTab = getByText("Graphs");
+    await fireEvent.click(graphsTab);
+    expect(getByText("Linear Acceleration (in/s²)")).toBeTruthy();
+    expect(getByText("Centripetal Acceleration (in/s²)")).toBeTruthy();
+
+    // Check Insights
+    const insightsTab = getByText("Insights");
+    expect(insightsTab).toBeTruthy();
+    await fireEvent.click(insightsTab);
+  });
 });
