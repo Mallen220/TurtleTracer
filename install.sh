@@ -37,7 +37,7 @@ get_download_urls() {
     local api_url
     
     if [ -n "$SELECTED_VERSION" ]; then
-        api_url="https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases/tags/v${SELECTED_VERSION}"
+        api_url="https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases/tags/${SELECTED_VERSION}"
     else
         api_url="https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases/latest"
     fi
