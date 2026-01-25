@@ -833,16 +833,12 @@ export async function generateSequentialCommandCode(
       const isCurve = line.controlPoints.length > 0;
       const curveType = isCurve ? "BezierCurve" : "BezierLine";
 
-      // Build control points string
+      // Build control points string (instantiate inline as new Pose(x, y))
       let controlPointsStr = "";
       if (isCurve) {
         const controlPoints: string[] = [];
-        line.controlPoints.forEach((_, cpIdx) => {
-          // Retrieve the unique variable we created
-          const cpVar = poseVariableNames.get(`${idx}_control${cpIdx}`);
-          if (cpVar) {
-            controlPoints.push(cpVar);
-          }
+        line.controlPoints.forEach((cp) => {
+          controlPoints.push(`new Pose(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)})`);
         });
         controlPointsStr = controlPoints.join(", ") + ", ";
       }
