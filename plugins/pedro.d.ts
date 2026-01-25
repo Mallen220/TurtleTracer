@@ -521,6 +521,7 @@ interface PedroAPI {
   };
 }
 
+
 export {};
 
 // Global variable exposed to plugins

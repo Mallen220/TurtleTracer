@@ -192,8 +192,7 @@
       } else {
         // Condition ended
         if (activeVelocityWarning) {
-          activeVelocityWarning.endTime = t;
-          insights.push(activeVelocityWarning);
+          insights.push({ ...(activeVelocityWarning as Insight), endTime: t });
           activeVelocityWarning = null;
         }
       }
@@ -216,8 +215,7 @@
       } else {
         // Condition ended
         if (activeFrictionWarning) {
-          activeFrictionWarning.endTime = t;
-          insights.push(activeFrictionWarning);
+          insights.push({ ...(activeFrictionWarning as Insight), endTime: t });
           activeFrictionWarning = null;
         }
       }
@@ -524,12 +522,10 @@
     // Finalize any open warnings at end of timeline
     const totalT = timePred.totalTime;
     if (activeVelocityWarning) {
-      activeVelocityWarning.endTime = totalT;
-      insights.push(activeVelocityWarning);
+      insights.push({ ...(activeVelocityWarning as Insight), endTime: totalT });
     }
     if (activeFrictionWarning) {
-      activeFrictionWarning.endTime = totalT;
-      insights.push(activeFrictionWarning);
+      insights.push({ ...(activeFrictionWarning as Insight), endTime: totalT });
     }
 
     pathStats = {
