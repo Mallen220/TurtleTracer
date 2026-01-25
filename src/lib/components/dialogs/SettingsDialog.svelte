@@ -85,6 +85,7 @@
       let page = 1;
       let count = 0;
       let hasMore = true;
+      let completed = true; // will be false if any page fails to fetch fully
 
       while (hasMore) {
         const response = await fetch(
@@ -99,32 +100,32 @@
             releases.forEach((release: any) => {
               release.assets.forEach((asset: any) => {
                 const name = asset.name.toLowerCase();
-                if (
-                  name.endsWith(".exe") ||
-                  name.endsWith(".dmg") ||
-                  name.endsWith(".deb") ||
-                  name.endsWith(".rpm") ||
-                  name.endsWith(".appimage") ||
-                  name.endsWith(".pkg") ||
-                  name.endsWith(".zip") ||
-                  name.endsWith(".tar.gz")
-                ) {
-                  count += asset.download_count;
+                const releaseAssetRegex = /\.(exe|dmg|deb|rpm|appimage|pkg|zip|tar\.gz)(?:\.|$)/;
+                if (releaseAssetRegex.test(name)) {
+                  count += asset.download_count || 0;
                 }
               });
             });
             page++;
           }
         } else {
+          // Non-OK response (rate-limited or network issue). Abort and mark incomplete so we don't display a partial value.
+          completed = false;
           hasMore = false;
+          break;
         }
       }
-      downloadCount = count;
+
+      if (completed) {
+        downloadCount = count;
+      } else {
+        console.warn("Incomplete fetch of releases — download count may be partial or unavailable");
+        downloadCount = null;
+      }
     } catch (e) {
       console.error("Failed to fetch download count", e);
     }
   });
-
   // Display units state
   let angularVelocityUnit: "rad" | "deg" = "rad";
 
