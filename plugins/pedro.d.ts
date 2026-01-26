@@ -197,6 +197,7 @@ interface Settings {
   hasSeenOnboarding?: boolean; // Whether the user has seen the onboarding tutorial
   gitIntegration?: boolean; // Enable/Disable Git integration
   obstaclePresets?: ObstaclePreset[]; // User-saved obstacle presets
+  showDebugSequence?: boolean; // Developer/debugging aids
 }
 
 interface RobotProfile {

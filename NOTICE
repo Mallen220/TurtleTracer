@@ -203,3 +203,4 @@ install.sh
 src/tests/PlaybackControls.test.ts
 src/utils/pathOptimizer.ts
 src/utils/shortcutFormatter.ts
+src/tests/VerifyKeybinds.test.ts

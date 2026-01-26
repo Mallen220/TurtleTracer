@@ -100,7 +100,8 @@
             releases.forEach((release: any) => {
               release.assets.forEach((asset: any) => {
                 const name = asset.name.toLowerCase();
-                const releaseAssetRegex = /\.(exe|dmg|deb|rpm|appimage|pkg|zip|tar\.gz)(?:\.|$)/;
+                const releaseAssetRegex =
+                  /\.(exe|dmg|deb|rpm|appimage|pkg|zip|tar\.gz)(?:\.|$)/;
                 if (releaseAssetRegex.test(name)) {
                   count += asset.download_count || 0;
                 }
@@ -119,7 +120,9 @@
       if (completed) {
         downloadCount = count;
       } else {
-        console.warn("Incomplete fetch of releases — download count may be partial or unavailable");
+        console.warn(
+          "Incomplete fetch of releases — download count may be partial or unavailable",
+        );
         downloadCount = null;
       }
     } catch (e) {
@@ -1282,6 +1285,19 @@
                     Advanced
                   </h4>
                 {/if}
+
+                <SettingsItem
+                  label="Show Debug Sequence"
+                  description="Display internal sequence execution order"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <input
+                    type="checkbox"
+                    bind:checked={settings.showDebugSequence}
+                    class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-pink-500 focus:ring-2 focus:ring-pink-500 cursor-pointer"
+                  />
+                </SettingsItem>
 
                 <SettingsItem
                   label="Robot Onion Layers"

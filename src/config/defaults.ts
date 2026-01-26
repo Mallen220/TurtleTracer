@@ -1002,7 +1002,6 @@ export const DEFAULT_SETTINGS: Settings = {
     },
   ],
   // Developer/debugging aids
-  // @ts-ignore
   showDebugSequence: false,
 };
 
