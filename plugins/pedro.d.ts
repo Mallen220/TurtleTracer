@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+
 /**
  * Type definitions for Pedro Pathing Visualizer Plugins.
  * These types are automatically available in your .ts plugins.
@@ -196,6 +197,7 @@ interface Settings {
   hasSeenOnboarding?: boolean; // Whether the user has seen the onboarding tutorial
   gitIntegration?: boolean; // Enable/Disable Git integration
   obstaclePresets?: ObstaclePreset[]; // User-saved obstacle presets
+  showDebugSequence?: boolean; // Developer/debugging aids
 }
 
 interface RobotProfile {
@@ -519,6 +521,7 @@ interface PedroAPI {
     requestRedraw: () => void;
   };
 }
+
 
 export {};
 
