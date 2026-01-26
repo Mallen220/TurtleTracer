@@ -100,7 +100,8 @@
             releases.forEach((release: any) => {
               release.assets.forEach((asset: any) => {
                 const name = asset.name.toLowerCase();
-                const releaseAssetRegex = /\.(exe|dmg|deb|rpm|appimage|pkg|zip|tar\.gz)(?:\.|$)/;
+                const releaseAssetRegex =
+                  /\.(exe|dmg|deb|rpm|appimage|pkg|zip|tar\.gz)(?:\.|$)/;
                 if (releaseAssetRegex.test(name)) {
                   count += asset.download_count || 0;
                 }
@@ -119,7 +120,9 @@
       if (completed) {
         downloadCount = count;
       } else {
-        console.warn("Incomplete fetch of releases — download count may be partial or unavailable");
+        console.warn(
+          "Incomplete fetch of releases — download count may be partial or unavailable",
+        );
         downloadCount = null;
       }
     } catch (e) {
