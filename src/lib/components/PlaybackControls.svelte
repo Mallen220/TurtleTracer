@@ -67,6 +67,7 @@
         play();
       }
     }}
+    class="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
   >
     {#if !playing}
       <svg
@@ -111,6 +112,7 @@
     }}
     class:opacity-100={loopAnimation}
     class:opacity-50={!loopAnimation}
+    class="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
   >
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -285,7 +287,7 @@
       max="100"
       step="0.000001"
       aria-label="Animation progress"
-      class="w-full appearance-none slider focus:outline-none bg-transparent dark:bg-transparent relative z-10 timeline-slider"
+      class="w-full appearance-none slider focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 rounded-full bg-transparent dark:bg-transparent relative z-10 timeline-slider"
       on:input={handleSeekInput}
     />
 
@@ -294,7 +296,7 @@
     {#each timelineItems as item}
       {#if item.type === "marker"}
         <div
-          class="absolute z-20 group"
+          class="absolute z-20 group rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
           role="button"
           tabindex="0"
           on:click={() => handleSeek(item.percent)}
@@ -331,7 +333,7 @@
         </div>
       {:else if item.type === "dot"}
         <div
-          class="absolute z-20 group ring-2 ring-black/5 dark:ring-white/20 rounded-full"
+          class="absolute z-20 group ring-2 ring-black/5 dark:ring-white/20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
           role="button"
           tabindex="0"
           on:click={() => handleSeek(item.percent)}
