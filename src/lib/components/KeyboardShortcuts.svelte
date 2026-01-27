@@ -44,12 +44,12 @@
   import { createTriangle } from "../../utils";
   import { toggleDiff } from "../../lib/diffStore";
   import {
-    DEFAULT_KEY_BINDINGS,
     FIELD_SIZE,
     DEFAULT_SETTINGS,
     getDefaultStartPoint,
     AVAILABLE_FIELD_MAPS,
   } from "../../config";
+  import { DEFAULT_KEY_BINDINGS } from "../../config/keybindings";
   import { getRandomColor } from "../../utils";
   import { computeZoomStep } from "../zoomHelpers";
   import _ from "lodash";

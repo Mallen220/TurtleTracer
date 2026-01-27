@@ -3,7 +3,7 @@
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
   import type { Settings } from "../../../types/index";
-  import { DEFAULT_KEY_BINDINGS } from "../../../config/defaults";
+  import { DEFAULT_KEY_BINDINGS } from "../../../config/keybindings";
   import { notification } from "../../../stores";
 
   export let isOpen = false;
