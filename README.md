@@ -47,12 +47,16 @@ Pedro Pathing Visualizer isn't just a port of the web tool—it's a complete rei
 - **File Macros**: Reuse successful path sequences! Drag and drop other `.pp` files to use them as sub-routines (macros) with support for transformations (mirror/reverse).
 - **Smart Validators**:
   - **Collision Detection**: Real-time feedback on Obstacles and Keep-In Zones.
+  - **Continuous Validation**: Option to check your path's safety in real-time as you edit.
   - **Diff View**: Visually compare your current changes against the saved version.
   - **Onion Skinning**: See previous path states to make precise adjustments.
+- **Path Optimizer**: Single-click optimization to refine your paths for maximum speed while respecting field boundaries and obstacles.
 - **Field Annotation**: Add **Sticky Notes** to the field to leave reminders or instructions for your drive team.
 - **Custom Field Maps**: Import any field image with the built-in Calibration Wizard.
 
 ### ⚡ **Efficiency Boosters**
+- **Interactive Onboarding**: New to the app? The built-in interactive tutorial will guide you through your first path.
+- **Robot Profile Manager**: Manage multiple robot configurations with unique dimensions and constraints, and switch between them instantly.
 - **Command Palette**: Press `Cmd+K` (or `Ctrl+K`) to instantly search for paths, settings, or commands.
 - **Plugin System**: Extend functionality with community plugins or build your own to add custom tabs and tools.
 - **Presentation Mode**: One-click cleaner interface for demonstrating paths to judges or teammates.
