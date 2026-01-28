@@ -1,7 +1,15 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import Two from "two.js";
-import type { ActionDefinition, FieldRenderContext, CodeExportContext, JavaCodeResult, TimeCalculationContext, TimeCalculationResult, InsertionContext } from "../actionRegistry";
+import type {
+  ActionDefinition,
+  FieldRenderContext,
+  CodeExportContext,
+  JavaCodeResult,
+  TimeCalculationContext,
+  TimeCalculationResult,
+} from "../actionRegistry";
 import WaitTableRow from "../components/table/WaitTableRow.svelte";
+import WaitSection from "../components/sections/WaitSection.svelte";
 import type { SequenceItem, SequenceWaitItem } from "../../types";
 import { POINT_RADIUS } from "../../config";
 import { makeId } from "../../utils/nameGenerator";
@@ -9,6 +17,7 @@ import { makeId } from "../../utils/nameGenerator";
 export const WaitAction: ActionDefinition = {
   kind: "wait",
   label: "Wait",
+  buttonColor: "amber",
   isWait: true,
   color: "#f59e0b", // Amber-500
   showInToolbar: true,
@@ -17,6 +26,15 @@ export const WaitAction: ActionDefinition = {
       icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-3"><circle cx="12" cy="12" r="9" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" /></svg>`
   },
   component: WaitTableRow,
+  sectionComponent: WaitSection,
+
+  createDefault: () => ({
+    kind: "wait",
+    id: makeId(),
+    name: "",
+    durationMs: 1000,
+    locked: false,
+  }),
 
   onInsert: (ctx: InsertionContext) => {
       const newWait: SequenceItem = {
@@ -36,7 +54,8 @@ export const WaitAction: ActionDefinition = {
 
   renderField: (item: SequenceItem, context: FieldRenderContext) => {
     const waitItem = item as SequenceWaitItem;
-    const { timePrediction, x, y, uiLength, hoveredId, selectedPointId } = context;
+    const { timePrediction, x, y, uiLength, hoveredId, selectedPointId } =
+      context;
 
     if (!timePrediction || !timePrediction.timeline) return [];
 
@@ -45,7 +64,8 @@ export const WaitAction: ActionDefinition = {
     // Iterate through timeline to find occurrences of this wait
     timePrediction.timeline.forEach((ev: any) => {
       // Check if this timeline event corresponds to our wait item
-      if (ev.type !== "wait" || ev.waitId !== waitItem.id || !ev.atPoint) return;
+      if (ev.type !== "wait" || ev.waitId !== waitItem.id || !ev.atPoint)
+        return;
 
       // Only render if there are event markers on this wait
       if (waitItem.eventMarkers && waitItem.eventMarkers.length > 0) {
@@ -99,7 +119,10 @@ export const WaitAction: ActionDefinition = {
     return elements;
   },
 
-  toJavaCode: (item: SequenceItem, context: CodeExportContext): JavaCodeResult => {
+  toJavaCode: (
+    item: SequenceItem,
+    context: CodeExportContext,
+  ): JavaCodeResult => {
     const waitItem = item as SequenceWaitItem;
     const waitMs = waitItem.durationMs || 0;
     const stateStep = context.stateStep || 0;
@@ -118,7 +141,10 @@ export const WaitAction: ActionDefinition = {
     return { code, stepsUsed: 2 };
   },
 
-  toSequentialCommand: (item: SequenceItem, context: CodeExportContext): string => {
+  toSequentialCommand: (
+    item: SequenceItem,
+    context: CodeExportContext,
+  ): string => {
     const waitItem = item as SequenceWaitItem;
     const waitDuration = waitItem.durationMs || 0;
     const isNextFTC = context.isNextFTC || false;
@@ -126,18 +152,22 @@ export const WaitAction: ActionDefinition = {
     // Define classes based on library
     const WaitCmdClass = isNextFTC ? "Delay" : "WaitCommand";
     const InstantCmdClass = "InstantCommand";
-    const ParallelRaceClass = isNextFTC ? "ParallelRaceGroup" : "ParallelRaceGroup";
-    const SequentialGroupClass = isNextFTC ? "SequentialGroup" : "SequentialCommandGroup";
+    const ParallelRaceClass = isNextFTC
+      ? "ParallelRaceGroup"
+      : "ParallelRaceGroup";
+    const SequentialGroupClass = isNextFTC
+      ? "SequentialGroup"
+      : "SequentialCommandGroup";
 
     const getWaitValue = (ms: number) =>
-        isNextFTC ? (ms / 1000.0).toFixed(3) : ms.toFixed(0);
+      isNextFTC ? (ms / 1000.0).toFixed(3) : ms.toFixed(0);
 
     const markers: any[] = Array.isArray(waitItem.eventMarkers)
-        ? [...waitItem.eventMarkers]
-        : [];
+      ? [...waitItem.eventMarkers]
+      : [];
 
     if (markers.length === 0) {
-        return `new ${WaitCmdClass}(${getWaitValue(waitDuration)})`;
+      return `new ${WaitCmdClass}(${getWaitValue(waitDuration)})`;
     }
 
     // Sort markers
@@ -147,19 +177,18 @@ export const WaitAction: ActionDefinition = {
     const markerCommandParts: string[] = [];
 
     markers.forEach((marker) => {
-        const targetMs = Math.max(0, Math.min(1, marker.position || 0)) * waitDuration;
-        const delta = Math.max(0, targetMs - scheduled);
-        scheduled = targetMs;
+      const targetMs =
+        Math.max(0, Math.min(1, marker.position || 0)) * waitDuration;
+      const delta = Math.max(0, targetMs - scheduled);
+      scheduled = targetMs;
 
-        markerCommandParts.push(
-          `new ${WaitCmdClass}(${getWaitValue(delta)}), new ${InstantCmdClass}(() -> progressTracker.executeEvent("${marker.name}"))`,
-        );
+      markerCommandParts.push(
+        `new ${WaitCmdClass}(${getWaitValue(delta)}), new ${InstantCmdClass}(() -> progressTracker.executeEvent("${marker.name}"))`,
+      );
     });
 
     const remaining = Math.max(0, waitDuration - scheduled);
-    markerCommandParts.push(
-        `new ${WaitCmdClass}(${getWaitValue(remaining)})`,
-    );
+    markerCommandParts.push(`new ${WaitCmdClass}(${getWaitValue(remaining)})`);
 
     return `new ${ParallelRaceClass}(
                     new ${WaitCmdClass}(${getWaitValue(waitDuration)}),
@@ -167,30 +196,33 @@ export const WaitAction: ActionDefinition = {
                 )`;
   },
 
-  calculateTime: (item: SequenceItem, context: TimeCalculationContext): TimeCalculationResult => {
+  calculateTime: (
+    item: SequenceItem,
+    context: TimeCalculationContext,
+  ): TimeCalculationResult => {
     const waitItem = item as SequenceWaitItem;
     const waitSeconds = (waitItem.durationMs || 0) / 1000;
     const { currentTime, currentHeading, lastPoint } = context;
 
     if (waitSeconds <= 0) {
-        return { events: [], duration: 0 };
+      return { events: [], duration: 0 };
     }
 
     const event = {
-        type: "wait" as const,
-        name: waitItem.name,
-        duration: waitSeconds,
-        startTime: currentTime,
-        endTime: currentTime + waitSeconds,
-        waitId: waitItem.id,
-        startHeading: currentHeading,
-        targetHeading: currentHeading,
-        atPoint: lastPoint,
+      type: "wait" as const,
+      name: waitItem.name,
+      duration: waitSeconds,
+      startTime: currentTime,
+      endTime: currentTime + waitSeconds,
+      waitId: waitItem.id,
+      startHeading: currentHeading,
+      targetHeading: currentHeading,
+      atPoint: lastPoint,
     };
 
     return {
-        events: [event],
-        duration: waitSeconds
+      events: [event],
+      duration: waitSeconds,
     };
-  }
+  },
 };

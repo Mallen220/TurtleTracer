@@ -25,6 +25,8 @@
 
   export let sequence: SequenceItem[] = []; // Needed for linking checks
 
+  $: waitItem = item as any; // Cast for template usage
+
   let hoveredWaitId: string | null = null;
   let hoveredWaitAnchor: HTMLElement | null = null;
 
@@ -43,11 +45,7 @@
     params: { id: string; field: string },
   ) {
     const unsubscribe = focusRequest.subscribe((req) => {
-      if (
-        req &&
-        req.id === params.id &&
-        req.field === params.field
-      ) {
+      if (req && req.id === params.id && req.field === params.field) {
         node.focus();
         if (node instanceof HTMLInputElement) node.select();
       }
@@ -63,15 +61,15 @@
   }
 
   function handleNameInput(e: Event) {
-      const target = e.target as HTMLInputElement;
-      item.name = target.value;
-      onUpdate(item);
+    const target = e.target as HTMLInputElement;
+    item.name = target.value;
+    onUpdate(item);
   }
 
   function handleDurationInput(e: Event) {
-      const target = e.target as HTMLInputElement;
-      (item as any).durationMs = parseFloat(target.value);
-      onUpdate(item);
+    const target = e.target as HTMLInputElement;
+    (item as any).durationMs = parseFloat(target.value);
+    onUpdate(item);
   }
 </script>
 
@@ -145,8 +143,7 @@
             >
               <strong>Linked Wait</strong><br />
               Logic: Same Name = Shared Duration.<br />
-              This wait event shares its duration with other waits named
-              '{item.name}'.
+              This wait event shares its duration with other waits named '{item.name}'.
             </div>
           {/if}
         </div>
@@ -158,7 +155,7 @@
       type="number"
       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-amber-500 focus:outline-none text-xs"
       min="0"
-      value={(item as any).durationMs}
+      value={waitItem.durationMs}
       aria-label="{item.name || 'Wait'} Duration"
       on:input={handleDurationInput}
       use:focusOnRequest={{ id: `wait-${item.id}`, field: "x" }}

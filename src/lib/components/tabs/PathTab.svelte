@@ -35,6 +35,11 @@
   } from "../../../stores";
   import { loadMacro } from "../../../lib/projectStore";
   import { getShortcutFromSettings } from "../../../utils";
+  import { actionRegistry } from "../../actionRegistry";
+  import {
+    updateLinkedWaits,
+    updateLinkedRotations,
+  } from "../../../utils/pointLinking";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -52,12 +57,8 @@
   let collapsedSections = {
     lines: lines.map(() => false),
     controlPoints: lines.map(() => true), // Start with control points collapsed
-    // Track collapsed state for waits by their ID
-    waits: {} as Record<string, boolean>,
-    // Track collapsed state for rotates by their ID
-    rotates: {} as Record<string, boolean>,
-    // Track collapsed state for macros by their ID
-    macros: {} as Record<string, boolean>,
+    // Generic map for all sequence items by ID (waits, rotates, macros, etc.)
+    items: {} as Record<string, boolean>,
   };
 
   // Debug helpers
@@ -255,7 +256,7 @@
     }
     sequence = newSeq;
 
-    collapsedSections.macros[macroId] = false;
+    collapsedSections.items[macroId] = false;
     collapsedSections = { ...collapsedSections };
     recordChange?.();
   }
@@ -276,6 +277,12 @@
 
   function getMacro(i: any) {
     return i as SequenceMacroItem;
+  }
+
+  // Generic getter for ID
+  function getItemId(item: SequenceItem) {
+    if (item.kind === "path") return (item as any).lineId;
+    return (item as any).id;
   }
 
   function getPathLineId(item: SequenceItem) {
@@ -395,34 +402,28 @@
     recordChange();
   }
 
+  // Deprecated specific add functions - replaced by handleAddAction
+  // kept if needed by exported bindings
+  function addWait() {
+    handleAddAction($actionRegistry["wait"]);
+  }
+
+  function addRotate() {
+    handleAddAction($actionRegistry["rotate"]);
+  }
+
   function collapseAll() {
     collapsedSections.lines = lines.map(() => true);
     collapsedSections.controlPoints = lines.map(() => true);
     collapsedEventMarkers = lines.map(() => true);
 
-    const newWaits = { ...collapsedSections.waits };
+    const newItems = { ...collapsedSections.items };
     sequence.forEach((s) => {
-      if (s.kind === "wait") {
-        newWaits[s.id] = true;
+      if (s.kind !== "path") {
+        newItems[(s as any).id] = true;
       }
     });
-    collapsedSections.waits = newWaits;
-
-    const newRotates = { ...collapsedSections.rotates };
-    sequence.forEach((s) => {
-      if (s.kind === "rotate") {
-        newRotates[s.id] = true;
-      }
-    });
-    collapsedSections.rotates = newRotates;
-
-    const newMacros = { ...collapsedSections.macros };
-    sequence.forEach((s) => {
-      if (s.kind === "macro") {
-        newMacros[s.id] = true;
-      }
-    });
-    collapsedSections.macros = newMacros;
+    collapsedSections.items = newItems;
 
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
@@ -433,29 +434,13 @@
     collapsedSections.controlPoints = lines.map(() => false);
     collapsedEventMarkers = lines.map(() => false);
 
-    const newWaits = { ...collapsedSections.waits };
+    const newItems = { ...collapsedSections.items };
     sequence.forEach((s) => {
-      if (s.kind === "wait") {
-        newWaits[s.id] = false;
+      if (s.kind !== "path") {
+        newItems[(s as any).id] = false;
       }
     });
-    collapsedSections.waits = newWaits;
-
-    const newRotates = { ...collapsedSections.rotates };
-    sequence.forEach((s) => {
-      if (s.kind === "rotate") {
-        newRotates[s.id] = false;
-      }
-    });
-    collapsedSections.rotates = newRotates;
-
-    const newMacros = { ...collapsedSections.macros };
-    sequence.forEach((s) => {
-      if (s.kind === "macro") {
-        newMacros[s.id] = false;
-      }
-    });
-    collapsedSections.macros = newMacros;
+    collapsedSections.items = newItems;
 
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
@@ -466,51 +451,15 @@
     collapsedSections.lines.every((v) => v) &&
     collapsedSections.controlPoints.every((v) => v) &&
     collapsedEventMarkers.every((v) => v) &&
-    (sequence.filter((s) => s.kind === "wait").length === 0 ||
-      sequence
-        .filter((s) => s.kind === "wait")
-        .every((s) => collapsedSections.waits[s.id])) &&
-    (sequence.filter((s) => s.kind === "rotate").length === 0 ||
-      sequence
-        .filter((s) => s.kind === "rotate")
-        .every((s) => collapsedSections.rotates[s.id])) &&
-    (sequence.filter((s) => s.kind === "macro").length === 0 ||
-      sequence
-        .filter((s) => s.kind === "macro")
-        .every((s) => collapsedSections.macros[s.id]));
+    sequence
+      .filter((s) => s.kind !== "path")
+      .every((s) => collapsedSections.items[(s as any).id]);
 
   function toggleCollapseAll() {
     if (allCollapsed) expandAll();
     else collapseAll();
   }
 
-  function addWait() {
-    const wait = {
-      kind: "wait",
-      id: makeId(),
-      name: "",
-      durationMs: 1000,
-      locked: false,
-    } as SequenceItem;
-    sequence = [...sequence, wait];
-    selectedPointId.set(`wait-${(wait as any).id}`);
-    selectedLineId.set(null);
-    recordChange();
-  }
-
-  function addRotate() {
-    const rotate = {
-      kind: "rotate",
-      id: makeId(),
-      name: "",
-      degrees: 0,
-      locked: false,
-    } as SequenceItem;
-    sequence = [...sequence, rotate];
-    selectedPointId.set(`rotate-${(rotate as any).id}`);
-    selectedLineId.set(null);
-    recordChange();
-  }
 
   export function addWaitAtStart() {
     const wait = {
@@ -723,10 +672,7 @@
   export async function scrollToItem(itemId: string) {
     const seqIndex = sequence.findIndex((s) => {
       if (s.kind === "path") return s.lineId === itemId;
-      if (s.kind === "wait") return (s as any).id === itemId;
-      if (s.kind === "rotate") return (s as any).id === itemId;
-      if (s.kind === "macro") return (s as any).id === itemId;
-      return false;
+      return (s as any).id === itemId;
     });
 
     if (seqIndex !== -1) {
@@ -738,12 +684,8 @@
         if (lineIdx !== -1) {
           collapsedSections.lines[lineIdx] = false;
         }
-      } else if (item.kind === "wait") {
-        collapsedSections.waits[(item as any).id] = false;
-      } else if (item.kind === "rotate") {
-        collapsedSections.rotates[(item as any).id] = false;
-      } else if (item.kind === "macro") {
-        collapsedSections.macros[(item as any).id] = false;
+      } else {
+        collapsedSections.items[(item as any).id] = false;
       }
 
       collapsedSections = { ...collapsedSections };
@@ -761,24 +703,54 @@
     const sel = $selectedPointId;
     if (!sel) return;
 
-    if (sel.startsWith("wait-")) {
-      const id = sel.substring(5);
-      collapsedSections.waits[id] = !collapsedSections.waits[id];
-    } else if (sel.startsWith("rotate-")) {
-      const id = sel.substring(7);
-      collapsedSections.rotates[id] = !collapsedSections.rotates[id];
-    } else if (sel.startsWith("macro-")) {
-      const id = sel.substring(6);
-      collapsedSections.macros[id] = !collapsedSections.macros[id];
-    } else if (sel.startsWith("point-")) {
-      const parts = sel.split("-");
+    const parts = sel.split("-");
+    if (parts[0] === "point") {
       const lineNum = Number(parts[1]);
       if (lineNum > 0) {
         const lineIdx = lineNum - 1;
         collapsedSections.lines[lineIdx] = !collapsedSections.lines[lineIdx];
       }
+    } else if (parts.length >= 2) {
+      // "wait-ID", "rotate-ID", etc.
+      // We need to extract ID which might contain dashes? IDs from makeId don't have dashes usually.
+      // But format is kind-ID.
+      const id = sel.substring(parts[0].length + 1);
+      collapsedSections.items[id] = !collapsedSections.items[id];
     }
     collapsedSections = { ...collapsedSections };
+  }
+
+  function handleAddAction(def: any) {
+    if (def.createDefault) {
+      const newItem = def.createDefault();
+      sequence = [...sequence, newItem];
+      selectedPointId.set(`${def.kind}-${newItem.id}`);
+      selectedLineId.set(null);
+      if (def.isWait) sequence = updateLinkedWaits(sequence, newItem.id);
+      if (def.isRotate) sequence = updateLinkedRotations(sequence, newItem.id);
+      recordChange();
+    }
+  }
+
+  function handleAddActionAfter(seqIndex: number, def: any) {
+    if (def.isPath) {
+      insertLineAfter(seqIndex);
+    } else if (def.createDefault) {
+      const newItem = def.createDefault();
+      const newSeq = [...sequence];
+      newSeq.splice(seqIndex + 1, 0, newItem);
+      sequence = newSeq;
+      if (def.isWait) sequence = updateLinkedWaits(sequence, newItem.id);
+      if (def.isRotate) sequence = updateLinkedRotations(sequence, newItem.id);
+      recordChange();
+    }
+  }
+
+  // Helper for button classes
+  function getButtonColorClass(color: string) {
+    if (color === "green")
+      return "bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600 focus:ring-green-300 dark:focus:ring-green-700";
+    return `bg-${color}-500 dark:bg-${color}-600 hover:bg-${color}-600 dark:hover:bg-${color}-500 focus:ring-${color}-200 dark:focus:ring-${color}-500`;
   }
 </script>
 
@@ -835,15 +807,13 @@
     </EmptyState>
   {/if}
 
-  {#each sequence as item, sIdx (item.kind === "path" ? getPathLineId(item) : item.kind === "wait" ? getWait(item).id : item.kind === "rotate" ? getRotate(item).id : getMacro(item).id)}
-    {@const isLocked =
-      item.kind === "path"
-        ? (lines.find((l) => l.id === getPathLineId(item))?.locked ?? false)
-        : (item.locked ?? false)}
+  {#each sequence as item, sIdx (getItemId(item))}
+    {@const isLocked = isItemLocked(item, lines)}
+    {@const def = $actionRegistry[item.kind]}
     <div
       role="listitem"
       data-index={sIdx}
-      id={`sequence-item-${item.kind === "path" ? getPathLineId(item) : item.kind === "wait" ? getWait(item).id : item.kind === "rotate" ? getRotate(item).id : getMacro(item).id}`}
+      id={`sequence-item-${getItemId(item)}`}
       class="w-full transition-all duration-200 rounded-lg"
       draggable={!isItemLocked(item, lines)}
       on:dragstart={(e) => handleDragStart(e, sIdx)}
@@ -870,8 +840,11 @@
             }
             onRemove={() => removeLine(lines.findIndex((l) => l.id === ln.id))}
             onInsertAfter={() => insertLineAfter(sIdx)}
-            onAddWaitAfter={() => insertWaitAfter(sIdx)}
-            onAddRotateAfter={() => insertRotateAfter(sIdx)}
+            onAddWaitAfter={() =>
+              handleAddActionAfter(sIdx, $actionRegistry["wait"])}
+            onAddRotateAfter={() =>
+              handleAddActionAfter(sIdx, $actionRegistry["rotate"])}
+            onAddAction={(d) => handleAddActionAfter(sIdx, d)}
             onMoveUp={() => moveSequenceItem(sIdx, -1)}
             onMoveDown={() => moveSequenceItem(sIdx, 1)}
             canMoveUp={sIdx !== 0}
@@ -879,74 +852,25 @@
             {recordChange}
           />
         {/each}
-      {:else if item.kind === "rotate"}
-        <RotateSection
-          bind:rotate={item}
+      {:else if def && def.sectionComponent}
+        <svelte:component
+          this={def.sectionComponent}
+          {...{ [def.kind]: item }}
           bind:sequence
-          bind:collapsed={collapsedSections.rotates[getRotate(item).id]}
+          collapsed={collapsedSections.items[getItemId(item)]}
           onRemove={() => {
             const newSeq = [...sequence];
             newSeq.splice(sIdx, 1);
             sequence = newSeq;
             recordChange?.();
           }}
-          onInsertAfter={() => insertRotateAfter(sIdx)}
-          onAddPathAfter={() => insertPathAfter(sIdx)}
-          onAddWaitAfter={() => insertWaitAfter(sIdx)}
-          onMoveUp={() => moveSequenceItem(sIdx, -1)}
-          onMoveDown={() => moveSequenceItem(sIdx, 1)}
-          canMoveUp={sIdx !== 0}
-          canMoveDown={sIdx !== sequence.length - 1}
-          {recordChange}
-        />
-      {:else if item.kind === "macro"}
-        <MacroSection
-          bind:macro={item}
-          bind:sequence
-          bind:collapsed={collapsedSections.macros[getMacro(item).id]}
-          onRemove={() => {
-            const newSeq = [...sequence];
-            newSeq.splice(sIdx, 1);
-            sequence = newSeq;
-            recordChange?.();
-          }}
-          onInsertAfter={() => {
-            // Not implemented for Macro currently in UI buttons, but interface requires it
-          }}
-          onAddPathAfter={() => insertPathAfter(sIdx)}
-          onAddWaitAfter={() => insertWaitAfter(sIdx)}
-          onAddRotateAfter={() => insertRotateAfter(sIdx)}
-          onMoveUp={() => moveSequenceItem(sIdx, -1)}
-          onMoveDown={() => moveSequenceItem(sIdx, 1)}
-          canMoveUp={sIdx !== 0}
-          canMoveDown={sIdx !== sequence.length - 1}
-          {recordChange}
-        />
-      {:else}
-        <WaitSection
-          bind:wait={item}
-          bind:sequence
-          bind:collapsed={collapsedSections.waits[getWait(item).id]}
-          onRemove={() => {
-            const newSeq = [...sequence];
-            newSeq.splice(sIdx, 1);
-            sequence = newSeq;
-            recordChange?.();
-          }}
-          onInsertAfter={() => {
-            const newSeq = [...sequence];
-            newSeq.splice(sIdx + 1, 0, {
-              kind: "wait",
-              id: makeId(),
-              name: "",
-              durationMs: 1000,
-              locked: false,
-            });
-            sequence = newSeq;
-            recordChange?.();
-          }}
-          onAddPathAfter={() => insertPathAfter(sIdx)}
-          onAddRotateAfter={() => insertRotateAfter(sIdx)}
+          onInsertAfter={() => handleAddActionAfter(sIdx, def)}
+          onAddPathAfter={() => insertLineAfter(sIdx)}
+          onAddWaitAfter={() =>
+            handleAddActionAfter(sIdx, $actionRegistry["wait"])}
+          onAddRotateAfter={() =>
+            handleAddActionAfter(sIdx, $actionRegistry["rotate"])}
+          onAddAction={(d) => handleAddActionAfter(sIdx, d)}
           onMoveUp={() => moveSequenceItem(sIdx, -1)}
           onMoveDown={() => moveSequenceItem(sIdx, 1)}
           canMoveUp={sIdx !== 0}
@@ -957,72 +881,87 @@
     </div>
   {/each}
   <!-- Add Buttons at end of list -->
-  <div class="flex flex-row justify-center items-center gap-3 pt-4">
-    <button
-      on:click={addLine}
-      title={`Add Path${getShortcutFromSettings(settings, "add-path")}`}
-      class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
-      aria-label="Add new path segment"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width="2"
-        stroke="currentColor"
-        class="size-4"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M12 4.5v15m7.5-7.5h-15"
-        />
-      </svg>
-      Add Path
-    </button>
-
-    <button
-      on:click={addWait}
-      title={`Add Wait${getShortcutFromSettings(settings, "add-wait")}`}
-      class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-500 dark:bg-amber-600 rounded-md shadow-sm hover:bg-amber-600 dark:hover:bg-amber-500 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-200 dark:focus:ring-amber-500"
-      aria-label="Add wait command"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        class="size-4"
-      >
-        <circle cx="12" cy="12" r="9" />
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
-      </svg>
-      Add Wait
-    </button>
-
-    <button
-      on:click={addRotate}
-      title={`Add Rotate${getShortcutFromSettings(settings, "add-rotate")}`}
-      class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-pink-500 dark:bg-pink-600 rounded-md shadow-sm hover:bg-pink-600 dark:hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500"
-      aria-label="Add rotate command"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        class="size-4"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-        />
-      </svg>
-      Add Rotate
-    </button>
+  <div class="flex flex-row justify-center items-center gap-3 pt-4 flex-wrap">
+    {#each Object.values($actionRegistry) as def (def.kind)}
+      {#if def.createDefault || def.isPath}
+        <button
+          on:click={() => {
+            if (def.isPath) addLine();
+            else handleAddAction(def);
+          }}
+          title={def.isPath
+            ? `Add Path${getShortcutFromSettings(settings, "add-path")}`
+            : `Add ${def.label}`}
+          class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
+          aria-label={`Add ${def.label}`}
+        >
+          <!-- Icon -->
+          {#if def.kind === "path"}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 4.5v15m7.5-7.5h-15"
+              />
+            </svg>
+          {:else if def.kind === "wait"}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="size-4"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 7v5l3 2"
+              />
+            </svg>
+          {:else if def.kind === "rotate"}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+              />
+            </svg>
+          {:else}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 4.5v15m7.5-7.5h-15"
+              />
+            </svg>
+          {/if}
+          Add {def.label}
+        </button>
+      {/if}
+    {/each}
   </div>
 </div>
 

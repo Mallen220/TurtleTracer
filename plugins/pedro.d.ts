@@ -138,7 +138,7 @@ type SequenceItem =
   | SequencePathItem
   | SequenceWaitItem
   | SequenceRotateItem
-  | SequenceMacroItem;
+  | SequenceMacroItem
 
 interface KeyBinding {
   id: string;

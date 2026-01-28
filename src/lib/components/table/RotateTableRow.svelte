@@ -24,16 +24,14 @@
 
   export let sequence: SequenceItem[] = [];
 
+  $: rotateItem = item as any; // Cast for template usage
+
   function focusOnRequest(
     node: HTMLElement,
     params: { id: string; field: string },
   ) {
     const unsubscribe = focusRequest.subscribe((req) => {
-      if (
-        req &&
-        req.id === params.id &&
-        req.field === params.field
-      ) {
+      if (req && req.id === params.id && req.field === params.field) {
         node.focus();
         if (node instanceof HTMLInputElement) node.select();
       }
@@ -49,22 +47,22 @@
   }
 
   function handleNameInput(e: Event) {
-      const target = e.target as HTMLInputElement;
-      item.name = target.value;
-      // Note: WaypointTable handles `handleRotateRename` in `onUpdate` wrapper usually?
-      // Wait, in WaypointTable I changed it to:
-      // onUpdate={(updatedItem) => { sequence[seqIndex] = updatedItem; ... }}
-      // For Wait, I handled linked updates.
-      // For Rotate, I should check if I need to handle linked updates.
-      // `handleRotateRename` is the equivalent.
-      onUpdate(item);
+    const target = e.target as HTMLInputElement;
+    item.name = target.value;
+    // Note: WaypointTable handles `handleRotateRename` in `onUpdate` wrapper usually?
+    // Wait, in WaypointTable I changed it to:
+    // onUpdate={(updatedItem) => { sequence[seqIndex] = updatedItem; ... }}
+    // For Wait, I handled linked updates.
+    // For Rotate, I should check if I need to handle linked updates.
+    // `handleRotateRename` is the equivalent.
+    onUpdate(item);
   }
 
   function handleDegreesInput(e: Event) {
-      const target = e.target as HTMLInputElement;
-      (item as any).degrees = parseFloat(target.value);
-      // `updateLinkedRotations` is needed here.
-      onUpdate(item);
+    const target = e.target as HTMLInputElement;
+    (item as any).degrees = parseFloat(target.value);
+    // `updateLinkedRotations` is needed here.
+    onUpdate(item);
   }
 </script>
 
@@ -138,7 +136,7 @@
     <input
       type="number"
       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-pink-500 focus:outline-none text-xs"
-      value={(item as any).degrees}
+      value={rotateItem.degrees}
       aria-label="{item.name || 'Rotate'} Degrees"
       on:input={handleDegreesInput}
       use:focusOnRequest={{
@@ -148,9 +146,7 @@
       disabled={isLocked}
     />
   </td>
-  <td
-    class="px-3 py-2 text-left flex items-center justify-start gap-1"
-  >
+  <td class="px-3 py-2 text-left flex items-center justify-start gap-1">
     <!-- Lock toggle for rotate -->
     <button
       on:click|stopPropagation={onLock}

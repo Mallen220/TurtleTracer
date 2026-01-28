@@ -1225,7 +1225,6 @@
           }
         }
       });
-
     }
     return twoMarkers;
   })();

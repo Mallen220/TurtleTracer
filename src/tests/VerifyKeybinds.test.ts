@@ -4,8 +4,12 @@ import { DEFAULT_KEY_BINDINGS } from "../config/keybindings";
 
 describe("Keybindings", () => {
   it("should include select-next-sequence and select-prev-sequence", () => {
-    const selectNext = DEFAULT_KEY_BINDINGS.find((b) => b.id === "select-next-sequence");
-    const selectPrev = DEFAULT_KEY_BINDINGS.find((b) => b.id === "select-prev-sequence");
+    const selectNext = DEFAULT_KEY_BINDINGS.find(
+      (b) => b.id === "select-next-sequence",
+    );
+    const selectPrev = DEFAULT_KEY_BINDINGS.find(
+      (b) => b.id === "select-prev-sequence",
+    );
 
     expect(selectNext).toBeDefined();
     expect(selectNext?.key).toBe("ctrl+down, cmd+down, tab");

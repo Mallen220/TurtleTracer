@@ -23,16 +23,14 @@
 
   export let sequence: SequenceItem[] = [];
 
+  $: macroItem = item as any; // Cast for template usage
+
   function focusOnRequest(
     node: HTMLElement,
     params: { id: string; field: string },
   ) {
     const unsubscribe = focusRequest.subscribe((req) => {
-      if (
-        req &&
-        req.id === params.id &&
-        req.field === params.field
-      ) {
+      if (req && req.id === params.id && req.field === params.field) {
         node.focus();
         if (node instanceof HTMLInputElement) node.select();
       }
@@ -48,9 +46,9 @@
   }
 
   function handleNameInput(e: Event) {
-      const target = e.target as HTMLInputElement;
-      item.name = target.value;
-      onUpdate(item);
+    const target = e.target as HTMLInputElement;
+    item.name = target.value;
+    onUpdate(item);
   }
 
   $: filePath = (item as any).filePath || "";
@@ -102,7 +100,7 @@
       <!-- Macro Icon -->
       <div
         class="absolute right-1 top-1/2 -translate-y-1/2 text-teal-500 flex items-center justify-center"
-        title={`Macro: ${filePath}`}
+        title={`Macro: ${macroItem.filePath}`}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -121,14 +119,12 @@
   </td>
   <td
     class="px-3 py-2 text-neutral-400 text-xs italic truncate max-w-[100px]"
-    title={((item as any).filePath)}
+    title={macroItem.filePath}
   >
-    {((item as any).filePath || "").split(/[/\\]/).pop()}
+    {(macroItem.filePath || "").split(/[/\\]/).pop()}
   </td>
   <td class="px-3 py-2 text-neutral-400 text-xs italic"> - </td>
-  <td
-    class="px-3 py-2 text-left flex items-center justify-start gap-1"
-  >
+  <td class="px-3 py-2 text-left flex items-center justify-start gap-1">
     <!-- Lock toggle for macro -->
     <button
       on:click|stopPropagation={onLock}

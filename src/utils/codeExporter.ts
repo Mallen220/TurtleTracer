@@ -622,10 +622,9 @@ export async function generateSequentialCommandCode(
     // Registry Check
     const action = actionRegistry.get(item.kind);
     if (action && action.toSequentialCommand) {
-        commands.push(action.toSequentialCommand(item, { isNextFTC }));
-        return;
+      commands.push(action.toSequentialCommand(item, { isNextFTC }));
+      return;
     }
-
 
     const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
     if (lineIdx < 0) {

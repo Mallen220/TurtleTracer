@@ -201,7 +201,8 @@
       const targetId = $selectedLineId || null;
       if (!targetId) return null;
       const idx = seq.findIndex(
-        (s) => actionRegistry.get(s.kind)?.isPath && (s as any).lineId === targetId,
+        (s) =>
+          actionRegistry.get(s.kind)?.isPath && (s as any).lineId === targetId,
       );
       return idx >= 0 ? idx : null;
     }
@@ -453,7 +454,8 @@
     if (sel.startsWith("rotate-")) {
       const rotateId = sel.substring(7);
       const rotateItem = $sequenceStore.find(
-        (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
       ) as any;
       if (!rotateItem) return;
 
@@ -580,7 +582,8 @@
     if (sel.startsWith("rotate-")) {
       const rotateId = sel.substring(7);
       const rotateItem = $sequenceStore.find(
-        (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
       ) as any;
       if (rotateItem) {
         clipboard = _.cloneDeep(rotateItem);
@@ -829,7 +832,10 @@
       if (waitItem && waitItem.locked) return; // Don't delete locked waits
 
       sequenceStore.update((s) =>
-        s.filter((item) => !(actionRegistry.get(item.kind)?.isWait && item.id === waitId)),
+        s.filter(
+          (item) =>
+            !(actionRegistry.get(item.kind)?.isWait && item.id === waitId),
+        ),
       );
       selectedPointId.set(null);
       recordChange();
@@ -839,12 +845,16 @@
     if (sel.startsWith("rotate-")) {
       const rotateId = sel.substring(7);
       const rotateItem = $sequenceStore.find(
-        (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
       ) as any;
       if (rotateItem && rotateItem.locked) return; // Don't delete locked rotates
 
       sequenceStore.update((s) =>
-        s.filter((item) => !(actionRegistry.get(item.kind)?.isRotate && item.id === rotateId)),
+        s.filter(
+          (item) =>
+            !(actionRegistry.get(item.kind)?.isRotate && item.id === rotateId),
+        ),
       );
       selectedPointId.set(null);
       recordChange();
@@ -870,7 +880,11 @@
         if (removedId) {
           sequenceStore.update((s) =>
             s.filter(
-              (item) => !(actionRegistry.get(item.kind)?.isPath && (item as any).lineId === removedId),
+              (item) =>
+                !(
+                  actionRegistry.get(item.kind)?.isPath &&
+                  (item as any).lineId === removedId
+                ),
             ),
           );
         }
@@ -1178,7 +1192,8 @@
     if (current.startsWith("rotate-")) {
       const rotateId = current.substring(7);
       const item = sequence.find(
-        (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
       ) as any;
       if (item) {
         if (item.locked) return; // Don't modify locked rotates
@@ -1376,7 +1391,10 @@
       const rotateId = sel.substring(7);
       sequenceStore.update((seq) =>
         seq.map((s) => {
-          if (actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId) {
+          if (
+            actionRegistry.get(s.kind)?.isRotate &&
+            (s as any).id === rotateId
+          ) {
             return { ...s, locked: !(s as any).locked };
           }
           return s;
@@ -2016,9 +2034,7 @@
           item.eventMarkers.forEach((m: any) => {
             cmds.push({
               id: `cmd-event-${m.id}`,
-              label: m.name
-                ? `Event: ${m.name}`
-                : `Event (${def.label})`,
+              label: m.name ? `Event: ${m.name}` : `Event (${def.label})`,
               category: "Event Marker",
               action: () => {
                 if (controlTabRef && controlTabRef.scrollToItem) {

@@ -9,6 +9,7 @@
     updateLinkedWaits,
   } from "../../../utils/pointLinking";
   import { tooltipPortal } from "../../actions/portal";
+  import { actionRegistry } from "../../actionRegistry";
 
   export let wait: SequenceWaitItem;
   export let sequence: SequenceItem[];
@@ -20,9 +21,10 @@
   // export let collapsedMarkers: boolean = false;
 
   export let onRemove: () => void;
-  export let onInsertAfter: () => void;
-  export let onAddPathAfter: () => void;
-  export let onAddRotateAfter: () => void;
+  export let onInsertAfter: () => void; // Deprecated in favor of onAddAction, but kept for compatibility if needed
+  export let onAddPathAfter: () => void; // Deprecated
+  export let onAddRotateAfter: () => void; // Deprecated
+  export let onAddAction: ((def: any) => void) | undefined = undefined;
   export let onMoveUp: () => void;
   export let onMoveDown: () => void;
   export let canMoveUp: boolean = true;
@@ -324,65 +326,38 @@
 
       <!-- Action Bar -->
       <div
-        class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50"
+        class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50 flex-wrap"
       >
         <span class="text-xs font-medium text-neutral-400 mr-auto"
           >Insert after:</span
         >
-
-        <button
-          on:click|stopPropagation={onAddPathAfter}
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800/30"
-          title="Add Path After"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3"
-          >
-            <path
-              d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
-            />
-          </svg>
-          Path
-        </button>
-
-        <button
-          on:click|stopPropagation={onInsertAfter}
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200 dark:border-amber-800/30"
-          title="Add Wait After"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3"
-          >
-            <path
-              d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
-            />
-          </svg>
-          Wait
-        </button>
-
-        <button
-          on:click|stopPropagation={onAddRotateAfter}
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30"
-          title="Add Rotate After"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3"
-          >
-            <path
-              d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
-            />
-          </svg>
-          Rotate
-        </button>
+        {#each Object.values($actionRegistry) as def (def.kind)}
+          {#if def.createDefault || def.isPath}
+            {@const color = def.buttonColor || "gray"}
+            <button
+              on:click|stopPropagation={() => {
+                if (onAddAction) onAddAction(def);
+                else if (def.isPath) onAddPathAfter();
+                else if (def.isWait) onInsertAfter();
+                else if (def.isRotate) onAddRotateAfter();
+              }}
+              class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-${color}-50 dark:bg-${color}-900/20 text-${color}-600 dark:text-${color}-400 hover:bg-${color}-100 dark:hover:bg-${color}-900/30 transition-colors border border-${color}-200 dark:border-${color}-800/30`}
+              title={`Add ${def.label} After`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="size-3"
+              >
+                <path
+                  d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
+                />
+              </svg>
+              {def.label}
+            </button>
+          {/if}
+        {/each}
       </div>
     </div>
   {/if}

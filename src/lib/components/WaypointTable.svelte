@@ -253,8 +253,7 @@
     return sequence.findIndex((s) => {
       if (s.kind !== item.kind) return false;
       const def = actionRegistry.get(s.kind);
-      if (def?.isPath)
-        return (s as any).lineId === (item as any).lineId;
+      if (def?.isPath) return (s as any).lineId === (item as any).lineId;
       return (s as any).id === (item as any).id;
     });
   }
@@ -438,7 +437,10 @@
     const missing = lines.filter(
       (l) =>
         !l.isMacroElement &&
-        !sequence.some((s) => actionRegistry.get(s.kind)?.isPath && (s as any).lineId === l.id),
+        !sequence.some(
+          (s) =>
+            actionRegistry.get(s.kind)?.isPath && (s as any).lineId === l.id,
+        ),
     );
     if (missing.length) {
       console.warn(
@@ -469,7 +471,11 @@
 
     // Remove sequence entries that reference this line
     const newSeq = sequence.filter(
-      (item) => !(actionRegistry.get(item.kind)?.isPath && (item as any).lineId === lineId),
+      (item) =>
+        !(
+          actionRegistry.get(item.kind)?.isPath &&
+          (item as any).lineId === lineId
+        ),
     );
     sequence = newSeq;
     syncLinesToSequence(newSeq);
@@ -496,8 +502,8 @@
     if (!item) return;
 
     if (actionRegistry.get(item.kind)?.isPath) {
-        deleteLine((item as any).lineId);
-        return;
+      deleteLine((item as any).lineId);
+      return;
     }
 
     if ((item as any).locked) return;
@@ -510,9 +516,15 @@
   }
 
   // Deprecated specific delete functions mapped to generic one for backward compat if needed
-  function deleteWait(index: number) { deleteSequenceItem(index); }
-  function deleteRotate(index: number) { deleteSequenceItem(index); }
-  function deleteMacro(index: number) { deleteSequenceItem(index); }
+  function deleteWait(index: number) {
+    deleteSequenceItem(index);
+  }
+  function deleteRotate(index: number) {
+    deleteSequenceItem(index);
+  }
+  function deleteMacro(index: number) {
+    deleteSequenceItem(index);
+  }
 
   function toggleWaitLock(index: number) {
     const item = sequence[index];
@@ -732,7 +744,9 @@
       label: "Delete",
       onClick: () => deleteSequenceItem(seqIndex),
       danger: true,
-      disabled: isLocked || (lines.length <= 1 && !!actionRegistry.get(item.kind)?.isPath),
+      disabled:
+        isLocked ||
+        (lines.length <= 1 && !!actionRegistry.get(item.kind)?.isPath),
     });
 
     contextMenuItems = items;
@@ -895,10 +909,48 @@
       }
   }
 
+  function insertRotate(index: number) {
+    const newRotate: SequenceItem = {
+      kind: "rotate",
+      id: makeId(),
+      name: "",
+      degrees: 0,
+      locked: false,
+    };
+
+    // Name intentionally left empty for new waypoints
+
+    const newSeq = [...sequence];
+    newSeq.splice(index, 0, newRotate);
+    sequence = newSeq;
+    syncLinesToSequence(newSeq);
+    if (def.isWait) sequence = updateLinkedWaits(sequence, newItem.id);
+    if (def.isRotate) sequence = updateLinkedRotations(sequence, newItem.id);
+    recordChange();
+  }
   // Wrappers for context menu compatibility (if needed) or can be replaced directly
   function insertWait(index: number) { insertAction("wait", index); }
   function insertRotate(index: number) { insertAction("rotate", index); }
   function insertPath(index: number) { insertAction("path", index); }
+
+  function handleAddAction(def: any) {
+    if (def.createDefault) {
+      const newItem = def.createDefault();
+      const newSeq = [...sequence];
+      newSeq.push(newItem);
+      sequence = newSeq;
+      syncLinesToSequence(newSeq);
+      if (def.isWait) sequence = updateLinkedWaits(sequence, newItem.id);
+      if (def.isRotate) sequence = updateLinkedRotations(sequence, newItem.id);
+      recordChange();
+    }
+  }
+
+  function getButtonColorClass(color: string) {
+    if (color === "green")
+      return "bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600 focus:ring-green-300 dark:focus:ring-green-700";
+    return `bg-${color}-500 dark:bg-${color}-600 hover:bg-${color}-600 dark:hover:bg-${color}-500 focus:ring-${color}-200 dark:focus:ring-${color}-500`;
+  }
 
   function insertMacro(index: number, filePath: string) {
     // Extract name from path
@@ -1488,33 +1540,33 @@
               {/each}
             {/each}
           {:else if actionDef}
-             <svelte:component
-                this={actionDef.component}
-                {item}
-                index={seqIndex}
-                isLocked={item.locked}
-                {dragOverIndex}
-                {dragPosition}
-                {draggingIndex}
-                onUpdate={(updatedItem) => {
-                    sequence[seqIndex] = updatedItem;
-                    const def = actionRegistry.get(item.kind);
-                    if (def?.isWait) {
-                        // Handle linking for wait
-                        sequence = updateLinkedWaits(sequence, item.id);
-                    } else if (def?.isRotate) {
-                        // Handle linking for rotate
-                        sequence = updateLinkedRotations(sequence, item.id);
-                    }
-                    recordChange();
-                }}
-                onLock={() => toggleWaitLock(seqIndex)}
-                onDelete={() => deleteSequenceItem(seqIndex)}
-                onDragStart={(e) => handleDragStart(e, seqIndex)}
-                onDragEnd={handleDragEnd}
-                onContextMenu={(e) => handleContextMenu(e, seqIndex)}
-                {sequence}
-             />
+            <svelte:component
+              this={actionDef.component}
+              {item}
+              index={seqIndex}
+              isLocked={item.locked}
+              {dragOverIndex}
+              {dragPosition}
+              {draggingIndex}
+              onUpdate={(updatedItem) => {
+                sequence[seqIndex] = updatedItem;
+                const def = actionRegistry.get(item.kind);
+                if (def?.isWait) {
+                  // Handle linking for wait
+                  sequence = updateLinkedWaits(sequence, item.id);
+                } else if (def?.isRotate) {
+                  // Handle linking for rotate
+                  sequence = updateLinkedRotations(sequence, item.id);
+                }
+                recordChange();
+              }}
+              onLock={() => toggleWaitLock(seqIndex)}
+              onDelete={() => deleteSequenceItem(seqIndex)}
+              onDragStart={(e) => handleDragStart(e, seqIndex)}
+              onDragEnd={handleDragEnd}
+              onContextMenu={(e) => handleContextMenu(e, seqIndex)}
+              {sequence}
+            />
           {/if}
         {/each}
 
@@ -1574,18 +1626,88 @@
 
     <!-- Persistent Add Buttons -->
     <div class="flex gap-2 flex-shrink-0">
-      {#each actionRegistry.getAll().filter(a => a.showInToolbar) as action}
-        <button
-          on:click={() => insertAction(action.kind, sequence.length)}
-          class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 opacity-90 hover:opacity-100"
-          style="background-color: {action.color}; --tw-ring-color: {action.color};"
-          aria-label={action.button?.label || action.label}
+      <button
+        on:click={() => insertPath(sequence.length)}
+        class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
+        aria-label="Add new path segment"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-3"
         >
-          {#if action.button?.icon}
-            {@html action.button.icon}
-          {/if}
-          {action.button?.label || action.label}
-        </button>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 4.5v15m7.5-7.5h-15"
+          />
+        </svg>
+        Add Path
+      </button>
+
+      {#each Object.values($actionRegistry) as def (def.kind)}
+        {#if def.createDefault && !def.isPath}
+          <button
+            on:click={() => handleAddAction(def)}
+            class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
+            aria-label={`Add ${def.label} command`}
+          >
+            <!-- Render Icon based on kind for now as SVG string is not easily injectable here without raw HTML -->
+            <!-- We can use @html def.icon if available but we need to size it -->
+            {#if def.kind === "wait"}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                class="size-3"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 7v5l3 2"
+                />
+              </svg>
+            {:else if def.kind === "rotate"}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                class="size-3"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                />
+              </svg>
+            {:else}
+              <!-- Fallback icon -->
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="size-3"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+            {/if}
+            Add {def.label}
+          </button>
+        {/if}
       {/each}
     </div>
   </div>
