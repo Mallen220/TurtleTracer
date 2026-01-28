@@ -67,7 +67,7 @@
   export let resetAnimation: () => void;
   export let stepForward: () => void;
   export let stepBackward: () => void;
-  export let recordChange: () => void;
+  export let recordChange: (action?: string) => void;
   export let controlTabRef: any = null;
   export let activeControlTab: "path" | "field" | "table" = "path";
   export let toggleStats: () => void = () => {};
@@ -253,7 +253,7 @@
       selectedPointId.set(`point-${newIndex + 1}-0`);
     }
 
-    recordChange();
+    recordChange("Add Path");
   }
 
   function addWait() {
@@ -278,7 +278,7 @@
 
     selectedPointId.set(`wait-${wait.id}`);
     selectedLineId.set(null);
-    recordChange();
+    recordChange("Add Wait");
   }
 
   function addRotate() {
@@ -303,7 +303,7 @@
 
     selectedPointId.set(`rotate-${rotate.id}`);
     selectedLineId.set(null);
-    recordChange();
+    recordChange("Add Rotate");
   }
 
   function addEventMarker() {
@@ -323,7 +323,7 @@
           position: 0.5,
         });
         sequenceStore.set(sequence);
-        recordChange();
+        recordChange("Add Event Marker");
         return;
       }
     }
@@ -340,7 +340,7 @@
         position: 0.5,
       });
       linesStore.set(lines);
-      recordChange();
+      recordChange("Add Event Marker");
     }
   }
 
@@ -361,7 +361,7 @@
     const cpIndex = targetLine.controlPoints.length;
     selectedLineId.set(targetLine.id as string);
     selectedPointId.set(`point-${lineIndex + 1}-${cpIndex}`);
-    recordChange();
+    recordChange("Add Control Point");
   }
 
   function removeControlPoint() {
@@ -373,7 +373,7 @@
         if (targetLine.locked) return; // Don't allow removing control points from locked lines
         targetLine.controlPoints.pop();
         linesStore.set(lines);
-        recordChange();
+        recordChange("Remove Control Point");
       }
     }
   }
@@ -446,7 +446,7 @@
           return s2;
         });
         selectedPointId.set(`wait-${newWait.id}`);
-        recordChange();
+        recordChange("Duplicate Selection");
       }
       return;
     }
@@ -479,7 +479,7 @@
           return s2;
         });
         selectedPointId.set(`rotate-${newRotate.id}`);
-        recordChange();
+        recordChange("Duplicate Selection");
       }
       return;
     }
@@ -559,7 +559,7 @@
 
       selectedLineId.set(newLine.id!);
       selectedPointId.set(`point-${lineIndex + 2}-0`); // Selected the end point of new line
-      recordChange();
+      recordChange("Duplicate Selection");
     }
   }
 
@@ -649,7 +649,7 @@
         sequenceStore.update((s) => [...s, newWait]);
       }
       selectedPointId.set(`wait-${newWait.id}`);
-      recordChange();
+      recordChange("Paste");
       return;
     }
 
@@ -680,7 +680,7 @@
         sequenceStore.update((s) => [...s, newRotate]);
       }
       selectedPointId.set(`rotate-${newRotate.id}`);
-      recordChange();
+      recordChange("Paste");
       return;
     }
 
@@ -815,7 +815,7 @@
       // We can just set selectedLineId and let the UI handle it, or try to guess point ID.
       // Point ID depends on index.
       // Let's record change.
-      recordChange();
+      recordChange("Paste");
     }
   }
 
@@ -838,7 +838,7 @@
         ),
       );
       selectedPointId.set(null);
-      recordChange();
+      recordChange("Delete Selection");
       return;
     }
 
@@ -856,7 +856,7 @@
         ),
       );
       selectedPointId.set(null);
-      recordChange();
+      recordChange("Delete Selection");
       return;
     }
 
@@ -889,7 +889,7 @@
         }
         selectedPointId.set(null);
         selectedLineId.set(null);
-        recordChange();
+        recordChange("Delete Selection");
         return;
       }
       // Control Point
@@ -899,7 +899,7 @@
         line.controlPoints.splice(cpIndex, 1);
         linesStore.set(lines);
         selectedPointId.set(null);
-        recordChange();
+        recordChange("Delete Selection");
       }
     }
   }
@@ -952,7 +952,7 @@
           startPoint.x = Number(startPoint.x.toFixed(3));
           startPoint.y = Number(startPoint.y.toFixed(3));
           startPointStore.set(startPoint);
-          recordChange();
+          recordChange("Move Point");
         }
         return;
       }
@@ -980,7 +980,7 @@
             line.endPoint.y = Number(line.endPoint.y.toFixed(3));
             // Ensure linked lines (same-named waypoints) are updated when a point is moved via keybinds
             linesStore.set(updateLinkedWaypoints(lines, line.id!));
-            recordChange();
+            recordChange("Move Point");
           }
         } else {
           const cpIndex = ptIdx - 1;
@@ -1013,7 +1013,7 @@
               line.controlPoints[cpIndex].y.toFixed(3),
             );
             linesStore.set(lines);
-            recordChange();
+            recordChange("Move Point");
           }
         }
       }
@@ -1033,7 +1033,7 @@
         v.x = Number(v.x.toFixed(3));
         v.y = Number(v.y.toFixed(3));
         shapesStore.set(shapes);
-        recordChange();
+        recordChange("Move Obstacle Vertex");
       }
     } else if (currentSel.startsWith("event-")) {
       const parts = currentSel.split("-");
@@ -1046,7 +1046,7 @@
         newPos = Math.max(0, Math.min(1, newPos));
         line.eventMarkers[evIdx].position = newPos;
         linesStore.set(lines);
-        recordChange();
+        recordChange("Move Event Marker");
       }
     }
   }
@@ -1184,7 +1184,7 @@
         item.durationMs = Math.max(0, item.durationMs + delta * 100);
         // Update linked waits so waits that share a name keep the same duration
         sequenceStore.set(updateLinkedWaits(sequence, item.id));
-        recordChange();
+        recordChange("Modify Duration");
       }
       return;
     }
@@ -1199,7 +1199,7 @@
         const step = 5;
         item.degrees = Number((item.degrees + delta * step).toFixed(2));
         sequenceStore.set(updateLinkedRotations(sequence, item.id));
-        recordChange();
+        recordChange("Modify Rotation");
       }
       return;
     }
@@ -1215,7 +1215,7 @@
         newPos = Math.max(0, Math.min(1, newPos));
         line.eventMarkers[evIdx].position = newPos;
         linesStore.set(lines);
-        recordChange();
+        recordChange("Move Event Marker");
       }
       return;
     }
@@ -1230,7 +1230,7 @@
         newPos = Math.max(0, Math.min(1, newPos));
         line.eventMarkers[lastIdx].position = newPos;
         linesStore.set(lines);
-        recordChange();
+        recordChange("Move Event Marker");
       }
     }
   }
@@ -1284,7 +1284,7 @@
           degrees: undefined,
         });
       }
-      recordChange();
+      recordChange("Toggle Heading Mode");
       return;
     }
 
@@ -1329,7 +1329,7 @@
         };
       }
       linesStore.set(lines);
-      recordChange();
+      recordChange("Toggle Heading Mode");
     }
   }
 
@@ -1349,7 +1349,7 @@
           ...startPoint,
           reverse: !startPoint.reverse,
         });
-        recordChange();
+        recordChange("Toggle Reverse");
       }
       return;
     }
@@ -1362,7 +1362,7 @@
       if (line.endPoint.heading === "tangential") {
         line.endPoint.reverse = !line.endPoint.reverse;
         linesStore.set(lines);
-        recordChange();
+        recordChange("Toggle Reverse");
       }
     }
   }
@@ -1382,7 +1382,7 @@
           return s;
         }),
       );
-      recordChange();
+      recordChange("Toggle Lock");
       return;
     }
 
@@ -1399,7 +1399,7 @@
           return s;
         }),
       );
-      recordChange();
+      recordChange("Toggle Lock");
       return;
     }
 
@@ -1409,7 +1409,7 @@
 
       if (lineNum === 0) {
         startPointStore.update((p) => ({ ...p, locked: !p.locked }));
-        recordChange();
+        recordChange("Toggle Lock");
         return;
       }
 
@@ -1424,7 +1424,7 @@
         }
         return newLines;
       });
-      recordChange();
+      recordChange("Toggle Lock");
       return;
     }
 
@@ -1440,7 +1440,7 @@
         }
         return newLines;
       });
-      recordChange();
+      recordChange("Toggle Lock");
     }
   }
 
@@ -1508,7 +1508,7 @@
         x: snap(p.x),
         y: snap(p.y),
       }));
-      recordChange();
+      recordChange("Snap Selection");
       return;
     }
 
@@ -1523,7 +1523,7 @@
         newLines[lineIdx].endPoint.y = snap(newLines[lineIdx].endPoint.y);
         return newLines;
       });
-      recordChange();
+      recordChange("Snap Selection");
     } else {
       const cpIdx = ptIdx - 1;
       if (line.controlPoints[cpIdx]) {
@@ -1537,7 +1537,7 @@
           );
           return newLines;
         });
-        recordChange();
+        recordChange("Snap Selection");
       }
     }
   }
@@ -1546,7 +1546,7 @@
     if (startPoint.locked) return;
     const def = getDefaultStartPoint();
     startPointStore.set(def);
-    recordChange();
+    recordChange("Reset Start Point");
   }
 
   function panToStart() {
@@ -1846,7 +1846,7 @@
     },
     clearObstacles: () => {
       shapesStore.set([]);
-      recordChange();
+      recordChange("Clear Obstacles");
     },
     snapSelection: () => snapSelection(),
     resetStartPoint: () => resetStartPoint(),

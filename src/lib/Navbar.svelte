@@ -28,6 +28,8 @@
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
   import { menuNavigation } from "./actions/menuNavigation";
+  import type { createHistory } from "../utils/history";
+
   export let startPoint: Point;
   export let lines: Line[];
   export let sequence: SequenceItem[];
@@ -47,15 +49,19 @@
   export const recordChange: () => any = () => {};
   export let canUndo: boolean;
   export let canRedo: boolean;
+  export let history: ReturnType<typeof createHistory>;
 
   let shortcutsOpen = false;
   let exportMenuOpen = false;
+  let historyOpen = false;
 
   let saveDropdownOpen = false;
   let saveDropdownRef: HTMLElement;
   let saveButtonRef: HTMLElement;
   let exportMenuRef: HTMLElement;
   let exportButtonRef: HTMLElement;
+  let historyButtonRef: HTMLElement;
+  let historyDropdownRef: HTMLElement;
 
   let selectedGridSize = 12;
   const gridSizeOptions = [1, 3, 6, 12, 24];
@@ -127,6 +133,16 @@
     }
 
     if (
+      historyOpen &&
+      historyDropdownRef &&
+      !historyDropdownRef.contains(event.target as Node) &&
+      historyButtonRef &&
+      !historyButtonRef.contains(event.target as Node)
+    ) {
+      historyOpen = false;
+    }
+
+    if (
       viewOptionsOpen &&
       viewOptionsRef &&
       !viewOptionsRef.contains(event.target as Node) &&
@@ -144,6 +160,9 @@
     }
     if (exportMenuOpen && event.key === "Escape") {
       exportMenuOpen = false;
+    }
+    if (historyOpen && event.key === "Escape") {
+      historyOpen = false;
     }
   }
 
@@ -395,6 +414,83 @@
           />
         </svg>
       </button>
+
+      <!-- History Dropdown -->
+      {#if history}
+        <div class="relative">
+          <button
+            bind:this={historyButtonRef}
+            title="History Panel"
+            aria-label="History Panel"
+            on:click={() => (historyOpen = !historyOpen)}
+            class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors {historyOpen
+              ? 'bg-neutral-100 dark:bg-neutral-800'
+              : ''}"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="size-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+              />
+            </svg>
+          </button>
+
+          {#if historyOpen}
+            {@const historyStore = history.historyStore}
+            <div
+              bind:this={historyDropdownRef}
+              use:menuNavigation
+              on:close={() => (historyOpen = false)}
+              class="absolute right-0 mt-2 w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
+            >
+              <div
+                class="px-4 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider border-b border-neutral-200 dark:border-neutral-700 mb-1"
+              >
+                History
+              </div>
+              {#if $historyStore.length === 0}
+                <div
+                  class="px-4 py-3 text-sm text-neutral-500 dark:text-neutral-400 text-center italic"
+                >
+                  No history yet
+                </div>
+              {:else}
+                {#each [...$historyStore].reverse() as item, i}
+                  <button
+                    on:click={() => {
+                      history.restore(item.id);
+                      historyOpen = false;
+                    }}
+                    class="w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between group {i ===
+                    0
+                      ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium'
+                      : 'text-neutral-700 dark:text-neutral-200'}"
+                  >
+                    <span class="truncate">{item.description}</span>
+                    <span
+                      class="text-xs text-neutral-400 dark:text-neutral-500 ml-2"
+                    >
+                      {new Date(item.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </span>
+                  </button>
+                {/each}
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/if}
     </div>
 
     <div
