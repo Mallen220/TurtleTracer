@@ -27,6 +27,7 @@
     | "robot"
     | "motion"
     | "interface"
+    | "code-export"
     | "advanced"
     | "about";
   let activeTab: TabId = "general";
@@ -67,6 +68,11 @@
       id: "interface",
       label: "Interface",
       icon: "M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42",
+    },
+    {
+      id: "code-export",
+      label: "Code Export",
+      icon: "M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5",
     },
     {
       id: "advanced",
@@ -1272,6 +1278,127 @@
                     class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                   />
                 </SettingsItem>
+              </div>
+            {/if}
+
+            <!-- Code Export Section -->
+            {#if activeTab === "code-export" || searchQuery}
+              <div class="section-container mb-8">
+                {#if searchQuery}
+                  <h4
+                    class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
+                  >
+                    Code Export
+                  </h4>
+                {/if}
+
+                <SettingsItem
+                  label="Auto Export Code"
+                  description="Automatically export code when project is saved"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <input
+                    type="checkbox"
+                    bind:checked={settings.autoExportCode}
+                    class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  />
+                </SettingsItem>
+
+                {#if settings.autoExportCode}
+                  <div transition:fade>
+                    <SettingsItem
+                      label="Export Path"
+                      description="Directory to save exported code (relative to .pp file or absolute)"
+                      {searchQuery}
+                      layout="col"
+                    >
+                      <div class="flex gap-2">
+                        <input
+                          type="text"
+                          bind:value={settings.autoExportPath}
+                          class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                          placeholder="GeneratedCode"
+                        />
+                      </div>
+                      <div
+                        class="text-xs text-neutral-500 dark:text-neutral-400 mt-1"
+                      >
+                        Default: 'GeneratedCode' folder in the same directory as
+                        the project file.
+                      </div>
+                    </SettingsItem>
+
+                    <SettingsItem
+                      label="Export Format"
+                      description="Format of the generated code"
+                      {searchQuery}
+                      layout="col"
+                    >
+                      <select
+                        bind:value={settings.autoExportFormat}
+                        class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="java">Java Class</option>
+                        <option value="sequential">Sequential Command</option>
+                        <option value="points">Points Array</option>
+                        <option value="json">JSON Project Data</option>
+                      </select>
+                    </SettingsItem>
+
+                    {#if settings.autoExportFormat === "java"}
+                      <div transition:fade>
+                        <SettingsItem
+                          label="Generate Full Class"
+                          description="Include class definition and imports"
+                          {searchQuery}
+                          layout="row"
+                        >
+                          <input
+                            type="checkbox"
+                            bind:checked={settings.autoExportFullClass}
+                            class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </SettingsItem>
+                      </div>
+                    {:else if settings.autoExportFormat === "sequential"}
+                      <div transition:fade>
+                        <SettingsItem
+                          label="Target Library"
+                          description="Command-based library to target"
+                          {searchQuery}
+                          layout="col"
+                        >
+                          <select
+                            bind:value={settings.autoExportTargetLibrary}
+                            class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="SolversLib">SolversLib</option>
+                            <option value="NextFTC">NextFTC</option>
+                          </select>
+                        </SettingsItem>
+                      </div>
+                    {/if}
+
+                    {#if settings.autoExportFormat === "java" || settings.autoExportFormat === "sequential"}
+                      <div transition:fade>
+                        <SettingsItem
+                          label="Package Name"
+                          description="Java package for the generated class"
+                          {searchQuery}
+                          layout="col"
+                        >
+                          <input
+                            type="text"
+                            bind:value={settings.javaPackageName}
+                            class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                            placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
+                          />
+                        </SettingsItem>
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
               </div>
             {/if}
 

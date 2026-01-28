@@ -189,6 +189,12 @@ export interface Settings {
   gitIntegration?: boolean; // Enable/Disable Git integration
   obstaclePresets?: ObstaclePreset[]; // User-saved obstacle presets
   showDebugSequence?: boolean; // Developer/debugging aids
+  // Auto Export Settings
+  autoExportCode?: boolean;
+  autoExportPath?: string;
+  autoExportFormat?: "java" | "sequential" | "points" | "json";
+  autoExportTargetLibrary?: "SolversLib" | "NextFTC";
+  autoExportFullClass?: boolean;
 }
 
 export interface RobotProfile {

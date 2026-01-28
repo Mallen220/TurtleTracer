@@ -155,6 +155,12 @@ export const DEFAULT_SETTINGS: Settings = {
   ],
   // Developer/debugging aids
   showDebugSequence: false,
+  // Auto Export
+  autoExportCode: false,
+  autoExportPath: "GeneratedCode",
+  autoExportFormat: "java",
+  autoExportTargetLibrary: "SolversLib",
+  autoExportFullClass: true,
 };
 
 /**
