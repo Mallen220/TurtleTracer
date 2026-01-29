@@ -347,7 +347,7 @@
           uiLength(POINT_RADIUS),
         );
         pointElem.id = `obstacle-${shapeIdx}-${vertexIdx}-background`;
-        pointElem.fill = "#991b1b";
+        pointElem.fill = shape.color;
         pointElem.noStroke();
         let pointText = new Two.Text(
           `${vertexIdx + 1}`,
