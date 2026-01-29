@@ -257,7 +257,7 @@
     currentFilePath.set(null);
     projectMetadataStore.set({ filepath: "" });
 
-    recordChange();
+    recordChange("New Project");
     // Mark as clean new project
     lastSavedState = getCurrentState();
     isUnsaved.set(false);
@@ -379,6 +379,7 @@
         }
 
         await handleExternalFileOpen(path);
+        recordChange("Load Project");
       } catch (err) {
         console.error("Error opening dropped file:", err);
         alert("Failed to open file: " + err);
@@ -564,7 +565,7 @@
 
   // --- History ---
   const history = createHistory();
-  const { canUndoStore, canRedoStore } = history;
+  const { canUndoStore, canRedoStore, historyStore } = history;
   $: canUndo = $canUndoStore;
   $: canRedo = $canRedoStore;
 
@@ -616,14 +617,14 @@
     return JSON.stringify(getAppState());
   }
 
-  function onRecordChange() {
-    recordChange();
+  function onRecordChange(action?: string) {
+    recordChange(action);
   }
 
-  function recordChange() {
+  function recordChange(description: string = "Change") {
     refreshMacros();
     previewOptimizedLines = null;
-    history.record(getAppState());
+    history.record(getAppState(), description);
     if (isLoaded) isUnsaved.set(true);
 
     // Autosave on change
@@ -763,7 +764,7 @@
     // Stabilize
     setTimeout(async () => {
       // Record initial state before marking as loaded to prevent unsaved flag
-      recordChange();
+      recordChange("Initial State");
       isLoaded = true;
       lastSavedState = getCurrentState(); // Assume fresh start is "saved" unless loaded
 
@@ -825,8 +826,9 @@
     if (electronAPI) {
       // Listen for external file opens BEFORE signaling ready
       if (electronAPI.onOpenFilePath) {
-        electronAPI.onOpenFilePath((filePath) => {
-          handleExternalFileOpen(filePath);
+        electronAPI.onOpenFilePath(async (filePath) => {
+          await handleExternalFileOpen(filePath);
+          recordChange("Load Project");
         });
       }
 
@@ -1454,6 +1456,7 @@
         {recordChange}
         {canUndo}
         {canRedo}
+        {history}
         on:previewOptimizedLines={handleNavbarPreviewChange}
       />
     </div>

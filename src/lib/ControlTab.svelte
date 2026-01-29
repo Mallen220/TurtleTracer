@@ -73,7 +73,7 @@ import { actionRegistry } from "./actionRegistry";
   export const resetAnimation = undefined as unknown as () => void;
 
   export let shapes: Shape[];
-  export let recordChange: () => void;
+  export let recordChange: (action?: string) => void;
   export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
   export let statsOpen = false;
   export let activeTab: string = "path";

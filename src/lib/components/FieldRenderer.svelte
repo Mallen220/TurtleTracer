@@ -102,7 +102,7 @@
   export let isObstructingHUD = false;
 
   // Callback props for interactions
-  export let onRecordChange: () => void;
+  export let onRecordChange: (action?: string) => void;
 
   // Local state
   let two: Two;
@@ -1882,7 +1882,26 @@
 
     two.renderer.domElement.addEventListener("mouseup", () => {
       if (isDown) {
-        onRecordChange(); // Notify parent of change
+        // Infer action description based on currentElem
+        let action = "Move Object";
+        if (currentElem?.startsWith("point-0-0")) {
+          action = "Move Start Point";
+        } else if (currentElem?.startsWith("point-")) {
+          const parts = currentElem.split("-");
+          const ptIdx = Number(parts[2]);
+          if (ptIdx === 0) action = "Move Endpoint";
+          else action = "Move Control Point";
+        } else if (currentElem?.startsWith("obstacle-")) {
+          action = "Edit Obstacle";
+        } else if (
+          currentElem?.includes("event-") ||
+          currentElem?.includes("wait-event") ||
+          currentElem?.includes("rotate-event")
+        ) {
+          action = "Move Event Marker";
+        }
+
+        onRecordChange(action); // Notify parent of change
       }
       isDown = false;
       isPanning = false;
@@ -1941,7 +1960,7 @@
       const newIdx = $linesStore.length - 1;
       selectedPointId.set(`point-${newIdx + 1}-0`);
 
-      onRecordChange();
+      onRecordChange("Add Path");
     });
   });
 

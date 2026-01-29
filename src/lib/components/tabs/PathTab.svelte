@@ -46,7 +46,7 @@
   export let lines: Line[];
   export let sequence: SequenceItem[];
   export let settings: Settings;
-  export let recordChange: () => void;
+  export let recordChange: (action?: string) => void;
   export let isActive: boolean = false; // instead of checking activeTab === 'path'
 
   $: showDebug = (settings as any)?.showDebugSequence;
@@ -104,7 +104,7 @@
         ),
       ];
       repairedSequenceOnce = true;
-      recordChange?.();
+      recordChange?.("Repair Sequence");
     }
   }
 
@@ -217,7 +217,7 @@
       );
       sequence = newSequence;
       syncLinesToSequence(newSequence);
-      recordChange?.();
+      recordChange?.("Reorder Sequence");
     } else if (isMacroDrop) {
       const filePath = e.dataTransfer?.getData("application/x-pedro-macro");
       if (filePath) {
@@ -259,7 +259,7 @@
 
     collapsedSections.items[macroId] = false;
     collapsedSections = { ...collapsedSections };
-    recordChange?.();
+    recordChange?.("Add Macro");
   }
 
   function handleDragEnd() {
@@ -373,7 +373,7 @@
     collapsedSections.lines.splice(idx, 1);
     collapsedSections.controlPoints.splice(idx, 1);
     collapsedEventMarkers.splice(idx, 1);
-    recordChange();
+    recordChange("Remove Path");
   }
 
   function addLine() {
@@ -400,7 +400,7 @@
     selectedLineId.set(newLine.id!);
     const newIndex = lines.findIndex((l) => l.id === newLine.id!);
     selectedPointId.set(`point-${newIndex + 1}-0`);
-    recordChange();
+    recordChange("Add Path");
   }
 
   // Deprecated specific add functions - replaced by handleAddAction
@@ -473,7 +473,7 @@
     sequence = [wait, ...sequence];
     selectedPointId.set(`wait-${(wait as any).id}`);
     selectedLineId.set(null);
-    recordChange();
+    recordChange("Add Wait");
   }
 
   export function addRotateAtStart() {
@@ -487,7 +487,7 @@
     sequence = [rotate, ...sequence];
     selectedPointId.set(`rotate-${(rotate as any).id}`);
     selectedLineId.set(null);
-    recordChange();
+    recordChange("Add Rotate");
   }
 
   export function addPathAtStart() {
@@ -524,7 +524,7 @@
       ...collapsedEventMarkers,
     ];
     selectedLineId.set(newLine.id!);
-    recordChange();
+    recordChange("Add Path");
   }
 
   function insertWaitAfter(seqIndex: number) {
@@ -583,7 +583,7 @@
 
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
-    recordChange();
+    recordChange("Add Path");
   }
 
   function syncLinesToSequence(newSeq: SequenceItem[]) {
@@ -654,7 +654,7 @@
     sequence = newSeq;
 
     syncLinesToSequence(newSeq);
-    recordChange?.();
+    recordChange?.("Reorder Sequence");
   }
 
   function isItemLocked(item: SequenceItem, lines: Line[]): boolean {
@@ -729,7 +729,7 @@
       selectedLineId.set(null);
       if (def.isWait) sequence = updateLinkedWaits(sequence, newItem.id);
       if (def.isRotate) sequence = updateLinkedRotations(sequence, newItem.id);
-      recordChange();
+      recordChange(`Add ${def.label}`);
     }
   }
 
@@ -743,7 +743,7 @@
       sequence = newSeq;
       if (def.isWait) sequence = updateLinkedWaits(sequence, newItem.id);
       if (def.isRotate) sequence = updateLinkedRotations(sequence, newItem.id);
-      recordChange();
+      recordChange(`Add ${def.label}`);
     }
   }
 
@@ -864,7 +864,7 @@
             const newSeq = [...sequence];
             newSeq.splice(sIdx, 1);
             sequence = newSeq;
-            recordChange?.();
+            recordChange?.("Remove Item");
           }}
           onInsertAfter={() => handleAddActionAfter(sIdx, def)}
           onAddPathAfter={() => insertLineAfter(sIdx)}

@@ -31,7 +31,7 @@
   export let onAddWaitAfter: () => void;
   export let onAddRotateAfter: () => void;
   export let onAddAction: ((def: any) => void) | undefined = undefined;
-  export let recordChange: () => void;
+  export let recordChange: (action?: string) => void;
   export let onMoveUp: () => void;
   export let onMoveDown: () => void;
   export let canMoveUp: boolean = true;
@@ -182,7 +182,7 @@
             class:text-green-500={hoveredLinkId === line.id}
             disabled={line.locked}
             on:input={handleNameInput}
-            on:blur={() => recordChange && recordChange()}
+            on:blur={() => recordChange && recordChange("Rename Path")}
             on:click|stopPropagation
           />
           {#if line.id && isLineLinked(lines, line.id)}
@@ -399,7 +399,7 @@
             on:change={() => (lines = [...lines])}
             on:commit={() => {
               lines = [...lines];
-              recordChange();
+              recordChange("Update Heading");
             }}
           />
         </div>
