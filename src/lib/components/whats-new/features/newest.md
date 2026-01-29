@@ -1,5 +1,52 @@
 ### What's New!
 
+## **Join the Community!**
+
+Connect with other users, get help, share your projects, and be part of the development of Pedro Pathing Plus Visualizer!
+
+👉 **[Join Discord](https://discord.gg/chHSzS4ewF)**
+
+---
+
 ## **Features:**
 
-## **Bug Fixes:**
+### **History Panel**
+
+Track and manage your editing history with the new History Panel.
+
+- **Visual Timeline:** See all your undo/redo actions in an organized panel.
+- **Enhanced Visibility:** Better understand what changes you've made and easily navigate through them.
+- **Quick Navigation:** Jump to any point in your editing history instantly.
+
+### **Auto Export Code**
+
+Automatically export your path code when saving your project.
+
+- **Configurable:** Disabled by default, enable it in Settings to auto-export on every save.
+- **Time Saver:** No need to manually export code each time you make changes.
+- **Streamlined Workflow:** Perfect for iterative development and testing.
+
+### **Enhanced Plugin Support**
+
+Improved plugin architecture for better extensibility.
+
+- **Dynamic Action Registry:** Refactored action types system allows plugins more flexibility.
+- **Better Integration:** Plugins can now register custom actions more seamlessly.
+- **Foundation for Growth:** Paves the way for more powerful community plugins.
+
+### **Stability Improvements**
+
+Various improvements preparing for the stable release.
+
+- **Robust Downloads:** Improved reliability when fetching download counts.
+- **Better Error Handling:** More resilient to network and data issues.
+
+## **Important Changes:**
+
+### **Renamed to Pedro Pathing Plus Visualizer**
+
+The project has been renamed from "Pedro Pathing Visualizer" to **"Pedro Pathing Plus Visualizer"** to better distinguish it from the original program and reflect its enhanced feature set.
+
+---
+
+**Note:** This release focuses on stability, enhanced undo/redo functionality, and preparing the foundation for future plugin capabilities.
