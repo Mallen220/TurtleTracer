@@ -7,6 +7,7 @@ import {
   navbarActionRegistry,
   hookRegistry,
 } from "../lib/registries";
+import { actionRegistry } from "../lib/actionRegistry";
 import { get } from "svelte/store";
 
 describe("Expanded Plugin API", () => {
@@ -15,6 +16,7 @@ describe("Expanded Plugin API", () => {
     componentRegistry.reset();
     tabRegistry.reset();
     navbarActionRegistry.reset();
+    actionRegistry.reset();
     hookRegistry.clear();
     vi.clearAllMocks();
 
@@ -80,5 +82,33 @@ describe("Expanded Plugin API", () => {
     const actions = get(navbarActionRegistry);
     expect(actions).toHaveLength(1);
     expect(actions[0].id).toBe("plugin-action");
+  });
+
+  it("should expose action registry and allow registering new action types", async () => {
+    const mockListPlugins = vi.fn().mockResolvedValue(["action-plugin.js"]);
+    const mockReadPlugin = vi.fn().mockResolvedValue(`
+      if (!pedro.registries.actions) throw new Error("actions registry missing");
+
+      pedro.registries.actions.register({
+        kind: "custom-action",
+        label: "Custom Action",
+        component: {},
+        toJavaCode: () => ({ code: "// custom", stepsUsed: 1 })
+      });
+    `);
+
+    (window as any).electronAPI = {
+      listPlugins: mockListPlugins,
+      readPlugin: mockReadPlugin,
+      transpilePlugin: vi.fn((code) => code),
+    };
+
+    localStorage.setItem("plugin_enabled_action-plugin.js", "true");
+
+    await PluginManager.init();
+
+    const actions = get(actionRegistry);
+    expect(actions["custom-action"]).toBeDefined();
+    expect(actions["custom-action"].label).toBe("Custom Action");
   });
 });

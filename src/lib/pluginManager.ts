@@ -20,6 +20,7 @@ import {
   timelineTransformerRegistry,
   fieldRenderRegistry,
 } from "./registries";
+import { actionRegistry } from "./actionRegistry";
 import { registerCoreUI } from "./coreRegistrations";
 import PluginPromptDialog from "./components/dialogs/PluginPromptDialog.svelte";
 import PluginConfirmDialog from "./components/dialogs/PluginConfirmDialog.svelte";
@@ -320,6 +321,7 @@ export class PluginManager {
         dialogs: dialogRegistry,
         timelineTransformers: timelineTransformerRegistry,
         fieldRenderers: fieldRenderRegistry,
+        actions: actionRegistry,
       },
       stores: {
         project: projectStore,
@@ -443,6 +445,7 @@ export class PluginManager {
     dialogRegistry.reset();
     timelineTransformerRegistry.reset();
     fieldRenderRegistry.reset();
+    actionRegistry.reset();
 
     // Restore built-in components/tabs before loading plugins so the UI baseline persists
     registerCoreUI();
