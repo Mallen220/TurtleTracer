@@ -144,7 +144,7 @@ class AppUpdater {
   handleDownloadAndInstall(version, releasesUrl) {
     try {
       if (process.platform === "win32") {
-        const downloadUrl = `https://github.com/Mallen220/PedroPathingPlusVisualizer/releases/download/v${version}/Pedro-Pathing-Visualizer-Setup-${version}.exe`;
+        const downloadUrl = `https://github.com/Mallen220/PedroPathingPlusVisualizer/releases/download/v${version}/Pedro-Pathing-Plus-Visualizer-Setup-${version}.exe`;
         shell.openExternal(downloadUrl);
       } else if (process.platform === "darwin") {
         const command =

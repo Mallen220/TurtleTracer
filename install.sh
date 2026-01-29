@@ -214,7 +214,7 @@ install_dependencies() {
 install_icon() {
     ICON_DIR="$HOME/.local/share/icons/hicolor/512x512/apps"
     mkdir -p "$ICON_DIR"
-    ICON_PATH="$ICON_DIR/pedro-pathing-visualizer.png"
+    ICON_PATH="$ICON_DIR/pedro-pathing-plus-visualizer.png"
     
     # URL to the icon in the repo
     ICON_URL="https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/build/icon.png"
@@ -237,7 +237,7 @@ patch_deb_desktop_file() {
     print_info "Patching installed desktop file for compatibility..."
     
     # Look for the desktop file installed by the deb
-    # usually in /usr/share/applications/pedro-pathing-visualizer.desktop
+    # usually in /usr/share/applications/pedro-pathing-plus-visualizer.desktop or pedro-pathing-visualizer.desktop
     DESKTOP_FILE=$(grep -l -E "Pedro Pathing Visualizer|Pedro Pathing Plus Visualizer" /usr/share/applications/*.desktop 2>/dev/null | head -n 1)
     
     if [ -f "$DESKTOP_FILE" ]; then
@@ -257,10 +257,10 @@ patch_deb_desktop_file() {
             # A simple heuristic: everything before " %U" or just the whole line if no args.
             # But the issue is specifically spaces in the path not being quoted.
             
-            # Since we know the install path is likely "/opt/Pedro Pathing Plus Visualizer/pedro-pathing-visualizer"
+            # Since we know the install path is likely "/opt/Pedro Pathing Plus Visualizer/pedro-pathing-plus-visualizer" or the legacy '/opt/Pedro Pathing Plus Visualizer/pedro-pathing-visualizer'
             # We can try to construct a safe Exec string.
             
-            # Let's rely on finding the 'pedro-pathing-visualizer' binary path.
+            # Let's rely on finding the 'pedro-pathing-plus-visualizer' or legacy 'pedro-pathing-visualizer' binary path.
             # If the current line is: /opt/Pedro Pathing Plus Visualizer/pedro-pathing-visualizer %U
             # We want: "/opt/Pedro Pathing Plus Visualizer/pedro-pathing-visualizer" --no-sandbox %U
             
@@ -317,11 +317,13 @@ install_mac() {
         if [ -n "$version" ]; then
             # Candidate filename patterns to try (covers common naming conventions and the requested variant)
             candidates=(
-                "Pedro-Pathing-Visualizer-${version}.dmg"
-                "Pedro-Pathing-Visualizer-${version}-amd64.dmg"
-                "pedro-pathing-visualizer_${version}.dmg"
-                "pedro-pathing-visualizer-${version}.dmg"
-                "Pedro-Pathing-Visualizer-${version}-arm64.dmg"
+                "Pedro-Pathing-Plus-Visualizer-${version}.dmg"
+                "Pedro-Pathing-Plus-Visualizer-${version}-amd64.dmg"
+                "Pedro-Pathing-Plus-Visualizer-${version}-arm64.dmg"
+                "Pedro-Pathing-Plus-Visualizer-${version}.dmg"
+                "Pedro-Pathing-Plus-Visualizer-${version}-amd64.dmg"
+                "pedro-pathing-plus-visualizer_${version}.dmg"
+                "pedro-pathing-plus-visualizer-${version}.dmg"
             )
 
             for c in "${candidates[@]}"; do
@@ -440,7 +442,7 @@ install_linux() {
         TMP_APP_PATH="/tmp/$fname"
 
         # Remove any previously installed AppImages to avoid stale versions
-        old_appimages=$(find "$INSTALL_DIR" -maxdepth 1 -type f \( -iname "Pedro-Pathing-Visualizer*.AppImage" -o -iname "pedro-pathing-visualizer*.appimage" \) 2>/dev/null)
+        old_appimages=$(find "$INSTALL_DIR" -maxdepth 1 -type f \( -iname "Pedro-Pathing-Plus-Visualizer*.AppImage" -o -iname "Pedro-Pathing-Visualizer*.AppImage" -o -iname "pedro-pathing-plus-visualizer*.appimage" -o -iname "pedro-pathing-visualizer*.appimage" \) 2>/dev/null)
         if [ -n "$old_appimages" ]; then
             print_info "Removing old AppImage(s)..."
             while IFS= read -r old; do
@@ -469,12 +471,12 @@ install_linux() {
 [Desktop Entry]
 Name=Pedro Pathing Plus Visualizer
 Exec="$APP_PATH" --no-sandbox
-Icon=pedro-pathing-visualizer
+Icon=pedro-pathing-plus-visualizer
 Type=Application
 Categories=Development;
 Comment=Visualizer for Pedro Pathing
 Terminal=false
-StartupWMClass=pedro-pathing-visualizer
+StartupWMClass=pedro-pathing-plus-visualizer
 EOL
             print_status "Desktop shortcut created."
         fi
@@ -505,7 +507,7 @@ EOL
         
     elif [[ "$lower" == *.tar.gz ]]; then
         TMP_TAR="/tmp/$fname"
-        DEST_DIR="$INSTALL_DIR/pedro-pathing-visualizer"
+        DEST_DIR="$INSTALL_DIR/pedro-pathing-plus-visualizer"
 
         # Clean previous extracted version so the new one replaces it
         if [ -d "$DEST_DIR" ]; then
@@ -611,7 +613,7 @@ case "$CHOICE" in
     3)
         print_header "Windows Installation"
         echo "This script cannot install the Windows .exe directly."
-        echo "Please download the latest 'Pedro-Pathing-Visualizer-Setup.exe' from:"
+        echo "Please download the latest 'Pedro-Pathing-Plus-Visualizer-Setup.exe' from:"
         echo ""
         echo "   https://github.com/Mallen220/PedroPathingPlusVisualizer/releases/latest"
         echo ""

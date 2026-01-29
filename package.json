@@ -1,5 +1,5 @@
 {
-  "name": "pedro-pathing-visualizer",
+  "name": "pedro-pathing-plus-visualizer",
   "private": true,
   "version": "1.7.1",
   "main": "electron/main.js",
@@ -96,7 +96,7 @@
       "output": "release",
       "buildResources": "build"
     },
-    "artifactName": "Pedro-Pathing-Visualizer-${version}-${arch}.${ext}",
+    "artifactName": "Pedro-Pathing-Plus-Visualizer-${version}-${arch}.${ext}",
     "files": [
       "dist/**/*",
       "public/**/*",
@@ -133,7 +133,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "perMachine": true,
-      "artifactName": "Pedro-Pathing-Visualizer-Setup-${version}.${ext}"
+      "artifactName": "Pedro-Pathing-Plus-Visualizer-Setup-${version}.${ext}"
     },
     "linux": {
       "target": [
@@ -143,14 +143,14 @@
       "icon": "build/icon.png",
       "category": "Development",
       "maintainer": "Matthew Allen <allenmc220@gmail.com>",
-      "executableName": "pedro-pathing-visualizer",
-      "artifactName": "Pedro-Pathing-Visualizer-${version}-${arch}.${ext}",
+      "executableName": "pedro-pathing-plus-visualizer",
+      "artifactName": "Pedro-Pathing-Plus-Visualizer-${version}-${arch}.${ext}",
       "desktop": {
-        "StartupWMClass": "pedro-pathing-visualizer"
+        "StartupWMClass": "pedro-pathing-plus-visualizer"
       }
     },
     "appImage": {
-      "artifactName": "Pedro-Pathing-Visualizer-${version}-${arch}.${ext}"
+      "artifactName": "Pedro-Pathing-Plus-Visualizer-${version}-${arch}.${ext}"
     },
     "fileAssociations": [
       {
