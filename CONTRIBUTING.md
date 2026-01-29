@@ -9,11 +9,13 @@ Whether you’re fixing a bug, adding a feature, improving performance, or just 
 ## 📌 Project Status
 
 This project is under **active and rapid development**. Expect:
+
 - Frequent commits
 - Breaking changes between releases
 - Ongoing refactors as systems mature
 
 If you encounter issues, please:
+
 1. Check existing Issues
 2. Try the latest release
 3. If needed, revert to a previous release and report the problem
@@ -24,13 +26,13 @@ If you encounter issues, please:
 
 You can contribute in many ways:
 
-- 🐛 Bug reports and fixes  
-- ✨ New features or tools  
-- ⚡ Performance improvements  
-- 🎨 UI/UX polish  
-- 🧪 Testing and validation  
-- 📖 Documentation improvements  
-- 🔌 Plugins and extensions  
+- 🐛 Bug reports and fixes
+- ✨ New features or tools
+- ⚡ Performance improvements
+- 🎨 UI/UX polish
+- 🧪 Testing and validation
+- 📖 Documentation improvements
+- 🔌 Plugins and extensions
 
 No contribution is too small.
 
@@ -41,6 +43,7 @@ No contribution is too small.
 Before opening an issue, please check if it already exists.
 
 When reporting a bug, include:
+
 - App version
 - Operating system
 - Steps to reproduce
@@ -55,11 +58,13 @@ https://github.com/Mallen220/PedroPathingPlusVisualizer/issues
 ## 💡 Feature Requests
 
 Feature ideas are welcome. When proposing one:
+
 - Clearly describe the problem it solves
 - Explain why it benefits FRC teams
 - Include mockups or examples if possible
 
 Keep in mind:
+
 - Simplicity > complexity
 - Performance and stability are top priorities
 - Features should align with real competition workflows
@@ -69,6 +74,7 @@ Keep in mind:
 ## 🧩 Development Setup
 
 ### Prerequisites
+
 - Node.js 18+
 - Git
 
@@ -79,7 +85,7 @@ git clone https://github.com/Mallen220/PedroPathingPlusVisualizer.git
 cd PedroPathingVisualizer
 npm install
 npm run dev
-````
+```
 
 ### Building
 
@@ -91,10 +97,10 @@ npm run dist
 
 ## 🏗️ Project Structure (High-Level)
 
-* `src/` – Svelte UI and core application logic
-* `electron/` – Electron main and preload processes
-* `public/` – Static assets
-* `scripts/` – Build and utility scripts
+- `src/` – Svelte UI and core application logic
+- `electron/` – Electron main and preload processes
+- `public/` – Static assets
+- `scripts/` – Build and utility scripts
 
 Try to keep changes scoped and modular.
 
@@ -102,10 +108,10 @@ Try to keep changes scoped and modular.
 
 ## 🧪 Testing & Validation
 
-* Test your changes on at least one platform (macOS, Windows, or Linux)
-* Verify paths load, save, and export correctly
-* Avoid introducing UI lag or frame drops
-* If adding simulation logic, validate against known robot constraints
+- Test your changes on at least one platform (macOS, Windows, or Linux)
+- Verify paths load, save, and export correctly
+- Avoid introducing UI lag or frame drops
+- If adding simulation logic, validate against known robot constraints
 
 Automated testing is evolving—manual validation is currently important.
 
@@ -113,23 +119,23 @@ Automated testing is evolving—manual validation is currently important.
 
 ## 🎨 UI & UX Guidelines
 
-* Maintain the existing color semantics:
+- Maintain the existing color semantics:
+  - Green = Paths
+  - Amber = Waits
+  - Pink = Rotations
 
-  * Green = Paths
-  * Amber = Waits
-  * Pink = Rotations
-* Prefer clarity over visual novelty
-* Avoid unnecessary dialogs or modal overload
-* Keep workflows keyboard-friendly where possible
+- Prefer clarity over visual novelty
+- Avoid unnecessary dialogs or modal overload
+- Keep workflows keyboard-friendly where possible
 
 ---
 
 ## 🔧 Coding Standards
 
-* Favor readability and maintainability
-* Avoid premature optimization
-* Use descriptive variable and function names
-* Keep commits focused and meaningful
+- Favor readability and maintainability
+- Avoid premature optimization
+- Use descriptive variable and function names
+- Keep commits focused and meaningful
 
 Commit messages should be clear and concise:
 
@@ -153,9 +159,9 @@ Fix telemetry desync on timeline scrub
 
 Please include:
 
-* What the PR changes
-* Why it’s needed
-* Any known limitations or follow-ups
+- What the PR changes
+- Why it’s needed
+- Any known limitations or follow-ups
 
 ---
 
@@ -163,10 +169,10 @@ Please include:
 
 If contributing a plugin:
 
-* Keep it self-contained
-* Avoid hard dependencies on internal state where possible
-* Document installation and usage
-* Follow the same quality and UX standards as core features
+- Keep it self-contained
+- Avoid hard dependencies on internal state where possible
+- Document installation and usage
+- Follow the same quality and UX standards as core features
 
 ---
 

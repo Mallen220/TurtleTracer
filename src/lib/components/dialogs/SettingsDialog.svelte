@@ -397,7 +397,8 @@
 
   function getBasePath(): string | null {
     if ($currentFilePath) return $currentFilePath;
-    if ($currentDirectoryStore) return $currentDirectoryStore + "/placeholder.pp";
+    if ($currentDirectoryStore)
+      return $currentDirectoryStore + "/placeholder.pp";
     return null;
   }
 

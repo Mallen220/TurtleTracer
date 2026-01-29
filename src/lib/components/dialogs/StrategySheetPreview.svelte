@@ -226,7 +226,9 @@
           class="bg-white text-black max-w-[210mm] mx-auto shadow-xl p-[10mm] min-h-[297mm] flex flex-col gap-6 print:shadow-none print:p-0 print:max-w-none print:min-h-0 print:h-auto"
         >
           <!-- Sheet Header -->
-          <div class="flex items-start justify-between border-b-2 border-black pb-4">
+          <div
+            class="flex items-start justify-between border-b-2 border-black pb-4"
+          >
             <div>
               <h1 class="text-3xl font-bold uppercase tracking-tight">
                 {projectName}
@@ -289,7 +291,9 @@
                   <div class="text-gray-600">Max Vel:</div>
                   <div class="font-medium">{settings.maxVelocity} in/s</div>
                   <div class="text-gray-600">Max Accel:</div>
-                  <div class="font-medium">{settings.maxAcceleration} in/s²</div>
+                  <div class="font-medium">
+                    {settings.maxAcceleration} in/s²
+                  </div>
                 </div>
               </div>
             </div>
@@ -309,15 +313,18 @@
               </thead>
               <tbody>
                 <tr class="border-b border-gray-200">
-                    <td class="py-2 px-3 text-gray-500">0</td>
-                    <td class="py-2 px-3 font-medium">Start</td>
-                    <td class="py-2 px-3">({startPoint.x.toFixed(1)}, {startPoint.y.toFixed(1)})</td>
-                    <td class="py-2 px-3"></td>
+                  <td class="py-2 px-3 text-gray-500">0</td>
+                  <td class="py-2 px-3 font-medium">Start</td>
+                  <td class="py-2 px-3"
+                    >({startPoint.x.toFixed(1)}, {startPoint.y.toFixed(1)})</td
+                  >
+                  <td class="py-2 px-3"></td>
                 </tr>
                 {#each combinedSequence as item, i}
                   <tr class="border-b border-gray-200 break-inside-avoid">
                     <td class="py-2 px-3 text-gray-500">{i + 1}</td>
-                    <td class="py-2 px-3 font-medium capitalize">{item.name}</td>
+                    <td class="py-2 px-3 font-medium capitalize">{item.name}</td
+                    >
                     <td class="py-2 px-3">{item.details}</td>
                     <td class="py-2 px-3">
                       {#if item.events.length > 0}
@@ -350,58 +357,57 @@
       </div>
     </div>
   </div>
-
 {/if}
 
 <style>
-    @media print {
-        :global(body > *) {
-            display: none !important;
-        }
-        
-        /* Make the backdrop visible (as a container), but hide its background */
-        :global(.fixed.inset-0.z-\[1000\]) {
-            display: flex !important;
-            position: absolute !important;
-            inset: 0 !important;
-            background: white !important;
-            padding: 0 !important;
-            align-items: flex-start !important;
-            justify-content: center !important;
-        }
-
-        /* Hide the dialog header/chrome */
-        :global(.fixed.inset-0 > div > div:first-child) {
-            display: none !important;
-        }
-
-        /* Target the scrollable container and make it visible/overflow visible */
-        :global(.fixed.inset-0 > div > div.flex-1) {
-             overflow: visible !important;
-             padding: 0 !important;
-             background: white !important;
-        }
-
-        /* Target the sheet itself */
-        :global(.fixed.inset-0 > div > div.flex-1 > div) {
-             box-shadow: none !important;
-             max-width: none !important;
-             width: 100% !important;
-             margin: 0 !important;
-        }
-        
-        /* Ensure the dialog panel wrapper itself is visible and reset styles */
-        :global(.fixed.inset-0 > div) {
-            display: block !important;
-            position: static !important;
-            width: 100% !important;
-            height: auto !important;
-            max-width: none !important;
-            box-shadow: none !important;
-            border: none !important;
-            overflow: visible !important;
-            background: white !important;
-            transform: none !important; /* Reset fly transition transform if caught mid-animation */
-        }
+  @media print {
+    :global(body > *) {
+      display: none !important;
     }
+
+    /* Make the backdrop visible (as a container), but hide its background */
+    :global(.fixed.inset-0.z-\[1000\]) {
+      display: flex !important;
+      position: absolute !important;
+      inset: 0 !important;
+      background: white !important;
+      padding: 0 !important;
+      align-items: flex-start !important;
+      justify-content: center !important;
+    }
+
+    /* Hide the dialog header/chrome */
+    :global(.fixed.inset-0 > div > div:first-child) {
+      display: none !important;
+    }
+
+    /* Target the scrollable container and make it visible/overflow visible */
+    :global(.fixed.inset-0 > div > div.flex-1) {
+      overflow: visible !important;
+      padding: 0 !important;
+      background: white !important;
+    }
+
+    /* Target the sheet itself */
+    :global(.fixed.inset-0 > div > div.flex-1 > div) {
+      box-shadow: none !important;
+      max-width: none !important;
+      width: 100% !important;
+      margin: 0 !important;
+    }
+
+    /* Ensure the dialog panel wrapper itself is visible and reset styles */
+    :global(.fixed.inset-0 > div) {
+      display: block !important;
+      position: static !important;
+      width: 100% !important;
+      height: auto !important;
+      max-width: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      overflow: visible !important;
+      background: white !important;
+      transform: none !important; /* Reset fly transition transform if caught mid-animation */
+    }
+  }
 </style>

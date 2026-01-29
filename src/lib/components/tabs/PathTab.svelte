@@ -461,7 +461,6 @@
     else collapseAll();
   }
 
-
   export function addWaitAtStart() {
     const wait = {
       kind: "wait",
@@ -844,8 +843,10 @@
             }
             onRemove={() => removeLine(lines.findIndex((l) => l.id === ln.id))}
             onInsertAfter={() => insertLineAfter(sIdx)}
-            onAddWaitAfter={() => handleAddActionAfter(sIdx, $actionRegistry["wait"])}
-            onAddRotateAfter={() => handleAddActionAfter(sIdx, $actionRegistry["rotate"])}
+            onAddWaitAfter={() =>
+              handleAddActionAfter(sIdx, $actionRegistry["wait"])}
+            onAddRotateAfter={() =>
+              handleAddActionAfter(sIdx, $actionRegistry["rotate"])}
             onAddAction={addActionAfterFor.bind(null, sIdx)}
             onMoveUp={() => moveSequenceItem(sIdx, -1)}
             onMoveDown={() => moveSequenceItem(sIdx, 1)}

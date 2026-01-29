@@ -32,8 +32,8 @@ const createActionRegistry = () => {
       return state[kind];
     },
     getAll: (): ActionDefinition[] => {
-        const state = get({ subscribe });
-        return Object.values(state);
+      const state = get({ subscribe });
+      return Object.values(state);
     },
     reset: () => set({}),
   };

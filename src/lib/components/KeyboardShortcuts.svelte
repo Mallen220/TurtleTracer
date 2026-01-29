@@ -541,7 +541,9 @@
       // Insert into sequence
       // We need to find where the original line was in the sequence
       const seqIdx = sequence.findIndex(
-        (s) => actionRegistry.get(s.kind)?.isPath && (s as any).lineId === originalLine.id,
+        (s) =>
+          actionRegistry.get(s.kind)?.isPath &&
+          (s as any).lineId === originalLine.id,
       );
       if (seqIdx !== -1) {
         sequenceStore.update((s) => {
@@ -832,10 +834,7 @@
       if (waitItem && waitItem.locked) return; // Don't delete locked waits
 
       sequenceStore.update((s) =>
-        s.filter(
-          (item) =>
-            !(item.kind === "wait" && item.id === waitId),
-        ),
+        s.filter((item) => !(item.kind === "wait" && item.id === waitId)),
       );
       selectedPointId.set(null);
       recordChange("Delete Selection");
@@ -850,10 +849,7 @@
       if (rotateItem && rotateItem.locked) return; // Don't delete locked rotates
 
       sequenceStore.update((s) =>
-        s.filter(
-          (item) =>
-            !(item.kind === "rotate" && item.id === rotateId),
-        ),
+        s.filter((item) => !(item.kind === "rotate" && item.id === rotateId)),
       );
       selectedPointId.set(null);
       recordChange("Delete Selection");
@@ -1893,7 +1889,8 @@
       if (openWhatsNew) openWhatsNew();
     },
     reportIssue: () => {
-      const url = "https://github.com/Mallen220/PedroPathingPlusVisualizer/issues";
+      const url =
+        "https://github.com/Mallen220/PedroPathingPlusVisualizer/issues";
       // @ts-ignore
       if (window.electronAPI && window.electronAPI.openExternal) {
         // @ts-ignore

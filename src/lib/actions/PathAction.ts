@@ -21,8 +21,8 @@ export const PathAction: ActionDefinition = {
   color: "#16a34a", // Green-600
   showInToolbar: true,
   button: {
-      label: "Add Path",
-      icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>`
+    label: "Add Path",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>`,
   },
   // We point to null component to indicate it's handled natively if fallback logic exists,
   // or we could eventually migrate the row component here.
@@ -88,10 +88,10 @@ export const PathAction: ActionDefinition = {
     const renumbered = renumberDefaultPathNames(ctx.lines);
     // Copy back to ctx.lines
     ctx.lines.length = 0;
-    renumbered.forEach(l => ctx.lines.push(l));
+    renumbered.forEach((l) => ctx.lines.push(l));
 
     ctx.sequence.splice(ctx.index, 0, { kind: "path", lineId: newLine.id! });
 
     ctx.triggerReactivity();
-  }
+  },
 };

@@ -964,8 +964,7 @@
                 showStrategySheet.set(true);
               }}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-              title="Print Strategy Sheet"
-              >Strategy Sheet</button
+              title="Print Strategy Sheet">Strategy Sheet</button
             >
 
             {#if $customExportersStore.length > 0}

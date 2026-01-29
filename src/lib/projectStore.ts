@@ -52,12 +52,15 @@ export function sanitizeSequence(
 
   // Remove path entries that reference lines not present
   const pruned = candidate.filter(
-    (s) => !actionRegistry.get(s.kind)?.isPath || lineIds.has((s as any).lineId),
+    (s) =>
+      !actionRegistry.get(s.kind)?.isPath || lineIds.has((s as any).lineId),
   );
 
   // Append any lines that are missing from the sequence
   const presentIds = new Set(
-    pruned.filter((s) => actionRegistry.get(s.kind)?.isPath).map((s) => (s as any).lineId),
+    pruned
+      .filter((s) => actionRegistry.get(s.kind)?.isPath)
+      .map((s) => (s as any).lineId),
   );
   const missing = lines.filter(
     (l) => !presentIds.has(l.id) && !l.isMacroElement,

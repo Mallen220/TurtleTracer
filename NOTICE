@@ -220,3 +220,13 @@ src/lib/components/table/ServoTableRow.svelte
 src/lib/components/table/WaitTableRow.svelte
 src/lib/coreRegistrations.ts
 verification/test_servo_ui.py
+.github/ISSUE_TEMPLATE/bug_report.md
+.github/ISSUE_TEMPLATE/custom.md
+.github/ISSUE_TEMPLATE/feature_request.md
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+SECURITY.md
+reproduce_history.ts
+src/lib/components/dialogs/StrategySheetPreview.svelte
+src/utils/buttonStyles.ts
+src/utils/history.ts

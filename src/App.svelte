@@ -23,7 +23,7 @@
   import PluginManagerDialog from "./lib/components/dialogs/PluginManagerDialog.svelte";
   import KeyboardShortcutsDialog from "./lib/components/dialogs/KeyboardShortcutsDialog.svelte";
   import ExportCodeDialog from "./lib/components/dialogs/ExportCodeDialog.svelte";
-import StrategySheetPreview from "./lib/components/dialogs/StrategySheetPreview.svelte";
+  import StrategySheetPreview from "./lib/components/dialogs/StrategySheetPreview.svelte";
   import DialogHost from "./lib/components/DialogHost.svelte";
 
   // Stores
@@ -33,7 +33,7 @@ import StrategySheetPreview from "./lib/components/dialogs/StrategySheetPreview.
     showSettings,
     isPresentationMode,
     showExportGif,
-  showStrategySheet,
+    showStrategySheet,
     showShortcuts,
     exportDialogState,
     selectedPointId,

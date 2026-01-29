@@ -47,7 +47,10 @@
   } from "../../utils/pointLinking";
   import { getRandomColor } from "../../utils/draw";
   import { actionRegistry } from "../actionRegistry";
-  import { getButtonFilledClass, getSmallButtonClass } from "../../utils/buttonStyles";
+  import {
+    getButtonFilledClass,
+    getSmallButtonClass,
+  } from "../../utils/buttonStyles";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -472,11 +475,7 @@
 
     // Remove sequence entries that reference this line
     const newSeq = sequence.filter(
-      (item) =>
-        !(
-          item.kind === "path" &&
-          (item as any).lineId === lineId
-        ),
+      (item) => !(item.kind === "path" && (item as any).lineId === lineId),
     );
     sequence = newSeq;
     syncLinesToSequence(newSeq);
@@ -917,20 +916,20 @@
   }
 
   function insertAction(kind: string, index: number) {
-      const def = actionRegistry.get(kind);
-      if (def && def.onInsert) {
-          def.onInsert({
-              index,
-              sequence,
-              lines,
-              startPoint,
-              triggerReactivity: () => {
-                  sequence = [...sequence];
-                  lines = renumberDefaultPathNames([...lines]);
-                  recordChange();
-              }
-          });
-      }
+    const def = actionRegistry.get(kind);
+    if (def && def.onInsert) {
+      def.onInsert({
+        index,
+        sequence,
+        lines,
+        startPoint,
+        triggerReactivity: () => {
+          sequence = [...sequence];
+          lines = renumberDefaultPathNames([...lines]);
+          recordChange();
+        },
+      });
+    }
   }
 
   // Generic wrappers for inserting common actions. These delegate to the action registry
@@ -1038,7 +1037,6 @@
     // Trigger load
     loadMacro(filePath);
   }
-
 
   function moveSequenceItem(seqIndex: number, delta: number) {
     const targetIndex = seqIndex + delta;

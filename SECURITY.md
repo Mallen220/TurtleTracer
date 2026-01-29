@@ -9,9 +9,9 @@ The security of **Pedro Pathing Plus Visualizer** and the safety of its users ar
 Due to the rapid development cycle, **only the latest release** is actively supported with security updates.
 
 | Version        | Supported |
-|----------------|-----------|
-| Latest Release | ✅ Yes |
-| Older Releases | ❌ No |
+| -------------- | --------- |
+| Latest Release | ✅ Yes    |
+| Older Releases | ❌ No     |
 
 If you are using an older version and encounter a security issue, please upgrade to the latest release and verify whether the issue still exists.
 
@@ -24,14 +24,17 @@ If you discover a security vulnerability, **please do not open a public GitHub i
 Instead, report it responsibly using one of the following methods:
 
 ### Preferred Method
+
 - Use GitHub’s **Private Security Advisory** feature:
   https://github.com/Mallen220/PedroPathingPlusVisualizer/security/advisories
 
 ### Alternative
+
 - Contact the maintainer directly via GitHub:
   https://github.com/Mallen220
 
 When reporting, please include:
+
 - A clear description of the vulnerability
 - Steps to reproduce
 - Potential impact
@@ -55,6 +58,7 @@ While response times may vary depending on severity and availability:
 ## 🧩 Scope of Security Concerns
 
 This policy covers:
+
 - Electron security issues (e.g. IPC misuse, preload exposure)
 - File system access vulnerabilities
 - Path file parsing (`.pp` files)
@@ -63,6 +67,7 @@ This policy covers:
 - Dependency vulnerabilities
 
 This policy does **not** cover:
+
 - Issues caused by modified builds
 - Problems introduced by third-party plugins
 - User environment misconfiguration
@@ -73,6 +78,7 @@ This policy does **not** cover:
 ## 🔍 Security Best Practices
 
 Users and contributors are encouraged to:
+
 - Download releases only from the official GitHub repository
 - Verify checksums when available
 - Keep dependencies up to date
@@ -84,6 +90,7 @@ Users and contributors are encouraged to:
 ## 🧪 Contributors & Security
 
 If you are contributing code:
+
 - Avoid using `eval`, unsafe IPC patterns, or unrestricted Node APIs in the renderer
 - Validate and sanitize all file inputs
 - Assume `.pp` files may be malformed or hostile

@@ -49,7 +49,7 @@
   import { calculatePathTime, getShortcutFromSettings } from "../utils";
   import { tabRegistry, timelineTransformerRegistry } from "./registries";
   import { diffMode } from "./diffStore";
-import { actionRegistry } from "./actionRegistry";
+  import { actionRegistry } from "./actionRegistry";
 
   export let percent: number;
   export let playing: boolean;

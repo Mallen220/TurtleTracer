@@ -129,7 +129,7 @@ export type SequenceItem =
   | SequencePathItem
   | SequenceWaitItem
   | SequenceRotateItem
-  | SequenceMacroItem
+  | SequenceMacroItem;
 
 export interface KeyBinding {
   id: string;

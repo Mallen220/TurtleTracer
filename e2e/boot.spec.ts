@@ -70,7 +70,9 @@ test("app boots and displays main interface", async () => {
         }
       }
       if (!foundBinary) {
-        throw new Error(`Could not find macOS binary inside ${appPath}/Contents/MacOS`);
+        throw new Error(
+          `Could not find macOS binary inside ${appPath}/Contents/MacOS`,
+        );
       }
       executablePath = foundBinary;
     }

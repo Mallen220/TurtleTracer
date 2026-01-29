@@ -655,7 +655,7 @@ async function handleAutoExport(
   settings: Settings,
   shapes: Shape[],
   projectData: any, // passed for JSON export
-  targetPath: string
+  targetPath: string,
 ) {
   const electronAPI = getElectronAPI();
   if (!settings.autoExportCode || !electronAPI || !electronAPI.resolvePath)
@@ -674,7 +674,8 @@ async function handleAutoExport(
     // Determine content and extension
     let content = "";
     let extension = "txt";
-    const baseName = targetPath.split(/[\\/]/).pop()?.replace(".pp", "") || "AutoPath";
+    const baseName =
+      targetPath.split(/[\\/]/).pop()?.replace(".pp", "") || "AutoPath";
 
     switch (settings.autoExportFormat) {
       case "java":
@@ -683,7 +684,7 @@ async function handleAutoExport(
           lines,
           settings.autoExportFullClass ?? true,
           sequence,
-          settings.javaPackageName
+          settings.javaPackageName,
         );
         extension = "java";
         break;
@@ -694,7 +695,7 @@ async function handleAutoExport(
           baseName,
           sequence,
           settings.autoExportTargetLibrary ?? "SolversLib",
-          settings.javaPackageName
+          settings.javaPackageName,
         );
         extension = "java";
         break;
@@ -743,7 +744,6 @@ async function handleAutoExport(
       type: "success",
       timeout: 2000,
     });
-
   } catch (err: any) {
     console.error("Auto Export Failed:", err);
     notification.set({

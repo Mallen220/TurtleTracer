@@ -144,10 +144,7 @@ export function createHistory(maxSize = 200) {
     if (redoIndex !== -1) {
       // Redo until we reach it
       let safety = redoStack.length + 1;
-      while (
-        safety-- > 0 &&
-        canRedo()
-      ) {
+      while (safety-- > 0 && canRedo()) {
         redo();
         // Check if we reached the desired state (it is now at top of undoStack)
         if (undoStack[undoStack.length - 1].id === id) break;
