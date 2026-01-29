@@ -50,7 +50,7 @@ jobs:
           #### **macOS / Linux**
           Run the following command in terminal and provide your password when prompted:
           ```bash
-          curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
+          curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/install.sh | bash
           ```
 
           #### **Windows**

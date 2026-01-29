@@ -95,7 +95,7 @@
 
       while (hasMore) {
         const response = await fetch(
-          `https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases?per_page=100&page=${page}`,
+          `https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases?per_page=100&page=${page}`,
         );
 
         if (response.ok) {
@@ -1616,7 +1616,7 @@
                         >•</span
                       >
                       <a
-                        href="https://github.com/Mallen220/PedroPathingVisualizer"
+                        href="https://github.com/Mallen220/PedroPathingPlusVisualizer"
                         target="_blank"
                         class="text-blue-600 dark:text-blue-400 hover:underline"
                         >GitHub</a
@@ -1650,7 +1650,7 @@
                         <h4 class="font-semibold mb-2">Project Links</h4>
                         <div class="flex gap-3 text-xs">
                           <a
-                            href="https://github.com/Mallen220/PedroPathingVisualizer/issues"
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/issues"
                             target="_blank"
                             class="text-blue-600 dark:text-blue-400 hover:underline"
                             >Issues</a
@@ -1659,7 +1659,7 @@
                             >•</span
                           >
                           <a
-                            href="https://github.com/Mallen220/PedroPathingVisualizer/releases"
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/releases"
                             target="_blank"
                             class="text-blue-600 dark:text-blue-400 hover:underline"
                             >Releases</a

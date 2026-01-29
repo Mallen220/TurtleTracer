@@ -20,7 +20,7 @@ class AppUpdater {
 
       // GitHub API URL for your repository releases
       const repoUrl =
-        "https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases/latest";
+        "https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases/latest";
 
       const response = await fetch(repoUrl);
 
@@ -144,17 +144,17 @@ class AppUpdater {
   handleDownloadAndInstall(version, releasesUrl) {
     try {
       if (process.platform === "win32") {
-        const downloadUrl = `https://github.com/Mallen220/PedroPathingVisualizer/releases/download/v${version}/Pedro-Pathing-Visualizer-Setup-${version}.exe`;
+        const downloadUrl = `https://github.com/Mallen220/PedroPathingPlusVisualizer/releases/download/v${version}/Pedro-Pathing-Visualizer-Setup-${version}.exe`;
         shell.openExternal(downloadUrl);
       } else if (process.platform === "darwin") {
         const command =
-          "curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash";
+          "curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/install.sh | bash";
         const appleScript = `tell application "Terminal" to do script "${command}"`;
         spawn("osascript", ["-e", appleScript]);
         spawn("osascript", ["-e", 'tell application "Terminal" to activate']);
       } else if (process.platform === "linux") {
         const command =
-          "curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash";
+          "curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/install.sh | bash";
         if (!this.openTerminalLinux(command)) {
           // Fallback
           shell.openExternal(releasesUrl);

@@ -58,7 +58,7 @@ This repo is regularly updated with new features and bug fixes but tested primar
 #### **macOS / Linux**
 Run the following command in terminal and provide your password when prompted:
 \`\`\`bash
-curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/install.sh | bash
 \`\`\`
 
 #### **Windows**
@@ -157,7 +157,7 @@ async function main() {
     if (createRelease.toLowerCase().startsWith("y")) {
       await createGitHubRelease(version);
       console.log(
-        "Draft release created: https://github.com/Mallen220/PedroPathingVisualizer/releases",
+        "Draft release created: https://github.com/Mallen220/PedroPathingPlusVisualizer/releases",
       );
     } else {
       console.log("GitHub release creation skipped");

@@ -1893,7 +1893,7 @@
       if (openWhatsNew) openWhatsNew();
     },
     reportIssue: () => {
-      const url = "https://github.com/Mallen220/PedroPathingVisualizer/issues";
+      const url = "https://github.com/Mallen220/PedroPathingPlusVisualizer/issues";
       // @ts-ignore
       if (window.electronAPI && window.electronAPI.openExternal) {
         // @ts-ignore

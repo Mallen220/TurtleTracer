@@ -9,8 +9,8 @@
   </p>
 
   <p align="center">
-    <a href="https://github.com/Mallen220/PedroPathingVisualizer/releases">
-      <img src="https://img.shields.io/github/v/release/Mallen220/PedroPathingVisualizer?style=flat-square&color=blue" alt="Latest Release">
+    <a href="https://github.com/Mallen220/PedroPathingPlusVisualizer/releases">
+      <img src="https://img.shields.io/github/v/release/Mallen220/PedroPathingPlusVisualizer?style=flat-square&color=blue" alt="Latest Release">
     </a>
     <a href="LICENSE">
       <img src="https://img.shields.io/badge/license-Apache%202.0-green.svg?style=flat-square" alt="License">
@@ -90,14 +90,14 @@ Oh, and so so many little improvements not even included yet! Check back often f
 Open Terminal and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/install.sh | bash
 ```
 
 _Enter your password when prompted to complete installation._
 
 **Manual Installation:**
 
-1.  Download the latest `.dmg` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
+1.  Download the latest `.dmg` from [Releases](https://github.com/Mallen220/PedroPathingPlusVisualizer/releases).
 2.  Mount the DMG and drag the app to your Applications folder.
 3.  **Important**: Run the following command in Terminal to clear the quarantine attribute (prevents "App is damaged" errors):
     ```bash
@@ -107,7 +107,7 @@ _Enter your password when prompted to complete installation._
 
 ### **Windows**
 
-1.  Download the latest `.exe` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
+1.  Download the latest `.exe` from [Releases](https://github.com/Mallen220/PedroPathingPlusVisualizer/releases).
 2.  Run the installer.
 3.  _Note: If SmartScreen appears, click "More info" > "Run anyway"._
 
@@ -117,14 +117,14 @@ _Enter your password when prompted to complete installation._
 Open Terminal and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/install.sh | bash
 ```
 
 _Enter your password when prompted to complete installation._
 
 **Manual Installation:**
 
-1.  Download the `.deb` (Debian/Ubuntu) or `.AppImage` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
+1.  Download the `.deb` (Debian/Ubuntu) or `.AppImage` from [Releases](https://github.com/Mallen220/PedroPathingPlusVisualizer/releases).
 2.  Fix permissions for Sandboxing by installing and adding "--no-sandboxing" to the .desktop icons.
 3.  Install using your package manager of choice `libfuse2` and `zlib1g` as well as any sub-dependencies.
 4.  **Important**: Other various errors are likely to occur including depending on your Distro of choice. Testing is varied by Ubuntu is most closely watched. If you would like to become a tester please reach out.
@@ -205,7 +205,7 @@ Want to contribute or build from source?
 
 ```bash
 # Clone the repository
-git clone https://github.com/Mallen220/PedroPathingVisualizer.git
+git clone https://github.com/Mallen220/PedroPathingPlusVisualizer.git
 cd PedroPathingVisualizer
 
 # Install dependencies
@@ -247,9 +247,9 @@ See the [LICENSE](LICENSE) file for the full Apache 2.0 legal text.
 
 ## 🔗 Links
 
-- [GitHub Repository](https://github.com/Mallen220/PedroPathingVisualizer)
-- [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases)
-- [Issues & Bug Reports](https://github.com/Mallen220/PedroPathingVisualizer/issues)
+- [GitHub Repository](https://github.com/Mallen220/PedroPathingPlusVisualizer)
+- [Releases](https://github.com/Mallen220/PedroPathingPlusVisualizer/releases)
+- [Issues & Bug Reports](https://github.com/Mallen220/PedroPathingPlusVisualizer/issues)
 
 ---
 

@@ -591,7 +591,7 @@ const createMenu = () => {
           label: "See Project on GitHub",
           click: async () => {
             await shell.openExternal(
-              "https://github.com/Mallen220/PedroPathingVisualizer",
+              "https://github.com/Mallen220/PedroPathingPlusVisualizer",
             );
           },
         },

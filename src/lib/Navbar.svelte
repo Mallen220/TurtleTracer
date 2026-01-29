@@ -978,7 +978,7 @@
         rel="norefferer"
         title="GitHub Repo"
         aria-label="GitHub Repository"
-        href="https://github.com/Mallen220/PedroPathingVisualizer"
+        href="https://github.com/Mallen220/PedroPathingPlusVisualizer"
         class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
       >
         <svg
