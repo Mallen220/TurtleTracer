@@ -18,6 +18,7 @@
     showShortcuts,
     startTutorial,
     currentFilePath,
+    currentDirectoryStore,
   } from "../../../stores";
 
   export let isOpen = false;
@@ -394,20 +395,26 @@
     }
   }
 
+  function getBasePath(): string | null {
+    if ($currentFilePath) return $currentFilePath;
+    if ($currentDirectoryStore) return $currentDirectoryStore + "/placeholder.pp";
+    return null;
+  }
+
   async function handleBrowse() {
     const electronAPI = (window as any).electronAPI;
     if (!electronAPI || !electronAPI.selectDirectory) return;
 
     const path = await electronAPI.selectDirectory();
     if (path) {
-      if (settings.autoExportPathMode === "relative" && $currentFilePath) {
+      const base = getBasePath();
+      if (settings.autoExportPathMode === "relative" && base) {
         settings.autoExportPath = await electronAPI.makeRelativePath(
-          $currentFilePath,
+          base,
           path,
         );
       } else {
         settings.autoExportPath = path;
-        // If we are forced to absolute because project is unsaved or mode is absolute
       }
     }
   }
@@ -419,22 +426,24 @@
 
     if (currentMode === newMode) return;
 
+    const base = getBasePath();
+
     if (
       electronAPI &&
-      $currentFilePath &&
+      base &&
       settings.autoExportPath &&
       settings.autoExportPath.trim() !== ""
     ) {
       if (newMode === "absolute") {
         // Convert relative to absolute
         settings.autoExportPath = await electronAPI.resolvePath(
-          $currentFilePath,
+          base,
           settings.autoExportPath,
         );
       } else if (newMode === "relative") {
         // Convert absolute to relative
         settings.autoExportPath = await electronAPI.makeRelativePath(
-          $currentFilePath,
+          base,
           settings.autoExportPath,
         );
       }
