@@ -188,8 +188,8 @@
         const svgViewBox = svg.getAttribute("viewBox");
         let bx = 0,
           by = 0,
-          bwidth: number,
-          bheight: number;
+          bwidth = 0,
+          bheight = 0;
 
         if (svgViewBox) {
           const parts = svgViewBox.split(/\s+/).map(Number);
@@ -361,9 +361,9 @@
       image: { type: "png", quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: { format: "a4", orientation: "portrait" },
-    };
+    } as const;
 
-    html2pdf().set(opt).from(printableSheet).save();
+    html2pdf().set(opt as any).from(printableSheet).save();
   }
 
   function handleClose() {
@@ -707,12 +707,7 @@
     position: relative;
   }
 
-  #strategy-sheet-preview-field svg {
-    max-width: 70%;
-    height: auto;
-    display: block !important;
-    width: auto !important;
-  }
+
 
   @media print {
     :global(body > *) {
