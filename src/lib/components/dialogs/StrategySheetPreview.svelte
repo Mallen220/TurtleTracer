@@ -29,18 +29,103 @@
     // Clear previous content
     fieldContainer.innerHTML = "";
 
-    // Clone the SVG from the main renderer
-    // We assume twoInstance.renderer.domElement is the <svg> element.
-    const originalSvg = twoInstance.renderer.domElement;
-    const svg = originalSvg.cloneNode(true) as SVGElement;
+    // Clone the SVG (or canvas) from the main renderer
+    // We expect twoInstance.renderer.domElement to be the <svg> element for Two.js SVG renderer,
+    // but some environments or plugins may wrap or change the output, so we'll inspect and handle multiple types.
+    const originalEl = twoInstance.renderer?.domElement;
 
-    // Adjust styles for the preview/print
-    svg.style.position = "static";
-    svg.style.width = "100%";
-    svg.style.height = "auto";
-    svg.style.maxWidth = "100%";
-    svg.style.display = "block";
-    svg.style.overflow = "visible"; // Ensure everything is visible
+    // Debug: collect info about the renderer element to diagnose missing field map
+    const debugInfo: any = {
+      twoInstancePresent: !!twoInstance,
+      rendererExists: !!originalEl,
+      tagName: originalEl?.tagName || null,
+      childCount: originalEl ? originalEl.querySelectorAll('*').length : 0,
+      outerLength: originalEl ? (originalEl.outerHTML || '').length : 0,
+      widthAttr: originalEl?.getAttribute ? originalEl.getAttribute('width') : null,
+      heightAttr: originalEl?.getAttribute ? originalEl.getAttribute('height') : null,
+      viewBox: originalEl?.getAttribute ? originalEl.getAttribute('viewBox') : null,
+    };
+    console.debug('StrategySheetPreview renderer debug:', debugInfo);
+
+    let svg: SVGElement | null = null;
+
+    if (!originalEl) {
+      // Nothing to render
+      const dbg = document.createElement('div');
+      dbg.style.padding = '8px';
+      dbg.style.background = 'rgba(255,0,0,0.05)';
+      dbg.style.color = 'red';
+      dbg.textContent = `StrategySheet: No renderer element available`;
+      fieldContainer.appendChild(dbg);
+      return;
+    }
+
+    // If the renderer is an SVG, clone it
+    if (originalEl.tagName && originalEl.tagName.toUpperCase() === 'SVG') {
+      svg = (originalEl.cloneNode(true) as SVGElement);
+    } else if (originalEl.tagName && originalEl.tagName.toUpperCase() === 'CANVAS') {
+      // If it's a canvas, create an image from it
+      try {
+        const dataUrl = (originalEl as HTMLCanvasElement).toDataURL('image/png');
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.style.maxWidth = '70%';
+        img.style.height = 'auto';
+        img.style.display = 'block';
+        img.style.margin = '0 auto';
+        fieldContainer.appendChild(img);
+        return;
+      } catch (e) {
+        console.error('Failed to serialize canvas renderer for strategy sheet preview:', e);
+      }
+    } else {
+      // Try to find an inner SVG element
+      const innerSvg = originalEl.querySelector ? originalEl.querySelector('svg') : null;
+      if (innerSvg) {
+        svg = (innerSvg.cloneNode(true) as SVGElement);
+      }
+    }
+
+    if (!svg) {
+      const dbg = document.createElement('div');
+      dbg.style.padding = '8px';
+      dbg.style.background = 'rgba(255,200,0,0.05)';
+      dbg.style.color = '#b97300';
+      dbg.textContent = `StrategySheet: No SVG element found to render`;
+      fieldContainer.appendChild(dbg);
+      return;
+    }
+
+    // Determine original SVG attributes (if available) so scaling keeps aspect ratio
+    const sourceSvg = originalEl.tagName && originalEl.tagName.toUpperCase() === 'SVG' ? originalEl : originalEl.querySelector ? (originalEl.querySelector('svg') as SVGElement) : null;
+    const originalWidth = sourceSvg?.getAttribute('width') || svg.getAttribute('width') || '800';
+    const originalHeight = sourceSvg?.getAttribute('height') || svg.getAttribute('height') || '800';
+    const viewBox = sourceSvg?.getAttribute('viewBox') || svg.getAttribute('viewBox');
+
+    try {
+      // Ensure there is a viewBox; if missing, create one from width/height so scaling works
+      if (viewBox) {
+        svg.setAttribute('viewBox', viewBox);
+      } else {
+        svg.setAttribute('viewBox', `0 0 ${originalWidth} ${originalHeight}`);
+      }
+      // Remove fixed pixel width/height so the SVG scales to the container via viewBox
+      svg.removeAttribute('width');
+      svg.removeAttribute('height');
+    } catch (e) {
+      console.debug('Failed to set attributes on cloned SVG:', e);
+    }
+
+    // Adjust styles for the preview/print and let flexbox center it
+    svg.style.position = 'static';
+    svg.style.display = 'block';
+    // Make SVG fill the container while maintaining aspect via viewBox
+    svg.style.width = '100%';
+    svg.style.height = '100%';
+    svg.style.maxWidth = '100%';
+    svg.style.margin = '0 auto';
+    svg.style.zIndex = '2';
+    svg.style.overflow = 'visible'; // Ensure everything is visible
 
     // Optional: We could traverse the SVG to hide specific groups if needed
     // e.g. hiding the robot image if it's an overlay in the SVG (but robot is usually an <img> overlay in FieldRenderer, not part of Two.js scene except for onion skins)
@@ -54,6 +139,160 @@
       svg.style.transformOrigin = "center";
     }
 
+    // Ensure the SVG has a preserveAspectRatio for consistent scaling
+    if (!svg.getAttribute('preserveAspectRatio')) {
+      svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    }
+
+    // Determine background image source
+    let bgSrc: string | null = null;
+    if (settings.customMaps?.some((m) => m.id === settings.fieldMap)) {
+      const activeMap = settings.customMaps.find((m) => m.id === settings.fieldMap);
+      if (activeMap?.imageData) bgSrc = activeMap.imageData;
+    } else {
+      bgSrc = settings.fieldMap && !settings.fieldMap.includes('custom') ? `/fields/${settings.fieldMap}` : '/fields/decode.webp';
+    }
+
+    // If we have an SVG, embed the background image into the svg so it uses the same coordinate system
+    if (svg && bgSrc) {
+      try {
+        const svgViewBox = svg.getAttribute('viewBox');
+        let bx = 0,
+          by = 0,
+          bwidth: number,
+          bheight: number;
+
+        if (svgViewBox) {
+          const parts = svgViewBox.split(/\s+/).map(Number);
+          if (parts.length === 4 && parts.every((n) => !Number.isNaN(n))) {
+            bx = parts[0];
+            by = parts[1];
+            bwidth = parts[2];
+            bheight = parts[3];
+          }
+        }
+
+        // Fallback to DOM pixel size if viewBox isn't available or parsing failed
+        if (!bwidth || !bheight) {
+          const cw = (originalEl as HTMLElement).clientWidth;
+          const ch = (originalEl as HTMLElement).clientHeight;
+          if (cw && ch) {
+            bwidth = cw;
+            bheight = ch;
+          } else {
+            bwidth = parseFloat(originalWidth) || 800;
+            bheight = parseFloat(originalHeight) || 800;
+          }
+        }
+
+        const imgEl = svg.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'image');
+        // Try both namespaced and non-namespaced href for compatibility
+        try {
+          imgEl.setAttributeNS('http://www.w3.org/1999/xlink', 'href', bgSrc);
+        } catch (e) {
+          /* ignore */
+        }
+        imgEl.setAttribute('href', bgSrc);
+        imgEl.setAttribute('x', String(bx));
+        imgEl.setAttribute('y', String(by));
+        imgEl.setAttribute('width', String(bwidth));
+        imgEl.setAttribute('height', String(bheight));
+        // Use 'none' so the field image maps exactly to the SVG coordinate system
+        imgEl.setAttribute('preserveAspectRatio', 'none');
+        imgEl.style.pointerEvents = 'none';
+        svg.insertBefore(imgEl, svg.firstChild);
+      } catch (e) {
+        console.error('Failed to embed background image into SVG:', e);
+      }
+    }
+
+    // If the cloned SVG has no visible content (some renderers create shadowed canvases),
+    // fall back to serializing it and inserting it as an <img> to ensure it appears.
+    const hasContent = svg && svg.querySelectorAll('*').length > 0 && svg.outerHTML.trim().length > 0;
+
+    if (!hasContent) {
+      try {
+        const serializer = new XMLSerializer();
+        const svgString = serializer.serializeToString(svg);
+
+        // Create background image element (positioned absolutely inside the container)
+        if (bgSrc) {
+          const bgImg = document.createElement('img');
+          bgImg.src = bgSrc;
+          bgImg.alt = 'Field';
+          bgImg.style.maxWidth = '90%';
+          bgImg.style.height = 'auto';
+          bgImg.style.display = 'block';
+          bgImg.style.position = 'absolute';
+          bgImg.style.top = '50%';
+          bgImg.style.left = '50%';
+          bgImg.style.transform = 'translate(-50%, -50%)';
+          bgImg.style.zIndex = '1';
+          bgImg.style.pointerEvents = 'none';
+          fieldContainer.appendChild(bgImg);
+        }
+
+        const img = document.createElement('img');
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+        img.alt = 'Field overlay';
+        // Make fallback images scale with container width so they align with background
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.maxWidth = '100%';
+        img.style.display = 'block';
+        img.style.position = 'absolute';
+        img.style.top = '0';
+        img.style.left = '0';
+        img.style.zIndex = '2';
+        fieldContainer.appendChild(img);
+        return;
+      } catch (e) {
+        console.error('Failed to serialize SVG for strategy sheet preview:', e);
+      }
+    }
+
+    // When we have content, prefer rasterizing the source SVG to an image and overlaying it
+    try {
+      const serializer = new XMLSerializer();
+      const sourceSvg = originalEl.tagName && originalEl.tagName.toUpperCase() === 'SVG' ? originalEl : svg;
+      const svgString = serializer.serializeToString(sourceSvg);
+
+      // Ensure background image is present and fills container
+      if (bgSrc) {
+        const bgImg = document.createElement('img');
+        bgImg.src = bgSrc;
+        bgImg.alt = 'Field';
+        bgImg.style.width = '100%';
+        bgImg.style.height = '100%';
+        bgImg.style.maxWidth = '100%';
+        bgImg.style.display = 'block';
+        bgImg.style.position = 'absolute';
+        bgImg.style.top = '0';
+        bgImg.style.left = '0';
+        bgImg.style.zIndex = '1';
+        bgImg.style.pointerEvents = 'none';
+        fieldContainer.appendChild(bgImg);
+      }
+
+      const overlayImg = document.createElement('img');
+      overlayImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+      overlayImg.alt = 'Field overlay';
+      overlayImg.style.width = '100%';
+      overlayImg.style.height = '100%';
+      overlayImg.style.maxWidth = '100%';
+      overlayImg.style.display = 'block';
+      overlayImg.style.position = 'absolute';
+      overlayImg.style.top = '0';
+      overlayImg.style.left = '0';
+      overlayImg.style.zIndex = '2';
+      overlayImg.style.pointerEvents = 'none';
+      fieldContainer.appendChild(overlayImg);
+      return;
+    } catch (e) {
+      console.error('Failed to create overlay image from SVG:', e);
+    }
+
+    // As a fallback, append the cloned svg element directly
     fieldContainer.appendChild(svg);
   }
 
@@ -66,6 +305,23 @@
 
   function handlePrint() {
     window.print();
+  }
+
+  async function handleDownloadPdf() {
+    // Dynamic import to avoid bundling issues
+    const html2pdf = (await import('html2pdf.js')).default;
+    const printableSheet = document.querySelector('.max-w-\\[210mm\\]') as HTMLElement;
+    if (!printableSheet) return;
+
+    const opt = {
+      margin: 0,
+      filename: `${projectName}-strategy-sheet.pdf`,
+      image: { type: 'png', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(printableSheet).save();
   }
 
   function handleClose() {
@@ -87,11 +343,11 @@
     return line.eventMarkers || [];
   }
 
-  // Combine Path and Waits into a linear list for the table
+  // Combine Path, Waits, and Rotations into a linear list for the table
   // We can try to reconstruct the order from the sequence
   $: combinedSequence = (() => {
     const items: Array<{
-      type: "path" | "wait" | "macro";
+      type: "path" | "wait" | "macro" | "rotate";
       name: string;
       details: string;
       events: string[];
@@ -127,6 +383,15 @@
           details: `${seqItem.durationMs}ms`,
           events: [],
           duration: seqItem.durationMs / 1000,
+        });
+      } else if (seqItem.kind === "rotate") {
+        items.push({
+          type: "rotate",
+          name: seqItem.name || "Rotate",
+          details: `${seqItem.degrees}°`,
+          events: (seqItem.eventMarkers || []).map(
+            (e) => `${e.name} @ ${(e.position * 100).toFixed(0)}%`,
+          ),
         });
       } else if (seqItem.kind === "macro") {
         items.push({
@@ -198,6 +463,26 @@
             Print
           </button>
           <button
+            on:click={handleDownloadPdf}
+            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zm-2.85 6.96h-2v3h-2v-3H8l4-5 4 5z"
+              />
+            </svg>
+            Download PDF
+          </button>
+          <button
             on:click={handleClose}
             class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
@@ -253,7 +538,7 @@
                 class="aspect-square border border-gray-300 rounded overflow-hidden relative bg-white"
               >
                 <!-- Field SVG Container -->
-                <div bind:this={fieldContainer} class="w-full h-full p-2"></div>
+                <div id="strategy-sheet-preview-field" bind:this={fieldContainer} class="w-full h-full p-2 flex items-center justify-center"></div>
               </div>
             </div>
 
@@ -274,8 +559,6 @@
                   </div>
                   <div class="text-gray-600">Path Segments:</div>
                   <div class="font-medium">{lines.length}</div>
-                  <div class="text-gray-600">Est. Voltage Usage:</div>
-                  <div class="font-medium text-gray-400 italic">N/A</div>
                 </div>
               </div>
 
@@ -360,6 +643,22 @@
 {/if}
 
 <style>
+  #strategy-sheet-preview-field {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  #strategy-sheet-preview-field svg {
+    max-width: 70%;
+    height: auto;
+    display: block !important;
+    width: auto !important;
+  }
+
   @media print {
     :global(body > *) {
       display: none !important;
