@@ -19,6 +19,8 @@
   import { onMount } from "svelte";
   import { getButtonFilledClass } from "../../../utils/buttonStyles";
   import codeStyle from "svelte-highlight/styles/androidstudio";
+  import { get } from "svelte/store";
+  import { currentFilePath } from "../../../stores";
   import { diffLines } from "diff";
   import hljs from "highlight.js/lib/core";
   import java from "highlight.js/lib/languages/java";
@@ -35,6 +37,8 @@
   export let recordChange: (action?: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   export let isActive: boolean = false;
+
+  const electronAPI = (window as any).electronAPI;
 
   let code = "";
   let previousCode = "";
@@ -220,6 +224,52 @@
     // However, updateCode handles generation. We just need to reset previousCode if we want a clean slate.
     // Ideally, we reset if the *type* of code changes fundamentally.
   }
+
+  async function handleDownloadJava() {
+    if (!code) return;
+
+    // Prefer the project's .pp filename if available, else try class name, else fallback
+    const currentPath = get(currentFilePath);
+    let defaultName = "AutoPath.java";
+    if (currentPath) {
+      const baseName = currentPath.split(/[\\\/]/).pop() || "";
+      const short = baseName.replace(/\.pp$/i, "") || "trajectory";
+      defaultName = `${short}.java`;
+    } else {
+      const match = code.match(/class\s+(\w+)/);
+      if (match) defaultName = `${match[1]}.java`;
+    }
+
+    try {
+      if (electronAPI && electronAPI.showSaveDialog && electronAPI.writeFile) {
+        const filePath = await electronAPI.showSaveDialog({
+          title: "Save Generated Java",
+          defaultPath: defaultName,
+          filters: [{ name: "Java File", extensions: ["java"] }],
+        });
+
+        if (filePath) {
+          await electronAPI.writeFile(filePath, code);
+          notification.set({ message: "Saved Java file.", type: "success" });
+        }
+      } else {
+        // Web fallback: Blob download
+        const blob = new Blob([code], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = defaultName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        notification.set({ message: "Downloaded Java file.", type: "success" });
+      }
+    } catch (err) {
+      console.error("Error saving Java file:", err);
+      notification.set({ message: "Failed to save Java file.", type: "error" });
+    }
+  }
 </script>
 
 <div
@@ -269,12 +319,26 @@
           d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
         />
       </svg>
-      Settings
+      Auto Export Settings
+    </button>
+
+    <button
+      on:click={handleDownloadJava}
+      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("purple")}`}
+      title="Download as .java"
+      aria-label="Download generated Java file"
+      disabled={!code}
+      aria-disabled={!code}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0l4-4m-4 4-4-4M21 21H3" />
+      </svg>
+      Download .java
     </button>
 
     <button
       on:click={handleCopy}
-      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("purple")}`}
+      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("blue")}`}
       title="Copy Code"
     >
       {#if isGenerating}
@@ -321,9 +385,9 @@
 
   <!-- Code Preview -->
   <div class="flex-1 min-h-0 overflow-hidden relative group bg-[#282b2e]">
-    <div class="absolute inset-0 overflow-auto custom-scrollbar p-4">
+    <div class="inset-0 custom-scrollbar p-4 pt-4 pb-0 flex flex-col h-full">
       {#if displayLines.length > 0}
-        <div class="font-mono text-sm leading-relaxed text-neutral-300">
+        <div class="font-mono text-sm leading-relaxed text-neutral-300 flex-1 overflow-auto">
           {#each displayLines as line (line.id)}
             <div
               class="w-full whitespace-pre break-all flex"
@@ -349,13 +413,13 @@
         </div>
       {:else if isGenerating}
         <div
-          class="flex items-center justify-center h-full text-neutral-500 dark:text-neutral-400"
+          class="flex-1 flex items-center justify-center text-neutral-500 dark:text-neutral-400"
         >
           Generating preview...
         </div>
       {:else}
         <div
-          class="flex items-center justify-center h-full text-neutral-500 dark:text-neutral-400"
+          class="flex-1 flex items-center justify-center text-neutral-500 dark:text-neutral-400"
         >
           No code generated.
         </div>

@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
 // Replace single mainWindow with a Set of windows
 const windows = new Set();
 let server;
-let serverPort = 34567;
+let serverPort = 17218;
 let appUpdater;
 
 // Track if we've already cleared the default session storage/cache once
