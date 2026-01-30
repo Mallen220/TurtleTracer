@@ -8,7 +8,9 @@ import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { SequencePathItem } from "../types";
 
-const pathKind = (): SequencePathItem['kind'] => (actionRegistry.getAll().find((a: any) => a.isPath)?.kind as SequencePathItem['kind']) ?? "path";
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
 
 describe("PathOptimizer", () => {
   let startPoint: Point;
@@ -298,7 +300,9 @@ describe("PathOptimizer", () => {
     sequence = [
       { kind: pathKind(), lineId: firstLine.id! },
       {
-        kind: actionRegistry.getAll().find((a: any) => a.isMacro)?.kind as import("../types").SequenceMacroItem['kind'] ?? "macro",
+        kind:
+          (actionRegistry.getAll().find((a: any) => a.isMacro)
+            ?.kind as import("../types").SequenceMacroItem["kind"]) ?? "macro",
         id: "m1",
         name: "Macro",
         filePath: "macro.json",

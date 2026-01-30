@@ -18,11 +18,17 @@ beforeEach(() => {
   registerCoreUI();
 });
 
-const pathKind = (): SequencePathItem['kind'] => (actionRegistry.getAll().find((a) => a.isPath)?.kind as SequencePathItem['kind']) ?? "path";
-const macroKind = (): SequenceMacroItem['kind'] => (actionRegistry.getAll().find((a) => a.isMacro)?.kind as SequenceMacroItem['kind']) ?? "macro";
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const macroKind = (): SequenceMacroItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isMacro)
+    ?.kind as SequenceMacroItem["kind"]) ?? "macro";
 
-const isPathItem = (s: SequenceItem): s is SequencePathItem => s.kind === pathKind();
-const isMacroItem = (s: SequenceItem): s is SequenceMacroItem => s.kind === macroKind();
+const isPathItem = (s: SequenceItem): s is SequencePathItem =>
+  s.kind === pathKind();
+const isMacroItem = (s: SequenceItem): s is SequenceMacroItem =>
+  s.kind === macroKind();
 
 describe("Macro Integration", () => {
   const startPoint: Point = {
@@ -90,12 +96,16 @@ describe("Macro Integration", () => {
     // Check sequence
     expect(result.sequence.length).toBeGreaterThan(1); // Bridge + Path
     const bridgeSeq = result.sequence.find(
-      (s): s is import("../types").SequencePathItem => s.kind === pathKind() && (s as import("../types").SequencePathItem).lineId === bridge?.id,
+      (s): s is import("../types").SequencePathItem =>
+        s.kind === pathKind() &&
+        (s as import("../types").SequencePathItem).lineId === bridge?.id,
     );
     expect(bridgeSeq).toBeDefined();
 
     const macroSeq = result.sequence.find(
-      (s): s is import("../types").SequencePathItem => s.kind === pathKind() && (s as import("../types").SequencePathItem).lineId === expandedLine?.id,
+      (s): s is import("../types").SequencePathItem =>
+        s.kind === pathKind() &&
+        (s as import("../types").SequencePathItem).lineId === expandedLine?.id,
     );
     expect(macroSeq).toBeDefined();
   });

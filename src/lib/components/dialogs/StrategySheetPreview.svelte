@@ -363,7 +363,10 @@
       jsPDF: { format: "a4", orientation: "portrait" },
     } as const;
 
-    html2pdf().set(opt as any).from(printableSheet).save();
+    html2pdf()
+      .set(opt as any)
+      .from(printableSheet)
+      .save();
   }
 
   function handleClose() {
@@ -706,8 +709,6 @@
     justify-content: center;
     position: relative;
   }
-
-
 
   @media print {
     :global(body > *) {

@@ -5,7 +5,12 @@ import {
   sanitizeSequence,
   renumberDefaultPathNames,
 } from "../lib/projectStore";
-import type { Line, SequenceItem, SequencePathItem, SequenceWaitItem } from "../types";
+import type {
+  Line,
+  SequenceItem,
+  SequencePathItem,
+  SequenceWaitItem,
+} from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 
@@ -14,8 +19,12 @@ beforeEach(() => {
   registerCoreUI();
 });
 
-const pathKind = (): SequencePathItem['kind'] => (actionRegistry.getAll().find((a) => a.isPath)?.kind as SequencePathItem['kind']) ?? "path";
-const waitKind = (): SequenceWaitItem['kind'] => (actionRegistry.getAll().find((a) => a.isWait)?.kind as SequenceWaitItem['kind']) ?? "wait";
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const waitKind = (): SequenceWaitItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isWait)
+    ?.kind as SequenceWaitItem["kind"]) ?? "wait";
 
 describe("projectStore Utilities", () => {
   describe("normalizeLines", () => {

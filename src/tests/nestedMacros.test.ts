@@ -17,8 +17,12 @@ beforeEach(() => {
   registerCoreUI();
 });
 
-const pathKind = (): SequencePathItem['kind'] => (actionRegistry.getAll().find((a) => a.isPath)?.kind as SequencePathItem['kind']) ?? "path";
-const macroKind = (): SequenceMacroItem['kind'] => (actionRegistry.getAll().find((a) => a.isMacro)?.kind as SequenceMacroItem['kind']) ?? "macro";
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const macroKind = (): SequenceMacroItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isMacro)
+    ?.kind as SequenceMacroItem["kind"]) ?? "macro";
 
 describe("Nested Macros and Recursion", () => {
   const startPoint: Point = {

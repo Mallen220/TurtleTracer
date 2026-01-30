@@ -6,16 +6,26 @@ import { getCurvePoint } from "../utils/math";
 import type { Point, Line, SequenceItem, Settings } from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
-import type { SequencePathItem, SequenceWaitItem, SequenceRotateItem } from "../types";
+import type {
+  SequencePathItem,
+  SequenceWaitItem,
+  SequenceRotateItem,
+} from "../types";
 
 beforeEach(() => {
   actionRegistry.reset();
   registerCoreUI();
 });
 
-const pathKind = (): SequencePathItem['kind'] => (actionRegistry.getAll().find((a) => a.isPath)?.kind as SequencePathItem['kind']) ?? "path";
-const waitKind = (): SequenceWaitItem['kind'] => (actionRegistry.getAll().find((a) => a.isWait)?.kind as SequenceWaitItem['kind']) ?? "wait";
-const rotateKind = (): SequenceRotateItem['kind'] => (actionRegistry.getAll().find((a) => a.isRotate)?.kind as SequenceRotateItem['kind']) ?? "rotate";
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const waitKind = (): SequenceWaitItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isWait)
+    ?.kind as SequenceWaitItem["kind"]) ?? "wait";
+const rotateKind = (): SequenceRotateItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isRotate)
+    ?.kind as SequenceRotateItem["kind"]) ?? "rotate";
 
 describe("Time Calculator Extended", () => {
   const defaultSettings: Settings = {

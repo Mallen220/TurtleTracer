@@ -6,7 +6,9 @@ import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { SequencePathItem } from "../types";
 
-const pathKind = (): SequencePathItem['kind'] => (actionRegistry.getAll().find((a: any) => a.isPath)?.kind as SequencePathItem['kind']) ?? "path";
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
 
 describe("PathOptimizer Keep-In Zones", () => {
   let startPoint: Point;

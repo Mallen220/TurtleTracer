@@ -12,8 +12,12 @@ import { registerCoreUI } from "../lib/coreRegistrations";
 registerCoreUI();
 import { actionRegistry } from "../lib/actionRegistry";
 import type { SequencePathItem, SequenceWaitItem } from "../types";
-const pathKind = (): SequencePathItem['kind'] => (actionRegistry.getAll().find((a: any) => a.isPath)?.kind as SequencePathItem['kind']) ?? "path";
-const waitKind = (): SequenceWaitItem['kind'] => (actionRegistry.getAll().find((a: any) => a.isWait)?.kind as SequenceWaitItem['kind']) ?? "wait";
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const waitKind = (): SequenceWaitItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isWait)
+    ?.kind as SequenceWaitItem["kind"]) ?? "wait";
 
 // Mock prettier to just return the code as-is or with simple modification
 vi.mock("prettier", () => ({

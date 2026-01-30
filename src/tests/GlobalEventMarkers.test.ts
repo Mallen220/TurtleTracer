@@ -2,18 +2,29 @@
 import { render, screen } from "@testing-library/svelte";
 import { describe, it, expect, vi } from "vitest";
 import GlobalEventMarkers from "../lib/components/GlobalEventMarkers.svelte";
-import type { SequenceItem, Line, SequencePathItem, SequenceMacroItem } from "../types";
+import type {
+  SequenceItem,
+  Line,
+  SequencePathItem,
+  SequenceMacroItem,
+} from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 
 // Ensure core actions available for kind resolution
 registerCoreUI();
 
-const pathKind = (): SequencePathItem['kind'] => (actionRegistry.getAll().find((a: any) => a.isPath)?.kind as SequencePathItem['kind']) ?? "path";
-const macroKind = (): SequenceMacroItem['kind'] => (actionRegistry.getAll().find((a: any) => a.isMacro)?.kind as SequenceMacroItem['kind']) ?? "macro";
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const macroKind = (): SequenceMacroItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isMacro)
+    ?.kind as SequenceMacroItem["kind"]) ?? "macro";
 
-const isPathItem = (s: SequenceItem): s is SequencePathItem => s.kind === pathKind();
-const isMacroItem = (s: SequenceItem): s is SequenceMacroItem => s.kind === macroKind();
+const isPathItem = (s: SequenceItem): s is SequencePathItem =>
+  s.kind === pathKind();
+const isMacroItem = (s: SequenceItem): s is SequenceMacroItem =>
+  s.kind === macroKind();
 
 // Mock stores
 vi.mock("../stores", () => ({

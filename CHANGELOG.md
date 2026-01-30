@@ -1,6 +1,6 @@
 ## 1.7.1 (2026-01-29)
 
-- Improve download count fetch robustness. Refactor action types to use a dynamic registry system for increased plugin support. Add Auto Export Code feature, disabled by default in settings. Implement History Panel and enhance undo/redo visibility. Preparation for stable release. Added Strategy Sheet export option. Rename to Pedro Pathing Plus Visualizer to better distinguish between the original program. 
+- Improve download count fetch robustness. Refactor action types to use a dynamic registry system for increased plugin support. Add Auto Export Code feature, disabled by default in settings. Implement History Panel and enhance undo/redo visibility. Preparation for stable release. Added Strategy Sheet export option. Rename to Pedro Pathing Plus Visualizer to better distinguish between the original program.
 
 ## 1.7.0 (2026-01-23)
 

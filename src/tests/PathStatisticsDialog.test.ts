@@ -2,7 +2,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, fireEvent } from "@testing-library/svelte";
 import PathStatisticsDialog from "../lib/components/dialogs/PathStatisticsDialog.svelte";
-import type { Point, Line, SequenceItem, Settings, SequencePathItem } from "../types/index";
+import type {
+  Point,
+  Line,
+  SequenceItem,
+  Settings,
+  SequencePathItem,
+} from "../types/index";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 
@@ -17,7 +23,9 @@ describe("PathStatisticsDialog", () => {
   let defaultSequence: SequenceItem[];
   let defaultSettings: Settings;
 
-  const pathKind = (): SequencePathItem['kind'] => (actionRegistry.getAll().find((a: any) => a.isPath)?.kind as SequencePathItem['kind']) ?? "path";
+  const pathKind = (): SequencePathItem["kind"] =>
+    (actionRegistry.getAll().find((a: any) => a.isPath)
+      ?.kind as SequencePathItem["kind"]) ?? "path";
 
   beforeEach(() => {
     // Ensure core actions registered for stable test kinds

@@ -14,8 +14,10 @@ beforeEach(() => {
   registerCoreUI();
 });
 
-const pathKind = () => actionRegistry.getAll().find((a) => a.isPath)?.kind ?? "path";
-const waitKind = () => actionRegistry.getAll().find((a) => a.isWait)?.kind ?? "wait";
+const pathKind = () =>
+  actionRegistry.getAll().find((a) => a.isPath)?.kind ?? "path";
+const waitKind = () =>
+  actionRegistry.getAll().find((a) => a.isWait)?.kind ?? "wait";
 
 describe("pathTransform", () => {
   describe("mirrorPointHeading", () => {

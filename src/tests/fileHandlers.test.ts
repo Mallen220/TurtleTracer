@@ -20,7 +20,9 @@ import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { SequenceMacroItem } from "../types";
 
-const macroKind = (): SequenceMacroItem['kind'] => (actionRegistry.getAll().find((a: any) => a.isMacro)?.kind as SequenceMacroItem['kind']) ?? "macro";
+const macroKind = (): SequenceMacroItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isMacro)
+    ?.kind as SequenceMacroItem["kind"]) ?? "macro";
 
 // Mock Svelte stores
 vi.mock("../stores", async () => {
