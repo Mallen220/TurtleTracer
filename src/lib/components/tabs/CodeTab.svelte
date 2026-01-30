@@ -14,9 +14,14 @@
   import { debounce } from "lodash";
   import { onMount } from "svelte";
   import { getButtonFilledClass } from "../../../utils/buttonStyles";
-  import Highlight from "svelte-highlight";
-  import { java } from "svelte-highlight/languages";
   import codeStyle from "svelte-highlight/styles/androidstudio";
+  import { diffLines } from "diff";
+  import hljs from "highlight.js/lib/core";
+  import java from "highlight.js/lib/languages/java";
+  import { fade, slide } from "svelte/transition";
+
+  // Register languages for core highlight.js
+  hljs.registerLanguage("java", java);
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -28,24 +33,132 @@
   export let isActive: boolean = false;
 
   let code = "";
+  let previousCode = "";
   let isGenerating = false;
   let format: "java" | "sequential" = "java";
   let targetLibrary: "SolversLib" | "NextFTC" = "SolversLib";
+
+  interface DiffLine {
+    content: string; // HTML content
+    type: "added" | "removed" | "unchanged";
+    id: string; // Unique ID for keying
+  }
+
+  let displayLines: DiffLine[] = [];
+
+  // Helper to highlight code and return lines
+  function getHighlightedLines(source: string): string[] {
+    if (!source) return [];
+    // Highlight full block
+    const highlighted = hljs.highlight(source, { language: "java" }).value;
+    // Split into lines - this is simplistic and might break span tags spanning newlines.
+    // highlight.js usually closes spans at newlines if configured? No, standard output might span.
+    // However, for diffing purposes, we need line-by-line.
+    // If we split the HTML, we might get unclosed tags.
+    // A robust solution is to use a plugin or just assume highlighting per line is 'okay' for diff view,
+    // OR try to fix up tags.
+    // Let's try highlighting each line individually for the diff view stability,
+    // even though we lose context-aware highlighting (multiline comments).
+    // The previous solution highlighted the whole block.
+    // To support animation, we need individual elements.
+    // Compromise: Highlight line-by-line for now.
+    return source
+      .split("\n")
+      .map((line) => hljs.highlight(line, { language: "java" }).value);
+  }
 
   // Debounced generator to avoid UI freezing
   const updateCode = debounce(async () => {
     isGenerating = true;
     try {
+      let newCode = "";
       if (format === "java") {
-        code = await generateJavaCode(startPoint, lines, true, sequence);
+        newCode = await generateJavaCode(startPoint, lines, true, sequence);
       } else {
-        code = await generateSequentialCommandCode(
+        newCode = await generateSequentialCommandCode(
           startPoint,
           lines,
           null,
           sequence,
           targetLibrary,
         );
+      }
+
+      // If first run, just set it
+      if (!code) {
+        code = newCode;
+        previousCode = newCode;
+        const hlLines = getHighlightedLines(newCode);
+        displayLines = hlLines.map((content, i) => ({
+          content,
+          type: "unchanged",
+          id: `initial-${i}`,
+        }));
+      } else {
+        // Diff against previous state
+        const diffs = diffLines(previousCode, newCode);
+        let newDisplayLines: DiffLine[] = [];
+        let lineCounter = 0;
+
+        diffs.forEach((part, partIdx) => {
+          // Highlight the content of this part
+          // Note: removed parts come from old code, added from new code.
+          // We can highlight them now.
+          const lines = part.value.replace(/\n$/, "").split("\n");
+
+          lines.forEach((lineVal, lineIdx) => {
+            const hl = hljs.highlight(lineVal, { language: "java" }).value;
+            if (part.added) {
+              newDisplayLines.push({
+                content: hl,
+                type: "added",
+                id: `add-${partIdx}-${lineIdx}-${Date.now()}`,
+              });
+            } else if (part.removed) {
+              newDisplayLines.push({
+                content: hl,
+                type: "removed",
+                id: `rem-${partIdx}-${lineIdx}-${Date.now()}`,
+              });
+            } else {
+              newDisplayLines.push({
+                content: hl,
+                type: "unchanged",
+                id: `uc-${lineCounter++}`, // Unchanged lines should track stable IDs if possible?
+                // Actually, if we re-generate IDs for unchanged lines, they will "replace" in Svelte.
+                // We should try to preserve IDs for unchanged blocks to avoid flicker.
+                // But complex diffing to map to previous displayLines is hard.
+                // For now, let's just render. Svelte keying is tricky here without a robust map.
+              });
+            }
+          });
+        });
+
+        // Optimization: Coalesce adjacent Remove -> Add as "Modified" (Yellow)
+        // We can just style them. But user wants "Yellow for changed".
+        // A change is effectively a remove followed by an add.
+        // We can post-process the list.
+        // If we see REMOVE, immediately followed by ADD, mark both? Or mark ADD as 'modified'?
+        // Visually, usually you show the old line (red) and new line (green/yellow).
+        // If we want "Yellow", maybe we style the Added line as Yellow if it was preceded by a removal.
+
+        for (let i = 0; i < newDisplayLines.length - 1; i++) {
+          if (
+            newDisplayLines[i].type === "removed" &&
+            newDisplayLines[i + 1].type === "added"
+          ) {
+            newDisplayLines[i + 1].type = "modified"; // Custom type for styling
+            // Should we hide the removed line? Usually diff shows both.
+            // "If a line was just changed it should be yellow" implies inline replacement?
+            // If we hide the removed line, the user doesn't see what changed.
+            // But standard editor behavior for "changed" often just highlights the new line.
+            // Let's keep the removed line (fading out) and show the new line as yellow.
+          }
+        }
+
+        displayLines = newDisplayLines;
+        previousCode = newCode;
+        code = newCode;
       }
     } catch (err) {
       console.error("Error generating code:", err);
@@ -84,11 +197,19 @@
   function handleFormatChange(e: Event) {
     const val = (e.target as HTMLSelectElement).value;
     format = val as "java" | "sequential";
+    // Reset diff state on format change
+    code = "";
+    previousCode = "";
+    displayLines = [];
   }
 
   function handleLibraryChange(e: Event) {
     const val = (e.target as HTMLSelectElement).value;
     targetLibrary = val as "SolversLib" | "NextFTC";
+    // Reset diff state
+    code = "";
+    previousCode = "";
+    displayLines = [];
   }
 </script>
 
@@ -187,12 +308,31 @@
   <!-- Code Preview -->
   <div class="flex-1 min-h-0 overflow-hidden relative group bg-[#282b2e]">
     <div class="absolute inset-0 overflow-auto custom-scrollbar p-4">
-      {#if code}
-        <Highlight
-          language={java}
-          {code}
-          class="highlight-wrapper text-sm font-mono leading-relaxed relative z-10"
-        />
+      {#if displayLines.length > 0}
+        <div class="font-mono text-sm leading-relaxed text-neutral-300">
+          {#each displayLines as line (line.id)}
+            <div
+              class="w-full whitespace-pre break-all flex"
+              class:bg-green-900_30={line.type === "added"}
+              class:bg-red-900_30={line.type === "removed"}
+              class:bg-yellow-900_30={line.type === "modified"}
+              class:text-green-200={line.type === "added"}
+              class:text-red-200={line.type === "removed"}
+              class:text-yellow-200={line.type === "modified"}
+              class:opacity-50={line.type === "removed"}
+              transition:slide|local={{ duration: 200 }}
+            >
+              <!-- Gutter marker -->
+              <span class="w-6 shrink-0 text-center select-none opacity-50">
+                {#if line.type === "added"}+
+                {:else if line.type === "removed"}-
+                {:else if line.type === "modified"}~
+                {/if}
+              </span>
+              <span>{@html line.content || "<br class='select-none' />"}</span>
+            </div>
+          {/each}
+        </div>
       {:else if isGenerating}
         <div
           class="flex items-center justify-center h-full text-neutral-500 dark:text-neutral-400"
@@ -215,44 +355,14 @@
 </svelte:head>
 
 <style>
-  /* Ensure the highlightjs background is transparent so our line highlights show through */
-  :global(.highlight-wrapper) {
-    background: transparent !important;
-    padding: 0 !important; /* Remove padding from hljs container */
-    margin: 0 !important; /* Remove margin */
-    overflow: visible !important; /* Prevent double scrollbars */
-    font-family:
-      ui-monospace,
-      SFMono-Regular,
-      Menlo,
-      Monaco,
-      Consolas,
-      "Liberation Mono",
-      "Courier New",
-      monospace !important;
-    font-size: 0.875rem !important; /* text-sm */
-    line-height: 1.625 !important; /* leading-relaxed */
+  /* Custom highlighting classes */
+  .bg-green-900_30 {
+    background-color: rgba(20, 83, 45, 0.4);
   }
-
-  /* Ensure inner pre/code elements also match (some highlight styles add padding on the pre element) */
-  :global(.highlight-wrapper pre),
-  :global(.highlight-wrapper pre.hljs) {
-    padding: 0 !important;
-    margin: 0 !important;
-    line-height: 1.625 !important;
-    overflow: visible !important;
+  .bg-red-900_30 {
+    background-color: rgba(127, 29, 29, 0.4);
   }
-
-  :global(.highlight-wrapper code) {
-    overflow: visible !important;
-    font-family:
-      ui-monospace,
-      SFMono-Regular,
-      Menlo,
-      Monaco,
-      Consolas,
-      "Liberation Mono",
-      "Courier New",
-      monospace !important;
+  .bg-yellow-900_30 {
+    background-color: rgba(113, 63, 18, 0.4);
   }
 </style>
