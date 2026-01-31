@@ -51,6 +51,7 @@
     getButtonFilledClass,
     getSmallButtonClass,
   } from "../../utils/buttonStyles";
+  import { getShortcutFromSettings } from "../../utils";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -1123,7 +1124,7 @@
         {/if}
       </button>
       <button
-        title="Validate Path"
+        title={`Validate Path${getShortcutFromSettings(settings, "validate-path")}`}
         aria-label="Validate Path"
         on:click={() => onValidate && onValidate()}
         class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
@@ -1145,7 +1146,7 @@
         </svg>
       </button>
       <button
-        title="Optimize Path"
+        title={`Optimize Path${getShortcutFromSettings(settings, "optimize-start")}`}
         aria-label="Optimize Path"
         on:click={() => onToggleOptimization && onToggleOptimization()}
         class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none"
@@ -1680,6 +1681,7 @@
         on:click={() => insertPath(sequence.length)}
         class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
         aria-label="Add new path segment"
+        title={`Add new path segment${getShortcutFromSettings(settings, "add-path")}`}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -1704,6 +1706,7 @@
             on:click={() => handleAddAction(def)}
             class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
             aria-label={`Add ${def.label} command`}
+            title={`Add ${def.label} command${getShortcutFromSettings(settings, def.kind === "wait" ? "add-wait" : def.kind === "rotate" ? "add-rotate" : "")}`}
           >
             <!-- Render Icon based on kind for now as SVG string is not easily injectable here without raw HTML -->
             <!-- We can use @html def.icon if available but we need to size it -->
