@@ -37,6 +37,11 @@
   export let recordChange: (action?: string) => void;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   export let isActive: boolean = false;
+  $: {
+    // Silence unused prop warnings
+    void recordChange;
+    void isActive;
+  }
 
   const electronAPI = (window as any).electronAPI;
 
@@ -61,7 +66,7 @@
 
   interface DiffLine {
     content: string; // HTML content
-    type: "added" | "removed" | "unchanged";
+    type: "added" | "removed" | "unchanged" | "modified";
     id: string; // Unique ID for keying
   }
 
