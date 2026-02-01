@@ -27,6 +27,16 @@ export const AVAILABLE_FIELD_MAPS = [
   { value: "centerstage.webp", label: "Centerstage (2023-2024)" },
 ];
 
+export const SETTINGS_TAB_ORDER = [
+  "general",
+  "robot",
+  "motion",
+  "interface",
+  "code-export",
+  "advanced",
+  "about",
+];
+
 export const DEFAULT_SETTINGS: Settings = {
   xVelocity: 30,
   yVelocity: 30,

@@ -393,6 +393,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "Navigation",
   },
   {
+    id: "select-code-tab",
+    key: "alt+4",
+    description: "Switch to Code tab",
+    action: "selectTabCode",
+    category: "Navigation",
+  },
+  {
     id: "cycle-tabs-next",
     key: "ctrl+tab",
     description: "Cycle tabs forward",

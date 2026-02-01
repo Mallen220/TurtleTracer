@@ -22,6 +22,10 @@
     fileManagerNewFileMode,
     showPluginManager,
     showRuler,
+    settingsActiveTab,
+    showTelemetryDialog,
+    showStrategySheet,
+    showExportGif,
   } from "../../stores";
   import {
     startPointStore,
@@ -48,6 +52,7 @@
     DEFAULT_SETTINGS,
     getDefaultStartPoint,
     AVAILABLE_FIELD_MAPS,
+    SETTINGS_TAB_ORDER,
   } from "../../config";
   import { DEFAULT_KEY_BINDINGS } from "../../config/keybindings";
   import { getRandomColor } from "../../utils";
@@ -69,7 +74,7 @@
   export let stepBackward: () => void;
   export let recordChange: (action?: string) => void;
   export let controlTabRef: any = null;
-  export let activeControlTab: "path" | "field" | "table" = "path";
+  export let activeControlTab: "path" | "field" | "table" | "code" = "path";
   export let toggleStats: () => void = () => {};
   export let toggleSidebar: () => void = () => {};
   export let fieldRenderer: any = null;
@@ -151,7 +156,16 @@
 
   function shouldBlockShortcut(e: KeyboardEvent, actionId?: string): boolean {
     // Whitelist specific actions that should work even when input is focused
-    if (actionId === "toggle-command-palette") return false;
+    if (
+      actionId === "toggle-command-palette" ||
+      actionId === "cycle-tabs-next" ||
+      actionId === "cycle-tabs-prev" ||
+      actionId === "select-code-tab" ||
+      actionId === "select-paths-tab" ||
+      actionId === "select-field-tab" ||
+      actionId === "select-table-tab"
+    )
+      return false;
     if (e.key === "Escape") return false;
     if (isInputFocused()) return true;
     if (isButtonFocused()) {
@@ -1713,15 +1727,34 @@
     selectTabPaths: () => (activeControlTab = "path"),
     selectTabField: () => (activeControlTab = "field"),
     selectTabTable: () => (activeControlTab = "table"),
+    selectTabCode: () => (activeControlTab = "code"),
     cycleTabNext: () => {
-      if (activeControlTab === "path") activeControlTab = "field";
-      else if (activeControlTab === "field") activeControlTab = "table";
-      else activeControlTab = "path";
+      if ($showSettings) {
+        const tabs = SETTINGS_TAB_ORDER;
+        const current = $settingsActiveTab;
+        const idx = tabs.indexOf(current);
+        const next = tabs[(idx + 1) % tabs.length];
+        settingsActiveTab.set(next);
+      } else {
+        if (activeControlTab === "path") activeControlTab = "field";
+        else if (activeControlTab === "field") activeControlTab = "table";
+        else if (activeControlTab === "table") activeControlTab = "code";
+        else activeControlTab = "path";
+      }
     },
     cycleTabPrev: () => {
-      if (activeControlTab === "path") activeControlTab = "table";
-      else if (activeControlTab === "field") activeControlTab = "path";
-      else activeControlTab = "field";
+      if ($showSettings) {
+        const tabs = SETTINGS_TAB_ORDER;
+        const current = $settingsActiveTab;
+        const idx = tabs.indexOf(current);
+        const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
+        settingsActiveTab.set(prev);
+      } else {
+        if (activeControlTab === "path") activeControlTab = "code";
+        else if (activeControlTab === "code") activeControlTab = "table";
+        else if (activeControlTab === "table") activeControlTab = "field";
+        else activeControlTab = "path";
+      }
     },
     toggleCollapseAll: () => toggleCollapseAllTrigger.update((v) => v + 1),
     toggleCollapseSelected: () => {
@@ -1779,6 +1812,39 @@
       }
     },
     deselectAll: () => {
+      if ($showSettings) {
+        showSettings.set(false);
+        return;
+      }
+      if ($showFileManager) {
+        showFileManager.set(false);
+        return;
+      }
+      if ($showPluginManager) {
+        showPluginManager.set(false);
+        return;
+      }
+      if ($showShortcuts) {
+        showShortcuts.set(false);
+        return;
+      }
+      if ($showExportGif) {
+        showExportGif.set(false);
+        return;
+      }
+      if ($exportDialogState.isOpen) {
+        exportDialogState.update((s) => ({ ...s, isOpen: false }));
+        return;
+      }
+      if ($showTelemetryDialog) {
+        showTelemetryDialog.set(false);
+        return;
+      }
+      if ($showStrategySheet) {
+        showStrategySheet.set(false);
+        return;
+      }
+
       selectedPointId.set(null);
       selectedLineId.set(null);
       // Blur any active input
