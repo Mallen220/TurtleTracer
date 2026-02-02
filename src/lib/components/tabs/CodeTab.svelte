@@ -335,8 +335,19 @@
       disabled={!code}
       aria-disabled={!code}
     >
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0l4-4m-4 4-4-4M21 21H3" />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+        stroke="currentColor"
+        class="size-4"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M12 3v12m0 0l4-4m-4 4-4-4M21 21H3"
+        />
       </svg>
       Download .java
     </button>
@@ -392,7 +403,9 @@
   <div class="flex-1 min-h-0 overflow-hidden relative group bg-[#282b2e]">
     <div class="inset-0 custom-scrollbar p-4 pt-4 pb-0 flex flex-col h-full">
       {#if displayLines.length > 0}
-        <div class="font-mono text-sm leading-relaxed text-neutral-300 flex-1 overflow-auto">
+        <div
+          class="font-mono text-sm leading-relaxed text-neutral-300 flex-1 overflow-auto"
+        >
           {#each displayLines as line (line.id)}
             <div
               class="w-full whitespace-pre break-all flex"

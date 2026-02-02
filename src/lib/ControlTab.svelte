@@ -434,8 +434,8 @@
 
     <div
       class="flex flex-col justify-start items-start w-full overflow-y-auto overflow-x-hidden flex-1 min-h-0 relative scroll-smooth"
-      class:pb-20={activeTab !== 'code'}
-      class:pb-0={activeTab === 'code'}
+      class:pb-20={activeTab !== "code"}
+      class:pb-0={activeTab === "code"}
       role="tabpanel"
       id="{activeTab}-panel"
       aria-labelledby="{activeTab}-tab"

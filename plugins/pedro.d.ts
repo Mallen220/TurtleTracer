@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-
 /**
  * Type definitions for Pedro Pathing Plus Visualizer Plugins.
  * These types are automatically available in your .ts plugins.
@@ -663,7 +662,6 @@ interface ActionDefinition {
     context: TimeCalculationContext,
   ) => TimeCalculationResult;
 }
-
 
 export {};
 

@@ -1357,7 +1357,8 @@
                     id="follow-robot"
                     type="checkbox"
                     bind:checked={settings.followRobot}
-                    on:change={() => followRobotStore.set(!!settings.followRobot)}
+                    on:change={() =>
+                      followRobotStore.set(!!settings.followRobot)}
                     class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   />
                 </SettingsItem>
