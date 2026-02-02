@@ -114,6 +114,7 @@ export const loopAnimationStore = writable(true);
 // Robot State (derived or managed)
 export const robotXYStore = writable({ x: 0, y: 0 });
 export const robotHeadingStore = writable(0);
+export const followRobotStore = writable(false);
 
 export function resetProject() {
   startPointStore.set(getDefaultStartPoint());

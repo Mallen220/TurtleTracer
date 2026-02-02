@@ -39,6 +39,8 @@
     robotHeadingStore,
     sequenceStore, // Imported for potential use, though main logic uses lines
     percentStore,
+    followRobotStore,
+    playingStore,
   } from "../projectStore";
   import {
     diffMode,
@@ -149,6 +151,25 @@
     fieldViewStore.set({ xScale: x, yScale: y, width, height });
   }
 
+  // Follow Robot Logic (Reactive for scrubbing/stepping)
+  $: if ($followRobotStore && robotXY && !$playingStore) {
+    panToField(robotXY.x, robotXY.y);
+  }
+
+  // Follow Robot Logic (Loop for playback)
+  let followLoopId: number;
+  function followLoop() {
+    if ($followRobotStore && $playingStore && robotXY) {
+      panToField(robotXY.x, robotXY.y);
+    }
+    followLoopId = requestAnimationFrame(followLoop);
+  }
+
+  // Resume Follow on Play Logic
+  $: if ($playingStore && settings.followRobot) {
+    followRobotStore.set(true);
+  }
+
   function zoomTo(newZoom: number, focus?: { x: number; y: number }) {
     const fx = focus?.x ?? width / 2;
     const fy = focus?.y ?? height / 2;
@@ -191,6 +212,8 @@
   function handleWheel(e: WheelEvent) {
     if (!wrapperDiv) return;
     if (e.ctrlKey || e.metaKey) {
+      followRobotStore.set(false);
+      playingStore.set(false);
       e.preventDefault();
       const rect = wrapperDiv.getBoundingClientRect();
       const transformed = getTransformedCoordinates(
@@ -1468,6 +1491,9 @@
     // Trigger hook for plugins to initialize overlays
     hookRegistry.run("fieldOverlayInit", overlayContainer);
 
+    // Start Follow Loop
+    followLoop();
+
     // Event Listeners
     two.renderer.domElement.addEventListener("mouseenter", () => {
       // Optimization: Start caching rects when user interacts with field
@@ -1627,6 +1653,8 @@
         }
       } else if (isPanning) {
         // Panning Logic
+        followRobotStore.set(false);
+        playingStore.set(false);
         // Calculate the delta in pixels
         const dx = evt.clientX - startPan.x;
         const dy = evt.clientY - startPan.y;
@@ -1972,14 +2000,15 @@
   // Public method to pan the view to center on specific field coordinates (inches)
   export function panToField(fx: number, fy: number) {
     const factor = get(fieldZoom);
+    const baseSize = Math.min(width, height);
     // Calculate required pan to center the point
-    // x(v) = center - halfW + pan + (v/SIZE)*W
-    // target x(v) = center => pan = halfW - (v/SIZE)*W = W * (0.5 - v/SIZE)
-    const px = width * factor * (0.5 - fx / FIELD_SIZE);
+    // x(v) = center + pan + (v/SIZE - 0.5)*baseSize*zoom
+    // target x(v) = center => pan = - (v/SIZE - 0.5)*baseSize*zoom
+    const px = baseSize * factor * (0.5 - fx / FIELD_SIZE);
 
-    // y(v) = center + halfH + pan - (v/SIZE)*H
-    // target y(v) = center => pan = (v/SIZE)*H - halfH = H * (v/SIZE - 0.5)
-    const py = height * factor * (fy / FIELD_SIZE - 0.5);
+    // y(v) = center + pan - (v/SIZE - 0.5)*baseSize*zoom
+    // target y(v) = center => pan = (v/SIZE - 0.5)*baseSize*zoom
+    const py = baseSize * factor * (fy / FIELD_SIZE - 0.5);
 
     fieldPan.set({ x: px, y: py });
   }
@@ -2041,6 +2070,7 @@
       window.removeEventListener("resize", updateRects);
       window.removeEventListener("scroll", updateRects, true);
     }
+    if (followLoopId) cancelAnimationFrame(followLoopId);
   });
 </script>
 
@@ -2214,6 +2244,8 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
         on:click={() => {
+          followRobotStore.set(false);
+          playingStore.set(false);
           const step = computeZoomStep(zoom, 1);
           const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
           const focus = isMouseOverField
@@ -2238,6 +2270,8 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
         on:click={() => {
+          followRobotStore.set(false);
+          playingStore.set(false);
           const step = computeZoomStep(zoom, -1);
           const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
           const focus = isMouseOverField
@@ -2264,6 +2298,8 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
         on:click={() => {
+          followRobotStore.set(false);
+          playingStore.set(false);
           fieldZoom.set(1.0);
           fieldPan.set({ x: 0, y: 0 });
         }}
@@ -2300,6 +2336,8 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
           on:click={() => {
+            followRobotStore.set(false);
+            playingStore.set(false);
             const step = computeZoomStep(zoom, 1);
             const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
             const focus = isMouseOverField
@@ -2324,6 +2362,8 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
           on:click={() => {
+            followRobotStore.set(false);
+            playingStore.set(false);
             const step = computeZoomStep(zoom, -1);
             const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
             const focus = isMouseOverField
@@ -2350,6 +2390,8 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
           on:click={() => {
+            followRobotStore.set(false);
+            playingStore.set(false);
             fieldZoom.set(1.0);
             fieldPan.set({ x: 0, y: 0 });
           }}

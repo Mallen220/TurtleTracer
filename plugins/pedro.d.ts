@@ -205,6 +205,7 @@ interface Settings {
   autoExportFormat?: "java" | "sequential" | "points" | "json";
   autoExportTargetLibrary?: "SolversLib" | "NextFTC";
   autoExportFullClass?: boolean;
+  followRobot?: boolean;
 }
 
 interface RobotProfile {

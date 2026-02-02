@@ -21,6 +21,7 @@
     currentDirectoryStore,
     settingsActiveTab,
   } from "../../../stores";
+  import { followRobotStore } from "../../projectStore";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -1342,6 +1343,22 @@
                     type="checkbox"
                     bind:checked={settings.showVelocityHeatmap}
                     class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                  />
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Follow Robot"
+                  description="Automatically pan to keep robot centered during playback"
+                  {searchQuery}
+                  layout="row"
+                  forId="follow-robot"
+                >
+                  <input
+                    id="follow-robot"
+                    type="checkbox"
+                    bind:checked={settings.followRobot}
+                    on:change={() => followRobotStore.set(!!settings.followRobot)}
+                    class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   />
                 </SettingsItem>
               </div>
