@@ -45,6 +45,8 @@
   const DEFAULT_PACKAGE =
     "org.firstinspires.ftc.teamcode.Commands.AutoCommands";
   let packageName = DEFAULT_PACKAGE;
+  let telemetryImplementation: "Standard" | "Dashboard" | "Panels" | "None" =
+    "Panels";
 
   let exportedCode = "";
   let currentLanguage: typeof java | typeof plaintext | typeof json = java;
@@ -107,6 +109,9 @@
     } else {
       packageName = DEFAULT_PACKAGE;
     }
+    if (settings.telemetryImplementation) {
+      telemetryImplementation = settings.telemetryImplementation;
+    }
   });
 
   async function handlePackageKeydown(event: KeyboardEvent) {
@@ -135,6 +140,7 @@
           exportFullCode,
           sequence,
           packageName,
+          telemetryImplementation,
         );
         currentLanguage = java;
       } else if (exportFormat === "points") {

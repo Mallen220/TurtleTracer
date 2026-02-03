@@ -1499,6 +1499,25 @@
                             class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
                           />
                         </SettingsItem>
+
+                        <SettingsItem
+                          label="Telemetry Implementation"
+                          description="Select telemetry backend for generated code"
+                          {searchQuery}
+                          layout="col"
+                        >
+                          <select
+                            bind:value={settings.telemetryImplementation}
+                            class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="Panels">Panels (Bylazar)</option>
+                            <option value="Standard">Standard (FTC)</option>
+                            <option value="Dashboard"
+                              >FtcDashboard + Standard</option
+                            >
+                            <option value="None">None</option>
+                          </select>
+                        </SettingsItem>
                       </div>
                     {:else if settings.autoExportFormat === "sequential"}
                       <div transition:fade>

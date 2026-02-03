@@ -171,6 +171,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoExportFormat: "java",
   autoExportTargetLibrary: "SolversLib",
   autoExportFullClass: true,
+  telemetryImplementation: "Panels",
   followRobot: false,
 };
 

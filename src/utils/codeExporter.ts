@@ -27,6 +27,7 @@ export async function generateJavaCode(
   exportFullCode: boolean,
   sequence?: SequenceItem[],
   packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+  telemetryImpl: "Standard" | "Dashboard" | "Panels" | "None" = "Panels",
 ): Promise<string> {
   const headingTypeToFunctionName = {
     constant: "setConstantHeadingInterpolation",
@@ -251,6 +252,76 @@ export async function generateJavaCode(
     file =
       AUTO_GENERATED_FILE_WARNING_MESSAGE + pathsClass + namedCommandsSection;
   } else {
+    // Determine imports based on telemetry implementation
+    let extraImports = "";
+    if (telemetryImpl === "Panels") {
+      extraImports = `
+    import com.bylazar.configurables.annotations.Configurable;
+    import com.bylazar.telemetry.TelemetryManager;
+    import com.bylazar.telemetry.PanelsTelemetry;`;
+    } else if (telemetryImpl === "Dashboard") {
+      extraImports = `
+    import com.acmerobotics.dashboard.FtcDashboard;
+    import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+    import org.firstinspires.ftc.robotcore.external.Telemetry;`;
+    }
+
+    const classAnnotations =
+      telemetryImpl === "Panels" ? "@Configurable // Panels" : "";
+
+    let telemetryField = "";
+    if (telemetryImpl === "Panels") {
+      telemetryField =
+        "private TelemetryManager panelsTelemetry; // Panels Telemetry instance";
+    } else if (telemetryImpl === "Dashboard") {
+      telemetryField = "private Telemetry telemetryA;";
+    }
+
+    let telemetryInit = "";
+    if (telemetryImpl === "Panels") {
+      telemetryInit = `
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        // ...
+        panelsTelemetry.debug("Status", "Initialized");
+        panelsTelemetry.update(telemetry);`;
+    } else if (telemetryImpl === "Dashboard") {
+      telemetryInit = `
+        telemetryA = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
+        telemetryA.addData("Status", "Initialized");
+        telemetryA.update();`;
+    } else if (telemetryImpl === "Standard") {
+      telemetryInit = `
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();`;
+    }
+
+    let telemetryLoop = "";
+    if (telemetryImpl === "Panels") {
+      telemetryLoop = `
+        // Log values to Panels and Driver Station
+        panelsTelemetry.debug("Path State", pathState);
+        panelsTelemetry.debug("X", follower.getPose().getX());
+        panelsTelemetry.debug("Y", follower.getPose().getY());
+        panelsTelemetry.debug("Heading", follower.getPose().getHeading());
+        panelsTelemetry.update(telemetry);`;
+    } else if (telemetryImpl === "Dashboard") {
+      telemetryLoop = `
+        // Log values to Dashboard and Driver Station
+        telemetryA.addData("Path State", pathState);
+        telemetryA.addData("X", follower.getPose().getX());
+        telemetryA.addData("Y", follower.getPose().getY());
+        telemetryA.addData("Heading", follower.getPose().getHeading());
+        telemetryA.update();`;
+    } else if (telemetryImpl === "Standard") {
+      telemetryLoop = `
+        // Log values to Driver Station
+        telemetry.addData("Path State", pathState);
+        telemetry.addData("X", follower.getPose().getX());
+        telemetry.addData("Y", follower.getPose().getY());
+        telemetry.addData("Heading", follower.getPose().getHeading());
+        telemetry.update();`;
+    }
+
     file = `
     ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
@@ -258,9 +329,7 @@ export async function generateJavaCode(
     import com.qualcomm.robotcore.eventloop.opmode.OpMode;
     import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
     import com.qualcomm.robotcore.util.ElapsedTime;
-    import com.bylazar.configurables.annotations.Configurable;
-    import com.bylazar.telemetry.TelemetryManager;
-    import com.bylazar.telemetry.PanelsTelemetry;
+    ${extraImports}
     import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
     import com.pedropathing.geometry.BezierCurve;
     import com.pedropathing.geometry.BezierLine;
@@ -270,9 +339,9 @@ export async function generateJavaCode(
     ${eventMarkerNames.size > 0 ? "import com.pedropathing.NamedCommands;" : ""}
     
     @Autonomous(name = "Pedro Pathing Autonomous", group = "Autonomous")
-    @Configurable // Panels
+    ${classAnnotations}
     public class PedroAutonomous extends OpMode {
-      private TelemetryManager panelsTelemetry; // Panels Telemetry instance
+      ${telemetryField}
       public Follower follower; // Pedro Pathing follower instance
       private int pathState; // Current autonomous path state (state machine)
       private ElapsedTime pathTimer; // Timer for path state machine
@@ -280,16 +349,13 @@ export async function generateJavaCode(
       
       @Override
       public void init() {
-        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        ${telemetryInit}
 
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose(72, 8, Math.toRadians(90)));
 
         pathTimer = new ElapsedTime();
         paths = new Paths(follower); // Build paths
-
-        panelsTelemetry.debug("Status", "Initialized");
-        panelsTelemetry.update(telemetry);
       }
       
       @Override
@@ -297,12 +363,7 @@ export async function generateJavaCode(
         follower.update(); // Update Pedro Pathing
         pathState = autonomousPathUpdate(); // Update autonomous state machine
 
-        // Log values to Panels and Driver Station
-        panelsTelemetry.debug("Path State", pathState);
-        panelsTelemetry.debug("X", follower.getPose().getX());
-        panelsTelemetry.debug("Y", follower.getPose().getY());
-        panelsTelemetry.debug("Heading", follower.getPose().getHeading());
-        panelsTelemetry.update(telemetry);
+        ${telemetryLoop}
       }
 
       ${pathsClass}

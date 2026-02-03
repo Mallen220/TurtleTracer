@@ -92,7 +92,14 @@
     try {
       let newCode = "";
       if (format === "java") {
-        newCode = await generateJavaCode(startPoint, lines, true, sequence);
+        newCode = await generateJavaCode(
+          startPoint,
+          lines,
+          true,
+          sequence,
+          settings.javaPackageName,
+          settings.telemetryImplementation,
+        );
       } else {
         newCode = await generateSequentialCommandCode(
           startPoint,
