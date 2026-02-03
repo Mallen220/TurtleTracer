@@ -443,7 +443,6 @@ export async function generateSequentialCommandCode(
   sequence?: SequenceItem[],
   targetLibrary: "SolversLib" | "NextFTC" = "SolversLib", // - Added parameter
   packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
-  telemetryImpl: "Standard" | "Dashboard" | "Panels" | "None" = "Panels",
 ): Promise<string> {
   // Determine class name from file name or use default
   let className = "AutoPath";
@@ -847,49 +846,6 @@ import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
 `;
   }
 
-  // Telemetry specific imports
-  if (telemetryImpl === "Dashboard") {
-    imports += `
-import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;`;
-  } else if (telemetryImpl === "Panels") {
-    imports += `
-import com.bylazar.telemetry.TelemetryManager;
-import com.bylazar.telemetry.PanelsTelemetry;
-import java.lang.reflect.Proxy;
-import java.lang.reflect.Method;`;
-  }
-
-  let telemetrySetup = "Telemetry telemetryToUse = telemetry;";
-  if (telemetryImpl === "Dashboard") {
-    telemetrySetup = `Telemetry telemetryToUse = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());`;
-  } else if (telemetryImpl === "Panels") {
-    telemetrySetup = `
-        Telemetry telemetryToUse = (Telemetry) Proxy.newProxyInstance(
-            Telemetry.class.getClassLoader(),
-            new Class[] { Telemetry.class },
-            (proxy, method, args) -> {
-                if (method.getName().equals("addData")) {
-                     if (args.length == 2 && args[0] instanceof String) {
-                         PanelsTelemetry.INSTANCE.getTelemetry().debug((String)args[0], args[1]);
-                     } else if (args.length > 2 && args[1] instanceof String) {
-                         try {
-                             String fmt = (String)args[1];
-                             Object[] fmtArgs = new Object[args.length - 2];
-                             System.arraycopy(args, 2, fmtArgs, 0, args.length - 2);
-                             PanelsTelemetry.INSTANCE.getTelemetry().debug((String)args[0], String.format(fmt, fmtArgs));
-                         } catch (Exception e) {
-                             PanelsTelemetry.INSTANCE.getTelemetry().debug((String)args[0], args[1]);
-                         }
-                     }
-                } else if (method.getName().equals("update")) {
-                     PanelsTelemetry.INSTANCE.getTelemetry().update(telemetry);
-                }
-                return method.invoke(telemetry, args);
-            }
-        );`;
-  }
-
   const sequentialCommandCode = `
 ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
@@ -922,10 +878,7 @@ ${pathChainDeclarations}
 
     public ${className}(final Drivetrain drive, HardwareMap hw, Telemetry telemetry) throws IOException {
         this.follower = drive.getFollower();
-
-        ${telemetrySetup}
-
-        this.progressTracker = new ProgressTracker(follower, telemetryToUse);
+        this.progressTracker = new ProgressTracker(follower, telemetry);
 
         PedroPathReader pp = new PedroPathReader("${fileName ? fileName.split(/[\\/]/).pop() || "AutoPath.pp" : "AutoPath.pp"}", hw.appContext);
 
