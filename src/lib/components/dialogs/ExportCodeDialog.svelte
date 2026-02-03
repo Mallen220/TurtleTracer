@@ -710,6 +710,29 @@
               <span>Generate Full Class</span>
             </label>
           {/if}
+
+          <!-- Shared Telemetry Controls (Java & Sequential) -->
+          {#if exportFormat === "java" || exportFormat === "sequential"}
+            <div class="flex flex-col gap-1.5 ml-auto">
+                <label
+                    for="telemetry-impl-select"
+                    class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+                >
+                    Telemetry
+                </label>
+                <select
+                    id="telemetry-impl-select"
+                    bind:value={telemetryImplementation}
+                    on:change={refreshCode}
+                    class="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+                >
+                    <option value="Panels">Panels (Bylazar)</option>
+                    <option value="Standard">Standard (FTC)</option>
+                    <option value="Dashboard">FtcDashboard</option>
+                    <option value="None">None</option>
+                </select>
+            </div>
+          {/if}
         </div>
       {/if}
 
