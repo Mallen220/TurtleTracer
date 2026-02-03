@@ -685,6 +685,7 @@ async function handleAutoExport(
           settings.autoExportFullClass ?? true,
           sequence,
           settings.javaPackageName,
+          settings.telemetryImplementation,
         );
         extension = "java";
         break;
