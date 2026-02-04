@@ -66,14 +66,19 @@ export class PluginManager {
         try {
           let description: string | undefined;
 
+          let code = await electronAPI.readPlugin(file);
+          if (file.endsWith(".ts")) {
+            code = await electronAPI.transpilePlugin(code);
+          }
+
           if (enabled) {
-            let code = await electronAPI.readPlugin(file);
-            if (file.endsWith(".ts")) {
-              code = await electronAPI.transpilePlugin(code);
-            }
             const meta = this.executePlugin(file, code);
             description = meta?.description;
+          } else {
+            const meta = this.extractMetadata(file, code);
+            description = meta?.description;
           }
+
           // "loaded" means we successfully discovered and (if enabled) executed the plugin
           // Disabled plugins should still appear as loaded to avoid showing a false error state in the UI
           plugins.push({
@@ -138,6 +143,37 @@ export class PluginManager {
       (t) => t.pluginName && enabledPlugins.has(t.pluginName),
     );
     themesStore.set(activeThemes);
+  }
+
+  static extractMetadata(filename: string, code: string): PluginMetadata | undefined {
+    let metadata: PluginMetadata | undefined;
+
+    const handler = {
+      get(target: any, prop: string) {
+        if (prop === "registerMetadata") {
+          return (meta: PluginMetadata) => {
+            metadata = meta;
+          };
+        }
+        // Return a new proxy for any other property access to handle nested objects
+        return new Proxy(() => {}, handler);
+      },
+      apply(target: any, thisArg: any, argumentsList: any[]) {
+        // Return a new proxy when called as a function
+        return new Proxy(() => {}, handler);
+      },
+    };
+
+    const proxyAPI = new Proxy(() => {}, handler);
+
+    try {
+      const fn = new Function("pedro", code);
+      fn(proxyAPI);
+    } catch (e) {
+      // Ignore errors during metadata extraction
+    }
+
+    return metadata;
   }
 
   static executePlugin(filename: string, code: string): PluginMetadata | undefined {
