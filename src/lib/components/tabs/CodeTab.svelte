@@ -25,6 +25,7 @@
   import hljs from "highlight.js/lib/core";
   import java from "highlight.js/lib/languages/java";
   import { fade, slide } from "svelte/transition";
+  import { highlightAndSplit } from "../../../utils/htmlHighlighter";
 
   // Register languages for core highlight.js
   hljs.registerLanguage("java", java);
@@ -64,27 +65,6 @@
 
   let displayLines: DiffLine[] = [];
 
-  // Helper to highlight code and return lines
-  function getHighlightedLines(source: string): string[] {
-    if (!source) return [];
-    // Highlight full block
-    const highlighted = hljs.highlight(source, { language: "java" }).value;
-    // Split into lines - this is simplistic and might break span tags spanning newlines.
-    // highlight.js usually closes spans at newlines if configured? No, standard output might span.
-    // However, for diffing purposes, we need line-by-line.
-    // If we split the HTML, we might get unclosed tags.
-    // A robust solution is to use a plugin or just assume highlighting per line is 'okay' for diff view,
-    // OR try to fix up tags.
-    // Let's try highlighting each line individually for the diff view stability,
-    // even though we lose context-aware highlighting (multiline comments).
-    // The previous solution highlighted the whole block.
-    // To support animation, we need individual elements.
-    // Compromise: Highlight line-by-line for now.
-    return source
-      .split("\n")
-      .map((line) => hljs.highlight(line, { language: "java" }).value);
-  }
-
   // Debounced generator to avoid UI freezing
   const updateCode = debounce(async () => {
     isGenerating = true;
@@ -113,50 +93,67 @@
       if (!code) {
         code = newCode;
         previousCode = newCode;
-        const hlLines = getHighlightedLines(newCode);
+        const hlLines = highlightAndSplit(newCode, "java");
         displayLines = hlLines.map((content, i) => ({
           content,
           type: "unchanged",
           id: `initial-${i}`,
         }));
       } else {
+        // Highlight old and new code using context-aware highlighter
+        const oldLinesHL = highlightAndSplit(previousCode, "java");
+        const newLinesHL = highlightAndSplit(newCode, "java");
+
         // Diff against previous state
         const diffs = diffLines(previousCode, newCode);
         let newDisplayLines: DiffLine[] = [];
         let lineCounter = 0;
+        let oldLineIndex = 0;
+        let newLineIndex = 0;
 
         diffs.forEach((part, partIdx) => {
-          // Highlight the content of this part
-          // Note: removed parts come from old code, added from new code.
-          // We can highlight them now.
-          const lines = part.value.replace(/\n$/, "").split("\n");
+          // Get line count for this part (matching old behavior of ignoring trailing newline)
+          const partLinesRaw = part.value.replace(/\n$/, "").split("\n");
+          const count = partLinesRaw.length;
 
-          lines.forEach((lineVal, lineIdx) => {
-            const hl = hljs.highlight(lineVal, { language: "java" }).value;
-            if (part.added) {
+          // Note: highlightAndSplit preserves all lines including trailing empty ones if they exist.
+          // diffLines 'value' usually contains the exact text.
+          // We map diff parts to our highlighted arrays.
+
+          if (part.added) {
+            // Take lines from newLinesHL
+            for (let i = 0; i < count; i++) {
               newDisplayLines.push({
-                content: hl,
+                content: newLinesHL[newLineIndex + i] || partLinesRaw[i],
                 type: "added",
-                id: `add-${partIdx}-${lineIdx}-${Date.now()}`,
-              });
-            } else if (part.removed) {
-              newDisplayLines.push({
-                content: hl,
-                type: "removed",
-                id: `rem-${partIdx}-${lineIdx}-${Date.now()}`,
-              });
-            } else {
-              newDisplayLines.push({
-                content: hl,
-                type: "unchanged",
-                id: `uc-${lineCounter++}`, // Unchanged lines should track stable IDs if possible?
-                // Actually, if we re-generate IDs for unchanged lines, they will "replace" in Svelte.
-                // We should try to preserve IDs for unchanged blocks to avoid flicker.
-                // But complex diffing to map to previous displayLines is hard.
-                // For now, let's just render. Svelte keying is tricky here without a robust map.
+                id: `add-${partIdx}-${i}-${Date.now()}`,
               });
             }
-          });
+            newLineIndex += count;
+          } else if (part.removed) {
+            // Take lines from oldLinesHL
+            for (let i = 0; i < count; i++) {
+              newDisplayLines.push({
+                content: oldLinesHL[oldLineIndex + i] || partLinesRaw[i],
+                type: "removed",
+                id: `rem-${partIdx}-${i}-${Date.now()}`,
+              });
+            }
+            oldLineIndex += count;
+          } else {
+            // Unchanged
+            // Take lines from newLinesHL (same content as old)
+            for (let i = 0; i < count; i++) {
+              newDisplayLines.push({
+                content: newLinesHL[newLineIndex + i] || partLinesRaw[i],
+                type: "unchanged",
+                id: `uc-${lineCounter++}`, // Preserve stable IDs if possible?
+                // Re-using counter helps somewhat but isn't perfect for Svelte.
+              });
+            }
+            oldLineIndex += count;
+            newLineIndex += count;
+          }
         });
 
         // Optimization: Coalesce adjacent Remove -> Add as "Modified" (Yellow)
