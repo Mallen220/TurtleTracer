@@ -20,9 +20,7 @@ describe("generateJavaCode Telemetry Logic", () => {
 
   it("should generate Panels telemetry by default", async () => {
     const code = await generateJavaCode(startPoint, lines, true, []);
-    expect(code).toContain(
-      "import com.bylazar.telemetry.TelemetryManager;",
-    );
+    expect(code).toContain("import com.bylazar.telemetry.TelemetryManager;");
     expect(code).toContain("panelsTelemetry.update(telemetry);");
   });
 
@@ -35,9 +33,7 @@ describe("generateJavaCode Telemetry Logic", () => {
       "org.test",
       "Panels",
     );
-    expect(code).toContain(
-      "import com.bylazar.telemetry.TelemetryManager;",
-    );
+    expect(code).toContain("import com.bylazar.telemetry.TelemetryManager;");
     expect(code).toContain("panelsTelemetry.update(telemetry);");
   });
 
