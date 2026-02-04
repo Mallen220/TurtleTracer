@@ -2,6 +2,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import prettier from "prettier";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,7 +10,7 @@ const __dirname = path.dirname(__filename);
 const typesPath = path.join(__dirname, "../src/types/index.ts");
 const outputPath = path.join(__dirname, "../plugins/pedro.d.ts");
 
-function generate() {
+async function generate() {
   console.log("Generating plugin types...");
   try {
     let content = fs.readFileSync(typesPath, "utf-8");
@@ -41,7 +42,13 @@ declare global {
 }
 `;
 
-    fs.writeFileSync(outputPath, finalContent);
+    const options = await prettier.resolveConfig(outputPath);
+    const formatted = await prettier.format(finalContent, {
+      ...options,
+      parser: "typescript",
+    });
+
+    fs.writeFileSync(outputPath, formatted);
     console.log(`Plugin types generated at ${outputPath}`);
   } catch (error) {
     console.error("Failed to generate plugin types:", error);
