@@ -12,3 +12,8 @@ Action: Before optimizing empty states, verify they are actually reachable in th
 
 Learning: Removing default outlines (`focus:outline-none`) on range inputs (`<input type="range">`) to achieve a custom look creates a significant accessibility barrier. Keyboard users cannot see the focus state on the slider thumb.
 Action: Always add explicit `focus-visible` styles (e.g., `focus-visible:ring`) to the slider or its container when removing default outlines.
+
+## 2026-05-24 - Combobox Pattern & Transition Testing
+
+Learning: Implementing a fully accessible Searchable Dropdown (Combobox) requires careful coordination of `aria-activedescendant` and `keydown` event handling. A critical gotcha in testing is that Svelte transitions (like `slide`) keep elements in the DOM even after the state variable flips to false, causing `toBeInTheDocument` assertions to fail unexpectedly in unit tests.
+Action: Use `aria-expanded` on the input to verify state changes in tests rather than relying on the presence/absence of the listbox when transitions are involved, or mock the transitions entirely.
