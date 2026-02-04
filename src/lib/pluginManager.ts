@@ -90,6 +90,11 @@ export class PluginManager {
     try {
       const key = `plugin_enabled_${name}`;
       const val = localStorage.getItem(key);
+      if (val === null) {
+        // Enable built-in plugins by default if no preference saved
+        if (name.includes("StickyNotes.ts")) return true;
+        return false;
+      }
       return val === "true";
     } catch {
       return false;
