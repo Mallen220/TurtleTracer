@@ -268,15 +268,15 @@ interface StickyNote {
     header.style.backgroundColor = darkenColor(note.color, 10);
 
     const dragHandle = document.createElement("div");
-    dragHandle.className = "flex-1 font-bold text-xs text-gray-800 truncate mr-2";
-    dragHandle.innerText = "Note";
+    dragHandle.className = "sticky-title flex-1 font-bold text-xs text-gray-800 truncate mr-2 select-none pointer-events-none";
+    dragHandle.innerText = note.text ? note.text : "Note";
 
     const controls = document.createElement("div");
-    controls.className = "flex items-center gap-1";
+    controls.className = "sticky-controls flex items-center gap-1";
 
     // Color Picker
     const colorBtn = document.createElement("div");
-    colorBtn.className = "w-3 h-3 rounded-full cursor-pointer border border-black/20 hover:scale-110 transition-transform";
+    colorBtn.className = "sticky-color-btn w-3 h-3 rounded-full cursor-pointer border border-black/20 hover:scale-110 transition-transform";
     colorBtn.style.backgroundColor = note.color;
     colorBtn.title = "Change Color";
     colorBtn.onclick = (e) => {
@@ -286,7 +286,7 @@ interface StickyNote {
 
     // Collapse
     const collapseBtn = document.createElement("div");
-    collapseBtn.className = "cursor-pointer text-gray-700 hover:text-black transition-colors";
+    collapseBtn.className = "sticky-collapse-btn cursor-pointer text-gray-700 hover:text-black transition-colors";
     collapseBtn.innerHTML = note.collapsed
         ? `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`
         : `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`;
@@ -297,7 +297,7 @@ interface StickyNote {
 
     // Delete
     const deleteBtn = document.createElement("div");
-    deleteBtn.className = "cursor-pointer text-red-600 hover:text-red-800 transition-colors ml-1";
+    deleteBtn.className = "sticky-delete-btn cursor-pointer text-red-600 hover:text-red-800 transition-colors ml-1";
     deleteBtn.innerHTML = `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
     deleteBtn.onclick = (e) => {
         e.stopPropagation();
@@ -350,23 +350,29 @@ interface StickyNote {
 
   function updateNoteElementState(el: HTMLElement, note: StickyNote) {
     const header = el.querySelector(".sticky-header") as HTMLElement;
+    const title = el.querySelector(".sticky-title") as HTMLElement;
     const body = el.querySelector(".sticky-body") as HTMLElement;
     const textarea = el.querySelector("textarea") as HTMLTextAreaElement;
-    const colorBtn = el.querySelector(".sticky-header .w-3") as HTMLElement;
-    const collapseBtn = el.querySelector(".sticky-header div:nth-child(2)") as HTMLElement;
+    const colorBtn = el.querySelector(".sticky-color-btn") as HTMLElement;
+    const collapseBtn = el.querySelector(".sticky-collapse-btn") as HTMLElement;
 
     // Colors
     header.style.backgroundColor = darkenColor(note.color, 10);
     body.style.backgroundColor = note.color;
-    colorBtn.style.backgroundColor = note.color;
+    if (colorBtn) colorBtn.style.backgroundColor = note.color;
+
+    // Title
+    if (title) {
+        title.innerText = note.text && note.text.trim().length > 0 ? note.text : "Note";
+    }
 
     // Collapse
     if (note.collapsed) {
         body.style.display = "none";
-        collapseBtn.innerHTML = `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
+        if (collapseBtn) collapseBtn.innerHTML = `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
     } else {
         body.style.display = "block";
-        collapseBtn.innerHTML = `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`;
+        if (collapseBtn) collapseBtn.innerHTML = `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`;
     }
 
     // Text (only if not editing)
