@@ -4,7 +4,7 @@
 
 ### **Configurable Telemetry**
 
-- **Your Choice**: Select your preferred telemetry backend for generated code.
+- **Your Choice**: Select your preferred telemetry backend for Java generated code.
 - **Options**: Choose between **FTC Dashboard**, **Panels**, **Standard** (Driver Station), or **None**.
 - **Easy Switching**: Change this setting in **Settings > Auto Export** or via the **Quick Settings** in the Code tab.
 
