@@ -180,6 +180,7 @@ export interface Settings {
   validateFieldBoundaries?: boolean; // Check if robot goes out of bounds
   continuousValidation?: boolean; // Run validation continuously
   restrictDraggingToField?: boolean; // Restrict dragging to field bounds
+  smartSnapping?: boolean; // Snap points to align with other waypoints
   customMaps?: CustomFieldConfig[];
   keyBindings?: KeyBinding[];
   recentFiles?: string[];

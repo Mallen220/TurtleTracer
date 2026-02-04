@@ -112,6 +112,9 @@
   let wrapperDiv: HTMLDivElement;
   let overlayContainer: HTMLDivElement;
 
+  // Smart Snapping State
+  let snapGuides: InstanceType<typeof Two.Line>[] = [];
+
   // Context Menu State
   let showContextMenu = false;
   let contextMenuX = 0;
@@ -1431,6 +1434,8 @@
     eventGroup.id = "event-group";
     const collisionGroup = new Two.Group();
     collisionGroup.id = "collision-group";
+    const snapGroup = new Two.Group();
+    snapGroup.id = "snap-group";
 
     two.clear();
 
@@ -1448,6 +1453,7 @@
       eventMarkerElements.forEach((el) => eventGroup.add(el));
       // Ensure collisionElements is used in the reactive block to trigger updates
       collisionElements.forEach((el) => collisionGroup.add(el));
+      snapGuides.forEach((el) => snapGroup.add(el));
     }
 
     if (isDiffMode) {
@@ -1459,6 +1465,7 @@
     two.add(eventGroup);
     two.add(pointGroup);
     two.add(collisionGroup);
+    two.add(snapGroup);
 
     // Apply custom renderers
     $fieldRenderRegistry.forEach((entry) => {
@@ -1561,6 +1568,70 @@
           inchX = Math.round(rawInchX / $gridSize) * $gridSize;
           inchY = Math.round(rawInchY / $gridSize) * $gridSize;
         }
+
+        // Smart Object Snapping
+        const SNAP_THRESHOLD = 1.0; // inches
+        const isSnappingEnabled = settings.smartSnapping !== false; // Enabled by default
+        const shouldSnap = evt.altKey ? !isSnappingEnabled : isSnappingEnabled;
+        let newGuides: InstanceType<typeof Two.Line>[] = [];
+
+        if (shouldSnap && currentElem.startsWith("point-")) {
+          const targets: Point[] = [startPoint];
+          lines.forEach((l) => {
+            if (l.endPoint) targets.push(l.endPoint);
+          });
+
+          const parts = currentElem.split("-");
+          const lineNum = Number(parts[1]);
+          const pointIdx = Number(parts[2]);
+
+          // Determine which target corresponds to the point being dragged (to exclude it)
+          // Targets array structure: [StartPoint, Line1_End, Line2_End, ...]
+          let excludeIndex = -999;
+          if (lineNum === 0 && pointIdx === 0)
+            excludeIndex = 0; // Start Point
+          else if (lineNum > 0 && pointIdx === 0) excludeIndex = lineNum; // Line N endpoint
+
+          let bestX = null;
+          let bestY = null;
+          let minDistX = SNAP_THRESHOLD;
+          let minDistY = SNAP_THRESHOLD;
+
+          targets.forEach((target, idx) => {
+            if (idx === excludeIndex) return;
+
+            const dx = Math.abs(target.x - inchX);
+            const dy = Math.abs(target.y - inchY);
+
+            if (dx < minDistX) {
+              minDistX = dx;
+              bestX = target.x;
+            }
+            if (dy < minDistY) {
+              minDistY = dy;
+              bestY = target.y;
+            }
+          });
+
+          if (bestX !== null) {
+            inchX = bestX;
+            const guide = new Two.Line(x(inchX), y(0), x(inchX), y(FIELD_SIZE));
+            guide.stroke = "#f59e0b"; // Amber
+            guide.linewidth = uiLength(0.5);
+            guide.dashes = [uiLength(4), uiLength(4)];
+            newGuides.push(guide);
+          }
+
+          if (bestY !== null) {
+            inchY = bestY;
+            const guide = new Two.Line(x(0), y(inchY), x(FIELD_SIZE), y(inchY));
+            guide.stroke = "#f59e0b"; // Amber
+            guide.linewidth = uiLength(0.5);
+            guide.dashes = [uiLength(4), uiLength(4)];
+            newGuides.push(guide);
+          }
+        }
+        snapGuides = newGuides;
 
         // Determine clamping range
         let minX = -Infinity;
@@ -1909,6 +1980,7 @@
     });
 
     two.renderer.domElement.addEventListener("mouseup", () => {
+      snapGuides = [];
       if (isDown) {
         // Infer action description based on currentElem
         let action = "Move Object";

@@ -68,6 +68,7 @@ export const DEFAULT_SETTINGS: Settings = {
   validateFieldBoundaries: true,
   continuousValidation: false,
   restrictDraggingToField: true,
+  smartSnapping: true,
   customMaps: [],
   keyBindings: DEFAULT_KEY_BINDINGS,
   recentFiles: [],
