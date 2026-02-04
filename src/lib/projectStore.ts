@@ -8,6 +8,7 @@ import type {
   Settings,
   SequencePathItem,
   PedroData,
+  RobotProfile,
 } from "../types/index";
 import {
   getDefaultStartPoint,
@@ -115,6 +116,33 @@ export const loopAnimationStore = writable(true);
 export const robotXYStore = writable({ x: 0, y: 0 });
 export const robotHeadingStore = writable(0);
 export const followRobotStore = writable(false);
+
+// Robot Profiles Store
+const STORAGE_KEY_PROFILES = "pedro_robot_profiles";
+let initialProfiles: RobotProfile[] = [];
+try {
+  if (typeof localStorage !== "undefined") {
+    const stored = localStorage.getItem(STORAGE_KEY_PROFILES);
+    if (stored) {
+      initialProfiles = JSON.parse(stored);
+    }
+  }
+} catch (e) {
+  console.error("Failed to load robot profiles from localStorage", e);
+}
+
+export const robotProfilesStore = writable<RobotProfile[]>(initialProfiles);
+
+// Subscribe to changes and persist
+robotProfilesStore.subscribe((profiles) => {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(profiles));
+    }
+  } catch (e) {
+    console.error("Failed to save robot profiles to localStorage", e);
+  }
+});
 
 export function resetProject() {
   startPointStore.set(getDefaultStartPoint());

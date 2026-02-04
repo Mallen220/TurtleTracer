@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import { onMount } from "svelte";
+  import { get } from "svelte/store";
   import hotkeys from "hotkeys-js";
   import CommandPalette from "./CommandPalette.svelte";
   import {
@@ -26,6 +27,7 @@
     showTelemetryDialog,
     showStrategySheet,
     showExportGif,
+    notification,
   } from "../../stores";
   import {
     startPointStore,
@@ -36,6 +38,7 @@
     playingStore,
     playbackSpeedStore,
     renumberDefaultPathNames,
+    robotProfilesStore,
   } from "../projectStore";
   import {
     updateLinkedWaypoints,
@@ -2042,6 +2045,82 @@
       if (controlTabRef && controlTabRef.downloadJava) {
         controlTabRef.downloadJava();
       }
+    },
+    cycleRobotProfile: () => {
+      const profiles = get(robotProfilesStore);
+      if (profiles.length === 0) {
+        notification.set({
+          message: "No robot profiles found.",
+          type: "warning",
+        });
+        return;
+      }
+
+      const currentSettings = get(settingsStore);
+      // Simple heuristic match
+      const currentIndex = profiles.findIndex(
+        (p) =>
+          p.rLength === currentSettings.rLength &&
+          p.rWidth === currentSettings.rWidth &&
+          p.maxVelocity === currentSettings.maxVelocity,
+      );
+
+      const nextIndex = (currentIndex + 1) % profiles.length;
+      const nextProfile = profiles[nextIndex];
+
+      settingsStore.update((s) => ({
+        ...s,
+        rLength: nextProfile.rLength,
+        rWidth: nextProfile.rWidth,
+        maxVelocity: nextProfile.maxVelocity,
+        maxAcceleration: nextProfile.maxAcceleration,
+        maxDeceleration: nextProfile.maxDeceleration,
+        kFriction: nextProfile.kFriction,
+        aVelocity: nextProfile.aVelocity,
+        xVelocity: nextProfile.xVelocity,
+        yVelocity: nextProfile.yVelocity,
+        robotImage: nextProfile.robotImage || s.robotImage,
+      }));
+
+      notification.set({
+        message: `Switched to profile: ${nextProfile.name}`,
+        type: "success",
+      });
+    },
+    toggleFollowRobot: () => {
+      settingsStore.update((s) => {
+        const newVal = !s.followRobot;
+        notification.set({
+          message: `Follow Robot: ${newVal ? "On" : "Off"}`,
+          type: "info",
+          timeout: 1500,
+        });
+        return { ...s, followRobot: newVal };
+      });
+    },
+    focusPathList: () => {
+      activeControlTab = "path";
+      setTimeout(() => {
+        document.getElementById("path-list-container")?.focus();
+      }, 50);
+    },
+    focusCodeEditor: () => {
+      activeControlTab = "code";
+      setTimeout(() => {
+        document.getElementById("code-preview-container")?.focus();
+      }, 50);
+    },
+    confirmDialog: () => {
+      if ($showSettings) showSettings.set(false);
+      else if ($showFileManager) showFileManager.set(false);
+      else if ($showPluginManager) showPluginManager.set(false);
+      else if ($showExportGif) showExportGif.set(false);
+      else if ($exportDialogState.isOpen)
+        exportDialogState.update((s) => ({ ...s, isOpen: false }));
+      // Add more as needed
+    },
+    cancelDialog: () => {
+      (actions as any).deselectAll();
     },
   };
 

@@ -787,6 +787,17 @@
     loadDirectory();
   });
 
+  function handleKeydown(e: KeyboardEvent) {
+    if (
+      e.key === "Escape" &&
+      isOpen &&
+      !creatingNewFile &&
+      !renamingFile
+    ) {
+      isOpen = false;
+    }
+  }
+
   // Mock path utils
   const path = {
     join: (...parts: string[]) => parts.join("/"),
@@ -797,6 +808,8 @@
     },
   };
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <div class="fixed inset-0 z-[1010] flex" class:pointer-events-none={!isOpen}>
   <!-- Backdrop -->

@@ -57,6 +57,12 @@
 
   let downloadCount: number | null = null;
 
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape" && isOpen && !isCustomFieldWizardOpen) {
+      isOpen = false;
+    }
+  }
+
   const tabs = [
     {
       id: "general",
@@ -468,6 +474,8 @@
     })),
   ];
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 {#if isOpen && !isCustomFieldWizardOpen}
   <div

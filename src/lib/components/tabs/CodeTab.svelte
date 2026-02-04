@@ -400,7 +400,11 @@
   </div>
 
   <!-- Code Preview -->
-  <div class="flex-1 min-h-0 overflow-hidden relative group bg-[#282b2e]">
+  <div
+    class="flex-1 min-h-0 overflow-hidden relative group bg-[#282b2e] outline-none"
+    id="code-preview-container"
+    tabindex="-1"
+  >
     <div class="inset-0 custom-scrollbar p-4 pt-4 pb-0 flex flex-col h-full">
       {#if displayLines.length > 0}
         <div
