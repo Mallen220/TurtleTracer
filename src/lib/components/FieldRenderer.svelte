@@ -21,6 +21,7 @@
     hoveredMarkerId,
     fieldViewStore,
     pluginRedrawTrigger,
+    notification,
   } from "../../stores";
   import {
     hookRegistry,
@@ -303,6 +304,50 @@
     const newPx = nx + w / 2;
     const newPy = ny + h / 2;
     return { x: newPx, y: newPy };
+  }
+
+  // Helper to parse element IDs
+  function parseElementId(id: string | null) {
+    if (!id) return null;
+    const parts = id.split("-");
+    const type = parts[0];
+
+    if (type === "point") {
+      // point-{lineIndex+1}-{pointIndex}
+      // point-0-0 is start point
+      const lineNum = Number(parts[1]);
+      const pointIdx = Number(parts[2]);
+      if (isNaN(lineNum) || isNaN(pointIdx)) return null;
+      return { type: "point", lineIndex: lineNum - 1, pointIndex: pointIdx };
+    } else if (type === "obstacle") {
+      // obstacle-{shapeIndex}-{vertexIndex}
+      const shapeIdx = Number(parts[1]);
+      const vertexIdx = Number(parts[2]);
+      if (isNaN(shapeIdx) || isNaN(vertexIdx)) return null;
+      return {
+        type: "obstacle",
+        shapeIndex: shapeIdx,
+        vertexIndex: vertexIdx,
+      };
+    } else if (type === "event") {
+      // event-{lineIndex}-{eventIndex}
+      const lineIdx = Number(parts[1]);
+      const evIdx = Number(parts[2]);
+      if (isNaN(lineIdx) || isNaN(evIdx)) return null;
+      return { type: "event", lineIndex: lineIdx, eventIndex: evIdx };
+    } else if (type === "wait" && parts[1] === "event") {
+      // wait-event-{waitId}-{eventIndex}
+      const waitId = parts[2];
+      const evIdx = Number(parts[3]);
+      return { type: "wait-event", waitId, eventIndex: evIdx };
+    } else if (type === "rotate" && parts[1] === "event") {
+      // rotate-event-{rotateId}-{eventIndex}
+      const rotateId = parts[2];
+      const evIdx = Number(parts[3]);
+      return { type: "rotate-event", rotateId, eventIndex: evIdx };
+    }
+
+    return { type: "unknown", originalId: id };
   }
 
   // --- Two.js Object Creation Logic (moved from App.svelte) ---
@@ -2095,9 +2140,6 @@
       return;
     }
 
-    // Only allow if clicking empty space (currentElem is null)
-    if (currentElem) return;
-
     // Calculate field coordinates
     const rect = twoElement.getBoundingClientRect();
     const transformed = getTransformedCoordinates(
@@ -2109,29 +2151,240 @@
     const fieldX = x.invert(transformed.x);
     const fieldY = y.invert(transformed.y);
 
-    // Get items from registry
-    const registryItems = get(fieldContextMenuRegistry);
-    if (!registryItems || registryItems.length === 0) return;
+    let menuItems: any[] = [];
 
-    const validItems = registryItems.filter((item) => {
-      if (item.condition) {
-        return item.condition({ x: fieldX, y: fieldY });
+    // Parse clicked element
+    if (currentElem) {
+      const parsed = parseElementId(currentElem);
+      if (parsed) {
+        if (parsed.type === "point") {
+          const { lineIndex, pointIndex } = parsed;
+          const isStartPoint = lineIndex === -1;
+          const isControlPoint = pointIndex > 0;
+          const isEndPoint = !isStartPoint && !isControlPoint;
+
+          const pointName = isStartPoint
+            ? "Start Point"
+            : isControlPoint
+              ? "Control Point"
+              : `Path ${lineIndex + 1}`;
+
+          menuItems.push({ label: pointName, disabled: true });
+          menuItems.push({ separator: true });
+
+          // Copy Coordinates
+          menuItems.push({
+            label: "Copy Coordinates",
+            onClick: () => {
+              let pt: Point | BasePoint | undefined;
+              if (isStartPoint) pt = startPoint;
+              else if (lines[lineIndex]) {
+                if (isEndPoint) pt = lines[lineIndex].endPoint;
+                else pt = lines[lineIndex].controlPoints[pointIndex - 1];
+              }
+              if (pt) {
+                const text = `${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}`;
+                navigator.clipboard.writeText(text);
+                notification.set({
+                  message: `Copied "${text}"`,
+                  type: "success",
+                });
+              }
+            },
+          });
+
+          // EndPoint specific actions
+          if (isEndPoint) {
+            menuItems.push({
+              label: "Add Wait Command",
+              onClick: () => {
+                const lineId = lines[lineIndex].id;
+                if (!lineId) return;
+
+                sequenceStore.update((seq) => {
+                  const newSeq = [...seq];
+                  // Find index of this path
+                  const idx = newSeq.findIndex(
+                    (s) => s.kind === "path" && (s as any).lineId === lineId,
+                  );
+                  if (idx !== -1) {
+                    // Insert wait after
+                    newSeq.splice(idx + 1, 0, {
+                      kind: "wait",
+                      id: `wait-${Math.random().toString(36).slice(2)}`,
+                      name: "Wait",
+                      durationMs: 1000, // default 1s
+                    });
+                  }
+                  return newSeq;
+                });
+                onRecordChange("Add Wait Command");
+              },
+            });
+
+            menuItems.push({
+              label: "Delete Path",
+              danger: true,
+              onClick: () => {
+                linesStore.update((l) => {
+                  const newLines = [...l];
+                  newLines.splice(lineIndex, 1);
+                  return newLines;
+                });
+                onRecordChange("Delete Path");
+                selectedLineId.set(null);
+              },
+            });
+
+            const currentHeading = lines[lineIndex].endPoint.heading;
+            menuItems.push({ separator: true });
+            menuItems.push({ label: "Heading Mode", disabled: true });
+            menuItems.push({
+              label: "Tangential",
+              disabled: currentHeading === "tangential",
+              onClick: () => {
+                linesStore.update((l) => {
+                  l[lineIndex].endPoint.heading = "tangential";
+                  return l;
+                });
+                onRecordChange("Set Heading Tangential");
+              },
+            });
+            menuItems.push({
+              label: "Constant",
+              disabled: currentHeading === "constant",
+              onClick: () => {
+                linesStore.update((l) => {
+                  l[lineIndex].endPoint.heading = "constant";
+                  // Preserve degrees if existing
+                  if (l[lineIndex].endPoint.degrees === undefined) {
+                    l[lineIndex].endPoint.degrees = 0;
+                  }
+                  return l;
+                });
+                onRecordChange("Set Heading Constant");
+              },
+            });
+            menuItems.push({
+              label: "Linear",
+              disabled: currentHeading === "linear",
+              onClick: () => {
+                linesStore.update((l) => {
+                  l[lineIndex].endPoint.heading = "linear";
+                  if (l[lineIndex].endPoint.startDeg === undefined)
+                    l[lineIndex].endPoint.startDeg = 0;
+                  if (l[lineIndex].endPoint.endDeg === undefined)
+                    l[lineIndex].endPoint.endDeg = 0;
+                  return l;
+                });
+                onRecordChange("Set Heading Linear");
+              },
+            });
+          } else if (isStartPoint) {
+            const currentHeading = startPoint.heading;
+            menuItems.push({ separator: true });
+            menuItems.push({ label: "Heading Mode", disabled: true });
+            menuItems.push({
+              label: "Tangential",
+              disabled: currentHeading === "tangential",
+              onClick: () => {
+                startPointStore.update((p) => ({
+                  ...p,
+                  heading: "tangential",
+                }));
+                onRecordChange("Set Start Tangential");
+              },
+            });
+            menuItems.push({
+              label: "Constant",
+              disabled: currentHeading === "constant",
+              onClick: () => {
+                startPointStore.update((p) => ({
+                  ...p,
+                  heading: "constant",
+                  degrees: p.degrees ?? 0,
+                }));
+                onRecordChange("Set Start Constant");
+              },
+            });
+            menuItems.push({
+              label: "Linear",
+              disabled: currentHeading === "linear",
+              onClick: () => {
+                startPointStore.update((p) => ({
+                  ...p,
+                  heading: "linear",
+                  startDeg: p.startDeg ?? 0,
+                  endDeg: p.endDeg ?? 0,
+                }));
+                onRecordChange("Set Start Linear");
+              },
+            });
+          }
+        } else if (parsed.type === "obstacle") {
+          const { shapeIndex } = parsed;
+          menuItems.push({ label: "Obstacle", disabled: true });
+          menuItems.push({ separator: true });
+          menuItems.push({
+            label: shapes[shapeIndex].locked ? "Unlock" : "Lock",
+            onClick: () => {
+              shapesStore.update((s) => {
+                s[shapeIndex].locked = !s[shapeIndex].locked;
+                return s;
+              });
+              onRecordChange("Toggle Obstacle Lock");
+            },
+          });
+          menuItems.push({
+            label: "Delete Obstacle",
+            danger: true,
+            onClick: () => {
+              shapesStore.update((s) => {
+                const newShapes = [...s];
+                newShapes.splice(shapeIndex, 1);
+                return newShapes;
+              });
+              onRecordChange("Delete Obstacle");
+            },
+          });
+        }
       }
-      return true;
-    });
+    }
 
-    if (validItems.length === 0) return;
+    // Get items from registry (Empty Space or Append)
+    // If we clicked an element, we might still want to show global actions?
+    // Probably not, context specific is better.
+    // But plugins might want to add actions to specific elements?
+    // For now, let's keep registry items for empty space or if we decide to merge.
 
-    // Map to ContextMenu format
-    contextMenuItems = validItems.map((item) => ({
-      label: item.label,
-      icon: item.icon,
-      onClick: () => {
-        item.onClick({ x: fieldX, y: fieldY });
-        showContextMenu = false;
-      },
-    }));
+    // If we have items from the element, use them.
+    // If not (empty space), use registry.
+    if (menuItems.length === 0) {
+      const registryItems = get(fieldContextMenuRegistry);
+      if (registryItems && registryItems.length > 0) {
+        const validItems = registryItems.filter((item) => {
+          if (item.condition) {
+            return item.condition({ x: fieldX, y: fieldY });
+          }
+          return true;
+        });
 
+        if (validItems.length > 0) {
+          menuItems = validItems.map((item) => ({
+            label: item.label,
+            icon: item.icon,
+            onClick: () => {
+              item.onClick({ x: fieldX, y: fieldY });
+              showContextMenu = false;
+            },
+          }));
+        }
+      }
+    }
+
+    if (menuItems.length === 0) return;
+
+    contextMenuItems = menuItems;
     contextMenuX = e.clientX;
     contextMenuY = e.clientY;
     showContextMenu = true;
