@@ -13,6 +13,8 @@ import pathEditingContent from "./path-editing.md?raw";
 // @ts-ignore
 import simulationContent from "./simulation.md?raw";
 // @ts-ignore
+import telemetryContent from "./telemetry.md?raw";
+// @ts-ignore
 import obstaclesContent from "./obstacles.md?raw";
 // @ts-ignore
 import exportingContent from "./exporting.md?raw";
@@ -97,6 +99,14 @@ export const pages: Page[] = [
     type: "page",
     content: simulationContent,
     icon: "play",
+  },
+  {
+    id: "telemetry",
+    title: "Telemetry Overlay",
+    description: "Import real robot logs to verify path accuracy.",
+    type: "page",
+    content: telemetryContent,
+    icon: "chart-bar",
   },
   {
     id: "obstacles",
