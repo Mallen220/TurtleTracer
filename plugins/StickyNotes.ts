@@ -176,6 +176,7 @@ interface StickyNote {
       };
       return { ...data, stickyNotes: [...notes, newNote] };
     });
+    markUnsaved();
   }
 
   function addNoteAtCenter() {
@@ -204,6 +205,7 @@ interface StickyNote {
         stickyNotes: notes.map((n) => (n.id === id ? { ...n, ...updates } : n)),
       };
     });
+    markUnsaved();
   }
 
   function deleteNote(id: string) {
@@ -214,6 +216,13 @@ interface StickyNote {
         stickyNotes: notes.filter((n) => n.id !== id),
       };
     });
+    markUnsaved();
+  }
+
+  function markUnsaved() {
+      if (pedro.stores.app.isUnsaved) {
+          pedro.stores.app.isUnsaved.set(true);
+      }
   }
 
   function render(notes: StickyNote[], fieldView: any) {
