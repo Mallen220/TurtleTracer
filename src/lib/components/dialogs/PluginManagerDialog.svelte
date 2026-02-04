@@ -287,6 +287,12 @@
                       </div>
                     </div>
                   </div>
+
+                  {#if plugin.description}
+                    <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4 line-clamp-2">
+                      {plugin.description}
+                    </p>
+                  {/if}
                 </div>
 
                 <div
