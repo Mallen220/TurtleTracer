@@ -2504,6 +2504,16 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
       />
     {/if}
   </div>
+
+  {#if showContextMenu}
+    <ContextMenu
+      x={contextMenuX}
+      y={contextMenuY}
+      items={contextMenuItems}
+      on:close={() => (showContextMenu = false)}
+    />
+  {/if}
+
   {#if !$isPresentationMode}
     <FieldCoordinates
       x={currentMouseX}
