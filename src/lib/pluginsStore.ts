@@ -6,6 +6,7 @@ export interface PluginInfo {
   loaded: boolean;
   error?: string;
   enabled: boolean;
+  description?: string;
 }
 
 export interface CustomExporter {

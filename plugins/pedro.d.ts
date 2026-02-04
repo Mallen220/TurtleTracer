@@ -438,6 +438,12 @@ interface PluginGraphicsContext {
   drawText(options: PluginGraphicsOptions): any; // Returns Two.Text
 }
 
+interface PluginMetadata {
+  description?: string;
+  author?: string;
+  version?: string;
+}
+
 interface PluginFeature {
   name: string;
   navbar?: {
@@ -457,6 +463,12 @@ interface PluginFeature {
 }
 
 interface PedroAPI {
+  /**
+   * Register metadata about the plugin (e.g. description).
+   * @param meta The metadata object.
+   */
+  registerMetadata(meta: PluginMetadata): void;
+
   /**
    * Register a custom code exporter.
    * @param name The display name of the exporter.
