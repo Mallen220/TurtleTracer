@@ -231,3 +231,4 @@ src/lib/components/dialogs/StrategySheetPreview.svelte
 src/utils/buttonStyles.ts
 src/utils/history.ts
 src/lib/components/tabs/CodeTab.svelte
+src/tests/SearchableDropdown.test.ts

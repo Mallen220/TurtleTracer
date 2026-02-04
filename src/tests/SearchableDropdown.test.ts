@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
 import { render, fireEvent, screen } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import SearchableDropdown from "../lib/components/common/SearchableDropdown.svelte";
@@ -72,7 +73,9 @@ describe("SearchableDropdown", () => {
     await fireEvent.keyDown(input, { key: "ArrowDown" }); // Select Option 1
     await fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(changeHandler).toHaveBeenCalledWith(expect.objectContaining({ detail: "Option 1" }));
+    expect(changeHandler).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: "Option 1" }),
+    );
     // Dropdown should be considered closed (aria-expanded=false)
     expect(input).toHaveAttribute("aria-expanded", "false");
   });
