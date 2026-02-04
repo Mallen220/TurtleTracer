@@ -6,6 +6,11 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
 jobs:
   test-boot:
     name: Test Boot on ${{ matrix.os }}
