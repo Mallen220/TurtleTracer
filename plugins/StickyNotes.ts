@@ -1,5 +1,3 @@
-/// <reference path="./pedro.d.ts" />
-
 // -------------------------------------------------------------------
 // Sticky Notes Plugin for Pedro Pathing Visualizer
 // -------------------------------------------------------------------
@@ -32,92 +30,141 @@ interface StickyNote {
 
   // Initialization
   function init() {
-    // 1. Mount Container
-    mountContainer();
+    try {
+        console.log("[StickyNotes] Initializing plugin...");
 
-    // 2. Register Hook for subsequent mounts
-    pedro.registries.hooks.register("fieldOverlayInit", (container: HTMLElement) => {
-      mountContainer(container);
-    });
+        // 1. Mount Container (Try immediately)
+        mountContainer();
 
-    // 3. Register Context Menu
-    pedro.registries.contextMenuItems.register({
-      id: "add-sticky-note",
-      label: "Add Sticky Note",
-      icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>`,
-      onClick: ({ x, y }) => {
-        addNote(x, y);
-      },
-    });
+        // 2. Register Hook for subsequent mounts (e.g. if FieldRenderer re-mounts)
+        pedro.registries.hooks.register("fieldOverlayInit", (container: HTMLElement) => {
+            console.log("[StickyNotes] Hook: fieldOverlayInit");
+            mountContainer(container);
+        });
 
-    // 4. Register Navbar Action
-    pedro.registries.navbarActions.register({
-        id: "sticky-notes-add",
-        title: "Add Sticky Note (Alt+N)",
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>`,
-        onClick: () => {
-             addNoteAtCenter();
-        },
-        location: "right",
-    });
+        // 3. Register Context Menu
+        pedro.registries.contextMenuItems.register({
+            id: "add-sticky-note",
+            label: "Add Sticky Note",
+            icon: `<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>`,
+            onClick: ({ x, y }) => {
+                addNote(x, y);
+            },
+        });
 
-    // 5. Global Keybind (Alt+N)
-    window.addEventListener("keydown", (e) => {
-        // Block if typing in input
-        const tag = (e.target as HTMLElement).tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement).isContentEditable) return;
+        // 4. Register Navbar Action
+        pedro.registries.navbarActions.register({
+            id: "sticky-notes-add",
+            title: "Add Sticky Note (Alt+N)",
+            icon: `<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>`,
+            onClick: () => {
+                addNoteAtCenter();
+            },
+            location: "right",
+        });
 
-        if (e.altKey && e.code === "KeyN") {
-            e.preventDefault();
-            addNoteAtCenter();
+        // 5. Global Keybind (Alt+N)
+        window.addEventListener("keydown", (e) => {
+            // Block if typing in input
+            const target = e.target as HTMLElement;
+            if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+
+            if (e.altKey && (e.code === "KeyN" || e.key === "n" || e.key === "N")) {
+                e.preventDefault();
+                addNoteAtCenter();
+            }
+        });
+
+        // 6. Subscribe to stores
+        if (pedro.stores.project.extraDataStore) {
+            const { extraDataStore } = pedro.stores.project;
+            const { fieldViewStore } = pedro.stores.app;
+
+            unsubscribeData = extraDataStore.subscribe((data: any) => {
+                const view = pedro.stores.get(fieldViewStore);
+                render(data.stickyNotes || [], view);
+            });
+
+            unsubscribeView = fieldViewStore.subscribe((view: any) => {
+                const data = pedro.stores.get(extraDataStore);
+                render(data.stickyNotes || [], view);
+            });
+        } else {
+            console.error("[StickyNotes] extraDataStore not available");
         }
-    });
 
-    // 6. Subscribe to stores
-    const { extraDataStore } = pedro.stores.project;
-    const { fieldViewStore } = pedro.stores.app;
+        // 7. Retry Mount (in case DOM wasn't ready)
+        // Try every 500ms for a few seconds if not mounted
+        let retryCount = 0;
+        const retryInterval = setInterval(() => {
+            if (document.getElementById(CONTAINER_ID)) {
+                clearInterval(retryInterval);
+                return;
+            }
+            if (retryCount > 10) {
+                clearInterval(retryInterval);
+                console.warn("[StickyNotes] Failed to mount container after retries.");
+                return;
+            }
+            mountContainer();
+            retryCount++;
+        }, 500);
 
-    unsubscribeData = extraDataStore.subscribe((data) => {
-      render(data.stickyNotes || [], pedro.stores.get(fieldViewStore));
-    });
+        console.log("[StickyNotes] Plugin initialized successfully.");
 
-    unsubscribeView = fieldViewStore.subscribe((view) => {
-      render(
-        pedro.stores.get(extraDataStore).stickyNotes || [],
-        view
-      );
-    });
+    } catch (err) {
+        console.error("[StickyNotes] Plugin initialization failed:", err);
+    }
   }
 
   function mountContainer(parent?: HTMLElement) {
-    // Cleanup existing
-    const existing = document.getElementById(CONTAINER_ID);
-    if (existing) existing.remove();
+    try {
+        // Cleanup existing
+        const existing = document.getElementById(CONTAINER_ID);
+        if (existing) {
+            // Check if it's still attached to DOM
+            if (!document.contains(existing)) {
+                existing.remove(); // Remove detached node
+            } else {
+                return; // Already mounted correctly
+            }
+        }
 
-    // Find parent if not provided
-    const target = parent || document.getElementById("field-overlay-layer");
-    if (!target) return; // Field might not be mounted yet
+        // Find parent if not provided
+        const target = parent || document.getElementById("field-overlay-layer");
+        if (!target) {
+            // console.log("[StickyNotes] Overlay target not found yet.");
+            return;
+        }
 
-    const container = document.createElement("div");
-    container.id = CONTAINER_ID;
-    container.style.position = "absolute";
-    container.style.inset = "0";
-    container.style.pointerEvents = "none"; // Let clicks pass through empty space
-    container.style.zIndex = "40"; // Above everything else
-    target.appendChild(container);
+        console.log("[StickyNotes] Mounting container to", target);
 
-    // Force re-render
-    const { extraDataStore } = pedro.stores.project;
-    const { fieldViewStore } = pedro.stores.app;
-    render(
-      pedro.stores.get(extraDataStore).stickyNotes || [],
-      pedro.stores.get(fieldViewStore)
-    );
+        const container = document.createElement("div");
+        container.id = CONTAINER_ID;
+        container.style.position = "absolute";
+        container.style.inset = "0";
+        container.style.pointerEvents = "none"; // Let clicks pass through empty space
+        container.style.zIndex = "40"; // Above everything else
+        target.appendChild(container);
+
+        // Force initial render
+        const { extraDataStore } = pedro.stores.project;
+        const { fieldViewStore } = pedro.stores.app;
+        if (extraDataStore && fieldViewStore) {
+            const data = pedro.stores.get(extraDataStore);
+            const view = pedro.stores.get(fieldViewStore);
+            render(data?.stickyNotes || [], view);
+        }
+    } catch (e) {
+        console.error("[StickyNotes] Error in mountContainer:", e);
+    }
   }
 
   function addNote(x: number, y: number) {
     const { extraDataStore } = pedro.stores.project;
-    pedro.stores.project.extraDataStore.update((data) => {
+    if (!extraDataStore) return;
+
+    pedro.stores.project.extraDataStore.update((data: any) => {
       const notes = data.stickyNotes || [];
       const newNote: StickyNote = {
         id: crypto.randomUUID(),
@@ -136,24 +183,21 @@ interface StickyNote {
     const view = pedro.stores.get(fieldViewStore);
     if (!view || !view.xScale || !view.yScale) return;
 
-    // Center of viewport (relative to field view width/height)
+    // Center of viewport
     const cx = view.width / 2;
     const cy = view.height / 2;
 
-    // Invert to field coordinates
-    // We assume scale.invert exists as it is standard d3 behavior for linear scales
     if (view.xScale.invert && view.yScale.invert) {
         const ix = view.xScale.invert(cx);
         const iy = view.yScale.invert(cy);
         addNote(ix, iy);
     } else {
-        // Fallback to center of 144x144 field if scales broken
         addNote(72, 72);
     }
   }
 
   function updateNote(id: string, updates: Partial<StickyNote>) {
-    pedro.stores.project.extraDataStore.update((data) => {
+    pedro.stores.project.extraDataStore.update((data: any) => {
       const notes: StickyNote[] = data.stickyNotes || [];
       return {
         ...data,
@@ -163,7 +207,7 @@ interface StickyNote {
   }
 
   function deleteNote(id: string) {
-    pedro.stores.project.extraDataStore.update((data) => {
+    pedro.stores.project.extraDataStore.update((data: any) => {
       const notes: StickyNote[] = data.stickyNotes || [];
       return {
         ...data,
@@ -173,8 +217,10 @@ interface StickyNote {
   }
 
   function render(notes: StickyNote[], fieldView: any) {
+    if (!fieldView || !fieldView.xScale) return;
+
     const container = document.getElementById(CONTAINER_ID);
-    if (!container) return;
+    if (!container) return; // Wait for mount
 
     const currentIds = new Set(notes.map((n) => n.id));
 
@@ -242,8 +288,8 @@ interface StickyNote {
     const collapseBtn = document.createElement("div");
     collapseBtn.className = "cursor-pointer text-gray-700 hover:text-black transition-colors";
     collapseBtn.innerHTML = note.collapsed
-        ? `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`
-        : `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`;
+        ? `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`
+        : `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`;
     collapseBtn.onclick = (e) => {
         e.stopPropagation();
         updateNote(note.id, { collapsed: !note.collapsed });
@@ -252,7 +298,7 @@ interface StickyNote {
     // Delete
     const deleteBtn = document.createElement("div");
     deleteBtn.className = "cursor-pointer text-red-600 hover:text-red-800 transition-colors ml-1";
-    deleteBtn.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+    deleteBtn.innerHTML = `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
     deleteBtn.onclick = (e) => {
         e.stopPropagation();
         if (confirm("Delete this note?")) {
@@ -317,10 +363,10 @@ interface StickyNote {
     // Collapse
     if (note.collapsed) {
         body.style.display = "none";
-        collapseBtn.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
+        collapseBtn.innerHTML = `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
     } else {
         body.style.display = "block";
-        collapseBtn.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`;
+        collapseBtn.innerHTML = `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`;
     }
 
     // Text (only if not editing)
