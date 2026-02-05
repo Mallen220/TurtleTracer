@@ -451,6 +451,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "Optimization",
   },
   {
+    id: "cycle-robot-profile",
+    key: "alt+shift+p",
+    description: "Cycle Robot Profile",
+    action: "cycleRobotProfile",
+    category: "Settings",
+  },
+  {
     id: "open-settings",
     key: "cmd+, ctrl+,",
     description: "Open Settings",
@@ -640,6 +647,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "View",
   },
   {
+    id: "toggle-follow-robot",
+    key: "alt+f",
+    description: "Toggle Follow Robot",
+    action: "toggleFollowRobot",
+    category: "View",
+  },
+  {
     id: "toggle-continuous-validation",
     key: "alt+v",
     description: "Toggle Continuous Validation",
@@ -709,6 +723,34 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     description: "Cycle Light/Dark Mode",
     action: "cycleTheme",
     category: "View",
+  },
+  {
+    id: "focus-path-list",
+    key: "alt+shift+l",
+    description: "Focus Path List",
+    action: "focusPathList",
+    category: "Navigation",
+  },
+  {
+    id: "focus-code-editor",
+    key: "alt+shift+c",
+    description: "Focus Code Preview",
+    action: "focusCodeEditor",
+    category: "Navigation",
+  },
+  {
+    id: "confirm-dialog",
+    key: "ctrl+enter, cmd+enter",
+    description: "Confirm Dialog",
+    action: "confirmDialog",
+    category: "Navigation",
+  },
+  {
+    id: "cancel-dialog",
+    key: "escape",
+    description: "Cancel / Close Dialog",
+    action: "cancelDialog",
+    category: "Navigation",
   },
   {
     id: "show-debug",
