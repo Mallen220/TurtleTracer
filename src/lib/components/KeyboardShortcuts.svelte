@@ -26,6 +26,8 @@
     settingsActiveTab,
     showTelemetryDialog,
     showStrategySheet,
+    showHistory,
+    protractorLockToRobot,
     showExportGif,
     notification,
   } from "../../stores";
@@ -1800,6 +1802,9 @@
         ...s,
         showVelocityHeatmap: !s.showVelocityHeatmap,
       })),
+    toggleHistory: () => showHistory.update((v) => !v),
+    toggleStrategySheet: () => showStrategySheet.update((v) => !v),
+    toggleProtractorLock: () => protractorLockToRobot.update((v) => !v),
     addObstacle: () => {
       shapesStore.update((s) => [...s, createTriangle(s.length)]);
       activeControlTab = "field";

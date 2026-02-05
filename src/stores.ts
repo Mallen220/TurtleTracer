@@ -21,6 +21,7 @@ export const showTelemetryDialog = writable(false);
 export const isPresentationMode = writable(false);
 export const showExportGif = writable(false);
 export const showStrategySheet = writable(false);
+export const showHistory = writable(false);
 export const exportDialogState = writable<{
   isOpen: boolean;
   format: "java" | "points" | "sequential" | "json" | "custom";

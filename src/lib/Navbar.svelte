@@ -17,6 +17,7 @@
     gitStatusStore,
     showPluginManager,
     showStrategySheet,
+    showHistory,
   } from "../stores";
   import { getRandomColor } from "../utils";
   import { SaveIcon } from "./components/icons";
@@ -56,7 +57,6 @@
 
   let shortcutsOpen = false;
   let exportMenuOpen = false;
-  let historyOpen = false;
 
   let saveDropdownOpen = false;
   let saveDropdownRef: HTMLElement;
@@ -136,13 +136,13 @@
     }
 
     if (
-      historyOpen &&
+      $showHistory &&
       historyDropdownRef &&
       !historyDropdownRef.contains(event.target as Node) &&
       historyButtonRef &&
       !historyButtonRef.contains(event.target as Node)
     ) {
-      historyOpen = false;
+      showHistory.set(false);
     }
 
     if (
@@ -164,8 +164,8 @@
     if (exportMenuOpen && event.key === "Escape") {
       exportMenuOpen = false;
     }
-    if (historyOpen && event.key === "Escape") {
-      historyOpen = false;
+    if ($showHistory && event.key === "Escape") {
+      showHistory.set(false);
     }
   }
 
@@ -423,10 +423,10 @@
         <div class="relative">
           <button
             bind:this={historyButtonRef}
-            title="History Panel"
+            title={`History Panel${getShortcutFromSettings(settings, "toggle-history")}`}
             aria-label="History Panel"
-            on:click={() => (historyOpen = !historyOpen)}
-            class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors {historyOpen
+            on:click={() => showHistory.set(!$showHistory)}
+            class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors {$showHistory
               ? 'bg-neutral-100 dark:bg-neutral-800'
               : ''}"
           >
@@ -446,11 +446,11 @@
             </svg>
           </button>
 
-          {#if historyOpen && $historyStore}
+          {#if $showHistory && $historyStore}
             <div
               bind:this={historyDropdownRef}
               use:menuNavigation
-              on:close={() => (historyOpen = false)}
+              on:close={() => showHistory.set(false)}
               class="absolute right-0 mt-2 w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
             >
               <div
@@ -469,7 +469,7 @@
                   <button
                     on:click={() => {
                       history.restore(entry.item.id);
-                      historyOpen = false;
+                      showHistory.set(false);
                     }}
                     class="w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between group {entry.future
                       ? 'opacity-50 hover:opacity-100 text-neutral-600 dark:text-neutral-400'
