@@ -15,6 +15,8 @@
     name: string;
     explicit?: boolean; // true = user-defined action, false = implicit pathing behavior
     fromWait?: boolean; // true when the marker comes from a wait/rotate event
+    id?: string;
+    parentId?: string;
   }[] = [];
   export let playbackSpeed: number = 1.0;
   export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
@@ -26,12 +28,26 @@
   import { cubicInOut } from "svelte/easing";
   import { menuNavigation } from "../actions/menuNavigation";
   import { formatTime, getShortcutFromSettings } from "../../utils";
+  import { createEventDispatcher } from "svelte";
+
+  const dispatch = createEventDispatcher();
 
   // Speed dropdown state & helpers
   let showSpeedMenu = false;
   const speedOptions = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0];
 
-  $: currentTime = (percent / 100) * totalSeconds;
+  // Drag State
+  let draggingMarkerIndex: number | null = null;
+  let draggingMarkerId: string | null = null;
+  let draggingMarkerPercent: number = 0;
+  let wasPlayingBeforeDrag: boolean = false;
+  let timelineRect: DOMRect | null = null;
+  let timelineContainer: HTMLElement;
+  let ignoreClick = false;
+
+  $: currentTime =
+    (draggingMarkerIndex !== null ? draggingMarkerPercent / 100 : percent / 100) *
+    totalSeconds;
 
   function toggleSpeedMenu() {
     showSpeedMenu = !showSpeedMenu;
@@ -47,8 +63,69 @@
   }
 
   function handleSeekInput(e: Event) {
+    if (draggingMarkerIndex !== null) return;
     const target = e.target as HTMLInputElement;
     handleSeek(parseFloat(target.value));
+  }
+
+  // Drag Handlers
+  function handleMarkerDragStart(
+    e: MouseEvent,
+    index: number,
+    item: (typeof timelineItems)[0],
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Only allow dragging markers
+    if (item.type !== "marker") return;
+    if (!(item as any).id) return; // Must have ID
+
+    draggingMarkerIndex = index;
+    draggingMarkerId = (item as any).id;
+    draggingMarkerPercent = item.percent;
+
+    wasPlayingBeforeDrag = playing;
+    if (playing) pause();
+
+    // Cache rect
+    if (timelineContainer) {
+      timelineRect = timelineContainer.getBoundingClientRect();
+    }
+
+    // Add window listeners
+    window.addEventListener("mousemove", handleWindowMouseMove);
+    window.addEventListener("mouseup", handleWindowMouseUp);
+  }
+
+  function handleWindowMouseMove(e: MouseEvent) {
+    if (draggingMarkerIndex === null || !timelineRect) return;
+
+    let x = e.clientX - timelineRect.left;
+    let pct = (x / timelineRect.width) * 100;
+    pct = Math.max(0, Math.min(100, pct));
+
+    draggingMarkerPercent = pct;
+  }
+
+  function handleWindowMouseUp(e: MouseEvent) {
+    if (draggingMarkerIndex !== null) {
+      // Commit change
+      if (draggingMarkerId) {
+        dispatch("markerChange", {
+          id: draggingMarkerId,
+          percent: draggingMarkerPercent,
+        });
+      }
+
+      ignoreClick = true;
+      setTimeout(() => (ignoreClick = false), 50);
+    }
+
+    draggingMarkerIndex = null;
+    draggingMarkerId = null;
+    window.removeEventListener("mousemove", handleWindowMouseMove);
+    window.removeEventListener("mouseup", handleWindowMouseUp);
   }
 </script>
 
@@ -208,7 +285,10 @@
     {/if}
   </div>
 
-  <div class="w-full relative h-6 flex items-center">
+  <div
+    bind:this={timelineContainer}
+    class="w-full relative h-6 flex items-center"
+  >
     <!-- Timeline Highlights Layer (Under slider) -->
     <div
       class="absolute inset-0 w-full h-full pointer-events-none overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700 shadow-inner"
@@ -288,22 +368,33 @@
       step="0.000001"
       aria-label="Animation progress"
       class="w-full appearance-none slider focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 rounded-full bg-transparent dark:bg-transparent relative z-10 timeline-slider"
+      style={draggingMarkerIndex !== null ? "pointer-events: none;" : ""}
       on:input={handleSeekInput}
     />
 
     <!-- Event Markers Layer (Top, Map Pins) -->
     <!-- These need pointer events to be clickable for seeking -->
-    {#each timelineItems as item}
+    {#each timelineItems as item, index}
       {#if item.type === "marker"}
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div
           class="absolute z-20 group rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
           role="button"
           tabindex="0"
-          on:click={() => handleSeek(item.percent)}
+          on:mousedown={(e) => handleMarkerDragStart(e, index, item)}
+          on:click={(e) => {
+            if (ignoreClick) return;
+            if (draggingMarkerIndex === null) handleSeek(item.percent);
+          }}
           on:keydown={(e) => {
             if (e.key === "Enter" || e.key === " ") handleSeek(item.percent);
           }}
-          style="left: {item.percent}%; top: -14px; transform: translateX(-50%); cursor: pointer;"
+          style="left: {draggingMarkerIndex === index
+            ? draggingMarkerPercent
+            : item.percent}%; top: -14px; transform: translateX(-50%); cursor: {draggingMarkerIndex ===
+          index
+            ? 'grabbing'
+            : 'grab'}; pointer-events: auto;"
           aria-label={item.name}
         >
           <!-- Tooltip (CSS Hover) -->

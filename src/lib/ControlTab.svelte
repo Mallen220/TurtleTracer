@@ -219,6 +219,8 @@
       name: string;
       explicit?: boolean;
       fromWait?: boolean;
+      id?: string;
+      parentId?: string;
     }[] = [];
 
     if (
@@ -313,6 +315,8 @@
               percent: toPct(absTime),
               color: line.color,
               name: m.name,
+              id: m.id,
+              parentId: line.id,
             });
           });
         }
@@ -336,6 +340,8 @@
               percent: toPct(absTime),
               fromWait: true,
               name: m.name,
+              id: m.id,
+              parentId: seqItem.id,
             });
           });
         }
@@ -359,6 +365,144 @@
 
     return transformedItems;
   })();
+
+  function handleMarkerChange(e: CustomEvent) {
+    const { id, percent } = e.detail;
+    if (!timePrediction || timePrediction.totalTime <= 0) return;
+
+    const globalTime = (percent / 100) * timePrediction.totalTime;
+
+    // Find segment in timeline
+    const timeline = timePrediction.timeline;
+    let targetEvent: any = null;
+
+    for (let i = 0; i < timeline.length; i++) {
+      const ev = timeline[i];
+      if (globalTime >= ev.startTime && globalTime <= ev.endTime) {
+        targetEvent = ev;
+        break;
+      }
+    }
+
+    if (!targetEvent) {
+      // Clamping logic: if < 0, first event; if > total, last event
+      if (globalTime < 0 && timeline.length > 0) targetEvent = timeline[0];
+      else if (globalTime > timePrediction.totalTime && timeline.length > 0)
+        targetEvent = timeline[timeline.length - 1];
+    }
+
+    if (!targetEvent) return;
+
+    // Determine target segment (line or wait)
+    let targetLine: Line | null = null;
+    let targetWait: any | null = null; // wait or rotate
+
+    if (targetEvent.type === "travel") {
+      targetLine =
+        (targetEvent as any).line ||
+        lines[(targetEvent as any).lineIndex as number];
+    } else if (targetEvent.type === "wait") {
+      // Find wait/rotate in sequence
+      const waitId = (targetEvent as any).waitId;
+      if (waitId) {
+        const item = sequence.find((s) => (s as any).id === waitId);
+        if (item) targetWait = item;
+      }
+    }
+
+    // Determine local position (0-1)
+    let localPos = 0;
+    if (targetEvent.duration > 0) {
+      if (targetLine && targetEvent.motionProfile) {
+        const profile = targetEvent.motionProfile as number[];
+        const steps = profile.length - 1;
+        const relTime = globalTime - targetEvent.startTime;
+
+        // Find i such that profile[i] <= relTime < profile[i+1]
+        let stepIndex = -1;
+        for (let i = 0; i < steps; i++) {
+          if (relTime >= profile[i] && relTime <= profile[i + 1]) {
+            stepIndex = i;
+            // Interpolate
+            const t0 = profile[i];
+            const t1 = profile[i + 1];
+            const ratio = (relTime - t0) / (t1 - t0);
+            localPos = (i + ratio) / steps;
+            break;
+          }
+        }
+        if (stepIndex === -1) {
+          if (relTime <= 0) localPos = 0;
+          else localPos = 1;
+        }
+      } else {
+        // Fallback: linear mapping
+        localPos = (globalTime - targetEvent.startTime) / targetEvent.duration;
+      }
+    }
+    localPos = Math.max(0, Math.min(1, localPos));
+
+    // Now update the marker
+    // 1. Find the marker in the old location
+    let found = false;
+    let oldMarker: any = null;
+
+    // Check lines
+    for (const l of lines) {
+      if (l.eventMarkers) {
+        const idx = l.eventMarkers.findIndex((m) => m.id === id);
+        if (idx !== -1) {
+          oldMarker = l.eventMarkers[idx];
+          l.eventMarkers.splice(idx, 1);
+          found = true;
+          lines = [...lines]; // Reactivity
+          break;
+        }
+      }
+    }
+
+    // Check sequence (waits/rotates)
+    if (!found) {
+      for (const s of sequence) {
+        if ((s.kind === "wait" || s.kind === "rotate") && s.eventMarkers) {
+          const idx = s.eventMarkers.findIndex((m: any) => m.id === id);
+          if (idx !== -1) {
+            oldMarker = s.eventMarkers[idx];
+            s.eventMarkers.splice(idx, 1);
+            found = true;
+            sequence = [...sequence]; // Reactivity
+            break;
+          }
+        }
+      }
+    }
+
+    if (found && oldMarker) {
+      // Update properties
+      oldMarker.position = localPos;
+      // Remove old association fields
+      delete oldMarker.lineIndex;
+      delete oldMarker.waitId;
+      delete oldMarker.rotateId;
+
+      // Add to new parent
+      if (targetLine) {
+        if (!targetLine.eventMarkers) targetLine.eventMarkers = [];
+        targetLine.eventMarkers.push(oldMarker);
+        // lineIndex is optional but good for internal consistency if used
+        oldMarker.lineIndex = lines.findIndex((l) => l.id === targetLine!.id);
+        lines = [...lines];
+      } else if (targetWait) {
+        if (!targetWait.eventMarkers) targetWait.eventMarkers = [];
+        targetWait.eventMarkers.push(oldMarker);
+        if (targetWait.kind === "wait") oldMarker.waitId = targetWait.id;
+        if (targetWait.kind === "rotate") oldMarker.rotateId = targetWait.id;
+        sequence = [...sequence];
+      }
+
+      recordChange();
+    }
+  }
 
   // Use the registry for tabs
   $: currentTab =
@@ -496,6 +640,7 @@
       {setPlaybackSpeed}
       {totalSeconds}
       {settings}
+      on:markerChange={handleMarkerChange}
     />
   </div>
 </div>
