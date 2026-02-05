@@ -235,3 +235,4 @@ src/tests/SearchableDropdown.test.ts
 src/lib/components/whats-new/pages/telemetry.md
 src/utils/htmlHighlighter.test.ts
 src/utils/htmlHighlighter.ts
+src/tests/bench_heatmap.ts

@@ -307,7 +307,34 @@
   }
 
   // Helper to parse element IDs
-  function parseElementId(id: string | null) {
+  type ParsedPoint = { type: "point"; lineIndex: number; pointIndex: number };
+  type ParsedObstacle = {
+    type: "obstacle";
+    shapeIndex: number;
+    vertexIndex: number;
+  };
+  type ParsedEvent = { type: "event"; lineIndex: number; eventIndex: number };
+  type ParsedWaitEvent = {
+    type: "wait-event";
+    waitId: string;
+    eventIndex: number;
+  };
+  type ParsedRotateEvent = {
+    type: "rotate-event";
+    rotateId: string;
+    eventIndex: number;
+  };
+  type ParsedUnknown = { type: "unknown"; originalId: string };
+  type ParseResult =
+    | ParsedPoint
+    | ParsedObstacle
+    | ParsedEvent
+    | ParsedWaitEvent
+    | ParsedRotateEvent
+    | ParsedUnknown
+    | null;
+
+  function parseElementId(id: string | null): ParseResult {
     if (!id) return null;
     const parts = id.split("-");
     const type = parts[0];
@@ -2223,7 +2250,7 @@
       const parsed = parseElementId(currentElem);
       if (parsed) {
         if (parsed.type === "point") {
-          const { lineIndex, pointIndex } = parsed;
+          const { lineIndex, pointIndex } = parsed as ParsedPoint;
           const isStartPoint = lineIndex === -1;
           const isControlPoint = pointIndex > 0;
           const isEndPoint = !isStartPoint && !isControlPoint;
@@ -2309,7 +2336,22 @@
               disabled: currentHeading === "tangential",
               onClick: () => {
                 linesStore.update((l) => {
-                  l[lineIndex].endPoint.heading = "tangential";
+                  const line = l[lineIndex];
+                  if (!line) return l;
+                  const ep = line.endPoint;
+                  const base = {
+                    x: ep.x,
+                    y: ep.y,
+                    locked: ep.locked,
+                    isMacroElement: ep.isMacroElement,
+                    macroId: ep.macroId,
+                    originalId: ep.originalId,
+                  };
+                  line.endPoint = {
+                    ...base,
+                    heading: "tangential",
+                    reverse: (ep as any).reverse ?? false,
+                  };
                   return l;
                 });
                 onRecordChange("Set Heading Tangential");
@@ -2320,11 +2362,22 @@
               disabled: currentHeading === "constant",
               onClick: () => {
                 linesStore.update((l) => {
-                  l[lineIndex].endPoint.heading = "constant";
-                  // Preserve degrees if existing
-                  if (l[lineIndex].endPoint.degrees === undefined) {
-                    l[lineIndex].endPoint.degrees = 0;
-                  }
+                  const line = l[lineIndex];
+                  if (!line) return l;
+                  const ep = line.endPoint;
+                  const base = {
+                    x: ep.x,
+                    y: ep.y,
+                    locked: ep.locked,
+                    isMacroElement: ep.isMacroElement,
+                    macroId: ep.macroId,
+                    originalId: ep.originalId,
+                  };
+                  line.endPoint = {
+                    ...base,
+                    heading: "constant",
+                    degrees: (ep as any).degrees ?? 0,
+                  };
                   return l;
                 });
                 onRecordChange("Set Heading Constant");
@@ -2335,11 +2388,23 @@
               disabled: currentHeading === "linear",
               onClick: () => {
                 linesStore.update((l) => {
-                  l[lineIndex].endPoint.heading = "linear";
-                  if (l[lineIndex].endPoint.startDeg === undefined)
-                    l[lineIndex].endPoint.startDeg = 0;
-                  if (l[lineIndex].endPoint.endDeg === undefined)
-                    l[lineIndex].endPoint.endDeg = 0;
+                  const line = l[lineIndex];
+                  if (!line) return l;
+                  const ep = line.endPoint;
+                  const base = {
+                    x: ep.x,
+                    y: ep.y,
+                    locked: ep.locked,
+                    isMacroElement: ep.isMacroElement,
+                    macroId: ep.macroId,
+                    originalId: ep.originalId,
+                  };
+                  line.endPoint = {
+                    ...base,
+                    heading: "linear",
+                    startDeg: (ep as any).startDeg ?? 0,
+                    endDeg: (ep as any).endDeg ?? 0,
+                  };
                   return l;
                 });
                 onRecordChange("Set Heading Linear");
@@ -2353,10 +2418,21 @@
               label: "Tangential",
               disabled: currentHeading === "tangential",
               onClick: () => {
-                startPointStore.update((p) => ({
-                  ...p,
-                  heading: "tangential",
-                }));
+                startPointStore.update((p) => {
+                  const base = {
+                    x: p.x,
+                    y: p.y,
+                    locked: p.locked,
+                    isMacroElement: p.isMacroElement,
+                    macroId: p.macroId,
+                    originalId: p.originalId,
+                  };
+                  return {
+                    ...base,
+                    heading: "tangential",
+                    reverse: (p as any).reverse ?? false,
+                  };
+                });
                 onRecordChange("Set Start Tangential");
               },
             });
@@ -2364,11 +2440,21 @@
               label: "Constant",
               disabled: currentHeading === "constant",
               onClick: () => {
-                startPointStore.update((p) => ({
-                  ...p,
-                  heading: "constant",
-                  degrees: p.degrees ?? 0,
-                }));
+                startPointStore.update((p) => {
+                  const base = {
+                    x: p.x,
+                    y: p.y,
+                    locked: p.locked,
+                    isMacroElement: p.isMacroElement,
+                    macroId: p.macroId,
+                    originalId: p.originalId,
+                  };
+                  return {
+                    ...base,
+                    heading: "constant",
+                    degrees: (p as any).degrees ?? 0,
+                  };
+                });
                 onRecordChange("Set Start Constant");
               },
             });
@@ -2376,18 +2462,28 @@
               label: "Linear",
               disabled: currentHeading === "linear",
               onClick: () => {
-                startPointStore.update((p) => ({
-                  ...p,
-                  heading: "linear",
-                  startDeg: p.startDeg ?? 0,
-                  endDeg: p.endDeg ?? 0,
-                }));
+                startPointStore.update((p) => {
+                  const base = {
+                    x: p.x,
+                    y: p.y,
+                    locked: p.locked,
+                    isMacroElement: p.isMacroElement,
+                    macroId: p.macroId,
+                    originalId: p.originalId,
+                  };
+                  return {
+                    ...base,
+                    heading: "linear",
+                    startDeg: (p as any).startDeg ?? 0,
+                    endDeg: (p as any).endDeg ?? 0,
+                  };
+                });
                 onRecordChange("Set Start Linear");
               },
             });
           }
         } else if (parsed.type === "obstacle") {
-          const { shapeIndex } = parsed;
+          const { shapeIndex } = parsed as ParsedObstacle;
           menuItems.push({ label: "Obstacle", disabled: true });
           menuItems.push({ separator: true });
           menuItems.push({

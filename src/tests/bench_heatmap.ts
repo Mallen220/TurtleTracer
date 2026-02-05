@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-import { getCurvePoint } from "./src/utils/math";
+import { getCurvePoint } from "../utils/math";
 
 // Mock Data
 const line = {
