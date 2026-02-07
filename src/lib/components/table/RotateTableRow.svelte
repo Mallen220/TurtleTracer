@@ -3,6 +3,7 @@
   import type { SequenceRotateItem, SequenceItem } from "../../../types";
   import TrashIcon from "../icons/TrashIcon.svelte";
   import { isRotateLinked } from "../../../utils/pointLinking";
+  import { transformAngle } from "../../../utils/math";
   import { focusRequest } from "../../../stores";
 
   export let item: SequenceRotateItem;
@@ -64,6 +65,15 @@
     // `updateLinkedRotations` is needed here.
     onUpdate(item);
   }
+
+  function normalizeDegrees() {
+    (item as any).degrees = transformAngle(rotateItem.degrees);
+    onUpdate(item);
+  }
+
+  $: isOutOfBounds =
+    rotateItem.degrees !== undefined &&
+    (rotateItem.degrees > 180 || rotateItem.degrees <= -180);
 </script>
 
 <tr
@@ -133,18 +143,46 @@
   </td>
   <td class="px-3 py-2 text-neutral-400 text-xs italic"> - </td>
   <td class="px-3 py-2">
-    <input
-      type="number"
-      class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-pink-500 focus:outline-none text-xs"
-      value={rotateItem.degrees}
-      aria-label="{item.name || 'Rotate'} Degrees"
-      on:input={handleDegreesInput}
-      use:focusOnRequest={{
-        id: `rotate-${item.id}`,
-        field: "heading",
-      }}
-      disabled={isLocked}
-    />
+    <div class="flex items-center gap-1">
+      <input
+        type="number"
+        class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-pink-500 focus:outline-none text-xs"
+        class:border-yellow-500={isOutOfBounds}
+        class:dark:border-yellow-500={isOutOfBounds}
+        value={rotateItem.degrees}
+        aria-label="{item.name || 'Rotate'} Degrees"
+        on:input={handleDegreesInput}
+        use:focusOnRequest={{
+          id: `rotate-${item.id}`,
+          field: "heading",
+        }}
+        disabled={isLocked}
+      />
+      {#if isOutOfBounds && !isLocked}
+        <button
+          on:click={normalizeDegrees}
+          title="Angle is out of bounds. Click to normalize to [-180, 180]."
+          class="p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="size-4"
+          >
+            <path
+              d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+            />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </button>
+      {/if}
+    </div>
   </td>
   <td class="px-3 py-2 text-left flex items-center justify-start gap-1">
     <!-- Lock toggle for rotate -->

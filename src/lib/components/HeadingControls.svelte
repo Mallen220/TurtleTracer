@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
+  import { transformAngle } from "../../utils/math";
   export let endPoint: any;
   export let locked: boolean = false;
   export let tabindex: number | undefined = undefined;
@@ -35,6 +36,34 @@
     else if (endPoint.heading === "linear" && startInput) startInput.focus();
     else if (endPoint.heading === "tangential" && reverseInput)
       reverseInput.focus();
+  }
+
+  $: isStartOutOfBounds =
+    endPoint.heading === "linear" &&
+    (endPoint.startDeg > 180 || endPoint.startDeg <= -180);
+  $: isEndOutOfBounds =
+    endPoint.heading === "linear" &&
+    (endPoint.endDeg > 180 || endPoint.endDeg <= -180);
+  $: isConstantOutOfBounds =
+    endPoint.heading === "constant" &&
+    (endPoint.degrees > 180 || endPoint.degrees <= -180);
+
+  function normalizeStart() {
+    endPoint.startDeg = transformAngle(endPoint.startDeg);
+    dispatch("change");
+    dispatch("commit");
+  }
+
+  function normalizeEnd() {
+    endPoint.endDeg = transformAngle(endPoint.endDeg);
+    dispatch("change");
+    dispatch("commit");
+  }
+
+  function normalizeConstant() {
+    endPoint.degrees = transformAngle(endPoint.degrees);
+    dispatch("change");
+    dispatch("commit");
   }
 </script>
 
@@ -85,11 +114,13 @@
         >
         <input
           bind:this={startInput}
-          class="w-full pl-12 pr-1 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class="w-full pl-12 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class:pr-6={isStartOutOfBounds}
+          class:pr-1={!isStartOutOfBounds}
+          class:border-yellow-500={isStartOutOfBounds}
+          class:dark:border-yellow-500={isStartOutOfBounds}
           step="1"
           type="number"
-          min="-180"
-          max="180"
           bind:value={endPoint.startDeg}
           on:input={() => dispatch("change")}
           on:blur={() => dispatch("commit")}
@@ -97,6 +128,30 @@
           disabled={locked}
           {tabindex}
         />
+        {#if isStartOutOfBounds && !locked}
+          <button
+            on:click={normalizeStart}
+            title="Angle is out of bounds. Click to normalize to [-180, 180]."
+            class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="size-3"
+            >
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </button>
+        {/if}
       </div>
       <div class="relative flex-1">
         <span
@@ -105,11 +160,13 @@
         >
         <input
           bind:this={endInput}
-          class="w-full pl-8 pr-1 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class="w-full pl-8 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class:pr-6={isEndOutOfBounds}
+          class:pr-1={!isEndOutOfBounds}
+          class:border-yellow-500={isEndOutOfBounds}
+          class:dark:border-yellow-500={isEndOutOfBounds}
           step="1"
           type="number"
-          min="-180"
-          max="180"
           bind:value={endPoint.endDeg}
           on:input={() => dispatch("change")}
           on:blur={() => dispatch("commit")}
@@ -117,6 +174,30 @@
           disabled={locked}
           {tabindex}
         />
+        {#if isEndOutOfBounds && !locked}
+          <button
+            on:click={normalizeEnd}
+            title="Angle is out of bounds. Click to normalize to [-180, 180]."
+            class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="size-3"
+            >
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </button>
+        {/if}
       </div>
     </div>
   {:else if endPoint.heading === "constant"}
@@ -128,11 +209,13 @@
         >
         <input
           bind:this={constantInput}
-          class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class="w-full pl-6 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class:pr-6={isConstantOutOfBounds}
+          class:pr-2={!isConstantOutOfBounds}
+          class:border-yellow-500={isConstantOutOfBounds}
+          class:dark:border-yellow-500={isConstantOutOfBounds}
           step="1"
           type="number"
-          min="-180"
-          max="180"
           value={endPoint.degrees || 0}
           on:input={handleConstantInput}
           on:blur={handleConstantBlur}
@@ -140,6 +223,30 @@
           disabled={locked}
           {tabindex}
         />
+        {#if isConstantOutOfBounds && !locked}
+          <button
+            on:click={normalizeConstant}
+            title="Angle is out of bounds. Click to normalize to [-180, 180]."
+            class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="size-3"
+            >
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </button>
+        {/if}
       </div>
     </div>
   {:else if endPoint.heading === "tangential"}
