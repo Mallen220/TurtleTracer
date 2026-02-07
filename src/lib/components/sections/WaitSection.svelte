@@ -71,6 +71,8 @@
     }
     if (linked) {
       sequence = updateLinkedWaits(sequence, wait.id);
+    } else {
+      sequence = [...sequence];
     }
     if (recordChange) recordChange();
   }

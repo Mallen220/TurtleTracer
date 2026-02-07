@@ -65,6 +65,8 @@
       rotate.degrees = val;
       if (linked) {
         sequence = updateLinkedRotations(sequence, rotate.id);
+      } else {
+        sequence = [...sequence]; // Force reactivity
       }
     }
     if (recordChange) recordChange();
