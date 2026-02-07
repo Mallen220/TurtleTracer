@@ -43,8 +43,14 @@
   let observer: IntersectionObserver;
   let elementMap = new Map<HTMLElement, string>();
 
+  let lastRenamingPath: string | null = null;
   $: if (renamingFile) {
-    renameInput = renamingFile.name.replace(/\.pp$/, "");
+    if (renamingFile.path !== lastRenamingPath) {
+      renameInput = renamingFile.name.replace(/\.pp$/, "");
+      lastRenamingPath = renamingFile.path;
+    }
+  } else {
+    lastRenamingPath = null;
   }
 
   // --- Preview Loading Logic ---

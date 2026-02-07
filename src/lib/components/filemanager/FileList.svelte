@@ -1,7 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
 <!-- src/lib/components/filemanager/FileList.svelte -->
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, tick } from "svelte";
   import type { FileInfo } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
   import PathPreview from "./PathPreview.svelte";
@@ -27,6 +27,13 @@
   let contextMenu: { x: number; y: number; file: FileInfo } | null = null;
   let renameInput: string = "";
 
+  function focusInput(node: HTMLInputElement): { destroy: () => void } {
+    tick().then(() => node.select());
+    return {
+      destroy: () => {},
+    };
+  }
+
   // Preview cache + retry logic (similar to FileGrid)
   let previews: Record<string, { startPoint: any; lines: any[] } | undefined> =
     {};
@@ -41,8 +48,14 @@
   // Number of top files to proactively preload when icons are enabled
   const PRELOAD_COUNT = 30;
 
+  let lastRenamingPath: string | null = null;
   $: if (renamingFile) {
-    renameInput = renamingFile.name.replace(/\.pp$/, "");
+    if (renamingFile.path !== lastRenamingPath) {
+      renameInput = renamingFile.name.replace(/\.pp$/, "");
+      lastRenamingPath = renamingFile.path;
+    }
+  } else {
+    lastRenamingPath = null;
   }
 
   function formatFileSize(bytes: number): string {
@@ -399,6 +412,7 @@
                 <input
                   type="text"
                   bind:value={renameInput}
+                  use:focusInput
                   class="w-full px-1 py-0.5 text-sm border border-blue-400 rounded focus:outline-none dark:bg-neutral-700"
                   on:keydown={(e) => {
                     if (e.key === "Enter") dispatch("rename-save", renameInput);
