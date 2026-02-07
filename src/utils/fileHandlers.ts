@@ -27,6 +27,7 @@ import {
 } from "./codeExporter";
 import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
 import { makeId } from "./nameGenerator";
+import pkg from "../../package.json";
 
 export { loadProjectData };
 
@@ -215,7 +216,13 @@ async function performSave(
 
     // Create the project data structure
     const projectData = {
-      version: 1,
+      version: pkg.version,
+      header: {
+        info: "Created with Pedro Pathing Plus Visualizer",
+        copyright:
+          "Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.",
+        link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+      },
       startPoint,
       lines: linesToSave,
       settings,
@@ -422,6 +429,13 @@ export async function exportAsPP() {
 
       const jsonString = JSON.stringify(
         {
+          version: pkg.version,
+          header: {
+            info: "Created with Pedro Pathing Plus Visualizer",
+            copyright:
+              "Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.",
+            link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+          },
           startPoint: get(startPointStore),
           lines: get(linesStore),
           shapes: get(shapesStore),
@@ -440,6 +454,13 @@ export async function exportAsPP() {
 
   const jsonString = JSON.stringify(
     {
+      version: pkg.version,
+      header: {
+        info: "Created with Pedro Pathing Plus Visualizer",
+        copyright:
+          "Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.",
+        link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+      },
       startPoint: get(startPointStore),
       lines: get(linesStore),
       shapes: get(shapesStore),
