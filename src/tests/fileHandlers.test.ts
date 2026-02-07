@@ -274,6 +274,32 @@ describe("fileHandlers", () => {
       // Restore saveFile
       mockElectronAPI.saveFile = originalSaveFile;
     });
+
+    it("includes header information in saved file", async () => {
+      // Mock saveFile to return success
+      mockElectronAPI.saveFile.mockResolvedValue({
+        success: true,
+        filepath: "/saved/file.pp",
+      });
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.pp");
+      // Ensure we have some data
+      linesStore.set([{ id: "1", name: "Line 1" } as any]);
+
+      await fileHandlers.saveProject();
+
+      expect(mockElectronAPI.saveFile).toHaveBeenCalled();
+      const callArgs = mockElectronAPI.saveFile.mock.calls[0];
+      const content = JSON.parse(callArgs[0]);
+
+      expect(content.header).toBeDefined();
+      expect(content.header.info).toBe(
+        "Created with Pedro Pathing Plus Visualizer",
+      );
+      expect(content.header.copyright).toContain("Copyright");
+      expect(content.header.link).toBe(
+        "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+      );
+    });
   });
 
   describe("handleExternalFileOpen", () => {
@@ -311,6 +337,34 @@ describe("fileHandlers", () => {
       await handleExternalFileOpen("/project/dir/file.pp");
 
       expect(confirmMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("exportAsPP", () => {
+    it("includes header information in exported file", async () => {
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/exported/file.pp");
+      mockElectronAPI.writeFile.mockResolvedValue(true);
+
+      await fileHandlers.exportAsPP();
+
+      expect(mockElectronAPI.writeFile).toHaveBeenCalled();
+      // writeFile called with (path, content)
+      // find the call that matches the path
+      const callArgs = mockElectronAPI.writeFile.mock.calls.find(
+        (args) => args[0] === "/exported/file.pp",
+      );
+      expect(callArgs).toBeDefined();
+
+      const content = JSON.parse(callArgs[1]);
+
+      expect(content.header).toBeDefined();
+      expect(content.header.info).toBe(
+        "Created with Pedro Pathing Plus Visualizer",
+      );
+      expect(content.header.copyright).toContain("Copyright");
+      expect(content.header.link).toBe(
+        "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+      );
     });
   });
 });
