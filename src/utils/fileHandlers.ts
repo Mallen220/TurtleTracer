@@ -27,6 +27,7 @@ import {
 } from "./codeExporter";
 import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
 import { makeId } from "./nameGenerator";
+import pkg from "../../package.json";
 
 export { loadProjectData };
 
@@ -215,7 +216,7 @@ async function performSave(
 
     // Create the project data structure
     const projectData = {
-      version: 1,
+      version: pkg.version,
       header: {
         info: "Created with Pedro Pathing Plus Visualizer",
         copyright:
@@ -428,7 +429,7 @@ export async function exportAsPP() {
 
       const jsonString = JSON.stringify(
         {
-          version: 1,
+          version: pkg.version,
           header: {
             info: "Created with Pedro Pathing Plus Visualizer",
             copyright:
@@ -453,7 +454,7 @@ export async function exportAsPP() {
 
   const jsonString = JSON.stringify(
     {
-      version: 1,
+      version: pkg.version,
       header: {
         info: "Created with Pedro Pathing Plus Visualizer",
         copyright:

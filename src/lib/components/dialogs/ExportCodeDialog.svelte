@@ -28,6 +28,7 @@
   } from "../../../utils/settingsPersistence";
   import { customExportersStore } from "../../pluginsStore";
   import { exportAsPP } from "../../../utils/fileHandlers";
+  import pkg from "../../../../package.json";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -160,7 +161,7 @@
         const relativeSequence = await relativizeSequenceForPreview(sequence);
         exportedCode = JSON.stringify(
           {
-            version: 1,
+            version: pkg.version,
             header: {
               info: "Created with Pedro Pathing Plus Visualizer",
               copyright:

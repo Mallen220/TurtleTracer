@@ -19,6 +19,7 @@ import { DEFAULT_SETTINGS } from "../config/defaults";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { SequenceMacroItem } from "../types";
+import pkg from "../../package.json";
 
 const macroKind = (): SequenceMacroItem["kind"] =>
   (actionRegistry.getAll().find((a: any) => a.isMacro)
@@ -291,6 +292,8 @@ describe("fileHandlers", () => {
       const callArgs = mockElectronAPI.saveFile.mock.calls[0];
       const content = JSON.parse(callArgs[0]);
 
+      expect(content.version).toBe(pkg.version);
+      expect(content.version).toBe(pkg.version);
       expect(content.header).toBeDefined();
       expect(content.header.info).toBe(
         "Created with Pedro Pathing Plus Visualizer",
