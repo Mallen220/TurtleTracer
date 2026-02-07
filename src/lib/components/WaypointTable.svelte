@@ -792,12 +792,18 @@
 
   // Helper to accept updates coming from child row components (binds avoid inline typed params)
   function handleUpdateFromComponent(idx: number, updatedItem: any) {
-    sequence[idx] = updatedItem;
-    const def = actionRegistry.get(sequence[idx].kind);
+    // Create a new array reference to ensure Svelte reactivity triggers,
+    // especially for ControlTab which binds to sequence.
+    const newSeq = [...sequence];
+    newSeq[idx] = updatedItem;
+
+    const def = actionRegistry.get(newSeq[idx].kind);
     if (def?.isWait) {
-      sequence = updateLinkedWaits(sequence, (sequence[idx] as any).id);
+      sequence = updateLinkedWaits(newSeq, (newSeq[idx] as any).id);
     } else if (def?.isRotate) {
-      sequence = updateLinkedRotations(sequence, (sequence[idx] as any).id);
+      sequence = updateLinkedRotations(newSeq, (newSeq[idx] as any).id);
+    } else {
+      sequence = newSeq;
     }
     recordChange();
   }

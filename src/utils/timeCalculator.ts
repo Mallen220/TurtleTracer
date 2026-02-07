@@ -657,7 +657,11 @@ export function calculatePathTime(
         });
         res.events.forEach((ev) => timeline.push(ev));
         currentTime += res.duration;
-        if (res.endHeading !== undefined) currentHeading = res.endHeading;
+        if (res.endHeading !== undefined) {
+          currentHeading = res.endHeading;
+          // If the action explicitly sets the heading, we shouldn't snap the next path start
+          isFirstPathItem = false;
+        }
         if (res.endPoint) lastPoint = res.endPoint;
         return;
       }
