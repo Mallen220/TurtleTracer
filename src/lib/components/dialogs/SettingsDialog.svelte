@@ -1805,16 +1805,7 @@
                     <div
                       class="w-full max-w-sm bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4 text-left text-sm space-y-4"
                     >
-                      <div>
-                        <h4 class="font-semibold mb-2">Support & Community</h4>
-                        <a
-                          href="https://discord.gg/chHSzS4ewF"
-                          target="_blank"
-                          class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline"
-                        >
-                          <span>Join Discord Server</span>
-                        </a>
-                      </div>
+  
                       <div>
                         <h4 class="font-semibold mb-2">Acknowledgments</h4>
                         <ul
