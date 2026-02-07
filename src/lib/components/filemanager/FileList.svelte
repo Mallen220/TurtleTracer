@@ -224,7 +224,11 @@
     // Let's modify the dispatcher types in the parent component instead or here.
 
     // Actually, easier to dispatch a unified event for menu actions
-    dispatch("menu-action" as any, { action, file });
+    if (action === "rename") {
+      dispatch("rename-start", file);
+    } else {
+      dispatch("menu-action" as any, { action, file });
+    }
   }
 
   // Grouping logic for Date sort
