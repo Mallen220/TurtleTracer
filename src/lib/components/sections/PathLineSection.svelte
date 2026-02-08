@@ -322,6 +322,7 @@
           on:click={() => !line.locked && onRemove && onRemove()}
           disabled={line.locked}
           title="Delete Path"
+          className="ml-1"
         />
       {/if}
     </div>
