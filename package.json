@@ -28,7 +28,9 @@
     "dist:linux": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --linux --x64 --arm64 --publish=never",
     "dist:linux:x64": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --linux --x64 --publish=never",
     "dist:publish": "node scripts/publish.js",
-    "format": "prettier --write ."
+    "format": "prettier --write . && ( command -v swiftlint >/dev/null 2>&1 && npm run fix:swift || echo 'swiftlint not installed, skipping swift formatting' )",
+    "lint:swift": "command -v swiftlint >/dev/null 2>&1 && swiftlint || echo 'swiftlint not installed, skipping swift lint'",
+    "fix:swift": "command -v swiftlint >/dev/null 2>&1 && swiftlint --fix || echo 'swiftlint not installed, skipping swift autofix'"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

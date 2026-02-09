@@ -1,0 +1,8 @@
+repos:
+  - repo: https://github.com/realm/SwiftLint
+    rev: 0.57.1
+    hooks:
+      - id: swiftlint
+        # Run autofix where possible before linting (optional)
+        args: ["--fix"]
+        stages: [commit]

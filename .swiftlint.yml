@@ -1,0 +1,28 @@
+# SwiftLint configuration for Pedro Pathing Plus Visualizer
+# Minimal, safe defaults (allow zero lintable files so this repo won't fail when no Swift files exist)
+
+disabled_rules:
+  - colon
+  - comma
+  - control_statement
+
+opt_in_rules:
+  - empty_count
+
+# If true, SwiftLint will not fail if no lintable files are found.
+allow_zero_lintable_files: true
+
+# Paths to ignore (case-sensitive). We exclude build outputs and common non-Swift folders.
+excluded:
+  - node_modules
+  - vendor
+  - build
+  - release
+  - public
+  - dist
+
+reporter: "xcode"
+
+# Example rule overrides
+line_length: 110
+strict: false
