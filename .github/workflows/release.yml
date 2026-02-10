@@ -172,6 +172,68 @@ jobs:
           ls release/ || echo "release directory not found"
         shell: bash
 
+      - name: Install electron-windows-msix
+        run: npm install --no-save electron-windows-msix
+        shell: bash
+
+      - name: Build MSIX (electron-windows-msix)
+        env:
+          MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY_NAME: ${{ secrets.MSIX_PUBLISHER_DISPLAY_NAME }}
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = 'Stop'
+
+          $version = ($env:TAG_NAME -replace '^v', '')
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "TAG_NAME is empty."
+          }
+
+          $appDir = Get-ChildItem -Path release -Directory | Where-Object { $_.Name -match 'win.*unpacked' } | Select-Object -First 1
+          if (-not $appDir) {
+            throw "No unpacked app directory found in release/."
+          }
+
+          $exe = Get-ChildItem -Path $appDir.FullName -Filter *.exe | Select-Object -First 1
+          if (-not $exe) {
+            throw "No .exe found in $($appDir.FullName)."
+          }
+
+          $publisher = if ($env:MSIX_PUBLISHER) { $env:MSIX_PUBLISHER } else { 'CN=PedroPathingPlusVisualizer' }
+          $publisherDisplayName = if ($env:MSIX_PUBLISHER_DISPLAY_NAME) { $env:MSIX_PUBLISHER_DISPLAY_NAME } else { 'Matthew Allen' }
+          $packageDisplayName = 'Pedro Pathing Plus Visualizer'
+          $packageVersion = "${version}.0"
+
+          $config = @{
+            appDir = $appDir.FullName
+            outputDir = (Resolve-Path 'release').Path
+            packageName = "Pedro-Pathing-Plus-Visualizer-${version}-x64.msix"
+            logLevel = 'warn'
+            manifestVariables = @{
+              appDisplayName = $packageDisplayName
+              packageDisplayName = $packageDisplayName
+              packageDescription = 'Pedro Pathing Plus Visualizer'
+              packageIdentity = 'com.pedropathing.visualizer'
+              publisher = $publisher
+              publisherDisplayName = $publisherDisplayName
+              packageVersion = $packageVersion
+              appExecutable = $exe.Name
+              targetArch = 'x64'
+            }
+          }
+
+          $configJson = $config | ConvertTo-Json -Depth 6 -Compress
+          $scriptPath = Join-Path $env:RUNNER_TEMP 'build-msix.mjs'
+          @"
+import { packageMSIX } from "electron-windows-msix";
+
+const config = $configJson;
+await packageMSIX(config);
+"@ | Out-File -FilePath $scriptPath -Encoding utf8
+
+          node $scriptPath
+        shell: powershell
+
       - name: Upload artifacts (Windows)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
