@@ -78,6 +78,7 @@
   export let resetAnimation: () => void;
   export let stepForward: () => void;
   export let stepBackward: () => void;
+  export let splitPath: () => void = () => {};
   export let recordChange: (action?: string) => void;
   export let controlTabRef: any = null;
   export let activeControlTab: "path" | "field" | "table" | "code" = "path";
@@ -1702,6 +1703,7 @@
     copy: () => copy(),
     cut: () => cut(),
     paste: () => paste(),
+    splitPath: () => splitPath && splitPath(),
     removeSelected: () => removeSelected(),
     undo: () => undoAction(),
     redo: () => redoAction(),

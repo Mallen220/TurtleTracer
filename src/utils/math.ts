@@ -179,6 +179,51 @@ export function getCurvePoint(
   return work[0];
 }
 
+/**
+ * Splits a Bezier curve of any degree at parameter t into two curves.
+ * Returns [leftCurve, rightCurve], where each is an array of control points.
+ */
+export function splitBezier(
+  t: number,
+  points: { x: number; y: number }[],
+): [{ x: number; y: number }[], { x: number; y: number }[]] {
+  const left: { x: number; y: number }[] = [];
+  const right: { x: number; y: number }[] = [];
+  const n = points.length - 1;
+
+  // De Casteljau's algorithm
+  // We need to keep intermediate points to form the control points of the two sub-curves
+  // Left curve: First point of each level of recursion (P0, Q0, R0, ...)
+  // Right curve: Last point of each level of recursion (..., R_last, Q_last, P_last) - reversed
+
+  let currentPoints = points.slice();
+
+  // Add initial points
+  left.push(currentPoints[0]);
+  right.push(currentPoints[currentPoints.length - 1]);
+
+  for (let i = 0; i < n; i++) {
+    const nextPoints: { x: number; y: number }[] = [];
+    for (let j = 0; j < currentPoints.length - 1; j++) {
+      const p0 = currentPoints[j];
+      const p1 = currentPoints[j + 1];
+      const newP = {
+        x: p0.x + (p1.x - p0.x) * t,
+        y: p0.y + (p1.y - p0.y) * t,
+      };
+      nextPoints.push(newP);
+    }
+    currentPoints = nextPoints;
+    left.push(currentPoints[0]);
+    right.push(currentPoints[currentPoints.length - 1]);
+  }
+
+  // Right array was filled from outside in (P3, Q2, R1, S0), so reverse it to get (S0, R1, Q2, P3)
+  right.reverse();
+
+  return [left, right];
+}
+
 // Helpers for Heading Calculation
 export function getTangentAngle(
   p1: { x: number; y: number },

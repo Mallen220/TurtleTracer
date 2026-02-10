@@ -84,6 +84,7 @@
     exportAsPP,
     handleExternalFileOpen,
   } from "./utils/fileHandlers";
+  import { splitPathAtPercent } from "./utils/pathEditing";
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { PluginManager } from "./lib/pluginManager";
   import { themesStore } from "./lib/pluginsStore";
@@ -1071,6 +1072,33 @@
     playbackSpeedStore.set(val);
   }
 
+  function handleSplitPath() {
+    if (!timePrediction || timePrediction.totalTime <= 0) return;
+    const currentLines = get(linesStore);
+    const currentSequence = get(sequenceStore);
+    const currentPercent = get(percentStore);
+
+    const res = splitPathAtPercent(
+      currentPercent,
+      timePrediction,
+      currentLines,
+      currentSequence,
+    );
+
+    if (res) {
+      linesStore.set(res.lines);
+      sequenceStore.set(res.sequence);
+      recordChange("Split Path");
+
+      // Select the split point
+      const splitLine = res.lines[res.splitIndex];
+      if (splitLine && splitLine.id) {
+        selectedLineId.set(splitLine.id);
+        selectedPointId.set(`point-${res.splitIndex + 1}-0`);
+      }
+    }
+  }
+
   // --- Resizing Logic ---
   // When in vertical (mobile) mode, hide the control tab from layout after
   // its closing animation completes so the field can resize to the freed area.
@@ -1311,6 +1339,7 @@
   {stepForward}
   {stepBackward}
   {recordChange}
+  splitPath={handleSplitPath}
   bind:controlTabRef
   bind:activeControlTab
   toggleStats={() => (statsOpen = !statsOpen)}

@@ -79,6 +79,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "Editing",
   },
   {
+    id: "split-path",
+    key: "k",
+    description: "Split Path at Current Time",
+    action: "splitPath",
+    category: "Editing",
+  },
+  {
     id: "copy",
     key: "cmd+c, ctrl+c",
     description: "Copy selected item",

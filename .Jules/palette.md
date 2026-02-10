@@ -17,3 +17,13 @@ Action: Always add explicit `focus-visible` styles (e.g., `focus-visible:ring`) 
 
 Learning: Implementing a fully accessible Searchable Dropdown (Combobox) requires careful coordination of `aria-activedescendant` and `keydown` event handling. A critical gotcha in testing is that Svelte transitions (like `slide`) keep elements in the DOM even after the state variable flips to false, causing `toBeInTheDocument` assertions to fail unexpectedly in unit tests.
 Action: Use `aria-expanded` on the input to verify state changes in tests rather than relying on the presence/absence of the listbox when transitions are involved, or mock the transitions entirely.
+
+## 2026-05-24 - Reusable Destructive Action Pattern
+
+Learning: Hardcoding layout utilities (like `ml-1`) in reusable components like `DeleteButtonWithConfirm` limits their use in tight spaces (like tables or dense toolbars).
+Action: Keep reusable components layout-neutral (padding/dimensions only) and delegate spacing/margins to the parent context via className props.
+
+## 2026-05-25 - Live Regions for Search Feedback
+
+Learning: Visual search results update instantly, but screen reader users get no feedback when filtering lists unless a live region is present.
+Action: Always pair filterable lists with a visually hidden `aria-live="polite"` element that announces "X results found" when the count changes.

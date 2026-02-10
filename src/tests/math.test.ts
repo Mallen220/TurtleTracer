@@ -13,6 +13,7 @@ import {
   getTangentAngle,
   getLineStartHeading,
   getLineEndHeading,
+  splitBezier,
 } from "../utils/math";
 import type { Line, Point } from "../types";
 
@@ -279,6 +280,48 @@ describe("Math Utils", () => {
       } as Line;
       // Should skip (0,0) and use (5,5), angle 45
       expect(getLineStartHeading(line, prev)).toBe(45);
+    });
+  });
+
+  describe("splitBezier", () => {
+    it("splits a linear bezier correctly", () => {
+      const points = [
+        { x: 0, y: 0 },
+        { x: 10, y: 10 },
+      ];
+      const [left, right] = splitBezier(0.5, points);
+      expect(left.length).toBe(2);
+      expect(right.length).toBe(2);
+      expect(left[0]).toEqual({ x: 0, y: 0 });
+      expect(left[1]).toEqual({ x: 5, y: 5 });
+      expect(right[0]).toEqual({ x: 5, y: 5 });
+      expect(right[1]).toEqual({ x: 10, y: 10 });
+    });
+
+    it("splits a quadratic bezier correctly", () => {
+      const points = [
+        { x: 0, y: 0 },
+        { x: 10, y: 10 }, // Control Point
+        { x: 20, y: 0 },
+      ];
+      const [left, right] = splitBezier(0.5, points);
+      // Expected Split Point: (10, 5)
+      // Left Q0: (5, 5), Left Q1: (10, 5) ? No.
+      // Left: P0, Q0, S0
+      // Right: S0, Q1, P2
+      // Q0 = lerp(P0, P1, 0.5) = (5, 5)
+      // Q1 = lerp(P1, P2, 0.5) = (15, 5)
+      // S0 = lerp(Q0, Q1, 0.5) = (10, 5)
+
+      expect(left.length).toBe(3);
+      expect(right.length).toBe(3);
+      expect(left[0]).toEqual({ x: 0, y: 0 });
+      expect(left[1]).toEqual({ x: 5, y: 5 });
+      expect(left[2]).toEqual({ x: 10, y: 5 });
+
+      expect(right[0]).toEqual({ x: 10, y: 5 });
+      expect(right[1]).toEqual({ x: 15, y: 5 });
+      expect(right[2]).toEqual({ x: 20, y: 0 });
     });
   });
 

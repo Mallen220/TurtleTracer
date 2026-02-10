@@ -13,6 +13,7 @@
   import SectionHeader from "../common/SectionHeader.svelte";
   import EmptyState from "../common/EmptyState.svelte";
   import SaveNameDialog from "../dialogs/SaveNameDialog.svelte";
+  import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
   import type { Shape, ObstaclePreset } from "../../../types/index";
 
   export let shapes: Shape[];
@@ -394,7 +395,7 @@
                     </svg>
                   {/if}
                 </button>
-                <button
+                <DeleteButtonWithConfirm
                   title="Remove Shape"
                   on:click={() => {
                     shapes.splice(shapeIdx, 1);
@@ -403,11 +404,8 @@
                     collapsedObstacles.splice(shapeIdx, 1);
                     collapsedObstacles = [...collapsedObstacles];
                   }}
-                  class="text-neutral-400 hover:text-red-500 transition-colors p-1 disabled:opacity-50 disabled:hover:text-neutral-400"
                   disabled={shape.locked ?? false}
-                >
-                  <TrashIcon className="size-4" />
-                </button>
+                />
               </div>
             </div>
 
@@ -497,17 +495,14 @@
                           </svg>
                         </button>
                         {#if shape.vertices.length > 3}
-                          <button
+                          <DeleteButtonWithConfirm
                             title="Remove Vertex"
-                            class="text-neutral-400 hover:text-red-500 transition-colors p-1 disabled:opacity-50 disabled:hover:text-neutral-400"
                             on:click={() => {
                               shape.vertices.splice(vertexIdx, 1);
                               shape.vertices = shape.vertices;
                             }}
                             disabled={shape.locked ?? false}
-                          >
-                            <TrashIcon className="size-4" strokeWidth={2} />
-                          </button>
+                          />
                         {/if}
                       </div>
                     </div>
