@@ -104,9 +104,8 @@ jobs:
             echo "Using existing draft release"
             UPLOAD_URL=$(echo "$RELEASE_JSON" | jq -r '.uploadUrl')
           else
-            echo "Creating new draft release"
-            # If triggered by tag, we don't strictly need --target, 
-            # but if dispatch, use the current ref.
+            echo "Creating new draft release..."
+            # If tag doesn't exist yet (dispatch), create it against current SHA
             gh release create "$TAG_NAME" \
               --draft \
               --title "$TITLE" \
@@ -185,52 +184,58 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           $version = ($env:TAG_NAME -replace '^v', '')
-          if ([string]::IsNullOrWhiteSpace($version)) {
-            throw "TAG_NAME is empty."
-          }
-
+          
+          # Find the unpacked directory
           $appDir = Get-ChildItem -Path release -Directory | Where-Object { $_.Name -match 'win.*unpacked' } | Select-Object -First 1
-          if (-not $appDir) {
-            throw "No unpacked app directory found in release/."
-          }
+          if (-not $appDir) { throw "No unpacked app directory found in release/." }
 
+          # Find the main executable
           $exe = Get-ChildItem -Path $appDir.FullName -Filter *.exe | Select-Object -First 1
-          if (-not $exe) {
-            throw "No .exe found in $($appDir.FullName)."
-          }
+          if (-not $exe) { throw "No .exe found." }
 
           $publisher = if ($env:MSIX_PUBLISHER) { $env:MSIX_PUBLISHER } else { 'CN=PedroPathingPlusVisualizer' }
           $publisherDisplayName = if ($env:MSIX_PUBLISHER_DISPLAY_NAME) { $env:MSIX_PUBLISHER_DISPLAY_NAME } else { 'Matthew Allen' }
-          $packageDisplayName = 'Pedro Pathing Plus Visualizer'
-          $packageVersion = "${version}.0"
 
           $config = @{
             appDir = $appDir.FullName
+            packageAssets = (Resolve-Path 'build').Path
             outputDir = (Resolve-Path 'release').Path
             packageName = "Pedro-Pathing-Plus-Visualizer-${version}-x64.msix"
             logLevel = 'warn'
             manifestVariables = @{
-              appDisplayName = $packageDisplayName
-              packageDisplayName = $packageDisplayName
+              appDisplayName = 'Pedro Pathing Plus Visualizer'
+              packageDisplayName = 'Pedro Pathing Plus Visualizer'
               packageDescription = 'Pedro Pathing Plus Visualizer'
               packageIdentity = 'com.pedropathing.visualizer'
               publisher = $publisher
               publisherDisplayName = $publisherDisplayName
-              packageVersion = $packageVersion
+              packageVersion = "${version}.0"
               appExecutable = $exe.Name
               targetArch = 'x64'
             }
           }
 
-          $configJson = $config | ConvertTo-Json -Depth 6 -Compress
-          $scriptPath = Join-Path $env:RUNNER_TEMP 'build-msix.mjs'
+          # FIX 1: Save config to current directory (workspace) so paths resolve easier
+          $configPath = Join-Path (Get-Location) 'msix-config.json'
+          $config | ConvertTo-Json -Depth 6 | Out-File -FilePath $configPath -Encoding utf8
+
+          # FIX 2: Create the script in the workspace so it can find node_modules
+          $scriptPath = Join-Path (Get-Location) 'build-msix.mjs'
+          
           @"
-import { packageMSIX } from "electron-windows-msix";
+          import { packageMSIX } from 'electron-windows-msix';
+          import fs from 'fs';
 
-const config = $configJson;
-await packageMSIX(config);
-"@ | Out-File -FilePath $scriptPath -Encoding utf8
+          // Read from env var to avoid string escaping issues
+          const configPath = process.env.CONFIG_PATH;
+          const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+          
+          console.log('Starting MSIX build...');
+          await packageMSIX(config);
+          "@ | Out-File -FilePath $scriptPath -Encoding utf8
 
+          # FIX 3: Pass config path as env var to Node
+          $env:CONFIG_PATH = $configPath
           node $scriptPath
         shell: powershell
 
