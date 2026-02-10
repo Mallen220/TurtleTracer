@@ -136,7 +136,7 @@
     },
     "appx": {
       "identityName": "com.pedropathing.visualizer",
-      "publisherDisplayName": "Matthew Allen",
+      "publisherDisplayName": "Pedro Pathing Plus",
       "applicationId": "com.pedropathing.visualizer"
     },
     "nsis": {
