@@ -25,7 +25,7 @@
     "dist:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --publish=never",
     "dist:all": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --linux --x64 --arm64 --publish=never && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --linux --x64 --publish=never",
     "dist:windows": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --x64 --publish=never",
-    "dist:msix": "npm run build && electron-builder --win msix --publish=never",
+    "dist:msix": "npm run build && electron-builder --win appx --publish=never",
     "dist:linux": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --linux --x64 --arm64 --publish=never",
     "dist:linux:x64": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --linux --x64 --publish=never",
     "dist:publish": "node scripts/publish.js",
@@ -130,11 +130,11 @@
     "win": {
       "target": [
         "nsis",
-        "msix"
+        "appx"
       ],
       "icon": "build/icon.png"
     },
-    "msix": {
+    "appx": {
       "identityName": "com.pedropathing.visualizer",
       "publisherDisplayName": "Matthew Allen",
       "applicationId": "com.pedropathing.visualizer"
