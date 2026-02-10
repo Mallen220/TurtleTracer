@@ -228,11 +228,22 @@ jobs:
 
           // Read from env var to avoid string escaping issues
           const configPath = process.env.CONFIG_PATH;
-          const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-          
+          let raw = fs.readFileSync(configPath, 'utf8');
+          // Strip UTF-8 BOM if present
+          if (raw.charCodeAt(0) === 0xFEFF) { raw = raw.slice(1); }
+          const config = JSON.parse(raw);
+
+          console.log('Config loaded:', config.packageName || config.packageIdentity || 'unknown');
           console.log('Starting MSIX build...');
-          await packageMSIX(config);
-          "@ | Out-File -FilePath $scriptPath -Encoding utf8
+          try {
+            await packageMSIX(config);
+            console.log('MSIX build finished.');
+          } catch (e) {
+            console.error('MSIX build failed:');
+            console.error(e);
+            process.exit(1);
+          }
+          "@ | Out-File -FilePath $scriptPath -Encoding utf8NoBOM
 
           # FIX 3: Pass config path as env var to Node
           $env:CONFIG_PATH = $configPath
