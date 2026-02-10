@@ -56,6 +56,27 @@
   let duplicateCheckVersion = 0;
   let duplicateMap: Record<string, (typeof keyBindings)[number][] | undefined> =
     {};
+
+  // Whitelisted duplicate sets that are acceptable and should NOT generate warnings
+  const ALLOWED_DUPLICATE_SETS: Set<string>[] = [
+    // It's intentional for `Escape` to both cancel dialogs and deselect all
+    new Set(["cancel-dialog", "deselect-all"]),
+  ];
+
+  function isAllowedDuplicateSet(
+    arr: (typeof keyBindings)[number][] | undefined,
+  ): boolean {
+    if (!arr || arr.length === 0) return false;
+    const ids = new Set(arr.map((b) => b.id));
+    return ALLOWED_DUPLICATE_SETS.some((allowed) => {
+      if (allowed.size !== ids.size) return false;
+      for (const id of allowed) {
+        if (!ids.has(id)) return false;
+      }
+      return true;
+    });
+  }
+
   $: {
     // include duplicateCheckVersion to force recomputation when a manual reset occurs
     const _dup = duplicateCheckVersion;
@@ -80,9 +101,12 @@
     );
   }
 
-  $: duplicateKeys = Object.entries(duplicateMap).filter(
-    ([, arr]) => (arr || []).length > 1,
-  ) as [string, (typeof keyBindings)[number][]][];
+  // Exclude allowed duplicate groups from warning list
+  $: duplicateKeys = Object.entries(duplicateMap).filter(([_, arr]) => {
+    if (!arr || arr.length <= 1) return false;
+    if (isAllowedDuplicateSet(arr)) return false;
+    return true;
+  }) as [string, (typeof keyBindings)[number][]][];
 
   function getConflicts(binding: (typeof keyBindings)[number]) {
     if (!binding.key) return [];
@@ -96,6 +120,8 @@
     keys.forEach((k) => {
       const dups = duplicateMap[k];
       if (dups && dups.length > 1) {
+        // If this particular set of duplicates is whitelisted, ignore it
+        if (isAllowedDuplicateSet(dups)) return;
         dups.forEach((d) => {
           if (d.id !== binding.id) conflicts.add(d);
         });
