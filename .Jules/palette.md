@@ -24,5 +24,6 @@ Learning: Hardcoding layout utilities (like `ml-1`) in reusable components like 
 Action: Keep reusable components layout-neutral (padding/dimensions only) and delegate spacing/margins to the parent context via className props.
 
 ## 2026-05-25 - Live Regions for Search Feedback
+
 Learning: Visual search results update instantly, but screen reader users get no feedback when filtering lists unless a live region is present.
 Action: Always pair filterable lists with a visually hidden `aria-live="polite"` element that announces "X results found" when the count changes.
