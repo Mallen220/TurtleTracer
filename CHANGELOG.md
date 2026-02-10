@@ -1,3 +1,7 @@
+## 1.7.3 (2026-02-10)
+
+- Add Sticky Notes plugin, disabled by default. Add Telemetry documentation page. Redesign Plugin Manager UI for better usability and descriptions. More keybinds and fixed conflicts. Users can drag Timeline Event Markers. Remove Discord for now. Add header info to saved .pp files. Prevent dragging on action names. Add heading normalization for Rotate and Path commands. Fix file renaming in FileManager. Fix correctly handling initial rotation in path time calculation. Update LICENSE and Privacy Policy. Add confirmation for obstacle deletion. Add Split Path keybind (K). Add MSIX windows 11 autopackager. 
+
 ## 1.7.2 (2026-02-04)
 
 - Quick Fix: Rename to pedro-pathing-plus-visualizer across project. Add live code preview tab when auto export is enabled (recommended). Changed default port from 34567 to 17218. Several critical security fixes. Added keybind hints. Add Follow Robot toggle to settings and field renderer. Configurable Telemetry Export within exported code. Telemetry support for Panels, Standard FTC, FtcDashboard + Standard, future support for PPP visualizer. Add keybindings for copying code/table and downloading java when in certain tabs. Add smart object snapping for field waypoints, can be disabled in settings interface.
