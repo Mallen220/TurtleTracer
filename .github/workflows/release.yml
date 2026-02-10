@@ -177,8 +177,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          echo "Uploading .exe setup file:"
-          find release -maxdepth 1 -name "*Setup*.exe" -type f | while read file; do
+          echo "Uploading .exe and .msix setup files:"
+          find release -maxdepth 1 \( -name "*Setup*.exe" -o -name "*.msix" \) -type f | while read file; do
             echo "Uploading: $file"
             gh release upload "$TAG_NAME" "$file" --clobber || echo "Failed to upload $file"
           done
