@@ -164,25 +164,30 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      - name: Decode Signing Certificate
+        shell: pwsh
+        env:
+          MSIX_CERT_BASE64: ${{ secrets.MSIX_CERT_BASE64 }}
+        run: |
+          if ($env:MSIX_CERT_BASE64) {
+            $pfxPath = Join-Path (Get-Location) 'msix-signing.pfx'
+            [System.IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:MSIX_CERT_BASE64))
+            Write-Host "Certificate decoded to $pfxPath"
+          } else {
+            Write-Host "No certificate found in secrets."
+          }
+
       - name: Build (Windows)
+        env:
+          WIN_CSC_LINK: msix-signing.pfx
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.MSIX_CERT_PASSWORD }}
+          MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
         run: |
           echo "Building Windows packages..."
           npx electron-builder --win --x64 --publish never
           echo "Build complete. Checking release directory..."
           ls release/ || echo "release directory not found"
         shell: bash
-
-      - name: Build MSIX (external script)
-        env:
-          MSIX_PACKAGE_ID: ${{ secrets.MSIX_PACKAGE_ID }}
-          MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
-          MSIX_PUBLISHER_DISPLAY_NAME: ${{ secrets.MSIX_PUBLISHER_DISPLAY_NAME }}
-          MSIX_CERT_BASE64: ${{ secrets.MSIX_CERT_BASE64 }}
-          MSIX_CERT_PASSWORD: ${{ secrets.MSIX_CERT_PASSWORD }}
-        shell: powershell
-        run: |
-          Write-Host 'Invoking scripts/build-msix.ps1'
-          ./scripts/build-msix.ps1
 
       - name: Upload artifacts (Windows)
         env:

@@ -58,8 +58,7 @@
     "tailwindcss": "^3.4.9",
     "tslib": "^2.6.3",
     "vite": "^5.4.21",
-    "vitest": "^2.1.8",
-    "electron-windows-msix": "^2.0.4"
+    "vitest": "^2.1.8"
   },
   "dependencies": {
     "@types/d3": "^7.4.3",
@@ -138,7 +137,8 @@
     "appx": {
       "identityName": "PedroPathingPlus.PedroPathingPlusVisualizer",
       "publisherDisplayName": "Pedro Pathing Plus",
-      "applicationId": "PedroPathingPlus.PedroPathingPlusVisualizer"
+      "applicationId": "PedroPathingPlus.PedroPathingPlusVisualizer",
+      "publisher": "${env.MSIX_PUBLISHER}"
     },
     "nsis": {
       "oneClick": false,
