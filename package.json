@@ -132,7 +132,8 @@
         "nsis",
         "appx"
       ],
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "timeStampServer": ""
     },
     "appx": {
       "identityName": "PedroPathingPlus.PedroPathingPlusVisualizer",
