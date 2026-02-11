@@ -61,7 +61,9 @@ if ($env:MSIX_CERT_BASE64) {
 
 # Persist config and run the node tool
 $configPath = Join-Path $repoRoot 'msix-config.json'
-$config | ConvertTo-Json -Depth 8 | Out-File -FilePath $configPath -Encoding utf8NoBOM
+$json = $config | ConvertTo-Json -Depth 8
+# Write UTF-8 without BOM in a PowerShell-compatible way
+[System.IO.File]::WriteAllBytes($configPath, [System.Text.Encoding]::UTF8.GetBytes($json))
 Write-Host "Wrote MSIX config to: $configPath"
 
 $env:CONFIG_PATH = $configPath
