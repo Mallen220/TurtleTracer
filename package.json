@@ -132,8 +132,7 @@
         "nsis",
         "appx"
       ],
-      "icon": "build/icon.png",
-      "publisherName": "${env.MSIX_PUBLISHER_DISPLAY_NAME}"
+      "icon": "build/icon.png"
     },
     "appx": {
       "identityName": "${env.MSIX_PACKAGE_ID}",
