@@ -177,10 +177,16 @@ jobs:
             Write-Host "No certificate found in secrets."
           }
 
+      - name: Import Cert to Store
+        shell: pwsh
+        run: |
+          $pfxPassword = ConvertTo-SecureString -String "${{ secrets.MSIX_CERT_PASSWORD }}" -AsPlainText -Force
+          Import-PfxCertificate -FilePath msix-signing.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pfxPassword
+
       - name: Build (Windows)
         env:
-          WIN_CSC_LINK: ${{ secrets.CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.MSIX_CERT_PASSWORD }}
+          # Note: WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD are intentionally removed.
+          # Electron-builder will find the cert in the Windows User Store via 'certificateSubjectName' in package.json
           MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
           MSIX_PACKAGE_ID: ${{ secrets.MSIX_PACKAGE_ID }}
           MSIX_PUBLISHER_DISPLAY_NAME: ${{ secrets.MSIX_PUBLISHER_DISPLAY_NAME }}
