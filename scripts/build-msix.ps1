@@ -29,10 +29,15 @@ if ([string]::IsNullOrWhiteSpace($publisherDisplayName)) { $publisherDisplayName
 $packageVersionString = '0.0.0.0'
 if (-not [string]::IsNullOrWhiteSpace($version)) { $packageVersionString = "${version}.0" }
 
+# Normalize paths to forward slashes for JSON and cross-compatibility
+$appDirPath = $appDir.FullName -replace '\\', '/'
+$buildPath = (Resolve-Path 'build').Path -replace '\\', '/'
+$releasePath = (Resolve-Path 'release').Path -replace '\\', '/'
+
 $config = @{
-  appDir = $appDir.FullName
-  packageAssets = (Resolve-Path 'build').Path
-  outputDir = (Resolve-Path 'release').Path
+  appDir = $appDirPath
+  packageAssets = $buildPath
+  outputDir = $releasePath
   packageName = "Pedro-Pathing-Plus-Visualizer-${version}-x64.msix"
   logLevel = 'warn'
   manifestVariables = @{
