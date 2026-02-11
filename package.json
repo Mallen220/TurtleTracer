@@ -135,10 +135,10 @@
       "icon": "build/icon.png"
     },
     "appx": {
-      "identityName": "${env.MSIX_PACKAGE_ID}",
-      "publisherDisplayName": "${env.MSIX_PUBLISHER_DISPLAY_NAME}",
-      "applicationId": "${env.MSIX_PACKAGE_ID}",
-      "publisher": "${env.MSIX_PUBLISHER}"
+      "identityName": "PedroPathingPlus.PedroPathingPlusVisualizer",
+      "publisher": "CN=D17DA008-76B7-4978-BFAA-9ED056EE08B9",
+      "publisherDisplayName": "Pedro Pathing Plus",
+      "applicationId": "PedroPathingPlus.PedroPathingPlusVisualizer"
     },
     "nsis": {
       "oneClick": false,
