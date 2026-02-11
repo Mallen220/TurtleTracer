@@ -132,7 +132,8 @@
         "nsis",
         "appx"
       ],
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "publisherName": "${env.MSIX_PUBLISHER}"
     },
     "appx": {
       "identityName": "PedroPathingPlus.PedroPathingPlusVisualizer",
