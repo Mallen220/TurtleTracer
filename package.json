@@ -45,7 +45,7 @@
     "autoprefixer": "^10.4.20",
     "cli-progress": "^3.12.0",
     "electron": "^39.2.3",
-    "electron-builder": "^26.7.0",
+    "electron-builder": "^24.13.3",
     "electron-installer-dmg": "^5.0.1",
     "fast-check": "^4.5.3",
     "hotkeys-js": "^3.13.9",
