@@ -172,6 +172,18 @@ jobs:
           ls release/ || echo "release directory not found"
         shell: bash
 
+      - name: Build MSIX (external script)
+        env:
+          MSIX_PACKAGE_ID: ${{ secrets.MSIX_PACKAGE_ID }}
+          MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY_NAME: ${{ secrets.MSIX_PUBLISHER_DISPLAY_NAME }}
+          MSIX_CERT_BASE64: ${{ secrets.MSIX_CERT_BASE64 }}
+          MSIX_CERT_PASSWORD: ${{ secrets.MSIX_CERT_PASSWORD }}
+        shell: powershell
+        run: |
+          Write-Host 'Invoking scripts/build-msix.ps1'
+          ./scripts/build-msix.ps1
+
       - name: Upload artifacts (Windows)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

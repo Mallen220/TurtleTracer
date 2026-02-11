@@ -27,3 +27,5 @@ ws_client.html
 /release
 digest.txtplaywright-report
 test-results
+*.pem
+*.pfx
