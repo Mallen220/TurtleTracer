@@ -133,12 +133,12 @@
         "appx"
       ],
       "icon": "build/icon.png",
-      "publisherName": "${env.MSIX_PUBLISHER}"
+      "publisherName": "${env.MSIX_PUBLISHER_DISPLAY_NAME}"
     },
     "appx": {
-      "identityName": "PedroPathingPlus.PedroPathingPlusVisualizer",
-      "publisherDisplayName": "Pedro Pathing Plus",
-      "applicationId": "PedroPathingPlus.PedroPathingPlusVisualizer",
+      "identityName": "${env.MSIX_PACKAGE_ID}",
+      "publisherDisplayName": "${env.MSIX_PUBLISHER_DISPLAY_NAME}",
+      "applicationId": "${env.MSIX_PACKAGE_ID}",
       "publisher": "${env.MSIX_PUBLISHER}"
     },
     "nsis": {
