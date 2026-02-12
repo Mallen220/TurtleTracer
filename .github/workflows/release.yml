@@ -180,7 +180,7 @@ jobs:
       - name: Import Cert to Store
         shell: pwsh
         run: |
-          $pfxPassword = ConvertTo-SecureString -String "${{ secrets.MSIX_CERT_PASSWORD }}" -AsPlainText -Force
+          $pfxPassword = ConvertTo-SecureString -String "${{ secrets.CSC_KEY_PASSWORD }}" -AsPlainText -Force
           Import-PfxCertificate -FilePath msix-signing.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pfxPassword
 
       - name: Build (Windows)
