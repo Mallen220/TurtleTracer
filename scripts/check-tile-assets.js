@@ -1,65 +1,80 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /*
 Simple validation script that ensures required Windows tile assets exist in `build/win/` and match expected sizes.
 Exit code != 0 on failure so CI can catch missing/default tile assets.
 Run with: npm run check:tiles
 */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 async function main() {
-  const useSharp = (() => { try { require.resolve('sharp'); return true; } catch (e) { return false; } })();
-  const outDir = path.resolve(__dirname, '..', 'build', 'win');
-  const required = [
-    { name: 'Square44x44Logo.png', width: 44 },
-    { name: 'Square44x44Logo.scale-200.png', width: 88 },
-    { name: 'StoreLogo.png', width: 50 },
-    { name: 'Square150x150Logo.png', width: 150 },
-    { name: 'Wide310x150Logo.png', width: 310 },
-    { name: 'Square310x310Logo.png', width: 310 },
-    { name: 'icon.ico', width: 256 }
+  const useSharp = (() => {
+    try {
+      require.resolve("sharp");
+      return true;
+    } catch (e) {
+      return false;
+    }
+  })();
+  const outDir = path.resolve(__dirname, "..", "build", "win");  const buildRoot = path.resolve(__dirname, '..', 'build');  const required = [
+    { name: "Square44x44Logo.png", width: 44 },
+    { name: "Square44x44Logo.scale-200.png", width: 88 },
+    { name: "StoreLogo.png", width: 50 },
+    { name: "Square150x150Logo.png", width: 150 },
+    { name: "Wide310x150Logo.png", width: 310 },
+    { name: "Square310x310Logo.png", width: 310 },
+    { name: "icon.ico", width: 256 },
   ];
 
   let failed = false;
   for (const r of required) {
-    const p = path.join(outDir, r.name);
+    const pRoot = path.join(buildRoot, r.name);
+    const pWin = path.join(outDir, r.name);
+    const p = fs.existsSync(pRoot) ? pRoot : pWin;
     if (!fs.existsSync(p)) {
-      console.error('MISSING:', r.name);
+      console.error("MISSING (build/ or build/win):", r.name);
       failed = true;
       continue;
     }
-    if (r.name.endsWith('.ico')) continue; // cannot reliably inspect .ico here
+    if (r.name.endsWith(".ico")) continue; // cannot reliably inspect .ico here
 
     try {
       if (useSharp) {
-        const sharp = require('sharp');
+        const sharp = require("sharp");
         const meta = await sharp(p).metadata();
         if (meta.width < r.width) {
-          console.error('INVALID SIZE:', r.name, `(${meta.width} < ${r.width})`);
+          console.error(
+            "INVALID SIZE:",
+            r.name,
+            `(${meta.width} < ${r.width})`,
+          );
           failed = true;
         }
       } else {
-        const { loadImage } = require('canvas');
+        const { loadImage } = require("canvas");
         const img = await loadImage(p);
         if (img.width < r.width) {
-          console.error('INVALID SIZE:', r.name, `(${img.width} < ${r.width})`);
+          console.error("INVALID SIZE:", r.name, `(${img.width} < ${r.width})`);
           failed = true;
         }
       }
     } catch (e) {
-      console.error('ERROR reading', r.name, e.message);
+      console.error("ERROR reading", r.name, e.message);
       failed = true;
     }
   }
 
   if (failed) {
-    console.error('\nTile asset check failed — ensure `npm run generate:icons` is run before building.');
+    console.error(
+      "\nTile asset check failed — ensure `npm run generate:icons` is run before building.",
+    );
     process.exit(1);
   }
-  console.log('Tile asset check passed.');
+  console.log("Tile asset check passed.");
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

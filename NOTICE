@@ -237,3 +237,13 @@ src/utils/htmlHighlighter.test.ts
 src/utils/htmlHighlighter.ts
 src/tests/bench_heatmap.ts
 src/tests/regression_rotate_start.test.ts
+playwright-report/index.html
+scripts/check-tile-assets.cjs
+scripts/check-tile-assets.js
+scripts/generate-windows-icons.cjs
+scripts/generate-windows-icons.js
+src/lib/components/tabs/PathActionButtons.svelte
+src/lib/components/whats-new/features/v1.7.3.md
+src/tests/CommandPalette.test.ts
+src/utils/pathEditing.ts
+tile_verification.png

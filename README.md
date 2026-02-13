@@ -120,6 +120,8 @@ _Enter your password when prompted to complete installation._
 2.  Run the installer.
 3.  _Note: If SmartScreen appears, click "More info" > "Run anyway"._
 
+> Windows tile assets are generated from `public/icon.png` and copied into `build/` during `npm run build`. This guarantees the Appx (.appx/.appxupload) produced by `electron-builder` contains product-specific tile images (no OS default tiles). Use `npm run generate:icons` and `npm run check:tiles` to regenerate and validate the tile images.
+
 ### **Linux**
 
 **One-Line Installer (Recommended):**
