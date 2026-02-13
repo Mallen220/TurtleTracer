@@ -139,6 +139,7 @@
       "timeStampServer": ""
     },
     "appx": {
+      "assets": "build/win",
       "identityName": "PedroPathingPlus.PedroPathingPlusVisualizer",
       "publisher": "CN=D17DA008-76B7-4978-BFAA-9ED056EE08B9",
       "publisherDisplayName": "Pedro Pathing Plus",
