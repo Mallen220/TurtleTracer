@@ -13,11 +13,13 @@
     "fix:headers": "node scripts/add-copyright.js",
     "version:bump": "node scripts/bump-version.js",
     "generate:types": "node scripts/generate-plugin-types.js",
-    "build": "npm run generate:types && vite build",
+    "generate:icons": "node scripts/generate-windows-icons.cjs",
+    "check:tiles": "node scripts/check-tile-assets.cjs",
+    "build": "npm run generate:types && npm run generate:icons && vite build",
     "preview": "vite preview",
     "test": "vitest",
     "tests": "vitest",
-    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
+    "check": "npm run check:tiles && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
     "test:e2e": "playwright test",
     "dev": "npm run generate:types && npm run fix:headers && npm run format && npm run fix:notice && vite build && electron .",
     "start": "npm run build && electron .",
@@ -58,6 +60,7 @@
     "tailwindcss": "^3.4.9",
     "tslib": "^2.6.3",
     "vite": "^5.4.21",
+    "sharp": "^0.32.1",
     "vitest": "^2.1.8"
   },
   "dependencies": {
