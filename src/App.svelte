@@ -1195,6 +1195,52 @@
       userFieldHeightLimit = Math.max(200, Math.min(nh, max));
     }
   }
+
+  function handleResizeKeyDown(
+    e: KeyboardEvent,
+    mode: "horizontal" | "vertical",
+  ) {
+    const step = e.shiftKey ? 50 : 10;
+
+    if (mode === "horizontal") {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        // Initialize if null
+        if (userFieldLimit === null) {
+          userFieldLimit = mainContentWidth * 0.55;
+        }
+
+        let current = userFieldLimit;
+        if (e.key === "ArrowLeft") current -= step;
+        else current += step;
+
+        // Clamp to min/max
+        const min = MIN_FIELD_PANE_WIDTH;
+        const max = mainContentWidth - MIN_SIDEBAR_WIDTH;
+
+        userFieldLimit = Math.max(min, Math.min(current, max));
+      }
+    } else {
+      // Vertical
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+
+        if (userFieldHeightLimit === null) {
+          userFieldHeightLimit = mainContentHeight * 0.6;
+        }
+
+        let current = userFieldHeightLimit;
+        // ArrowUp decreases height (pulls up), ArrowDown increases height (pulls down)
+        if (e.key === "ArrowUp") current -= step;
+        else current += step;
+
+        const rect = mainContentDiv.getBoundingClientRect();
+        const max = rect.height - 100;
+        userFieldHeightLimit = Math.max(200, Math.min(current, max));
+      }
+    }
+  }
+
   function stopResize() {
     resizeMode = null;
   }
@@ -1540,13 +1586,14 @@
     <!-- Resizer Handle (Desktop) -->
     {#if isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
       <button
-        class="w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
+        class="w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
         on:mousedown={() => startResize("horizontal")}
+        on:keydown={(e) => handleResizeKeyDown(e, "horizontal")}
         on:dblclick={() => {
           userFieldLimit = null;
         }}
         aria-label="Resize Sidebar"
-        title="Drag to resize. Double-click to reset to default width"
+        title="Drag to resize. Double-click to reset. Use Arrow keys to adjust width."
       >
         <div
           class="w-1 h-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
@@ -1557,8 +1604,9 @@
     <!-- Resizer Handle (Mobile) -->
     {#if !isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
       <button
-        class="h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
+        class="h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
         on:mousedown={() => startResize("vertical")}
+        on:keydown={(e) => handleResizeKeyDown(e, "vertical")}
         on:touchstart={(e) => {
           e.preventDefault();
           startResize("vertical");
@@ -1567,7 +1615,7 @@
           userFieldHeightLimit = null;
         }}
         aria-label="Resize Tab"
-        title="Drag to resize. Double-click to reset to default height"
+        title="Drag to resize. Double-click to reset. Use Arrow keys to adjust height."
       >
         <div
           class="h-1 w-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"

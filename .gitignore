@@ -31,3 +31,4 @@ test-results
 *.pfx
 /Keys
 /build/win
+/build
