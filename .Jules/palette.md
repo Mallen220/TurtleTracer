@@ -27,3 +27,8 @@ Action: Keep reusable components layout-neutral (padding/dimensions only) and de
 
 Learning: Visual search results update instantly, but screen reader users get no feedback when filtering lists unless a live region is present.
 Action: Always pair filterable lists with a visually hidden `aria-live="polite"` element that announces "X results found" when the count changes.
+
+## 2026-05-25 - Resizable Panels Accessibility
+
+Learning: Custom resizable panels often lack keyboard support, making them inaccessible. Adding `on:keydown` handlers for Arrow keys to adjust the panel size provides a significant accessibility win.
+Action: Always add keyboard support to custom resizers and ensure they have visible focus states.
