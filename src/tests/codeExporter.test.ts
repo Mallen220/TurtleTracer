@@ -133,7 +133,8 @@ describe("codeExporter", () => {
       const code = await generateJavaCode(startPoint, lines, false);
 
       expect(code).toContain("setTangentHeadingInterpolation()");
-      expect(code).toContain(".setReversed(true)");
+      // .setReversed() for Java code, not .setReversed(true)
+      expect(code).toContain(".setReversed()");
     });
 
     it("should include event markers", async () => {
@@ -420,6 +421,27 @@ describe("codeExporter", () => {
       expect(loopCode).toMatch(/private PathChain ATOB_1;/);
       expect(loopCode).toMatch(/ATOB = follower/);
       expect(loopCode).toMatch(/ATOB_1 = follower/);
+    });
+
+    it("should embed pose data when hardcodeValues is true", async () => {
+      const lines = [line1];
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestPath.pp",
+        undefined,
+        "SolversLib",
+        "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+        true, // hardcodeValues
+      );
+
+      expect(code).not.toContain(
+        "import com.pedropathingplus.PedroPathReader;",
+      );
+      expect(code).not.toContain("new PedroPathReader");
+      expect(code).toContain("new Pose(10.000, 10.000, Math.toRadians(0))"); // startPoint
+      expect(code).toContain("new Pose(20.000, 20.000, Math.toRadians(90))"); // line1 endPoint
+      expect(code).not.toContain("pp.get(");
     });
   });
 });
