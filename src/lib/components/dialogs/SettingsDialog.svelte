@@ -1556,6 +1556,19 @@
                             <option value="NextFTC">NextFTC</option>
                           </select>
                         </SettingsItem>
+
+                        <SettingsItem
+                          label="Embed Pose Data"
+                          description="Embed pose data directly in the code (no .pp file)"
+                          {searchQuery}
+                          layout="row"
+                        >
+                          <input
+                            type="checkbox"
+                            bind:checked={settings.autoExportEmbedPoseData}
+                            class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </SettingsItem>
                       </div>
                     {/if}
 

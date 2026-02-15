@@ -17,7 +17,9 @@ async function main() {
       return false;
     }
   })();
-  const outDir = path.resolve(__dirname, "..", "build", "win");  const buildRoot = path.resolve(__dirname, '..', 'build');  const required = [
+  const outDir = path.resolve(__dirname, "..", "build", "win");
+  const buildRoot = path.resolve(__dirname, "..", "build");
+  const required = [
     { name: "Square44x44Logo.png", width: 44 },
     { name: "Square44x44Logo.scale-200.png", width: 88 },
     { name: "StoreLogo.png", width: 50 },

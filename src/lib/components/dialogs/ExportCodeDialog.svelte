@@ -43,6 +43,7 @@
   let customExporterName: string | null = null;
   let sequentialClassName = "AutoPath";
   let targetLibrary: "SolversLib" | "NextFTC" = "SolversLib";
+  let embedPoseData = false;
   const DEFAULT_PACKAGE =
     "org.firstinspires.ftc.teamcode.Commands.AutoCommands";
   let packageName = DEFAULT_PACKAGE;
@@ -155,6 +156,7 @@
           sequence,
           targetLibrary,
           packageName,
+          embedPoseData,
         );
         currentLanguage = java;
       } else if (exportFormat === "json") {
@@ -676,6 +678,29 @@
                 class="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
                 placeholder="AutoPath"
               />
+            </div>
+
+            <!-- Embed Pose Data -->
+            <div class="flex flex-col gap-1.5">
+              <span
+                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 opacity-0"
+              >
+                Embed Poses
+              </span>
+              <label
+                class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer select-none"
+                aria-label="Embed pose data directly in the code"
+              >
+                <div class="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    bind:checked={embedPoseData}
+                    on:change={refreshCode}
+                    class="peer h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-700 dark:ring-offset-neutral-800"
+                  />
+                </div>
+                <span>Embed Pose Data in Code</span>
+              </label>
             </div>
 
             <!-- NextFTC Warning -->

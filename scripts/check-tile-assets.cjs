@@ -18,7 +18,7 @@ const useSharp = hasPackage("sharp");
 
 async function main() {
   const outDir = path.resolve(__dirname, "..", "build", "win");
-  const buildRoot = path.resolve(__dirname, '..', 'build');
+  const buildRoot = path.resolve(__dirname, "..", "build");
   const required = [
     { name: "Square44x44Logo.png", width: 44, height: 44 },
     { name: "Square44x44Logo.scale-200.png", width: 88, height: 88 },
@@ -36,14 +36,14 @@ async function main() {
     const pWin = path.join(outDir, r.name);
     const p = fs.existsSync(pRoot) ? pRoot : pWin;
     if (!fs.existsSync(p)) {
-      console.error('MISSING (build/ or build/win):', r.name);
+      console.error("MISSING (build/ or build/win):", r.name);
       failed = true;
       continue;
     }
 
     // For ico, dimensions can be multiple, but we check if we can read it.
     // If it's ico, sharp might return the largest one.
-    if (r.name.endsWith('.ico')) {
+    if (r.name.endsWith(".ico")) {
       // Just check existence for now, or use sharp metadata if it supports ico fully
       // sharp supports ico via libvips? often limited.
       // The original script skipped ico check.

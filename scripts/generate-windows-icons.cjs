@@ -115,12 +115,15 @@ async function main() {
 
     // ensure top-level `build/` also contains the same tile files so electron-builder
     // includes them in the generated Appx manifest (Windows Start/Store tiles)
-    const buildRoot = path.resolve(__dirname, '..', 'build');
+    const buildRoot = path.resolve(__dirname, "..", "build");
     try {
       fs.copyFileSync(out100, path.join(buildRoot, path.basename(out100)));
       fs.copyFileSync(out200, path.join(buildRoot, path.basename(out200)));
     } catch (err) {
-      console.warn('Could not copy tile to build root:', err && err.message ? err.message : err);
+      console.warn(
+        "Could not copy tile to build root:",
+        err && err.message ? err.message : err,
+      );
     }
   }
 
@@ -147,11 +150,17 @@ async function main() {
 
   // also copy icon.ico to top-level build/ for installer packages
   try {
-    const topIco = path.join(path.resolve(__dirname, '..', 'build'), path.basename(icoPath));
+    const topIco = path.join(
+      path.resolve(__dirname, "..", "build"),
+      path.basename(icoPath),
+    );
     fs.copyFileSync(icoPath, topIco);
-    console.log('Also wrote', topIco);
+    console.log("Also wrote", topIco);
   } catch (err) {
-    console.warn('Could not copy icon.ico to build root:', err && err.message ? err.message : err);
+    console.warn(
+      "Could not copy icon.ico to build root:",
+      err && err.message ? err.message : err,
+    );
   }
 
   console.log("Wrote", icoPath);
