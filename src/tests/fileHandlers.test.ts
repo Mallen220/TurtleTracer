@@ -303,6 +303,28 @@ describe("fileHandlers", () => {
         "https://github.com/Mallen220/PedroPathingPlusVisualizer",
       );
     });
+
+    it("should NOT save settings in the .pp file", async () => {
+      // Ensure we have some data
+      linesStore.set([{ id: "1", name: "Line 1" } as any]);
+      // Set a specific setting to verify
+      settingsStore.update((s) => ({ ...s, fieldMap: "ShouldNotBeSaved" }));
+
+      // Mock saveFile to return success
+      mockElectronAPI.saveFile.mockResolvedValue({
+        success: true,
+        filepath: "/saved/file.pp",
+      });
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.pp");
+
+      await fileHandlers.saveProject();
+
+      expect(mockElectronAPI.saveFile).toHaveBeenCalled();
+      const callArgs = mockElectronAPI.saveFile.mock.calls[0];
+      const savedData = JSON.parse(callArgs[0]);
+
+      expect(savedData.settings).toBeUndefined();
+    });
   });
 
   describe("handleExternalFileOpen", () => {
