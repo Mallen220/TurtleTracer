@@ -225,7 +225,6 @@ async function performSave(
       },
       startPoint,
       lines: linesToSave,
-      settings,
       sequence: sequenceToSave,
       shapes,
       extraData,
