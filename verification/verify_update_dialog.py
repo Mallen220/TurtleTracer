@@ -78,12 +78,12 @@ def run_properly():
 
         # Wait for dialog
         try:
-            dialog = page.get_by_role("dialog", name="Update Available!")
+            dialog = page.get_by_role("dialog", name="New Version Available")
             expect(dialog).to_be_visible(timeout=5000)
             print("Dialog visible")
 
-            # Verify MS Store recommendation is present
-            expect(page.get_by_text("Get Automatic Updates")).to_be_visible()
+            # Verify MS Store recommendation is present (title changed in redesign)
+            expect(page.get_by_text("Want automatic updates?")).to_be_visible()
             print("Recommendation visible")
 
         except:

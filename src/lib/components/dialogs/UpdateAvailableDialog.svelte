@@ -1,21 +1,27 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { onMount } from "svelte";
-  import { fade, fly } from "svelte/transition";
-  import { cubicInOut } from "svelte/easing";
+  import { fade, scale } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import { showUpdateAvailableDialog, updateDataStore } from "../../../stores";
+  import MarkdownIt from "markdown-it";
 
   export let show = false;
 
-  let updateData: {
-    version: string;
-    releaseNotes: string;
-    url: string;
-  } | null = null;
+  const md = new MarkdownIt({
+    html: true,
+    linkify: true,
+    typographer: true,
+  });
+
+  let updateData: { version: string; releaseNotes: string; url: string } | null =
+    null;
   $: updateData = $updateDataStore;
 
   let isWindows = false;
   let isStore = false;
+  let releaseNotesHtml = "";
+  let isLoadingNotes = false;
 
   onMount(async () => {
     const api = (window as any).electronAPI;
@@ -29,6 +35,39 @@
       }
     }
   });
+
+  // Fetch release notes when updateData changes or show becomes true
+  $: if (show && updateData) {
+    fetchReleaseNotes(updateData.version, updateData.releaseNotes);
+  }
+
+  async function fetchReleaseNotes(version: string, fallbackNotes: string) {
+    // If we already have HTML for this version, skip
+    // (Simple check, in a real app we might cache by version more robustly)
+    if (releaseNotesHtml && releaseNotesHtml.length > 0) return;
+
+    isLoadingNotes = true;
+    try {
+      // Try to fetch from the raw GitHub URL
+      // https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/src/lib/components/whats-new/features/v{version}.md
+      const response = await fetch(
+        `https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/src/lib/components/whats-new/features/v${version}.md`,
+      );
+
+      if (response.ok) {
+        const text = await response.text();
+        releaseNotesHtml = md.render(text);
+      } else {
+        throw new Error("Failed to fetch remote notes");
+      }
+    } catch (e) {
+      console.warn("Failed to fetch detailed release notes, using fallback", e);
+      // Fallback to the notes provided by the update check (usually GitHub Release body)
+      releaseNotesHtml = md.render(fallbackNotes || "No release notes available.");
+    } finally {
+      isLoadingNotes = false;
+    }
+  }
 
   function close() {
     showUpdateAvailableDialog.set(false);
@@ -70,148 +109,256 @@
 
 {#if show && updateData}
   <div
-    class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+    class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm"
     transition:fade={{ duration: 200 }}
   >
     <div
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-neutral-200 dark:border-neutral-800 flex flex-col"
-      transition:fly={{ y: 20, duration: 300, easing: cubicInOut }}
+      class="relative bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl w-full max-w-[520px] overflow-hidden border border-neutral-100 dark:border-neutral-800"
+      transition:scale={{
+        start: 0.95,
+        duration: 300,
+        easing: cubicOut,
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="update-title"
     >
-      <!-- Header -->
+      <!-- Background decorative blobs -->
       <div
-        class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white flex items-start gap-4"
+        class="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"
+      ></div>
+      <div
+        class="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"
+      ></div>
+
+      <!-- Close Button -->
+      <button
+        on:click={close}
+        class="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all z-10"
+        aria-label="Close"
       >
-        <div class="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-8 w-8"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="w-5 h-5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M6 18 18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
+
+      <div class="relative p-8 flex flex-col gap-6">
+        <!-- Top Section -->
+        <div class="text-center space-y-2">
+          <div
+            class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-600 dark:text-purple-400 mb-2 shadow-sm ring-1 ring-purple-100 dark:ring-purple-900/50"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-            />
-          </svg>
-        </div>
-        <div>
-          <h2 id="update-title" class="text-2xl font-bold">
-            Update Available!
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-8 h-8"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"
+              />
+            </svg>
+          </div>
+          <h2
+            id="update-title"
+            class="text-2xl font-bold text-neutral-900 dark:text-white tracking-tight"
+          >
+            New Version Available
           </h2>
-          <p class="text-blue-100 mt-1">
-            Version {updateData.version} is ready to install.
+          <p class="text-neutral-500 dark:text-neutral-400">
+            Version <span
+              class="font-semibold text-purple-600 dark:text-purple-400"
+              >{updateData.version}</span
+            > is ready for you.
           </p>
         </div>
-      </div>
 
-      <!-- Content -->
-      <div class="p-6 space-y-6">
-        <!-- MS Store Recommendation -->
+        <!-- MS Store Recommendation (Friendly Card) -->
         {#if isWindows && !isStore}
           <div
-            class="bg-gradient-to-br from-neutral-50 to-neutral-100 dark:from-neutral-800 dark:to-neutral-800/50 border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 flex gap-4"
+            class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-1 rounded-2xl"
           >
-            <div class="flex-shrink-0 pt-1">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                class="w-8 h-8 text-blue-500"
+            <div
+              class="bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-blue-100 dark:border-blue-900/50 rounded-xl p-4 flex items-start gap-4"
+            >
+              <div
+                class="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-600 dark:text-blue-400 shrink-0"
               >
-                <path
-                  d="M2 3h9v9H2V3zm9 18H2v-9h9v9zm2-18v9h9V3h-9zm9 18h-9v-9h9v9z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h3 class="font-semibold text-neutral-900 dark:text-white">
-                Get Automatic Updates
-              </h3>
-              <p class="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                Switch to the Microsoft Store version for a seamless,
-                auto-updating experience.
-              </p>
-              <button
-                on:click={handleSwitchToStore}
-                class="mt-3 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-              >
-                Get it on Microsoft Store
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-3 w-3"
-                  viewBox="0 0 20 20"
+                  viewBox="0 0 24 24"
                   fill="currentColor"
+                  class="w-5 h-5"
                 >
                   <path
-                    fill-rule="evenodd"
-                    d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-                    clip-rule="evenodd"
+                    d="M2 3h9v9H2V3zm9 18H2v-9h9v9zm2-18v9h9V3h-9zm9 18h-9v-9h9v9z"
                   />
                 </svg>
-              </button>
+              </div>
+              <div class="flex-1">
+                <h3
+                  class="font-semibold text-sm text-neutral-900 dark:text-white"
+                >
+                  Want automatic updates?
+                </h3>
+                <p
+                  class="text-xs text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed"
+                >
+                  Switch to the Microsoft Store version and never worry about
+                  updating manually again.
+                </p>
+                <button
+                  on:click={handleSwitchToStore}
+                  class="mt-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 transition-colors group"
+                >
+                  Get it for free
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-3 w-3 transition-transform group-hover:translate-x-0.5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         {/if}
 
-        <!-- Release Notes Preview -->
-        <div>
-          <h3
-            class="text-sm font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-2"
-          >
-            What's New
-          </h3>
+        <!-- Release Notes -->
+        <div class="space-y-3">
           <div
-            class="bg-neutral-50 dark:bg-neutral-800/50 rounded-lg p-4 max-h-48 overflow-y-auto text-sm text-neutral-700 dark:text-neutral-300 prose prose-sm dark:prose-invert"
+            class="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-white"
           >
-            <!-- Render simplified text or handle markdown if possible, for now just text -->
-            <p class="whitespace-pre-wrap">{updateData.releaseNotes}</p>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              class="w-4 h-4 text-purple-500"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M4.125 3C3.089 3 2.25 3.84 2.25 4.875V18a3 3 0 0 0 3 3h15a3 3 0 0 1-3-3V4.875C17.25 3.839 16.41 3 15.375 3H4.125ZM12 9.75a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 0 0-1.5H12Zm-.75-2.25a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H12a.75.75 0 0 1-.75-.75ZM6 12.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5H6Zm-.75 3.75a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75ZM6 6.75a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5H6Zm-.75 3.75a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75ZM6 15.75a.75.75 0 0 0 0 1.5h2.25a.75.75 0 0 0 0-1.5H6Z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            Release Notes
+          </div>
+          <div
+            class="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800 rounded-xl p-4 max-h-40 overflow-y-auto custom-scrollbar"
+          >
+            {#if isLoadingNotes}
+              <div
+                class="flex items-center justify-center h-20 text-neutral-400 text-sm animate-pulse"
+              >
+                Loading highlights...
+              </div>
+            {:else}
+              <div class="prose prose-sm dark:prose-invert max-w-none">
+                {@html releaseNotesHtml}
+              </div>
+            {/if}
           </div>
         </div>
-      </div>
 
-      <!-- Actions -->
-      <div
-        class="bg-neutral-50 dark:bg-neutral-950 p-6 border-t border-neutral-200 dark:border-neutral-800 flex flex-col sm:flex-row gap-3 justify-end"
-      >
-        <button
-          on:click={handleSkip}
-          class="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-        >
-          Skip This Version
-        </button>
-        <button
-          on:click={close}
-          class="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-        >
-          Remind Me Later
-        </button>
-        <button
-          on:click={handleDownload}
-          class="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+        <!-- Actions -->
+        <div class="flex flex-col gap-3 pt-2">
+          <button
+            on:click={handleDownload}
+            class="w-full py-3 px-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-semibold rounded-xl transition-all transform active:scale-[0.98] shadow-lg shadow-neutral-500/20 dark:shadow-none flex justify-center items-center gap-2"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
               stroke-width="2"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
-          Download & Install
-        </button>
+              stroke="currentColor"
+              class="w-5 h-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+              />
+            </svg>
+            Download & Install
+          </button>
+
+          <div class="flex justify-between items-center px-1">
+            <button
+              on:click={handleSkip}
+              class="text-xs font-medium text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+            >
+              Skip this version
+            </button>
+            <button
+              on:click={close}
+              class="text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors"
+            >
+              Remind me later
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 {/if}
+
+<style lang="postcss">
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.3);
+    border-radius: 20px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.5);
+  }
+
+  /* Prose Overrides for Compact View */
+  :global(.prose h1) {
+    @apply text-lg font-bold mb-2 mt-4 first:mt-0;
+  }
+  :global(.prose h2) {
+    @apply text-base font-bold mb-2 mt-3;
+  }
+  :global(.prose h3) {
+    @apply text-sm font-bold mb-1 mt-2;
+  }
+  :global(.prose p) {
+    @apply mb-2 leading-relaxed text-sm text-neutral-600 dark:text-neutral-300;
+  }
+  :global(.prose ul) {
+    @apply list-disc list-outside ml-4 mb-2;
+  }
+  :global(.prose li) {
+    @apply mb-0.5 text-sm text-neutral-600 dark:text-neutral-300;
+  }
+  :global(.prose strong) {
+    @apply font-bold text-neutral-900 dark:text-neutral-100;
+  }
+</style>
