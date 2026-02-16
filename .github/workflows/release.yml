@@ -54,7 +54,10 @@ jobs:
           ```
 
           #### **Windows**
-          Download and install via the `.exe` installer below.
+          <a href="https://www.microsoft.com/en-us/p/frc-pathplanner/9nqbkb5dw909?cid=storebadge&ocid=badge&rtc=1&activetab=pivot:overviewtab" target="_blank" rel="noopener noreferrer" style="margin-left:8px;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/f/f7/Get_it_from_Microsoft_Badge.svg" height="50" alt="Microsoft Store">
+          </a>
+          Windows Users can download from the Microsoft Store to receive auto-updates for stable releases.
 
           ## 📝 Release Notes
           EOF
