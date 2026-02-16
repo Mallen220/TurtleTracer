@@ -14,6 +14,7 @@
     type OptimizationResult,
   } from "../../../utils/pathOptimizer";
   import { formatTime } from "../../../utils"; // Assuming formatTime is exported from index or timeCalculator
+  import _ from "lodash";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -34,6 +35,37 @@
   // True if optimizer finished but best candidate still has collision penalty
   export let optimizationFailed = false;
 
+  // Selection state for path optimization
+  let selectionState: Record<string, boolean> = {};
+
+  // Initialize/Update selection state when lines change
+  $: {
+    lines.forEach((l, idx) => {
+      const id = l.id || `idx-${idx}`;
+      if (selectionState[id] === undefined) {
+        selectionState[id] = true;
+      }
+    });
+  }
+
+  function toggleSelection(id: string) {
+    selectionState[id] = !selectionState[id];
+  }
+
+  function selectAll() {
+    lines.forEach((l, idx) => {
+      const id = l.id || `idx-${idx}`;
+      selectionState[id] = true;
+    });
+  }
+
+  function deselectAll() {
+    lines.forEach((l, idx) => {
+      const id = l.id || `idx-${idx}`;
+      selectionState[id] = false;
+    });
+  }
+
   // Runtime optimizer instance (allows us to request stop)
   let optimizer: PathOptimizer | null = null;
   let isStopping = false;
@@ -46,9 +78,18 @@
     isStopping = false;
 
     if (settings) {
+      // Create a copy of lines where unselected lines are forced to be locked
+      const linesToOptimize = _.cloneDeep(lines).map((l, idx) => {
+        const id = l.id || `idx-${idx}`;
+        if (!selectionState[id]) {
+          l.locked = true;
+        }
+        return l;
+      });
+
       optimizer = new PathOptimizer(
         startPoint,
-        lines,
+        linesToOptimize,
         settings,
         sequence,
         shapes,
@@ -90,6 +131,21 @@
     );
 
     optimizedLines = optimizationResult.lines;
+
+    // Restore original locked state for lines that were temporarily locked
+    if (optimizedLines) {
+      optimizedLines.forEach((l, idx) => {
+        const originalLine = lines[idx];
+        if (originalLine) {
+          const id = originalLine.id || `idx-${idx}`;
+          // If it wasn't selected (so we forced lock), restore the original user lock state
+          if (!selectionState[id]) {
+            l.locked = originalLine.locked;
+          }
+        }
+      });
+    }
+
     const finalBestTime = optimizationResult.bestTime;
     const wasStopped = optimizationResult.stopped ?? false;
 
@@ -202,6 +258,69 @@
     creating an initial path that avoids obstacles. Make sure to review the
     optimized path before applying it.
   </p>
+
+  {#if !isRunning && optimizedLines === null}
+    <div class="space-y-2">
+      <div class="flex justify-between items-center">
+        <label
+          class="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400"
+          >Paths to Optimize</label
+        >
+        <div class="flex gap-2">
+          <button
+            on:click={selectAll}
+            class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            >All</button
+          >
+          <button
+            on:click={deselectAll}
+            class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            >None</button
+          >
+        </div>
+      </div>
+      <div
+        class="max-h-32 overflow-y-auto border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 p-2 space-y-1"
+      >
+        {#each lines as line, i (line.id || i)}
+          {@const id = line.id || `idx-${i}`}
+          <label
+            class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded px-1 py-0.5"
+          >
+            <input
+              type="checkbox"
+              checked={selectionState[id]}
+              on:change={() => toggleSelection(id)}
+              class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span class="truncate flex-1"
+              >{line.name || `Path ${i + 1}`}</span
+            >
+            {#if line.locked}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                class="size-3 text-yellow-500"
+                title="Path is locked"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            {/if}
+          </label>
+        {/each}
+        {#if lines.length === 0}
+          <div class="text-xs text-neutral-400 italic text-center py-2">
+            No paths available
+          </div>
+        {/if}
+      </div>
+    </div>
+  {/if}
 
   <div
     class="flex items-center justify-between bg-neutral-100 dark:bg-neutral-800 p-3 rounded-md"
