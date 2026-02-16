@@ -94,4 +94,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   downloadUpdate: (version, url) =>
     ipcRenderer.invoke("update:download", version, url),
   skipUpdate: (version) => ipcRenderer.invoke("update:skip", version),
+  checkForUpdates: () => ipcRenderer.invoke("update:check"),
 });

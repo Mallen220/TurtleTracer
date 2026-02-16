@@ -949,6 +949,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "Help",
   },
   {
+    id: "check-for-updates",
+    key: "",
+    description: "Check for updates",
+    action: "checkForUpdates",
+    category: "Help",
+  },
+  {
     id: "issues",
     key: "",
     description: "Report Issue",

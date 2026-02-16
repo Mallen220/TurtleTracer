@@ -2009,6 +2009,18 @@
         window.open(url, "_blank");
       }
     },
+    checkForUpdates: () => {
+      const api = (window as any).electronAPI;
+      if (api && api.checkForUpdates) {
+        api.checkForUpdates().catch((err: any) =>
+          console.warn("Manual update check failed", err),
+        );
+      } else {
+        const url = "https://github.com/Mallen220/PedroPathingPlusVisualizer/releases";
+        if (api && api.openExternal) api.openExternal(url);
+        else window.open(url, "_blank");
+      }
+    },
     setFileManagerDirectory: async () => {
       if (window.electronAPI && window.electronAPI.setDirectory) {
         await window.electronAPI.setDirectory();

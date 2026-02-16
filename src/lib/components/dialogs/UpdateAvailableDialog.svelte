@@ -22,6 +22,8 @@
   let isStore = false;
   let releaseNotesHtml = "";
   let isLoadingNotes = false;
+  // Current installed app version (populated from preload in Electron)
+  let currentVersion: string | null = null;
 
   onMount(async () => {
     const api = (window as any).electronAPI;
@@ -32,6 +34,16 @@
 
       if (api.isWindowsStore) {
         isStore = await api.isWindowsStore();
+      }
+
+      // Try to read the currently installed app version from the preload API
+      if (api.getAppVersion) {
+        try {
+          const v = await api.getAppVersion();
+          currentVersion = typeof v === "string" ? v : String(v || "");
+        } catch (err) {
+          console.warn("Failed to read app version from preload:", err);
+        }
       }
     }
   });
@@ -105,6 +117,16 @@
     }
     close();
   }
+
+  // Open the GitHub releases page for this release (keeps dialog open)
+  function handleOpenReleases(): void {
+    const api = (window as any).electronAPI;
+    if (api && api.openExternal && updateData?.url) {
+      api.openExternal(updateData.url);
+    } else if (updateData?.url) {
+      window.open(updateData.url, "_blank", "noopener");
+    }
+  }
 </script>
 
 {#if show && updateData}
@@ -159,19 +181,21 @@
           <div
             class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-600 dark:text-purple-400 mb-2 shadow-sm ring-1 ring-purple-100 dark:ring-purple-900/50"
           >
+            <!-- Use the rocket icon (consistent with What's New) -->
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              fill="none"
               viewBox="0 0 24 24"
-              stroke-width="1.5"
+              fill="none"
               stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
               class="w-8 h-8"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"
-              />
+              <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+              <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+              <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
+              <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
             </svg>
           </div>
           <h2
@@ -304,21 +328,40 @@
             Download & Install
           </button>
 
-          <div class="flex justify-between items-center px-1">
-            <button
-              on:click={handleSkip}
-              class="text-xs font-medium text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
-            >
-              Skip this version
-            </button>
+          <div class="flex justify-between items-center gap-3 px-1">
+            <div class="flex items-center gap-2">
+              <button
+                on:click={handleSkip}
+                aria-label="Skip this version"
+                class="px-3 py-1.5 text-sm font-medium rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/20"
+              >
+                Skip this version
+              </button>
+
+              <button
+                on:click={handleOpenReleases}
+                aria-label="Open releases page"
+                class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-50 dark:bg-gray-900/20 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900/30 border border-gray-200 dark:border-gray-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/20"
+              >
+                Open Releases Page
+              </button>
+            </div>
+
             <button
               on:click={close}
-              class="text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-colors"
+              aria-label="Remind me later"
+              class="px-3 py-1.5 text-sm font-medium rounded-md bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 border border-purple-200 dark:border-purple-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/20"
             >
               Remind me later
             </button>
           </div>
         </div>
+
+        {#if currentVersion}
+          <div class="mt-3 text-center text-xs text-neutral-400 dark:text-neutral-500">
+            Current version: <span class="font-mono text-xs text-neutral-600 dark:text-neutral-300">{currentVersion}</span>
+          </div>
+        {/if}
       </div>
     </div>
   </div>
