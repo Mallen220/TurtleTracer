@@ -14,8 +14,11 @@
     typographer: true,
   });
 
-  let updateData: { version: string; releaseNotes: string; url: string } | null =
-    null;
+  let updateData: {
+    version: string;
+    releaseNotes: string;
+    url: string;
+  } | null = null;
   $: updateData = $updateDataStore;
 
   let isWindows = false;
@@ -75,7 +78,9 @@
     } catch (e) {
       console.warn("Failed to fetch detailed release notes, using fallback", e);
       // Fallback to the notes provided by the update check (usually GitHub Release body)
-      releaseNotesHtml = md.render(fallbackNotes || "No release notes available.");
+      releaseNotesHtml = md.render(
+        fallbackNotes || "No release notes available.",
+      );
     } finally {
       isLoadingNotes = false;
     }
@@ -192,8 +197,12 @@
               stroke-linejoin="round"
               class="w-8 h-8"
             >
-              <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
-              <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+              <path
+                d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"
+              />
+              <path
+                d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"
+              />
               <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
               <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
             </svg>
@@ -224,7 +233,13 @@
                 class="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-600 dark:text-blue-400 shrink-0"
               >
                 <!-- Microsoft 4‑square logo (colored) — increased size -->
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" class="w-6 h-6" aria-hidden="true" focusable="false">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 32 32"
+                  class="w-6 h-6"
+                  aria-hidden="true"
+                  focusable="false"
+                >
                   <rect x="5" y="5" width="10" height="10" fill="#F25325" />
                   <rect x="17" y="5" width="10" height="10" fill="#80BC06" />
                   <rect x="5" y="17" width="10" height="10" fill="#05A6F0" />
@@ -355,8 +370,13 @@
         </div>
 
         {#if currentVersion}
-          <div class="mt-3 text-center text-xs text-neutral-400 dark:text-neutral-500">
-            Current version: <span class="font-mono text-xs text-neutral-600 dark:text-neutral-300">{currentVersion}</span>
+          <div
+            class="mt-3 text-center text-xs text-neutral-400 dark:text-neutral-500"
+          >
+            Current version: <span
+              class="font-mono text-xs text-neutral-600 dark:text-neutral-300"
+              >{currentVersion}</span
+            >
           </div>
         {/if}
       </div>

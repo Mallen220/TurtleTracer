@@ -952,7 +952,8 @@ ipcMain.handle("update:skip", (event, version) => {
 ipcMain.handle("update:check", async (event) => {
   try {
     if (!appUpdater) {
-      const win = BrowserWindow.getFocusedWindow() || windows.values().next().value;
+      const win =
+        BrowserWindow.getFocusedWindow() || windows.values().next().value;
       if (win) appUpdater = new AppUpdater(win);
     }
     if (appUpdater) {
@@ -962,7 +963,10 @@ ipcMain.handle("update:check", async (event) => {
     return { success: false, message: "no-updater" };
   } catch (err) {
     console.error("Error during manual update check:", err);
-    return { success: false, error: err && err.message ? err.message : String(err) };
+    return {
+      success: false,
+      error: err && err.message ? err.message : String(err),
+    };
   }
 });
 

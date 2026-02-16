@@ -58,7 +58,12 @@
     telemetryOffset,
     type TelemetryPoint,
   } from "../telemetryStore";
-  import { currentFilePath, gitStatusStore, isUnsaved } from "../../stores";
+  import {
+    currentFilePath,
+    gitStatusStore,
+    isUnsaved,
+    dimmedLinesStore,
+  } from "../../stores";
   import {
     POINT_RADIUS,
     LINE_WIDTH,
@@ -274,6 +279,8 @@
       gitStatus[currentFile] !== "clean" &&
       gitStatus[currentFile] !== "untracked") ||
     (currentFile && $isUnsaved);
+
+  $: dimmedIds = $dimmedLinesStore;
 
   function updateRects() {
     if (two?.renderer?.domElement) {
@@ -520,12 +527,18 @@
           ) => {
             const path = new Two.Path(anchors, false, false);
             path.noFill();
-            path.stroke = color;
             path.linewidth = getWidth(line);
             path.id = `${idPrefix}-line-${idx + 1}-heatmap-${segIdx}`;
+
+            const isDimmed = line.id && dimmedIds.includes(line.id);
+            path.stroke = isDimmed ? "#9ca3af" : color;
+
             if (line.locked) {
               path.dashes = [uiLength(2), uiLength(2)];
               path.opacity = 0.7;
+            } else if (isDimmed) {
+              path.dashes = [uiLength(1), uiLength(1)];
+              path.opacity = 0.3;
             }
             return path;
           };
@@ -693,12 +706,17 @@
         );
       }
       lineElem.id = `${idPrefix}-line-${idx + 1}`;
-      lineElem.stroke = getColor(line);
+
+      const isDimmed = line.id && dimmedIds.includes(line.id);
+
+      lineElem.stroke = isDimmed ? "#9ca3af" : getColor(line);
       lineElem.linewidth = getWidth(line);
       lineElem.noFill();
       if (line.locked) {
         lineElem.dashes = [uiLength(2), uiLength(2)];
         lineElem.opacity = 0.7;
+      } else if (isDimmed) {
+        lineElem.dashes = [uiLength(1), uiLength(1)];
       } else {
         lineElem.dashes = [];
         lineElem.opacity = 1;
@@ -712,6 +730,7 @@
   $: path = (() => {
     x;
     y; // Trigger reactivity on pan/zoom
+    dimmedIds; // Trigger reactivity on selection/dimmed changes
     if (isDiffMode) return []; // Don't render standard path in diff mode
     const currentSelectedId = $selectedLineId;
 
