@@ -94,8 +94,8 @@
 
   <div class="flex items-end gap-3">
     <!-- Position Inputs -->
-    <div class="flex items-center gap-2 flex-1">
-      <div class="relative w-24">
+    <div class="flex items-center gap-2 flex-1 flex-wrap">
+      <div class="relative flex-1 min-w-[5rem]">
         <span
           class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
           >X</span
@@ -113,7 +113,7 @@
           placeholder="0"
         />
       </div>
-      <div class="relative w-24">
+      <div class="relative flex-1 min-w-[5rem]">
         <span
           class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
           >Y</span
@@ -135,7 +135,7 @@
   </div>
 
   <div
-    class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50"
+    class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50 flex-wrap"
   >
     <span class="text-xs font-medium text-neutral-400 mr-auto"
       >After first step:</span
@@ -144,7 +144,7 @@
       on:click={addPathAtStart}
       aria-label="Add Path after start"
       title={`Add Path${getShortcutFromSettings(settings, "add-path-start")}`}
-      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800/30"
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800/30 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -162,7 +162,7 @@
       on:click={addWaitAtStart}
       aria-label="Add Wait after start"
       title={`Add Wait${getShortcutFromSettings(settings, "add-wait-start")}`}
-      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200 dark:border-amber-800/30"
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200 dark:border-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -180,7 +180,7 @@
       on:click={addRotateAtStart}
       aria-label="Add Rotate after start"
       title={`Add Rotate${getShortcutFromSettings(settings, "add-rotate-start")}`}
-      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30"
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

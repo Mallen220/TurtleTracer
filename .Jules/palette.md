@@ -32,3 +32,8 @@ Action: Always pair filterable lists with a visually hidden `aria-live="polite"`
 
 Learning: Custom resizable panels often lack keyboard support, making them inaccessible. Adding `on:keydown` handlers for Arrow keys to adjust the panel size provides a significant accessibility win.
 Action: Always add keyboard support to custom resizers and ensure they have visible focus states.
+
+## 2026-05-26 - Responsive Sidebar Inputs
+
+Learning: Fixed width inputs (e.g., `w-20`) in a resizable sidebar create a poor user experience when the sidebar is narrowed or expanded. Users expect inputs to fill the available space. Using `flex-1` with `min-w` ensures inputs scale gracefully and wrapping containers (`flex-wrap`) prevent overflow in narrow states.
+Action: Avoid fixed widths for form controls in resizable containers; use flex-grow and wrapping instead.

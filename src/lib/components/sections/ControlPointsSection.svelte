@@ -177,7 +177,7 @@
         ];
         recordChange();
       }}
-      class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded transition-colors"
+      class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
       title="Add Control Point"
       disabled={line.locked}
       aria-label="Add Control Point"
@@ -262,7 +262,7 @@
                   title={line.locked ? "Locked" : "Move up"}
                   aria-label="Move control point up"
                   on:click|stopPropagation={() => moveControlPoint(idx, -1)}
-                  class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30"
+                  class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={idx === 0 || line.locked}
                 >
                   <svg
@@ -285,7 +285,7 @@
                   title={line.locked ? "Locked" : "Move down"}
                   aria-label="Move control point down"
                   on:click|stopPropagation={() => moveControlPoint(idx, 1)}
-                  class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30"
+                  class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={idx === line.controlPoints.length - 1 ||
                     line.locked}
                 >
@@ -320,8 +320,8 @@
             </div>
 
             <!-- Position Inputs -->
-            <div class="flex items-center gap-2">
-              <div class="relative w-20">
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="relative flex-1 min-w-[4rem]">
                 <span
                   class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none"
                   >X</span
@@ -343,7 +343,7 @@
                   title={snapToGridTitle}
                 />
               </div>
-              <div class="relative w-20">
+              <div class="relative flex-1 min-w-[4rem]">
                 <span
                   class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none"
                   >Y</span

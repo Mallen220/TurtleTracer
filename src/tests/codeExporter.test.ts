@@ -424,30 +424,36 @@ describe("codeExporter", () => {
     });
 
     it("should embed pose data when hardcodeValues is true", async () => {
-        const lines = [line1, line2]; // Add line2 which has linear heading
-        const code = await generateSequentialCommandCode(
-          startPoint,
-          lines,
-          "TestPath.pp",
-          undefined,
-          "SolversLib",
-          "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
-          true // hardcodeValues
-        );
+      const lines = [line1, line2]; // Add line2 which has linear heading
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestPath.pp",
+        undefined,
+        "SolversLib",
+        "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+        true, // hardcodeValues
+      );
 
-        expect(code).not.toContain('import com.pedropathingplus.PedroPathReader;');
-        expect(code).not.toContain('new PedroPathReader');
-        expect(code).toContain('new Pose(10.000, 10.000, Math.toRadians(0))'); // startPoint
-        // Check line1 (constant 90)
-        expect(code).toContain('new Pose(20.000, 20.000, Math.toRadians(90))');
-        // Check line2 (linear 90 -> 180). End point should use endDeg (180)
-        expect(code).toContain('new Pose(30.000, 10.000, Math.toRadians(180))');
+      expect(code).not.toContain(
+        "import com.pedropathingplus.PedroPathReader;",
+      );
+      expect(code).not.toContain("new PedroPathReader");
+      expect(code).toContain("new Pose(10.000, 10.000, Math.toRadians(0))"); // startPoint
+      // Check line1 (constant 90)
+      expect(code).toContain("new Pose(20.000, 20.000, Math.toRadians(90))");
+      // Check line2 (linear 90 -> 180). End point should use endDeg (180)
+      expect(code).toContain("new Pose(30.000, 10.000, Math.toRadians(180))");
 
-        expect(code).not.toContain('pp.get(');
+      expect(code).not.toContain("pp.get(");
 
-        // Check hardcoded heading interpolation
-        expect(code).toContain('setConstantHeadingInterpolation(Math.toRadians(90))');
-        expect(code).toContain('setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))');
+      // Check hardcoded heading interpolation
+      expect(code).toContain(
+        "setConstantHeadingInterpolation(Math.toRadians(90))",
+      );
+      expect(code).toContain(
+        "setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))",
+      );
     });
   });
 });
