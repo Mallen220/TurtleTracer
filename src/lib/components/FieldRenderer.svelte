@@ -717,7 +717,6 @@
         lineElem.opacity = 0.7;
       } else if (isDimmed) {
         lineElem.dashes = [uiLength(1), uiLength(1)];
-        lineElem.opacity = 0.3;
       } else {
         lineElem.dashes = [];
         lineElem.opacity = 1;
