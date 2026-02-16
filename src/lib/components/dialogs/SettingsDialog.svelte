@@ -620,62 +620,7 @@
           </nav>
 
           <!-- Sidebar Footer (Reset) -->
-          <div
-            class="p-4 border-t border-neutral-200 dark:border-neutral-800 space-y-2"
-          >
-            <div class="grid grid-cols-2 gap-2">
-              <button
-                on:click={handleExport}
-                class="flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-lg transition-colors"
-                title="Export Settings"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width={1.5}
-                  stroke="currentColor"
-                  class="size-4"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
-                  />
-                </svg>
-                Export
-              </button>
-              <button
-                on:click={() =>
-                  document.getElementById("settings-import-input")?.click()}
-                class="flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-lg transition-colors"
-                title="Import Settings"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width={1.5}
-                  stroke="currentColor"
-                  class="size-4"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 3v13.5m0 0-3.75-3.75M12 16.5l3.75-3.75"
-                  />
-                </svg>
-                Import
-              </button>
-              <input
-                type="file"
-                id="settings-import-input"
-                class="hidden"
-                accept=".json"
-                on:change={handleImport}
-              />
-            </div>
-
+          <div class="p-4 border-t border-neutral-200 dark:border-neutral-800">
             <button
               on:click={handleReset}
               class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-lg transition-colors"
@@ -888,6 +833,40 @@
                     </SettingsItem>
                   </div>
                 {/if}
+
+                <SettingsItem
+                  label="Transfer Settings"
+                  description="Export or import your settings configuration"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <div class="flex gap-2">
+                    <button
+                      on:click={handleExport}
+                      title="Export Settings"
+                      class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
+                    >
+                      Export
+                    </button>
+                    <button
+                      on:click={() =>
+                        document
+                          .getElementById("settings-import-input")
+                          ?.click()}
+                      title="Import Settings"
+                      class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
+                    >
+                      Import
+                    </button>
+                    <input
+                      type="file"
+                      id="settings-import-input"
+                      class="hidden"
+                      accept=".json"
+                      on:change={handleImport}
+                    />
+                  </div>
+                </SettingsItem>
               </div>
             {/if}
 
