@@ -251,3 +251,6 @@ tile_verification.png
 LICENSE
 electron/updater.js
 src/lib/components/dialogs/UpdateAvailableDialog.svelte
+verification/optimize_menu.png
+verification/verify_dimmed_lines.py
+verification/verify_optimize_menu.py

@@ -14,6 +14,8 @@
     type OptimizationResult,
   } from "../../../utils/pathOptimizer";
   import { formatTime } from "../../../utils"; // Assuming formatTime is exported from index or timeCalculator
+  import { dimmedLinesStore } from "../../../stores";
+  import { onDestroy } from "svelte";
   import _ from "lodash";
 
   export let isOpen = false;
@@ -48,8 +50,28 @@
     });
   }
 
+  // Update dimmed lines store whenever selection state changes
+  $: {
+    // We depend on selectionState to trigger this updates
+    // Filter lines where selectionState is false
+    const unselectedIds = lines
+      .filter((l, idx) => {
+        const id = l.id || `idx-${idx}`;
+        return selectionState[id] === false;
+      })
+      .map((l) => l.id as string)
+      .filter((id) => !!id);
+
+    // Only update if changed to avoid loops (though set() usually checks equality for primitives/references, arrays are new refs)
+    // Svelte store .set() notifies subscribers even if value is same reference? No, depends on store implementation.
+    // Standard svelte store checks strict equality. New array != old array.
+    // But this is fine, FieldRenderer handles it efficiently.
+    dimmedLinesStore.set(unselectedIds);
+  }
+
   function toggleSelection(id: string) {
     selectionState[id] = !selectionState[id];
+    selectionState = selectionState; // Trigger reactivity
   }
 
   function selectAll() {
@@ -57,6 +79,7 @@
       const id = l.id || `idx-${idx}`;
       selectionState[id] = true;
     });
+    selectionState = selectionState; // Trigger reactivity
   }
 
   function deselectAll() {
@@ -64,7 +87,12 @@
       const id = l.id || `idx-${idx}`;
       selectionState[id] = false;
     });
+    selectionState = selectionState; // Trigger reactivity
   }
+
+  onDestroy(() => {
+    dimmedLinesStore.set([]);
+  });
 
   // Runtime optimizer instance (allows us to request stop)
   let optimizer: PathOptimizer | null = null;
@@ -293,9 +321,7 @@
               on:change={() => toggleSelection(id)}
               class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
             />
-            <span class="truncate flex-1"
-              >{line.name || `Path ${i + 1}`}</span
-            >
+            <span class="truncate flex-1">{line.name || `Path ${i + 1}`}</span>
             {#if line.locked}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
