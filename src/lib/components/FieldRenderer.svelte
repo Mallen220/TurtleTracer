@@ -537,7 +537,7 @@
               path.dashes = [uiLength(2), uiLength(2)];
               path.opacity = 0.7;
             } else if (isDimmed) {
-              path.dashes = [];
+              path.dashes = [uiLength(1), uiLength(1)];
               path.opacity = 0.3;
             }
             return path;
@@ -716,7 +716,7 @@
         lineElem.dashes = [uiLength(2), uiLength(2)];
         lineElem.opacity = 0.7;
       } else if (isDimmed) {
-        lineElem.dashes = [];
+        lineElem.dashes = [uiLength(1), uiLength(1)];
         lineElem.opacity = 0.3;
       } else {
         lineElem.dashes = [];
