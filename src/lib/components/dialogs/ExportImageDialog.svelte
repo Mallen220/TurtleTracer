@@ -1,9 +1,11 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { createEventDispatcher, onMount, onDestroy } from "svelte";
+  import { get } from "svelte/store";
   import { scale } from "svelte/transition";
   import { exportPathToImage } from "../../../utils/exportAnimation";
   import { FIELD_SIZE } from "../../../config";
+  import { fieldZoom, fieldPan } from "../../../stores";
 
   export let show = false;
   export let twoInstance: any;
@@ -27,6 +29,10 @@
   let statusMessage = "";
   let previewBlob: Blob | null = null;
   let previewUrl: string | null = null;
+
+  // Store View State
+  let savedZoom = 1.0;
+  let savedPan = { x: 0, y: 0 };
 
   // Preview sizing helpers
   let previewContainer: HTMLDivElement | null = null;
@@ -145,6 +151,14 @@
   // ResizeObserver
   let _ro: ResizeObserver | null = null;
   onMount(() => {
+    // Save current view state
+    savedZoom = get(fieldZoom);
+    savedPan = get(fieldPan);
+
+    // Force default view
+    fieldZoom.set(1.0);
+    fieldPan.set({ x: 0, y: 0 });
+
     if (typeof ResizeObserver !== "undefined" && previewContainer) {
       _ro = new ResizeObserver((entries) => {
         for (const entry of entries) {
@@ -155,10 +169,18 @@
       });
       _ro.observe(previewContainer);
     }
-    // Generate initial preview
-    generatePreview();
+
+    // Wait a brief moment for store updates to propagate to Two.js scene before capturing
+    setTimeout(() => {
+      generatePreview();
+    }, 100);
   });
+
   onDestroy(() => {
+    // Restore view state
+    fieldZoom.set(savedZoom);
+    fieldPan.set(savedPan);
+
     if (_ro) _ro.disconnect();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
   });
