@@ -216,6 +216,40 @@ describe("codeExporter", () => {
       expect(code).toMatch(/Score = follower/);
       expect(code).toMatch(/Score_1 = follower/);
     });
+
+    it("should use correct start heading in setStartingPose", async () => {
+      // Create a line that forces a specific start heading
+      // For a line from (10,10) to (20,20), the tangent is 45 degrees.
+      // If endPoint.heading is 'tangential', the start heading should be 45.
+      const line: Line = {
+        id: "l1",
+        endPoint: { x: 20, y: 20, heading: "tangential", reverse: false },
+        controlPoints: [],
+        color: "black",
+      };
+
+      const code = await generateJavaCode(startPoint, [line], true);
+
+      // startPoint is (10,10). Tangent to (20,20) is 45 degrees.
+      // Math.toRadians(45) approx 0.785
+      // 45 degrees
+      expect(code).toContain(
+        "follower.setStartingPose(new Pose(10.000, 10.000, Math.toRadians(45.000)))",
+      );
+    });
+
+    it("should use default start heading if lines array is empty", async () => {
+      const sp = {
+        ...startPoint,
+        heading: "linear" as const,
+        startDeg: 120,
+        endDeg: 180,
+      };
+      const code = await generateJavaCode(sp, [], true);
+      expect(code).toContain(
+        "follower.setStartingPose(new Pose(10.000, 10.000, Math.toRadians(120.000)))",
+      );
+    });
   });
 
   describe("generateSequentialCommandCode", () => {

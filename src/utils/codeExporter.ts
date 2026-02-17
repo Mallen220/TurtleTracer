@@ -2,7 +2,7 @@
 import prettier from "prettier";
 import prettierJavaPlugin from "prettier-plugin-java";
 import type { Point, Line, BasePoint, SequenceItem } from "../types";
-import { getCurvePoint } from "./math";
+import { getCurvePoint, getLineStartHeading } from "./math";
 import pkg from "../../package.json";
 import { actionRegistry } from "../lib/actionRegistry";
 
@@ -350,7 +350,14 @@ export async function generateJavaCode(
         ${telemetryInit}
 
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(72, 8, Math.toRadians(90)));
+        follower.setStartingPose(new Pose(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)}, Math.toRadians(${
+          (lines.length > 0
+            ? getLineStartHeading(lines[0], startPoint)
+            : startPoint.heading === "linear"
+              ? startPoint.startDeg
+              : startPoint.degrees || 90
+          ).toFixed(3)
+        })));
 
         pathTimer = new ElapsedTime();
         paths = new Paths(follower); // Build paths

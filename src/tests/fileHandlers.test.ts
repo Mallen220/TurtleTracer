@@ -391,5 +391,48 @@ describe("fileHandlers", () => {
         "https://github.com/Mallen220/PedroPathingPlusVisualizer",
       );
     });
+
+    it("updates startPoint headings based on path geometry", async () => {
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/exported/file.pp");
+      mockElectronAPI.writeFile.mockResolvedValue(true);
+
+      // Setup stores
+      // Start Point at 0,0 with DEFAULT headings (90, 180)
+      startPointStore.set({
+        x: 0,
+        y: 0,
+        heading: "linear",
+        startDeg: 90,
+        endDeg: 180,
+      });
+
+      // Line from 0,0 to 10,10. Tangent is 45 degrees.
+      // Line end point at 10,10. Tangent at end is also 45 degrees (straight line).
+      linesStore.set([
+        {
+          id: "1",
+          endPoint: {
+            x: 10,
+            y: 10,
+            heading: "tangential",
+            reverse: false,
+          },
+          controlPoints: [],
+          name: "Line 1",
+        } as any,
+      ]);
+
+      await fileHandlers.exportAsPP();
+
+      expect(mockElectronAPI.writeFile).toHaveBeenCalled();
+      const callArgs = mockElectronAPI.writeFile.mock.calls.find(
+        (args) => args[0] === "/exported/file.pp",
+      );
+      const content = JSON.parse(callArgs![1] as string);
+
+      expect(content.startPoint.startDeg).toBe(45);
+      // End heading depends on logic. Since it's a straight line, end heading is 45.
+      expect(content.startPoint.endDeg).toBe(45);
+    });
   });
 });

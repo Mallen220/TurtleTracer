@@ -27,6 +27,7 @@ import {
 } from "./codeExporter";
 import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
 import { makeId } from "./nameGenerator";
+import { getLineStartHeading, getLineEndHeading } from "./math";
 import pkg from "../../package.json";
 
 export { loadProjectData };
@@ -56,6 +57,23 @@ interface ExtendedElectronAPI {
 // Access electronAPI dynamically to allow mocking/runtime changes
 function getElectronAPI(): ExtendedElectronAPI | undefined {
   return (window as any).electronAPI as ExtendedElectronAPI | undefined;
+}
+
+// Helper to update startPoint headings based on path geometry
+function calculateStartPointHeadings(startPoint: Point, lines: Line[]): Point {
+  if (!lines || lines.length === 0) return startPoint;
+
+  const startHeading = getLineStartHeading(lines[0], startPoint);
+  const endHeading = getLineEndHeading(
+    lines[lines.length - 1],
+    lines.length > 1 ? lines[lines.length - 2].endPoint : startPoint,
+  );
+  return {
+    ...startPoint,
+    heading: "linear",
+    startDeg: startHeading,
+    endDeg: endHeading,
+  };
 }
 
 function addToRecentFiles(path: string, settings?: Settings) {
@@ -214,6 +232,12 @@ async function performSave(
       }
     }
 
+    // Calculate correct headings for startPoint to ensure .pp file reflects the path geometry
+    const updatedStartPoint = calculateStartPointHeadings(
+      startPoint,
+      linesToSave,
+    );
+
     // Create the project data structure
     const projectData = {
       version: pkg.version,
@@ -223,7 +247,7 @@ async function performSave(
           "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
         link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
       },
-      startPoint,
+      startPoint: updatedStartPoint,
       lines: linesToSave,
       sequence: sequenceToSave,
       shapes,
@@ -426,6 +450,11 @@ export async function exportAsPP() {
         }
       }
 
+      // Calculate correct headings for startPoint
+      const sp = get(startPointStore);
+      const ln = get(linesStore);
+      const updatedStartPoint = calculateStartPointHeadings(sp, ln);
+
       const jsonString = JSON.stringify(
         {
           version: pkg.version,
@@ -435,8 +464,8 @@ export async function exportAsPP() {
               "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
             link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
           },
-          startPoint: get(startPointStore),
-          lines: get(linesStore),
+          startPoint: updatedStartPoint,
+          lines: ln,
           shapes: get(shapesStore),
           sequence: sequence,
           extraData: get(extraDataStore),
@@ -451,6 +480,11 @@ export async function exportAsPP() {
     }
   }
 
+  // Calculate correct headings for startPoint
+  const sp = get(startPointStore);
+  const ln = get(linesStore);
+  const updatedStartPoint = calculateStartPointHeadings(sp, ln);
+
   const jsonString = JSON.stringify(
     {
       version: pkg.version,
@@ -460,8 +494,8 @@ export async function exportAsPP() {
           "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
         link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
       },
-      startPoint: get(startPointStore),
-      lines: get(linesStore),
+      startPoint: updatedStartPoint,
+      lines: ln,
       shapes: get(shapesStore),
       sequence: get(sequenceStore),
       extraData: get(extraDataStore),
