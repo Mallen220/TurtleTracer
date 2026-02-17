@@ -160,24 +160,41 @@
         );
         currentLanguage = java;
       } else if (exportFormat === "json") {
-        const relativeSequence = await relativizeSequenceForPreview(sequence);
-        exportedCode = JSON.stringify(
-          {
-            version: pkg.version,
-            header: {
-              info: "Created with Pedro Pathing Plus Visualizer",
-              copyright:
-                "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
-              link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+        let loadedFromFile = false;
+        const filePath = get(currentFilePath);
+
+        if (filePath && electronAPI && electronAPI.readFile) {
+          try {
+            exportedCode = await electronAPI.readFile(filePath);
+            loadedFromFile = true;
+          } catch (err) {
+            console.warn(
+              "Failed to read project file, falling back to generation",
+              err,
+            );
+          }
+        }
+
+        if (!loadedFromFile) {
+          const relativeSequence = await relativizeSequenceForPreview(sequence);
+          exportedCode = JSON.stringify(
+            {
+              version: pkg.version,
+              header: {
+                info: "Created with Pedro Pathing Plus Visualizer",
+                copyright:
+                  "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
+                link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+              },
+              startPoint,
+              lines,
+              shapes,
+              sequence: relativeSequence,
             },
-            startPoint,
-            lines,
-            shapes,
-            sequence: relativeSequence,
-          },
-          null,
-          2,
-        );
+            null,
+            2,
+          );
+        }
         currentLanguage = json;
       } else if (exportFormat === "custom" && customExporterName) {
         const exporters = get(customExportersStore);

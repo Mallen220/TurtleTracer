@@ -250,6 +250,33 @@ describe("codeExporter", () => {
         "follower.setStartingPose(new Pose(10.000, 10.000, Math.toRadians(120.000)))",
       );
     });
+
+    it("uses geometric start heading when path geometry exists (updates with position)", async () => {
+      // startPoint explicitly requests a different startDeg than geometry
+      const sp = {
+        x: 10,
+        y: 10,
+        heading: "linear" as const,
+        startDeg: 123,
+        endDeg: 180,
+      } as any;
+
+      // A line whose geometric tangent would be 45 degrees (different from 123)
+      const line: Line = {
+        id: "l1",
+        endPoint: { x: 20, y: 20, heading: "tangential", reverse: false },
+        controlPoints: [],
+        color: "black",
+      };
+
+      const code = await generateJavaCode(sp, [line], true);
+
+      // When line geometry exists, export should reflect the geometric start heading (45°),
+      // so updating the start position will change the exported angle accordingly.
+      expect(code).toContain(
+        "follower.setStartingPose(new Pose(10.000, 10.000, Math.toRadians(45.000)))",
+      );
+    });
   });
 
   describe("generateSequentialCommandCode", () => {

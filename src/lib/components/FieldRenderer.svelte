@@ -80,6 +80,7 @@
     updateRobotImageDisplay,
     easeInOutQuad,
     getAngularDifference,
+    getLineStartHeading,
   } from "../../utils";
   import { updateLinkedWaypoints } from "../../utils/pointLinking";
   import type {
@@ -258,6 +259,23 @@
   $: robotHeading = $robotHeadingStore;
   $: sequence = $sequenceStore; // Needed for wait markers
   $: markers = $collisionMarkers;
+
+  // Keep `startPoint.startDeg` in sync with geometry when using linear start-heading.
+  // This ensures generated code (and any UI showing `startDeg`) updates as the
+  // start position or first path changes — fixing cases where heading looked
+  // "locked" to an old value after moving the start point.
+  $: if (
+    startPoint &&
+    startPoint.heading === "linear" &&
+    lines &&
+    lines.length > 0
+  ) {
+    const derived = getLineStartHeading(lines[0], startPoint);
+    if (typeof startPoint.startDeg !== "number" || Math.abs(startPoint.startDeg - derived) > 1e-6) {
+      // Update store only when it differs to avoid extra churn
+      startPointStore.update((p) => ({ ...p, startDeg: derived } as any));
+    }
+  }
 
   // Telemetry State
   $: telemetry = $telemetryData;

@@ -134,6 +134,17 @@ export async function loadRecentFile(path: string) {
     currentFilePath.set(path);
     projectMetadataStore.set({ filepath: path, lastSaved: new Date() });
     addToRecentFiles(path);
+
+    // Trigger auto-export for recent file loads so exported code stays in sync
+    await handleAutoExport(
+      get(startPointStore),
+      get(linesStore),
+      get(sequenceStore),
+      get(settingsStore),
+      get(shapesStore),
+      data,
+      path,
+    );
   } catch (err) {
     console.error("Error loading recent file:", err);
     alert("Failed to load file: " + (err as Error).message);
@@ -552,6 +563,19 @@ export async function handleExternalFileOpen(filePath: string) {
       await loadProjectData(data, filePath);
       currentFilePath.set(filePath);
       addToRecentFiles(filePath);
+
+      // If auto-export is enabled, regenerate exported code for the newly loaded file
+      // (this covers external editors / file-watchers changing the .pp file on disk).
+      await handleAutoExport(
+        get(startPointStore),
+        get(linesStore),
+        get(sequenceStore),
+        get(settingsStore),
+        get(shapesStore),
+        data,
+        filePath,
+      );
+
       return;
     }
 
@@ -565,8 +589,19 @@ export async function handleExternalFileOpen(filePath: string) {
       await loadProjectData(data, filePath);
       currentFilePath.set(filePath);
       addToRecentFiles(filePath);
+
+      // If auto-export is enabled, regenerate exported code for the newly loaded file
+      await handleAutoExport(
+        get(startPointStore),
+        get(linesStore),
+        get(sequenceStore),
+        get(settingsStore),
+        get(shapesStore),
+        data,
+        filePath,
+      );
     } else {
-      // Not in directory. Prompt copy.
+      // Not in directory. Prompt copy,
       if (
         confirm(
           `The file "${fileName}" is not in your configured AutoPaths directory.\nWould you like to copy it there?`,
@@ -603,18 +638,51 @@ export async function handleExternalFileOpen(filePath: string) {
           await loadProjectData(data, destPath); // data is same
           currentFilePath.set(destPath);
           addToRecentFiles(destPath);
+
+          // Trigger auto-export for the copied/loaded file too
+          await handleAutoExport(
+            get(startPointStore),
+            get(linesStore),
+            get(sequenceStore),
+            get(settingsStore),
+            get(shapesStore),
+            data,
+            destPath,
+          );
         } else {
           // Fallback if copyFile not available (should be)
           await electronAPI.writeFile(destPath, content);
           await loadProjectData(data, destPath);
           currentFilePath.set(destPath);
           addToRecentFiles(destPath);
+
+          // Trigger auto-export for the loaded file
+          await handleAutoExport(
+            get(startPointStore),
+            get(linesStore),
+            get(sequenceStore),
+            get(settingsStore),
+            get(shapesStore),
+            data,
+            destPath,
+          );
         }
       } else {
         // User said no to copy
         await loadProjectData(data, filePath);
         currentFilePath.set(filePath);
         addToRecentFiles(filePath);
+
+        // Auto-export the file that was loaded externally as well
+        await handleAutoExport(
+          get(startPointStore),
+          get(linesStore),
+          get(sequenceStore),
+          get(settingsStore),
+          get(shapesStore),
+          data,
+          filePath,
+        );
       }
     }
   } catch (err) {
@@ -681,6 +749,17 @@ export async function loadFile(evt: Event) {
         await loadProjectData(data, destPath);
         currentFilePath.set(destPath);
         addToRecentFiles(destPath);
+
+        // Trigger auto-export after loading a file uploaded by the user
+        await handleAutoExport(
+          get(startPointStore),
+          get(linesStore),
+          get(sequenceStore),
+          get(settingsStore),
+          get(shapesStore),
+          data,
+          destPath,
+        );
       };
       reader.readAsText(file);
     } catch (error) {

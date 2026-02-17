@@ -363,6 +363,39 @@ describe("fileHandlers", () => {
 
       expect(confirmMock).not.toHaveBeenCalled();
     });
+
+    it("triggers auto-export (and embeds startPoint) when a file is opened externally and auto-export is enabled", async () => {
+      const fileData = {
+        startPoint: { x: 11, y: 22, heading: "constant", degrees: 123 },
+        lines: [],
+        sequence: [],
+        shapes: [],
+      };
+
+      mockElectronAPI.readFile.mockResolvedValue(JSON.stringify(fileData));
+      mockElectronAPI.getSavedDirectory.mockResolvedValue("/project/dir");
+      // Ensure auto-export settings are enabled and set to JSON so content is predictable
+      settingsStore.set({ ...DEFAULT_SETTINGS, autoExportCode: true, autoExportFormat: "json", autoExportPath: "GeneratedCode" });
+
+      // resolvePath will be called by handleAutoExport
+      mockElectronAPI.resolvePath.mockResolvedValue("/project/dir/GeneratedCode/file.json");
+
+      await fileHandlers.handleExternalFileOpen("/project/dir/file.pp");
+
+      // writeFile must have been called for auto-export
+      expect(mockElectronAPI.writeFile).toHaveBeenCalled();
+
+      // Find the call where writeFile was invoked for the auto-export (first arg is path)
+      const call = mockElectronAPI.writeFile.mock.calls.find((c: any[]) => typeof c[1] === "string");
+      expect(call).toBeDefined();
+
+      const exportedJson = JSON.parse(call![1] as string);
+      expect(exportedJson.startPoint).toBeDefined();
+      expect(exportedJson.startPoint.x).toBe(11);
+      expect(exportedJson.startPoint.y).toBe(22);
+      expect(exportedJson.startPoint.heading).toBe("constant");
+      expect(exportedJson.startPoint.degrees).toBe(123);
+    });
   });
 
   describe("exportAsPP", () => {
