@@ -69,6 +69,23 @@
     handleSeek(parseFloat(target.value));
   }
 
+  function handleSliderKeydown(e: KeyboardEvent) {
+    const step = 5;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      handleSeek(Math.max(0, percent - step));
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      handleSeek(Math.min(100, percent + step));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      handleSeek(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      handleSeek(100);
+    }
+  }
+
   // Drag Handlers
   function handleMarkerDragStart(
     e: MouseEvent,
@@ -134,6 +151,29 @@
   id="playback-controls"
   class="w-full bg-neutral-50 dark:bg-neutral-900 rounded-lg p-3 flex flex-row justify-start items-center gap-3 shadow-lg"
 >
+  <!-- Skip to Start Button -->
+  <button
+    title="Skip to Start"
+    aria-label="Skip to start"
+    on:click={() => handleSeek(0)}
+    class="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="2"
+      stroke="currentColor"
+      class="size-5"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M15.75 19.5L8.25 12l7.5-7.5M5.25 19.5V4.5"
+      />
+    </svg>
+  </button>
+
   <button
     id="play-pause-btn"
     title={`Play/Pause${getShortcutFromSettings(settings, "play-pause")}`}
@@ -178,6 +218,29 @@
         />
       </svg>
     {/if}
+  </button>
+
+  <!-- Skip to End Button -->
+  <button
+    title="Skip to End"
+    aria-label="Skip to end"
+    on:click={() => handleSeek(100)}
+    class="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="2"
+      stroke="currentColor"
+      class="size-5"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M8.25 4.5l7.5 7.5-7.5 7.5M18.75 4.5v15"
+      />
+    </svg>
   </button>
 
   <!-- Loop Toggle Button -->
@@ -371,6 +434,7 @@
       class="w-full appearance-none slider focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 rounded-full bg-transparent dark:bg-transparent relative z-10 timeline-slider"
       style={draggingMarkerIndex !== null ? "pointer-events: none;" : ""}
       on:input={handleSeekInput}
+      on:keydown={handleSliderKeydown}
     />
 
     <!-- Event Markers Layer (Top, Map Pins) -->

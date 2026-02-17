@@ -37,3 +37,8 @@ Action: Always add keyboard support to custom resizers and ensure they have visi
 
 Learning: Fixed width inputs (e.g., `w-20`) in a resizable sidebar create a poor user experience when the sidebar is narrowed or expanded. Users expect inputs to fill the available space. Using `flex-1` with `min-w` ensures inputs scale gracefully and wrapping containers (`flex-wrap`) prevent overflow in narrow states.
 Action: Avoid fixed widths for form controls in resizable containers; use flex-grow and wrapping instead.
+
+## 2026-02-17 - High-Precision Slider Accessibility
+
+Learning: Default browser behavior for `input[type="range"]` uses the `step` attribute for keyboard navigation (Arrow keys). When a slider requires high precision (e.g., `step="0.000001"` for smooth animation), standard keyboard navigation becomes imperceptible and practically useless.
+Action: Implement custom `keydown` handlers to override default arrow key behavior with a meaningful step size (e.g., 5%) while preserving fine-grained mouse control.
