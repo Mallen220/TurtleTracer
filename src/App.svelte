@@ -11,6 +11,7 @@
   import FieldRenderer from "./lib/components/FieldRenderer.svelte";
   import KeyboardShortcuts from "./lib/components/KeyboardShortcuts.svelte";
   import ExportGifDialog from "./lib/components/dialogs/ExportGifDialog.svelte";
+  import ExportImageDialog from "./lib/components/dialogs/ExportImageDialog.svelte";
   import PathStatisticsDialog from "./lib/components/dialogs/PathStatisticsDialog.svelte";
   import NotificationToast from "./lib/components/NotificationToast.svelte";
   import OnboardingTutorial from "./lib/components/OnboardingTutorial.svelte";
@@ -34,6 +35,7 @@
     showSettings,
     isPresentationMode,
     showExportGif,
+    showExportImage,
     showStrategySheet,
     showShortcuts,
     exportDialogState,
@@ -1453,6 +1455,23 @@
       calculateRobotState(p, timePrediction.timeline, lines, startPoint, x, y)}
     {electronAPI}
     on:close={() => showExportGif.set(false)}
+  />
+{/if}
+
+{#if $showExportImage && fieldRenderer}
+  <ExportImageDialog
+    bind:show={$showExportImage}
+    twoInstance={fieldRenderer.getTwoInstance()}
+    {settings}
+    robotLengthPx={x(robotLength)}
+    robotWidthPx={x(robotWidth)}
+    robotState={{
+      x: $robotXYStore.x,
+      y: $robotXYStore.y,
+      heading: $robotHeadingStore,
+    }}
+    {electronAPI}
+    on:close={() => showExportImage.set(false)}
   />
 {/if}
 

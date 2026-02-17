@@ -26,6 +26,7 @@ export const showPluginManager = writable(false);
 export const showTelemetryDialog = writable(false);
 export const isPresentationMode = writable(false);
 export const showExportGif = writable(false);
+export const showExportImage = writable(false);
 export const showStrategySheet = writable(false);
 export const showHistory = writable(false);
 export const exportDialogState = writable<{
