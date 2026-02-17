@@ -52,6 +52,16 @@
     dispatch("close");
   }
 
+  function toggleValidationVisibility(visible: boolean) {
+    if (!twoInstance || !twoInstance.scene) return;
+    twoInstance.scene.children.forEach((child: any) => {
+      // Hide validation markers and snap guides
+      if (child.id === "collision-group" || child.id === "snap-group") {
+        child.visible = visible;
+      }
+    });
+  }
+
   async function generatePreview() {
     status = "generating";
     statusMessage = "Capturing...";
@@ -60,7 +70,10 @@
     previewUrl = null;
 
     try {
-      // Force Two.js update to ensure latest state is rendered
+      // Hide warnings before capture
+      toggleValidationVisibility(false);
+
+      // Force Two.js update to ensure latest state (and visibility) is rendered
       twoInstance.update();
 
       // Calculate Screen Coordinates
@@ -92,12 +105,20 @@
         robotScreenState: robotScreenState,
       });
 
+      // Restore warnings
+      toggleValidationVisibility(true);
+      twoInstance.update(); // Update again to show them back in UI if needed (though not strictly necessary as render loop runs)
+
       previewBlob = blob;
       previewUrl = URL.createObjectURL(blob);
       status = "done";
       statusMessage = "Preview ready!";
     } catch (err: any) {
       console.error(err);
+      // Ensure visibility restored even on error
+      toggleValidationVisibility(true);
+      twoInstance.update();
+
       status = "error";
       statusMessage = "Error: " + err;
     }
@@ -180,6 +201,10 @@
     // Restore view state
     fieldZoom.set(savedZoom);
     fieldPan.set(savedPan);
+
+    // Ensure validation visibility is restored if dialog is closed mid-process
+    toggleValidationVisibility(true);
+    if(twoInstance) twoInstance.update();
 
     if (_ro) _ro.disconnect();
     if (previewUrl) URL.revokeObjectURL(previewUrl);

@@ -1470,10 +1470,14 @@
     robotState={{
       x: $startPointStore.x,
       y: $startPointStore.y,
-      heading:
-        $startPointStore.heading === "constant"
-          ? $startPointStore.degrees ?? 0
-          : $startPointStore.startDeg ?? 0,
+      heading: calculateRobotState(
+        0,
+        timePrediction.timeline,
+        lines,
+        startPoint,
+        d3.scaleLinear(),
+        d3.scaleLinear(),
+      ).heading,
     }}
     {electronAPI}
     on:close={() => showExportImage.set(false)}
