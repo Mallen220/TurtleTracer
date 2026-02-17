@@ -769,20 +769,6 @@
                 {/if}
 
                 <SettingsItem
-                  label="Keyboard Shortcuts"
-                  description="View and customize keyboard shortcuts"
-                  {searchQuery}
-                  layout="row"
-                >
-                  <button
-                    on:click={() => showShortcuts.set(true)}
-                    class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    Open Editor
-                  </button>
-                </SettingsItem>
-
-                <SettingsItem
                   label="Welcome Tutorial"
                   description="Learn how to use the application"
                   {searchQuery}
@@ -796,6 +782,35 @@
                     class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     Start Tutorial
+                  </button>
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Software Update"
+                  description="Check for new versions of the application"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <button
+                    on:click={handleCheckForUpdates}
+                    disabled={isCheckingForUpdates}
+                    class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors disabled:opacity-50"
+                  >
+                    {isCheckingForUpdates ? "Checking..." : "Check for Updates"}
+                  </button>
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Keyboard Shortcuts"
+                  description="View and customize keyboard shortcuts"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <button
+                    on:click={() => showShortcuts.set(true)}
+                    class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Open Editor
                   </button>
                 </SettingsItem>
 
@@ -827,6 +842,40 @@
                     bind:checked={settings.gitIntegration}
                     class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   />
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Transfer Settings"
+                  description="Export or import your settings configuration"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <div class="flex gap-2">
+                    <button
+                      on:click={handleExport}
+                      title="Export Settings"
+                      class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
+                    >
+                      Export
+                    </button>
+                    <button
+                      on:click={() =>
+                        document
+                          .getElementById("settings-import-input")
+                          ?.click()}
+                      title="Import Settings"
+                      class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
+                    >
+                      Import
+                    </button>
+                    <input
+                      type="file"
+                      id="settings-import-input"
+                      class="hidden"
+                      accept=".json"
+                      on:change={handleImport}
+                    />
+                  </div>
                 </SettingsItem>
 
                 <SettingsItem
@@ -869,55 +918,6 @@
                     </SettingsItem>
                   </div>
                 {/if}
-
-                <SettingsItem
-                  label="Transfer Settings"
-                  description="Export or import your settings configuration"
-                  {searchQuery}
-                  layout="row"
-                >
-                  <div class="flex gap-2">
-                    <button
-                      on:click={handleExport}
-                      title="Export Settings"
-                      class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
-                    >
-                      Export
-                    </button>
-                    <button
-                      on:click={() =>
-                        document
-                          .getElementById("settings-import-input")
-                          ?.click()}
-                      title="Import Settings"
-                      class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
-                    >
-                      Import
-                    </button>
-                    <input
-                      type="file"
-                      id="settings-import-input"
-                      class="hidden"
-                      accept=".json"
-                      on:change={handleImport}
-                    />
-                  </div>
-                </SettingsItem>
-
-                <SettingsItem
-                  label="Software Update"
-                  description="Check for new versions of the application"
-                  {searchQuery}
-                  layout="row"
-                >
-                  <button
-                    on:click={handleCheckForUpdates}
-                    disabled={isCheckingForUpdates}
-                    class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors disabled:opacity-50"
-                  >
-                    {isCheckingForUpdates ? "Checking..." : "Check for Updates"}
-                  </button>
-                </SettingsItem>
               </div>
             {/if}
 
