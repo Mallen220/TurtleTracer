@@ -14,14 +14,14 @@ class AppUpdater {
     );
   }
 
-  async checkForUpdates() {
+  async checkForUpdates(manual = false) {
     try {
       // Check if running in Microsoft Store context
       if (process.windowsStore) {
         console.log(
           "Running in Microsoft Store context. Skipping GitHub update check.",
         );
-        return;
+        return { updateAvailable: false, reason: "store" };
       }
 
       console.log("Checking for updates...");
@@ -42,20 +42,26 @@ class AppUpdater {
       console.log(`Current: ${this.currentVersion}, Latest: ${latestVersion}`);
 
       // Check if this version was skipped
-      const skippedVersions = this.loadSkippedVersions();
-      if (skippedVersions.includes(latestVersion)) {
-        console.log(`Version ${latestVersion} was previously skipped.`);
-        return;
+      if (!manual) {
+        const skippedVersions = this.loadSkippedVersions();
+        if (skippedVersions.includes(latestVersion)) {
+          console.log(`Version ${latestVersion} was previously skipped.`);
+          return { updateAvailable: false, reason: "skipped" };
+        }
       }
 
       if (this.isNewerVersion(latestVersion, this.currentVersion)) {
-        this.showUpdateAvailableDialog(releaseData);
+        this.showUpdateAvailableDialog(releaseData, manual ? 0 : 3000);
+        return { updateAvailable: true, version: latestVersion, releaseData };
       } else {
         console.log("Application is up to date.");
+        return { updateAvailable: false, reason: "latest" };
       }
     } catch (error) {
       console.error("Failed to check for updates:", error);
       // Don't show error to user on startup to avoid annoyance
+      if (manual) throw error;
+      return { updateAvailable: false, error: error.message };
     }
   }
 
@@ -106,7 +112,7 @@ class AppUpdater {
     }
   }
 
-  async showUpdateAvailableDialog(releaseData) {
+  async showUpdateAvailableDialog(releaseData, delay = 3000) {
     // Wait a bit for the main window to be fully ready
     setTimeout(() => {
       const version = releaseData.tag_name.replace("v", "");
@@ -117,7 +123,7 @@ class AppUpdater {
           url: releaseData.html_url,
         });
       }
-    }, 3000);
+    }, delay);
   }
 
   skipVersion(version) {

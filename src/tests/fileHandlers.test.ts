@@ -375,10 +375,17 @@ describe("fileHandlers", () => {
       mockElectronAPI.readFile.mockResolvedValue(JSON.stringify(fileData));
       mockElectronAPI.getSavedDirectory.mockResolvedValue("/project/dir");
       // Ensure auto-export settings are enabled and set to JSON so content is predictable
-      settingsStore.set({ ...DEFAULT_SETTINGS, autoExportCode: true, autoExportFormat: "json", autoExportPath: "GeneratedCode" });
+      settingsStore.set({
+        ...DEFAULT_SETTINGS,
+        autoExportCode: true,
+        autoExportFormat: "json",
+        autoExportPath: "GeneratedCode",
+      });
 
       // resolvePath will be called by handleAutoExport
-      mockElectronAPI.resolvePath.mockResolvedValue("/project/dir/GeneratedCode/file.json");
+      mockElectronAPI.resolvePath.mockResolvedValue(
+        "/project/dir/GeneratedCode/file.json",
+      );
 
       await fileHandlers.handleExternalFileOpen("/project/dir/file.pp");
 
@@ -386,7 +393,9 @@ describe("fileHandlers", () => {
       expect(mockElectronAPI.writeFile).toHaveBeenCalled();
 
       // Find the call where writeFile was invoked for the auto-export (first arg is path)
-      const call = mockElectronAPI.writeFile.mock.calls.find((c: any[]) => typeof c[1] === "string");
+      const call = mockElectronAPI.writeFile.mock.calls.find(
+        (c: any[]) => typeof c[1] === "string",
+      );
       expect(call).toBeDefined();
 
       const exportedJson = JSON.parse(call![1] as string);

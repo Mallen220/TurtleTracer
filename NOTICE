@@ -254,3 +254,4 @@ src/lib/components/dialogs/UpdateAvailableDialog.svelte
 verification/optimize_menu.png
 verification/verify_dimmed_lines.py
 verification/verify_optimize_menu.py
+src/tests/exportCodeFileRead.test.ts

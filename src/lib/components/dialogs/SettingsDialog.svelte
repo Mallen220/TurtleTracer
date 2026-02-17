@@ -23,6 +23,7 @@
     currentFilePath,
     currentDirectoryStore,
     settingsActiveTab,
+    notification,
   } from "../../../stores";
   import { followRobotStore } from "../../projectStore";
 
@@ -224,10 +225,11 @@
       downloadAnchorNode.setAttribute("download", "pedro-settings.json");
       document.body.appendChild(downloadAnchorNode);
       downloadAnchorNode.click();
+      notification.set({ message: "Settings exported", type: "success", timeout: 3000 });
       downloadAnchorNode.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert("Failed to export settings: " + (e as Error).message);
+      notification.set({ message: "Failed to export settings: " + (e as Error).message, type: "error" });
     }
   }
 
@@ -251,15 +253,49 @@
 
           // Persist
           await saveSettings(settings);
-          alert("Settings imported successfully!");
+          notification.set({ message: "Settings imported", type: "success", timeout: 3000 });
         }
       } catch (err) {
-        alert("Error importing settings: " + (err as Error).message);
+        notification.set({ message: "Error importing settings: " + (err as Error).message, type: "error" });
       }
       // Reset input
       target.value = "";
     };
     reader.readAsText(file);
+  }
+
+  let isCheckingForUpdates = false;
+
+  async function handleCheckForUpdates() {
+    const electronAPI = (window as any).electronAPI;
+    if (electronAPI && electronAPI.checkForUpdates) {
+      isCheckingForUpdates = true;
+      try {
+        const result = await electronAPI.checkForUpdates();
+        if (result.success) {
+          if (result.updateAvailable) {
+            isOpen = false;
+            // The global listener in App.svelte will handle opening the update dialog
+            notification.set({ message: "Update available — opening installer...", type: "info", timeout: 4000 });
+          } else {
+            if (result.reason === "store") {
+              notification.set({ message: "Updates are managed by the Microsoft Store.", type: "info" });
+            } else {
+              notification.set({ message: "You are on the newest version.", type: "success" });
+            }
+          }
+        } else {
+          // Fallback if success is false but no error thrown
+          notification.set({ message: "Failed to check for updates: " + (result.message || "Unknown error"), type: "error" });
+        }
+      } catch (e) {
+        notification.set({ message: "Failed to check for updates: " + (e as Error).message, type: "error" });
+      } finally {
+        isCheckingForUpdates = false;
+      }
+    } else {
+      notification.set({ message: "Update check not supported in this environment.", type: "warning" });
+    }
   }
 
   async function handleReset() {
@@ -411,14 +447,9 @@
         settings.robotImage = base64;
         settings = { ...settings };
 
-        const successMsg = document.createElement("div");
-        successMsg.className =
-          "fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg";
-        successMsg.textContent = "Robot image updated!";
-        document.body.appendChild(successMsg);
-        setTimeout(() => successMsg.remove(), 3000);
+        notification.set({ message: "Robot image updated!", type: "success", timeout: 3000 });
       } catch (error) {
-        alert("Error loading image: " + (error as Error).message);
+        notification.set({ message: "Error loading image: " + (error as Error).message, type: "error" });
       }
     }
   }
@@ -733,67 +764,6 @@
                 {/if}
 
                 <SettingsItem
-                  label="Keyboard Shortcuts"
-                  description="View and customize keyboard shortcuts"
-                  {searchQuery}
-                  layout="row"
-                >
-                  <button
-                    on:click={() => showShortcuts.set(true)}
-                    class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    Open Editor
-                  </button>
-                </SettingsItem>
-
-                <SettingsItem
-                  label="Welcome Tutorial"
-                  description="Learn how to use the application"
-                  {searchQuery}
-                  layout="row"
-                >
-                  <button
-                    on:click={() => {
-                      isOpen = false;
-                      startTutorial.set(true);
-                    }}
-                    class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    Start Tutorial
-                  </button>
-                </SettingsItem>
-
-                <SettingsItem
-                  label="Plugin Manager"
-                  description="Manage installed plugins"
-                  {searchQuery}
-                  layout="row"
-                >
-                  <button
-                    on:click={() => {
-                      isOpen = false;
-                      showPluginManager.set(true);
-                    }}
-                    class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    Open Manager
-                  </button>
-                </SettingsItem>
-
-                <SettingsItem
-                  label="Git Integration"
-                  description="Show git status indicators for files"
-                  {searchQuery}
-                  layout="row"
-                >
-                  <input
-                    type="checkbox"
-                    bind:checked={settings.gitIntegration}
-                    class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                  />
-                </SettingsItem>
-
-                <SettingsItem
                   label="Autosave Mode"
                   description="Choose when to automatically save the project"
                   {searchQuery}
@@ -835,6 +805,82 @@
                 {/if}
 
                 <SettingsItem
+                  label="Welcome Tutorial"
+                  description="Learn how to use the application"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <button
+                    on:click={() => {
+                      isOpen = false;
+                      startTutorial.set(true);
+                    }}
+                    class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Start Tutorial
+                  </button>
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Software Update"
+                  description="Check for new versions of the application"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <button
+                    on:click={handleCheckForUpdates}
+                    disabled={isCheckingForUpdates}
+                    class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors disabled:opacity-50"
+                  >
+                    {isCheckingForUpdates ? "Checking..." : "Check for Updates"}
+                  </button>
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Keyboard Shortcuts"
+                  description="View and customize keyboard shortcuts"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <button
+                    on:click={() => showShortcuts.set(true)}
+                    class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Open Editor
+                  </button>
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Plugin Manager"
+                  description="Manage installed plugins"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <button
+                    on:click={() => {
+                      isOpen = false;
+                      showPluginManager.set(true);
+                    }}
+                    class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Open Manager
+                  </button>
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Git Integration"
+                  description="Show git status indicators for files"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <input
+                    type="checkbox"
+                    bind:checked={settings.gitIntegration}
+                    class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  />
+                </SettingsItem>
+
+                <SettingsItem
                   label="Transfer Settings"
                   description="Export or import your settings configuration"
                   {searchQuery}
@@ -867,6 +913,7 @@
                     />
                   </div>
                 </SettingsItem>
+
               </div>
             {/if}
 

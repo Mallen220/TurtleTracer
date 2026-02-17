@@ -271,9 +271,12 @@
     lines.length > 0
   ) {
     const derived = getLineStartHeading(lines[0], startPoint);
-    if (typeof startPoint.startDeg !== "number" || Math.abs(startPoint.startDeg - derived) > 1e-6) {
+    if (
+      typeof startPoint.startDeg !== "number" ||
+      Math.abs(startPoint.startDeg - derived) > 1e-6
+    ) {
       // Update store only when it differs to avoid extra churn
-      startPointStore.update((p) => ({ ...p, startDeg: derived } as any));
+      startPointStore.update((p) => ({ ...p, startDeg: derived }) as any);
     }
   }
 

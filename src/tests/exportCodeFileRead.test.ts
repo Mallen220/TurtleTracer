@@ -21,10 +21,12 @@ describe("ExportCodeDialog file reading", () => {
 
   beforeEach(() => {
     (window as any).electronAPI = {
-        readFile: vi.fn().mockResolvedValue('{"mocked": "json content from file"}'),
-        makeRelativePath: vi.fn(),
-        showSaveDialog: vi.fn(),
-        writeFile: vi.fn(),
+      readFile: vi
+        .fn()
+        .mockResolvedValue('{"mocked": "json content from file"}'),
+      makeRelativePath: vi.fn(),
+      showSaveDialog: vi.fn(),
+      writeFile: vi.fn(),
     };
     currentFilePath.set(null);
   });
@@ -37,11 +39,11 @@ describe("ExportCodeDialog file reading", () => {
     currentFilePath.set("/path/to/project.pp");
 
     const { getByText, component } = render(ExportCodeDialog, {
-        isOpen: false,
-        startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
-        lines: [],
-        sequence: [],
-        shapes: [],
+      isOpen: false,
+      startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
+      lines: [],
+      sequence: [],
+      shapes: [],
     });
 
     // Open with JSON format
@@ -49,7 +51,9 @@ describe("ExportCodeDialog file reading", () => {
 
     // Wait for the async operation
     await waitFor(() => {
-        expect((window as any).electronAPI.readFile).toHaveBeenCalledWith("/path/to/project.pp");
+      expect((window as any).electronAPI.readFile).toHaveBeenCalledWith(
+        "/path/to/project.pp",
+      );
     });
 
     // Check if the content is displayed
@@ -57,25 +61,29 @@ describe("ExportCodeDialog file reading", () => {
     // The dialog displays it in Highlight component.
     // We can check if "mocked" text is present.
     await waitFor(() => expect(getByText(/"mocked"/)).toBeTruthy());
-    await waitFor(() => expect(getByText(/"json content from file"/)).toBeTruthy());
+    await waitFor(() =>
+      expect(getByText(/"json content from file"/)).toBeTruthy(),
+    );
   });
 
   it("falls back to generation if file read fails", async () => {
     currentFilePath.set("/path/to/project.pp");
-    (window as any).electronAPI.readFile.mockRejectedValue(new Error("File not found"));
+    (window as any).electronAPI.readFile.mockRejectedValue(
+      new Error("File not found"),
+    );
 
     const { getByText, component } = render(ExportCodeDialog, {
-        isOpen: false,
-        startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
-        lines: [],
-        sequence: [],
-        shapes: [],
+      isOpen: false,
+      startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
+      lines: [],
+      sequence: [],
+      shapes: [],
     });
 
     await component.openWithFormat("json");
 
     await waitFor(() => {
-         expect((window as any).electronAPI.readFile).toHaveBeenCalled();
+      expect((window as any).electronAPI.readFile).toHaveBeenCalled();
     });
 
     // Should contain generated content (e.g. "version")
@@ -86,17 +94,17 @@ describe("ExportCodeDialog file reading", () => {
     currentFilePath.set(null);
 
     const { getByText, component } = render(ExportCodeDialog, {
-        isOpen: false,
-        startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
-        lines: [],
-        sequence: [],
-        shapes: [],
+      isOpen: false,
+      startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
+      lines: [],
+      sequence: [],
+      shapes: [],
     });
 
     await component.openWithFormat("json");
 
     await waitFor(() => {
-         expect((window as any).electronAPI.readFile).not.toHaveBeenCalled();
+      expect((window as any).electronAPI.readFile).not.toHaveBeenCalled();
     });
 
     // Should contain generated content

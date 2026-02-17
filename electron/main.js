@@ -957,8 +957,8 @@ ipcMain.handle("update:check", async (event) => {
       if (win) appUpdater = new AppUpdater(win);
     }
     if (appUpdater) {
-      await appUpdater.checkForUpdates();
-      return { success: true };
+      const result = await appUpdater.checkForUpdates(true);
+      return { success: true, ...result };
     }
     return { success: false, message: "no-updater" };
   } catch (err) {
