@@ -1,3 +1,4 @@
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <!-- src/lib/components/common/LoadingSpinner.svelte -->
 <script lang="ts">
   export let size = "md"; // sm, md, lg

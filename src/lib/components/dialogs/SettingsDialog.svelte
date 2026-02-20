@@ -225,11 +225,18 @@
       downloadAnchorNode.setAttribute("download", "pedro-settings.json");
       document.body.appendChild(downloadAnchorNode);
       downloadAnchorNode.click();
-      notification.set({ message: "Settings exported", type: "success", timeout: 3000 });
+      notification.set({
+        message: "Settings exported",
+        type: "success",
+        timeout: 3000,
+      });
       downloadAnchorNode.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      notification.set({ message: "Failed to export settings: " + (e as Error).message, type: "error" });
+      notification.set({
+        message: "Failed to export settings: " + (e as Error).message,
+        type: "error",
+      });
     }
   }
 
@@ -253,10 +260,17 @@
 
           // Persist
           await saveSettings(settings);
-          notification.set({ message: "Settings imported", type: "success", timeout: 3000 });
+          notification.set({
+            message: "Settings imported",
+            type: "success",
+            timeout: 3000,
+          });
         }
       } catch (err) {
-        notification.set({ message: "Error importing settings: " + (err as Error).message, type: "error" });
+        notification.set({
+          message: "Error importing settings: " + (err as Error).message,
+          type: "error",
+        });
       }
       // Reset input
       target.value = "";
@@ -276,25 +290,46 @@
           if (result.updateAvailable) {
             isOpen = false;
             // The global listener in App.svelte will handle opening the update dialog
-            notification.set({ message: "Update available — opening installer...", type: "info", timeout: 4000 });
+            notification.set({
+              message: "Update available — opening installer...",
+              type: "info",
+              timeout: 4000,
+            });
           } else {
             if (result.reason === "store") {
-              notification.set({ message: "Updates are managed by the Microsoft Store.", type: "info" });
+              notification.set({
+                message: "Updates are managed by the Microsoft Store.",
+                type: "info",
+              });
             } else {
-              notification.set({ message: "You are on the newest version.", type: "success" });
+              notification.set({
+                message: "You are on the newest version.",
+                type: "success",
+              });
             }
           }
         } else {
           // Fallback if success is false but no error thrown
-          notification.set({ message: "Failed to check for updates: " + (result.message || "Unknown error"), type: "error" });
+          notification.set({
+            message:
+              "Failed to check for updates: " +
+              (result.message || "Unknown error"),
+            type: "error",
+          });
         }
       } catch (e) {
-        notification.set({ message: "Failed to check for updates: " + (e as Error).message, type: "error" });
+        notification.set({
+          message: "Failed to check for updates: " + (e as Error).message,
+          type: "error",
+        });
       } finally {
         isCheckingForUpdates = false;
       }
     } else {
-      notification.set({ message: "Update check not supported in this environment.", type: "warning" });
+      notification.set({
+        message: "Update check not supported in this environment.",
+        type: "warning",
+      });
     }
   }
 
@@ -447,9 +482,16 @@
         settings.robotImage = base64;
         settings = { ...settings };
 
-        notification.set({ message: "Robot image updated!", type: "success", timeout: 3000 });
+        notification.set({
+          message: "Robot image updated!",
+          type: "success",
+          timeout: 3000,
+        });
       } catch (error) {
-        notification.set({ message: "Error loading image: " + (error as Error).message, type: "error" });
+        notification.set({
+          message: "Error loading image: " + (error as Error).message,
+          type: "error",
+        });
       }
     }
   }
@@ -913,7 +955,6 @@
                     />
                   </div>
                 </SettingsItem>
-
               </div>
             {/if}
 
