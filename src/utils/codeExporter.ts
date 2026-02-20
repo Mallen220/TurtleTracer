@@ -320,6 +320,23 @@ export async function generateJavaCode(
         telemetry.update();`;
     }
 
+    // compute heading used in exported Java before building the file template
+    const startDegForExport = ((): number => {
+      if (startPoint.heading === "constant" && typeof (startPoint as any).degrees === "number") {
+        return (startPoint as any).degrees;
+      }
+
+      if (lines && lines.length > 0) {
+        return getLineStartHeading(lines[0], startPoint);
+      }
+
+      if (startPoint.heading === "linear" && typeof (startPoint as any).startDeg === "number") {
+        return (startPoint as any).startDeg;
+      }
+
+      return (startPoint as any).degrees ?? 90;
+    })();
+
     file = `
     ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
@@ -351,25 +368,7 @@ export async function generateJavaCode(
 
         follower = Constants.createFollower(hardwareMap);
         // Determine starting heading: prefer geometric heading when a path exists, otherwise fall back to explicit startPoint values
-        const _startDegForExport = ((): number => {
-          if (startPoint.heading === "constant" && typeof (startPoint as any).degrees === "number") {
-            return (startPoint as any).degrees;
-          }
-
-          // If we have path geometry, derive the heading from the first line so exported code reflects positional changes
-          if (lines && lines.length > 0) {
-            return getLineStartHeading(lines[0], startPoint);
-          }
-
-          // If no geometry available, use explicit linear startDeg when provided
-          if (startPoint.heading === "linear" && typeof (startPoint as any).startDeg === "number") {
-            return (startPoint as any).startDeg;
-          }
-
-          return (startPoint as any).degrees ?? 90;
-        })();
-
-        follower.setStartingPose(new Pose(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)}, Math.toRadians(${_startDegForExport.toFixed(3)})));
+        follower.setStartingPose(new Pose(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)}, Math.toRadians(${startDegForExport.toFixed(3)})));
 
         pathTimer = new ElapsedTime();
         paths = new Paths(follower); // Build paths

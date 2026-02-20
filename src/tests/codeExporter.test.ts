@@ -239,9 +239,12 @@ describe("codeExporter", () => {
     });
 
     it("should use default start heading if lines array is empty", async () => {
-      const sp = {
-        ...startPoint,
-        heading: "linear" as const,
+      // construct a point without the constant-heading `degrees` field so it
+      // matches the linear variant of Point.
+      const sp: Point = {
+        x: startPoint.x,
+        y: startPoint.y,
+        heading: "linear",
         startDeg: 120,
         endDeg: 180,
       };
@@ -253,13 +256,13 @@ describe("codeExporter", () => {
 
     it("uses geometric start heading when path geometry exists (updates with position)", async () => {
       // startPoint explicitly requests a different startDeg than geometry
-      const sp = {
+      const sp: Point = {
         x: 10,
         y: 10,
-        heading: "linear" as const,
+        heading: "linear",
         startDeg: 123,
         endDeg: 180,
-      } as any;
+      };
 
       // A line whose geometric tangent would be 45 degrees (different from 123)
       const line: Line = {
