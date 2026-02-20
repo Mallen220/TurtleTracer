@@ -41,13 +41,28 @@ export interface ExportAnimationOptions {
 // For backward compatibility alias
 export type ExportGifOptions = ExportAnimationOptions;
 
+export interface ExportImageOptions {
+  two: Two;
+  format: "png" | "jpeg" | "svg";
+  scale?: number; // resolution scale
+  quality?: number; // for jpeg (0.1 - 1.0)
+  backgroundImageSrc?: string;
+  robotImageSrc?: string;
+  robotLengthPx?: number;
+  robotWidthPx?: number;
+  // Screen Coordinates for background placement
+  backgroundBounds?: { x: number; y: number; width: number; height: number };
+  // Screen Coordinates for robot placement
+  robotScreenState?: { x: number; y: number; heading: number };
+}
+
 // Internal helper to render a single frame to a canvas
 async function renderFrameToCanvas(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
   svgEl: SVGElement,
   percent: number,
-  options: ExportAnimationOptions,
+  options: ExportAnimationOptions | ExportImageOptions,
   backgroundImage: HTMLImageElement | null,
   robotImage: HTMLImageElement | null,
   scale: number,
@@ -71,7 +86,23 @@ async function renderFrameToCanvas(
       // Draw background image first (if available)
       if (backgroundImage) {
         try {
-          ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+          if (
+            "backgroundBounds" in options &&
+            options.backgroundBounds
+          ) {
+            // Draw using screen bounds scaled by resolution scale
+            const b = options.backgroundBounds;
+            ctx.drawImage(
+              backgroundImage,
+              b.x * scale,
+              b.y * scale,
+              b.width * scale,
+              b.height * scale,
+            );
+          } else {
+            // Fallback (Animation mode assumes full canvas usually)
+            ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+          }
         } catch (e) {
           console.warn("Failed to draw background image onto canvas:", e);
         }
@@ -82,8 +113,18 @@ async function renderFrameToCanvas(
 
       // Draw robot overlay (if provided) on top of SVG
       try {
-        if (robotImage && options.getRobotState) {
-          const state = options.getRobotState(percent);
+        if (robotImage) {
+          let state: { x: number; y: number; heading: number } | undefined;
+
+          // Check if explicit screen state provided (Export Image)
+          if ("robotScreenState" in options && options.robotScreenState) {
+            state = options.robotScreenState;
+          }
+          // Else use calculator (Animation)
+          else if ("getRobotState" in options && options.getRobotState) {
+            state = options.getRobotState(percent);
+          }
+
           if (state && !Number.isNaN(state.x) && !Number.isNaN(state.y)) {
             ctx.save();
             // Translate to robot center (scaled)
@@ -112,7 +153,9 @@ async function renderFrameToCanvas(
   });
 }
 
-async function prepareResources(options: ExportAnimationOptions) {
+async function prepareResources(
+  options: ExportAnimationOptions | ExportImageOptions,
+) {
   // Optionally preload a background image (field map)
   let backgroundImage: HTMLImageElement | null = null;
   if (options.backgroundImageSrc) {
@@ -153,6 +196,129 @@ async function prepareResources(options: ExportAnimationOptions) {
     }
   }
   return { backgroundImage, robotImage };
+}
+
+// Helper: Convert URL to base64 Data URI
+async function urlToDataUri(url: string): Promise<string> {
+  // Check if already data URI
+  if (url.startsWith("data:")) return url;
+
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn("Failed to fetch image for data URI conversion:", url, e);
+    return "";
+  }
+}
+
+export async function exportPathToImage(
+  options: ExportImageOptions,
+): Promise<Blob> {
+  const { two, format, scale = 1, quality = 0.9 } = options;
+
+  // 1. Prepare Resources (Field, Robot)
+  const { backgroundImage, robotImage } = await prepareResources(options);
+
+  // Get SVG dimensions
+  const svgEl = (two.renderer as any).domElement as SVGElement;
+  const rect = svgEl.getBoundingClientRect();
+  const width = Math.round(rect.width * scale);
+  const height = Math.round(rect.height * scale);
+
+  // SVG Export
+  if (format === "svg") {
+    const twoSvgString = new XMLSerializer().serializeToString(svgEl);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(twoSvgString, "image/svg+xml");
+    const root = doc.documentElement;
+
+    if (!root.hasAttribute("xmlns:xlink")) {
+      root.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    }
+
+    // 1. Background Image
+    if (options.backgroundImageSrc && options.backgroundBounds) {
+      const bgDataUri = await urlToDataUri(options.backgroundImageSrc);
+      if (bgDataUri) {
+        const b = options.backgroundBounds;
+        const bgSvg = `<image href="${bgDataUri}" x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" preserveAspectRatio="none" />`;
+        const bgFragment = parser.parseFromString(
+          `<svg xmlns="http://www.w3.org/2000/svg">${bgSvg}</svg>`,
+          "image/svg+xml",
+        ).documentElement.firstChild;
+        if (bgFragment) {
+          root.insertBefore(bgFragment, root.firstChild);
+        }
+      }
+    }
+
+    // 2. Robot Image
+    if (
+      options.robotImageSrc &&
+      options.robotScreenState &&
+      robotImage
+    ) {
+      const robotDataUri = await urlToDataUri(options.robotImageSrc);
+      if (robotDataUri) {
+        const rw = options.robotLengthPx ?? (robotImage.width || 50);
+        const rh = options.robotWidthPx ?? (robotImage.height || 50);
+        const state = options.robotScreenState;
+
+        // SVG transform for robot
+        // translate(x, y) rotate(deg) translate(-rw/2, -rh/2)
+        const transform = `translate(${state.x}, ${state.y}) rotate(${state.heading}) translate(${-rw / 2}, ${-rh / 2})`;
+        const robotSvg = `<image href="${robotDataUri}" width="${rw}" height="${rh}" transform="${transform}" />`;
+
+        const robotFragment = parser.parseFromString(
+          `<svg xmlns="http://www.w3.org/2000/svg">${robotSvg}</svg>`,
+          "image/svg+xml",
+        ).documentElement.firstChild;
+        if (robotFragment) {
+          root.appendChild(robotFragment);
+        }
+      }
+    }
+
+    const finalSvg = new XMLSerializer().serializeToString(doc);
+    return new Blob([finalSvg], { type: "image/svg+xml;charset=utf-8" });
+  }
+
+  // Raster Export (PNG / JPEG)
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  await renderFrameToCanvas(
+    ctx,
+    canvas,
+    svgEl,
+    0,
+    options,
+    backgroundImage,
+    robotImage,
+    scale,
+  );
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Canvas export failed"));
+      },
+      format === "png" ? "image/png" : "image/jpeg",
+      format === "jpeg" ? quality : undefined,
+    );
+  });
 }
 
 export async function exportPathToGif(
