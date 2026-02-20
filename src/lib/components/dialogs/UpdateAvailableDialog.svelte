@@ -5,6 +5,7 @@
   import { cubicOut } from "svelte/easing";
   import { showUpdateAvailableDialog, updateDataStore } from "../../../stores";
   import MarkdownIt from "markdown-it";
+  import LoadingSpinner from "../common/LoadingSpinner.svelte";
 
   export let show = false;
 
@@ -304,10 +305,8 @@
             class="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800 rounded-xl p-4 max-h-40 overflow-y-auto custom-scrollbar"
           >
             {#if isLoadingNotes}
-              <div
-                class="flex items-center justify-center h-20 text-neutral-400 text-sm animate-pulse"
-              >
-                Loading highlights...
+              <div class="flex items-center justify-center h-20">
+                <LoadingSpinner size="sm" text="Loading highlights..." />
               </div>
             {:else}
               <div class="prose prose-sm dark:prose-invert max-w-none">

@@ -54,6 +54,7 @@
   import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
   import FileList from "./components/filemanager/FileList.svelte";
   import FileGrid from "./components/filemanager/FileGrid.svelte";
+  import LoadingSpinner from "./components/common/LoadingSpinner.svelte";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -969,7 +970,7 @@
       <div
         class="flex-1 flex items-center justify-center text-neutral-400 text-sm"
       >
-        Loading...
+        <LoadingSpinner />
       </div>
     {:else if filteredFiles.length === 0}
       <div

@@ -534,7 +534,9 @@
       <!-- Play/Pause -->
       <button
         id="play-pause-btn"
-        title={`Play/Pause${getShortcutFromSettings(settings, "play-pause")}`}
+        title={playing
+          ? `Pause Animation${getShortcutFromSettings(settings, "play-pause")}`
+          : `Play Animation${getShortcutFromSettings(settings, "play-pause")}`}
         aria-label={playing ? "Pause animation" : "Play animation"}
         on:click={() => {
           if (playing) {

@@ -374,7 +374,9 @@
     <!-- Undo/Redo Group -->
     <div class="flex items-center gap-1">
       <button
-        title={`Undo${getShortcutFromSettings(settings, "undo")}`}
+        title={!canUndo
+          ? "Nothing to Undo"
+          : `Undo${getShortcutFromSettings(settings, "undo")}`}
         aria-label="Undo"
         on:click={undoAction}
         disabled={!canUndo}
@@ -396,7 +398,9 @@
         </svg>
       </button>
       <button
-        title={`Redo${getShortcutFromSettings(settings, "redo")}`}
+        title={!canRedo
+          ? "Nothing to Redo"
+          : `Redo${getShortcutFromSettings(settings, "redo")}`}
         aria-label="Redo"
         on:click={redoAction}
         disabled={!canRedo}
