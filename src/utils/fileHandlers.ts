@@ -822,6 +822,7 @@ async function handleAutoExport(
           sequence,
           settings.javaPackageName,
           settings.telemetryImplementation,
+          settings.coordinateSystem,
         );
         extension = "java";
         break;
@@ -834,6 +835,7 @@ async function handleAutoExport(
           settings.autoExportTargetLibrary ?? "SolversLib",
           settings.javaPackageName,
           settings.autoExportEmbedPoseData,
+          settings.coordinateSystem,
         );
         extension = "java";
         break;

@@ -32,6 +32,22 @@ export function toField(
   return { x: point.x, y: point.y };
 }
 
+export function toUserHeading(
+  fieldHeading: number, // degrees
+  system: CoordinateSystem = "Pedro",
+): number {
+  // Both systems use Right = 0, Up = 90 (Unit Circle)
+  return fieldHeading;
+}
+
+export function toFieldHeading(
+  userHeading: number, // degrees
+  system: CoordinateSystem = "Pedro",
+): number {
+  // Both systems use Right = 0, Up = 90 (Unit Circle)
+  return userHeading;
+}
+
 // Deprecated single-value functions (wrappers for compatibility if needed temporarily, but we should migrate)
 export function toUserCoordinate(
   val: number,
