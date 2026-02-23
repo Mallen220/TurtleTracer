@@ -29,7 +29,7 @@ function compareVersions(a: string, b: string): number {
 }
 
 // Default template content used by bump-version.js
-const DEFAULT_TEMPLATE = `### What's New!
+export const DEFAULT_TEMPLATE = `### What's New!
 
 ## **Features:**
 
@@ -37,7 +37,7 @@ const DEFAULT_TEMPLATE = `### What's New!
 `;
 
 // Check if newest.md is just the template
-function isNewestTemplate(content: string): boolean {
+export function isNewestTemplate(content: string): boolean {
   return content.trim() === DEFAULT_TEMPLATE.trim();
 }
 
