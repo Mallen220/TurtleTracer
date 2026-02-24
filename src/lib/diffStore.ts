@@ -62,6 +62,66 @@ export const committedData = writable<ProjectData | null>(null);
 export const diffResult = writable<DiffResult | null>(null);
 export const isLoadingDiff = writable(false);
 
+export function computeDiffFromData(
+  targetData: any,
+  fallbackSettings?: Settings,
+): ProjectData {
+  // Normalize data similar to projectStore.loadProjectData
+  return {
+    startPoint: targetData.startPoint || {
+      x: 0,
+      y: 0,
+      heading: "tangential",
+      reverse: false,
+    },
+    lines: normalizeLines(targetData.lines || []),
+    sequence: targetData.sequence || [],
+    shapes: targetData.shapes || [],
+    settings: { ...(fallbackSettings || {}), ...targetData.settings }, // Merge with current settings as fallback
+  };
+}
+
+export async function compareWithFile(filePath: string) {
+  const api = (window as any).electronAPI;
+  if (!api || !api.readFile) {
+    console.warn("File system API not available");
+    return;
+  }
+
+  try {
+    isLoadingDiff.set(true);
+    const content = await api.readFile(filePath);
+
+    if (!content) {
+      console.warn("Failed to read file for comparison");
+      isLoadingDiff.set(false);
+      return;
+    }
+
+    const parsed = JSON.parse(content);
+    const normalizedTarget = computeDiffFromData(parsed, get(settingsStore));
+
+    committedData.set(normalizedTarget);
+
+    const current: ProjectData = {
+      startPoint: get(startPointStore),
+      lines: get(linesStore),
+      sequence: get(sequenceStore),
+      shapes: get(shapesStore),
+      settings: get(settingsStore),
+    };
+
+    const result = computeDiff(current, normalizedTarget);
+    diffResult.set(result);
+
+    diffMode.set(true);
+  } catch (err) {
+    console.error("Error comparing with file:", err);
+  } finally {
+    isLoadingDiff.set(false);
+  }
+}
+
 export async function toggleDiff() {
   const currentMode = get(diffMode);
 
@@ -95,20 +155,10 @@ export async function toggleDiff() {
       }
 
       const parsed = JSON.parse(content);
-
-      // Normalize data similar to projectStore.loadProjectData
-      const normalizedCommitted: ProjectData = {
-        startPoint: parsed.startPoint || {
-          x: 0,
-          y: 0,
-          heading: "tangential",
-          reverse: false,
-        },
-        lines: normalizeLines(parsed.lines || []),
-        sequence: parsed.sequence || [],
-        shapes: parsed.shapes || [],
-        settings: { ...get(settingsStore), ...parsed.settings }, // Merge with current settings as fallback
-      };
+      const normalizedCommitted = computeDiffFromData(
+        parsed,
+        get(settingsStore),
+      );
 
       committedData.set(normalizedCommitted);
 

@@ -1,6 +1,6 @@
 ## 1.7.4 (2026-02-20)
 
-- New UI for the update prompt and add ms store support. Add manual update check. Add ability to optimize individual paths. Several critical fixes to code exporting. Add ability to import and export settings. Fix start position data being written incorrectly. Show actual .pp file content in Export dialog. Better playback controls. Add export image option. Fixed Plugins icon. 
+- New UI for the update prompt and add ms store support. Add manual update check. Add ability to optimize individual paths. Several critical fixes to code exporting. Add ability to import and export settings. Fix start position data being written incorrectly. Show actual .pp file content in Export dialog. Better playback controls. Add export image option. Fixed Plugins icon.
 
 ## 1.7.3 (2026-02-10)
 

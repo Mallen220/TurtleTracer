@@ -44,6 +44,7 @@
     showTelemetryDialog,
   } from "../stores";
   import { settingsStore, loadMacro, loadProjectData } from "./projectStore";
+  import { compareWithFile } from "./diffStore";
   import { saveProject } from "../utils/fileHandlers";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
   import { hookRegistry } from "./registries";
@@ -780,6 +781,11 @@
         break;
       case "save-to":
         saveCurrentToFile(file);
+        break;
+      case "compare":
+        compareWithFile(file.path);
+        isOpen = false;
+        showToast(`Comparing with ${file.name}...`, "info");
         break;
     }
   }
