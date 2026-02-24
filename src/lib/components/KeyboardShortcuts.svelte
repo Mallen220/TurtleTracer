@@ -1714,8 +1714,6 @@
     movePointDown: () => movePoint(0, -1),
     movePointLeft: () => movePoint(-1, 0),
     movePointRight: () => movePoint(1, 0),
-    selectNext: () => cycleSelection(1),
-    selectPrev: () => cycleSelection(-1),
     selectNextSequence: () => cycleSequenceSelection(1),
     selectPrevSequence: () => cycleSequenceSelection(-1),
     increaseValue: () => modifyValue(1),
