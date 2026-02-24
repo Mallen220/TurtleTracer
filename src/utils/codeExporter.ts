@@ -576,9 +576,18 @@ export async function generateSequentialCommandCode(
           overrideDegrees !== undefined
             ? overrideDegrees
             : (point as any).degrees || 0;
-        allPoseInitializations.push(
-          `        ${variableName} = new Pose(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, Math.toRadians(${degrees}));`,
-        );
+
+        if (coordinateSystem === "FTC") {
+          const userPt = toUser(point, "FTC");
+          const userHead = toUserHeading(degrees, "FTC");
+          allPoseInitializations.push(
+            `        ${variableName} = buildPose(${userPt.x.toFixed(3)}, ${userPt.y.toFixed(3)}, Math.toRadians(${userHead.toFixed(3)}));`,
+          );
+        } else {
+          allPoseInitializations.push(
+            `        ${variableName} = new Pose(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, Math.toRadians(${degrees}));`,
+          );
+        }
       } else {
         // Use pp.get
         allPoseInitializations.push(
@@ -964,6 +973,24 @@ ${commands.join(",\n")}
 
     public void buildPaths() {
         ${pathBuilders}
+    }
+
+    ${
+      coordinateSystem === "FTC"
+        ? `
+    private Pose buildPose(double x, double y, double heading) {
+        return com.pedropathing.localization.PoseConverter.pose2DToPose(
+            new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
+                org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH,
+                x, y,
+                org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS,
+                heading
+            ),
+            com.pedropathing.localization.InvertedFTCCoordinates.INSTANCE
+        ).getAsCoordinateSystem(com.pedropathing.localization.PedroCoordinates.INSTANCE);
+    }
+    `
+        : ""
     }
 }
 `;

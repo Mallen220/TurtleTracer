@@ -209,7 +209,6 @@ interface Settings {
   autoExportEmbedPoseData?: boolean; // Embed pose data in the generated code
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
   followRobot?: boolean;
-  coordinateSystem?: "Pedro" | "FTC";
 }
 
 interface RobotProfile {
