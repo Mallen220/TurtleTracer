@@ -365,7 +365,6 @@
   }
 
   function removeLine(idx: number) {
-    if (lines.length <= 1) return;
     if (lines[idx]?.locked) return;
 
     const removedId = lines[idx]?.id;
