@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { settingsStore } from "../projectStore";
+  import { settingsStore } from "../../projectStore";
   import { toUser } from "../../utils/coordinates";
 
   export let x: number;
