@@ -323,6 +323,14 @@ export async function generateJavaCode(
     // compute heading used in exported Java before building the file template
     const startDegForExport = ((): number => {
       if (
+        lines &&
+        lines.length > 0 &&
+        lines[0].endPoint.heading === "tangential"
+      ) {
+        return getLineStartHeading(lines[0], startPoint);
+      }
+
+      if (
         startPoint.heading === "constant" &&
         typeof (startPoint as any).degrees === "number"
       ) {
