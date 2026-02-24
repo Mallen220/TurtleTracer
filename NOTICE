@@ -259,3 +259,11 @@ src/lib/components/common/LoadingSpinner.svelte
 src/lib/components/icons/PuzzleIcon.svelte
 src/lib/components/dialogs/ExportImageDialog.svelte
 src/tests/exportImage.test.ts
+src/lib/components/sections/StartingPointSection.svelte
+src/tests/PathTabEmptyState.test.ts
+verification/after_click_settings.png
+verification/after_closing_dialog.png
+verification/after_remove_overlay.png
+verification/initial_state.png
+verification/settings_updates.png
+verification/verify_initial_heading_visibility.py

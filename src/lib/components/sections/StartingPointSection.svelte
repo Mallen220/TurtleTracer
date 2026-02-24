@@ -2,6 +2,7 @@
 <script lang="ts">
   import type { Point, Settings } from "../../../types/index";
   import { selectedPointId, focusRequest } from "../../../stores";
+  import { linesStore } from "../../../lib/projectStore";
   import { getShortcutFromSettings } from "../../../utils";
   import HeadingControls from "../HeadingControls.svelte";
 
@@ -18,6 +19,8 @@
   let xInput: HTMLInputElement;
   let yInput: HTMLInputElement;
   let headingControls: HeadingControls;
+
+  $: lines = $linesStore;
 
   // Subscribe to focus requests
   $: if ($focusRequest) {
@@ -138,20 +141,22 @@
     </div>
   </div>
 
-  <div class="space-y-2">
-    <span
-      class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-    >
-      Initial Heading
-    </span>
-    <HeadingControls
-      bind:this={headingControls}
-      endPoint={startPoint}
-      locked={startPoint.locked}
-      on:change={() => (startPoint = { ...startPoint })}
-      on:commit={() => (startPoint = { ...startPoint })}
-    />
-  </div>
+  {#if lines.length === 0}
+    <div class="space-y-2">
+      <span
+        class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
+      >
+        Initial Heading
+      </span>
+      <HeadingControls
+        bind:this={headingControls}
+        endPoint={startPoint}
+        locked={startPoint.locked}
+        on:change={() => (startPoint = { ...startPoint })}
+        on:commit={() => (startPoint = { ...startPoint })}
+      />
+    </div>
+  {/if}
 
   <div
     class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50 flex-wrap"
