@@ -3,6 +3,7 @@
   import type { Point, Settings } from "../../../types/index";
   import { selectedPointId, focusRequest } from "../../../stores";
   import { getShortcutFromSettings } from "../../../utils";
+  import HeadingControls from "../HeadingControls.svelte";
 
   export let startPoint: Point;
   export let settings: Settings;
@@ -16,12 +17,15 @@
 
   let xInput: HTMLInputElement;
   let yInput: HTMLInputElement;
+  let headingControls: HeadingControls;
 
   // Subscribe to focus requests
   $: if ($focusRequest) {
     if ($selectedPointId === "point-0-0") {
       if ($focusRequest.field === "x" && xInput) xInput.focus();
       if ($focusRequest.field === "y" && yInput) yInput.focus();
+      if ($focusRequest.field === "heading" && headingControls)
+        headingControls.focus();
     }
   }
 </script>
@@ -132,6 +136,21 @@
         />
       </div>
     </div>
+  </div>
+
+  <div class="space-y-2">
+    <span
+      class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
+    >
+      Initial Heading
+    </span>
+    <HeadingControls
+      bind:this={headingControls}
+      endPoint={startPoint}
+      locked={startPoint.locked}
+      on:change={() => (startPoint = { ...startPoint })}
+      on:commit={() => (startPoint = { ...startPoint })}
+    />
   </div>
 
   <div

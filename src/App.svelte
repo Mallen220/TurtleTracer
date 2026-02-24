@@ -1016,7 +1016,11 @@
     null;
 
   $: {
-    if (timePrediction && timePrediction.timeline && lines.length > 0) {
+    if (
+      timePrediction &&
+      timePrediction.timeline &&
+      (lines.length > 0 || sequence.length > 0)
+    ) {
       // Calculate Global Time based on effective duration
       const globalTime = (percent / 100) * effectiveDuration;
 
@@ -1067,9 +1071,11 @@
     } else {
       // Store position in inches
       robotXYStore.set({ x: startPoint.x, y: startPoint.y });
-      robotHeadingStore.set(
-        startPoint.heading === "constant" ? -startPoint.degrees : 0,
-      );
+      let h = 0;
+      if (startPoint.heading === "constant") h = -startPoint.degrees;
+      else if (startPoint.heading === "linear") h = -startPoint.startDeg;
+      // Tangential defaults to 0 if no lines
+      robotHeadingStore.set(h);
       committedRobotState = null;
     }
   }
