@@ -644,12 +644,25 @@
         clipboard = _.cloneDeep(line);
       }
     }
+
+    if (clipboard) {
+      notification.set({
+        message: "Selection copied",
+        type: "info",
+        timeout: 1500,
+      });
+    }
   }
 
   function cut() {
     if (isUIElementFocused()) return;
     copy();
     removeSelected();
+    notification.set({
+      message: "Selection cut",
+      type: "info",
+      timeout: 1500,
+    });
   }
 
   function paste() {
@@ -687,6 +700,11 @@
       }
       selectedPointId.set(`wait-${newWait.id}`);
       recordChange("Paste");
+      notification.set({
+        message: "Wait pasted",
+        type: "success",
+        timeout: 1500,
+      });
       return;
     }
 
@@ -718,6 +736,11 @@
       }
       selectedPointId.set(`rotate-${newRotate.id}`);
       recordChange("Paste");
+      notification.set({
+        message: "Rotate pasted",
+        type: "success",
+        timeout: 1500,
+      });
       return;
     }
 
@@ -853,6 +876,11 @@
       // Point ID depends on index.
       // Let's record change.
       recordChange("Paste");
+      notification.set({
+        message: "Path pasted",
+        type: "success",
+        timeout: 1500,
+      });
     }
   }
 
@@ -1649,8 +1677,19 @@
     };
     navigator.clipboard
       .writeText(JSON.stringify(data, null, 2))
-      .then(() => alert("Path data copied to clipboard!"))
-      .catch((err) => console.error("Failed to copy", err));
+      .then(() => {
+        notification.set({
+          message: "Path data copied to clipboard!",
+          type: "success",
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to copy", err);
+        notification.set({
+          message: "Failed to copy path data.",
+          type: "error",
+        });
+      });
   }
 
   function cycleFieldMap() {

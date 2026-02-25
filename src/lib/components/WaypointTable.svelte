@@ -20,6 +20,7 @@
     selectedLineId,
     selectedPointId,
     focusRequest,
+    notification,
   } from "../../stores";
   import { slide } from "svelte/transition";
   import OptimizationDialog from "./dialogs/OptimizationDialog.svelte";
@@ -584,12 +585,20 @@
       .writeText(text)
       .then(() => {
         copyButtonText = "Copied!";
+        notification.set({
+          message: "Table copied to clipboard!",
+          type: "success",
+        });
         setTimeout(() => {
           copyButtonText = "Copy Table";
         }, 2000);
       })
       .catch((err) => {
         console.error("Failed to copy table: ", err);
+        notification.set({
+          message: "Failed to copy table.",
+          type: "error",
+        });
       });
   }
 
