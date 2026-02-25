@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDirectory: () => ipcRenderer.invoke("file:get-directory"),
   setDirectory: () => ipcRenderer.invoke("file:set-directory"),
   selectDirectory: () => ipcRenderer.invoke("file:select-directory"),
+  selectFile: () => ipcRenderer.invoke("file:select-file"),
   listFiles: (directory) => ipcRenderer.invoke("file:list", directory),
   readFile: (filePath) => ipcRenderer.invoke("file:read", filePath),
   writeFile: (filePath, content) =>

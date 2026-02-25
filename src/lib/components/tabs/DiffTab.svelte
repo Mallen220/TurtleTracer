@@ -1,8 +1,16 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { diffResult } from "../../diffStore";
+  import {
+    diffResult,
+    diffSource,
+    loadDiffFromFile,
+    referenceFileName,
+    enableGitDiff,
+  } from "../../diffStore";
 
   $: result = $diffResult;
+  $: source = $diffSource;
+  $: refFile = $referenceFileName;
 
   // Derived lists from the flat eventDiff array
   $: addedEvents = result
@@ -27,6 +35,57 @@
 <div
   class="w-full h-full flex flex-col bg-neutral-50 dark:bg-neutral-900 overflow-y-auto"
 >
+  <!-- Diff Source Control -->
+  <div
+    class="flex-none p-4 pb-0 flex flex-col gap-3 border-b border-neutral-200 dark:border-neutral-700/50 bg-white/50 dark:bg-neutral-800/50 backdrop-blur-sm sticky top-0 z-20"
+  >
+    <div
+      class="flex items-center gap-2 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-lg w-full"
+    >
+      <button
+        class="flex-1 px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 {source ===
+        'git'
+          ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-sm ring-1 ring-black/5'
+          : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
+        on:click={() => enableGitDiff()}
+      >
+        Git History
+      </button>
+      <button
+        class="flex-1 px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 {source ===
+        'file'
+          ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-sm ring-1 ring-black/5'
+          : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
+        on:click={() => loadDiffFromFile()}
+      >
+        File Comparison
+      </button>
+    </div>
+
+    {#if source === "file"}
+      <div class="flex items-center justify-between gap-3 pb-3">
+        <div class="flex flex-col min-w-0">
+          <span
+            class="text-[10px] font-semibold uppercase tracking-wider text-neutral-400"
+            >Comparing Against</span
+          >
+          <span
+            class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate"
+            title={refFile || "No file selected"}
+          >
+            {refFile || "No file selected"}
+          </span>
+        </div>
+        <button
+          class="flex-none px-3 py-1.5 text-xs font-semibold bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shadow-sm"
+          on:click={() => loadDiffFromFile()}
+        >
+          Change File
+        </button>
+      </div>
+    {/if}
+  </div>
+
   {#if result}
     <div class="p-4 space-y-6">
       <!-- Stats Overview -->
@@ -94,7 +153,9 @@
             class="p-8 text-center bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 border-dashed"
           >
             <p class="text-neutral-500 dark:text-neutral-400 text-sm">
-              No changes detected compared to the last commit.
+              {source === 'git'
+                ? "No changes detected compared to the last commit."
+                : "No differences found between these files."}
             </p>
           </div>
         {:else}
@@ -245,7 +306,9 @@
           Computing Diff
         </p>
         <p class="text-neutral-500 dark:text-neutral-400 text-sm">
-          Comparing against the last committed version...
+          {source === "git"
+            ? "Comparing against the last committed version..."
+            : "Analyzing file contents..."}
         </p>
       </div>
     </div>

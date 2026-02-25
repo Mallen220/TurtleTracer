@@ -829,6 +829,20 @@ ipcMain.handle("file:select-directory", async (event) => {
   return null;
 });
 
+ipcMain.handle("file:select-file", async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showOpenDialog(win, {
+    properties: ["openFile"],
+    filters: [{ name: "Pedro Path Files", extensions: ["pp"] }],
+    title: "Select Reference File",
+  });
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  }
+  return null;
+});
+
 // Add new IPC handlers for directory settings
 ipcMain.handle("directory:get-settings", async () => {
   return await loadDirectorySettings();
