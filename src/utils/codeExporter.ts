@@ -691,54 +691,58 @@ export async function generateSequentialCommandCode(
       ? `new ${FollowPathCmdClass}(${pathName})`
       : `new ${FollowPathCmdClass}(follower, ${pathName})`;
 
-    if (line.eventMarkers && line.eventMarkers.length > 0) {
-      // Path has event markers
+    if (isNextFTC) {
+      commands.push(followPathInstance);
+    } else {
+      if (line.eventMarkers && line.eventMarkers.length > 0) {
+        // Path has event markers
 
-      // First: InstantCommand to set up tracker
-      commands.push(
-        `                new ${InstantCmdClass}(
+        // First: InstantCommand to set up tracker
+        commands.push(
+          `                new ${InstantCmdClass}(
                     () -> {
                         progressTracker.setCurrentChain(${pathName});
                         progressTracker.setCurrentPathName("${pathDisplayName}");`,
-      );
+        );
 
-      // Add event registrations
-      line.eventMarkers.forEach((event) => {
-        commands[commands.length - 1] += `
+        // Add event registrations
+        line.eventMarkers.forEach((event) => {
+          commands[commands.length - 1] += `
                         progressTracker.registerEvent("${event.name}", ${event.position.toFixed(3)});`;
-      });
+        });
 
-      commands[commands.length - 1] += `
+        commands[commands.length - 1] += `
                     })`;
 
-      // Second: ParallelRaceGroup for following path with event handling
-      commands.push(`                new ${ParallelRaceClass}(
+        // Second: ParallelRaceGroup for following path with event handling
+        commands.push(`                new ${ParallelRaceClass}(
                     ${followPathInstance},
                     new ${SequentialGroupClass}(`);
 
-      // Add WaitUntilCommand for each event
-      line.eventMarkers.forEach((event, eventIdx) => {
-        if (eventIdx > 0) commands[commands.length - 1] += ",";
-        commands[commands.length - 1] += `
+        // Add WaitUntilCommand for each event
+        line.eventMarkers.forEach((event, eventIdx) => {
+          if (eventIdx > 0) commands[commands.length - 1] += ",";
+          commands[commands.length - 1] += `
                         new ${WaitUntilCmdClass}(() -> progressTracker.shouldTriggerEvent("${event.name}")),
                         new ${InstantCmdClass}(
                             () -> {
                                 progressTracker.executeEvent("${event.name}");
                             })`;
-      });
+        });
 
-      commands[commands.length - 1] += `
+        commands[commands.length - 1] += `
                     ))`;
-    } else {
-      // No event markers - simple InstantCommand + FollowPathCommand
-      commands.push(
-        `                new ${InstantCmdClass}(
+      } else {
+        // No event markers - simple InstantCommand + FollowPathCommand
+        commands.push(
+          `                new ${InstantCmdClass}(
                     () -> {
                         progressTracker.setCurrentChain(${pathName});
                         progressTracker.setCurrentPathName("${pathDisplayName}");
                     }),
                 ${followPathInstance}`,
-      );
+        );
+      }
     }
   });
 
@@ -823,12 +827,13 @@ export async function generateSequentialCommandCode(
   let imports = "";
   if (isNextFTC) {
     imports = `
-import dev.nextftc.core.command.groups.SequentialGroup;
-import dev.nextftc.core.command.groups.ParallelRaceGroup;
-import dev.nextftc.core.command.Delay;
-import dev.nextftc.core.command.WaitUntil;
-import dev.nextftc.core.command.InstantCommand;
-import dev.nextftc.extensions.pedro.command.FollowPath;
+import dev.nextftc.core.commands.Command;
+import dev.nextftc.core.commands.groups.SequentialGroup;
+import dev.nextftc.core.commands.groups.ParallelRaceGroup;
+import dev.nextftc.core.commands.Delay;
+import dev.nextftc.core.commands.WaitUntil;
+import dev.nextftc.core.commands.InstantCommand;
+import org.firstinspires.ftc.teamcode.pedroPathing.FollowPath;
 `;
   } else {
     imports = `
@@ -848,7 +853,78 @@ import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
     ? ""
     : `PedroPathReader pp = new PedroPathReader("${fileName ? fileName.split(/[\\/]/).pop() + ".pp" || "AutoPath.pp" : "AutoPath.pp"}", hw.appContext);`;
 
-  const sequentialCommandCode = `
+  let sequentialCommandCode = "";
+
+  if (isNextFTC) {
+    sequentialCommandCode = `
+${AUTO_GENERATED_FILE_WARNING_MESSAGE}
+
+package ${packageName};
+
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierCurve;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+${imports}
+${ppReaderImport}
+import java.io.IOException;
+import ${packageName.split(".").slice(0, 4).join(".")}.Subsystems.Drivetrain;
+
+public class ${className} extends Command {
+
+    private final Follower follower;
+    private Command group;
+
+    // Poses
+${allPoseDeclarations.join("\n")}
+
+    // Path chains
+${pathChainDeclarations}
+
+    public ${className}(final Drivetrain drive, HardwareMap hw) throws IOException {
+        this.follower = drive.getFollower();
+
+        ${ppReaderInit}
+
+        // Load poses
+${allPoseInitializations.join("\n")}
+
+        follower.setStartingPose(startPoint);
+    }
+
+    public void buildPaths() {
+        ${pathBuilders}
+    }
+
+    @Override
+    public void start() {
+        buildPaths();
+        group = new SequentialGroup(
+${commands.join(",\n")}
+        );
+        group.start();
+    }
+
+    @Override
+    public void update() {
+        if (group != null) group.update();
+    }
+
+    @Override
+    public void stop(boolean interrupted) {
+        if (group != null) group.stop(interrupted);
+    }
+
+    @Override
+    public boolean isDone() {
+        return group != null && group.isDone();
+    }
+}
+`;
+  } else {
+    sequentialCommandCode = `
 ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
 package ${packageName};
@@ -901,6 +977,7 @@ ${commands.join(",\n")}
     }
 }
 `;
+  }
 
   try {
     const formattedCode = await prettier.format(sequentialCommandCode, {
