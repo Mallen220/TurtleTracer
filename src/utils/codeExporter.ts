@@ -830,9 +830,9 @@ export async function generateSequentialCommandCode(
 import dev.nextftc.core.commands.Command;
 import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.commands.groups.ParallelRaceGroup;
-import dev.nextftc.core.commands.Delay;
-import dev.nextftc.core.commands.WaitUntil;
-import dev.nextftc.core.commands.InstantCommand;
+import dev.nextftc.core.commands.delays.Delay;
+import dev.nextftc.core.commands.utility.InstantCommand;
+import dev.nextftc.core.commands.delays.WaitUntil;
 import org.firstinspires.ftc.teamcode.pedroPathing.FollowPath;
 `;
   } else {
