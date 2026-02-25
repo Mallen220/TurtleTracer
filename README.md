@@ -43,7 +43,7 @@ Pedro Pathing Plus Visualizer isn't just a port of the web tool—it's a complet
 - **Native Desktop Experience**: Built with Electron for blazing fast performance. Works offline, supports multiple windows, and integrates with your OS.
 - **Local File System**: Open and save `.pp` files directly on your computer. No more uploading/downloading or losing work to browser cache clears.
 - **Git Integration**: See your file status (Modified, Staged, Untracked) instantly. Version control your paths alongside your robot code.
-- **Auto-Save & History**: Never lose progress with robust Auto-Save and full Undo/Redo support.
+- **Auto-Save & History**: Never lose progress with robust Auto-Save, full Undo/Redo support, and a dedicated History Panel to jump back to any point.
 
 ### 📊 **Professional Analysis & Simulation**
 
@@ -62,6 +62,8 @@ Pedro Pathing Plus Visualizer isn't just a port of the web tool—it's a complet
   - **Onion Skinning**: See previous path states to make precise adjustments.
 - **Path Optimizer**: Single-click optimization to refine your paths for maximum speed while respecting field boundaries and obstacles.
 - **Custom Field Maps**: Import any field image with the built-in Calibration Wizard.
+- **Smart Object Snapping**: Intelligent snapping for field waypoints and markers to ensure precise alignment.
+- **Sticky Notes**: Annotate your paths directly on the field with customizable sticky notes.
 
 ### ⚡ **Efficiency Boosters**
 
@@ -72,7 +74,9 @@ Pedro Pathing Plus Visualizer isn't just a port of the web tool—it's a complet
 - **Presentation Mode**: One-click cleaner interface for demonstrating paths to judges or teammates.
 - **Export Power**:
   - **Java Code**: Generates `PedroPathingPlus` compliant code.
-  - **Visuals**: Export high-quality **APNG** and **GIF** animations of your paths.
+  - **Live Code Preview**: See your generated code update in real-time as you edit.
+  - **Strategy Sheet**: Export a printable summary of your routine for strategizing with alliance partners.
+  - **Visuals**: Export high-quality **APNG**, **GIF**, and **Static Images** of your paths.
 
 ### ✨ **Stunning UI & UX Overhaul**
 
@@ -95,6 +99,7 @@ It's not just about looks—the engine is brand new.
 - **Theming**: Light Mode, Dark Mode, and custom theme plugins.
 - **Keybindings**: Every action is remappable. Custom profiles supported.
 - **Font Sizing**: Adjustable font sizes to suit your preference and screen resolution.
+- **Settings Management**: Import and export your configuration to share with teammates or move between devices.
 
 Oh, and so so many little improvements not even included yet! Check back often for a growing list of upgrades!
 
@@ -122,6 +127,16 @@ _Enter your password when prompted to complete installation._
 4.  Launch the application.
 
 ### **Windows**
+
+**Microsoft Store (Recommended):**
+
+<a href="https://apps.microsoft.com/detail/9nb7sqkhhct6?cid=DevShareMCLPCS&hl=en-US&gl=US" target="_blank" rel="noopener noreferrer">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/f/f7/Get_it_from_Microsoft_Badge.svg" height="50" alt="Microsoft Store">
+</a>
+
+Download from the Microsoft Store to receive auto-updates for stable releases.
+
+**Manual Installation (.exe):**
 
 1.  Download the latest `.exe` from [Releases](https://github.com/Mallen220/PedroPathingPlusVisualizer/releases).
 2.  Run the installer.
