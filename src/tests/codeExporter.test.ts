@@ -299,7 +299,7 @@ describe("codeExporter", () => {
       );
     });
 
-    it("should handle NextFTC library", async () => {
+    it("should handle NextFTC library and structure", async () => {
       const lines = [line1];
       const code = await generateSequentialCommandCode(
         startPoint,
@@ -310,10 +310,50 @@ describe("codeExporter", () => {
       );
 
       expect(code).toContain(
-        "import dev.nextftc.core.command.groups.SequentialGroup",
+        "import dev.nextftc.core.commands.groups.SequentialGroup",
       );
-      expect(code).toContain("public class TestPath extends SequentialGroup");
+      expect(code).toContain("public class TestPath extends Command");
+      expect(code).toContain("private Command group;");
+
+      // Constructor shouldn't contain addCommands
+      expect(code).not.toContain("addCommands(");
+
+      // Check Imports
+      expect(code).toContain("import dev.nextftc.core.commands.Command;");
+      expect(code).toContain(
+        "import dev.nextftc.core.commands.groups.SequentialGroup;",
+      );
+      expect(code).toContain(
+        "import org.firstinspires.ftc.teamcode.pedroPathing.FollowPath;",
+      );
+
+      // Check Methods
+      expect(code).toContain("public void start() {");
+      expect(code).toContain("buildPaths();");
+      expect(code).toContain("group = new SequentialGroup(");
       expect(code).toContain("new FollowPath(startPointTOline1)");
+      expect(code).toContain("group.start();");
+
+      expect(code).toContain("public void update() {");
+      expect(code).toContain("if (group != null) group.update();");
+
+      expect(code).toContain("public void stop(boolean interrupted) {");
+      expect(code).toContain("if (group != null) group.stop(interrupted);");
+
+      expect(code).toContain("public boolean isDone() {");
+      expect(code).toContain("return group != null && group.isDone();");
+
+      // Verify no ProgressTracker or Telemetry
+      expect(code).not.toContain("ProgressTracker progressTracker");
+      expect(code).not.toContain(
+        "import com.pedropathingplus.pathing.ProgressTracker;",
+      );
+      expect(code).not.toContain(
+        "public TestPath(final Drivetrain drive, HardwareMap hw, Telemetry telemetry)",
+      );
+      expect(code).toContain(
+        "public TestPath(final Drivetrain drive, HardwareMap hw) throws IOException",
+      );
     });
 
     it("should handle wait commands in sequence", async () => {
