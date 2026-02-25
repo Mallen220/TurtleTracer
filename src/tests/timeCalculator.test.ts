@@ -239,9 +239,8 @@ describe("Time Calculator", () => {
       );
 
       // Should have steps covering the distance 10
-      // 50 samples = 50 intervals.
-      // steps array has length 50 (i=1 to 50)
-      expect(steps.steps.length).toBe(50);
+      // 50 samples requested, but adaptive uses 10 for linear.
+      expect(steps.steps.length).toBe(10);
       expect(steps.length).toBeCloseTo(10);
     });
 
@@ -259,7 +258,8 @@ describe("Time Calculator", () => {
         0,
       );
 
-      expect(steps.steps.length).toBe(50);
+      // Adaptive sampling: Length approx 20. Target 20 samples.
+      expect(steps.steps.length).toBe(20);
       // Midpoint curvature should be non-zero
       const midStep = steps.steps[Math.floor(steps.steps.length / 2)];
       // For a quadratic bezier with P0(0,0), P1(10,0), P2(10,10)

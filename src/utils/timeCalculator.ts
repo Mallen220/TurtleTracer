@@ -300,8 +300,29 @@ export function analyzePathSegment(
   const useFallback = degree > 3;
   const fullPoints = useFallback ? [start, ...cps, end] : [];
 
-  for (let i = 0; i <= samples; i++) {
-    const t = i / samples;
+  // Adaptive Sampling: reduce samples for short or linear segments
+  let adaptiveSamples = samples;
+  if (degree === 1) {
+    adaptiveSamples = 10; // Linear: minimal samples needed
+  } else {
+    // Estimate length using control polygon
+    let estimatedLength = 0;
+    let prev = start;
+    for (const p of cps) {
+      estimatedLength += getDistance(prev, p);
+      prev = p;
+    }
+    estimatedLength += getDistance(prev, end);
+
+    // Density: 1 sample per unit (e.g. inch)
+    // Clamp between 20 (min resolution) and samples (max resolution)
+    const density = 1;
+    const target = Math.ceil(estimatedLength * density);
+    adaptiveSamples = Math.max(20, Math.min(target, samples));
+  }
+
+  for (let i = 0; i <= adaptiveSamples; i++) {
+    const t = i / adaptiveSamples;
 
     let px = 0,
       py = 0;
