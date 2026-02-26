@@ -114,6 +114,12 @@
     if (settings.telemetryImplementation) {
       telemetryImplementation = settings.telemetryImplementation;
     }
+    if (settings.autoExportEmbedPoseData !== undefined) {
+      embedPoseData = settings.autoExportEmbedPoseData;
+    }
+    if (settings.autoExportTargetLibrary) {
+      targetLibrary = settings.autoExportTargetLibrary;
+    }
   });
 
   async function handlePackageKeydown(event: KeyboardEvent) {
