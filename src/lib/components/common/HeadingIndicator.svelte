@@ -5,18 +5,13 @@
   export let size: number = 16;
   export let className: string = "";
 
-  $: offset =
-    $settingsStore.fieldOrientation === "Red Left"
-      ? 180
-      : $settingsStore.fieldOrientation === "Blue Right"
-        ? 180
-        : 0;
+  $: fieldRotation = $settingsStore.fieldRotation || 0;
 </script>
 
 <div
   class="inline-flex items-center justify-center shrink-0 {className}"
   style="transform: rotate({-(
-    degrees + offset
+    degrees + fieldRotation
   )}deg); width: {size}px; height: {size}px; transition: transform 0.2s ease-out;"
   role="presentation"
   aria-hidden="true"
