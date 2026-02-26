@@ -1974,7 +1974,7 @@
 
                     <div class="text-sm space-y-1 mb-6">
                       <p>Copyright © 2026 Matthew Allen</p>
-                      <p>Licensed under Apache License, Version 2.0</p>
+                      <p>Licensed under Modified Apache License, Version 2.0</p>
                     </div>
 
                     <div class="flex gap-4 text-sm font-medium mb-8">
