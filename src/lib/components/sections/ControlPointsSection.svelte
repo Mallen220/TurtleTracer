@@ -8,6 +8,8 @@
     selectedPointId,
     focusRequest,
   } from "../../../stores";
+  import { settingsStore } from "../../projectStore";
+  import { toUser, toField } from "../../../utils/coordinates";
   import type { Line } from "../../../types/index";
   import {
     calculateDragPosition,
@@ -328,16 +330,25 @@
                 >
                 <input
                   bind:this={xInputs[idx]}
-                  bind:value={point.x}
+                  value={toUser(point, $settingsStore.coordinateSystem || "Pedro").x}
                   type="number"
-                  min="0"
-                  max="144"
+                  min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
+                  max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
                   step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                   class="w-full pl-5 pr-1 py-1 text-xs rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} X"
-                  on:change={() => {
-                    // Update the array to trigger reactivity
-                    line.controlPoints = [...line.controlPoints];
+                  on:input={(e) => {
+                    const val = parseFloat(e.currentTarget.value);
+                    if (!isNaN(val)) {
+                      const userPt = toUser(point, $settingsStore.coordinateSystem || "Pedro");
+                      const newPt = toField(
+                        { x: val, y: userPt.y },
+                        $settingsStore.coordinateSystem || "Pedro",
+                      );
+                      point.x = newPt.x;
+                      point.y = newPt.y;
+                      line.controlPoints = [...line.controlPoints];
+                    }
                   }}
                   disabled={line.locked}
                   title={snapToGridTitle}
@@ -350,16 +361,25 @@
                 >
                 <input
                   bind:this={yInputs[idx]}
-                  bind:value={point.y}
+                  value={toUser(point, $settingsStore.coordinateSystem || "Pedro").y}
                   type="number"
-                  min="0"
-                  max="144"
+                  min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
+                  max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
                   step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                   class="w-full pl-5 pr-1 py-1 text-xs rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} Y"
-                  on:change={() => {
-                    // Update the array to trigger reactivity
-                    line.controlPoints = [...line.controlPoints];
+                  on:input={(e) => {
+                    const val = parseFloat(e.currentTarget.value);
+                    if (!isNaN(val)) {
+                      const userPt = toUser(point, $settingsStore.coordinateSystem || "Pedro");
+                      const newPt = toField(
+                        { x: userPt.x, y: val },
+                        $settingsStore.coordinateSystem || "Pedro",
+                      );
+                      point.x = newPt.x;
+                      point.y = newPt.y;
+                      line.controlPoints = [...line.controlPoints];
+                    }
                   }}
                   disabled={line.locked}
                   title={snapToGridTitle}

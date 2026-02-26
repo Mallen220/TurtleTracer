@@ -175,6 +175,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoExportEmbedPoseData: false,
   telemetryImplementation: "Panels",
   followRobot: false,
+  coordinateSystem: "Pedro",
 };
 
 /**

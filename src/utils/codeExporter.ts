@@ -5,6 +5,11 @@ import type { Point, Line, BasePoint, SequenceItem } from "../types";
 import { getCurvePoint, getLineStartHeading } from "./math";
 import pkg from "../../package.json";
 import { actionRegistry } from "../lib/actionRegistry";
+import {
+  toUser,
+  toUserHeading,
+  type CoordinateSystem,
+} from "./coordinates";
 
 /**
  * Generate Java code from path data
@@ -28,6 +33,7 @@ export async function generateJavaCode(
   sequence?: SequenceItem[],
   packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
   telemetryImpl: "Standard" | "Dashboard" | "Panels" | "None" = "Panels",
+  coordinateSystem: CoordinateSystem = "Pedro",
 ): Promise<string> {
   const headingTypeToFunctionName = {
     constant: "setConstantHeadingInterpolation",
@@ -99,32 +105,77 @@ export async function generateJavaCode(
       ${lines
         .map((line, idx) => {
           const variableName = pathChainNames[idx];
-          const start =
-            idx === 0
-              ? `new Pose(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)})`
-              : `new Pose(${lines[idx - 1].endPoint.x.toFixed(3)}, ${lines[idx - 1].endPoint.y.toFixed(3)})`;
 
-          const controlPoints =
-            line.controlPoints.length > 0
-              ? `${line.controlPoints
-                  .map(
-                    (point) =>
-                      `new Pose(${point.x.toFixed(3)}, ${point.y.toFixed(3)})`,
-                  )
-                  .join(",\n")},`
-              : "";
+          let startCode, controlPointsCode, endCode, headingConfig;
+
+          if (coordinateSystem === "FTC") {
+            // Helper to format buildPose call
+            const formatPose = (pt: { x: number; y: number }, h: number = 0) => {
+              const u = toUser(pt, "FTC");
+              // We pass 0 for heading if it doesn't matter (like start/CPs in curve constructor usually ignore heading except start?)
+              // Actually BezierCurve constructor uses Points. Pose has heading.
+              // If we use buildPose, it returns a Pose.
+              // The conversion helper should convert heading too.
+              const uh = toUserHeading(h, "FTC");
+              return `buildPose(${u.x.toFixed(3)}, ${u.y.toFixed(3)}, Math.toRadians(${uh.toFixed(3)}))`;
+            };
+
+            const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+            // For start point of path, heading matters if it's the very first point or if we need tangent?
+            // BezierCurve takes Points. Pose is a Point.
+            // We pass 0 heading for geometric points usually, but for start point it might use heading.
+            startCode = formatPose(startPt, 0);
+
+            controlPointsCode =
+              line.controlPoints.length > 0
+                ? `${line.controlPoints
+                    .map((point) => formatPose(point, 0))
+                    .join(",\n")},`
+                : "";
+
+            endCode = formatPose(line.endPoint, 0);
+
+            // Heading configurations
+            if (line.endPoint.heading === "constant") {
+              const uh = toUserHeading(line.endPoint.degrees || 0, "FTC");
+              headingConfig = `Math.toRadians(${uh.toFixed(3)})`;
+            } else if (line.endPoint.heading === "linear") {
+              const uhStart = toUserHeading(line.endPoint.startDeg || 0, "FTC");
+              const uhEnd = toUserHeading(line.endPoint.endDeg || 0, "FTC");
+              headingConfig = `Math.toRadians(${uhStart.toFixed(3)}), Math.toRadians(${uhEnd.toFixed(3)})`;
+            } else {
+              headingConfig = "";
+            }
+
+          } else {
+            // Standard Pedro (0-144)
+            const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+            startCode = `new Pose(${startPt.x.toFixed(3)}, ${startPt.y.toFixed(3)})`;
+
+            controlPointsCode =
+              line.controlPoints.length > 0
+                ? `${line.controlPoints
+                    .map(
+                      (point) =>
+                        `new Pose(${point.x.toFixed(3)}, ${point.y.toFixed(3)})`,
+                    )
+                    .join(",\n")},`
+                : "";
+
+            endCode = `new Pose(${line.endPoint.x.toFixed(3)}, ${line.endPoint.y.toFixed(3)})`;
+
+            headingConfig =
+              line.endPoint.heading === "constant"
+                ? `Math.toRadians(${line.endPoint.degrees})`
+                : line.endPoint.heading === "linear"
+                  ? `Math.toRadians(${line.endPoint.startDeg}), Math.toRadians(${line.endPoint.endDeg})`
+                  : "";
+          }
 
           const curveType =
             line.controlPoints.length === 0
               ? `new BezierLine`
               : `new BezierCurve`;
-
-          const headingConfig =
-            line.endPoint.heading === "constant"
-              ? `Math.toRadians(${line.endPoint.degrees})`
-              : line.endPoint.heading === "linear"
-                ? `Math.toRadians(${line.endPoint.startDeg}), Math.toRadians(${line.endPoint.endDeg})`
-                : "";
 
           const reverseConfig = line.endPoint.reverse ? ".setReversed()" : "";
 
@@ -141,9 +192,9 @@ export async function generateJavaCode(
 
           return `${variableName} = follower.pathBuilder().addPath(
           ${curveType}(
-            ${start},
-            ${controlPoints}
-            new Pose(${line.endPoint.x.toFixed(3)}, ${line.endPoint.y.toFixed(3)})
+            ${startCode},
+            ${controlPointsCode}
+            ${endCode}
           )
         ).${headingTypeToFunctionName[line.endPoint.heading]}(${headingConfig})
         ${reverseConfig}${eventMarkerCode}
@@ -151,6 +202,20 @@ export async function generateJavaCode(
         })
         .join("\n\n")}
     }
+
+    ${coordinateSystem === "FTC" ? `
+    private Pose buildPose(double x, double y, double heading) {
+        return PoseConverter.pose2DToPose(
+            new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
+                org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH,
+                x, y,
+                org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS,
+                heading
+            ),
+            InvertedFTCCoordinates.INSTANCE
+        ).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+    }
+    ` : ""}
   }
   `;
 
@@ -358,8 +423,11 @@ export async function generateJavaCode(
     import com.qualcomm.robotcore.eventloop.opmode.OpMode;
     import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
     import com.qualcomm.robotcore.util.ElapsedTime;
+    import com.pedropathing.ftc.InvertedFTCCoordinates;
+    import com.pedropathing.geometry.PedroCoordinates;
+    import org.firstinspires.ftc.teamcode.pedroPathing.PedroConstants;
+    import com.pedropathing.ftc.PoseConverter;
     ${extraImports}
-    import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
     import com.pedropathing.geometry.BezierCurve;
     import com.pedropathing.geometry.BezierLine;
     import com.pedropathing.follower.Follower;
@@ -380,9 +448,17 @@ export async function generateJavaCode(
       public void init() {
         ${telemetryInit}
 
-        follower = Constants.createFollower(hardwareMap);
+        follower = PedroConstants.createFollower(hardwareMap);
         // Determine starting heading: prefer geometric heading when a path exists, otherwise fall back to explicit startPoint values
-        follower.setStartingPose(new Pose(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)}, Math.toRadians(${startDegForExport.toFixed(3)})));
+        ${
+          coordinateSystem === "FTC"
+            ? (() => {
+                const uStart = toUser(startPoint, "FTC");
+                const uHead = toUserHeading(startDegForExport, "FTC");
+                return `follower.setStartingPose(new Paths(follower).buildPose(${uStart.x.toFixed(3)}, ${uStart.y.toFixed(3)}, Math.toRadians(${uHead.toFixed(3)})));`;
+              })()
+            : `follower.setStartingPose(new Pose(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)}, Math.toRadians(${startDegForExport.toFixed(3)})));`
+        }
 
         pathTimer = new ElapsedTime();
         paths = new Paths(follower); // Build paths
@@ -474,6 +550,7 @@ export async function generateSequentialCommandCode(
   targetLibrary: "SolversLib" | "NextFTC" = "SolversLib",
   packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
   hardcodeValues: boolean = false,
+  coordinateSystem: CoordinateSystem = "Pedro",
 ): Promise<string> {
   // Determine class name from file name or use default
   let className = "AutoPath";
@@ -510,9 +587,18 @@ export async function generateSequentialCommandCode(
           overrideDegrees !== undefined
             ? overrideDegrees
             : (point as any).degrees || 0;
-        allPoseInitializations.push(
-          `        ${variableName} = new Pose(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, Math.toRadians(${degrees}));`,
-        );
+
+        if (coordinateSystem === "FTC") {
+          const userPt = toUser(point, "FTC");
+          const userHead = toUserHeading(degrees, "FTC");
+          allPoseInitializations.push(
+            `        ${variableName} = buildPose(${userPt.x.toFixed(3)}, ${userPt.y.toFixed(3)}, Math.toRadians(${userHead.toFixed(3)}));`,
+          );
+        } else {
+          allPoseInitializations.push(
+            `        ${variableName} = new Pose(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, Math.toRadians(${degrees}));`,
+          );
+        }
       } else {
         // Use pp.get
         allPoseInitializations.push(
@@ -935,6 +1021,9 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.pedropathing.ftc.InvertedFTCCoordinates;
+import com.pedropathing.geometry.PedroCoordinates;
+import com.pedropathing.ftc.PoseConverter;
 ${imports}
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 ${ppReaderImport}
@@ -974,6 +1063,24 @@ ${commands.join(",\n")}
 
     public void buildPaths() {
         ${pathBuilders}
+    }
+
+    ${
+      coordinateSystem === "FTC"
+        ? `
+    private Pose buildPose(double x, double y, double heading) {
+        return PoseConverter.pose2DToPose(
+            new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
+                org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH,
+                x, y,
+                org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS,
+                heading
+            ),
+            InvertedFTCCoordinates.INSTANCE
+        ).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+    }
+    `
+        : ""
     }
 }
 `;

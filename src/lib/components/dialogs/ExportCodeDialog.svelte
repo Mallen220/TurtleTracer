@@ -143,6 +143,7 @@
           sequence,
           packageName,
           telemetryImplementation,
+          settings?.coordinateSystem,
         );
         currentLanguage = java;
       } else if (exportFormat === "points") {
@@ -157,6 +158,7 @@
           targetLibrary,
           packageName,
           embedPoseData,
+          settings?.coordinateSystem,
         );
         currentLanguage = java;
       } else if (exportFormat === "json") {

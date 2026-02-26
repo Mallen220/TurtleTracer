@@ -1515,6 +1515,22 @@
                 </SettingsItem>
 
                 <SettingsItem
+                  label="Coordinate System"
+                  description="Choose between standard Pedro Pathing (0-144) or FTC Center (±72)"
+                  {searchQuery}
+                  forId="coordinate-system-select"
+                >
+                  <select
+                    id="coordinate-system-select"
+                    bind:value={settings.coordinateSystem}
+                    class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Pedro">Pedro Pathing (0-144)</option>
+                    <option value="FTC">FTC Center (±72)</option>
+                  </select>
+                </SettingsItem>
+
+                <SettingsItem
                   label="Smart Object Snapping"
                   description="Snap points to align with other waypoints (Hold Alt/Option to invert)"
                   {searchQuery}

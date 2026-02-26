@@ -53,6 +53,7 @@
     getSmallButtonClass,
   } from "../../utils/buttonStyles";
   import { getShortcutFromSettings } from "../../utils";
+  import { toUser, toField } from "../../utils/coordinates";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -188,7 +189,25 @@
     const input = e.target as HTMLInputElement;
     const val = parseFloat(input.value);
     if (!isNaN(val)) {
-      updatePoint(point, field, val, lineId);
+      const system = settings?.coordinateSystem || "Pedro";
+      const userPt = toUser(point, system);
+      const newUserPt = { ...userPt, [field]: val };
+      const fieldPt = toField(newUserPt, system);
+
+      // Update both since change in user X might affect field Y and vice versa
+      point.x = fieldPt.x;
+      point.y = fieldPt.y;
+
+      // Trigger reactivity
+      if (lineId) {
+        const line = lines.find((l) => l.id === lineId);
+        if (line && line.endPoint === point) {
+          lines = updateLinkedWaypoints(lines, lineId);
+        }
+      }
+      lines = lines;
+      startPoint = startPoint;
+      recordChange();
     }
   }
 
@@ -544,28 +563,32 @@
   let copyButtonText = "Copy Table";
 
   export function copyTableToClipboard() {
+    const system = settings?.coordinateSystem || "Pedro";
     const rows = [];
     rows.push("| Name | X (in) / Dur (ms) | Y (in) / Deg |");
     rows.push("| :--- | :--- | :--- |");
+    const sPt = toUser(startPoint, system);
     rows.push(
-      `| Start Point | ${startPoint.x.toString()} | ${startPoint.y.toString()} |`,
+      `| Start Point | ${sPt.x.toString()} | ${sPt.y.toString()} |`,
     );
 
     for (const item of displaySequence) {
       if (item.kind === "path") {
         const line = lines.find((l) => l.id === item.lineId);
         if (line) {
-          let xVal = line.endPoint.x.toString();
+          const ePt = toUser(line.endPoint, system);
+          let xVal = ePt.x.toString();
           if (line.waitBeforeName || line.waitBeforeMs) {
             xVal += ` (${line.waitBeforeName || line.waitBeforeMs})`;
           }
           const lineIdx = lines.findIndex((l) => l.id === line.id);
           rows.push(
-            `| ${line.name || `Path ${lineIdx + 1}`} | ${xVal} | ${line.endPoint.y.toString()} |`,
+            `| ${line.name || `Path ${lineIdx + 1}`} | ${xVal} | ${ePt.y.toString()} |`,
           );
           line.controlPoints.forEach((cp, idx) => {
+            const cPt = toUser(cp, system);
             rows.push(
-              `| ↳ Control ${idx + 1} | ${cp.x.toString()} | ${cp.y.toString()} |`,
+              `| ↳ Control ${idx + 1} | ${cPt.x.toString()} | ${cPt.y.toString()} |`,
             );
           });
         }
@@ -1281,7 +1304,7 @@
               type="number"
               class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               step={stepSize}
-              value={startPoint.x}
+              value={toUser(startPoint, settings?.coordinateSystem || "Pedro").x}
               aria-label="Start Point X"
               on:input={(e) => handleInput(e, startPoint, "x")}
               use:focusOnRequest={{ id: "point-0-0", field: "x" }}
@@ -1293,7 +1316,7 @@
               type="number"
               class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               step={stepSize}
-              value={startPoint.y}
+              value={toUser(startPoint, settings?.coordinateSystem || "Pedro").y}
               aria-label="Start Point Y"
               on:input={(e) => handleInput(e, startPoint, "y")}
               use:focusOnRequest={{ id: "point-0-0", field: "y" }}
@@ -1441,7 +1464,7 @@
                       type="number"
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       step={stepSize}
-                      value={line.endPoint.x}
+                      value={toUser(line.endPoint, settings?.coordinateSystem || "Pedro").x}
                       aria-label="{line.name || `Path ${lineIdx + 1}`} X"
                       on:input={(e) =>
                         handleInput(e, line.endPoint, "x", line.id)}
@@ -1458,7 +1481,7 @@
                     type="number"
                     class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     step={stepSize}
-                    value={line.endPoint.y}
+                    value={toUser(line.endPoint, settings?.coordinateSystem || "Pedro").y}
                     aria-label="{line.name || `Path ${lineIdx + 1}`} Y"
                     on:input={(e) =>
                       handleInput(e, line.endPoint, "y", line.id)}
@@ -1558,7 +1581,7 @@
                       type="number"
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
                       step={stepSize}
-                      value={cp.x}
+                      value={toUser(cp, settings?.coordinateSystem || "Pedro").x}
                       aria-label="Control Point {j + 1} X for {line.name ||
                         `Path ${lineIdx + 1}`}"
                       on:input={(e) => handleInput(e, cp, "x")}
@@ -1571,7 +1594,7 @@
                       type="number"
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
                       step={stepSize}
-                      value={cp.y}
+                      value={toUser(cp, settings?.coordinateSystem || "Pedro").y}
                       aria-label="Control Point {j + 1} Y for {line.name ||
                         `Path ${lineIdx + 1}`}"
                       on:input={(e) => handleInput(e, cp, "y")}
