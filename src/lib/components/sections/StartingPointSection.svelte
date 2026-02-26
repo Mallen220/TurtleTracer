@@ -5,7 +5,6 @@
   import { linesStore } from "../../../lib/projectStore";
   import { getShortcutFromSettings } from "../../../utils";
   import HeadingControls from "../HeadingControls.svelte";
-  import HeadingIndicator from "../common/HeadingIndicator.svelte";
 
   export let startPoint: Point;
   export let settings: Settings;
@@ -144,45 +143,11 @@
 
   {#if lines.length === 0}
     <div class="space-y-2">
-      <div class="flex gap-2 w-full">
-        <div class="flex-1 flex items-end">
-          <span
-            class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-          >
-            Initial Heading
-          </span>
-        </div>
-        {#if startPoint.heading === "linear"}
-          <div class="flex-[2] flex gap-2">
-            <div class="flex-1 flex justify-center">
-              <HeadingIndicator
-                degrees={startPoint.startDeg}
-                size={16}
-                className="text-neutral-400 dark:text-neutral-500 transition-transform duration-200"
-              />
-            </div>
-            <div class="flex-1 flex justify-center">
-              <HeadingIndicator
-                degrees={startPoint.endDeg}
-                size={16}
-                className="text-neutral-400 dark:text-neutral-500 transition-transform duration-200"
-              />
-            </div>
-          </div>
-        {:else if startPoint.heading === "constant"}
-          <div class="flex-[2] flex gap-2">
-            <div class="flex-1 flex justify-center">
-              <HeadingIndicator
-                degrees={startPoint.degrees || 0}
-                size={16}
-                className="text-neutral-400 dark:text-neutral-500 transition-transform duration-200"
-              />
-            </div>
-          </div>
-        {:else if startPoint.heading === "tangential"}
-          <div class="flex-[2]"></div>
-        {/if}
-      </div>
+      <span
+        class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
+      >
+        Initial Heading
+      </span>
       <HeadingControls
         bind:this={headingControls}
         endPoint={startPoint}

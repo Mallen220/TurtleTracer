@@ -2,6 +2,8 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { transformAngle } from "../../utils/math";
+  import HeadingIndicator from "./common/HeadingIndicator.svelte";
+
   export let endPoint: any;
   export let locked: boolean = false;
   export let tabindex: number | undefined = undefined;
@@ -108,6 +110,11 @@
   {#if endPoint.heading === "linear"}
     <div class="flex items-center gap-2 flex-[2]">
       <div class="relative flex-1">
+        <HeadingIndicator
+          degrees={endPoint.startDeg}
+          size={16}
+          className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-400 dark:text-neutral-500"
+        />
         <span
           class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
           >Start</span
@@ -155,6 +162,11 @@
         {/if}
       </div>
       <div class="relative flex-1">
+        <HeadingIndicator
+          degrees={endPoint.endDeg}
+          size={16}
+          className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-400 dark:text-neutral-500"
+        />
         <span
           class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
           >End</span
@@ -205,6 +217,11 @@
   {:else if endPoint.heading === "constant"}
     <div class="flex items-center gap-2 flex-[2]">
       <div class="relative flex-1">
+        <HeadingIndicator
+          degrees={endPoint.degrees || 0}
+          size={16}
+          className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-400 dark:text-neutral-500"
+        />
         <span
           class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
           >°</span

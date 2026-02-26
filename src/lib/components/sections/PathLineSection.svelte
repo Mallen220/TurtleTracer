@@ -21,7 +21,6 @@
   import { onMount, onDestroy } from "svelte";
   import { actionRegistry } from "../../actionRegistry";
   import { getSmallButtonClass } from "../../../utils/buttonStyles";
-  import HeadingIndicator from "../common/HeadingIndicator.svelte";
 
   export let line: Line;
   export let idx: number;
@@ -416,45 +415,11 @@
 
         <!-- Heading Control -->
         <div class="space-y-2" class:col-span-2={!isNarrow}>
-          <div class="flex gap-2 w-full">
-            <div class="flex-1 flex items-end">
-              <span
-                class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-              >
-                Heading
-              </span>
-            </div>
-            {#if line.endPoint.heading === "linear"}
-              <div class="flex-[2] flex gap-2">
-                <div class="flex-1 flex justify-center">
-                  <HeadingIndicator
-                    degrees={line.endPoint.startDeg}
-                    size={16}
-                    className="text-neutral-400 dark:text-neutral-500 transition-transform duration-200"
-                  />
-                </div>
-                <div class="flex-1 flex justify-center">
-                  <HeadingIndicator
-                    degrees={line.endPoint.endDeg}
-                    size={16}
-                    className="text-neutral-400 dark:text-neutral-500 transition-transform duration-200"
-                  />
-                </div>
-              </div>
-            {:else if line.endPoint.heading === "constant"}
-              <div class="flex-[2] flex gap-2">
-                <div class="flex-1 flex justify-center">
-                  <HeadingIndicator
-                    degrees={line.endPoint.degrees || 0}
-                    size={16}
-                    className="text-neutral-400 dark:text-neutral-500 transition-transform duration-200"
-                  />
-                </div>
-              </div>
-            {:else if line.endPoint.heading === "tangential"}
-              <div class="flex-[2]"></div>
-            {/if}
-          </div>
+          <span
+            class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
+          >
+            Heading
+          </span>
           <HeadingControls
             bind:this={headingControls}
             endPoint={line.endPoint}
