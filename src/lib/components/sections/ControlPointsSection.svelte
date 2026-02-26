@@ -330,7 +330,10 @@
                 >
                 <input
                   bind:this={xInputs[idx]}
-                  value={toUser(point, $settingsStore.coordinateSystem || "Pedro").x}
+                  value={toUser(
+                    point,
+                    $settingsStore.coordinateSystem || "Pedro",
+                  ).x}
                   type="number"
                   min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
                   max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
@@ -340,7 +343,10 @@
                   on:input={(e) => {
                     const val = parseFloat(e.currentTarget.value);
                     if (!isNaN(val)) {
-                      const userPt = toUser(point, $settingsStore.coordinateSystem || "Pedro");
+                      const userPt = toUser(
+                        point,
+                        $settingsStore.coordinateSystem || "Pedro",
+                      );
                       const newPt = toField(
                         { x: val, y: userPt.y },
                         $settingsStore.coordinateSystem || "Pedro",
@@ -361,7 +367,10 @@
                 >
                 <input
                   bind:this={yInputs[idx]}
-                  value={toUser(point, $settingsStore.coordinateSystem || "Pedro").y}
+                  value={toUser(
+                    point,
+                    $settingsStore.coordinateSystem || "Pedro",
+                  ).y}
                   type="number"
                   min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
                   max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
@@ -371,7 +380,10 @@
                   on:input={(e) => {
                     const val = parseFloat(e.currentTarget.value);
                     if (!isNaN(val)) {
-                      const userPt = toUser(point, $settingsStore.coordinateSystem || "Pedro");
+                      const userPt = toUser(
+                        point,
+                        $settingsStore.coordinateSystem || "Pedro",
+                      );
                       const newPt = toField(
                         { x: userPt.x, y: val },
                         $settingsStore.coordinateSystem || "Pedro",
