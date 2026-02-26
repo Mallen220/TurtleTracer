@@ -2,8 +2,6 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { transformAngle } from "../../utils/math";
-  import HeadingIndicator from "./common/HeadingIndicator.svelte";
-
   export let endPoint: any;
   export let locked: boolean = false;
   export let tabindex: number | undefined = undefined;
@@ -109,170 +107,149 @@
 
   {#if endPoint.heading === "linear"}
     <div class="flex items-center gap-2 flex-[2]">
-      <div class="flex flex-col gap-1 items-center flex-1">
-        <HeadingIndicator
-          degrees={endPoint.startDeg}
-          size={16}
-          className="text-neutral-400 dark:text-neutral-500 mb-1"
+      <div class="relative flex-1">
+        <span
+          class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
+          >Start</span
+        >
+        <input
+          bind:this={startInput}
+          class="w-full pl-12 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class:pr-6={isStartOutOfBounds}
+          class:pr-1={!isStartOutOfBounds}
+          class:border-yellow-500={isStartOutOfBounds}
+          class:dark:border-yellow-500={isStartOutOfBounds}
+          step="1"
+          type="number"
+          bind:value={endPoint.startDeg}
+          on:input={() => dispatch("change")}
+          on:blur={() => dispatch("commit")}
+          title="The heading the robot starts this line at (in degrees)"
+          aria-label="Start Heading"
+          disabled={locked}
+          {tabindex}
         />
-        <div class="relative w-full">
-          <span
-            class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
-            >Start</span
+        {#if isStartOutOfBounds && !locked}
+          <button
+            on:click={normalizeStart}
+            title="Angle is out of bounds. Click to normalize to [-180, 180]."
+            class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
           >
-          <input
-            bind:this={startInput}
-            class="w-full pl-12 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-            class:pr-6={isStartOutOfBounds}
-            class:pr-1={!isStartOutOfBounds}
-            class:border-yellow-500={isStartOutOfBounds}
-            class:dark:border-yellow-500={isStartOutOfBounds}
-            step="1"
-            type="number"
-            bind:value={endPoint.startDeg}
-            on:input={() => dispatch("change")}
-            on:blur={() => dispatch("commit")}
-            title="The heading the robot starts this line at (in degrees)"
-            aria-label="Start Heading"
-            disabled={locked}
-            {tabindex}
-          />
-          {#if isStartOutOfBounds && !locked}
-            <button
-              on:click={normalizeStart}
-              title="Angle is out of bounds. Click to normalize to [-180, 180]."
-              class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="size-3"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="size-3"
-              >
-                <path
-                  d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-            </button>
-          {/if}
-        </div>
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </button>
+        {/if}
       </div>
-      <div class="flex flex-col gap-1 items-center flex-1">
-        <HeadingIndicator
-          degrees={endPoint.endDeg}
-          size={16}
-          className="text-neutral-400 dark:text-neutral-500 mb-1"
+      <div class="relative flex-1">
+        <span
+          class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
+          >End</span
+        >
+        <input
+          bind:this={endInput}
+          class="w-full pl-8 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class:pr-6={isEndOutOfBounds}
+          class:pr-1={!isEndOutOfBounds}
+          class:border-yellow-500={isEndOutOfBounds}
+          class:dark:border-yellow-500={isEndOutOfBounds}
+          step="1"
+          type="number"
+          bind:value={endPoint.endDeg}
+          on:input={() => dispatch("change")}
+          on:blur={() => dispatch("commit")}
+          title="The heading the robot ends this line at (in degrees)"
+          aria-label="End Heading"
+          disabled={locked}
+          {tabindex}
         />
-        <div class="relative w-full">
-          <span
-            class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
-            >End</span
+        {#if isEndOutOfBounds && !locked}
+          <button
+            on:click={normalizeEnd}
+            title="Angle is out of bounds. Click to normalize to [-180, 180]."
+            class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
           >
-          <input
-            bind:this={endInput}
-            class="w-full pl-8 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-            class:pr-6={isEndOutOfBounds}
-            class:pr-1={!isEndOutOfBounds}
-            class:border-yellow-500={isEndOutOfBounds}
-            class:dark:border-yellow-500={isEndOutOfBounds}
-            step="1"
-            type="number"
-            bind:value={endPoint.endDeg}
-            on:input={() => dispatch("change")}
-            on:blur={() => dispatch("commit")}
-            title="The heading the robot ends this line at (in degrees)"
-            aria-label="End Heading"
-            disabled={locked}
-            {tabindex}
-          />
-          {#if isEndOutOfBounds && !locked}
-            <button
-              on:click={normalizeEnd}
-              title="Angle is out of bounds. Click to normalize to [-180, 180]."
-              class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="size-3"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="size-3"
-              >
-                <path
-                  d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-            </button>
-          {/if}
-        </div>
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </button>
+        {/if}
       </div>
     </div>
   {:else if endPoint.heading === "constant"}
     <div class="flex items-center gap-2 flex-[2]">
-      <div class="flex flex-col gap-1 items-center flex-1">
-        <HeadingIndicator
-          degrees={endPoint.degrees || 0}
-          size={16}
-          className="text-neutral-400 dark:text-neutral-500 mb-1"
+      <div class="relative flex-1">
+        <span
+          class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
+          >°</span
+        >
+        <input
+          bind:this={constantInput}
+          class="w-full pl-6 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class:pr-6={isConstantOutOfBounds}
+          class:pr-2={!isConstantOutOfBounds}
+          class:border-yellow-500={isConstantOutOfBounds}
+          class:dark:border-yellow-500={isConstantOutOfBounds}
+          step="1"
+          type="number"
+          value={endPoint.degrees || 0}
+          on:input={handleConstantInput}
+          on:blur={handleConstantBlur}
+          title="The constant heading the robot maintains throughout this line (in degrees)"
+          aria-label="Constant Heading"
+          disabled={locked}
+          {tabindex}
         />
-        <div class="relative w-full">
-          <span
-            class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
-            >°</span
+        {#if isConstantOutOfBounds && !locked}
+          <button
+            on:click={normalizeConstant}
+            title="Angle is out of bounds. Click to normalize to [-180, 180]."
+            class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
           >
-          <input
-            bind:this={constantInput}
-            class="w-full pl-6 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-            class:pr-6={isConstantOutOfBounds}
-            class:pr-2={!isConstantOutOfBounds}
-            class:border-yellow-500={isConstantOutOfBounds}
-            class:dark:border-yellow-500={isConstantOutOfBounds}
-            step="1"
-            type="number"
-            value={endPoint.degrees || 0}
-            on:input={handleConstantInput}
-            on:blur={handleConstantBlur}
-            title="The constant heading the robot maintains throughout this line (in degrees)"
-            aria-label="Constant Heading"
-            disabled={locked}
-            {tabindex}
-          />
-          {#if isConstantOutOfBounds && !locked}
-            <button
-              on:click={normalizeConstant}
-              title="Angle is out of bounds. Click to normalize to [-180, 180]."
-              class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="size-3"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="size-3"
-              >
-                <path
-                  d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-            </button>
-          {/if}
-        </div>
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </button>
+        {/if}
       </div>
     </div>
   {:else if endPoint.heading === "tangential"}

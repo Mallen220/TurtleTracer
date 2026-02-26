@@ -5,6 +5,7 @@
   import { linesStore } from "../../../lib/projectStore";
   import { getShortcutFromSettings } from "../../../utils";
   import HeadingControls from "../HeadingControls.svelte";
+  import HeadingIndicator from "../common/HeadingIndicator.svelte";
 
   export let startPoint: Point;
   export let settings: Settings;
@@ -143,11 +144,34 @@
 
   {#if lines.length === 0}
     <div class="space-y-2">
-      <span
-        class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-      >
-        Initial Heading
-      </span>
+      <div class="flex items-center gap-2">
+        <span
+          class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
+        >
+          Initial Heading
+        </span>
+        {#if startPoint.heading === "linear"}
+          <div class="flex items-center gap-1">
+            <HeadingIndicator
+              degrees={startPoint.startDeg}
+              size={14}
+              className="text-neutral-400 dark:text-neutral-500"
+            />
+            <span class="text-[10px] text-neutral-400 font-medium">→</span>
+            <HeadingIndicator
+              degrees={startPoint.endDeg}
+              size={14}
+              className="text-neutral-400 dark:text-neutral-500"
+            />
+          </div>
+        {:else if startPoint.heading === "constant"}
+          <HeadingIndicator
+            degrees={startPoint.degrees || 0}
+            size={14}
+            className="text-neutral-400 dark:text-neutral-500"
+          />
+        {/if}
+      </div>
       <HeadingControls
         bind:this={headingControls}
         endPoint={startPoint}

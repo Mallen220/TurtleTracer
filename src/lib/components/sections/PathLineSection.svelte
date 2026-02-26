@@ -21,6 +21,7 @@
   import { onMount, onDestroy } from "svelte";
   import { actionRegistry } from "../../actionRegistry";
   import { getSmallButtonClass } from "../../../utils/buttonStyles";
+  import HeadingIndicator from "../common/HeadingIndicator.svelte";
 
   export let line: Line;
   export let idx: number;
@@ -415,11 +416,34 @@
 
         <!-- Heading Control -->
         <div class="space-y-2" class:col-span-2={!isNarrow}>
-          <span
-            class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-          >
-            Heading
-          </span>
+          <div class="flex items-center gap-2">
+            <span
+              class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
+            >
+              Heading
+            </span>
+            {#if line.endPoint.heading === "linear"}
+              <div class="flex items-center gap-1">
+                <HeadingIndicator
+                  degrees={line.endPoint.startDeg}
+                  size={14}
+                  className="text-neutral-400 dark:text-neutral-500"
+                />
+                <span class="text-[10px] text-neutral-400 font-medium">→</span>
+                <HeadingIndicator
+                  degrees={line.endPoint.endDeg}
+                  size={14}
+                  className="text-neutral-400 dark:text-neutral-500"
+                />
+              </div>
+            {:else if line.endPoint.heading === "constant"}
+              <HeadingIndicator
+                degrees={line.endPoint.degrees || 0}
+                size={14}
+                className="text-neutral-400 dark:text-neutral-500"
+              />
+            {/if}
+          </div>
           <HeadingControls
             bind:this={headingControls}
             endPoint={line.endPoint}
