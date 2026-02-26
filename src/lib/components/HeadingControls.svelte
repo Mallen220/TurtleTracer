@@ -112,16 +112,16 @@
       <div class="relative flex-1">
         <HeadingIndicator
           degrees={endPoint.startDeg}
-          size={14}
-          className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500"
+          size={16}
+          className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-400 dark:text-neutral-500"
         />
         <span
-          class="absolute left-7 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
+          class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
           >Start</span
         >
         <input
           bind:this={startInput}
-          class="w-full pl-16 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class="w-full pl-12 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
           class:pr-6={isStartOutOfBounds}
           class:pr-1={!isStartOutOfBounds}
           class:border-yellow-500={isStartOutOfBounds}
@@ -164,16 +164,16 @@
       <div class="relative flex-1">
         <HeadingIndicator
           degrees={endPoint.endDeg}
-          size={14}
-          className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500"
+          size={16}
+          className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-400 dark:text-neutral-500"
         />
         <span
-          class="absolute left-7 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
+          class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
           >End</span
         >
         <input
           bind:this={endInput}
-          class="w-full pl-14 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class="w-full pl-8 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
           class:pr-6={isEndOutOfBounds}
           class:pr-1={!isEndOutOfBounds}
           class:border-yellow-500={isEndOutOfBounds}
@@ -220,11 +220,15 @@
         <HeadingIndicator
           degrees={endPoint.degrees || 0}
           size={16}
-          className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500"
+          className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-400 dark:text-neutral-500"
         />
+        <span
+          class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
+          >°</span
+        >
         <input
           bind:this={constantInput}
-          class="w-full pl-8 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+          class="w-full pl-6 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
           class:pr-6={isConstantOutOfBounds}
           class:pr-2={!isConstantOutOfBounds}
           class:border-yellow-500={isConstantOutOfBounds}
