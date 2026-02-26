@@ -157,8 +157,10 @@
         class="fill-gray-600 dark:fill-gray-400 text-xs"
         text-anchor="middle"
       >
-        {toUser({ x: position, y: 0 }, $settingsStore.coordinateSystem || "Pedro")
-          .y}"
+        {toUser(
+          { x: position, y: 0 },
+          $settingsStore.coordinateSystem || "Pedro",
+        ).y}"
       </text>
     {/each}
 
@@ -179,8 +181,10 @@
         class="fill-gray-600 dark:fill-gray-400 text-xs"
         text-anchor="middle"
       >
-        {toUser({ x: 0, y: position }, $settingsStore.coordinateSystem || "Pedro")
-          .x}"
+        {toUser(
+          { x: 0, y: position },
+          $settingsStore.coordinateSystem || "Pedro",
+        ).x}"
       </text>
     {/each}
   </svg>

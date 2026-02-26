@@ -5,11 +5,7 @@ import type { Point, Line, BasePoint, SequenceItem } from "../types";
 import { getCurvePoint, getLineStartHeading } from "./math";
 import pkg from "../../package.json";
 import { actionRegistry } from "../lib/actionRegistry";
-import {
-  toUser,
-  toUserHeading,
-  type CoordinateSystem,
-} from "./coordinates";
+import { toUser, toUserHeading, type CoordinateSystem } from "./coordinates";
 
 /**
  * Generate Java code from path data
@@ -110,7 +106,10 @@ export async function generateJavaCode(
 
           if (coordinateSystem === "FTC") {
             // Helper to format buildPose call
-            const formatPose = (pt: { x: number; y: number }, h: number = 0) => {
+            const formatPose = (
+              pt: { x: number; y: number },
+              h: number = 0,
+            ) => {
               const u = toUser(pt, "FTC");
               // We pass 0 for heading if it doesn't matter (like start/CPs in curve constructor usually ignore heading except start?)
               // Actually BezierCurve constructor uses Points. Pose has heading.
@@ -146,7 +145,6 @@ export async function generateJavaCode(
             } else {
               headingConfig = "";
             }
-
           } else {
             // Standard Pedro (0-144)
             const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
@@ -203,7 +201,9 @@ export async function generateJavaCode(
         .join("\n\n")}
     }
 
-    ${coordinateSystem === "FTC" ? `
+    ${
+      coordinateSystem === "FTC"
+        ? `
     private Pose buildPose(double x, double y, double heading) {
         return PoseConverter.pose2DToPose(
             new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
@@ -215,7 +215,9 @@ export async function generateJavaCode(
             InvertedFTCCoordinates.INSTANCE
         ).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
     }
-    ` : ""}
+    `
+        : ""
+    }
   }
   `;
 

@@ -267,3 +267,8 @@ verification/after_remove_overlay.png
 verification/initial_state.png
 verification/settings_updates.png
 verification/verify_initial_heading_visibility.py
+src/lib/MathTools.svelte
+src/lib/components/sections/ControlPointsSection.svelte
+src/lib/components/sections/ObstaclesSection.svelte
+src/utils/coordinates.ts
+src/utils/timeCalculator_adaptive.test.ts
