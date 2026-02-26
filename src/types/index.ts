@@ -225,8 +225,12 @@ export interface Shape {
   color: string;
   fillColor: string;
   locked?: boolean;
-  type?: "obstacle" | "keep-in";
+  type?: "obstacle" | "keep-in" | "constraint-zone";
   visible?: boolean;
+  constraints?: {
+    maxVelocity?: number;
+    maxAcceleration?: number;
+  };
 }
 
 export interface ObstaclePreset {

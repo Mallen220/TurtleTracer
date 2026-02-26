@@ -7,6 +7,7 @@ import type {
   TimePrediction,
   TimelineEvent,
   SequenceItem,
+  Shape,
 } from "../types";
 import {
   getCurvePoint,
@@ -17,6 +18,7 @@ import {
 } from "./math";
 import { getRandomColor } from "./draw";
 import { actionRegistry } from "../lib/actionRegistry";
+import { pointInPolygon } from "./geometry";
 
 /**
  * Calculates the first derivative of a Bezier curve of degree N at t.
@@ -173,6 +175,8 @@ interface PathStep {
   radius: number;
   rotation: number; // Absolute rotation change in this step (degrees)
   heading: number; // Unwrapped heading at END of step
+  x: number; // X coordinate
+  y: number; // Y coordinate
 }
 
 interface PathAnalysis {
@@ -437,6 +441,8 @@ export function analyzePathSegment(
         radius,
         rotation: stepRotation,
         heading: currentUnwrapped,
+        x: px,
+        y: py,
       });
     }
   }
@@ -508,6 +514,7 @@ export function calculateRotationTime(
 function calculateMotionProfileDetailed(
   steps: PathStep[],
   settings: Settings,
+  constraintZones: Shape[] = [],
 ): { totalTime: number; profile: number[]; velocityProfile: number[] } {
   const maxVelGlobal = settings.maxVelocity || 100;
   const maxAcc = settings.maxAcceleration || 30;
@@ -519,6 +526,33 @@ function calculateMotionProfileDetailed(
   const n = steps.length;
   if (n === 0) return { totalTime: 0, profile: [0], velocityProfile: [0] };
 
+  // Pre-calculate per-step constraints to avoid repeated loop inside the passes
+  const stepConstraints = new Array(n).fill(null);
+  if (constraintZones && constraintZones.length > 0) {
+    for (let i = 0; i < n; i++) {
+      const step = steps[i];
+      let maxV = Infinity;
+      let maxA = Infinity;
+      for (const zone of constraintZones) {
+        if (pointInPolygon([step.x, step.y], zone.vertices)) {
+          if (
+            zone.constraints?.maxVelocity !== undefined &&
+            zone.constraints.maxVelocity > 0
+          )
+            maxV = Math.min(maxV, zone.constraints.maxVelocity);
+          if (
+            zone.constraints?.maxAcceleration !== undefined &&
+            zone.constraints.maxAcceleration > 0
+          )
+            maxA = Math.min(maxA, zone.constraints.maxAcceleration);
+        }
+      }
+      if (maxV !== Infinity || maxA !== Infinity) {
+        stepConstraints[i] = { maxVelocity: maxV, maxAcceleration: maxA };
+      }
+    }
+  }
+
   const vAtPoints = new Float64Array(n + 1);
   vAtPoints[0] = 0;
 
@@ -526,6 +560,16 @@ function calculateMotionProfileDetailed(
   for (let i = 0; i < n; i++) {
     const step = steps[i];
     let limit = maxVelGlobal;
+    let currentMaxAcc = maxAcc;
+
+    const constraint = stepConstraints[i];
+    if (constraint) {
+      if (constraint.maxVelocity !== Infinity)
+        limit = Math.min(limit, constraint.maxVelocity);
+      if (constraint.maxAcceleration !== Infinity)
+        currentMaxAcc = Math.min(currentMaxAcc, constraint.maxAcceleration);
+    }
+
     if (kFriction > 0) {
       const frictionLimit = Math.sqrt(kFriction * 386.22 * step.radius);
       if (frictionLimit < limit) limit = frictionLimit;
@@ -535,7 +579,7 @@ function calculateMotionProfileDetailed(
 
     const dist = step.deltaLength;
     const maxReachable = Math.sqrt(
-      vAtPoints[i] * vAtPoints[i] + 2 * maxAcc * dist,
+      vAtPoints[i] * vAtPoints[i] + 2 * currentMaxAcc * dist,
     );
     vAtPoints[i + 1] = Math.min(limit, maxReachable);
   }
@@ -544,8 +588,18 @@ function calculateMotionProfileDetailed(
   vAtPoints[n] = 0;
   for (let i = n - 1; i >= 0; i--) {
     const dist = steps[i].deltaLength;
+    let currentMaxDec = maxDec;
+
+    const constraint = stepConstraints[i];
+    if (constraint) {
+      // Use constrained acceleration for deceleration limit too if lower
+      // This ensures we can stop/slow down within constraints
+      if (constraint.maxAcceleration !== Infinity)
+        currentMaxDec = Math.min(currentMaxDec, constraint.maxAcceleration);
+    }
+
     const maxReachable = Math.sqrt(
-      vAtPoints[i + 1] * vAtPoints[i + 1] + 2 * maxDec * dist,
+      vAtPoints[i + 1] * vAtPoints[i + 1] + 2 * currentMaxDec * dist,
     );
     if (maxReachable < vAtPoints[i]) {
       vAtPoints[i] = maxReachable;
@@ -567,7 +621,13 @@ function calculateMotionProfileDetailed(
       dtLinear = dist / avgV;
     } else {
       // Fallback for very low speeds (start from 0) using kinematics
-      dtLinear = Math.sqrt((2 * dist) / maxAcc);
+      // We need acceleration here. Use global or constrained.
+      let currentMaxAcc = maxAcc;
+      const constraint = stepConstraints[i];
+      if (constraint && constraint.maxAcceleration !== Infinity) {
+        currentMaxAcc = Math.min(currentMaxAcc, constraint.maxAcceleration);
+      }
+      dtLinear = Math.sqrt((2 * dist) / currentMaxAcc);
     }
 
     // Check rotation constraint
@@ -599,6 +659,7 @@ export function calculatePathTime(
   settings: Settings,
   sequence?: SequenceItem[],
   macros?: Map<string, import("../types").PedroData>,
+  shapes?: Shape[],
 ): TimePrediction {
   const msToSeconds = (value?: number | string) => {
     const numeric = Number(value);
@@ -615,6 +676,11 @@ export function calculatePathTime(
     ...settings,
     aVelocity: Math.max(settings.aVelocity, 0.001),
   };
+
+  // Filter Constraint Zones
+  const constraintZones = shapes
+    ? shapes.filter((s) => s.type === "constraint-zone")
+    : [];
 
   const segmentLengths: number[] = [];
   const segmentTimes: number[] = [];
@@ -777,6 +843,7 @@ export function calculatePathTime(
         const result = calculateMotionProfileDetailed(
           analysis.steps,
           safeSettings,
+          constraintZones,
         );
         translationTime = result.totalTime;
         motionProfile = result.profile;

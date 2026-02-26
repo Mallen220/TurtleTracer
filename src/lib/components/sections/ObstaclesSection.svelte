@@ -288,11 +288,20 @@
 
                 <select
                   bind:value={shape.type}
+                  on:change={() => {
+                    if (shape.type === "constraint-zone" && !shape.constraints) {
+                      shape.constraints = {
+                        maxVelocity: 30,
+                        maxAcceleration: 20,
+                      };
+                    }
+                  }}
                   class="h-7 text-xs rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
                   disabled={shape.locked ?? false}
                 >
                   <option value="obstacle">Obstacle</option>
                   <option value="keep-in">Keep-In</option>
+                  <option value="constraint-zone">Constraint</option>
                 </select>
 
                 <div
@@ -417,6 +426,50 @@
               <div
                 class="flex flex-col gap-2 w-full mt-2 pl-4 pr-1 border-l-2 border-neutral-200 dark:border-neutral-700"
               >
+                {#if shape.type === "constraint-zone"}
+                  <!-- Ensure constraints object exists (repair on the fly if needed) -->
+                  {#if !shape.constraints}
+                    {(shape.constraints = {
+                      maxVelocity: 30,
+                      maxAcceleration: 20,
+                    }) && ""}
+                  {/if}
+                  <div
+                    class="grid grid-cols-2 gap-2 mb-2 p-2 bg-neutral-100 dark:bg-neutral-800 rounded-md border border-neutral-200 dark:border-neutral-700"
+                  >
+                    <div class="flex flex-col gap-1">
+                      <label
+                        for="max-vel-{shapeIdx}"
+                        class="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400"
+                        >Max Vel</label
+                      >
+                      <input
+                        id="max-vel-{shapeIdx}"
+                        type="number"
+                        min="1"
+                        bind:value={shape.constraints.maxVelocity}
+                        class="w-full text-xs p-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-1 focus:ring-purple-500 outline-none"
+                        disabled={shape.locked ?? false}
+                      />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label
+                        for="max-acc-{shapeIdx}"
+                        class="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400"
+                        >Max Accel</label
+                      >
+                      <input
+                        id="max-acc-{shapeIdx}"
+                        type="number"
+                        min="1"
+                        bind:value={shape.constraints.maxAcceleration}
+                        class="w-full text-xs p-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-1 focus:ring-purple-500 outline-none"
+                        disabled={shape.locked ?? false}
+                      />
+                    </div>
+                  </div>
+                {/if}
+
                 <div class="flex flex-col gap-2">
                   {#each shape.vertices as vertex, vertexIdx}
                     <div

@@ -1056,6 +1056,14 @@
           shapeElement.opacity = 0.1; // Low occupancy fill 10%
           shapeElement.linewidth = uiLength(1.0);
           shapeElement.dashes = [uiLength(4), uiLength(4)]; // Dashed lines
+        } else if (shape.type === "constraint-zone") {
+          // Constraint Zone (Warning/Striped concept)
+          shapeElement.stroke = shape.color;
+          shapeElement.fill = shape.color;
+          shapeElement.opacity = 0.15;
+          shapeElement.linewidth = uiLength(1.0);
+          // Distinct pattern: Long Dash + Short Gap
+          shapeElement.dashes = [uiLength(8), uiLength(2)];
         } else {
           // Standard Obstacle
           shapeElement.stroke = shape.color;

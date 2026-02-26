@@ -208,7 +208,14 @@
   }
 
   // Compute timeline markers for the UI (passed to PlaybackControls)
-  $: timePrediction = calculatePathTime(startPoint, lines, settings, sequence);
+  $: timePrediction = calculatePathTime(
+    startPoint,
+    lines,
+    settings,
+    sequence,
+    undefined,
+    shapes,
+  );
 
   $: timelineItems = (() => {
     const items: {

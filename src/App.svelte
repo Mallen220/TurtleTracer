@@ -959,6 +959,7 @@
     settings,
     sequence,
     macros,
+    shapes,
   );
 
   // Diff Mode Animation Logic
@@ -972,6 +973,7 @@
           committed.settings,
           committed.sequence,
           macros,
+          committed.shapes,
         )
       : null;
 
@@ -1507,6 +1509,7 @@
     bind:isOpen={statsOpen}
     lines={$linesStore}
     sequence={$sequenceStore}
+    shapes={$shapesStore}
     settings={$settingsStore}
     startPoint={$startPointStore}
     controlRect={controlTabRect}

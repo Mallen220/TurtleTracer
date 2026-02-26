@@ -1,0 +1,3 @@
+2024-05-22 - [Centralized Physics Logic]
+Learning: The `calculatePathTime` function in `src/utils/timeCalculator.ts` is the single source of truth for path physics and timeline generation. Any feature that alters physics (like Constraint Zones) must be injected into this function. Consequently, since this function is pure and stateless, the necessary context (like `shapes`) must be threaded through from every UI component that consumes it (Navbar, ControlTab, StatisticsDialog, DiffStore).
+Action: When modifying simulation logic, immediately grep for `calculatePathTime` to identify all UI entry points that need to provide the new context.

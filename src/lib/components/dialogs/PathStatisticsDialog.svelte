@@ -20,6 +20,7 @@
   export let startPoint: Point;
   export let lines: Line[];
   export let sequence: SequenceItem[];
+  export let shapes: Shape[] = [];
   export let settings: Settings;
   export let percent: number = 0;
   export let isOpen: boolean = false;
@@ -92,7 +93,14 @@
 
   function calculateStats() {
     // Basic time and distance from standard calculator
-    const timePred = calculatePathTime(startPoint, lines, settings, sequence);
+    const timePred = calculatePathTime(
+      startPoint,
+      lines,
+      settings,
+      sequence,
+      undefined,
+      shapes,
+    );
 
     // Detailed segment analysis
     let segments: SegmentStat[] = [];

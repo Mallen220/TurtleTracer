@@ -57,7 +57,7 @@ export class PathOptimizer {
     this.shapes = shapes;
     this.activeShapes = this.shapes.filter((s) => s.vertices.length >= 3);
     this.activeObstacles = this.activeShapes.filter(
-      (s) => s.type !== "keep-in",
+      (s) => s.type !== "keep-in" && s.type !== "constraint-zone",
     );
     this.activeKeepInZones = this.activeShapes.filter(
       (s) => s.type === "keep-in",
@@ -211,6 +211,8 @@ export class PathOptimizer {
         lines,
         this.settings,
         this.sequence,
+        undefined,
+        this.shapes,
       );
       timeline = result.timeline;
     }
@@ -522,6 +524,8 @@ export class PathOptimizer {
       lines,
       this.settings,
       this.sequence,
+      undefined,
+      this.shapes,
     );
     // If NaN, punish extremely
     if (!Number.isFinite(result.totalTime)) return 20000;

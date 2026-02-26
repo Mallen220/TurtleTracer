@@ -218,12 +218,16 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
     current.lines,
     current.settings,
     current.sequence,
+    undefined,
+    current.shapes,
   );
   const oldStats = calculatePathTime(
     old.startPoint,
     old.lines,
     old.settings,
     old.sequence,
+    undefined,
+    old.shapes,
   );
 
   result.statsDiff = {

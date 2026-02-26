@@ -36,6 +36,7 @@
   export let startPoint: Point;
   export let lines: Line[];
   export let sequence: SequenceItem[];
+  export let shapes: Shape[] = [];
   export let robotLength: number;
   export let robotWidth: number;
   export let settings: Settings;
@@ -70,7 +71,14 @@
   let selectedGridSize = 12;
   const gridSizeOptions = [1, 3, 6, 12, 24];
 
-  $: timePrediction = calculatePathTime(startPoint, lines, settings, sequence);
+  $: timePrediction = calculatePathTime(
+    startPoint,
+    lines,
+    settings,
+    sequence,
+    undefined,
+    shapes,
+  );
 
   onMount(() => {
     const unsubscribeGridSize = gridSize.subscribe((value) => {
