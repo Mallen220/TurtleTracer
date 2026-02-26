@@ -205,15 +205,15 @@ export async function generateJavaCode(
 
     ${coordinateSystem === "FTC" ? `
     private Pose buildPose(double x, double y, double heading) {
-        return com.pedropathing.localization.PoseConverter.pose2DToPose(
+        return PoseConverter.pose2DToPose(
             new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
                 org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH,
                 x, y,
                 org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS,
                 heading
             ),
-            com.pedropathing.localization.InvertedFTCCoordinates.INSTANCE
-        ).getAsCoordinateSystem(com.pedropathing.localization.PedroCoordinates.INSTANCE);
+            InvertedFTCCoordinates.INSTANCE
+        ).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
     }
     ` : ""}
   }
@@ -415,8 +415,11 @@ export async function generateJavaCode(
     import com.qualcomm.robotcore.eventloop.opmode.OpMode;
     import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
     import com.qualcomm.robotcore.util.ElapsedTime;
+    import com.pedropathing.ftc.InvertedFTCCoordinates;
+    import com.pedropathing.geometry.PedroCoordinates;
+    import org.firstinspires.ftc.teamcode.pedroPathing.PedroConstants;
+    import com.pedropathing.ftc.PoseConverter;
     ${extraImports}
-    import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
     import com.pedropathing.geometry.BezierCurve;
     import com.pedropathing.geometry.BezierLine;
     import com.pedropathing.follower.Follower;
@@ -437,7 +440,7 @@ export async function generateJavaCode(
       public void init() {
         ${telemetryInit}
 
-        follower = Constants.createFollower(hardwareMap);
+        follower = PedroConstants.createFollower(hardwareMap);
         // Determine starting heading: prefer geometric heading when a path exists, otherwise fall back to explicit startPoint values
         ${
           coordinateSystem === "FTC"
@@ -934,6 +937,9 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.pedropathing.ftc.InvertedFTCCoordinates;
+import com.pedropathing.geometry.PedroCoordinates;
+import com.pedropathing.ftc.PoseConverter;
 ${imports}
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 ${ppReaderImport}
@@ -979,15 +985,15 @@ ${commands.join(",\n")}
       coordinateSystem === "FTC"
         ? `
     private Pose buildPose(double x, double y, double heading) {
-        return com.pedropathing.localization.PoseConverter.pose2DToPose(
+        return PoseConverter.pose2DToPose(
             new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
                 org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH,
                 x, y,
                 org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS,
                 heading
             ),
-            com.pedropathing.localization.InvertedFTCCoordinates.INSTANCE
-        ).getAsCoordinateSystem(com.pedropathing.localization.PedroCoordinates.INSTANCE);
+            InvertedFTCCoordinates.INSTANCE
+        ).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
     }
     `
         : ""
