@@ -114,6 +114,13 @@
       Math.pow(rulerEnd.y - rulerStart.y, 2),
   );
 
+  $: deltaX = Math.abs(rulerEnd.x - rulerStart.x);
+  $: deltaY = Math.abs(rulerEnd.y - rulerStart.y);
+  $: rulerAngle =
+    Math.atan2(rulerEnd.y - rulerStart.y, rulerEnd.x - rulerStart.x) *
+    (180 / Math.PI);
+  $: displayAngle = ((rulerAngle % 360) + 360) % 360;
+
   // Calculate protractor position - lock to robot if enabled
   $: actualProtractorPos = $protractorLockToRobot
     ? robotXY // robotXY is now in inches
@@ -192,6 +199,28 @@
 
 {#if $showRuler && !$isPresentationMode}
   <svg class="absolute top-0 left-0 w-full h-full z-40 pointer-events-none">
+    <!-- Ruler components (legs) -->
+    <line
+      x1={x(rulerStart.x)}
+      y1={y(rulerStart.y)}
+      x2={x(rulerEnd.x)}
+      y2={y(rulerStart.y)}
+      stroke="#3b82f6"
+      stroke-width="1.5"
+      stroke-dasharray="4 2"
+      class="pointer-events-none opacity-60"
+    />
+    <line
+      x1={x(rulerEnd.x)}
+      y1={y(rulerStart.y)}
+      x2={x(rulerEnd.x)}
+      y2={y(rulerEnd.y)}
+      stroke="#3b82f6"
+      stroke-width="1.5"
+      stroke-dasharray="4 2"
+      class="pointer-events-none opacity-60"
+    />
+
     <!-- Ruler line -->
     <line
       x1={x(rulerStart.x)}
@@ -202,6 +231,41 @@
       stroke-width="3"
       class="pointer-events-none"
     />
+
+    <!-- Smart Labels -->
+    {#if deltaX > 0.1}
+      <text
+        x={(x(rulerStart.x) + x(rulerEnd.x)) / 2}
+        y={y(rulerStart.y) + (rulerEnd.y > rulerStart.y ? 15 : -5)}
+        class="fill-blue-600 dark:fill-blue-400 text-xs pointer-events-none"
+        text-anchor="middle"
+      >
+        Δx: {deltaX.toFixed(1)}"
+      </text>
+    {/if}
+
+    {#if deltaY > 0.1}
+      <text
+        x={x(rulerEnd.x) + (rulerEnd.x > rulerStart.x ? 5 : -5)}
+        y={(y(rulerStart.y) + y(rulerEnd.y)) / 2}
+        class="fill-blue-600 dark:fill-blue-400 text-xs pointer-events-none"
+        text-anchor={rulerEnd.x > rulerStart.x ? "start" : "end"}
+        dominant-baseline="middle"
+      >
+        Δy: {deltaY.toFixed(1)}"
+      </text>
+    {/if}
+
+    <!-- Angle Label (near start) -->
+    <text
+      x={x(rulerStart.x) + Math.cos(rulerAngle * (Math.PI / 180)) * 25}
+      y={y(rulerStart.y) - Math.sin(rulerAngle * (Math.PI / 180)) * 25}
+      class="fill-blue-600 dark:fill-blue-400 text-xs font-bold pointer-events-none"
+      text-anchor="middle"
+      dominant-baseline="middle"
+    >
+      {displayAngle.toFixed(1)}°
+    </text>
 
     <!-- Start handle -->
     <circle
