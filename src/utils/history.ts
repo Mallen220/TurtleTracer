@@ -34,21 +34,34 @@ export function createHistory(maxSize = 200) {
   // Create writable stores to trigger reactivity
   const canUndoStore = writable(false);
   const canRedoStore = writable(false);
+  const undoDescriptionStore = writable<string | null>(null);
+  const redoDescriptionStore = writable<string | null>(null);
   const historyStore = writable<HistoryStoreItem[]>([]);
 
   function updateStores() {
     canUndoStore.set(undoStack.length > 1);
     canRedoStore.set(redoStack.length > 0);
 
-    // Construct history list: Newest First
-    // redoStack contains future items. Top of stack is nearest future.
-    // If we undo A->B->C. undo=[A, B], redo=[C].
-    // If we undo B->A. undo=[A], redo=[C, B].
-    // We want to show C (newest), B, A (oldest).
-    // redoStack is [C, B]. So we take it as is.
-    // undoStack is [A]. We reverse it (though with 1 item it's same).
-    // If undoStack was [A, B], we want B then A. So reverse.
+    // Undo description: The action that resulted in the current state (top of undo stack)
+    // When we click Undo, we are undoing the change that BROUGHT us here.
+    // So the description should be the description of the TOP item in undoStack.
+    // However, usually "Undo X" means "Revert X". The top item in undoStack IS the state after X.
+    // So yes, undoStack[last].description.
+    if (undoStack.length > 1) {
+      undoDescriptionStore.set(undoStack[undoStack.length - 1].description);
+    } else {
+      undoDescriptionStore.set(null);
+    }
 
+    // Redo description: The action we are about to re-apply.
+    // Top of redoStack.
+    if (redoStack.length > 0) {
+      redoDescriptionStore.set(redoStack[redoStack.length - 1].description);
+    } else {
+      redoDescriptionStore.set(null);
+    }
+
+    // Construct history list: Newest First
     const futureItems = redoStack.map((item) => ({
       item,
       future: true,
@@ -164,6 +177,8 @@ export function createHistory(maxSize = 200) {
     peek,
     canUndoStore,
     canRedoStore,
+    undoDescriptionStore,
+    redoDescriptionStore,
     historyStore,
     restore,
   };
