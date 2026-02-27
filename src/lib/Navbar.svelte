@@ -55,6 +55,28 @@
   export let history: ReturnType<typeof createHistory>;
 
   $: historyStore = history?.historyStore;
+  // Subscribe to description stores if available
+  $: undoDescription = history?.undoDescriptionStore;
+  $: redoDescription = history?.redoDescriptionStore;
+
+  // Compute tooltips
+  $: undoTooltip = (() => {
+    let title = !canUndo ? "Nothing to Undo" : "Undo";
+    if (canUndo && $undoDescription) {
+      title = `Undo: ${$undoDescription}`;
+    }
+    const shortcut = getShortcutFromSettings(settings, "undo");
+    return shortcut ? `${title}${shortcut}` : title;
+  })();
+
+  $: redoTooltip = (() => {
+    let title = !canRedo ? "Nothing to Redo" : "Redo";
+    if (canRedo && $redoDescription) {
+      title = `Redo: ${$redoDescription}`;
+    }
+    const shortcut = getShortcutFromSettings(settings, "redo");
+    return shortcut ? `${title}${shortcut}` : title;
+  })();
 
   let shortcutsOpen = false;
   let exportMenuOpen = false;
@@ -375,9 +397,7 @@
     <!-- Undo/Redo Group -->
     <div class="flex items-center gap-1">
       <button
-        title={!canUndo
-          ? "Nothing to Undo"
-          : `Undo${getShortcutFromSettings(settings, "undo")}`}
+        title={undoTooltip}
         aria-label="Undo"
         on:click={undoAction}
         disabled={!canUndo}
@@ -399,9 +419,7 @@
         </svg>
       </button>
       <button
-        title={!canRedo
-          ? "Nothing to Redo"
-          : `Redo${getShortcutFromSettings(settings, "redo")}`}
+        title={redoTooltip}
         aria-label="Redo"
         on:click={redoAction}
         disabled={!canRedo}
