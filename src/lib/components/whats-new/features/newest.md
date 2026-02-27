@@ -12,5 +12,6 @@
 ## **Bug Fixes:**
 
 - Major fixes applied to the Sequential NextFTC code exporter to ensure reliable, correct output.
+- Auto-export now triggers correctly when project data changes (e.g. editing event markers) while enabled.
 - Animation fixes: sequence events like "Rotate" now animate correctly even without a drawn path, and the robot is properly visualized in these scenarios.
 - Fixed a crash that occurred when attempting to animate without any path lines.

@@ -784,7 +784,7 @@ export async function loadFile(evt: Event) {
   elem.value = "";
 }
 
-async function handleAutoExport(
+export async function handleAutoExport(
   startPoint: Point,
   lines: Line[],
   sequence: SequenceItem[],

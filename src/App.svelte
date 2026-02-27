@@ -57,6 +57,7 @@
     shapesStore,
     sequenceStore,
     settingsStore,
+    extraDataStore,
     robotXYStore,
     robotHeadingStore,
     percentStore,
@@ -89,6 +90,7 @@
     loadRecentFile,
     exportAsPP,
     handleExternalFileOpen,
+    handleAutoExport,
   } from "./utils/fileHandlers";
   import { splitPathAtPercent } from "./utils/pathEditing";
   import { scanEventsInDirectory } from "./utils/eventScanner";
@@ -673,7 +675,8 @@
     recordChange(action);
   }
 
-  function recordChange(description: string = "Change") {
+  // Exported for tests
+  export async function recordChange(description: string = "Change") {
     refreshMacros();
     previewOptimizedLines = null;
     history.record(getAppState(), description);
@@ -694,6 +697,41 @@
           { quiet: true },
         );
         console.log("Autosaved project (on change)");
+      }
+    }
+
+    // Auto-export on any change when enabled
+    if (isLoaded && settings?.autoExportCode) {
+      const path = get(currentFilePath);
+      if (path) {
+        // Build minimal project data (full header included for JSON export)
+        const projectData = {
+          version: pkg.version,
+          header: {
+            info: "Created with Pedro Pathing Plus Visualizer",
+            copyright:
+              "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
+            link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+          },
+          startPoint: get(startPointStore),
+          lines: get(linesStore),
+          sequence: get(sequenceStore),
+          shapes: get(shapesStore),
+          extraData: get(extraDataStore),
+        };
+
+        // fire-and-forget; we don't care about awaiting in the UI path
+        handleAutoExport(
+          get(startPointStore),
+          get(linesStore),
+          get(sequenceStore),
+          get(settingsStore),
+          get(shapesStore),
+          projectData,
+          path,
+        ).catch((e: any) => {
+          console.error("Auto-export during change failed", e);
+        });
       }
     }
   }

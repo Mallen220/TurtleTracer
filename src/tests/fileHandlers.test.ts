@@ -15,6 +15,8 @@ import {
   shapesStore,
   settingsStore,
 } from "../lib/projectStore";
+// recordChange lives in App.svelte and will trigger auto-export when called
+import { recordChange } from "../App.svelte";
 import { DEFAULT_SETTINGS } from "../config/defaults";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
@@ -404,6 +406,51 @@ describe("fileHandlers", () => {
       expect(exportedJson.startPoint.y).toBe(22);
       expect(exportedJson.startPoint.heading).toBe("constant");
       expect(exportedJson.startPoint.degrees).toBe(123);
+    });
+
+    // New regression test for auto-export on every change (including event markers)
+    it("auto-exports when recordChange is invoked with project modifications", async () => {
+      // configure settings and path
+      settingsStore.set({
+        ...DEFAULT_SETTINGS,
+        autoExportCode: true,
+        autoExportFormat: "json",
+        autoExportPath: "GeneratedCode",
+      });
+      currentFilePath.set("/project/dir/auto.pp");
+
+      // prepare mocks
+      mockElectronAPI.resolvePath.mockResolvedValue(
+        "/project/dir/GeneratedCode/auto.json",
+      );
+      mockElectronAPI.writeFile.mockResolvedValue(true);
+
+      // initialize some project state with an event marker
+      startPointStore.set({ x: 0, y: 0, heading: "constant", degrees: 0 });
+      linesStore.set([
+        {
+          id: "line1",
+          endPoint: { x: 1, y: 1 },
+          controlPoints: [],
+          color: "#000000",
+          eventMarkers: [{ name: "marker1", percent: 0.5 }],
+        } as any,
+      ]);
+      sequenceStore.set([]);
+      shapesStore.set([]);
+      // extraDataStore may not be imported here, but the handleAutoExport code will still work if undefined
+
+      // call recordChange to simulate a change (event marker edit)
+      await recordChange("Edit Event Marker");
+
+      // verify auto-export occurred
+      expect(mockElectronAPI.writeFile).toHaveBeenCalled();
+      const call = mockElectronAPI.writeFile.mock.calls.find(
+        (c: any[]) => typeof c[1] === "string",
+      );
+      expect(call).toBeDefined();
+      const exported = JSON.parse(call![1] as string);
+      expect(exported.lines[0].eventMarkers[0].name).toBe("marker1");
     });
   });
 
