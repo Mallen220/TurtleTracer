@@ -28,6 +28,8 @@ describe("createHistory", () => {
     expect(get(history.canUndoStore)).toBe(false);
     expect(get(history.canRedoStore)).toBe(false);
     expect(history.peek()).toBeNull();
+    expect(get(history.undoDescriptionStore)).toBeNull();
+    expect(get(history.redoDescriptionStore)).toBeNull();
   });
 
   it("records a state", () => {
@@ -40,10 +42,11 @@ describe("createHistory", () => {
         reverse: false,
       } as Point,
     };
-    history.record(state1);
+    history.record(state1, "Action 1");
 
     expect(history.canUndo()).toBe(false); // Only 1 state, need > 1 to undo
     expect(history.peek()).toEqual(state1);
+    expect(get(history.undoDescriptionStore)).toBeNull(); // Nothing to undo yet
 
     // Record another
     const state2 = {
@@ -55,11 +58,12 @@ describe("createHistory", () => {
         reverse: false,
       } as Point,
     };
-    history.record(state2);
+    history.record(state2, "Action 2");
 
     expect(history.canUndo()).toBe(true);
     expect(history.peek()).toEqual(state2);
     expect(get(history.canUndoStore)).toBe(true);
+    expect(get(history.undoDescriptionStore)).toBe("Action 2");
   });
 
   it("ignores duplicate states", () => {
@@ -72,8 +76,8 @@ describe("createHistory", () => {
         reverse: false,
       } as Point,
     };
-    history.record(state1);
-    history.record(state1); // Duplicate
+    history.record(state1, "Action 1");
+    history.record(state1, "Action 1 Duplicate"); // Duplicate
 
     // Let's verify by adding a distinct state, then duplicate
     const state2 = {
@@ -85,8 +89,8 @@ describe("createHistory", () => {
         reverse: false,
       } as Point,
     };
-    history.record(state2);
-    history.record(state2);
+    history.record(state2, "Action 2");
+    history.record(state2, "Action 2 Duplicate");
 
     expect(history.canUndo()).toBe(true);
     history.undo();
@@ -114,8 +118,8 @@ describe("createHistory", () => {
       } as Point,
     };
 
-    history.record(state1);
-    history.record(state2);
+    history.record(state1, "Action 1");
+    history.record(state2, "Action 2");
 
     const restored = history.undo();
     expect(restored).toEqual(state1);
@@ -123,6 +127,8 @@ describe("createHistory", () => {
     expect(history.canUndo()).toBe(false); // Back to 1 state
     expect(history.canRedo()).toBe(true);
     expect(get(history.canRedoStore)).toBe(true);
+    expect(get(history.undoDescriptionStore)).toBeNull();
+    expect(get(history.redoDescriptionStore)).toBe("Action 2");
   });
 
   it("redo restores next state", () => {
@@ -145,14 +151,16 @@ describe("createHistory", () => {
       } as Point,
     };
 
-    history.record(state1);
-    history.record(state2);
+    history.record(state1, "Action 1");
+    history.record(state2, "Action 2");
     history.undo();
 
     const redoState = history.redo();
     expect(redoState).toEqual(state2);
     expect(history.peek()).toEqual(state2);
     expect(history.canRedo()).toBe(false);
+    expect(get(history.undoDescriptionStore)).toBe("Action 2");
+    expect(get(history.redoDescriptionStore)).toBeNull();
   });
 
   it("clears redo stack on new record", () => {
@@ -184,16 +192,19 @@ describe("createHistory", () => {
       } as Point,
     };
 
-    history.record(state1);
-    history.record(state2);
+    history.record(state1, "Action 1");
+    history.record(state2, "Action 2");
     history.undo(); // Back to state1, redo stack has state2
 
     expect(history.canRedo()).toBe(true);
+    expect(get(history.redoDescriptionStore)).toBe("Action 2");
 
-    history.record(state3); // Should clear redo stack
+    history.record(state3, "Action 3"); // Should clear redo stack
 
     expect(history.canRedo()).toBe(false);
     expect(get(history.canRedoStore)).toBe(false);
+    expect(get(history.redoDescriptionStore)).toBeNull();
+    expect(get(history.undoDescriptionStore)).toBe("Action 3");
 
     // Undo should go to state1
     expect(history.undo()).toEqual(state1);
@@ -211,7 +222,7 @@ describe("createHistory", () => {
           heading: "tangential",
           reverse: false,
         } as Point,
-      });
+      }, `Action ${i}`);
     }
 
     // Stack should have 5 items: 1, 2, 3, 4, 5. (0 was shifted out)
