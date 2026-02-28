@@ -54,6 +54,7 @@
     updateDataStore,
     showFeedbackDialog,
     showRatingDialog,
+    ratingDialogAutoOpened,
   } from "./stores";
   import {
     startPointStore,
@@ -218,8 +219,11 @@
   function tryShowRatingDialog() {
     const settings = get(settingsStore);
 
-    // If they already rated THIS version, don't show.
-    if (settings.submittedRatings && settings.submittedRatings[pkg.version] === true) {
+    // If they already rated THIS version, or chose Not Interested, don't show.
+    if (
+      settings.submittedRatings?.[pkg.version] ||
+      settings.dismissedRatings?.[pkg.version]
+    ) {
       return;
     }
 
@@ -246,6 +250,7 @@
     const timeSinceFirstLaunch = now - parseInt(firstLaunchTime, 10);
     
     if (timeSinceFirstLaunch >= fiveHoursMs) {
+      ratingDialogAutoOpened.set(true);
       showRatingDialog.set(true);
     }
   }

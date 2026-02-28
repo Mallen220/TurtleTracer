@@ -134,7 +134,11 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build
+      - name: Build Web Bundle
+        env:
+          VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
+          VITE_DISCORD_ISSUES: ${{ secrets.DISCORD_ISSUES }}
+        run: npm run build
 
       - name: Build (Mac)
         run: |
@@ -166,7 +170,11 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build
+      - name: Build Web Bundle
+        env:
+          VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
+          VITE_DISCORD_ISSUES: ${{ secrets.DISCORD_ISSUES }}
+        run: npm run build
 
       - name: Decode Signing Certificate
         shell: pwsh
@@ -240,7 +248,11 @@ jobs:
             libzstd-dev
 
       - run: npm ci
-      - run: npm run build
+      - name: Build Web Bundle
+        env:
+          VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
+          VITE_DISCORD_ISSUES: ${{ secrets.DISCORD_ISSUES }}
+        run: npm run build
 
       - name: Build (Linux)
         run: |

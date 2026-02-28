@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { showRatingDialog } from "../../../stores";
+  import { showRatingDialog, ratingDialogAutoOpened } from "../../../stores";
   import { fade, fly } from "svelte/transition";
   import { onMount, onDestroy } from "svelte";
   import { settingsStore } from "../../projectStore";
@@ -14,7 +14,7 @@
   let errorMessage = "";
 
   // Rating webhook URL
-  const WEBHOOK_URL = "https://discord.com/api/webhooks/1477056110329336032/7JkdHml026iO0xyWOLhyIAuK3hewcwvDgVUkVzQZ1YPTKnxO9iHgCQX-TbykvVBa9K6u";
+  const WEBHOOK_URL = import.meta.env.VITE_DISCORD_RATINGS || "";
 
   let dialogContainer: HTMLElement;
 
@@ -140,6 +140,17 @@
       isSubmitting = false;
     }
   }
+  function dismissRating() {
+    settingsStore.update((s) => {
+      const newDismissals = { ...(s.dismissedRatings || {}) };
+      newDismissals[pkg.version] = true;
+      return { ...s, dismissedRatings: newDismissals };
+    });
+    saveSettings($settingsStore).catch((e) =>
+      console.error("Failed to save dismissed ratings", e)
+    );
+    closeDialog();
+  }
 </script>
 
 {#if $showRatingDialog && !isAlreadyRated}
@@ -260,6 +271,17 @@
       <div
         class="px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 flex justify-end gap-3"
       >
+        {#if $ratingDialogAutoOpened}
+          <div class="flex-1 flex justify-start">
+            <button
+              on:click={dismissRating}
+              disabled={isSubmitting}
+              class="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500/50 disabled:opacity-50"
+            >
+              Not interested
+            </button>
+          </div>
+        {/if}
         <button
           on:click={closeDialog}
           disabled={isSubmitting}

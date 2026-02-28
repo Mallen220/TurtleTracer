@@ -198,6 +198,7 @@ interface Settings {
   firstLaunchTime?: string; // Timestamp of first launch for rating prompt
   lastFeedbackSubmit?: string; // Timestamp of last feedback submission for rate limiting
   submittedRatings?: Record<string, boolean>; // Map of version to whether user has rated it
+  dismissedRatings?: Record<string, boolean>; // Map of version to whether user dismissed the rating dialog
   hasSeenOnboarding?: boolean; // Whether the user has seen the onboarding tutorial
   gitIntegration?: boolean; // Enable/Disable Git integration
   obstaclePresets?: ObstaclePreset[]; // User-saved obstacle presets
