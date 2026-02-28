@@ -195,6 +195,9 @@ interface Settings {
   recentFiles?: string[];
   fileManagerSortMode?: "name" | "date"; // File manager sort preference
   lastSeenVersion?: string; // Version of the app the user last saw (for What's New dialog)
+  firstLaunchTime?: string; // Timestamp of first launch for rating prompt
+  lastFeedbackSubmit?: string; // Timestamp of last feedback submission for rate limiting
+  submittedRatings?: Record<string, boolean>; // Map of version to whether user has rated it
   hasSeenOnboarding?: boolean; // Whether the user has seen the onboarding tutorial
   gitIntegration?: boolean; // Enable/Disable Git integration
   obstaclePresets?: ObstaclePreset[]; // User-saved obstacle presets

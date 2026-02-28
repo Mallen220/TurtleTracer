@@ -73,6 +73,9 @@ export const DEFAULT_SETTINGS: Settings = {
   keyBindings: DEFAULT_KEY_BINDINGS,
   recentFiles: [],
   lastSeenVersion: "",
+  firstLaunchTime: "",
+  lastFeedbackSubmit: "",
+  submittedRatings: {},
   hasSeenOnboarding: false,
   gitIntegration: true,
   obstaclePresets: [
