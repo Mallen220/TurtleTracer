@@ -5,6 +5,7 @@ import express from "express";
 import http from "http";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
+import fsSync from "fs";
 import AppUpdater from "./updater.js";
 import rateLimit from "express-rate-limit";
 import simpleGit from "simple-git";
@@ -70,6 +71,24 @@ app.on("open-file", (event, path) => {
 });
 
 // Single Instance Lock
+// Fix for Microsoft Store updates wiping LocalCache
+if (process.windowsStore) {
+  const oldUserDataPath = app.getPath("userData");
+  if (oldUserDataPath.includes("LocalCache")) {
+    const newUserDataPath = oldUserDataPath.replace(/LocalCache[\\/]Roaming/, "LocalState");
+    app.setPath("userData", newUserDataPath);
+    
+    // Migrate existing data if needed
+    try {
+      if (fsSync.existsSync(oldUserDataPath) && !fsSync.existsSync(newUserDataPath)) {
+        fsSync.cpSync(oldUserDataPath, newUserDataPath, { recursive: true });
+      }
+    } catch (e) {
+      console.error("Failed to migrate userData to LocalState", e);
+    }
+  }
+}
+
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
