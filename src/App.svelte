@@ -239,16 +239,21 @@
 
     let firstLaunchTime = settings.firstLaunchTime;
     const now = Date.now();
-    
+
     if (!firstLaunchTime) {
       firstLaunchTime = now.toString();
-      settingsStore.update(s => ({ ...s, firstLaunchTime: firstLaunchTime as string }));
-      saveSettings(get(settingsStore)).catch(e => console.error("Failed to save firstLaunchTime", e));
+      settingsStore.update((s) => ({
+        ...s,
+        firstLaunchTime: firstLaunchTime as string,
+      }));
+      saveSettings(get(settingsStore)).catch((e) =>
+        console.error("Failed to save firstLaunchTime", e),
+      );
     }
 
     const fiveHoursMs = 5 * 60 * 60 * 1000;
     const timeSinceFirstLaunch = now - parseInt(firstLaunchTime, 10);
-    
+
     if (timeSinceFirstLaunch >= fiveHoursMs) {
       ratingDialogAutoOpened.set(true);
       showRatingDialog.set(true);

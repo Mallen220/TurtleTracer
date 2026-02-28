@@ -75,12 +75,18 @@ app.on("open-file", (event, path) => {
 if (process.windowsStore) {
   const oldUserDataPath = app.getPath("userData");
   if (oldUserDataPath.includes("LocalCache")) {
-    const newUserDataPath = oldUserDataPath.replace(/LocalCache[\\/]Roaming/, "LocalState");
+    const newUserDataPath = oldUserDataPath.replace(
+      /LocalCache[\\/]Roaming/,
+      "LocalState",
+    );
     app.setPath("userData", newUserDataPath);
-    
+
     // Migrate existing data if needed
     try {
-      if (fsSync.existsSync(oldUserDataPath) && !fsSync.existsSync(newUserDataPath)) {
+      if (
+        fsSync.existsSync(oldUserDataPath) &&
+        !fsSync.existsSync(newUserDataPath)
+      ) {
         fsSync.cpSync(oldUserDataPath, newUserDataPath, { recursive: true });
       }
     } catch (e) {

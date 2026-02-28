@@ -1123,6 +1123,7 @@
     <div class="flex items-center gap-2">
       <button
         title={copyButtonText}
+        aria-label={copyButtonText}
         on:click={copyTableToClipboard}
         class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-neutral-600 dark:text-neutral-400 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
       >
