@@ -30,6 +30,7 @@ export const showExportImage = writable(false);
 export const showStrategySheet = writable(false);
 export const showFeedbackDialog = writable(false);
 export const showRatingDialog = writable(false);
+export const ratingDialogAutoOpened = writable(false);
 export const showHistory = writable(false);
 export const exportDialogState = writable<{
   isOpen: boolean;

@@ -76,6 +76,7 @@ export const DEFAULT_SETTINGS: Settings = {
   firstLaunchTime: "",
   lastFeedbackSubmit: "",
   submittedRatings: {},
+  dismissedRatings: {},
   hasSeenOnboarding: false,
   gitIntegration: true,
   obstaclePresets: [

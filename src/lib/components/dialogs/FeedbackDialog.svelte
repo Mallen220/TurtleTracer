@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { showFeedbackDialog, showRatingDialog } from "../../../stores";
+  import { showFeedbackDialog, showRatingDialog, ratingDialogAutoOpened } from "../../../stores";
   import { fade, fly } from "svelte/transition";
   import { onMount, onDestroy } from "svelte";
   import { settingsStore } from "../../projectStore";
@@ -16,7 +16,7 @@
   let cooldownInterval: NodeJS.Timeout | null = null;
 
   // Set the Discord Webhook URL here
-  const WEBHOOK_URL = "https://discord.com/api/webhooks/1477017474372206789/M9Fvc39UiadgUxViSIgBsoWNYEY3RVl6IayDKq2T_rxURaY4yhNvnVY0Zl9vPMio2p2n";
+  const WEBHOOK_URL = import.meta.env.VITE_DISCORD_ISSUES || "";
 
   let dialogContainer: HTMLElement;
 
@@ -84,6 +84,7 @@
 
   function openRatingDialog() {
     showFeedbackDialog.set(false);
+    ratingDialogAutoOpened.set(false);
     showRatingDialog.set(true);
   }
 
