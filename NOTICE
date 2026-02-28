@@ -273,3 +273,4 @@ src/lib/components/sections/ObstaclesSection.svelte
 src/utils/coordinates.ts
 src/utils/timeCalculator_adaptive.test.ts
 src/lib/components/common/HeadingIndicator.svelte
+test-paths.js
