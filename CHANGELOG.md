@@ -1,6 +1,6 @@
 ## 1.7.5 (2026-02-28)
 
-- Add toggleable coordinate system (Pedro/FTC). Allow deleting the last path segment to reveal empty state and empty state fixes. Major fixes for Sequential NextFTC code exporter. Optimize analyzePathSegment with adaptive sampling. Add visual heading indicator to angle inputs in paths tab. Add Delta X/Y and Angle to Ruler. Trigger code auto-export on more project changes. Add feedback and rating dialogs. Fix for Microsoft update deleting user settings. 
+- Add toggleable coordinate system (Pedro/FTC). Allow deleting the last path segment to reveal empty state and empty state fixes. Major fixes for Sequential NextFTC code exporter. Optimize analyzePathSegment with adaptive sampling. Add visual heading indicator to angle inputs in paths tab. Add Delta X/Y and Angle to Ruler. Trigger code auto-export on more project changes. Add feedback and rating dialogs. Fix for Microsoft update deleting user settings.
 
 ## 1.7.4 (2026-02-20)
 

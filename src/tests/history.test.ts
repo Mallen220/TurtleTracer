@@ -214,15 +214,18 @@ describe("createHistory", () => {
     // History initialized with size 5
     // Add 6 states
     for (let i = 0; i < 6; i++) {
-      history.record({
-        ...defaultState,
-        startPoint: {
-          x: i,
-          y: 0,
-          heading: "tangential",
-          reverse: false,
-        } as Point,
-      }, `Action ${i}`);
+      history.record(
+        {
+          ...defaultState,
+          startPoint: {
+            x: i,
+            y: 0,
+            heading: "tangential",
+            reverse: false,
+          } as Point,
+        },
+        `Action ${i}`,
+      );
     }
 
     // Stack should have 5 items: 1, 2, 3, 4, 5. (0 was shifted out)
