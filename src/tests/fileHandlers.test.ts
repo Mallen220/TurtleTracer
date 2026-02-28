@@ -16,6 +16,7 @@ import {
   settingsStore,
 } from "../lib/projectStore";
 // recordChange lives in App.svelte and will trigger auto-export when called
+// @ts-ignore: Svelte 4 doesn't properly export instance functions for TS
 import { recordChange } from "../App.svelte";
 import { DEFAULT_SETTINGS } from "../config/defaults";
 import { actionRegistry } from "../lib/actionRegistry";

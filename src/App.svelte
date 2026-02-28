@@ -27,6 +27,8 @@
   import StrategySheetPreview from "./lib/components/dialogs/StrategySheetPreview.svelte";
   import DialogHost from "./lib/components/DialogHost.svelte";
   import UpdateAvailableDialog from "./lib/components/dialogs/UpdateAvailableDialog.svelte";
+  import FeedbackDialog from "./lib/components/dialogs/FeedbackDialog.svelte";
+  import RatingDialog from "./lib/components/dialogs/RatingDialog.svelte";
 
   // Stores
   import {
@@ -50,6 +52,8 @@
     selectedLineId,
     showUpdateAvailableDialog,
     updateDataStore,
+    showFeedbackDialog,
+    showRatingDialog,
   } from "./stores";
   import {
     startPointStore,
@@ -202,7 +206,49 @@
         showUpdateAvailableDialog.set(true);
       });
     }
+
+    // Rating dialog interval logic
+    const ratingInterval = setInterval(tryShowRatingDialog, 10 * 60 * 1000); // Check every 10 minutes
+
+    return () => {
+      clearInterval(ratingInterval);
+    };
   });
+
+  function tryShowRatingDialog() {
+    const settings = get(settingsStore);
+
+    // If they already rated THIS version, don't show.
+    if (settings.submittedRatings && settings.submittedRatings[pkg.version] === true) {
+      return;
+    }
+
+    // If offline, don't show. Wait for the interval to check again later.
+    if (!navigator.onLine) {
+      return;
+    }
+
+    // Don't pop it up if it's currently open
+    if (get(showRatingDialog)) {
+      return;
+    }
+
+    let firstLaunchTime = settings.firstLaunchTime;
+    const now = Date.now();
+    
+    if (!firstLaunchTime) {
+      firstLaunchTime = now.toString();
+      settingsStore.update(s => ({ ...s, firstLaunchTime: firstLaunchTime as string }));
+      saveSettings(get(settingsStore)).catch(e => console.error("Failed to save firstLaunchTime", e));
+    }
+
+    const fiveHoursMs = 5 * 60 * 60 * 1000;
+    const timeSinceFirstLaunch = now - parseInt(firstLaunchTime, 10);
+    
+    if (timeSinceFirstLaunch >= fiveHoursMs) {
+      showRatingDialog.set(true);
+    }
+  }
 
   onDestroy(() => {
     document.removeEventListener("click", handleLinkClick);
@@ -904,6 +950,9 @@
         loader.style.opacity = "0";
         setTimeout(() => loader.remove(), 500);
       }
+
+      // Rating dialog logic
+      tryShowRatingDialog();
     }, 500);
 
     // Expose debug trigger for testing setup dialog
@@ -1609,6 +1658,8 @@
 />
 
 <DialogHost />
+<FeedbackDialog />
+<RatingDialog />
 
 <!-- Drag Overlay -->
 {#if isDraggingFile}
