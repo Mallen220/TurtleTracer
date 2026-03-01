@@ -1856,6 +1856,7 @@
         bind:activeTab={activeControlTab}
         onPreviewChange={handlePreviewChange}
         totalSeconds={effectiveDuration * 1000}
+        splitPath={handleSplitPath}
       />
     </div>
   </div>
