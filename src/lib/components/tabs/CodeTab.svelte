@@ -359,8 +359,11 @@
 
     <button
       on:click={handleCopy}
-      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("blue")}`}
+      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("blue")} ${isGenerating || !code ? "opacity-50 cursor-not-allowed" : ""}`}
       title="Copy Code"
+      disabled={isGenerating || !code}
+      aria-disabled={isGenerating || !code}
+      aria-label="Copy generated code"
     >
       {#if isGenerating}
         <LoadingSpinner size="sm" color="text-white" showText={false} />
