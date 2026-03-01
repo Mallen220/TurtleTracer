@@ -1,6 +1,10 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { showFeedbackDialog, showRatingDialog, ratingDialogAutoOpened } from "../../../stores";
+  import {
+    showFeedbackDialog,
+    showRatingDialog,
+    ratingDialogAutoOpened,
+  } from "../../../stores";
   import { fade, fly } from "svelte/transition";
   import { onMount, onDestroy } from "svelte";
   import { settingsStore } from "../../projectStore";
@@ -111,7 +115,10 @@
           {
             title: "New Issue / Feature Request",
             color: 16753920, // Orange
-            description: description.length > 4000 ? description.substring(0, 4000) + "..." : description,
+            description:
+              description.length > 4000
+                ? description.substring(0, 4000) + "..."
+                : description,
             fields: [
               {
                 name: "Version",
@@ -145,8 +152,13 @@
 
       if (response.ok) {
         status = "success";
-        settingsStore.update(s => ({ ...s, lastFeedbackSubmit: Date.now().toString() }));
-        saveSettings($settingsStore).catch(e => console.error("Failed to save lastFeedbackSubmit", e));
+        settingsStore.update((s) => ({
+          ...s,
+          lastFeedbackSubmit: Date.now().toString(),
+        }));
+        saveSettings($settingsStore).catch((e) =>
+          console.error("Failed to save lastFeedbackSubmit", e),
+        );
         setTimeout(() => {
           closeDialog();
         }, 2000);
@@ -238,11 +250,25 @@
             placeholder="What's on your mind? Found a bug? Have a suggestion?"
             class="w-full px-3 py-2 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 resize-none"
           ></textarea>
-          <div class="mt-2 flex items-start gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 flex-shrink-0">
-              <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+          <div
+            class="mt-2 flex items-start gap-1.5 text-xs text-neutral-500 dark:text-neutral-400"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              class="w-4 h-4 flex-shrink-0"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
+                clip-rule="evenodd"
+              />
             </svg>
-            <p>All data is private and no personal information is sent unless you explicitly provide it.</p>
+            <p>
+              All data is private and no personal information is sent unless you
+              explicitly provide it.
+            </p>
           </div>
         </div>
 
@@ -327,7 +353,9 @@
           </button>
           <button
             on:click={submitFeedback}
-            disabled={isSubmitting || status === "success" || cooldownSeconds > 0}
+            disabled={isSubmitting ||
+              status === "success" ||
+              cooldownSeconds > 0}
             class="px-5 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 shadow-sm shadow-purple-900/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 flex items-center gap-2"
           >
             {#if cooldownSeconds > 0}

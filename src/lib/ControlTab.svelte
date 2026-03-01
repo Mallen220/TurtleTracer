@@ -74,6 +74,7 @@
   export let handleSeek: (percent: number) => void;
   export let loopAnimation: boolean;
   export let playbackSpeed: number = 1.0;
+  export let splitPath: () => void = () => {};
   export const resetPlaybackSpeed = undefined as unknown as () => void;
   export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
   export let totalSeconds: number = 0;
@@ -640,6 +641,7 @@
       {setPlaybackSpeed}
       {totalSeconds}
       {settings}
+      {splitPath}
       on:markerChange={handleMarkerChange}
     />
   </div>

@@ -273,3 +273,9 @@ src/lib/components/sections/ObstaclesSection.svelte
 src/utils/coordinates.ts
 src/utils/timeCalculator_adaptive.test.ts
 src/lib/components/common/HeadingIndicator.svelte
+patch_controltab.diff
+patch_filehandlers_test.diff
+src/lib/components/dialogs/FeedbackDialog.svelte
+src/lib/components/dialogs/RatingDialog.svelte
+test-paths.js
+patch_reorder_split.diff

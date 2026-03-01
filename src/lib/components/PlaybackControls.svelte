@@ -22,6 +22,7 @@
   export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
   export let totalSeconds: number = 0;
   export let settings: Settings | undefined;
+  export let splitPath: () => void = () => {};
 
   import type { Settings } from "../../types";
   import { fade, fly } from "svelte/transition";
@@ -485,6 +486,36 @@
 
     <!-- Center Controls: Play/Skip/Step -->
     <div class="flex items-center gap-2">
+      <!-- Split Path -->
+      <button
+        title="Split Path Here"
+        aria-label="Split path here"
+        on:click={splitPath}
+        class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="size-5"
+          ><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line
+            x1="20"
+            y1="4"
+            x2="8.12"
+            y2="15.88"
+          /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line
+            x1="8.12"
+            y1="8.12"
+            x2="12"
+            y2="12"
+          /></svg
+        >
+      </button>
+
       <!-- Skip to Start -->
       <button
         title="Skip to Start"

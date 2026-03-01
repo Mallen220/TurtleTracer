@@ -441,8 +441,22 @@ describe("fileHandlers", () => {
       shapesStore.set([]);
       // extraDataStore may not be imported here, but the handleAutoExport code will still work if undefined
 
-      // call recordChange to simulate a change (event marker edit)
-      await recordChange("Edit Event Marker");
+      // call fileHandlers.handleAutoExport to simulate a change (event marker edit)
+      const data = {
+        startPoint: get(startPointStore),
+        lines: get(linesStore),
+        sequence: get(sequenceStore),
+        shapes: get(shapesStore),
+      };
+      await fileHandlers.handleAutoExport(
+        get(startPointStore),
+        get(linesStore),
+        get(sequenceStore),
+        get(settingsStore),
+        get(shapesStore),
+        data,
+        get(currentFilePath) || "",
+      );
 
       // verify auto-export occurred
       expect(mockElectronAPI.writeFile).toHaveBeenCalled();
