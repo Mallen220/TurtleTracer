@@ -367,6 +367,21 @@
     }
   }
 
+  async function goUpDirectory() {
+    try {
+      if (electronAPI.resolvePath) {
+        // By adding /.. to the current directory, resolvePath returns the parent directory
+        const parentDir = await electronAPI.resolvePath(currentDirectory, "..");
+        if (parentDir && parentDir !== currentDirectory) {
+          currentDirectory = parentDir;
+          await refreshDirectory();
+        }
+      }
+    } catch (err) {
+      showToast(`Failed to go up directory: ${getErrorMessage(err)}`, "error");
+    }
+  }
+
   // Handle directory change (manual input)
   async function changeDirectoryManual(e: CustomEvent<string>) {
     const newDir = e.detail;
@@ -964,6 +979,7 @@
     <FileManagerBreadcrumbs
       currentPath={currentDirectory}
       on:change-dir={changeDirectoryManual}
+      on:go-up={goUpDirectory}
     />
 
     <!-- Error Display -->
