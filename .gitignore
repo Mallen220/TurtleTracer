@@ -32,3 +32,4 @@ test-results
 /Keys
 /build/win
 /build
+playwright-report/index.html
