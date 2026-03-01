@@ -171,9 +171,10 @@
     );
   }
 
-  function observeElement(node: HTMLElement, filePath: string) {
+  function observeElement(node: HTMLElement, file: FileInfo) {
+    if (file.isDirectory) return { destroy() {} };
     if (!observer) setupObserver();
-    elementMap.set(node, filePath);
+    elementMap.set(node, file.path);
     observer.observe(node);
 
     return {
@@ -181,9 +182,14 @@
         if (observer) observer.unobserve(node);
         elementMap.delete(node);
       },
-      update(newPath: string) {
-        if (newPath !== filePath) {
-          elementMap.set(node, newPath);
+      update(newFile: FileInfo) {
+        if (newFile.isDirectory) {
+            if (observer) observer.unobserve(node);
+            elementMap.delete(node);
+            return;
+        }
+        if (newFile.path !== file.path) {
+          elementMap.set(node, newFile.path);
           // Re-observe if changed
           observer.unobserve(node);
           observer.observe(node);
@@ -308,11 +314,13 @@
   $: if (files && files.length) {
     // Preload top N files proactively
     files.slice(0, PRELOAD_COUNT).forEach((f) => {
+      if (f.isDirectory) return;
       if (previews[f.path] === undefined) loadPreview(f.path);
       if (previews[f.path] && previews[f.path]!.startPoint == null)
         loadPreview(f.path, true);
     });
     files.forEach((f) => {
+      if (f.isDirectory) return;
       const d = new Date(f.modified);
       if (isToday(d)) {
         // If we haven't loaded or queued a preview for this file yet, do so
@@ -401,7 +409,7 @@
           role="button"
           tabindex="0"
           aria-label={file.name}
-          use:observeElement={file.path}
+          use:observeElement={file}
           draggable="true"
           on:dragstart={(e) => handleDragStart(e, file)}
           on:keydown={(e) => {

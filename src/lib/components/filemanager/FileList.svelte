@@ -296,9 +296,10 @@
     );
   }
 
-  function observeElement(node: HTMLElement, filePath: string) {
+  function observeElement(node: HTMLElement, file: FileInfo) {
+    if (file.isDirectory) return { destroy() {} };
     if (!observer) setupObserver();
-    elementMap.set(node, filePath);
+    elementMap.set(node, file.path);
     observer.observe(node);
 
     return {
@@ -306,9 +307,14 @@
         if (observer) observer.unobserve(node);
         elementMap.delete(node);
       },
-      update(newPath: string) {
-        if (newPath !== filePath) {
-          elementMap.set(node, newPath);
+      update(newFile: FileInfo) {
+        if (newFile.isDirectory) {
+            if (observer) observer.unobserve(node);
+            elementMap.delete(node);
+            return;
+        }
+        if (newFile.path !== file.path) {
+          elementMap.set(node, newFile.path);
           observer.unobserve(node);
           observer.observe(node);
         }
@@ -320,6 +326,7 @@
   $: if (files && files.length) {
     const PRELOAD_COUNT = 12;
     files.slice(0, PRELOAD_COUNT).forEach((f) => {
+      if (f.isDirectory) return;
       if (previews[f.path] === undefined) loadPreview(f.path);
       // If previous attempts failed, force a retry
       if (previews[f.path] && previews[f.path]!.startPoint == null)
@@ -358,7 +365,7 @@
     <div class="space-y-0.5 px-2 mt-1">
       {#each group.files as file (file.path)}
         <div
-          use:observeElement={file.path}
+          use:observeElement={file}
           class="group flex items-center p-2 rounded-md cursor-pointer transition-colors border border-transparent
           {selectedFilePath === file.path
             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800'
