@@ -539,6 +539,15 @@
     }
   }
 
+  function handleOpen(file: FileInfo) {
+    if (file.isDirectory) {
+      currentDirectory = file.path;
+      refreshDirectory();
+    } else {
+      loadFile(file);
+    }
+  }
+
   async function loadFile(file: FileInfo) {
     if (file.error) return;
 
@@ -793,12 +802,7 @@
     const { action, file } = e.detail || e;
     switch (action) {
       case "open":
-        if (file.isDirectory) {
-          currentDirectory = file.path;
-          refreshDirectory();
-        } else {
-          loadFile(file);
-        }
+        handleOpen(file);
         break;
       case "rename-start":
         renamingFile = file;
@@ -1082,7 +1086,7 @@
         fieldImage={settings.fieldMap}
         {renamingFile}
         on:select={(e) => (selectedFile = e.detail)}
-        on:open={(e) => loadFile(e.detail)}
+        on:open={(e) => handleOpen(e.detail)}
         on:rename-start={(e) => (renamingFile = e.detail)}
         on:rename-save={(e) =>
           renamingFile && renameFile(renamingFile, e.detail)}
@@ -1099,7 +1103,7 @@
         showGitStatus={settings.gitIntegration}
         {renamingFile}
         on:select={(e) => (selectedFile = e.detail)}
-        on:open={(e) => loadFile(e.detail)}
+        on:open={(e) => handleOpen(e.detail)}
         on:rename-start={(e) => (renamingFile = e.detail)}
         on:rename-save={(e) =>
           renamingFile && renameFile(renamingFile, e.detail)}
