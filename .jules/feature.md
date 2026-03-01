@@ -1,0 +1,3 @@
+2025-03-01 - Add Empty Field Context Menu Actions
+Learning: The FieldRenderer had an empty context menu when right-clicking on empty field space. Context menus are populated dynamically based on what element was clicked. By hooking into the `menuItems.length === 0` case, we can provide global/canvas-level actions.
+Action: Next time I need to add an action that doesn't apply to a specific point/path but applies to the canvas globally, I should add it to this empty space context menu check in `FieldRenderer.svelte` (or via a plugin using `fieldContextMenuRegistry`). I should also remember to always update the `sequenceStore` when adding lines to the `linesStore` to keep the project sequence consistent.

@@ -2565,6 +2565,91 @@
     // If we have items from the element, use them.
     // If not (empty space), use registry.
     if (menuItems.length === 0) {
+      // Add default field actions
+      menuItems.push({
+        label: "Move Start Point Here",
+        onClick: () => {
+          startPointStore.update((p) => {
+            return {
+              ...p,
+              x: fieldX,
+              y: fieldY,
+            };
+          });
+          onRecordChange("Move Start Point");
+        },
+      });
+
+      menuItems.push({
+        label: "Add Waypoint Here",
+        onClick: () => {
+          linesStore.update((l) => {
+            const newLines = [...l];
+            const prevPoint =
+              newLines.length > 0
+                ? newLines[newLines.length - 1].endPoint
+                : startPoint;
+            const newId = `line-${Math.random().toString(36).slice(2)}`;
+            newLines.push({
+              id: newId,
+              name: "",
+              endPoint: {
+                x: fieldX,
+                y: fieldY,
+                heading: "tangential",
+                reverse: false,
+              },
+              controlPoints: [
+                {
+                  x: prevPoint.x + (fieldX - prevPoint.x) * 0.25,
+                  y: prevPoint.y + (fieldY - prevPoint.y) * 0.25,
+                },
+                {
+                  x: prevPoint.x + (fieldX - prevPoint.x) * 0.75,
+                  y: prevPoint.y + (fieldY - prevPoint.y) * 0.75,
+                },
+              ],
+              color: getRandomColor(),
+              locked: false,
+            });
+            sequenceStore.update((s) => [
+              ...s,
+              {
+                kind: "path",
+                lineId: newId,
+                name: `Path ${newLines.length}`,
+                durationMs: 0,
+              },
+            ]);
+            return newLines;
+          });
+          onRecordChange("Add Waypoint");
+        },
+      });
+
+      menuItems.push({ separator: true });
+
+      menuItems.push({
+        label: $snapToGrid ? "Disable Grid Snap" : "Enable Grid Snap",
+        onClick: () => {
+          snapToGrid.update((v) => !v);
+        },
+      });
+
+      menuItems.push({
+        label: settings.showOnionLayers
+          ? "Hide Onion Layers"
+          : "Show Onion Layers",
+        onClick: () => {
+          settingsStore.update((s) => ({
+            ...s,
+            showOnionLayers: !s.showOnionLayers,
+          }));
+        },
+      });
+
+      menuItems.push({ separator: true });
+
       const registryItems = get(fieldContextMenuRegistry);
       if (registryItems && registryItems.length > 0) {
         const validItems = registryItems.filter((item) => {

@@ -15,9 +15,6 @@ import {
   shapesStore,
   settingsStore,
 } from "../lib/projectStore";
-// recordChange lives in App.svelte and will trigger auto-export when called
-// @ts-ignore: Svelte 4 doesn't properly export instance functions for TS
-import { recordChange } from "../App.svelte";
 import { DEFAULT_SETTINGS } from "../config/defaults";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
@@ -441,8 +438,21 @@ describe("fileHandlers", () => {
       shapesStore.set([]);
       // extraDataStore may not be imported here, but the handleAutoExport code will still work if undefined
 
-      // call recordChange to simulate a change (event marker edit)
-      await recordChange("Edit Event Marker");
+      // Call handleAutoExport directly to simulate auto-export
+      await fileHandlers.handleAutoExport(
+        get(startPointStore),
+        get(linesStore),
+        get(sequenceStore),
+        get(settingsStore),
+        get(shapesStore),
+        {
+          startPoint: get(startPointStore),
+          lines: get(linesStore),
+          sequence: get(sequenceStore),
+          shapes: get(shapesStore),
+        },
+        get(currentFilePath) as string,
+      );
 
       // verify auto-export occurred
       expect(mockElectronAPI.writeFile).toHaveBeenCalled();
