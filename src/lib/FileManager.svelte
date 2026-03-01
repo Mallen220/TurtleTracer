@@ -370,8 +370,12 @@
   async function goUpDirectory() {
     try {
       if (electronAPI.resolvePath) {
-        // By adding /.. to the current directory, resolvePath returns the parent directory
-        const parentDir = await electronAPI.resolvePath(currentDirectory, "..");
+        // electronAPI.resolvePath(base, relative) calls path.resolve(path.dirname(base), relative).
+        // Since currentDirectory is a directory and not a file, passing it directly as `base`
+        // would drop the last directory segment and then apply "..", going up TWO levels.
+        // We append a dummy file so dirname(base) gives us the current directory,
+        // and then ".." correctly moves up exactly ONE level.
+        const parentDir = await electronAPI.resolvePath(path.join(currentDirectory, "dummy.txt"), "..");
         if (parentDir && parentDir !== currentDirectory) {
           currentDirectory = parentDir;
           await refreshDirectory();
