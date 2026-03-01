@@ -533,7 +533,11 @@
     const cleanName = newName.trim();
     if (!cleanName) return;
 
-    const fileName = cleanName.endsWith(".pp") ? cleanName : cleanName + ".pp";
+    let fileName = cleanName;
+    if (!file.isDirectory) {
+      fileName = cleanName.endsWith(".pp") ? cleanName : cleanName + ".pp";
+    }
+
     if (fileName === file.name) return;
 
     const newFilePath = path.join(currentDirectory, fileName);

@@ -1165,7 +1165,13 @@ ipcMain.handle(
 );
 ipcMain.handle("file:delete", async (event, filePath) => {
   try {
-    await fs.unlink(filePath);
+    // Check if it's a directory
+    const stats = await fs.stat(filePath);
+    if (stats.isDirectory()) {
+      await fs.rm(filePath, { recursive: true, force: true });
+    } else {
+      await fs.unlink(filePath);
+    }
     return true;
   } catch (error) {
     console.error("Error deleting file:", error);

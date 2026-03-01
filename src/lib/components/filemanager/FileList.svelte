@@ -579,6 +579,7 @@
     x={contextMenu.x}
     y={contextMenu.y}
     fileName={contextMenu.file.name}
+    isDirectory={contextMenu.file.isDirectory}
     on:close={() => (contextMenu = null)}
     on:action={(e) => handleMenuAction(e.detail)}
   />
