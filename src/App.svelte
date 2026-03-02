@@ -120,6 +120,8 @@
   // Package info
   import pkg from "../package.json";
 
+  let sessionStartTime = Date.now();
+
   // Electron API
   interface ElectronAPI {
     onMenuAction?: (callback: (action: string) => void) => void;
@@ -237,24 +239,23 @@
       return;
     }
 
-    let firstLaunchTime = settings.firstLaunchTime;
     const now = Date.now();
+    const currentSessionUsage = now - sessionStartTime;
+    const totalUsageMs = (settings.totalUsageTime || 0) + currentSessionUsage;
 
-    if (!firstLaunchTime) {
-      firstLaunchTime = now.toString();
-      settingsStore.update((s) => ({
-        ...s,
-        firstLaunchTime: firstLaunchTime as string,
-      }));
-      saveSettings(get(settingsStore)).catch((e) =>
-        console.error("Failed to save firstLaunchTime", e),
-      );
-    }
+    // Save total usage time periodically
+    settingsStore.update((s) => ({
+      ...s,
+      totalUsageTime: totalUsageMs,
+    }));
+    sessionStartTime = now; // Reset session start time to avoid double counting
+    saveSettings(get(settingsStore)).catch((e) =>
+      console.error("Failed to save usage time", e),
+    );
 
     const fiveHoursMs = 5 * 60 * 60 * 1000;
-    const timeSinceFirstLaunch = now - parseInt(firstLaunchTime, 10);
 
-    if (timeSinceFirstLaunch >= fiveHoursMs) {
+    if (totalUsageMs >= fiveHoursMs) {
       ratingDialogAutoOpened.set(true);
       showRatingDialog.set(true);
     }
@@ -543,6 +544,16 @@
   }
 
   async function handleAppCloseRequested() {
+    // Accumulate total usage time on close
+    const now = Date.now();
+    const currentSessionUsage = now - sessionStartTime;
+    settingsStore.update((s) => ({
+      ...s,
+      totalUsageTime: (s.totalUsageTime || 0) + currentSessionUsage,
+    }));
+    sessionStartTime = now;
+    try { await saveSettings(get(settingsStore)); } catch(e) {}
+
     const unsaved = get(isUnsaved);
     const autosaveMode = settings?.autosaveMode;
 

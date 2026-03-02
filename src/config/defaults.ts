@@ -73,7 +73,7 @@ export const DEFAULT_SETTINGS: Settings = {
   keyBindings: DEFAULT_KEY_BINDINGS,
   recentFiles: [],
   lastSeenVersion: "",
-  firstLaunchTime: "",
+  totalUsageTime: 0,
   lastFeedbackSubmit: "",
   submittedRatings: {},
   dismissedRatings: {},

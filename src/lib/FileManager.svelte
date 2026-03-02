@@ -17,6 +17,7 @@
           oldPath: string,
           newPath: string,
         ) => Promise<{ success: boolean; newPath: string }>;
+        resolvePath?: (base: string, relative: string) => Promise<string>;
       };
     }
   }
