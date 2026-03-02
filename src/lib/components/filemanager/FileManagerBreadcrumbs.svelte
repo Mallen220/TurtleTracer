@@ -4,9 +4,11 @@
   import { createEventDispatcher, tick } from "svelte";
 
   export let currentPath: string;
+  export let isAtBase: boolean = false;
 
   const dispatch = createEventDispatcher<{
     "change-dir": string;
+    "go-up": void;
   }>();
 
   let isEditing = false;
@@ -75,13 +77,36 @@
   </div>
 {:else}
   <div
-    class="px-4 py-2 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700 text-xs text-neutral-500 dark:text-neutral-400 font-mono truncate cursor-text hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-    title="Click to edit path"
-    on:click={startEditing}
-    role="button"
-    tabindex="0"
-    on:keydown={(e) => e.key === "Enter" && startEditing()}
+    class="flex items-center px-2 py-1.5 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700 text-xs text-neutral-500 dark:text-neutral-400 font-mono transition-colors"
   >
-    {formatPath(currentPath)}
+    {#if !isAtBase}
+      <button
+        class="p-1 mr-2 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 shrink-0"
+        on:click={() => dispatch("go-up")}
+        title="Go up one directory"
+        aria-label="Go Up"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-4"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+        </svg>
+      </button>
+    {/if}
+    <div
+      class="truncate cursor-text hover:text-neutral-700 dark:hover:text-neutral-200 w-full px-2 py-0.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
+      title="Click to edit path"
+      on:click={startEditing}
+      role="button"
+      tabindex="0"
+      on:keydown={(e) => e.key === "Enter" && startEditing()}
+    >
+      {formatPath(currentPath)}
+    </div>
   </div>
 {/if}

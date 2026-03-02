@@ -1038,8 +1038,8 @@ ipcMain.handle("file:list", async (event, directory) => {
   }
 
   try {
-    const files = await fs.readdir(directory);
-    const ppFiles = files.filter((file) => file.endsWith(".pp"));
+    const dirents = await fs.readdir(directory, { withFileTypes: true });
+    const ppFilesAndDirs = dirents.filter((dirent) => dirent.isDirectory() || dirent.name.endsWith(".pp"));
 
     // Check git status
     let gitStatuses = {};
@@ -1071,17 +1071,18 @@ ipcMain.handle("file:list", async (event, directory) => {
     }
 
     const fileDetails = await Promise.all(
-      ppFiles.map(async (file) => {
-        const filePath = path.join(directory, file);
+      ppFilesAndDirs.map(async (dirent) => {
+        const filePath = path.join(directory, dirent.name);
         const stats = await fs.stat(filePath);
         // On Windows, paths might differ in normalization, so we resolve to be safe
         const resolvedPath = path.resolve(filePath);
         return {
-          name: file,
+          name: dirent.name,
           path: filePath,
-          size: stats.size,
+          size: dirent.isDirectory() ? 0 : stats.size,
           modified: stats.mtime,
           gitStatus: gitStatuses[resolvedPath] || "clean",
+          isDirectory: dirent.isDirectory(),
         };
       }),
     );
@@ -1164,7 +1165,13 @@ ipcMain.handle(
 );
 ipcMain.handle("file:delete", async (event, filePath) => {
   try {
-    await fs.unlink(filePath);
+    // Check if it's a directory
+    const stats = await fs.stat(filePath);
+    if (stats.isDirectory()) {
+      await fs.rm(filePath, { recursive: true, force: true });
+    } else {
+      await fs.unlink(filePath);
+    }
     return true;
   } catch (error) {
     console.error("Error deleting file:", error);
