@@ -27,6 +27,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "exportGif",
     category: "File",
   },
+  {
+    id: "export-image",
+    key: "cmd+shift+i, ctrl+shift+i",
+    description: "Export Image",
+    action: "exportImage",
+    category: "File",
+  },
 
   // Editing
   {
