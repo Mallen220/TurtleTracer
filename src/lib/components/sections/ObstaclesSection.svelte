@@ -167,6 +167,7 @@
           on:click={loadPreset}
           disabled={!selectedPresetId}
           title="Load Selected Preset"
+          aria-label="Load Selected Preset"
           class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <!-- Download/Load Icon -->
@@ -190,6 +191,7 @@
           on:click={openSaveDialog}
           disabled={shapes.length === 0}
           title="Save Current as Preset"
+          aria-label="Save Current as Preset"
           class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <SaveIcon className="size-4" />
@@ -199,6 +201,7 @@
           on:click={deletePreset}
           disabled={!selectedPresetId}
           title="Delete Selected Preset"
+          aria-label="Delete Selected Preset"
           class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:text-red-500 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:hover:text-neutral-500 disabled:cursor-not-allowed transition-colors"
         >
           <TrashIcon className="size-4" />
@@ -248,6 +251,7 @@
               <div class="flex flex-row items-center gap-2">
                 <button
                   on:click={() => toggleObstacle(shapeIdx)}
+                  aria-label="Toggle Obstacle Settings"
                   class="flex items-center gap-2 font-medium text-sm hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors"
                   title="{collapsedObstacles[shapeIdx]
                     ? 'Expand'
@@ -312,6 +316,7 @@
               <div class="flex flex-row gap-1">
                 <button
                   title={shape.visible !== false ? "Hide Shape" : "Show Shape"}
+                  aria-label={shape.visible !== false ? "Hide Shape" : "Show Shape"}
                   on:click={() => {
                     shape.visible = !(shape.visible !== false);
                     shapes = [...shapes];
@@ -508,6 +513,7 @@
                       <div class="flex items-center gap-1 ml-auto">
                         <button
                           title="Add Vertex After"
+                          aria-label="Add Vertex After"
                           class="text-neutral-400 hover:text-purple-500 transition-colors p-1"
                           on:click={() => {
                             // Duplicate current vertex for easier editing

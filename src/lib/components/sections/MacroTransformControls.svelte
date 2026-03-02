@@ -396,6 +396,7 @@
             <button
               on:click={() => moveTransform(i, -1)}
               disabled={i === 0}
+              aria-label="Move transform up"
               class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
             >
               <svg
@@ -414,6 +415,7 @@
             <button
               on:click={() => moveTransform(i, 1)}
               disabled={i === (macro.transformations?.length ?? 0) - 1}
+              aria-label="Move transform down"
               class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
             >
               <svg
@@ -431,6 +433,7 @@
             </button>
             <button
               on:click={() => removeTransform(i)}
+              aria-label="Remove transform"
               class="p-0.5 text-red-400 hover:text-red-600 ml-1"
             >
               <svg

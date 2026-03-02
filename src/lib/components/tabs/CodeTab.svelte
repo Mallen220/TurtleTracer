@@ -307,6 +307,7 @@
         settingsActiveTab.set("code-export");
         showSettings.set(true);
       }}
+      aria-label="Open auto export settings"
       class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500"
       title="Open Settings"
     >
