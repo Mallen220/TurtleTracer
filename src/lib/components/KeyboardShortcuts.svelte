@@ -1269,7 +1269,7 @@
       const line = lines[lineIdx];
       if (line && line.eventMarkers && line.eventMarkers[evIdx]) {
         if (line.locked) return; // Don't modify event markers on locked lines
-        const step = 0.01 * Math.sign(delta);
+        const step = 0.01 * delta;
         let newPos = line.eventMarkers[evIdx].position + step;
         newPos = Math.max(0, Math.min(1, newPos));
         line.eventMarkers[evIdx].position = newPos;
@@ -1284,7 +1284,7 @@
       if (line && line.eventMarkers && line.eventMarkers.length > 0) {
         if (line.locked) return; // Don't modify event markers on locked lines
         const lastIdx = line.eventMarkers.length - 1;
-        const step = 0.01 * Math.sign(delta);
+        const step = 0.01 * delta;
         let newPos = line.eventMarkers[lastIdx].position + step;
         newPos = Math.max(0, Math.min(1, newPos));
         line.eventMarkers[lastIdx].position = newPos;
@@ -1758,6 +1758,8 @@
     selectPrevSequence: () => cycleSequenceSelection(-1),
     increaseValue: () => modifyValue(1),
     decreaseValue: () => modifyValue(-1),
+    increaseValueSmall: () => modifyValue(0.1),
+    decreaseValueSmall: () => modifyValue(-0.1),
     toggleHeadingMode: () => toggleHeadingMode(),
     toggleReverse: () => toggleReverse(),
     toggleLock: () => toggleLock(),
