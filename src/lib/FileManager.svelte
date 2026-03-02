@@ -69,6 +69,7 @@
   let sortModeInitialized = false;
   let viewMode: "list" | "grid" = session.viewMode;
   let currentDirectory = "";
+  let baseDirectory = "";
   let files: FileInfo[] = [];
   let filteredFiles: FileInfo[] = [];
   let loading = false;
@@ -246,9 +247,11 @@
       const savedDir = await electronAPI.getSavedDirectory();
       if (savedDir && savedDir.trim() !== "") {
         currentDirectory = savedDir;
+        baseDirectory = savedDir;
       } else {
         const dir = await electronAPI.getDirectory();
         currentDirectory = dir || "";
+        baseDirectory = dir || "";
       }
       await refreshDirectory();
     } catch (error) {
@@ -334,6 +337,7 @@
       const newDir = await electronAPI.setDirectory();
       if (newDir) {
         currentDirectory = newDir;
+        baseDirectory = newDir;
         await saveAutoPathsDirectory(newDir);
         await refreshDirectory();
         showToast(`Directory changed to: ${path.basename(newDir)}`, "success");
@@ -368,6 +372,9 @@
   }
 
   async function goUpDirectory() {
+    if (currentDirectory === baseDirectory) {
+      return; // Cannot go up beyond the base directory
+    }
     try {
       if (electronAPI.resolvePath) {
         // electronAPI.resolvePath(base, relative) calls path.resolve(path.dirname(base), relative).
@@ -377,8 +384,15 @@
         // and then ".." correctly moves up exactly ONE level.
         const parentDir = await electronAPI.resolvePath(path.join(currentDirectory, "dummy.txt"), "..");
         if (parentDir && parentDir !== currentDirectory) {
-          currentDirectory = parentDir;
-          await refreshDirectory();
+          // Additional safety check to prevent going outside baseDirectory
+          // parentDir must start with baseDirectory
+          if (parentDir.startsWith(baseDirectory)) {
+            currentDirectory = parentDir;
+            await refreshDirectory();
+          } else {
+            currentDirectory = baseDirectory;
+            await refreshDirectory();
+          }
         }
       }
     } catch (err) {
@@ -392,20 +406,18 @@
     if (!newDir) return;
 
     try {
-      // Ideally we verify if it exists first, but `listFiles` will fail if not
-      // Or we can try to save it directly.
-      // NOTE: `setDirectory` normally opens a dialog, so we can't use it for direct set if it doesn't take args.
-      // However, `saveAutoPathsDirectory` saves to store.
-      // Let's try to verify via listFiles or check directory existence if API allows.
+      // Ensure the manual directory is still within the base directory
+      if (!newDir.startsWith(baseDirectory)) {
+        showToast(`Cannot navigate outside the base directory`, "error");
+        return;
+      }
 
-      // Assuming user knows what they are doing or we catch error
       currentDirectory = newDir;
-      await saveAutoPathsDirectory(newDir);
+      // Do NOT call saveAutoPathsDirectory(newDir) here to avoid changing the base
       await refreshDirectory();
 
       if (errorMessage) {
-        // If refresh failed, revert? Or just show error?
-        // Keeping error is fine.
+        // Keep error
       } else {
         showToast(`Directory changed`, "success");
       }
@@ -986,6 +998,7 @@
     <!-- Breadcrumbs -->
     <FileManagerBreadcrumbs
       currentPath={currentDirectory}
+      isAtBase={currentDirectory === baseDirectory}
       on:change-dir={changeDirectoryManual}
       on:go-up={goUpDirectory}
     />
