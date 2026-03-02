@@ -2667,18 +2667,25 @@
     {/if}
     <MathTools {x} {y} {twoElement} {robotXY} />
     {#if !isDiffMode && $showRobot}
-      <img
-        src={settings.robotImage || "/robot.png"}
-        alt="Robot"
-        class="max-w-none"
-        style={`position: absolute; top: ${y(robotXY.y)}px;
+      {#if settings.robotImage === "none"}
+        <!-- Current (Green Square) -->
+        <div
+          style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.5); border: 2px solid #16a34a;`}
+        ></div>
+      {:else}
+        <img
+          src={settings.robotImage || "/robot.png"}
+          alt="Robot"
+          class="max-w-none"
+          style={`position: absolute; top: ${y(robotXY.y)}px;
 left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
-        draggable="false"
-        on:error={(e) => {
-          // @ts-ignore
-          e.target.src = "/robot.png";
-        }}
-      />
+          draggable="false"
+          on:error={(e) => {
+            // @ts-ignore
+            e.target.src = "/robot.png";
+          }}
+        />
+      {/if}
     {:else}
       <!-- Current (Green) -->
       <div

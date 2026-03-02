@@ -1178,6 +1178,16 @@
                       </button>
                       <button
                         on:click={() => {
+                          settings.robotImage = "none";
+                          settings = { ...settings };
+                        }}
+                        class="px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
+                        disabled={settings.robotImage === "none"}
+                      >
+                        No Image
+                      </button>
+                      <button
+                        on:click={() => {
                           settings.robotImage = "/JefferyThePotato.png";
                           settings = { ...settings };
                         }}

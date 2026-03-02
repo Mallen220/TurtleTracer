@@ -925,6 +925,59 @@
               >
             </button>
 
+            {#if settings.showOnionLayers}
+              <div class="flex items-center justify-between px-2 py-1.5">
+                <div class="flex items-center gap-2 w-full pl-6">
+                  <button
+                    title={`Toggle Current Path Only${getShortcutFromSettings(settings, "toggle-onion-current-path")}`}
+                    aria-label={settings.onionSkinCurrentPathOnly
+                      ? "Show All Paths"
+                      : "Show Current Path Only"}
+                    role="menuitemcheckbox"
+                    aria-checked={settings.onionSkinCurrentPathOnly}
+                    on:click={() => {
+                      settings.onionSkinCurrentPathOnly =
+                        !settings.onionSkinCurrentPathOnly;
+                      import("../lib/projectStore").then(
+                        ({ settingsStore }) => {
+                          settingsStore.update((s) => ({
+                            ...s,
+                            onionSkinCurrentPathOnly:
+                              settings.onionSkinCurrentPathOnly,
+                          }));
+                        },
+                      );
+                    }}
+                    class="flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md py-1 px-2 -ml-2 transition-colors group w-full text-left"
+                  >
+                    <div
+                      class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {settings.onionSkinCurrentPathOnly
+                        ? 'text-blue-500'
+                        : 'text-neutral-400'}"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                        ></path>
+                      </svg>
+                    </div>
+                    <span class="text-xs text-neutral-600 dark:text-neutral-300"
+                      >Current Path Only</span
+                    >
+                  </button>
+                </div>
+              </div>
+            {/if}
+
             <button
               title={`Toggle Velocity Heatmap`}
               aria-label="Toggle Velocity Heatmap"
