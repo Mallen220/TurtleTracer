@@ -63,8 +63,8 @@ describe("Validation Utils", () => {
         color: "black",
         endPoint: { x: 10, y: 10, heading: "tangential", reverse: false },
         controlPoints: [
-          { x: 0, y: 0 },
-          { x: 0, y: 0 },
+          { x: 2, y: 5 },
+          { x: 8, y: 5 },
         ],
       },
     ];
@@ -93,8 +93,8 @@ describe("Validation Utils", () => {
         color: "black",
         endPoint: { x: 0, y: 0, heading: "tangential", reverse: false }, // Same as start
         controlPoints: [
-          { x: 0, y: 0 },
-          { x: 0, y: 0 },
+          { x: 2, y: 5 },
+          { x: 8, y: 5 },
         ],
       },
     ];
@@ -126,8 +126,8 @@ describe("Validation Utils", () => {
         color: "black",
         endPoint: { x: 10, y: 10, heading: "tangential", reverse: false },
         controlPoints: [
-          { x: 0, y: 0 },
-          { x: 0, y: 0 },
+          { x: 2, y: 5 },
+          { x: 8, y: 5 },
         ],
       },
     ];
@@ -162,8 +162,8 @@ describe("Validation Utils", () => {
         color: "black",
         endPoint: { x: 10, y: 10, heading: "tangential", reverse: false },
         controlPoints: [
-          { x: 0, y: 0 },
-          { x: 0, y: 0 },
+          { x: 2, y: 5 },
+          { x: 8, y: 5 },
         ],
       },
     ];
@@ -198,8 +198,8 @@ describe("Validation Utils", () => {
         color: "black",
         endPoint: { x: 0, y: 0, heading: "tangential", reverse: false }, // Zero length
         controlPoints: [
-          { x: 0, y: 0 },
-          { x: 0, y: 0 },
+          { x: 2, y: 5 },
+          { x: 8, y: 5 },
         ],
       },
     ];

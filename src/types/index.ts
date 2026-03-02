@@ -291,7 +291,7 @@ export interface CollisionMarker {
   y: number;
   time: number;
   segmentIndex?: number;
-  type?: "obstacle" | "boundary" | "zero-length" | "keep-in";
+  type?: "obstacle" | "boundary" | "zero-length" | "keep-in" | "warning";
   // Range properties
   endTime?: number;
   endX?: number;

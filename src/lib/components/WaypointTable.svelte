@@ -1367,7 +1367,7 @@
                 on:dragstart={(e) => handleDragStart(e, seqIndex)}
                 on:dragend={handleDragEnd}
                 on:contextmenu={(e) => handleContextMenu(e, seqIndex)}
-                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150`}
+                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId ? "bg-green-100 dark:bg-green-800/40" : ""} ${line.controlPoints.length >= 3 ? "bg-orange-100/30 dark:bg-orange-900/20" : ""} transition-colors duration-150`}
                 class:border-t-2={dragOverIndex === seqIndex &&
                   dragPosition === "top"}
                 class:border-b-2={dragOverIndex === seqIndex &&
@@ -1569,7 +1569,7 @@
                 ].findIndex((p) => p === cp)}
                 {@const pointId = `point-${lineIdx + 1}-${cpIndex}`}
                 <tr
-                  class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === pointId ? "bg-green-100 dark:bg-green-800/40" : ""}`}
+                  class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === pointId ? "bg-green-100 dark:bg-green-800/40" : ""} ${line.controlPoints.length >= 3 ? "bg-orange-100 dark:bg-orange-900/40 !border-l-4 !border-orange-500 shadow-sm" : ""}`}
                   on:click={() => {
                     if (line.id) selectedLineId.set(line.id);
                     selectedPointId.set(pointId);
