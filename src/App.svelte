@@ -1022,6 +1022,9 @@
             case "export-gif":
               exportGif();
               break;
+            case "export-image":
+              showExportImage.set(true);
+              break;
             case "export-pp":
               // Open the Export Code dialog pre-selected to JSON (.pp) format
               exportDialogState.set({ isOpen: true, format: "json" });
@@ -1540,6 +1543,7 @@
   resetProject={handleResetProject}
   {saveFileAs}
   {exportGif}
+    exportImage={() => showExportImage.set(true)}
   {undoAction}
   {redoAction}
   {play}
