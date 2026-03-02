@@ -188,6 +188,26 @@ export async function generateJavaCode(
               .join("");
           }
 
+          // Add constraints to the path builder
+          let constraintCode = "";
+          if (line.constraints) {
+            if (line.constraints.timeout !== undefined) {
+              constraintCode += `\n        .setTimeoutConstraint(${line.constraints.timeout})`;
+            }
+            if (line.constraints.tValue !== undefined) {
+              constraintCode += `\n        .setTValueConstraint(${line.constraints.tValue.toFixed(3)})`;
+            }
+            if (line.constraints.velocity !== undefined) {
+              constraintCode += `\n        .setVelocityConstraint(${line.constraints.velocity})`;
+            }
+            if (line.constraints.translational !== undefined) {
+              constraintCode += `\n        .setTranslationalConstraint(${line.constraints.translational.toFixed(3)})`;
+            }
+            if (line.constraints.heading !== undefined) {
+              constraintCode += `\n        .setHeadingConstraint(Math.toRadians(${line.constraints.heading.toFixed(3)}))`;
+            }
+          }
+
           return `${variableName} = follower.pathBuilder().addPath(
           ${curveType}(
             ${startCode},
@@ -195,7 +215,7 @@ export async function generateJavaCode(
             ${endCode}
           )
         ).${headingTypeToFunctionName[line.endPoint.heading]}(${headingConfig})
-        ${reverseConfig}${eventMarkerCode}
+        ${reverseConfig}${eventMarkerCode}${constraintCode}
         .build();`;
         })
         .join("\n\n")}
@@ -904,9 +924,29 @@ export async function generateSequentialCommandCode(
         ? "\n                .setReversed()"
         : "";
 
+      // Add constraints
+      let constraintCode = "";
+      if (line.constraints) {
+        if (line.constraints.timeout !== undefined) {
+          constraintCode += `\n                .setTimeoutConstraint(${line.constraints.timeout})`;
+        }
+        if (line.constraints.tValue !== undefined) {
+          constraintCode += `\n                .setTValueConstraint(${line.constraints.tValue.toFixed(3)})`;
+        }
+        if (line.constraints.velocity !== undefined) {
+          constraintCode += `\n                .setVelocityConstraint(${line.constraints.velocity})`;
+        }
+        if (line.constraints.translational !== undefined) {
+          constraintCode += `\n                .setTranslationalConstraint(${line.constraints.translational.toFixed(3)})`;
+        }
+        if (line.constraints.heading !== undefined) {
+          constraintCode += `\n                .setHeadingConstraint(Math.toRadians(${line.constraints.heading.toFixed(3)}))`;
+        }
+      }
+
       return `        ${pathName} = follower.pathBuilder()
             .addPath(new ${curveType}(${actualStartPose}, ${controlPointsStr}${endPoseVar}))
-            .${headingConfig}${reverseConfig}
+            .${headingConfig}${reverseConfig}${constraintCode}
             .build();`;
     })
     .join("\n\n        ");

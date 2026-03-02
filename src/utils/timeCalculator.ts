@@ -833,7 +833,28 @@ export function calculatePathTime(
       const rotationTime =
         (rotationRequired * (Math.PI / 180)) / safeSettings.aVelocity;
 
-      const segmentTime = Math.max(translationTime, rotationTime);
+      let segmentTime = Math.max(translationTime, rotationTime);
+
+      // Apply Constraints to estimated time
+      if (line.constraints) {
+        // T-Value: The robot considers the path complete earlier
+        if (line.constraints.tValue !== undefined) {
+          segmentTime *= line.constraints.tValue;
+        }
+
+        // Velocity: The robot considers the path complete when velocity drops below this value
+        // We save the time it would take to decelerate from this velocity to zero
+        if (line.constraints.velocity !== undefined) {
+          const maxDec = safeSettings.maxDeceleration || safeSettings.maxAcceleration || 30;
+          const timeSaved = line.constraints.velocity / maxDec;
+          segmentTime = Math.max(0.001, segmentTime - timeSaved);
+        }
+
+        // Timeout: The robot waits up to this amount of time at the end to correct
+        if (line.constraints.timeout !== undefined) {
+          segmentTime += line.constraints.timeout / 1000; // ms to seconds
+        }
+      }
 
       segmentTimes.push(segmentTime);
       const lineIndex = contextLines.findIndex((l) => l.id === line.id);

@@ -59,6 +59,14 @@ interface EventMarker {
   parameters?: Record<string, any>;
 }
 
+interface PathConstraints {
+  timeout?: number;
+  tValue?: number;
+  velocity?: number;
+  translational?: number;
+  heading?: number;
+}
+
 interface WaitSegment {
   name?: string;
   durationMs: number;
@@ -84,6 +92,7 @@ interface Line {
   isMacroElement?: boolean;
   macroId?: string;
   originalId?: string;
+  constraints?: PathConstraints;
 }
 
 type SequencePathItem = {

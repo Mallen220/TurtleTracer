@@ -50,6 +50,14 @@ export interface EventMarker {
   parameters?: Record<string, any>;
 }
 
+export interface PathConstraints {
+  timeout?: number;
+  tValue?: number;
+  velocity?: number;
+  translational?: number;
+  heading?: number;
+}
+
 export interface WaitSegment {
   name?: string;
   durationMs: number;
@@ -75,6 +83,7 @@ export interface Line {
   isMacroElement?: boolean;
   macroId?: string;
   originalId?: string;
+  constraints?: PathConstraints;
 }
 
 export type SequencePathItem = {
