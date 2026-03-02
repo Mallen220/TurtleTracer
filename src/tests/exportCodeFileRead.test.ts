@@ -67,6 +67,7 @@ describe("ExportCodeDialog file reading", () => {
   });
 
   it("falls back to generation if file read fails", async () => {
+    const mockConsoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     currentFilePath.set("/path/to/project.pp");
     (window as any).electronAPI.readFile.mockRejectedValue(
       new Error("File not found"),
@@ -88,6 +89,8 @@ describe("ExportCodeDialog file reading", () => {
 
     // Should contain generated content (e.g. "version")
     await waitFor(() => expect(getByText(/"version"/)).toBeTruthy());
+
+    mockConsoleWarn.mockRestore();
   });
 
   it("generates content if no file path", async () => {
