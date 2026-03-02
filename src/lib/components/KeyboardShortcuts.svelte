@@ -71,6 +71,7 @@
   export let resetProject: () => void;
   export let saveFileAs: () => void;
   export let exportGif: () => void;
+  export let exportImage: () => void = () => {};
   export let undoAction: () => void;
   export let redoAction: () => void;
   export let play: () => void;
@@ -1731,6 +1732,7 @@
     saveProject: () => saveProject(),
     saveFileAs: () => saveFileAs(),
     exportGif: () => exportGif(),
+    exportImage: () => exportImage(),
     addNewLine: () => addNewLine(),
     addWait: () => addWait(),
     addRotate: () => addRotate(),
@@ -2153,6 +2155,7 @@
         maxVelocity: nextProfile.maxVelocity,
         maxAcceleration: nextProfile.maxAcceleration,
         maxDeceleration: nextProfile.maxDeceleration,
+        maxAngularAcceleration: nextProfile.maxAngularAcceleration ?? s.maxAngularAcceleration,
         kFriction: nextProfile.kFriction,
         aVelocity: nextProfile.aVelocity,
         xVelocity: nextProfile.xVelocity,

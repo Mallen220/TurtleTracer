@@ -215,6 +215,7 @@ export interface RobotProfile {
   maxVelocity: number;
   maxAcceleration: number;
   maxDeceleration: number;
+  maxAngularAcceleration?: number;
   kFriction: number;
   aVelocity: number; // angular velocity
   xVelocity: number;
