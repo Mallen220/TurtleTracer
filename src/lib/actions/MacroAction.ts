@@ -13,7 +13,7 @@ export const MacroAction: ActionDefinition = {
   buttonColor: "purple",
   isMacro: true,
   color: "#14b8a6", // Teal-500
-  showInToolbar: false, // Macros are dragged in, not added via button
+  showInToolbar: true, // Macros are dragged in, not added via button
   component: MacroTableRow,
   sectionComponent: MacroSection,
   // renderField: Handled by line renderer (expanded lines) or other items inside macro

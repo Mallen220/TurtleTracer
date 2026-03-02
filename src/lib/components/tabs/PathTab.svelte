@@ -32,6 +32,7 @@
     selectedLineId,
     selectedPointId,
     toggleCollapseAllTrigger,
+    showProjectBrowser,
   } from "../../../stores";
   import { loadMacro } from "../../../lib/projectStore";
   import { getShortcutFromSettings } from "../../../utils";
@@ -42,6 +43,7 @@
     updateLinkedRotations,
   } from "../../../utils/pointLinking";
   import PathActionButtons from "./PathActionButtons.svelte";
+  import { isAutoStore } from "../../projectStore";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -730,7 +732,10 @@
   }
 
   function handleAddAction(def: any) {
-    if (def.createDefault) {
+    if (def.isMacro) {
+      (window as any).macroInsertionIndex = sequence.length;
+      showProjectBrowser.set(true);
+    } else if (def.createDefault) {
       const newItem = def.createDefault();
       sequence = [...sequence, newItem];
       selectedPointId.set(`${def.kind}-${newItem.id}`);
@@ -744,6 +749,9 @@
   function handleAddActionAfter(seqIndex: number, def: any) {
     if (def.isPath) {
       insertLineAfter(seqIndex);
+    } else if (def.isMacro) {
+      (window as any).macroInsertionIndex = seqIndex + 1;
+      showProjectBrowser.set(true);
     } else if (def.createDefault) {
       const newItem = def.createDefault();
       const newSeq = [...sequence];
@@ -836,36 +844,63 @@
   {#each sequence as item, sIdx (getItemId(item))}
     {@const isLocked = isItemLocked(item, lines)}
     {@const def = $actionRegistry[item.kind]}
-    <div
-      role="listitem"
-      data-index={sIdx}
-      id={`sequence-item-${getItemId(item)}`}
-      class="w-full transition-all duration-200 rounded-lg"
-      draggable={!isItemLocked(item, lines)}
-      on:dragstart={(e) => handleDragStart(e, sIdx)}
-      on:dragend={handleDragEnd}
-      class:border-t-4={dragOverIndex === sIdx && dragPosition === "top"}
-      class:border-b-4={dragOverIndex === sIdx && dragPosition === "bottom"}
-      class:border-blue-500={dragOverIndex === sIdx}
-      class:dark:border-blue-400={dragOverIndex === sIdx}
-      class:opacity-50={draggingIndex === sIdx}
-    >
-      {#if item.kind === "path"}
-        {#each lines.filter((l) => l.id === getPathLineId(item)) as ln (ln.id)}
-          <PathLineSection
-            bind:line={ln}
-            idx={lines.findIndex((l) => l.id === ln.id)}
-            bind:lines
-            bind:collapsed={
-              collapsedSections.lines[lines.findIndex((l) => l.id === ln.id)]
-            }
-            bind:collapsedControlPoints={
-              collapsedSections.controlPoints[
-                lines.findIndex((l) => l.id === ln.id)
-              ]
-            }
-            onRemove={() => removeLine(lines.findIndex((l) => l.id === ln.id))}
-            onInsertAfter={() => insertLineAfter(sIdx)}
+    {#if ($isAutoStore ? !!def?.isMacro : !def?.isMacro)}
+      <div
+        role="listitem"
+        data-index={sIdx}
+        id={`sequence-item-${getItemId(item)}`}
+        class="w-full transition-all duration-200 rounded-lg"
+        draggable={!isItemLocked(item, lines)}
+        on:dragstart={(e) => handleDragStart(e, sIdx)}
+        on:dragend={handleDragEnd}
+        class:border-t-4={dragOverIndex === sIdx && dragPosition === "top"}
+        class:border-b-4={dragOverIndex === sIdx && dragPosition === "bottom"}
+        class:border-blue-500={dragOverIndex === sIdx}
+        class:dark:border-blue-400={dragOverIndex === sIdx}
+        class:opacity-50={draggingIndex === sIdx}
+      >
+        {#if item.kind === "path"}
+          {#each lines.filter((l) => l.id === getPathLineId(item)) as ln (ln.id)}
+            <PathLineSection
+              bind:line={ln}
+              idx={lines.findIndex((l) => l.id === ln.id)}
+              bind:lines
+              bind:collapsed={
+                collapsedSections.lines[lines.findIndex((l) => l.id === ln.id)]
+              }
+              bind:collapsedControlPoints={
+                collapsedSections.controlPoints[
+                  lines.findIndex((l) => l.id === ln.id)
+                ]
+              }
+              onRemove={() => removeLine(lines.findIndex((l) => l.id === ln.id))}
+              onInsertAfter={() => insertLineAfter(sIdx)}
+              onAddWaitAfter={() =>
+                handleAddActionAfter(sIdx, $actionRegistry["wait"])}
+              onAddRotateAfter={() =>
+                handleAddActionAfter(sIdx, $actionRegistry["rotate"])}
+              onAddAction={addActionAfterFor.bind(null, sIdx)}
+              onMoveUp={() => moveSequenceItem(sIdx, -1)}
+              onMoveDown={() => moveSequenceItem(sIdx, 1)}
+              canMoveUp={sIdx !== 0}
+              canMoveDown={sIdx !== sequence.length - 1}
+              {recordChange}
+            />
+          {/each}
+        {:else if def && def.sectionComponent}
+          <svelte:component
+            this={def.sectionComponent}
+            {...{ [def.kind]: item }}
+            bind:sequence
+            collapsed={collapsedSections.items[getItemId(item)]}
+            onRemove={() => {
+              const newSeq = [...sequence];
+              newSeq.splice(sIdx, 1);
+              sequence = newSeq;
+              recordChange?.("Remove Item");
+            }}
+            onInsertAfter={() => handleAddActionAfter(sIdx, def)}
+            onAddPathAfter={() => insertLineAfter(sIdx)}
             onAddWaitAfter={() =>
               handleAddActionAfter(sIdx, $actionRegistry["wait"])}
             onAddRotateAfter={() =>
@@ -877,34 +912,9 @@
             canMoveDown={sIdx !== sequence.length - 1}
             {recordChange}
           />
-        {/each}
-      {:else if def && def.sectionComponent}
-        <svelte:component
-          this={def.sectionComponent}
-          {...{ [def.kind]: item }}
-          bind:sequence
-          collapsed={collapsedSections.items[getItemId(item)]}
-          onRemove={() => {
-            const newSeq = [...sequence];
-            newSeq.splice(sIdx, 1);
-            sequence = newSeq;
-            recordChange?.("Remove Item");
-          }}
-          onInsertAfter={() => handleAddActionAfter(sIdx, def)}
-          onAddPathAfter={() => insertLineAfter(sIdx)}
-          onAddWaitAfter={() =>
-            handleAddActionAfter(sIdx, $actionRegistry["wait"])}
-          onAddRotateAfter={() =>
-            handleAddActionAfter(sIdx, $actionRegistry["rotate"])}
-          onAddAction={addActionAfterFor.bind(null, sIdx)}
-          onMoveUp={() => moveSequenceItem(sIdx, -1)}
-          onMoveDown={() => moveSequenceItem(sIdx, 1)}
-          canMoveUp={sIdx !== 0}
-          canMoveDown={sIdx !== sequence.length - 1}
-          {recordChange}
-        />
-      {/if}
-    </div>
+        {/if}
+      </div>
+    {/if}
   {/each}
   <!-- Add Buttons at end of list -->
   {#if sequence.length > 0}

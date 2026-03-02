@@ -4,6 +4,7 @@
   import { actionRegistry } from "../../actionRegistry";
   import { getButtonFilledClass } from "../../../utils/buttonStyles";
   import { getShortcutFromSettings } from "../../../utils";
+  import { isAutoStore } from "../../projectStore";
 
   export let settings: any;
   export let onAddLine: () => void;
@@ -15,7 +16,7 @@
 </script>
 
 {#each Object.values($actionRegistry) as def (def.kind)}
-  {#if def.createDefault || def.isPath}
+  {#if (def.createDefault || def.isPath || def.showInToolbar) && ($isAutoStore ? !!def.isMacro : !def.isMacro)}
     <button
       on:click={() => {
         if (def.isPath) onAddLine();

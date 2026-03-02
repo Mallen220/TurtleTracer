@@ -18,7 +18,7 @@
   import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
   import SaveNameDialog from "./lib/components/dialogs/SaveNameDialog.svelte";
   import UnsavedChangesDialog from "./lib/components/dialogs/UnsavedChangesDialog.svelte";
-  import FileManager from "./lib/FileManager.svelte";
+  import ProjectBrowser from "./lib/components/projectbrowser/ProjectBrowser.svelte";
   import SettingsDialog from "./lib/components/dialogs/SettingsDialog.svelte";
   import TelemetryDialog from "./lib/components/dialogs/TelemetryDialog.svelte";
   import PluginManagerDialog from "./lib/components/dialogs/PluginManagerDialog.svelte";
@@ -43,7 +43,7 @@
     exportDialogState,
     selectedPointId,
     collisionMarkers,
-    showFileManager,
+    showProjectBrowser,
     fileManagerNewFileMode,
     projectMetadataStore,
     currentDirectoryStore,
@@ -806,7 +806,7 @@
   function handleSaveProject() {
     const path = get(currentFilePath);
     if (!path) {
-      showFileManager.set(true);
+      showProjectBrowser.set(true);
       fileManagerNewFileMode.set(true);
     } else {
       saveProject();
@@ -1662,14 +1662,10 @@
 />
 <PluginManagerDialog bind:isOpen={$showPluginManager} />
 
-{#if $showFileManager}
-  <FileManager
-    bind:isOpen={$showFileManager}
-    bind:startPoint={$startPointStore}
-    bind:lines={$linesStore}
-    bind:shapes={$shapesStore}
-    bind:sequence={$sequenceStore}
-    bind:settings={$settingsStore}
+{#if $showProjectBrowser}
+  <ProjectBrowser
+    settings={$settingsStore}
+    on:open-file={handleExternalFileOpen}
   />
 {/if}
 

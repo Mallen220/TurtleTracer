@@ -20,6 +20,7 @@ export const snapToGrid = writable(true);
 export const fieldZoom = writable(1.0);
 export const fieldPan = writable({ x: 0, y: 0 });
 export const showShortcuts = writable(false);
+export const showProjectBrowser = writable(false);
 export const showSettings = writable(false);
 export const settingsActiveTab = writable("general");
 export const showPluginManager = writable(false);
@@ -43,7 +44,7 @@ export const showUpdateAvailableDialog = writable(false);
 export const updateDataStore = writable<UpdateData | null>(null);
 
 // File Manager Stores
-export const showFileManager = writable(false);
+export const showFileManager = writable(false); // Kept for legacy compatibility if needed, but Project Browser replaces it
 export const fileManagerNewFileMode = writable(false);
 
 // Currently selected line id (used to add control points to selected path)
@@ -69,13 +70,21 @@ export const projectMetadataStore = writable<{
 
 // File Manager Session State
 export const fileManagerSessionState = writable<{
-  searchQuery: string;
-  viewMode: "list" | "grid";
-  sortMode: "name" | "date";
+  pathsSearchQuery: string;
+  pathsViewMode: "list" | "grid";
+  pathsSortMode: "name" | "date";
+  autosSearchQuery: string;
+  autosViewMode: "list" | "grid";
+  autosSortMode: "name" | "date";
+  leftPaneWidth: number;
 }>({
-  searchQuery: "",
-  viewMode: "grid",
-  sortMode: "date",
+  pathsSearchQuery: "",
+  pathsViewMode: "grid",
+  pathsSortMode: "date",
+  autosSearchQuery: "",
+  autosViewMode: "grid",
+  autosSortMode: "date",
+  leftPaneWidth: 50,
 });
 
 export const hoveredMarkerId = writable<string | null>(null);

@@ -293,6 +293,7 @@ interface FileInfo {
   error?: string;
   gitStatus?: "modified" | "staged" | "untracked" | "ignored" | "clean";
   isDirectory?: boolean;
+  folderType?: "path" | "auto" | "any";
 }
 
 interface CollisionMarker {
@@ -326,6 +327,7 @@ interface PedroData {
   lines: Line[];
   shapes: Shape[];
   sequence: SequenceItem[];
+  type?: "path" | "auto";
   extraData?: Record<string, any>;
 }
 

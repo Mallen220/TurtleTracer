@@ -13,14 +13,13 @@
     snapToGrid,
     showSettings,
     exportDialogState,
-    showFileManager,
+    showProjectBrowser,
     showPluginManager,
     showStrategySheet,
     showExportImage,
     showHistory,
     showFeedbackDialog,
     gitStatusStore,
-    showRobot,
   } from "../stores";
   import { getRandomColor } from "../utils";
   import { SaveIcon } from "./components/icons";
@@ -224,26 +223,26 @@
 >
   <!-- Left: Brand & File -->
   <div class="flex items-center gap-4">
-    <!-- Menu Button (Mobile/Sidebar toggle for consistency if desired, or just File Manager) -->
+    <!-- Back to Project Browser Button -->
     <button
       id="file-manager-btn"
-      title={`Open File Manager${getShortcutFromSettings(settings, "toggle-file-manager")}`}
-      aria-label="Open File Manager"
-      on:click={() => showFileManager.set(true)}
-      class="text-neutral-700 dark:text-neutral-200 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+      title={`Return to Project Browser${getShortcutFromSettings(settings, "toggle-file-manager")}`}
+      aria-label="Return to Project Browser"
+      on:click={() => showProjectBrowser.set(true)}
+      class="p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
-        stroke-width="2"
+        stroke-width="2.5"
         stroke="currentColor"
         class="size-6"
       >
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
-          d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+          d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
         />
       </svg>
     </button>
@@ -844,179 +843,6 @@
                 </div>
               </div>
             {/if}
-
-            <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
-
-            <button
-              title={`Toggle Robot`}
-              aria-label="Toggle Robot"
-              role="menuitemcheckbox"
-              aria-checked={$showRobot}
-              on:click={() => showRobot.update((v) => !v)}
-              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
-            >
-              <div
-                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {$showRobot
-                  ? 'text-blue-500'
-                  : 'text-neutral-500 dark:text-neutral-400'}"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <rect x="3" y="11" width="18" height="10" rx="2"></rect>
-                  <circle cx="12" cy="5" r="2"></circle>
-                  <path d="M12 7v4"></path>
-                  <line x1="8" y1="16" x2="8" y2="16"></line>
-                  <line x1="16" y1="16" x2="16" y2="16"></line>
-                </svg>
-              </div>
-              <span class="text-sm text-neutral-700 dark:text-neutral-200"
-                >Robot</span
-              >
-            </button>
-
-            <button
-              title={`Toggle Onion Skin${getShortcutFromSettings(settings, "toggle-onion")}`}
-              aria-label="Toggle Onion Skin"
-              role="menuitemcheckbox"
-              aria-checked={settings.showOnionLayers}
-              on:click={() => {
-                settings.showOnionLayers = !settings.showOnionLayers;
-                import("../lib/projectStore").then(({ settingsStore }) => {
-                  settingsStore.update((s) => ({
-                    ...s,
-                    showOnionLayers: settings.showOnionLayers,
-                  }));
-                });
-              }}
-              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
-            >
-              <div
-                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {settings.showOnionLayers
-                  ? 'text-blue-500'
-                  : 'text-neutral-500 dark:text-neutral-400'}"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                  <polyline points="2 12 12 17 22 12"></polyline>
-                  <polyline points="2 17 12 22 22 17"></polyline>
-                </svg>
-              </div>
-              <span class="text-sm text-neutral-700 dark:text-neutral-200"
-                >Onion Skin</span
-              >
-            </button>
-
-            {#if settings.showOnionLayers}
-              <div class="flex items-center justify-between px-2 py-1.5">
-                <div class="flex items-center gap-2 w-full pl-6">
-                  <button
-                    title={`Toggle Current Path Only${getShortcutFromSettings(settings, "toggle-onion-current-path")}`}
-                    aria-label={settings.onionSkinCurrentPathOnly
-                      ? "Show All Paths"
-                      : "Show Current Path Only"}
-                    role="menuitemcheckbox"
-                    aria-checked={settings.onionSkinCurrentPathOnly}
-                    on:click={() => {
-                      settings.onionSkinCurrentPathOnly =
-                        !settings.onionSkinCurrentPathOnly;
-                      import("../lib/projectStore").then(
-                        ({ settingsStore }) => {
-                          settingsStore.update((s) => ({
-                            ...s,
-                            onionSkinCurrentPathOnly:
-                              settings.onionSkinCurrentPathOnly,
-                          }));
-                        },
-                      );
-                    }}
-                    class="flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md py-1 px-2 -ml-2 transition-colors group w-full text-left"
-                  >
-                    <div
-                      class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {settings.onionSkinCurrentPathOnly
-                        ? 'text-blue-500'
-                        : 'text-neutral-400'}"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                        ></path>
-                      </svg>
-                    </div>
-                    <span class="text-xs text-neutral-600 dark:text-neutral-300"
-                      >Current Path Only</span
-                    >
-                  </button>
-                </div>
-              </div>
-            {/if}
-
-            <button
-              title={`Toggle Velocity Heatmap`}
-              aria-label="Toggle Velocity Heatmap"
-              role="menuitemcheckbox"
-              aria-checked={settings.showVelocityHeatmap}
-              on:click={() => {
-                settings.showVelocityHeatmap = !settings.showVelocityHeatmap;
-                import("../lib/projectStore").then(({ settingsStore }) => {
-                  settingsStore.update((s) => ({
-                    ...s,
-                    showVelocityHeatmap: settings.showVelocityHeatmap,
-                  }));
-                });
-              }}
-              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
-            >
-              <div
-                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {settings.showVelocityHeatmap
-                  ? 'text-blue-500'
-                  : 'text-neutral-500 dark:text-neutral-400'}"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                </svg>
-              </div>
-              <span class="text-sm text-neutral-700 dark:text-neutral-200"
-                >Heatmap</span
-              >
-            </button>
           </div>
         </div>
       {/if}

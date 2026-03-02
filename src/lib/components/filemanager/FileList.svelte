@@ -14,6 +14,7 @@
   export let sortMode: "name" | "date" = "name";
   export let renamingFile: FileInfo | null = null;
   export let showGitStatus = true;
+  export let fileType: "path" | "auto" | "any" = "any";
 
   const dispatch = createEventDispatcher<{
     select: FileInfo;
@@ -35,7 +36,7 @@
   }
 
   // Preview cache + retry logic (similar to FileGrid)
-  let previews: Record<string, { startPoint: any; lines: any[] } | undefined> =
+  let previews: Record<string, { startPoint: any | null; lines: any[]; typeLoaded?: boolean; type?: "path" | "auto" } | undefined> =
     {};
   let previewRetryCount: Record<string, number> = {};
   const MAX_PREVIEW_RETRIES = 5;
@@ -88,6 +89,8 @@
               previews[filePath] = {
                 startPoint: data.startPoint,
                 lines: data.lines,
+                typeLoaded: true,
+                type: data.type === "auto" ? "auto" : "path",
               };
               previewRetryCount[filePath] = 0;
               if (PREVIEW_DEBUG) console.debug(`[preview] Loaded ${filePath}`);
@@ -120,7 +123,7 @@
         `[preview] Scheduling retry #${previewRetryCount[filePath]} for ${filePath}`,
       );
     if (previewRetryCount[filePath] <= MAX_PREVIEW_RETRIES) {
-      previews[filePath] = { startPoint: null, lines: [] };
+      previews[filePath] = { startPoint: null, lines: [], typeLoaded: true, type: "path" };
       const delay = 1000 * Math.min(4, previewRetryCount[filePath]);
       if (PREVIEW_DEBUG)
         console.debug(`[preview] Will retry ${filePath} in ${delay}ms`);
@@ -132,7 +135,7 @@
         }
       }, delay);
     } else {
-      previews[filePath] = { startPoint: null, lines: [] };
+      previews[filePath] = { startPoint: null, lines: [], typeLoaded: true, type: "path" };
       if (PREVIEW_DEBUG)
         console.error(
           `[preview] Giving up on ${filePath} after ${previewRetryCount[filePath]} retries`,
@@ -245,8 +248,18 @@
   }
 
   // Grouping logic for Date sort
+  $: filteredByType =
+    fileType === "any"
+      ? files
+      : files.filter((f) => {
+          if (f.isDirectory) return true;
+          const p = previews[f.path];
+          if (!p || !p.typeLoaded) return true; // keep it visible until type loads
+          return p.type === fileType;
+        });
+
   $: groups =
-    sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }];
+    sortMode === "date" ? groupFilesByDate(filteredByType) : [{ title: "Files", files: filteredByType }];
 
   function groupFilesByDate(files: FileInfo[]) {
     const folders: FileInfo[] = [];

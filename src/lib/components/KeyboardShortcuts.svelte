@@ -19,7 +19,7 @@
     fieldPan,
     focusRequest,
     exportDialogState,
-    showFileManager,
+    showProjectBrowser,
     fileManagerNewFileMode,
     showPluginManager,
     showRuler,
@@ -1898,8 +1898,8 @@
         showSettings.set(false);
         return;
       }
-      if ($showFileManager) {
-        showFileManager.set(false);
+      if ($showProjectBrowser) {
+        showProjectBrowser.set(false);
         return;
       }
       if ($showPluginManager) {
@@ -1952,7 +1952,7 @@
       resetProject();
     },
     toggleFileManager: () => {
-      showFileManager.update((v) => !v);
+      showProjectBrowser.update((v) => !v);
     },
     exportJava: () => exportDialogState.set({ isOpen: true, format: "java" }),
     exportPoints: () =>
@@ -2193,7 +2193,7 @@
     },
     confirmDialog: () => {
       if ($showSettings) showSettings.set(false);
-      else if ($showFileManager) showFileManager.set(false);
+      else if ($showProjectBrowser) showProjectBrowser.set(false);
       else if ($showPluginManager) showPluginManager.set(false);
       else if ($showExportGif) showExportGif.set(false);
       else if ($exportDialogState.isOpen)

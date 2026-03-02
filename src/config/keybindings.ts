@@ -579,7 +579,7 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
   {
     id: "toggle-file-manager",
     key: "cmd+shift+m, ctrl+shift+m",
-    description: "Toggle File Manager",
+    description: "Toggle Project Browser",
     action: "toggleFileManager",
     category: "File",
   },

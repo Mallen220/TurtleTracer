@@ -12,6 +12,7 @@
   export let renamingFile: FileInfo | null = null;
   export let fieldImage: string | null = null;
   export let showGitStatus = true;
+  export let fileType: "path" | "auto" | "any" = "any";
 
   const dispatch = createEventDispatcher<{
     select: FileInfo;
@@ -28,7 +29,7 @@
   // Preview Data Cache
   let previews: Record<
     string,
-    { startPoint: Point; lines: Line[] } | undefined
+    { startPoint: Point | null; lines: Line[]; typeLoaded?: boolean; type?: "path" | "auto" } | undefined
   > = {};
   // Retry counters for failed previews
   let previewRetryCount: Record<string, number> = {};
@@ -84,6 +85,8 @@
               previews[filePath] = {
                 startPoint: data.startPoint,
                 lines: data.lines,
+                typeLoaded: true,
+                type: data.type === "auto" ? "auto" : "path",
               };
               // Reset retry count on success
               previewRetryCount[filePath] = 0;
@@ -120,7 +123,7 @@
     previewRetryCount[filePath] = (previewRetryCount[filePath] || 0) + 1;
     if (previewRetryCount[filePath] <= MAX_PREVIEW_RETRIES) {
       // Temporary mark so we don't keep re-queueing immediately
-      previews[filePath] = { startPoint: null, lines: [] } as any;
+      previews[filePath] = { startPoint: null, lines: [], typeLoaded: true, type: "path" };
       const delay = 1000 * Math.min(4, previewRetryCount[filePath]);
       setTimeout(() => {
         // Clear marker and requeue
@@ -132,7 +135,7 @@
       }, delay);
     } else {
       // Give up after too many retries
-      previews[filePath] = { startPoint: null, lines: [] } as any;
+      previews[filePath] = { startPoint: null, lines: [], typeLoaded: true, type: "path" };
     }
   }
 
@@ -275,8 +278,18 @@
   }
 
   // Grouping logic for Date sort
+  $: filteredByType =
+    fileType === "any"
+      ? files
+      : files.filter((f) => {
+          if (f.isDirectory) return true;
+          const p = previews[f.path];
+          if (!p || !p.typeLoaded) return true; // keep it visible until type loads
+          return p.type === fileType;
+        });
+
   $: groups =
-    sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }];
+    sortMode === "date" ? groupFilesByDate(filteredByType) : [{ title: "Files", files: filteredByType }];
 
   function groupFilesByDate(files: FileInfo[]) {
     const folders: FileInfo[] = [];
@@ -396,13 +409,13 @@
       </div>
     {/if}
 
-    <div class="grid grid-cols-3 gap-2 px-2">
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-4 px-2">
       {#each group.files as file (file.path)}
         <div
-          class="group flex flex-col items-center p-2 rounded-md cursor-pointer transition-all border relative
+          class="group flex flex-col p-0 rounded-xl cursor-pointer transition-all border relative overflow-hidden
           {selectedFilePath === file.path
-            ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 ring-1 ring-blue-300 dark:ring-blue-700'
-            : 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm'}"
+            ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-500 ring-2 ring-blue-400 dark:ring-blue-500 shadow-md'
+            : 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md'}"
           on:click={() => dispatch("select", file)}
           on:dblclick={() => dispatch("open", file)}
           on:contextmenu={(e) => handleContextMenu(e, file)}
@@ -416,12 +429,12 @@
             if (e.key === "Enter") dispatch("open", file);
           }}
         >
-          <!-- Icon / Preview -->
-          <div class="mb-2 relative">
+          <!-- Icon / Preview Container -->
+          <div class="w-full aspect-square relative bg-neutral-100 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-center overflow-hidden">
             <!-- Git Status Badge -->
             {#if showGitStatus && file.gitStatus && file.gitStatus !== "clean"}
               <div
-                class="group/tooltip absolute top-1 left-1 z-10 p-1 rounded-full shadow-sm border cursor-help
+                class="group/tooltip absolute top-2 left-2 z-10 p-1 rounded-full shadow-sm border cursor-help
                   {file.gitStatus === 'modified'
                   ? 'bg-amber-100 border-amber-200 text-amber-700 dark:bg-amber-900/80 dark:border-amber-700/50 dark:text-amber-300'
                   : file.gitStatus === 'staged'
@@ -441,112 +454,47 @@
 
                 {#if file.gitStatus === "modified"}
                   <!-- Pencil Icon -->
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="2"
-                    stroke="currentColor"
-                    class="size-3"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
-                    />
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                   </svg>
                 {:else if file.gitStatus === "staged"}
                   <!-- Check Icon -->
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="2.5"
-                    stroke="currentColor"
-                    class="size-3"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="m4.5 12.75 6 6 9-13.5"
-                    />
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="size-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
                   </svg>
                 {:else}
                   <!-- Question Mark Icon -->
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="2"
-                    stroke="currentColor"
-                    class="size-3"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
-                    />
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
                   </svg>
                 {/if}
               </div>
             {/if}
 
             {#if file.isDirectory}
-              <div
-                class="w-[80px] h-[80px] rounded flex items-center justify-center text-blue-500 dark:text-blue-400 bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-700"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                  class="size-12"
-                >
+              <div class="w-full h-full flex items-center justify-center text-blue-500 dark:text-blue-400 bg-neutral-50 dark:bg-neutral-800/50">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-16">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
                 </svg>
               </div>
             {:else if previews[file.path]?.startPoint}
-              <PathPreview
-                startPoint={previews[file.path]?.startPoint || {
-                  x: 0,
-                  y: 0,
-                  heading: "tangential",
-                  reverse: false,
-                }}
-                lines={previews[file.path]?.lines ?? []}
-                fieldImage={fieldImage ? `/fields/${fieldImage}` : null}
-                width={80}
-                height={80}
-              />
+              <div class="w-[140px] h-[140px] flex items-center justify-center">
+                <PathPreview
+                  startPoint={previews[file.path]?.startPoint || { x: 0, y: 0, heading: "tangential", reverse: false }}
+                  lines={previews[file.path]?.lines ?? []}
+                  fieldImage={fieldImage ? `/fields/${fieldImage}` : null}
+                  width={140}
+                  height={140}
+                />
+              </div>
             {:else}
-              <div
-                class="w-[80px] h-[80px] rounded overflow-hidden border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50"
-              >
+              <div class="w-full h-full flex items-center justify-center overflow-hidden bg-neutral-50 dark:bg-neutral-800/50">
                 {#if fieldImage}
-                  <img
-                    src={`/fields/${fieldImage}`}
-                    alt="Field Map"
-                    class="w-full h-full object-contain object-center"
-                    on:error={handleFieldImageError}
-                  />
+                  <img src={`/fields/${fieldImage}`} alt="Field Map" class="w-full h-full object-contain object-center scale-[0.9]" on:error={handleFieldImageError} />
                 {:else}
-                  <div
-                    class="w-full h-full flex items-center justify-center text-blue-500 dark:text-blue-400"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke-width="1.5"
-                      stroke="currentColor"
-                      class="size-8"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-                      />
+                  <div class="flex items-center justify-center text-blue-500 dark:text-blue-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-10">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                     </svg>
                   </div>
                 {/if}
@@ -555,39 +503,27 @@
 
             <!-- Kebab menu overlay (visible on hover) -->
             <button
-              class="absolute top-1 right-1 p-1 rounded-full bg-white/80 dark:bg-neutral-800/80 shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              class="absolute top-2 right-2 p-1 rounded-full bg-white/80 dark:bg-neutral-800/80 shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity ring-1 ring-black/5 dark:ring-white/10"
               aria-label="File actions"
-              on:click|stopPropagation={(e) =>
-                openContextMenuFromEvent(e, file)}
+              on:click|stopPropagation={(e) => openContextMenuFromEvent(e, file)}
               title="More actions"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="size-4 text-neutral-600 dark:text-neutral-300"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4 text-neutral-600 dark:text-neutral-300">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
               </svg>
             </button>
           </div>
 
-          <!-- Content -->
-          <div class="w-full text-center">
+          <!-- Content (Bottom bar) -->
+          <div class="w-full px-2 py-2 flex flex-col justify-center text-center bg-white dark:bg-neutral-800 flex-1">
             {#if renamingFile?.path === file.path}
-              <div class="w-full px-1">
+              <div class="w-full">
                 <input
                   type="text"
                   bind:value={renameInput}
                   use:focusInput
                   on:click|stopPropagation
-                  class="w-full text-xs text-center border border-blue-400 rounded focus:outline-none dark:bg-neutral-700 py-0.5"
+                  class="w-full text-xs text-center border border-blue-400 rounded focus:outline-none dark:bg-neutral-700 py-0.5 px-1 bg-white"
                   on:keydown|stopPropagation={(e) => {
                     if (e.key === "Enter") dispatch("rename-save", renameInput);
                     if (e.key === "Escape") dispatch("rename-cancel");
@@ -596,21 +532,14 @@
                 />
               </div>
             {:else}
-              <div
-                class="text-xs font-medium text-neutral-900 dark:text-neutral-100 truncate w-full px-1"
-                title={file.name}
-              >
+              <div class="text-xs font-semibold text-neutral-900 dark:text-neutral-100 w-full truncate" title={file.name}>
                 {file.name.replace(/\.pp$/, "")}
               </div>
               {#if file.error}
-                <div class="text-[10px] text-red-500 truncate">
-                  {file.error}
-                </div>
+                <div class="text-[10px] w-full text-red-500 truncate mt-0.5">{file.error}</div>
               {/if}
               {#if !file.isDirectory}
-                <div
-                  class="text-[10px] text-neutral-500 dark:text-neutral-400 mt-1"
-                >
+                <div class="text-[10px] w-full text-neutral-500 dark:text-neutral-400 mt-0.5">
                   {formatFileSize(file.size)}
                 </div>
               {/if}

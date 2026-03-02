@@ -102,6 +102,7 @@ export const sequenceStore = writable<SequenceItem[]>(
 export const settingsStore = writable<Settings>({ ...DEFAULT_SETTINGS });
 export const extraDataStore = writable<Record<string, any>>({});
 export const macrosStore = writable<Map<string, PedroData>>(new Map());
+export const isAutoStore = writable<boolean>(false);
 
 // Track currently loading macros to prevent infinite recursion
 const loadingMacros = new Set<string>();
@@ -149,21 +150,21 @@ export function resetProject() {
   const newLines = normalizeLines(getDefaultLines());
   linesStore.set(newLines);
   shapesStore.set(getDefaultShapes());
-  sequenceStore.set(
-    newLines.map((ln) => ({
-      kind: "path",
-      lineId: ln.id!,
-    })),
-  );
+  
+  const isAuto = get(isAutoStore);
+  if (isAuto) {
+    sequenceStore.set([]);
+  } else {
+    sequenceStore.set(
+      newLines.map((ln) => ({
+        kind: "path",
+        lineId: ln.id!,
+      })),
+    );
+  }
+  
   extraDataStore.set({});
   macrosStore.set(new Map());
-  // We don't reset settings usually, or maybe we do?
-  // The original App.svelte reset code:
-  // startPoint = getDefaultStartPoint();
-  // lines = normalizeLines(getDefaultLines());
-  // sequence = ...
-  // shapes = getDefaultShapes();
-  // currentFilePath.set(null);
 }
 
 export function updateMacroContent(filePath: string, data: PedroData) {

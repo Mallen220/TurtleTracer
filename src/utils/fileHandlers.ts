@@ -6,6 +6,7 @@ import {
   notification,
   projectMetadataStore,
   currentDirectoryStore,
+  showProjectBrowser,
 } from "../stores";
 import { scanEventsInDirectory } from "./eventScanner";
 import {
@@ -16,6 +17,7 @@ import {
   settingsStore,
   extraDataStore,
   macrosStore,
+  isAutoStore,
   updateMacroContent,
   loadProjectData,
 } from "../lib/projectStore";
@@ -252,6 +254,8 @@ async function performSave(
       linesToSave,
     );
 
+    const isAuto = get(isAutoStore);
+
     // Create the project data structure
     const projectData = {
       version: pkg.version,
@@ -261,6 +265,7 @@ async function performSave(
           "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
         link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
       },
+      type: isAuto ? "auto" : "path",
       startPoint: updatedStartPoint,
       lines: linesToSave,
       sequence: sequenceToSave,
@@ -529,7 +534,43 @@ export async function exportAsPP() {
   );
 }
 
-export async function handleExternalFileOpen(filePath: string) {
+export async function handleExternalFileOpen(eventOrFilePath: string | CustomEvent<any>) {
+  let filePath = "";
+  if (typeof eventOrFilePath === "string") {
+    filePath = eventOrFilePath;
+  } else {
+    filePath = eventOrFilePath.detail.path;
+  }
+
+  const electronAPI = getElectronAPI();
+  
+  // Handle macro insertion first
+  if ((window as any).macroInsertionIndex !== undefined) {
+    if (!electronAPI || !electronAPI.readFile) return;
+    try {
+      const fileContent = await electronAPI.readFile(filePath);
+      const macroProject = JSON.parse(fileContent);
+
+      // Process macro to make ids unique
+      const newActions = macroProject.sequence.map((act: any) => ({
+        ...act,
+        id: makeId(),
+      }));
+
+      sequenceStore.update((seq) => {
+        const newActionsList = [...seq];
+        newActionsList.splice((window as any).macroInsertionIndex, 0, ...newActions);
+        return newActionsList;
+      });
+
+      (window as any).macroInsertionIndex = undefined;
+      showProjectBrowser.set(false);
+    } catch (err) {
+      console.error("Failed to insert macro:", err);
+    }
+    return;
+  }
+
   // Autosave on Close Logic
   const settings = get(settingsStore);
   if (
@@ -549,7 +590,6 @@ export async function handleExternalFileOpen(filePath: string) {
     );
   }
 
-  const electronAPI = getElectronAPI();
   if (!electronAPI || !electronAPI.readFile) return;
 
   try {
