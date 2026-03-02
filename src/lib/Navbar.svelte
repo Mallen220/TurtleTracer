@@ -843,6 +843,126 @@
                 </div>
               </div>
             {/if}
+
+            <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
+
+            <button
+              title={`Toggle Robot`}
+              aria-label="Toggle Robot"
+              role="menuitemcheckbox"
+              aria-checked={$showRobot}
+              on:click={() => showRobot.update((v) => !v)}
+              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
+            >
+              <div
+                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {$showRobot
+                  ? 'text-blue-500'
+                  : 'text-neutral-500 dark:text-neutral-400'}"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                  <circle cx="12" cy="5" r="2"></circle>
+                  <path d="M12 7v4"></path>
+                  <line x1="8" y1="16" x2="8" y2="16"></line>
+                  <line x1="16" y1="16" x2="16" y2="16"></line>
+                </svg>
+              </div>
+              <span class="text-sm text-neutral-700 dark:text-neutral-200"
+                >Robot</span
+              >
+            </button>
+
+            <button
+              title={`Toggle Onion Skin${getShortcutFromSettings(settings, "toggle-onion")}`}
+              aria-label="Toggle Onion Skin"
+              role="menuitemcheckbox"
+              aria-checked={settings.showOnionLayers}
+              on:click={() => {
+                settings.showOnionLayers = !settings.showOnionLayers;
+                import("../lib/projectStore").then(({ settingsStore }) => {
+                  settingsStore.update((s) => ({
+                    ...s,
+                    showOnionLayers: settings.showOnionLayers,
+                  }));
+                });
+              }}
+              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
+            >
+              <div
+                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {settings.showOnionLayers
+                  ? 'text-blue-500'
+                  : 'text-neutral-500 dark:text-neutral-400'}"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                </svg>
+              </div>
+              <span class="text-sm text-neutral-700 dark:text-neutral-200"
+                >Onion Skin</span
+              >
+            </button>
+
+            <button
+              title={`Toggle Velocity Heatmap`}
+              aria-label="Toggle Velocity Heatmap"
+              role="menuitemcheckbox"
+              aria-checked={settings.showVelocityHeatmap}
+              on:click={() => {
+                settings.showVelocityHeatmap = !settings.showVelocityHeatmap;
+                import("../lib/projectStore").then(({ settingsStore }) => {
+                  settingsStore.update((s) => ({
+                    ...s,
+                    showVelocityHeatmap: settings.showVelocityHeatmap,
+                  }));
+                });
+              }}
+              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
+            >
+              <div
+                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {settings.showVelocityHeatmap
+                  ? 'text-blue-500'
+                  : 'text-neutral-500 dark:text-neutral-400'}"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+              </div>
+              <span class="text-sm text-neutral-700 dark:text-neutral-200"
+                >Heatmap</span
+              >
+            </button>
           </div>
         </div>
       {/if}
