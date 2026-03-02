@@ -171,9 +171,10 @@
     );
   }
 
-  function observeElement(node: HTMLElement, filePath: string) {
+  function observeElement(node: HTMLElement, file: FileInfo) {
+    if (file.isDirectory) return { destroy() {} };
     if (!observer) setupObserver();
-    elementMap.set(node, filePath);
+    elementMap.set(node, file.path);
     observer.observe(node);
 
     return {
@@ -181,9 +182,14 @@
         if (observer) observer.unobserve(node);
         elementMap.delete(node);
       },
-      update(newPath: string) {
-        if (newPath !== filePath) {
-          elementMap.set(node, newPath);
+      update(newFile: FileInfo) {
+        if (newFile.isDirectory) {
+            if (observer) observer.unobserve(node);
+            elementMap.delete(node);
+            return;
+        }
+        if (newFile.path !== file.path) {
+          elementMap.set(node, newFile.path);
           // Re-observe if changed
           observer.unobserve(node);
           observer.observe(node);
@@ -273,11 +279,16 @@
     sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }];
 
   function groupFilesByDate(files: FileInfo[]) {
+    const folders: FileInfo[] = [];
     const today: FileInfo[] = [];
     const yesterday: FileInfo[] = [];
     const older: FileInfo[] = [];
 
     files.forEach((f) => {
+      if (f.isDirectory) {
+        folders.push(f);
+        return;
+      }
       const d = new Date(f.modified);
       if (isToday(d)) today.push(f);
       else if (isYesterday(d)) yesterday.push(f);
@@ -285,6 +296,7 @@
     });
 
     const result = [];
+    if (folders.length) result.push({ title: "Folders", files: folders });
     if (today.length) result.push({ title: "Today", files: today });
     if (yesterday.length) result.push({ title: "Yesterday", files: yesterday });
     if (older.length) result.push({ title: "Older", files: older });
@@ -302,11 +314,13 @@
   $: if (files && files.length) {
     // Preload top N files proactively
     files.slice(0, PRELOAD_COUNT).forEach((f) => {
+      if (f.isDirectory) return;
       if (previews[f.path] === undefined) loadPreview(f.path);
       if (previews[f.path] && previews[f.path]!.startPoint == null)
         loadPreview(f.path, true);
     });
     files.forEach((f) => {
+      if (f.isDirectory) return;
       const d = new Date(f.modified);
       if (isToday(d)) {
         // If we haven't loaded or queued a preview for this file yet, do so
@@ -395,7 +409,7 @@
           role="button"
           tabindex="0"
           aria-label={file.name}
-          use:observeElement={file.path}
+          use:observeElement={file}
           draggable="true"
           on:dragstart={(e) => handleDragStart(e, file)}
           on:keydown={(e) => {
@@ -477,7 +491,22 @@
               </div>
             {/if}
 
-            {#if previews[file.path]?.startPoint}
+            {#if file.isDirectory}
+              <div
+                class="w-[80px] h-[80px] rounded flex items-center justify-center text-blue-500 dark:text-blue-400 bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-700"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="size-12"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+                </svg>
+              </div>
+            {:else if previews[file.path]?.startPoint}
               <PathPreview
                 startPoint={previews[file.path]?.startPoint || {
                   x: 0,
@@ -559,7 +588,7 @@
                   use:focusInput
                   on:click|stopPropagation
                   class="w-full text-xs text-center border border-blue-400 rounded focus:outline-none dark:bg-neutral-700 py-0.5"
-                  on:keydown={(e) => {
+                  on:keydown|stopPropagation={(e) => {
                     if (e.key === "Enter") dispatch("rename-save", renameInput);
                     if (e.key === "Escape") dispatch("rename-cancel");
                   }}
@@ -578,11 +607,13 @@
                   {file.error}
                 </div>
               {/if}
-              <div
-                class="text-[10px] text-neutral-500 dark:text-neutral-400 mt-1"
-              >
-                {formatFileSize(file.size)}
-              </div>
+              {#if !file.isDirectory}
+                <div
+                  class="text-[10px] text-neutral-500 dark:text-neutral-400 mt-1"
+                >
+                  {formatFileSize(file.size)}
+                </div>
+              {/if}
             {/if}
           </div>
         </div>
@@ -596,6 +627,7 @@
     x={contextMenu.x}
     y={contextMenu.y}
     fileName={contextMenu.file.name}
+    isDirectory={contextMenu.file.isDirectory}
     on:close={() => (contextMenu = null)}
     on:action={(e) => handleMenuAction(e.detail)}
   />
