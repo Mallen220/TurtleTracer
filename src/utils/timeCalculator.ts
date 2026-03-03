@@ -835,24 +835,73 @@ export function calculatePathTime(
 
       let segmentTime = Math.max(translationTime, rotationTime);
 
-      // Apply Constraints to estimated time
+      // Apply Constraints — ALL must be met before moving to the next segment.
+      // Each constraint independently computes a candidate "done" time from the base.
+      // The segment ends when the LAST constraint is satisfied (max of all candidates).
+      let constraintEndT: number | undefined = undefined;
+      let constraintEndPoint: import("../types").BasePoint | undefined = undefined;
+
       if (line.constraints) {
-        // T-Value: The robot considers the path complete earlier
+        const base = segmentTime; // unmodified base time
+
+        // Collect a candidate end time (and optional t) for each constraint
+        type Candidate = { time: number; t?: number };
+        const candidates: Candidate[] = [];
+
+        // T-Value: path is done when the robot reaches tValue fraction of the curve.
+        // The time to reach tValue is base * tValue (proportional).
         if (line.constraints.tValue !== undefined) {
-          segmentTime *= line.constraints.tValue;
+          const t = Math.max(0, Math.min(1, line.constraints.tValue));
+          candidates.push({ time: base * t, t });
         }
 
-        // Velocity: The robot considers the path complete when velocity drops below this value
-        // We save the time it would take to decelerate from this velocity to zero
+        // Velocity: path is done when speed drops below this threshold.
+        // We subtract the time it takes to decelerate from that velocity to a stop.
         if (line.constraints.velocity !== undefined) {
           const maxDec = safeSettings.maxDeceleration || safeSettings.maxAcceleration || 30;
           const timeSaved = line.constraints.velocity / maxDec;
-          segmentTime = Math.max(0.001, segmentTime - timeSaved);
+          candidates.push({ time: Math.max(0.001, base - timeSaved) });
         }
 
-        // Timeout: The robot waits up to this amount of time at the end to correct
+        if (candidates.length > 0) {
+          // ALL constraints must be met: take the one that finishes last (max time).
+          // That is the moment when the robot has satisfied every constraint.
+          const winner = candidates.reduce((best, c) => c.time > best.time ? c : best);
+          segmentTime = winner.time;
+
+          if (winner.t !== undefined) {
+            // tValue constraint was the bottleneck — use directly
+            constraintEndT = winner.t;
+          } else if (motionProfile && motionProfile.length > 1) {
+            // velocity/other was bottleneck — derive t from motion profile
+            const profileEndTime = motionProfile[motionProfile.length - 1];
+            const clampedTime = Math.max(0, Math.min(segmentTime, profileEndTime));
+            let profileIdx = 0;
+            while (profileIdx < motionProfile.length - 2 && clampedTime > motionProfile[profileIdx + 1]) {
+              profileIdx++;
+            }
+            const tStart = profileIdx / (motionProfile.length - 1);
+            const tEnd = (profileIdx + 1) / (motionProfile.length - 1);
+            const timeStart = motionProfile[profileIdx];
+            const timeEnd = motionProfile[profileIdx + 1];
+            let localProgress = 0;
+            if (timeEnd > timeStart) {
+              localProgress = (clampedTime - timeStart) / (timeEnd - timeStart);
+            }
+            constraintEndT = Math.max(0, Math.min(1, tStart + localProgress * (tEnd - tStart)));
+          }
+        }
+
+        // Timeout: added AFTER all other constraints are satisfied.
+        // The robot pauses to correct before moving on.
         if (line.constraints.timeout !== undefined) {
           segmentTime += line.constraints.timeout / 1000; // ms to seconds
+        }
+
+        // Compute the physical position at constraintEndT
+        if (constraintEndT !== undefined && constraintEndT < 0.9999) {
+          const cps: import("../types").BasePoint[] = [prevPoint as import("../types").BasePoint, ...line.controlPoints, line.endPoint as import("../types").BasePoint];
+          constraintEndPoint = getCurvePoint(constraintEndT, cps as any);
         }
       }
 
@@ -869,12 +918,15 @@ export function calculatePathTime(
         motionProfile: motionProfile,
         velocityProfile: velocityProfile,
         headingProfile: headingProfile,
+        constraintEndT,
+        constraintEndPoint,
       });
       currentTime += segmentTime;
 
-      // Update state
+      // Update state — use the constraint end position so subsequent segments and
+      // rotation waits begin from the physically correct location, not the full endpoint.
       currentHeading = endHeading;
-      lastPoint = line.endPoint as Point;
+      lastPoint = (constraintEndPoint as Point | undefined) ?? (line.endPoint as Point);
     });
   };
 

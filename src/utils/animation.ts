@@ -95,9 +95,12 @@ export function calculateRobotState(
       const relativeTime = Math.max(0, currentSeconds - activeEvent.startTime);
       const profileEndTime = profile[profile.length - 1];
 
+      // The effective max curve parameter — constrained paths stop before t=1
+      const maxLinePercent = activeEvent.constraintEndT ?? 1;
+
       if (relativeTime >= profileEndTime) {
         // If we exceeded the profile (e.g. rotation time extended the segment), we are at the end
-        linePercent = 1;
+        linePercent = maxLinePercent;
         if (
           activeEvent.headingProfile &&
           activeEvent.headingProfile.length > 0
@@ -146,7 +149,9 @@ export function calculateRobotState(
       linePercent = easeInOutQuad(Math.max(0, Math.min(1, timeProgress)));
     }
 
-    linePercent = Math.max(0, Math.min(1, linePercent));
+    // Clamp linePercent; respect constraintEndT so robot never passes the constraint position
+    const maxPercent = activeEvent.constraintEndT ?? 1;
+    linePercent = Math.max(0, Math.min(maxPercent, linePercent));
 
     // Calculate Position
     const robotInchesXY = getCurvePoint(linePercent, [

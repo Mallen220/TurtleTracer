@@ -281,6 +281,11 @@ interface TimelineEvent {
   velocityProfile?: number[];
   // Detailed heading profile for travel events: maps step index to unwrapped heading
   headingProfile?: number[];
+  // When a path constraint (tValue/velocity) shortens the segment, this is the
+  // curve parameter (0–1) where the robot actually stops. Absent or 1 means full path.
+  constraintEndT?: number;
+  // Physical position at constraintEndT (in field inches). Used as next segment's start.
+  constraintEndPoint?: BasePoint;
 }
 
 interface TimePrediction {

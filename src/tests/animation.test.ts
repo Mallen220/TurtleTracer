@@ -132,6 +132,58 @@ describe("animation", () => {
       // Heading interpolation: 0 to 90 at 0.5 -> 45. Negated -> -45.
       expect(state.heading).toBeCloseTo(-45);
     });
+
+    it("should respect constraintEndT — robot stops at mid-path, not full endpoint", () => {
+      // Line from (0,0) to (10,0). constraintEndT=0.5 means robot stops at (5,0).
+      const constrainedTimeline: TimelineEvent[] = [
+        {
+          type: "travel",
+          duration: 1.0,
+          startTime: 0,
+          endTime: 1.0,
+          lineIndex: 0,
+          motionProfile: [0, 1.0],
+          constraintEndT: 0.5, // Robot only travels half the path
+        },
+      ];
+
+      // At 100% (end of event), robot should be at x=5, not x=10
+      const state = calculateRobotState(
+        100,
+        constrainedTimeline,
+        simpleLines,
+        startPoint,
+        xScale,
+        yScale,
+      );
+      expect(state.x).toBeCloseTo(xScale(5));
+      expect(state.y).toBeCloseTo(yScale(0));
+    });
+
+    it("constraintEndT=1 (no constraint) — robot reaches full endpoint", () => {
+      const unconstrainedTimeline: TimelineEvent[] = [
+        {
+          type: "travel",
+          duration: 1.0,
+          startTime: 0,
+          endTime: 1.0,
+          lineIndex: 0,
+          motionProfile: [0, 1.0],
+          constraintEndT: 1.0,
+        },
+      ];
+
+      const state = calculateRobotState(
+        100,
+        unconstrainedTimeline,
+        simpleLines,
+        startPoint,
+        xScale,
+        yScale,
+      );
+      expect(state.x).toBeCloseTo(xScale(10));
+      expect(state.y).toBeCloseTo(yScale(0));
+    });
   });
 
   describe("createAnimationController", () => {
