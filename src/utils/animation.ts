@@ -163,17 +163,29 @@ export function calculateRobotState(
     } else {
       // Fallback Heading Calculation
       switch (currentLine.endPoint.heading) {
-        case "linear":
-          robotHeading = -shortestRotation(
-            currentLine.endPoint.startDeg,
-            currentLine.endPoint.endDeg,
-            linePercent,
-          );
+        case "linear": {
+          const startDeg = currentLine.endPoint.startDeg;
+          const endDeg = currentLine.endPoint.endDeg;
+          if (currentLine.endPoint.reverse) {
+            // Go the long way around: invert the rotation direction
+            const shortDiff = endDeg - startDeg;
+            const normalizedShort = ((shortDiff % 360) + 360) % 360;
+            // shortArc is in [0,360). If > 180, that's already the long arc, so go short instead.
+            const longDiff = normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
+            robotHeading = -(startDeg + longDiff * linePercent);
+          } else {
+            robotHeading = -shortestRotation(startDeg, endDeg, linePercent);
+          }
           break;
-        case "constant":
-          robotHeading = -currentLine.endPoint.degrees;
+        }
+        case "constant": {
+          const deg = currentLine.endPoint.reverse
+            ? currentLine.endPoint.degrees + 180
+            : currentLine.endPoint.degrees;
+          robotHeading = -deg;
           break;
-        case "tangential":
+        }
+        case "tangential": {
           const nextPointInches = getCurvePoint(
             linePercent + (currentLine.endPoint.reverse ? -0.01 : 0.01),
             [prevPoint, ...currentLine.controlPoints, currentLine.endPoint],
@@ -190,6 +202,30 @@ export function calculateRobotState(
             robotHeading = radiansToDegrees(angle);
           }
           break;
+        }
+        case "facingPoint": {
+          const targetX = (currentLine.endPoint as any).targetX || 0;
+          const targetY = (currentLine.endPoint as any).targetY || 0;
+          // Compute position on curve at linePercent in field-space (inches)
+          const curvePos = getCurvePoint(linePercent, [
+            prevPoint,
+            ...currentLine.controlPoints,
+            currentLine.endPoint,
+          ]);
+          // Use field-space (inches) to compute angle, then apply scales just for sign
+          const dx = targetX - curvePos.x;
+          const dy = targetY - curvePos.y;
+          if (dx !== 0 || dy !== 0) {
+            // xScale and yScale are linear; yScale may be inverted (screen y is flipped)
+            // We compute the screen-space angle to account for axis flipping
+            const sdx = xScale(targetX) - xScale(curvePos.x);
+            const sdy = yScale(targetY) - yScale(curvePos.y);
+            let angle = Math.atan2(sdy, sdx);
+            if ((currentLine.endPoint as any).reverse) angle += Math.PI;
+            robotHeading = radiansToDegrees(angle);
+          }
+          break;
+        }
       }
     }
 
@@ -507,6 +543,16 @@ export function generateOnionLayers(
           const tdy = nextPos.y - robotPosInches.y;
           if (tdx !== 0 || tdy !== 0) {
             heading = radiansToDegrees(Math.atan2(tdy, tdx));
+          }
+        } else if (line.endPoint.heading === "facingPoint") {
+          const targetX = (line.endPoint as any).targetX || 0;
+          const targetY = (line.endPoint as any).targetY || 0;
+          const tdx = targetX - robotPosInches.x;
+          const tdy = targetY - robotPosInches.y;
+          if (tdx !== 0 || tdy !== 0) {
+            let angle = radiansToDegrees(Math.atan2(tdy, tdx));
+            if ((line.endPoint as any).reverse) angle += 180;
+            heading = angle;
           }
         }
 

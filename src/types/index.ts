@@ -17,23 +17,36 @@ export type Point = BasePoint &
         startDeg: number;
         endDeg: number;
         degrees?: never;
-        reverse?: never;
+        targetX?: never;
+        targetY?: never;
       }
     | {
         heading: "constant";
         degrees: number;
         startDeg?: never;
         endDeg?: never;
-        reverse?: never;
+        targetX?: never;
+        targetY?: never;
       }
     | {
         heading: "tangential";
         degrees?: never;
         startDeg?: never;
         endDeg?: never;
-        reverse: boolean;
+        targetX?: never;
+        targetY?: never;
       }
-  );
+    | {
+        heading: "facingPoint";
+        targetX: number;
+        targetY: number;
+        degrees?: never;
+        startDeg?: never;
+        endDeg?: never;
+      }
+  ) & {
+    reverse?: boolean;
+  };
 
 export type ControlPoint = BasePoint;
 

@@ -240,6 +240,12 @@ export function getLineStartHeading(
 
   if (line.endPoint.heading === "constant") return line.endPoint.degrees;
   if (line.endPoint.heading === "linear") return line.endPoint.startDeg;
+  if (line.endPoint.heading === "facingPoint") {
+    const targetX = (line.endPoint as any).targetX || 0;
+    const targetY = (line.endPoint as any).targetY || 0;
+    const angle = getTangentAngle(previousPoint, { x: targetX, y: targetY });
+    return line.endPoint.reverse ? transformAngle(angle + 180) : transformAngle(angle);
+  }
   if (line.endPoint.heading === "tangential") {
     let nextP: { x: number; y: number } = line.endPoint;
     // Find the first point that isn't the start point (overlap handling)
@@ -268,6 +274,12 @@ export function getLineEndHeading(
 
   if (line.endPoint.heading === "constant") return line.endPoint.degrees;
   if (line.endPoint.heading === "linear") return line.endPoint.endDeg;
+  if (line.endPoint.heading === "facingPoint") {
+    const targetX = (line.endPoint as any).targetX || 0;
+    const targetY = (line.endPoint as any).targetY || 0;
+    const angle = getTangentAngle(line.endPoint, { x: targetX, y: targetY });
+    return line.endPoint.reverse ? transformAngle(angle + 180) : transformAngle(angle);
+  }
   if (line.endPoint.heading === "tangential") {
     let prevP: { x: number; y: number } = previousPoint;
     // Find the last point that isn't the end point (overlap handling)

@@ -463,6 +463,34 @@
           _points.push(pointElem);
         }
       });
+
+      if (line.endPoint.heading === "facingPoint") {
+        const pathColor = line.color || "#60a5fa";
+        let pointGroup = new Two.Group();
+        pointGroup.id = `targetpoint-${idx + 1}`;
+        let pointElem = new Two.Circle(
+          x(line.endPoint.targetX || 72),
+          y(line.endPoint.targetY || 72),
+          uiLength(POINT_RADIUS * 0.85),
+        );
+        pointElem.id = `targetpoint-${idx + 1}-background`;
+        pointElem.fill = pathColor;
+        pointElem.noStroke();
+        let pointText = new Two.Text(
+          "T",
+          x(line.endPoint.targetX || 72),
+          y(line.endPoint.targetY || 72) - uiLength(0.05),
+        );
+        pointText.id = `targetpoint-${idx + 1}-text`;
+        pointText.size = uiLength(1.4);
+        pointText.family = "ui-sans-serif, system-ui, sans-serif";
+        pointText.alignment = "center";
+        pointText.baseline = "middle";
+        pointText.fill = "white";
+        pointText.weight = 700;
+        pointGroup.add(pointElem, pointText);
+        _points.push(pointGroup);
+      }
     });
 
     shapes.forEach((shape, shapeIdx) => {
@@ -495,6 +523,39 @@
       });
     });
     return _points;
+  })();
+
+  // Animated facing-point line: drawn from current robot position to the facing target.
+  // Only shown when the robot is actively driving on that facingPoint segment.
+  $: facingLineElements = (() => {
+    if (!robotXY || !timePrediction?.timeline?.length) return [];
+
+    // Determine the currently active travel event
+    const totalDuration = timePrediction.timeline[timePrediction.timeline.length - 1].endTime;
+    const currentSeconds = ($percentStore / 100) * totalDuration;
+    const activeEvent = timePrediction.timeline.find(
+      (e: any) => currentSeconds >= e.startTime && currentSeconds <= e.endTime,
+    ) ?? timePrediction.timeline[timePrediction.timeline.length - 1];
+
+    // Only render if it's a travel event on a facingPoint segment
+    if (activeEvent.type !== "travel") return [];
+    const activeLine: Line | undefined = activeEvent.line ?? lines[activeEvent.lineIndex];
+    if (!activeLine || activeLine.endPoint.heading !== "facingPoint") return [];
+
+    const targetX = (activeLine.endPoint as any).targetX ?? 72;
+    const targetY = (activeLine.endPoint as any).targetY ?? 72;
+    const pathColor = activeLine.color || "#60a5fa";
+    const fl = new Two.Line(
+      x(robotXY.x),
+      y(robotXY.y),
+      x(targetX),
+      y(targetY),
+    );
+    fl.stroke = pathColor;
+    fl.opacity = 0.7;
+    fl.linewidth = uiLength(0.4);
+    fl.dashes = [uiLength(1.5), uiLength(1.5)];
+    return [fl];
   })();
 
   // Reusable path generation function
@@ -1623,6 +1684,7 @@
     onionLayerElements.forEach((el) => shapeGroup.add(el));
 
     path.forEach((el) => lineGroup.add(el));
+    facingLineElements.forEach((el) => lineGroup.add(el));
     diffPathElements.forEach((el) => lineGroup.add(el));
     previewPathElements.forEach((el) => lineGroup.add(el));
     telemetryPathElements.forEach((el) => lineGroup.add(el));
@@ -1868,6 +1930,13 @@
           shapes[shapeIdx].vertices[vertexIdx].x = inchX;
           shapes[shapeIdx].vertices[vertexIdx].y = inchY;
           shapesStore.set(shapes);
+        } else if (currentElem.startsWith("targetpoint-")) {
+          const line = Number(currentElem.split("-")[1]) - 1;
+          if (lines[line] && lines[line].endPoint) {
+            lines[line].endPoint.targetX = inchX;
+            lines[line].endPoint.targetY = inchY;
+            linesStore.set(lines);
+          }
         } else {
           const line = Number(currentElem.split("-")[1]) - 1;
           const point = Number(currentElem.split("-")[2]);
@@ -1934,7 +2003,8 @@
 
         if (
           target?.id.startsWith("point") ||
-          target?.id.startsWith("obstacle")
+          target?.id.startsWith("obstacle") ||
+          target?.id.startsWith("targetpoint")
         ) {
           two.renderer.domElement.style.cursor = "pointer";
           currentElem = target.id;
@@ -2044,7 +2114,7 @@
       // Optimization: use evt.target
       const el = evt.target as Element;
       if (el?.id) {
-        if (el.id.startsWith("point") || el.id.startsWith("obstacle-"))
+        if (el.id.startsWith("point") || el.id.startsWith("obstacle-") || el.id.startsWith("targetpoint"))
           clickedElem = el.id;
         else if (el.id.includes("event-")) {
           // Logic to normalize ID
@@ -2090,6 +2160,13 @@
               selectedPointId.set(null);
             }
           }
+        } else if (currentElem.startsWith("targetpoint-")) {
+          const parts = currentElem.split("-");
+          const lineIdx = Number(parts[1]) - 1;
+          if (!isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            selectedLineId.set(lines[lineIdx].id as string);
+            selectedPointId.set(currentElem);
+          }
         } else if (currentElem.startsWith("event-")) {
           const parts = currentElem.split("-");
           const lineIdx = Number(parts[1]);
@@ -2133,6 +2210,12 @@
             objectX = shapes[shapeIdx].vertices[vertexIdx].x;
             objectY = shapes[shapeIdx].vertices[vertexIdx].y;
           }
+        } else if (currentElem.startsWith("targetpoint-")) {
+          const line = Number(currentElem.split("-")[1]) - 1;
+          if (lines[line] && lines[line].endPoint) {
+            objectX = lines[line].endPoint.targetX || 0;
+            objectY = lines[line].endPoint.targetY || 0;
+          }
         } else if (currentElem.startsWith("point-")) {
           const line = Number(currentElem.split("-")[1]) - 1;
           const point = Number(currentElem.split("-")[2]);
@@ -2170,6 +2253,8 @@
           const ptIdx = Number(parts[2]);
           if (ptIdx === 0) action = "Move Endpoint";
           else action = "Move Control Point";
+        } else if (currentElem?.startsWith("targetpoint-")) {
+          action = "Move Facing Target";
         } else if (currentElem?.startsWith("obstacle-")) {
           action = "Edit Obstacle";
         } else if (
