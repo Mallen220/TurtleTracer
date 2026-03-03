@@ -142,6 +142,9 @@ export async function generateJavaCode(
               const uhStart = toUserHeading(line.endPoint.startDeg || 0, "FTC");
               const uhEnd = toUserHeading(line.endPoint.endDeg || 0, "FTC");
               headingConfig = `Math.toRadians(${uhStart.toFixed(3)}), Math.toRadians(${uhEnd.toFixed(3)})`;
+            } else if (line.endPoint.heading === "facingPoint") {
+              const uTarget = toUser({ x: line.endPoint.targetX || 0, y: line.endPoint.targetY || 0 }, "FTC");
+              headingConfig = `new Pose(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)})`;
             } else {
               headingConfig = "";
             }
@@ -167,7 +170,9 @@ export async function generateJavaCode(
                 ? `Math.toRadians(${line.endPoint.degrees})`
                 : line.endPoint.heading === "linear"
                   ? `Math.toRadians(${line.endPoint.startDeg}), Math.toRadians(${line.endPoint.endDeg})`
-                  : "";
+                  : line.endPoint.heading === "facingPoint"
+                    ? `new Pose(${(line.endPoint.targetX || 0).toFixed(3)}, ${(line.endPoint.targetY || 0).toFixed(3)})`
+                    : "";
           }
 
           const curveType =
@@ -175,7 +180,31 @@ export async function generateJavaCode(
               ? `new BezierLine`
               : `new BezierCurve`;
 
-          const reverseConfig = line.endPoint.reverse ? ".setReversed()" : "";
+          let headingMethodCode = "";
+          if (line.endPoint.reverse) {
+            // Reversed: use setHeadingInterpolation(HeadingInterpolator.xxx).setReversed()
+            if (line.endPoint.heading === "constant") {
+              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.constant(${headingConfig}))\n        .setReversed()`;
+            } else if (line.endPoint.heading === "linear") {
+              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.linear(${headingConfig}))\n        .setReversed()`;
+            } else if (line.endPoint.heading === "tangential") {
+              // tangent is a field, not a method
+              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.tangent)\n        .setReversed()`;
+            } else if (line.endPoint.heading === "facingPoint") {
+              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${headingConfig}))\n        .setReversed()`;
+            }
+          } else {
+            // No reverse: use shorthand setters
+            if (line.endPoint.heading === "constant") {
+              headingMethodCode = `.setConstantHeadingInterpolation(${headingConfig})`;
+            } else if (line.endPoint.heading === "linear") {
+              headingMethodCode = `.setLinearHeadingInterpolation(${headingConfig})`;
+            } else if (line.endPoint.heading === "tangential") {
+              headingMethodCode = `.setTangentHeadingInterpolation()`;
+            } else if (line.endPoint.heading === "facingPoint") {
+              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${headingConfig}))`;
+            }
+          }
 
           // Add event markers to the path builder
           let eventMarkerCode = "";
@@ -194,8 +223,7 @@ export async function generateJavaCode(
             ${controlPointsCode}
             ${endCode}
           )
-        ).${headingTypeToFunctionName[line.endPoint.heading]}(${headingConfig})
-        ${reverseConfig}${eventMarkerCode}
+        )${headingMethodCode}${eventMarkerCode}
         .build();`;
         })
         .join("\n\n")}
@@ -435,6 +463,7 @@ export async function generateJavaCode(
     import com.pedropathing.follower.Follower;
     import com.pedropathing.paths.PathChain;
     import com.pedropathing.geometry.Pose;
+    import com.pedropathing.paths.HeadingInterpolator;
     ${eventMarkerNames.size > 0 ? "import com.pedropathing.NamedCommands;" : ""}
     
     @Autonomous(name = "Pedro Pathing Autonomous", group = "Autonomous")

@@ -132,9 +132,26 @@ describe("codeExporter", () => {
       const lines = [line3];
       const code = await generateJavaCode(startPoint, lines, false);
 
-      expect(code).toContain("setTangentHeadingInterpolation()");
-      // .setReversed() for Java code, not .setReversed(true)
+      expect(code).toContain(".setHeadingInterpolation(HeadingInterpolator.tangent)");
       expect(code).toContain(".setReversed()");
+    });
+
+    it("should generate code with Facing Point Heading", async () => {
+      const facingPointLine: Line = {
+        id: "line4",
+        name: "line4",
+        endPoint: { x: 50, y: 0, heading: "facingPoint", targetX: 20, targetY: 30, reverse: false },
+        controlPoints: [],
+        color: "#000",
+        locked: false,
+      };
+      const code = await generateJavaCode(startPoint, [facingPointLine], false);
+      expect(code).toContain(".setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(20.000, 30.000)))");
+      
+      facingPointLine.endPoint.reverse = true;
+      const codeReverse = await generateJavaCode(startPoint, [facingPointLine], false);
+      expect(codeReverse).toContain(".setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(20.000, 30.000)))");
+      expect(codeReverse).toContain(".setReversed()");
     });
 
     it("should include event markers", async () => {
