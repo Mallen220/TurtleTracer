@@ -73,6 +73,8 @@
     macrosStore,
     refreshMacros,
     loadMacro,
+    loopRangeStore,
+    loopRangeActiveStore,
   } from "./lib/projectStore";
   import { diffMode, committedData } from "./lib/diffStore";
 
@@ -668,6 +670,8 @@
   $: playing = $playingStore;
   $: loopAnimation = $loopAnimationStore;
   $: playbackSpeed = $playbackSpeedStore;
+  $: loopRange = $loopRangeStore;
+  $: loopRangeActive = $loopRangeActiveStore;
 
   // --- D3 Scales (Used for resizing logic / math) ---
   $: x = d3
@@ -1113,6 +1117,11 @@
   $: if (animationController) {
     animationController.setDuration(animationDuration);
     animationController.setLoop(loopAnimation);
+    animationController.setPlaybackRange(
+      loopRange[0],
+      loopRange[1],
+      loopRangeActive,
+    );
     // If playing state changes externally (e.g. store update), sync controller?
     // Actually controller drives percent. `playing` store drives controller.
   }

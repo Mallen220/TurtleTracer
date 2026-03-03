@@ -177,6 +177,20 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "Editing",
   },
   {
+    id: "increase-val-small",
+    key: "shift+=, shift++",
+    description: "Increase value (small) (wait/rotate)",
+    action: "increaseValueSmall",
+    category: "Editing",
+  },
+  {
+    id: "decrease-val-small",
+    key: "shift+-, shift+_",
+    description: "Decrease value (small) (wait/rotate)",
+    action: "decreaseValueSmall",
+    category: "Editing",
+  },
+  {
     id: "add-obstacle",
     key: "shift+o",
     description: "Add new obstacle",

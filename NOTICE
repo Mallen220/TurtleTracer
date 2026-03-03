@@ -279,6 +279,5 @@ src/lib/components/dialogs/FeedbackDialog.svelte
 src/lib/components/dialogs/RatingDialog.svelte
 test-paths.js
 patch_reorder_split.diff
-.jules/palette.md
 src/utils/animation.ts
 src/utils/math.ts

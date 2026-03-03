@@ -29,7 +29,8 @@
   import { cubicInOut } from "svelte/easing";
   import { menuNavigation } from "../actions/menuNavigation";
   import { formatTime, getShortcutFromSettings } from "../../utils";
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onMount, onDestroy } from "svelte";
+  import { loopRangeActiveStore, loopRangeStore } from "../../lib/projectStore";
 
   const dispatch = createEventDispatcher();
 
@@ -45,6 +46,58 @@
   let timelineRect: DOMRect | null = null;
   let timelineContainer: HTMLElement;
   let ignoreClick = false;
+
+  let draggingLoopHandle: "min" | "max" | null = null;
+  let loopRangeActive = false;
+  let loopRange: [number, number] = [0, 100];
+  let unsub1: () => void;
+  let unsub2: () => void;
+
+  onMount(() => {
+    unsub1 = loopRangeActiveStore.subscribe((v) => (loopRangeActive = v));
+    unsub2 = loopRangeStore.subscribe((v) => (loopRange = v));
+  });
+
+  onDestroy(() => {
+    if (unsub1) unsub1();
+    if (unsub2) unsub2();
+  });
+
+  function startDragLoopHandle(e: MouseEvent, type: "min" | "max") {
+    e.preventDefault();
+    e.stopPropagation();
+    draggingLoopHandle = type;
+    wasPlayingBeforeDrag = playing;
+    if (playing) pause();
+    if (timelineContainer)
+      timelineRect = timelineContainer.getBoundingClientRect();
+    window.addEventListener("mousemove", handleLoopDragMove);
+    window.addEventListener("mouseup", handleLoopDragEnd);
+  }
+
+  function handleLoopDragMove(e: MouseEvent) {
+    if (!draggingLoopHandle || !timelineRect) return;
+    let pct = ((e.clientX - timelineRect.left) / timelineRect.width) * 100;
+    pct = Math.max(0, Math.min(100, pct));
+    loopRangeStore.update((r) => {
+      if (draggingLoopHandle === "min") {
+        return [Math.min(pct, r[1] - 0.1), r[1]];
+      } else {
+        return [r[0], Math.max(pct, r[0] + 0.1)];
+      }
+    });
+  }
+
+  function handleLoopDragEnd() {
+    if (draggingLoopHandle) {
+      ignoreClick = true;
+      setTimeout(() => (ignoreClick = false), 50);
+    }
+    draggingLoopHandle = null;
+    window.removeEventListener("mousemove", handleLoopDragMove);
+    window.removeEventListener("mouseup", handleLoopDragEnd);
+    if (wasPlayingBeforeDrag) play();
+  }
 
   $: currentTime =
     (draggingMarkerIndex !== null
@@ -315,6 +368,35 @@
         {/if}
       {/each}
     </div>
+
+    <!-- Section Loop Visuals -->
+    {#if loopRangeActive}
+      <!-- Excluded region left -->
+      <div
+        class="absolute top-0 bottom-0 bg-black/30 dark:bg-black/50 z-[15] pointer-events-none rounded-l-full"
+        style="left: 0%; width: {loopRange[0]}%;"
+      ></div>
+      <!-- Excluded region right -->
+      <div
+        class="absolute top-0 bottom-0 bg-black/30 dark:bg-black/50 z-[15] pointer-events-none rounded-r-full"
+        style="left: {loopRange[1]}%; width: {100 - loopRange[1]}%;"
+      ></div>
+
+      <!-- A Handle -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div
+        class="absolute top-1/2 -translate-y-1/2 w-2 h-4 bg-purple-500 hover:bg-purple-400 cursor-ew-resize z-20 rounded-sm shadow-md"
+        style="left: {loopRange[0]}%; transform: translateX(-50%);"
+        on:mousedown={(e) => startDragLoopHandle(e, "min")}
+      ></div>
+      <!-- B Handle -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div
+        class="absolute top-1/2 -translate-y-1/2 w-2 h-4 bg-purple-500 hover:bg-purple-400 cursor-ew-resize z-20 rounded-sm shadow-md"
+        style="left: {loopRange[1]}%; transform: translateX(-50%);"
+        on:mousedown={(e) => startDragLoopHandle(e, "max")}
+      ></div>
+    {/if}
 
     <!-- The Slider -->
     <input
@@ -673,6 +755,30 @@
           aria-label="Current time"
         />
       </div>
+
+      <!-- Section Loop Toggle Button -->
+      <button
+        title="Toggle Section Looping"
+        aria-label="Toggle Section Looping"
+        aria-pressed={loopRangeActive}
+        on:click={() => {
+          const newVal = !loopRangeActive;
+          loopRangeActiveStore.set(newVal);
+          if (newVal) {
+            loopRangeStore.set([Math.floor(percent), 100]);
+          }
+        }}
+        class="px-2 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class:bg-purple-100={loopRangeActive}
+        class:text-purple-700={loopRangeActive}
+        class:dark:bg-purple-900={loopRangeActive}
+        class:dark:text-purple-300={loopRangeActive}
+        class:text-neutral-500={!loopRangeActive}
+        class:hover:text-neutral-700={!loopRangeActive}
+        class:dark:hover:text-neutral-300={!loopRangeActive}
+      >
+        .|...|.
+      </button>
 
       <!-- Loop Toggle Button -->
       <button

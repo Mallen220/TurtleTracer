@@ -23,6 +23,9 @@ type AnimationState = {
   animationFrameId: number | null;
   totalDuration: number;
   loop: boolean;
+  loopRangeActive: boolean;
+  loopMinPercent: number;
+  loopMaxPercent: number;
 };
 
 /**
@@ -254,6 +257,9 @@ export function createAnimationController(
     animationFrameId: null,
     totalDuration,
     loop: true,
+    loopRangeActive: false,
+    loopMinPercent: 0,
+    loopMaxPercent: 100,
   };
 
   let isExternalChange = false;
@@ -291,21 +297,35 @@ export function createAnimationController(
     state.accumulatedSeconds += deltaSeconds;
 
     if (state.totalDuration > 0) {
+      let startSec = isExternalChange
+        ? 0
+        : state.loopRangeActive
+          ? (state.loopMinPercent / 100) * state.totalDuration
+          : 0;
+      let endSec = state.loopRangeActive
+        ? (state.loopMaxPercent / 100) * state.totalDuration
+        : state.totalDuration;
+      if (endSec <= startSec) endSec = state.totalDuration;
+
       if (state.loop) {
-        // For looping, wrap accumulatedSeconds so it doesn't grow unbounded.
-        // Use modulo to allow continuous time even for large deltas.
-        state.accumulatedSeconds =
-          state.accumulatedSeconds % state.totalDuration;
+        if (state.accumulatedSeconds > endSec) {
+          state.accumulatedSeconds =
+            startSec +
+            ((state.accumulatedSeconds - endSec) % (endSec - startSec));
+        } else if (state.accumulatedSeconds < startSec) {
+          state.accumulatedSeconds = startSec;
+        }
         updatePercentFromAccumulated();
         if (!isExternalChange) onPercentChange(state.percent);
         // keep animating
         state.animationFrameId = requestAnimationFrame(animate);
       } else {
         // Not looping: clamp to duration and stop when done
-        if (state.accumulatedSeconds >= state.totalDuration) {
-          state.accumulatedSeconds = state.totalDuration;
+        if (state.accumulatedSeconds >= endSec) {
+          state.accumulatedSeconds = endSec;
           updatePercentFromAccumulated();
-          if (!isExternalChange) onPercentChange(100);
+          if (!isExternalChange)
+            onPercentChange(state.loopRangeActive ? state.loopMaxPercent : 100);
           state.playing = false;
           state.lastTimestamp = null;
           if (state.animationFrameId) {
@@ -332,15 +352,33 @@ export function createAnimationController(
     // If already playing, nothing to do
     if (state.playing) return;
 
+    let startSec = state.loopRangeActive
+      ? (state.loopMinPercent / 100) * state.totalDuration
+      : 0;
+    let endSec = state.loopRangeActive
+      ? (state.loopMaxPercent / 100) * state.totalDuration
+      : state.totalDuration;
+    if (endSec <= startSec) endSec = state.totalDuration;
+
     // If at the very end and not looping, reset to start so play restarts
     if (
       !state.loop &&
       state.totalDuration > 0 &&
-      state.accumulatedSeconds >= state.totalDuration
+      state.accumulatedSeconds >= endSec
     ) {
-      state.accumulatedSeconds = 0;
-      state.percent = 0;
-      if (!isExternalChange) onPercentChange(0);
+      state.accumulatedSeconds = startSec;
+      updatePercentFromAccumulated();
+      if (!isExternalChange) onPercentChange(state.percent);
+    } else if (state.totalDuration > 0 && state.loopRangeActive) {
+      // Even if looping, if we are outside the loop range, snap back into it
+      if (
+        state.accumulatedSeconds < startSec ||
+        state.accumulatedSeconds >= endSec
+      ) {
+        state.accumulatedSeconds = startSec;
+        updatePercentFromAccumulated();
+        if (!isExternalChange) onPercentChange(state.percent);
+      }
     }
 
     state.playing = true;
@@ -413,6 +451,13 @@ export function createAnimationController(
     },
     setLoop(loop: boolean) {
       state.loop = loop;
+    },
+    setPlaybackRange(minPercent: number, maxPercent: number, active: boolean) {
+      state.loopRangeActive = active;
+      state.loopMinPercent = Math.max(0, Math.min(100, minPercent));
+      state.loopMaxPercent = Math.max(0, Math.min(100, maxPercent));
+      if (state.loopMaxPercent <= state.loopMinPercent)
+        state.loopMaxPercent = 100;
     },
     isPlaying() {
       return state.playing;
