@@ -316,7 +316,9 @@
               <div class="flex flex-row gap-1">
                 <button
                   title={shape.visible !== false ? "Hide Shape" : "Show Shape"}
-                  aria-label={shape.visible !== false ? "Hide Shape" : "Show Shape"}
+                  aria-label={shape.visible !== false
+                    ? "Hide Shape"
+                    : "Show Shape"}
                   on:click={() => {
                     shape.visible = !(shape.visible !== false);
                     shapes = [...shapes];

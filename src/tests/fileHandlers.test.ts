@@ -460,7 +460,7 @@ describe("fileHandlers", () => {
         currentSettings,
         currentShapes,
         {},
-        "/project/dir/auto.pp"
+        "/project/dir/auto.pp",
       );
 
       // verify auto-export occurred

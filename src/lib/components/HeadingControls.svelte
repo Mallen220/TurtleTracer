@@ -321,12 +321,15 @@
         stroke-width="2"
         stroke-linecap="round"
         stroke-linejoin="round"
-        class="size-4 text-neutral-400 dark:text-neutral-500 shrink-0 {endPoint.reverse ? 'scale-x-[-1]' : ''}"
+        class="size-4 text-neutral-400 dark:text-neutral-500 shrink-0 {endPoint.reverse
+          ? 'scale-x-[-1]'
+          : ''}"
       >
         <path d="M5 12h14" />
         <path d="m12 5 7 7-7 7" />
       </svg>
-      <span class="text-sm text-neutral-500 dark:text-neutral-400 select-none truncate"
+      <span
+        class="text-sm text-neutral-500 dark:text-neutral-400 select-none truncate"
         >{endPoint.reverse ? "Facing Backward" : "Facing Forward"}</span
       >
     </div>

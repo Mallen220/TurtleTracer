@@ -77,7 +77,8 @@
     settings.maxVelocity = profile.maxVelocity;
     settings.maxAcceleration = profile.maxAcceleration;
     settings.maxDeceleration = profile.maxDeceleration;
-    settings.maxAngularAcceleration = profile.maxAngularAcceleration ?? settings.maxAngularAcceleration;
+    settings.maxAngularAcceleration =
+      profile.maxAngularAcceleration ?? settings.maxAngularAcceleration;
     settings.kFriction = profile.kFriction;
     settings.aVelocity = profile.aVelocity;
     settings.xVelocity = profile.xVelocity;

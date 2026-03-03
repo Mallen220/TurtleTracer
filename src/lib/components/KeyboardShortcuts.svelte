@@ -2155,7 +2155,8 @@
         maxVelocity: nextProfile.maxVelocity,
         maxAcceleration: nextProfile.maxAcceleration,
         maxDeceleration: nextProfile.maxDeceleration,
-        maxAngularAcceleration: nextProfile.maxAngularAcceleration ?? s.maxAngularAcceleration,
+        maxAngularAcceleration:
+          nextProfile.maxAngularAcceleration ?? s.maxAngularAcceleration,
         kFriction: nextProfile.kFriction,
         aVelocity: nextProfile.aVelocity,
         xVelocity: nextProfile.xVelocity,

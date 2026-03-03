@@ -1039,7 +1039,9 @@ ipcMain.handle("file:list", async (event, directory) => {
 
   try {
     const dirents = await fs.readdir(directory, { withFileTypes: true });
-    const ppFilesAndDirs = dirents.filter((dirent) => dirent.isDirectory() || dirent.name.endsWith(".pp"));
+    const ppFilesAndDirs = dirents.filter(
+      (dirent) => dirent.isDirectory() || dirent.name.endsWith(".pp"),
+    );
 
     // Check git status
     let gitStatuses = {};

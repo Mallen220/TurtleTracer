@@ -73,6 +73,8 @@
     macrosStore,
     refreshMacros,
     loadMacro,
+    loopRangeStore,
+    loopRangeActiveStore,
   } from "./lib/projectStore";
   import { diffMode, committedData } from "./lib/diffStore";
 
@@ -552,7 +554,9 @@
       totalUsageTime: (s.totalUsageTime || 0) + currentSessionUsage,
     }));
     sessionStartTime = now;
-    try { await saveSettings(get(settingsStore)); } catch(e) {}
+    try {
+      await saveSettings(get(settingsStore));
+    } catch (e) {}
 
     const unsaved = get(isUnsaved);
     const autosaveMode = settings?.autosaveMode;
@@ -666,6 +670,8 @@
   $: playing = $playingStore;
   $: loopAnimation = $loopAnimationStore;
   $: playbackSpeed = $playbackSpeedStore;
+  $: loopRange = $loopRangeStore;
+  $: loopRangeActive = $loopRangeActiveStore;
 
   // --- D3 Scales (Used for resizing logic / math) ---
   $: x = d3
@@ -1111,6 +1117,11 @@
   $: if (animationController) {
     animationController.setDuration(animationDuration);
     animationController.setLoop(loopAnimation);
+    animationController.setPlaybackRange(
+      loopRange[0],
+      loopRange[1],
+      loopRangeActive,
+    );
     // If playing state changes externally (e.g. store update), sync controller?
     // Actually controller drives percent. `playing` store drives controller.
   }
@@ -1543,7 +1554,7 @@
   resetProject={handleResetProject}
   {saveFileAs}
   {exportGif}
-    exportImage={() => showExportImage.set(true)}
+  exportImage={() => showExportImage.set(true)}
   {undoAction}
   {redoAction}
   {play}
