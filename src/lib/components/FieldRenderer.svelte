@@ -225,7 +225,6 @@
     if (!wrapperDiv) return;
     if (e.ctrlKey || e.metaKey) {
       followRobotStore.set(false);
-      playingStore.set(false);
       e.preventDefault();
       const rect = wrapperDiv.getBoundingClientRect();
       const transformed = getTransformedCoordinates(
@@ -1972,7 +1971,6 @@
       } else if (isPanning) {
         // Panning Logic
         followRobotStore.set(false);
-        playingStore.set(false);
         // Calculate the delta in pixels
         const dx = evt.clientX - startPan.x;
         const dy = evt.clientY - startPan.y;
@@ -2880,7 +2878,6 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
         on:click={() => {
           followRobotStore.set(false);
-          playingStore.set(false);
           const step = computeZoomStep(zoom, 1);
           const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
           const focus = isMouseOverField
@@ -2906,7 +2903,6 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
         on:click={() => {
           followRobotStore.set(false);
-          playingStore.set(false);
           const step = computeZoomStep(zoom, -1);
           const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
           const focus = isMouseOverField
@@ -2934,7 +2930,6 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
         on:click={() => {
           followRobotStore.set(false);
-          playingStore.set(false);
           fieldZoom.set(1.0);
           fieldPan.set({ x: 0, y: 0 });
         }}
@@ -2972,7 +2967,6 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
           on:click={() => {
             followRobotStore.set(false);
-            playingStore.set(false);
             const step = computeZoomStep(zoom, 1);
             const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
             const focus = isMouseOverField
@@ -2998,7 +2992,6 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
           on:click={() => {
             followRobotStore.set(false);
-            playingStore.set(false);
             const step = computeZoomStep(zoom, -1);
             const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
             const focus = isMouseOverField
@@ -3026,7 +3019,6 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
           on:click={() => {
             followRobotStore.set(false);
-            playingStore.set(false);
             fieldZoom.set(1.0);
             fieldPan.set({ x: 0, y: 0 });
           }}
