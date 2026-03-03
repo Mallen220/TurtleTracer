@@ -111,7 +111,7 @@ export const percentStore = writable(0);
 export const playingStore = writable(false);
 export const playbackSpeedStore = writable(1.0);
 export const loopAnimationStore = writable(true);
-export const loopRangeActiveStore = writable(false);
+export const loopRangeActiveStore = writable(true);
 export const loopRangeStore = writable<[number, number]>([0, 100]);
 
 // Robot State (derived or managed)

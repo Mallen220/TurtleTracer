@@ -369,7 +369,7 @@
       {/each}
     </div>
 
-    <!-- A/B Loop Visuals -->
+    <!-- Section Loop Visuals -->
     {#if loopRangeActive}
       <!-- Excluded region left -->
       <div
@@ -756,10 +756,10 @@
         />
       </div>
 
-      <!-- A/B Loop Toggle Button -->
+      <!-- Section Loop Toggle Button -->
       <button
-        title="Toggle A/B Looping"
-        aria-label="Toggle A/B Looping"
+        title="Toggle Section Looping"
+        aria-label="Toggle Section Looping"
         aria-pressed={loopRangeActive}
         on:click={() => {
           const newVal = !loopRangeActive;
@@ -777,7 +777,7 @@
         class:hover:text-neutral-700={!loopRangeActive}
         class:dark:hover:text-neutral-300={!loopRangeActive}
       >
-        A-B
+        .|...|.
       </button>
 
       <!-- Loop Toggle Button -->
