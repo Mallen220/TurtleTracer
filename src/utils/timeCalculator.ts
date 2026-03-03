@@ -834,7 +834,8 @@ export function calculatePathTime(
           // Use the longer arc: invert the rotation direction
           const shortDiff = endDeg - startDeg;
           const normalizedShort = ((shortDiff % 360) + 360) % 360;
-          const longDiff = normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
+          const longDiff =
+            normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
           endHeading = startDeg + longDiff;
           rotationRequired = Math.abs(longDiff);
 
@@ -868,10 +869,9 @@ export function calculatePathTime(
         const targetX = (line.endPoint as any).targetX || 0;
         const targetY = (line.endPoint as any).targetY || 0;
         // Compute the angle from the endpoint to the target
-        const facingAngle = Math.atan2(
-          targetY - line.endPoint.y,
-          targetX - line.endPoint.x,
-        ) * (180 / Math.PI);
+        const facingAngle =
+          Math.atan2(targetY - line.endPoint.y, targetX - line.endPoint.x) *
+          (180 / Math.PI);
         const finalFacing = (line.endPoint as any).reverse
           ? facingAngle + 180
           : facingAngle;
@@ -886,9 +886,12 @@ export function calculatePathTime(
           for (let i = 1; i <= samples; i++) {
             const t = i / samples;
             const pos = getCurvePoint(t, cps);
-            let angle = Math.atan2(targetY - pos.y, targetX - pos.x) * (180 / Math.PI);
+            let angle =
+              Math.atan2(targetY - pos.y, targetX - pos.x) * (180 / Math.PI);
             if ((line.endPoint as any).reverse) angle += 180;
-            headingProfile.push(unwrapAngle(angle, headingProfile[headingProfile.length - 1]));
+            headingProfile.push(
+              unwrapAngle(angle, headingProfile[headingProfile.length - 1]),
+            );
           }
         }
         rotationRequired = Math.abs(endHeading - currentHeading);

@@ -70,7 +70,9 @@ describe("ExportGifDialog", () => {
   });
 
   it("X button aborts generation and closes dialog", async () => {
-    const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const mockConsoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const { getByText, getByLabelText, queryByText, container } = render(
       ExportGifDialog,
       props as any,

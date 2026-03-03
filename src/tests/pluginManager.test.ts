@@ -69,7 +69,9 @@ describe("PluginManager", () => {
   });
 
   it("should handle execution errors", async () => {
-    const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const mockConsoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const mockListPlugins = vi.fn().mockResolvedValue(["bad-plugin.js"]);
     const mockReadPlugin = vi.fn().mockResolvedValue(`
       throw new Error("Boom");

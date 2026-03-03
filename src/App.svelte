@@ -552,7 +552,9 @@
       totalUsageTime: (s.totalUsageTime || 0) + currentSessionUsage,
     }));
     sessionStartTime = now;
-    try { await saveSettings(get(settingsStore)); } catch(e) {}
+    try {
+      await saveSettings(get(settingsStore));
+    } catch (e) {}
 
     const unsaved = get(isUnsaved);
     const autosaveMode = settings?.autosaveMode;
@@ -1543,7 +1545,7 @@
   resetProject={handleResetProject}
   {saveFileAs}
   {exportGif}
-    exportImage={() => showExportImage.set(true)}
+  exportImage={() => showExportImage.set(true)}
   {undoAction}
   {redoAction}
   {play}

@@ -171,7 +171,8 @@ export function calculateRobotState(
             const shortDiff = endDeg - startDeg;
             const normalizedShort = ((shortDiff % 360) + 360) % 360;
             // shortArc is in [0,360). If > 180, that's already the long arc, so go short instead.
-            const longDiff = normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
+            const longDiff =
+              normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
             robotHeading = -(startDeg + longDiff * linePercent);
           } else {
             robotHeading = -shortestRotation(startDeg, endDeg, linePercent);

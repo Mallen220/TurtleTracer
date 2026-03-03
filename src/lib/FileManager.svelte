@@ -293,13 +293,17 @@
       files = allFiles
         .map((file) => ({
           ...file,
-          error: file.isDirectory || supportedFileTypes.includes(
-            path.extname(file.name).toLowerCase(),
-          )
-            ? undefined
-            : `Unsupported type`,
+          error:
+            file.isDirectory ||
+            supportedFileTypes.includes(path.extname(file.name).toLowerCase())
+              ? undefined
+              : `Unsupported type`,
         }))
-        .filter((file) => file.isDirectory || supportedFileTypes.includes(path.extname(file.name).toLowerCase()));
+        .filter(
+          (file) =>
+            file.isDirectory ||
+            supportedFileTypes.includes(path.extname(file.name).toLowerCase()),
+        );
 
       sortFiles();
       errorMessage = "";
@@ -383,7 +387,10 @@
         // would drop the last directory segment and then apply "..", going up TWO levels.
         // We append a dummy file so dirname(base) gives us the current directory,
         // and then ".." correctly moves up exactly ONE level.
-        const parentDir = await electronAPI.resolvePath(path.join(currentDirectory, "dummy.txt"), "..");
+        const parentDir = await electronAPI.resolvePath(
+          path.join(currentDirectory, "dummy.txt"),
+          "..",
+        );
         if (parentDir && parentDir !== currentDirectory) {
           // Additional safety check to prevent going outside baseDirectory
           // parentDir must start with baseDirectory

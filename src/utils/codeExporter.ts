@@ -143,7 +143,13 @@ export async function generateJavaCode(
               const uhEnd = toUserHeading(line.endPoint.endDeg || 0, "FTC");
               headingConfig = `Math.toRadians(${uhStart.toFixed(3)}), Math.toRadians(${uhEnd.toFixed(3)})`;
             } else if (line.endPoint.heading === "facingPoint") {
-              const uTarget = toUser({ x: line.endPoint.targetX || 0, y: line.endPoint.targetY || 0 }, "FTC");
+              const uTarget = toUser(
+                {
+                  x: line.endPoint.targetX || 0,
+                  y: line.endPoint.targetY || 0,
+                },
+                "FTC",
+              );
               headingConfig = `new Pose(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)})`;
             } else {
               headingConfig = "";
