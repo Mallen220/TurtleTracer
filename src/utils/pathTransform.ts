@@ -21,7 +21,7 @@ export function mirrorPathData(data: {
   lines: Line[];
   shapes: Shape[];
 }) {
-  const m = JSON.parse(JSON.stringify(data));
+  const m = structuredClone(data);
 
   if (m.startPoint) {
     m.startPoint.x = 144 - m.startPoint.x;
@@ -57,14 +57,14 @@ export function reversePathData(data: {
   shapes?: Shape[];
 }) {
   // Deep clone to avoid mutating original
-  const r = JSON.parse(JSON.stringify(data));
+  const r = structuredClone(data);
   const originalLines: Line[] = data.lines || [];
 
   if (originalLines.length === 0) return r;
 
   // 1. New Start Point is the last End Point
   const lastLine = originalLines[originalLines.length - 1];
-  const newStartPoint = JSON.parse(JSON.stringify(lastLine.endPoint));
+  const newStartPoint = structuredClone(lastLine.endPoint);
 
   // Adjust new start point heading properties
   if (newStartPoint.heading === "linear") {
@@ -85,7 +85,7 @@ export function reversePathData(data: {
     const originalLine = originalLines[originalLineIndex];
 
     // The target end point is the start point of the original segment.
-    const targetEndPoint = JSON.parse(JSON.stringify(points[i - 1]));
+    const targetEndPoint = structuredClone(points[i - 1]);
 
     // Fix heading for target end point if linear
     if (targetEndPoint.heading === "linear") {
