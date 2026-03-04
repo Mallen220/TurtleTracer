@@ -16,7 +16,6 @@
   import { formatTime } from "../../../utils"; // Assuming formatTime is exported from index or timeCalculator
   import { dimmedLinesStore } from "../../../stores";
   import { onDestroy } from "svelte";
-  import _ from "lodash";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -107,7 +106,7 @@
 
     if (settings) {
       // Create a copy of lines where unselected lines are forced to be locked
-      const linesToOptimize = _.cloneDeep(lines).map((l, idx) => {
+      const linesToOptimize = structuredClone(lines).map((l, idx) => {
         const id = l.id || `idx-${idx}`;
         if (!selectionState[id]) {
           l.locked = true;

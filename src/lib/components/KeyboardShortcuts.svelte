@@ -63,8 +63,8 @@
   import { DEFAULT_KEY_BINDINGS } from "../../config/keybindings";
   import { getRandomColor } from "../../utils";
   import { computeZoomStep } from "../zoomHelpers";
-  import _ from "lodash";
   import { actionRegistry } from "../actionRegistry";
+  import _ from "lodash";
 
   // Actions
   export let saveProject: () => void;
@@ -447,7 +447,7 @@
       ) as any;
       if (!waitItem) return;
 
-      const newWait = _.cloneDeep(waitItem);
+      const newWait = structuredClone(waitItem);
       newWait.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
       const existingWaitNames = sequence
@@ -481,7 +481,7 @@
       ) as any;
       if (!rotateItem) return;
 
-      const newRotate = _.cloneDeep(rotateItem);
+      const newRotate = structuredClone(rotateItem);
       newRotate.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
       const existingRotateNames = sequence
         .filter((s) => actionRegistry.get(s.kind)?.isRotate)
@@ -532,7 +532,7 @@
       const deltaX = originalLine.endPoint.x - prevPoint.x;
       const deltaY = originalLine.endPoint.y - prevPoint.y;
 
-      const newLine = _.cloneDeep(originalLine);
+      const newLine = structuredClone(originalLine);
       newLine.id = `line-${Math.random().toString(36).slice(2)}`;
 
       // Update name (preserve empty name if original was unnamed)
@@ -612,7 +612,7 @@
         (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
       ) as any;
       if (waitItem) {
-        clipboard = _.cloneDeep(waitItem);
+        clipboard = structuredClone(waitItem);
       }
       return;
     }
@@ -624,7 +624,7 @@
           actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
       ) as any;
       if (rotateItem) {
-        clipboard = _.cloneDeep(rotateItem);
+        clipboard = structuredClone(rotateItem);
       }
       return;
     }
@@ -642,7 +642,7 @@
     if (targetLineId) {
       const line = lines.find((l) => l.id === targetLineId);
       if (line) {
-        clipboard = _.cloneDeep(line);
+        clipboard = structuredClone(line);
       }
     }
 
@@ -676,7 +676,7 @@
     // Handle Wait
     if (clipDef?.isWait) {
       const waitItem = clipboard as SequenceItem;
-      const newWait = _.cloneDeep(waitItem) as any;
+      const newWait = structuredClone(waitItem) as any;
       newWait.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
       // Generate unique name
@@ -712,7 +712,7 @@
     // Handle Rotate
     if (clipDef?.isRotate) {
       const rotateItem = clipboard as SequenceItem;
-      const newRotate = _.cloneDeep(rotateItem) as any;
+      const newRotate = structuredClone(rotateItem) as any;
       newRotate.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
       // Generate unique name
@@ -807,7 +807,7 @@
       // Let's stick to: Paste exactly, but regenerate ID and Name.
       // If it overlaps, user can move it.
 
-      const newLine = _.cloneDeep(originalLine);
+      const newLine = structuredClone(originalLine);
       newLine.id = `line-${Math.random().toString(36).slice(2)}`;
 
       const existingLineNames = lines.map((l) => l.name || "");
@@ -2082,7 +2082,7 @@
       }
     },
     resetSettings: () => {
-      settingsStore.set(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)));
+      settingsStore.set(structuredClone(DEFAULT_SETTINGS));
     },
     cycleTheme: () => {
       settingsStore.update((s) => {
