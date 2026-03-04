@@ -11,6 +11,7 @@
   import { fade, fly } from "svelte/transition";
   import { currentFilePath } from "../../../stores";
   import { formatTime } from "../../../utils";
+  import { extraDataStore } from "../../projectStore";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -22,6 +23,18 @@
 
   let fieldContainer: HTMLDivElement;
   let dialogRef: HTMLDivElement;
+  let textareaRef: HTMLTextAreaElement;
+
+  /**
+   * Auto-resizes the Strategy Notes textarea so that all content is visible,
+   * particularly for PDF generation/printing where scrolling is not possible.
+   */
+  function autoResizeTextarea() {
+    if (textareaRef) {
+      textareaRef.style.height = "auto";
+      textareaRef.style.height = textareaRef.scrollHeight + "px";
+    }
+  }
 
   function renderField() {
     if (!fieldContainer || !twoInstance) return;
@@ -340,6 +353,8 @@
     tick().then(() => {
       renderField();
       if (dialogRef) dialogRef.focus();
+      // Initial resize for notes
+      autoResizeTextarea();
     });
   }
 
@@ -688,10 +703,35 @@
           <!-- Notes Section -->
           <div class="flex-1 flex flex-col">
             <h3 class="font-bold text-lg mb-2">Strategy Notes</h3>
-            <div class="border-t border-gray-300 flex-1 min-h-[150px]">
-              {#each Array(6) as _, i}
-                <div class="border-b border-gray-300 h-10 w-full"></div>
-              {/each}
+            <!--
+              Feature: Digital Strategy Notes
+              Why: Replaces the previous static printed lines with a digital text area,
+                   allowing users to type out and persist their strategy notes directly in the app.
+              Impact: Eliminates manual writing post-print, ensures notes stay attached to the .pp file via extraDataStore.
+            -->
+            <div
+              class="border-t border-gray-300 flex-1 min-h-[150px] flex relative"
+            >
+              <textarea
+                bind:this={textareaRef}
+                class="w-full flex-1 min-h-[150px] p-2 bg-transparent border-none resize-none focus:outline-none focus:ring-1 focus:ring-gray-300 print:overflow-visible overflow-hidden text-sm leading-relaxed"
+                placeholder="Type your strategy notes here..."
+                bind:value={$extraDataStore.strategyNotes}
+                on:input={autoResizeTextarea}
+              ></textarea>
+              {#if !$extraDataStore.strategyNotes}
+                <!--
+                  Fallback lines for printing if the user chooses not to type notes
+                  but still wants to handwrite them later.
+                -->
+                <div
+                  class="absolute inset-0 pointer-events-none z-[-1] print:block hidden flex-col"
+                >
+                  {#each Array(6) as _, i}
+                    <div class="border-b border-gray-300 h-10 w-full"></div>
+                  {/each}
+                </div>
+              {/if}
             </div>
           </div>
         </div>
