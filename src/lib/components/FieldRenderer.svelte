@@ -526,6 +526,7 @@
 
   // Animated facing-point line: drawn from current robot position to the facing target.
   // Only shown when the robot is actively driving on that facingPoint segment.
+  // Rendered as SVG overlay to avoid clearing Two.js scene.
   $: facingLineElements = (() => {
     if (!robotXY || !timePrediction?.timeline?.length) return [];
 
@@ -548,12 +549,13 @@
     const targetX = (activeLine.endPoint as any).targetX ?? 72;
     const targetY = (activeLine.endPoint as any).targetY ?? 72;
     const pathColor = activeLine.color || "#60a5fa";
-    const fl = new Two.Line(x(robotXY.x), y(robotXY.y), x(targetX), y(targetY));
-    fl.stroke = pathColor;
-    fl.opacity = 0.7;
-    fl.linewidth = uiLength(0.4);
-    fl.dashes = [uiLength(1.5), uiLength(1.5)];
-    return [fl];
+    return [{
+      x1: x(robotXY.x),
+      y1: y(robotXY.y),
+      x2: x(targetX),
+      y2: y(targetY),
+      color: pathColor
+    }];
   })();
 
   // Reusable path generation function
@@ -1132,8 +1134,8 @@
   })();
 
   // Onion Layers
+  // Rendered as SVG overlay to avoid clearing Two.js scene.
   $: onionLayerElements = (() => {
-    let onionLayers: Path[] = [];
     if (settings.showOnionLayers && lines.length > 0) {
       const spacing = settings.onionLayerSpacing || 6;
 
@@ -1171,62 +1173,15 @@
         }
       }
 
-      const layers = generateOnionLayers(
+      return generateOnionLayers(
         targetStartPoint,
         targetLines,
         settings.rLength,
         settings.rWidth,
         spacing,
       );
-      layers.forEach((layer, idx) => {
-        let vertices = [];
-        vertices.push(
-          new Two.Anchor(
-            x(layer.corners[0].x),
-            y(layer.corners[0].y),
-            0,
-            0,
-            0,
-            0,
-            Two.Commands.move,
-          ),
-        );
-        for (let i = 1; i < layer.corners.length; i++) {
-          vertices.push(
-            new Two.Anchor(
-              x(layer.corners[i].x),
-              y(layer.corners[i].y),
-              0,
-              0,
-              0,
-              0,
-              Two.Commands.line,
-            ),
-          );
-        }
-        vertices.push(
-          new Two.Anchor(
-            x(layer.corners[0].x),
-            y(layer.corners[0].y),
-            0,
-            0,
-            0,
-            0,
-            Two.Commands.close,
-          ),
-        );
-        vertices.forEach((point) => (point.relative = false));
-        let onionRect = new Two.Path(vertices);
-        onionRect.id = `onion-layer-${idx}`;
-        onionRect.stroke = "#818cf8";
-        onionRect.noFill();
-        onionRect.opacity = 0.35;
-        onionRect.linewidth = uiLength(0.5);
-        onionRect.automatic = false;
-        onionLayers.push(onionRect);
-      });
     }
-    return onionLayers;
+    return [];
   })();
 
   // Telemetry Path
@@ -1679,10 +1634,8 @@
 
     if (Array.isArray(shapeElements))
       shapeElements.forEach((el) => shapeGroup.add(el));
-    onionLayerElements.forEach((el) => shapeGroup.add(el));
 
     path.forEach((el) => lineGroup.add(el));
-    facingLineElements.forEach((el) => lineGroup.add(el));
     diffPathElements.forEach((el) => lineGroup.add(el));
     previewPathElements.forEach((el) => lineGroup.add(el));
     telemetryPathElements.forEach((el) => lineGroup.add(el));
@@ -2717,6 +2670,16 @@
       id="field-overlay-layer"
       class="absolute inset-0 pointer-events-none z-30"
     ></div>
+
+    <!-- SVG Overlay for animated paths/layers -->
+    <svg class="absolute inset-0 pointer-events-none z-10" style={`width: ${width}px; height: ${height}px;`}>
+      {#each onionLayerElements as layer}
+        <polygon points={layer.corners.map(c => `${x(c.x)},${y(c.y)}`).join(' ')} fill="none" stroke="#818cf8" stroke-width={uiLength(0.5)} opacity="0.35" />
+      {/each}
+      {#each facingLineElements as fl}
+        <line x1={fl.x1} y1={fl.y1} x2={fl.x2} y2={fl.y2} stroke={fl.color} stroke-width={uiLength(0.4)} stroke-dasharray={`${uiLength(1.5)} ${uiLength(1.5)}`} opacity="0.7" />
+      {/each}
+    </svg>
 
     {#if settings.customMaps?.some((m) => m.id === settings.fieldMap)}
       {@const activeMap = settings.customMaps.find(

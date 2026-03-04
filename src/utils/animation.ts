@@ -384,7 +384,7 @@ export function createAnimationController(
     state.playing = true;
     // schedule the loop if not already scheduled
     if (state.animationFrameId === null) {
-      state.lastTimestamp = null; // ensure animate initializes its timestamp properly
+      state.lastTimestamp = performance.now(); // ensure animate initializes its timestamp properly
       state.animationFrameId = requestAnimationFrame(animate);
     }
   }
