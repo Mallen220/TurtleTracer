@@ -3,6 +3,7 @@
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import * as d3 from "d3";
+  const identityScale: any = Object.assign((v: any) => Number(v), { invert: (v: any) => Number(v) });
   import { debounce } from "lodash";
 
   // Components
@@ -1161,8 +1162,8 @@
         timePrediction.timeline,
         lines,
         startPoint,
-        d3.scaleLinear(),
-        d3.scaleLinear(),
+        identityScale,
+        identityScale,
       );
       robotXYStore.set({ x: state.x, y: state.y });
       robotHeadingStore.set(state.heading);
@@ -1180,8 +1181,8 @@
           committedTimePrediction.timeline,
           committed.lines,
           committed.startPoint,
-          d3.scaleLinear(),
-          d3.scaleLinear(),
+          identityScale,
+          identityScale,
         );
         committedRobotState = {
           x: commState.x,
@@ -1605,8 +1606,8 @@
         timePrediction.timeline,
         lines,
         startPoint,
-        d3.scaleLinear(),
-        d3.scaleLinear(),
+        identityScale,
+        identityScale,
       ).heading,
     }}
     {electronAPI}

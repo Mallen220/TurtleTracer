@@ -1321,7 +1321,7 @@
           degrees: undefined,
           startDeg: undefined,
           endDeg: undefined,
-        });
+        } as any);
       } else if (next === "constant") {
         // @ts-ignore
         startPointStore.set({
@@ -1365,7 +1365,7 @@
           degrees: undefined,
           startDeg: undefined,
           endDeg: undefined,
-        };
+        } as any;
       } else if (next === "constant") {
         // @ts-ignore
         line.endPoint = {
