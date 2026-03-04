@@ -93,7 +93,9 @@ export function getDistance(
   p1: { x: number; y: number },
   p2: { x: number; y: number },
 ) {
-  return Math.hypot(p2.x - p1.x, p2.y - p1.y);
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 /**
@@ -253,7 +255,9 @@ export function getLineStartHeading(
     // Find the first point that isn't the start point (overlap handling)
     if (line.controlPoints && line.controlPoints.length > 0) {
       for (const cp of line.controlPoints) {
-        const dist = Math.hypot(cp.x - previousPoint.x, cp.y - previousPoint.y);
+        const dx = cp.x - previousPoint.x;
+        const dy = cp.y - previousPoint.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist > 1e-6) {
           nextP = cp;
           break;
@@ -290,7 +294,9 @@ export function getLineEndHeading(
     if (line.controlPoints && line.controlPoints.length > 0) {
       for (let i = line.controlPoints.length - 1; i >= 0; i--) {
         const cp = line.controlPoints[i];
-        const dist = Math.hypot(cp.x - line.endPoint.x, cp.y - line.endPoint.y);
+        const dx = cp.x - line.endPoint.x;
+        const dy = cp.y - line.endPoint.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist > 1e-6) {
           prevP = cp;
           break;
