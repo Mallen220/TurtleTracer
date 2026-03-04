@@ -1,6 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // src/utils/pathOptimizer.ts
-import _ from "lodash";
 import type {
   Line,
   Point,
@@ -50,8 +49,8 @@ export class PathOptimizer {
     sequence: SequenceItem[],
     shapes: Shape[] = [],
   ) {
-    this.startPoint = _.cloneDeep(startPoint);
-    this.originalLines = _.cloneDeep(lines);
+    this.startPoint = structuredClone(startPoint);
+    this.originalLines = structuredClone(lines);
     this.settings = settings;
     this.sequence = sequence;
     this.shapes = shapes;
@@ -79,7 +78,7 @@ export class PathOptimizer {
 
   // Generate a mutated version of the lines
   private mutate(lines: Line[], isColliding: boolean = false): Line[] {
-    const newLines = _.cloneDeep(lines);
+    const newLines = structuredClone(lines);
     const MIN_DIST = 10; // Minimum distance in inches for control points
 
     let prevPoint = this.startPoint;
@@ -548,7 +547,7 @@ export class PathOptimizer {
     // Iterate through grid points
     for (let x = step / 2; x < FIELD_SIZE; x += step) {
       for (let y = step / 2; y < FIELD_SIZE; y += step) {
-        const seedLines = _.cloneDeep(this.originalLines);
+        const seedLines = structuredClone(this.originalLines);
         let modified = false;
         seedLines.forEach((line) => {
           if (!line.locked && line.controlPoints.length < 1) {
@@ -594,7 +593,7 @@ export class PathOptimizer {
     // Smart Initialization: Seed with variants that have extra control points
     if (this.shapes && this.shapes.length > 0) {
       for (let i = 0; i < Math.min(20, this.populationSize); i++) {
-        const seedLines = _.cloneDeep(this.originalLines);
+        const seedLines = structuredClone(this.originalLines);
         let prevPoint = this.startPoint;
 
         seedLines.forEach((line) => {
