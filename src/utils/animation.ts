@@ -263,6 +263,7 @@ export function createAnimationController(
   };
 
   let isExternalChange = false;
+  let absoluteStartTime: number | null = null; // Used for perfect time tracking
 
   function updatePercentFromAccumulated() {
     if (state.totalDuration > 0) {
@@ -278,23 +279,23 @@ export function createAnimationController(
     // If we aren't playing anymore, ensure we don't schedule anything further.
     if (!state.playing) {
       state.lastTimestamp = null;
+      absoluteStartTime = null;
       state.animationFrameId = null;
       return;
     }
 
     // Initialize lastTimestamp on first tick after play
-    if (state.lastTimestamp === null) {
+    if (state.lastTimestamp === null || absoluteStartTime === null) {
       state.lastTimestamp = timestamp;
+      absoluteStartTime = timestamp - state.accumulatedSeconds * 1000;
       state.animationFrameId = requestAnimationFrame(animate);
       return;
     }
 
-    // Compute delta time since last frame (in seconds)
-    const deltaSeconds = (timestamp - state.lastTimestamp) / 1000;
     state.lastTimestamp = timestamp;
 
-    // Advance accumulated time
-    state.accumulatedSeconds += deltaSeconds;
+    // Calculate elapsed time from the absolute start time, ensures perfect time accuracy
+    state.accumulatedSeconds = (timestamp - absoluteStartTime) / 1000;
 
     if (state.totalDuration > 0) {
       let startSec = isExternalChange
@@ -312,8 +313,11 @@ export function createAnimationController(
           state.accumulatedSeconds =
             startSec +
             ((state.accumulatedSeconds - endSec) % (endSec - startSec));
+          // Reset absolute start time when looping
+          absoluteStartTime = timestamp - state.accumulatedSeconds * 1000;
         } else if (state.accumulatedSeconds < startSec) {
           state.accumulatedSeconds = startSec;
+          absoluteStartTime = timestamp - state.accumulatedSeconds * 1000;
         }
         updatePercentFromAccumulated();
         if (!isExternalChange) onPercentChange(state.percent);
@@ -328,6 +332,7 @@ export function createAnimationController(
             onPercentChange(state.loopRangeActive ? state.loopMaxPercent : 100);
           state.playing = false;
           state.lastTimestamp = null;
+          absoluteStartTime = null;
           if (state.animationFrameId) {
             cancelAnimationFrame(state.animationFrameId);
             state.animationFrameId = null;
@@ -398,12 +403,14 @@ export function createAnimationController(
       state.animationFrameId = null;
     }
     state.lastTimestamp = null;
+    absoluteStartTime = null;
   }
 
   function reset() {
     state.accumulatedSeconds = 0;
     state.percent = 0;
     state.lastTimestamp = null;
+    absoluteStartTime = null;
     if (!isExternalChange) onPercentChange(0);
   }
 
@@ -422,6 +429,12 @@ export function createAnimationController(
       } else {
         state.accumulatedSeconds = 0;
       }
+
+      // Update absolute start time if currently playing
+      if (absoluteStartTime !== null && state.lastTimestamp !== null) {
+         absoluteStartTime = state.lastTimestamp - state.accumulatedSeconds * 1000;
+      }
+
       updatePercentFromAccumulated();
       onPercentChange(clamped);
 
@@ -446,6 +459,12 @@ export function createAnimationController(
           Math.max(0, duration),
         );
       }
+
+      // Update absolute start time if currently playing
+      if (absoluteStartTime !== null && state.lastTimestamp !== null) {
+         absoluteStartTime = state.lastTimestamp - state.accumulatedSeconds * 1000;
+      }
+
       updatePercentFromAccumulated();
       if (!isExternalChange) onPercentChange(state.percent);
     },
