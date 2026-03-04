@@ -216,12 +216,18 @@
     handleDownloadJava();
   }
 
+  let copyButtonText = "Copy Code";
+
   function handleCopy() {
     navigator.clipboard.writeText(code).then(() => {
+      copyButtonText = "Copied!";
       notification.set({
         message: "Code copied to clipboard!",
         type: "success",
       });
+      setTimeout(() => {
+        copyButtonText = "Copy Code";
+      }, 2000);
     });
   }
 
@@ -361,7 +367,7 @@
     <button
       on:click={handleCopy}
       class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("blue")} ${isGenerating || !code ? "opacity-50 cursor-not-allowed" : ""}`}
-      title="Copy Code"
+      title={copyButtonText === "Copied!" ? "Copied!" : "Copy Code"}
       disabled={isGenerating || !code}
       aria-disabled={isGenerating || !code}
       aria-label="Copy generated code"
@@ -369,6 +375,18 @@
       {#if isGenerating}
         <LoadingSpinner size="sm" color="text-white" showText={false} />
         Generating...
+      {:else if copyButtonText === "Copied!"}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-4"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+        </svg>
+        Copied!
       {:else}
         <svg
           xmlns="http://www.w3.org/2000/svg"
