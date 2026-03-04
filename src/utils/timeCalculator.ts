@@ -923,9 +923,37 @@ export function calculatePathTime(
       });
       currentTime += segmentTime;
 
-      // Update state — use the constraint end position so subsequent segments and
-      // rotation waits begin from the physically correct location, not the full endpoint.
-      currentHeading = endHeading;
+      // Update state — if the segment ended early due to constraints, derive the actual
+      // heading at constraintEndT rather than using the full endpoint's heading.
+      // This ensures the next segment's rotation wait starts from the right angle.
+      if (constraintEndT !== undefined && constraintEndT < 0.9999) {
+        const cps = [prevPoint, ...line.controlPoints, line.endPoint];
+
+        if (line.endPoint.heading === "linear") {
+          // Linear heading: lerp between start heading and full-end heading at constraintEndT
+          const segStartHeading = currentHeading; // heading entering this segment
+          currentHeading = segStartHeading + (endHeading - segStartHeading) * constraintEndT;
+        } else if (line.endPoint.heading === "tangential") {
+          // Tangential: compute the actual tangent direction at constraintEndT
+          const dt = line.endPoint.reverse ? -0.001 : 0.001;
+          const tA = Math.max(0, Math.min(1, constraintEndT));
+          const tB = Math.max(0, Math.min(1, constraintEndT + dt));
+          const pA = getCurvePoint(tA, cps as any);
+          const pB = getCurvePoint(tB, cps as any);
+          const dx = pB.x - pA.x;
+          const dy = pB.y - pA.y;
+          if (Math.abs(dx) > 1e-9 || Math.abs(dy) > 1e-9) {
+            currentHeading = Math.atan2(dy, dx) * (180 / Math.PI);
+          } else {
+            currentHeading = endHeading; // fallback: tangent undefined (cusp), keep full-end heading
+          }
+        } else {
+          // Constant: target heading is fixed regardless of path position
+          currentHeading = endHeading;
+        }
+      } else {
+        currentHeading = endHeading;
+      }
       lastPoint = (constraintEndPoint as Point | undefined) ?? (line.endPoint as Point);
     });
   };
