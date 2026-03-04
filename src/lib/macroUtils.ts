@@ -117,7 +117,7 @@ function transformMacroData(
   }
 
   // Clone data deeply
-  const newData: PedroData = JSON.parse(JSON.stringify(data));
+  const newData: PedroData = structuredClone(data);
   const resolvedTransforms: Transformation[] = [];
 
   transforms.forEach((t) => {

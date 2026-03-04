@@ -46,7 +46,7 @@ vi.mock("../../actionRegistry", () => {
 });
 
 test("EmptyState appears when all items are deleted", async () => {
-  const settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  const settings = structuredClone(DEFAULT_SETTINGS);
   const startPoint = getDefaultStartPoint();
   const line: Line = {
     id: "line-1",
