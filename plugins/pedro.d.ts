@@ -186,6 +186,8 @@ interface Settings {
   fieldMap: string;
   fieldRotation?: number; // 0, 90, 180, 270
   robotImage?: string;
+  showFakeHeadingArrow?: boolean;
+  fakeHeadingArrowColor?: string;
   javaPackageName?: string;
   theme: "light" | "dark" | "auto" | string;
   programFontSize?: number; // Scaling factor for the program font size (percentage)
@@ -243,6 +245,8 @@ interface RobotProfile {
   xVelocity: number;
   yVelocity: number;
   robotImage?: string;
+  showFakeHeadingArrow?: boolean;
+  fakeHeadingArrowColor?: string;
 }
 
 interface Shape {

@@ -52,6 +52,8 @@ export const DEFAULT_SETTINGS: Settings = {
   fieldMap: "decode.webp",
   fieldRotation: 0,
   robotImage: "/robot.png",
+  showFakeHeadingArrow: false,
+  fakeHeadingArrowColor: "#ef4444",
   javaPackageName: "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
   theme: "auto",
   programFontSize: 100,

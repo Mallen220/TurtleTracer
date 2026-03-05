@@ -46,6 +46,8 @@
       xVelocity: settings.xVelocity,
       yVelocity: settings.yVelocity,
       robotImage: settings.robotImage,
+      showFakeHeadingArrow: settings.showFakeHeadingArrow,
+      fakeHeadingArrowColor: settings.fakeHeadingArrowColor,
     };
 
     robotProfilesStore.update((p) => [...p, newProfile]);
@@ -86,6 +88,8 @@
     if (profile.robotImage) {
       settings.robotImage = profile.robotImage;
     }
+    settings.showFakeHeadingArrow = profile.showFakeHeadingArrow ?? false;
+    settings.fakeHeadingArrowColor = profile.fakeHeadingArrowColor || "#ef4444";
 
     onSettingsChange();
     notification.set({
@@ -111,6 +115,8 @@
       xVelocity: settings.xVelocity,
       yVelocity: settings.yVelocity,
       robotImage: settings.robotImage,
+      showFakeHeadingArrow: settings.showFakeHeadingArrow,
+      fakeHeadingArrowColor: settings.fakeHeadingArrowColor,
     };
 
     robotProfilesStore.update((p) => {

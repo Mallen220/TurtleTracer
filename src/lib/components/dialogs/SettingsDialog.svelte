@@ -1199,6 +1199,38 @@
                     </div>
                   </div>
                 </SettingsItem>
+
+                {#if settings.robotImage && settings.robotImage !== "/robot.png" && settings.robotImage !== "none"}
+                  <div class="space-y-2">
+                    <SettingsItem
+                      label="Show Fake Heading Arrow"
+                      description="Display an arrow indicating the robot's heading to help with custom images"
+                      {searchQuery}
+                      layout="row"
+                    >
+                      <input
+                        type="checkbox"
+                        bind:checked={settings.showFakeHeadingArrow}
+                        class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </SettingsItem>
+
+                    {#if settings.showFakeHeadingArrow}
+                      <SettingsItem
+                        label="Heading Arrow Color"
+                        description="Color of the fake heading arrow"
+                        {searchQuery}
+                        layout="row"
+                      >
+                        <input
+                          type="color"
+                          bind:value={settings.fakeHeadingArrowColor}
+                          class="w-8 h-8 rounded border border-neutral-300 dark:border-neutral-600 cursor-pointer p-0"
+                        />
+                      </SettingsItem>
+                    {/if}
+                  </div>
+                {/if}
               </div>
             {/if}
 
