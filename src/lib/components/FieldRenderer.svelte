@@ -196,8 +196,8 @@
 
     return {
       frontLeft: (rotForward + adjustedRotStrafe + rotate) / denominator,
-      backLeft: (rotForward - adjustedRotStrafe + rotate) / denominator,
-      frontRight: (rotForward - adjustedRotStrafe - rotate) / denominator,
+      backLeft: (rotForward - adjustedRotStrafe - rotate) / denominator,
+      frontRight: (rotForward - adjustedRotStrafe + rotate) / denominator,
       backRight: (rotForward + adjustedRotStrafe - rotate) / denominator,
     };
   }
