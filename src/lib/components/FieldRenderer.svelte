@@ -257,7 +257,7 @@
     // When facing 0º (+X): forward = vx, strafe = -vy (assuming +Y is left and left is -strafe).
     // When facing 90º (+Y): forward = vy, strafe = vx (moving +X is right, which is +strafe).
     const forwardVel = vx;
-    const strafeVel = -vy;
+    const strafeVel = vy;
 
     // Angular velocity
     // shortestRotation is a utility. Let's just use simple diff for now:
@@ -2888,9 +2888,11 @@
                 stroke-width="3"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                style={`transform: rotate(${speed >= 0 ? 0 : 180}deg); transition: transform 0.1s;`}
+                style={`transform: rotate(${speed >= 0 ? 90 : 270}deg); transition: transform 0.1s;`}
               >
-                <!-- Up arrow pointing forward relative to the wheel -->
+                <!-- Arrow now points forward when the wheel should drive
+                     in the robot's +X direction (original SVG is still an
+                     up‑arrow, but we pre‑rotate it here) -->
                 <line x1="12" y1="19" x2="12" y2="5"></line>
                 <polyline points="5 12 12 5 19 12"></polyline>
               </svg>
