@@ -71,6 +71,7 @@
     DEFAULT_ROBOT_LENGTH,
     DEFAULT_ROBOT_WIDTH,
   } from "../../config";
+  import { calculateRobotState } from "../../utils/animation";
   import {
     getCurvePoint,
     quadraticToCubic,
@@ -162,6 +163,123 @@
   $: {
     fieldViewStore.set({ xScale: x, yScale: y, width, height });
   }
+
+  // Mecanum Drivetrain Wheel Directions Calculation
+  interface WheelSpeeds {
+    frontLeft: number;
+    backLeft: number;
+    frontRight: number;
+    backRight: number;
+  }
+
+  export function calculateFieldCentricMecanum(
+    forward: number,
+    strafe: number,
+    rotate: number,
+    botHeading: number,
+  ): WheelSpeeds {
+    // Rotate the movement direction counter to the bot's rotation
+    // Pedro Pathing uses radians but mathematically we might need to adjust
+    const rotStrafe =
+      strafe * Math.cos(-botHeading) - forward * Math.sin(-botHeading);
+    const rotForward =
+      strafe * Math.sin(-botHeading) + forward * Math.cos(-botHeading);
+
+    // Counteract imperfect strafing on the rotated vector
+    const adjustedRotStrafe = rotStrafe * 1.1;
+
+    // Normalize speeds
+    const denominator = Math.max(
+      Math.abs(rotForward) + Math.abs(adjustedRotStrafe) + Math.abs(rotate),
+      1.0,
+    );
+
+    return {
+      frontLeft: (rotForward + adjustedRotStrafe + rotate) / denominator,
+      backLeft: (rotForward - adjustedRotStrafe + rotate) / denominator,
+      frontRight: (rotForward - adjustedRotStrafe - rotate) / denominator,
+      backRight: (rotForward + adjustedRotStrafe - rotate) / denominator,
+    };
+  }
+
+  $: mecanumSpeeds = (() => {
+    if (!$showRobot || settings.robotImage !== "none") return null;
+
+    if (
+      !timePrediction ||
+      !timePrediction.timeline ||
+      timePrediction.timeline.length === 0
+    ) {
+      return { frontLeft: 0, backLeft: 0, frontRight: 0, backRight: 0 };
+    }
+
+    const totalDuration =
+      timePrediction.timeline[timePrediction.timeline.length - 1].endTime;
+    const currentSeconds = ($percentStore / 100) * totalDuration;
+
+    // Time delta for velocity calc
+    const dt = 0.05;
+    const futureSeconds = currentSeconds + dt;
+    const futurePercent = (futureSeconds / totalDuration) * 100;
+
+    // Use a neutral scale for calculation so we get real field inches
+    const scale = d3.scaleLinear().domain([0, 1]).range([0, 1]);
+
+    const state1 = calculateRobotState(
+      $percentStore,
+      timePrediction.timeline,
+      lines,
+      startPoint,
+      scale,
+      scale,
+    );
+    const state2 = calculateRobotState(
+      futurePercent,
+      timePrediction.timeline,
+      lines,
+      startPoint,
+      scale,
+      scale,
+    );
+
+    // Calculate velocity in inches per second
+    const vx = (state2.x - state1.x) / dt;
+    const vy = (state2.y - state1.y) / dt;
+
+    // Field coordinates: Right is +X, Forward is +Y.
+    // Note: Due to standard Y-down screen coordinates vs Y-up math coordinates,
+    // if Y goes up in your field space (e.g. standard FTC field), vy might already be correct.
+    // However, if Y goes down in screen coordinates (which calculateRobotState might output without negative depending on setup),
+    // you may need to invert vy for it to represent mathematical +Y forward.
+    // Assuming 'vy' is mathematically forward (+Y is up):
+    const forwardVel = vy;
+    const strafeVel = vx;
+
+    // Angular velocity
+    // shortestRotation is a utility. Let's just use simple diff for now:
+    let dHeading = state2.heading - state1.heading;
+    // Normalize dHeading to [-180, 180]
+    dHeading = (((dHeading % 360) + 540) % 360) - 180;
+    const omega = (dHeading * Math.PI) / 180 / dt; // radians per sec
+
+    // Convert heading to radians
+    const headingRad = (state1.heading * Math.PI) / 180;
+
+    // Calculate normalized magnitudes based on typical robot speeds (e.g. 60 in/s and 3 rad/s)
+    const maxV = 60;
+    const maxOmega = 3;
+
+    const normalizedForward = forwardVel / maxV;
+    const normalizedStrafe = strafeVel / maxV;
+    const normalizedRotate = omega / maxOmega;
+
+    return calculateFieldCentricMecanum(
+      normalizedForward,
+      normalizedStrafe,
+      normalizedRotate,
+      headingRad,
+    );
+  })();
 
   // Follow Robot Logic (Reactive for scrubbing/stepping)
   $: if ($followRobotStore && robotXY && !$playingStore) {
@@ -549,13 +667,15 @@
     const targetX = (activeLine.endPoint as any).targetX ?? 72;
     const targetY = (activeLine.endPoint as any).targetY ?? 72;
     const pathColor = activeLine.color || "#60a5fa";
-    return [{
-      x1: x(robotXY.x),
-      y1: y(robotXY.y),
-      x2: x(targetX),
-      y2: y(targetY),
-      color: pathColor
-    }];
+    return [
+      {
+        x1: x(robotXY.x),
+        y1: y(robotXY.y),
+        x2: x(targetX),
+        y2: y(targetY),
+        color: pathColor,
+      },
+    ];
   })();
 
   // Reusable path generation function
@@ -2672,12 +2792,30 @@
     ></div>
 
     <!-- SVG Overlay for animated paths/layers -->
-    <svg class="absolute inset-0 pointer-events-none z-10" style={`width: ${width}px; height: ${height}px;`}>
+    <svg
+      class="absolute inset-0 pointer-events-none z-10"
+      style={`width: ${width}px; height: ${height}px;`}
+    >
       {#each onionLayerElements as layer}
-        <polygon points={layer.corners.map(c => `${x(c.x)},${y(c.y)}`).join(' ')} fill="none" stroke="#818cf8" stroke-width={uiLength(0.5)} opacity="0.35" />
+        <polygon
+          points={layer.corners.map((c) => `${x(c.x)},${y(c.y)}`).join(" ")}
+          fill="none"
+          stroke="#818cf8"
+          stroke-width={uiLength(0.5)}
+          opacity="0.35"
+        />
       {/each}
       {#each facingLineElements as fl}
-        <line x1={fl.x1} y1={fl.y1} x2={fl.x2} y2={fl.y2} stroke={fl.color} stroke-width={uiLength(0.4)} stroke-dasharray={`${uiLength(1.5)} ${uiLength(1.5)}`} opacity="0.7" />
+        <line
+          x1={fl.x1}
+          y1={fl.y1}
+          x2={fl.x2}
+          y2={fl.y2}
+          stroke={fl.color}
+          stroke-width={uiLength(0.4)}
+          stroke-dasharray={`${uiLength(1.5)} ${uiLength(1.5)}`}
+          opacity="0.7"
+        />
       {/each}
     </svg>
 
@@ -2719,8 +2857,42 @@
       {#if settings.robotImage === "none"}
         <!-- Current (Green Square) -->
         <div
-          style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.5); border: 2px solid #16a34a;`}
-        ></div>
+          class="flex items-center justify-center relative shadow-sm"
+          style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.3); border: 2px solid #16a34a; border-radius: 8px;`}
+        >
+          <!-- Mecanum wheel arrows -->
+          {#each ["frontLeft", "frontRight", "backLeft", "backRight"] as wheel}
+            {@const speed = mecanumSpeeds ? mecanumSpeeds[wheel] : 0}
+            {@const arrowSize = 10 + Math.abs(speed) * 15}
+            <!-- scale size dynamically -->
+            <div
+              class="absolute flex justify-center items-center"
+              style={`
+                width: 24px;
+                height: 24px;
+                ${wheel.includes("front") ? "top: 4px;" : "bottom: 4px;"}
+                ${wheel.includes("Left") ? "left: 4px;" : "right: 4px;"}
+                opacity: ${Math.abs(speed) > 0.05 ? 0.8 : 0.2};
+              `}
+            >
+              <svg
+                width={arrowSize}
+                height={arrowSize}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#16a34a"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style={`transform: rotate(${speed >= 0 ? 0 : 180}deg); transition: transform 0.1s;`}
+              >
+                <!-- Up arrow pointing forward relative to the wheel -->
+                <line x1="12" y1="19" x2="12" y2="5"></line>
+                <polyline points="5 12 12 5 19 12"></polyline>
+              </svg>
+            </div>
+          {/each}
+        </div>
       {:else}
         <img
           src={settings.robotImage || "/robot.png"}
