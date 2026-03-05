@@ -1252,6 +1252,45 @@
   })();
 
   // Ghost Robot State for Telemetry
+  // Dragged Waypoint Ghost Robot State
+  $: draggedWaypointRobotState = (() => {
+    if ($isPresentationMode || isDiffMode || !settings.showRobot) return null;
+    if (!currentElem || !currentElem.startsWith("point-")) return null;
+
+    const parts = currentElem.split("-");
+    if (parts.length < 3) return null;
+    const lineNum = Number(parts[1]);
+    const pointIdx = Number(parts[2]);
+
+    // Only show for start point and end points, not control points
+    if (pointIdx !== 0) return null;
+
+    let rx = 0,
+      ry = 0,
+      rHeading = 0;
+
+    if (lineNum === 0) {
+      // Start Point
+      rx = startPoint.x;
+      ry = startPoint.y;
+      rHeading = getLineStartHeading(lines[0], startPoint);
+    } else {
+      // End Point
+      const lineIndex = lineNum - 1;
+      const line = lines[lineIndex];
+      if (!line || !line.endPoint) return null;
+      rx = line.endPoint.x;
+      ry = line.endPoint.y;
+      const prevPoint =
+        lineIndex === 0 ? startPoint : lines[lineIndex - 1]?.endPoint;
+      if (!prevPoint) return null;
+      rHeading = getLineEndHeading(line, prevPoint);
+    }
+
+    return { x: rx, y: ry, heading: rHeading };
+  })();
+
+  // Ghost Robot State for Telemetry
   $: ghostRobotState = (() => {
     if (
       !isTelemetryVisible ||
@@ -2800,6 +2839,27 @@ left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghost
           e.target.src = "/robot.png";
         }}
       />
+    {/if}
+
+    <!-- Dragged Waypoint Ghost Robot -->
+    {#if draggedWaypointRobotState}
+      {#if settings.robotImage === "none"}
+        <div
+          style={`position: absolute; top: ${y(draggedWaypointRobotState.y)}px; left: ${x(draggedWaypointRobotState.x)}px; transform: translate(-50%, -50%) rotate(${draggedWaypointRobotState.heading}deg); z-index: 18; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(168, 85, 247, 0.2); border: 2px dashed #a855f7;`}
+        ></div>
+      {:else}
+        <img
+          src={settings.robotImage || "/robot.png"}
+          alt="Dragged Waypoint Ghost Robot"
+          class="max-w-none opacity-40 transition-opacity"
+          style={`position: absolute; top: ${y(draggedWaypointRobotState.y)}px; left: ${x(draggedWaypointRobotState.x)}px; transform: translate(-50%, -50%) rotate(${draggedWaypointRobotState.heading}deg); z-index: 18; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; border: 2px dashed #a855f7; border-radius: 4px;`}
+          draggable="false"
+          on:error={(e) => {
+            // @ts-ignore
+            e.target.src = "/robot.png";
+          }}
+        />
+      {/if}
     {/if}
   </div>
 
