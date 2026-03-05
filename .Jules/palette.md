@@ -1,3 +1,0 @@
-## 2024-05-24 - Provide Context for Disabled Actions via Tooltips & Better Empty States
-Learning: Empty state components without a clear call-to-action (CTA) button fail to guide users effectively, forcing them to hunt for the standard "Add" button somewhere else in the header. Additionally, silently disabling destructive actions (like removing vertices) without explaining *why* (e.g. minimum 3 vertices) leads to user confusion.
-Action: Next time a list or section has an empty state, ensure the `action` slot is filled with a prominent primary CTA button (e.g. "Add Obstacle"). For any conditionally disabled button, use a prop like `disabledTitle` to provide hover/screen reader context for why the action is restricted.
