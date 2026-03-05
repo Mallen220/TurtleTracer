@@ -2722,18 +2722,27 @@
           style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.5); border: 2px solid #16a34a;`}
         ></div>
       {:else}
-        <img
-          src={settings.robotImage || "/robot.png"}
-          alt="Robot"
-          class="max-w-none"
-          style={`position: absolute; top: ${y(robotXY.y)}px;
-left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
-          draggable="false"
-          on:error={(e) => {
-            // @ts-ignore
-            e.target.src = "/robot.png";
-          }}
-        />
+        <div
+          style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
+        >
+          <img
+            src={settings.robotImage || "/robot.png"}
+            alt="Robot"
+            class="w-full h-full object-contain"
+            draggable="false"
+            on:error={(e) => {
+              // @ts-ignore
+              e.target.src = "/robot.png";
+            }}
+          />
+          {#if settings.showFakeHeadingArrow && settings.robotImage !== "/robot.png" && settings.robotImage !== "none"}
+            <div style="position: absolute; top: 50%; right: 2px; transform: translateY(-50%); color: #ef4444;">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-6 h-6" style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
+            </div>
+          {/if}
+        </div>
       {/if}
     {:else}
       <!-- Current (Green) -->
@@ -2751,18 +2760,27 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
 
     <!-- Telemetry Ghost Robot -->
     {#if ghostRobotState}
-      <img
-        src={settings.robotImage || "/robot.png"}
-        alt="Ghost Robot"
-        class="max-w-none grayscale opacity-50"
-        style={`position: absolute; top: ${y(ghostRobotState.y)}px;
-left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghostRobotState.heading}deg); z-index: 19; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; border: 2px dashed #6b7280; border-radius: 4px;`}
-        draggable="false"
-        on:error={(e) => {
-          // @ts-ignore
-          e.target.src = "/robot.png";
-        }}
-      />
+      <div
+        style={`position: absolute; top: ${y(ghostRobotState.y)}px; left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghostRobotState.heading}deg); z-index: 19; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; border: 2px dashed #6b7280; border-radius: 4px;`}
+      >
+        <img
+          src={settings.robotImage || "/robot.png"}
+          alt="Ghost Robot"
+          class="w-full h-full object-contain grayscale opacity-50"
+          draggable="false"
+          on:error={(e) => {
+            // @ts-ignore
+            e.target.src = "/robot.png";
+          }}
+        />
+        {#if settings.showFakeHeadingArrow && settings.robotImage !== "/robot.png" && settings.robotImage !== "none"}
+          <div style="position: absolute; top: 50%; right: 2px; transform: translateY(-50%); color: rgba(239, 68, 68, 0.5);">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-6 h-6" style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.4));">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+          </div>
+        {/if}
+      </div>
     {/if}
   </div>
 
