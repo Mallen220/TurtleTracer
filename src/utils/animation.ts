@@ -432,7 +432,8 @@ export function createAnimationController(
 
       // Update absolute start time if currently playing
       if (absoluteStartTime !== null && state.lastTimestamp !== null) {
-         absoluteStartTime = state.lastTimestamp - state.accumulatedSeconds * 1000;
+        absoluteStartTime =
+          state.lastTimestamp - state.accumulatedSeconds * 1000;
       }
 
       updatePercentFromAccumulated();
@@ -462,7 +463,8 @@ export function createAnimationController(
 
       // Update absolute start time if currently playing
       if (absoluteStartTime !== null && state.lastTimestamp !== null) {
-         absoluteStartTime = state.lastTimestamp - state.accumulatedSeconds * 1000;
+        absoluteStartTime =
+          state.lastTimestamp - state.accumulatedSeconds * 1000;
       }
 
       updatePercentFromAccumulated();
