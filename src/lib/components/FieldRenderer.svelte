@@ -2736,7 +2736,7 @@
             }}
           />
           {#if settings.showFakeHeadingArrow && settings.robotImage !== "/robot.png" && settings.robotImage !== "none"}
-            <div style="position: absolute; top: 50%; right: 2px; transform: translateY(-50%); color: #ef4444;">
+            <div style="position: absolute; top: 50%; right: 2px; transform: translateY(-50%); color: {settings.fakeHeadingArrowColor || '#ef4444'};">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-6 h-6" style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
               </svg>
@@ -2774,7 +2774,7 @@
           }}
         />
         {#if settings.showFakeHeadingArrow && settings.robotImage !== "/robot.png" && settings.robotImage !== "none"}
-          <div style="position: absolute; top: 50%; right: 2px; transform: translateY(-50%); color: rgba(239, 68, 68, 0.5);">
+          <div style="position: absolute; top: 50%; right: 2px; transform: translateY(-50%); color: {settings.fakeHeadingArrowColor || '#ef4444'}; opacity: 0.5;">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-6 h-6" style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.4));">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>

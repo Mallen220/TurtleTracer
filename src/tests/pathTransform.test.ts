@@ -203,7 +203,7 @@ describe("pathTransform", () => {
       expect(line.waitAfterName).toBe("w1");
 
       // Sequence reversed
-      expect((reversed.sequence[0] as any).lineId).toBe("line1");
+      expect((reversed.sequence![0] as any).lineId).toBe("line1");
     });
 
     it("should reverse multiple lines correctly", () => {
@@ -332,10 +332,11 @@ describe("pathTransform", () => {
 
       const reversed = reversePathData(data);
 
+      expect(reversed.sequence).toBeDefined();
       expect(reversed.sequence).toHaveLength(3);
-      expect((reversed.sequence[0] as any).lineId).toBe("L2");
-      expect((reversed.sequence[1] as any).id).toBe("W1");
-      expect((reversed.sequence[2] as any).lineId).toBe("L1");
+      expect((reversed.sequence![0] as any).lineId).toBe("L2");
+      expect((reversed.sequence![1] as any).id).toBe("W1");
+      expect((reversed.sequence![2] as any).lineId).toBe("L1");
     });
   });
 });

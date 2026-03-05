@@ -43,6 +43,7 @@
     renumberDefaultPathNames,
     robotProfilesStore,
   } from "../projectStore";
+  import type { Point } from "../../types";
   import {
     updateLinkedWaypoints,
     updateLinkedWaits,
@@ -1321,9 +1322,8 @@
           degrees: undefined,
           startDeg: undefined,
           endDeg: undefined,
-        });
+        } as unknown as Point);
       } else if (next === "constant") {
-        // @ts-ignore
         startPointStore.set({
           ...startPoint,
           heading: "constant",
@@ -1331,9 +1331,8 @@
           reverse: undefined,
           startDeg: undefined,
           endDeg: undefined,
-        });
+        } as unknown as Point);
       } else {
-        // @ts-ignore
         startPointStore.set({
           ...startPoint,
           heading: "linear",
@@ -1341,7 +1340,7 @@
           endDeg: 180,
           reverse: undefined,
           degrees: undefined,
-        });
+        } as unknown as Point);
       }
       recordChange("Toggle Heading Mode");
       return;
@@ -1356,7 +1355,6 @@
       const current = line.endPoint.heading;
       const next = modes[(modes.indexOf(current) + 1) % modes.length];
 
-      // @ts-ignore
       if (next === "tangential") {
         line.endPoint = {
           ...line.endPoint,
@@ -1365,9 +1363,8 @@
           degrees: undefined,
           startDeg: undefined,
           endDeg: undefined,
-        };
+        } as unknown as Point;
       } else if (next === "constant") {
-        // @ts-ignore
         line.endPoint = {
           ...line.endPoint,
           heading: "constant",
@@ -1375,9 +1372,8 @@
           reverse: undefined,
           startDeg: undefined,
           endDeg: undefined,
-        };
+        } as unknown as Point;
       } else {
-        // @ts-ignore
         line.endPoint = {
           ...line.endPoint,
           heading: "linear",
@@ -1385,7 +1381,7 @@
           endDeg: 180,
           reverse: undefined,
           degrees: undefined,
-        };
+        } as unknown as Point;
       }
       linesStore.set(lines);
       recordChange("Toggle Heading Mode");
