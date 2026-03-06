@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
-import { mirrorPathData, reversePathData } from "../../utils/pathTransform";
+import { mirrorPathDataX, mirrorPathDataY, reversePathData } from "../../utils/pathTransform";
 import type {
   Point,
   Line,
@@ -64,13 +64,13 @@ const pathDataGenerator = fc.record({
 });
 
 describe("pathTransform fuzz tests", () => {
-  it("mirrorPathData should be an involution (f(f(x)) = x)", () => {
+  it("mirrorPathDataX should be an involution (f(f(x)) = x)", () => {
     fc.assert(
       fc.property(pathDataGenerator, (data: any) => {
         // First mirror
-        const m1 = mirrorPathData(data);
+        const m1 = mirrorPathDataX(data);
         // Second mirror
-        const m2 = mirrorPathData(m1);
+        const m2 = mirrorPathDataX(m1);
 
         // JSON cycle to normalize both original and result
         const normalize = (o: any) => structuredClone(o);
@@ -86,6 +86,34 @@ describe("pathTransform fuzz tests", () => {
           expect(doubleMirrored.lines.length).toBe(original.lines.length);
           expect(doubleMirrored.lines[0].endPoint.x).toBeCloseTo(
             original.lines[0].endPoint.x,
+          );
+        }
+      }),
+    );
+  });
+
+  it("mirrorPathDataY should be an involution (f(f(x)) = x)", () => {
+    fc.assert(
+      fc.property(pathDataGenerator, (data: any) => {
+        // First mirror
+        const m1 = mirrorPathDataY(data);
+        // Second mirror
+        const m2 = mirrorPathDataY(m1);
+
+        // JSON cycle to normalize both original and result
+        const normalize = (o: any) => structuredClone(o);
+
+        const original = normalize(data);
+        const doubleMirrored = normalize(m2);
+
+        // Check core properties
+        expect(doubleMirrored.startPoint.x).toBeCloseTo(original.startPoint.x);
+        expect(doubleMirrored.startPoint.y).toBeCloseTo(original.startPoint.y);
+
+        if (original.lines.length > 0) {
+          expect(doubleMirrored.lines.length).toBe(original.lines.length);
+          expect(doubleMirrored.lines[0].endPoint.y).toBeCloseTo(
+            original.lines[0].endPoint.y,
           );
         }
       }),

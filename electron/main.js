@@ -558,6 +558,19 @@ const createMenu = () => {
           click: () => sendToFocusedWindow("menu-action", "redo"),
         },
         { type: "separator" },
+        {
+          label: "Mirror X-Axis",
+          click: () => sendToFocusedWindow("menu-action", "mirror-x"),
+        },
+        {
+          label: "Mirror Y-Axis",
+          click: () => sendToFocusedWindow("menu-action", "mirror-y"),
+        },
+        {
+          label: "Reverse Path",
+          click: () => sendToFocusedWindow("menu-action", "reverse-path"),
+        },
+        { type: "separator" },
         { role: "cut" },
         { role: "copy" },
         { role: "paste" },

@@ -19,8 +19,15 @@ const pathKind = () =>
 const waitKind = () =>
   actionRegistry.getAll().find((a) => a.isWait)?.kind ?? "wait";
 
+import {
+  mirrorPointHeadingX,
+  mirrorPathDataX,
+  mirrorPointHeadingY,
+  mirrorPathDataY,
+} from "../utils/pathTransform";
+
 describe("pathTransform", () => {
-  describe("mirrorPointHeading", () => {
+  describe("mirrorPointHeadingX", () => {
     it("should mirror linear heading", () => {
       const point: Point = {
         x: 0,
@@ -29,7 +36,7 @@ describe("pathTransform", () => {
         startDeg: 10,
         endDeg: 20,
       };
-      const mirrored = mirrorPointHeading(point);
+      const mirrored = mirrorPointHeadingX(point);
       expect(mirrored.startDeg).toBe(170); // 180 - 10
       expect(mirrored.endDeg).toBe(160); // 180 - 20
     });
@@ -41,7 +48,7 @@ describe("pathTransform", () => {
         heading: "constant",
         degrees: 45,
       };
-      const mirrored = mirrorPointHeading(point);
+      const mirrored = mirrorPointHeadingX(point);
       expect(mirrored.degrees).toBe(135); // 180 - 45
     });
 
@@ -52,19 +59,19 @@ describe("pathTransform", () => {
         heading: "tangential",
         reverse: false,
       };
-      const mirrored = mirrorPointHeading(point);
+      const mirrored = mirrorPointHeadingX(point);
       expect(mirrored).toEqual(point);
     });
   });
 
-  describe("mirrorPathData", () => {
+  describe("mirrorPathDataX", () => {
     it("should mirror start point x coordinate and heading", () => {
       const data = {
         startPoint: { x: 10, y: 20, heading: "constant", degrees: 10 } as Point,
         lines: [],
         shapes: [],
       };
-      const mirrored = mirrorPathData(data);
+      const mirrored = mirrorPathDataX(data);
       expect(mirrored.startPoint.x).toBe(134); // 144 - 10
       expect(mirrored.startPoint.y).toBe(20);
       expect(mirrored.startPoint.degrees).toBe(170); // 180 - 10
@@ -91,7 +98,7 @@ describe("pathTransform", () => {
         ],
         shapes: [],
       };
-      const mirrored = mirrorPathData(data);
+      const mirrored = mirrorPathDataX(data);
       const line = mirrored.lines[0];
 
       expect(line.endPoint.x).toBe(124); // 144 - 20
@@ -123,7 +130,7 @@ describe("pathTransform", () => {
           } as Shape,
         ],
       };
-      const mirrored = mirrorPathData(data);
+      const mirrored = mirrorPathDataX(data);
       const shape = mirrored.shapes[0];
 
       expect(shape.vertices[0].x).toBe(134); // 144 - 10
@@ -137,7 +144,129 @@ describe("pathTransform", () => {
         shapes: undefined as unknown as Shape[],
       };
       // Should not throw
-      const mirrored = mirrorPathData(data);
+      const mirrored = mirrorPathDataX(data);
+      expect(mirrored.startPoint).toBeDefined();
+    });
+  });
+
+  describe("mirrorPointHeadingY", () => {
+    it("should mirror linear heading", () => {
+      const point: Point = {
+        x: 0,
+        y: 0,
+        heading: "linear",
+        startDeg: 10,
+        endDeg: 20,
+      };
+      const mirrored = mirrorPointHeadingY(point);
+      expect(mirrored.startDeg).toBe(-10); // -10
+      expect(mirrored.endDeg).toBe(-20); // -20
+    });
+
+    it("should mirror constant heading", () => {
+      const point: Point = {
+        x: 0,
+        y: 0,
+        heading: "constant",
+        degrees: 45,
+      };
+      const mirrored = mirrorPointHeadingY(point);
+      expect(mirrored.degrees).toBe(-45); // -45
+    });
+
+    it("should not change tangential heading", () => {
+      const point: Point = {
+        x: 0,
+        y: 0,
+        heading: "tangential",
+        reverse: false,
+      };
+      const mirrored = mirrorPointHeadingY(point);
+      expect(mirrored).toEqual(point);
+    });
+  });
+
+  describe("mirrorPathDataY", () => {
+    it("should mirror start point y coordinate and heading", () => {
+      const data = {
+        startPoint: { x: 10, y: 20, heading: "constant", degrees: 10 } as Point,
+        lines: [],
+        shapes: [],
+      };
+      const mirrored = mirrorPathDataY(data);
+      expect(mirrored.startPoint.x).toBe(10);
+      expect(mirrored.startPoint.y).toBe(124); // 144 - 20
+      expect(mirrored.startPoint.degrees).toBe(-10); // -10
+    });
+
+    it("should mirror line end points and control points", () => {
+      const data = {
+        startPoint: { x: 0, y: 0, heading: "tangential" } as Point,
+        lines: [
+          {
+            endPoint: {
+              x: 20,
+              y: 30,
+              heading: "linear",
+              startDeg: 0,
+              endDeg: 90,
+            } as Point,
+            controlPoints: [
+              { x: 5, y: 5 },
+              { x: 15, y: 15 },
+            ],
+            id: "line1",
+          } as Line,
+        ],
+        shapes: [],
+      };
+      const mirrored = mirrorPathDataY(data);
+      const line = mirrored.lines[0];
+
+      expect(line.endPoint.x).toBe(20);
+      expect(line.endPoint.y).toBe(114); // 144 - 30
+      expect(line.endPoint.startDeg).toBe(-0); // -0
+      expect(line.endPoint.endDeg).toBe(-90); // -90
+
+      expect(line.controlPoints[0].x).toBe(5);
+      expect(line.controlPoints[0].y).toBe(139); // 144 - 5
+      expect(line.controlPoints[1].x).toBe(15);
+      expect(line.controlPoints[1].y).toBe(129); // 144 - 15
+    });
+
+    it("should mirror shape vertices", () => {
+      const data = {
+        startPoint: { x: 0, y: 0, heading: "tangential" } as Point,
+        lines: [],
+        shapes: [
+          {
+            type: "obstacle",
+            vertices: [
+              { x: 10, y: 10 },
+              { x: 20, y: 20 },
+            ],
+            id: "shape1",
+            color: "red",
+            fillColor: "blue",
+            name: "Shape",
+          } as Shape,
+        ],
+      };
+      const mirrored = mirrorPathDataY(data);
+      const shape = mirrored.shapes[0];
+
+      expect(shape.vertices[0].y).toBe(134); // 144 - 10
+      expect(shape.vertices[1].y).toBe(124); // 144 - 20
+    });
+
+    it("should handle missing optional arrays", () => {
+      const data = {
+        startPoint: { x: 0, y: 0, heading: "tangential" } as Point,
+        lines: undefined as unknown as Line[],
+        shapes: undefined as unknown as Shape[],
+      };
+      // Should not throw
+      const mirrored = mirrorPathDataY(data);
       expect(mirrored.startPoint).toBeDefined();
     });
   });

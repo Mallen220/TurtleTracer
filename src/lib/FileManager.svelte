@@ -54,7 +54,7 @@
   import { saveProject } from "../utils/fileHandlers";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
   import { hookRegistry } from "./registries";
-  import { mirrorPathData, reversePathData } from "../utils/pathTransform";
+  import { mirrorPathDataX, mirrorPathDataY, reversePathData } from "../utils/pathTransform";
   import { scanEventsInDirectory } from "../utils/eventScanner";
 
   import FileManagerToolbar from "./components/filemanager/FileManagerToolbar.svelte";
@@ -852,16 +852,19 @@
 
   async function duplicateFile(
     file: FileInfo,
-    mode: "copy" | "mirror" | "reverse" = "copy",
+    mode: "copy" | "mirror-x" | "mirror-y" | "reverse" = "copy",
   ) {
     try {
       const content = await electronAPI.readFile(file.path);
       let data = JSON.parse(content);
 
       let suffix = "_copy";
-      if (mode === "mirror") {
-        data = mirrorPathData(data);
-        suffix = "_mirrored";
+      if (mode === "mirror-x") {
+        data = mirrorPathDataX(data);
+        suffix = "_mirrored_x";
+      } else if (mode === "mirror-y") {
+        data = mirrorPathDataY(data);
+        suffix = "_mirrored_y";
       } else if (mode === "reverse") {
         data = reversePathData(data);
         suffix = "_reversed";
@@ -887,7 +890,8 @@
       await refreshDirectory();
 
       let actionLabel = "Duplicated";
-      if (mode === "mirror") actionLabel = "Mirrored";
+      if (mode === "mirror-x") actionLabel = "Mirrored X";
+      if (mode === "mirror-y") actionLabel = "Mirrored Y";
       if (mode === "reverse") actionLabel = "Reversed";
 
       showToast(`${actionLabel}: ${newName}`, "success");
@@ -942,7 +946,10 @@
         duplicateFile(file, "copy");
         break;
       case "mirror":
-        duplicateFile(file, "mirror");
+        duplicateFile(file, "mirror-x");
+        break;
+      case "mirror-y":
+        duplicateFile(file, "mirror-y");
         break;
       case "reverse":
         duplicateFile(file, "reverse");

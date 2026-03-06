@@ -1,8 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Point, ControlPoint, Line, Shape, SequenceItem } from "../types";
 
-// Helper to mirror a single point's heading
-export function mirrorPointHeading(point: Point): Point {
+// Helper to mirror a single point's heading across the Y-axis (X changes)
+export function mirrorPointHeadingX(point: Point): Point {
   if (point.heading === "linear")
     return {
       ...point,
@@ -15,24 +15,39 @@ export function mirrorPointHeading(point: Point): Point {
   return point;
 }
 
+// Helper to mirror a single point's heading across the X-axis (Y changes)
+export function mirrorPointHeadingY(point: Point): Point {
+  if (point.heading === "linear")
+    return {
+      ...point,
+      startDeg: -point.startDeg,
+      endDeg: -point.endDeg,
+    };
+  if (point.heading === "constant")
+    return { ...point, degrees: -point.degrees };
+  // Tangential reverse flag stays same
+  return point;
+}
+
 // Mirror path data across the center Y-axis (X = 72)
-export function mirrorPathData(data: {
+export function mirrorPathDataX(data: {
   startPoint: Point;
   lines: Line[];
-  shapes: Shape[];
+  shapes?: Shape[];
+  sequence?: SequenceItem[];
 }) {
   const m = structuredClone(data);
 
   if (m.startPoint) {
     m.startPoint.x = 144 - m.startPoint.x;
-    m.startPoint = mirrorPointHeading(m.startPoint);
+    m.startPoint = mirrorPointHeadingX(m.startPoint);
   }
 
   if (m.lines) {
     m.lines.forEach((line: Line) => {
       if (line.endPoint) {
         line.endPoint.x = 144 - line.endPoint.x;
-        line.endPoint = mirrorPointHeading(line.endPoint);
+        line.endPoint = mirrorPointHeadingX(line.endPoint);
       }
       if (line.controlPoints) {
         line.controlPoints.forEach((cp: ControlPoint) => (cp.x = 144 - cp.x));
@@ -43,6 +58,41 @@ export function mirrorPathData(data: {
   if (m.shapes) {
     m.shapes.forEach((s: Shape) =>
       s.vertices?.forEach((v: any) => (v.x = 144 - v.x)),
+    );
+  }
+
+  return m;
+}
+
+// Mirror path data across the center X-axis (Y = 72)
+export function mirrorPathDataY(data: {
+  startPoint: Point;
+  lines: Line[];
+  shapes?: Shape[];
+  sequence?: SequenceItem[];
+}) {
+  const m = structuredClone(data);
+
+  if (m.startPoint) {
+    m.startPoint.y = 144 - m.startPoint.y;
+    m.startPoint = mirrorPointHeadingY(m.startPoint);
+  }
+
+  if (m.lines) {
+    m.lines.forEach((line: Line) => {
+      if (line.endPoint) {
+        line.endPoint.y = 144 - line.endPoint.y;
+        line.endPoint = mirrorPointHeadingY(line.endPoint);
+      }
+      if (line.controlPoints) {
+        line.controlPoints.forEach((cp: ControlPoint) => (cp.y = 144 - cp.y));
+      }
+    });
+  }
+
+  if (m.shapes) {
+    m.shapes.forEach((s: Shape) =>
+      s.vertices?.forEach((v: any) => (v.y = 144 - v.y)),
     );
   }
 

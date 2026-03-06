@@ -98,6 +98,11 @@
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { createHistory, type AppState } from "./utils/history";
   import {
+    mirrorPathDataX,
+    mirrorPathDataY,
+    reversePathData,
+  } from "./utils/pathTransform";
+  import {
     saveProject,
     saveFileAs,
     loadFile,
@@ -1083,6 +1088,51 @@
             case "open-shortcuts":
               showShortcuts.set(true);
               break;
+            case "mirror-x": {
+              const currentData = {
+                startPoint: get(startPointStore),
+                lines: get(linesStore),
+                shapes: get(shapesStore),
+                sequence: get(sequenceStore),
+              };
+              const mirrored = mirrorPathDataX(currentData);
+              startPointStore.set(mirrored.startPoint);
+              linesStore.set(mirrored.lines);
+              if (mirrored.shapes) shapesStore.set(mirrored.shapes);
+              if (mirrored.sequence) sequenceStore.set(mirrored.sequence);
+              recordChange("Mirror X-Axis");
+              break;
+            }
+            case "mirror-y": {
+              const currentData = {
+                startPoint: get(startPointStore),
+                lines: get(linesStore),
+                shapes: get(shapesStore),
+                sequence: get(sequenceStore),
+              };
+              const mirrored = mirrorPathDataY(currentData);
+              startPointStore.set(mirrored.startPoint);
+              linesStore.set(mirrored.lines);
+              if (mirrored.shapes) shapesStore.set(mirrored.shapes);
+              if (mirrored.sequence) sequenceStore.set(mirrored.sequence);
+              recordChange("Mirror Y-Axis");
+              break;
+            }
+            case "reverse-path": {
+              const currentData = {
+                startPoint: get(startPointStore),
+                lines: get(linesStore),
+                shapes: get(shapesStore),
+                sequence: get(sequenceStore),
+              };
+              const reversed = reversePathData(currentData);
+              startPointStore.set(reversed.startPoint);
+              linesStore.set(reversed.lines);
+              if (reversed.shapes) shapesStore.set(reversed.shapes);
+              if (reversed.sequence) sequenceStore.set(reversed.sequence);
+              recordChange("Reverse Path");
+              break;
+            }
             // ... other cases ...
           }
         });
