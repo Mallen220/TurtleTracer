@@ -1277,10 +1277,21 @@
                           </button>
                         </div>
                       </div>
-                      <div class="w-full flex justify-between items-center mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                      <div
+                        class="w-full flex justify-between items-center mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700"
+                      >
                         <div>
-                          <p class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Show Wheel Arrows</p>
-                          <p class="text-xs text-neutral-500 dark:text-neutral-400">Display arrows indicating wheel speeds/directions based on drive train type</p>
+                          <p
+                            class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+                          >
+                            Show Wheel Arrows
+                          </p>
+                          <p
+                            class="text-xs text-neutral-500 dark:text-neutral-400"
+                          >
+                            Display arrows indicating wheel speeds/directions
+                            based on drive train type
+                          </p>
                         </div>
                         <input
                           type="checkbox"

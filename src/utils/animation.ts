@@ -47,11 +47,23 @@ export function calculateRobotState(
   const totalDuration = timeline[timeline.length - 1].endTime;
   const currentSeconds = (percent / 100) * totalDuration;
 
-  // Find the active event for this time
-  const activeEvent =
-    timeline.find(
-      (e) => currentSeconds >= e.startTime && currentSeconds <= e.endTime,
-    ) || timeline[timeline.length - 1];
+  // Find the active event for this time using binary search
+  let left = 0;
+  let right = timeline.length - 1;
+  let activeEvent = timeline[timeline.length - 1];
+
+  while (left <= right) {
+    const mid = (left + right) >> 1;
+    const e = timeline[mid];
+    if (currentSeconds >= e.startTime && currentSeconds <= e.endTime) {
+      activeEvent = e;
+      break;
+    } else if (currentSeconds < e.startTime) {
+      right = mid - 1;
+    } else {
+      left = mid + 1;
+    }
+  }
 
   if (activeEvent.type === "wait") {
     // --- STATIONARY ROTATION ---
