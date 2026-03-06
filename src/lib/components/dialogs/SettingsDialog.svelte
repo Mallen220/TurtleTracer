@@ -1240,14 +1240,15 @@
                       <div
                         class="w-full border-t border-neutral-300 dark:border-neutral-700 pt-3 mt-1"
                       >
-                        <label
+                        <p
+                          id="drive-train-label"
                           class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1"
                         >
                           Drive Train Visualization
-                        </label>
+                        </p>
                         <div
                           role="group"
-                          aria-label="Drive Train Visualization"
+                          aria-labelledby="drive-train-label"
                           class="flex gap-2"
                         >
                           <button
