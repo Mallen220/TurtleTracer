@@ -22,6 +22,7 @@
     "rename-save": string;
     "rename-cancel": void;
     "context-menu": { event: MouseEvent; file: FileInfo };
+    "move-file": { sourceFile: FileInfo; targetDir: FileInfo };
   }>();
 
   let contextMenu: { x: number; y: number; file: FileInfo } | null = null;
@@ -180,7 +181,41 @@
     if (!e.dataTransfer) return;
     e.dataTransfer.setData("application/x-pedro-macro", file.path);
     e.dataTransfer.setData("text/plain", file.path);
-    e.dataTransfer.effectAllowed = "copy";
+    e.dataTransfer.setData("application/json", JSON.stringify(file));
+    e.dataTransfer.effectAllowed = "copyMove";
+  }
+
+  let dragOverTarget: string | null = null;
+
+  function handleDragOver(e: DragEvent, file: FileInfo) {
+    if (file.isDirectory) {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      dragOverTarget = file.path;
+    }
+  }
+
+  function handleDragLeave(e: DragEvent, file: FileInfo) {
+    if (dragOverTarget === file.path) {
+      dragOverTarget = null;
+    }
+  }
+
+  function handleDrop(e: DragEvent, file: FileInfo) {
+    dragOverTarget = null;
+    if (!file.isDirectory) return;
+
+    try {
+      const data = e.dataTransfer?.getData("application/json");
+      if (data) {
+        const sourceFile = JSON.parse(data) as FileInfo;
+        if (sourceFile.path !== file.path) {
+          dispatch("move-file", { sourceFile, targetDir: file });
+        }
+      }
+    } catch (err) {
+      // Ignored
+    }
   }
 
   function formatDate(date: Date): string {
@@ -369,7 +404,10 @@
           class="group flex items-center p-2 rounded-md cursor-pointer transition-colors border border-transparent
           {selectedFilePath === file.path
             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800'
-            : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
+            : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}
+          {dragOverTarget === file.path
+            ? 'bg-blue-100 dark:bg-blue-900 ring-2 ring-blue-500'
+            : ''}"
           on:click={() => dispatch("select", file)}
           on:dblclick={() => dispatch("open", file)}
           on:contextmenu={(e) => handleContextMenu(e, file)}
@@ -378,6 +416,9 @@
           aria-label={file.name}
           draggable="true"
           on:dragstart={(e) => handleDragStart(e, file)}
+          on:dragover={(e) => handleDragOver(e, file)}
+          on:dragleave={(e) => handleDragLeave(e, file)}
+          on:drop={(e) => handleDrop(e, file)}
           on:keydown={(e) => {
             if (e.key === "Enter") dispatch("open", file);
           }}

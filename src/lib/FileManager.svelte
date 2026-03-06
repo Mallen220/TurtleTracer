@@ -305,6 +305,16 @@
             supportedFileTypes.includes(path.extname(file.name).toLowerCase()),
         );
 
+      if (currentDirectory !== baseDirectory) {
+        files.unshift({
+          name: "..",
+          path: path.dirname(currentDirectory),
+          isDirectory: true,
+          size: 0,
+          modified: new Date(),
+        } as FileInfo);
+      }
+
       sortFiles();
       errorMessage = "";
       scanEventsInDirectory(currentDirectory);
@@ -318,12 +328,16 @@
   function sortFiles() {
     if (sortMode === "name") {
       files.sort((a, b) => {
+        if (a.name === "..") return -1;
+        if (b.name === "..") return 1;
         if (a.isDirectory && !b.isDirectory) return -1;
         if (!a.isDirectory && b.isDirectory) return 1;
         return a.name.localeCompare(b.name);
       });
     } else if (sortMode === "date") {
       files.sort((a, b) => {
+        if (a.name === "..") return -1;
+        if (b.name === "..") return 1;
         if (a.isDirectory && !b.isDirectory) return -1;
         if (!a.isDirectory && b.isDirectory) return 1;
         return new Date(b.modified).getTime() - new Date(a.modified).getTime();
@@ -548,6 +562,39 @@
   }
 
   // File Operations
+  async function handleMoveFile(
+    e: CustomEvent<{ sourceFile: FileInfo; targetDir: FileInfo }>,
+  ) {
+    const { sourceFile, targetDir } = e.detail;
+    if (!targetDir.isDirectory) return;
+    if (sourceFile.path === targetDir.path) return;
+    if (sourceFile.name === "..") return; // cannot move the .. directory itself
+
+    try {
+      let newDir = targetDir.path;
+      if (targetDir.name === "..") {
+        newDir = path.dirname(currentDirectory);
+      }
+
+      const newPath = path.join(newDir, sourceFile.name);
+
+      const result = await electronAPI.renameFile(sourceFile.path, newPath);
+      if (result.success) {
+        if (selectedFile?.path === sourceFile.path) {
+          selectedFile = { ...selectedFile, path: newPath };
+          currentFilePath.set(newPath);
+        }
+        showToast(
+          `Moved to ${targetDir.name === ".." ? "parent folder" : targetDir.name}`,
+          "success",
+        );
+        await refreshDirectory();
+      }
+    } catch (error) {
+      showToast(`Failed to move: ${getErrorMessage(error)}`, "error");
+    }
+  }
+
   async function renameFile(file: FileInfo, newName: string) {
     renamingFile = null;
     const cleanName = newName.trim();
@@ -584,6 +631,10 @@
 
   function handleOpen(file: FileInfo) {
     if (file.isDirectory) {
+      if (file.name === "..") {
+        goUpDirectory();
+        return;
+      }
       currentDirectory = file.path;
       refreshDirectory();
     } else {
@@ -880,12 +931,17 @@
 
   // Mock path utils
   const path = {
-    join: (...parts: string[]) => parts.join("/"),
+    join: (...parts: string[]) => parts.join("/").replace(/\/\//g, '/'),
     basename: (p: string) => p.split(/[\\/]/).pop() || "",
     extname: (p: string) => {
       const m = p.match(/\.[^/.]+$/);
       return m ? m[0] : "";
     },
+    dirname: (p: string) => {
+      const parts = p.split(/[\\/]/);
+      parts.pop();
+      return parts.join("/") || "/";
+    }
   };
 </script>
 
@@ -1137,6 +1193,7 @@
           renamingFile && renameFile(renamingFile, e.detail)}
         on:rename-cancel={() => (renamingFile = null)}
         on:menu-action={handleMenuAction}
+        on:move-file={handleMoveFile}
       />
     {:else}
       <FileGrid
@@ -1154,6 +1211,7 @@
           renamingFile && renameFile(renamingFile, e.detail)}
         on:rename-cancel={() => (renamingFile = null)}
         on:menu-action={handleMenuAction}
+        on:move-file={handleMoveFile}
       />
     {/if}
 
