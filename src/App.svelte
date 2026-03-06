@@ -280,9 +280,9 @@
       console.error("Failed to save usage time", e),
     );
 
-    const fiveHoursMs = 5 * 60 * 60 * 1000;
+    const tenHoursMs = 10 * 60 * 60 * 1000; //10 Hours rating delay
 
-    if (totalUsageMs >= fiveHoursMs) {
+    if (totalUsageMs >= tenHoursMs) {
       ratingDialogAutoOpened.set(true);
       showRatingDialog.set(true);
     }
