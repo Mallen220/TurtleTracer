@@ -329,8 +329,8 @@
           <div
             class="text-xs text-neutral-500 dark:text-neutral-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800"
           >
-            <strong>Note:</strong> SVG export embeds the field and robot images. File
-            size may be larger than expected.
+            <strong>Note:</strong> SVG export embeds the field and robot images.
+            File size may be larger than expected.
             <p class="mt-1">
               If you select <em>No Image</em> in settings the green square robot with
               directional arrows will be used instead of an external graphic.

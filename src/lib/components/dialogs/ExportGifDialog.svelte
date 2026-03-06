@@ -124,7 +124,7 @@
           settings.robotImage && settings.robotImage !== "none"
             ? settings.robotImage
             : undefined,
-      // note: choosing 'none' in settings yields the green square robot instead
+        // note: choosing 'none' in settings yields the green square robot instead
         robotLengthPx: robotLengthPx,
         robotWidthPx: robotWidthPx,
         getRobotState: robotStateFunction,

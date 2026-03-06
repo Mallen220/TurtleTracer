@@ -54,6 +54,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // use no-image by default; users can opt in to the lightweight
   // legacy robot.png graphic via the settings panel if desired.
   robotImage: "none",
+  robotDriveType: "holonomic",
   showFakeHeadingArrow: false,
   fakeHeadingArrowColor: "#ef4444",
   javaPackageName: "org.firstinspires.ftc.teamcode.Commands.AutoCommands",

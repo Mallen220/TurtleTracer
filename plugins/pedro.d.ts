@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-
 /**
  * Type definitions for Pedro Pathing Plus Visualizer Plugins.
  * These types are automatically available in your .ts plugins.
@@ -186,6 +185,7 @@ interface Settings {
   fieldMap: string;
   fieldRotation?: number; // 0, 90, 180, 270
   robotImage?: string;
+  robotDriveType?: "holonomic" | "swerve" | "none"; // Drive train type for visualization
   showFakeHeadingArrow?: boolean;
   fakeHeadingArrowColor?: string;
   javaPackageName?: string;
@@ -245,6 +245,7 @@ interface RobotProfile {
   xVelocity: number;
   yVelocity: number;
   robotImage?: string;
+  robotDriveType?: "holonomic" | "swerve" | "none"; // Drive train type for visualization
   showFakeHeadingArrow?: boolean;
   fakeHeadingArrowColor?: string;
 }

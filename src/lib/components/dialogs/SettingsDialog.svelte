@@ -1113,7 +1113,9 @@
                         />
                       {:else}
                         <!-- show the green square with directional arrows when no-image mode is active -->
-                        <div class="w-full h-full flex items-center justify-center">
+                        <div
+                          class="w-full h-full flex items-center justify-center"
+                        >
                           <svg
                             width="80%"
                             height="80%"
@@ -1132,15 +1134,19 @@
                             />
                             <!-- cardinal arrows -->
                             <polygon points="12,4 10,6 14,6" fill="#16a34a" />
-                            <polygon points="20,12 18,10 18,14" fill="#16a34a" />
-                            <polygon points="12,20 10,18 14,18" fill="#16a34a" />
+                            <polygon
+                              points="20,12 18,10 18,14"
+                              fill="#16a34a"
+                            />
+                            <polygon
+                              points="12,20 10,18 14,18"
+                              fill="#16a34a"
+                            />
                             <polygon points="4,12 6,10 6,14" fill="#16a34a" />
                           </svg>
                         </div>
                       {/if}
-                      {#if settings.robotImage &&
-                        settings.robotImage !== "/robot.png" &&
-                        settings.robotImage !== "none"}
+                      {#if settings.robotImage && settings.robotImage !== "/robot.png" && settings.robotImage !== "none"}
                         <button
                           on:click={() => {
                             settings.robotImage = "/robot.png";
@@ -1170,8 +1176,7 @@
                     >
                       {#if settings.robotImage === "none"}
                         <p>No robot image selected (default)</p>
-                      {:else if settings.robotImage &&
-                        settings.robotImage !== "/robot.png"}
+                      {:else if settings.robotImage && settings.robotImage !== "/robot.png"}
                         <p class="font-medium">
                           {#if settings.robotImage === "/JefferyThePotato.png"}
                             🥔 Jeffery the Potato Active! 🥔
@@ -1230,6 +1235,28 @@
                         <span>🥔</span> Use Potato Robot
                       </button>
                     </div>
+
+                    {#if settings.robotImage === "none" || !settings.robotImage}
+                      <div
+                        class="w-full border-t border-neutral-300 dark:border-neutral-700 pt-3 mt-1"
+                      >
+                        <label
+                          class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                          for="robot-drive-type"
+                        >
+                          Drive Train Visualization
+                        </label>
+                        <select
+                          id="robot-drive-type"
+                          bind:value={settings.robotDriveType}
+                          class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        >
+                          <option value="holonomic">Holonomic</option>
+                          <option value="swerve">Swerve</option>
+                          <option value="none">None (No Wheel Arrows)</option>
+                        </select>
+                      </div>
+                    {/if}
                   </div>
                 </SettingsItem>
 

@@ -130,8 +130,10 @@ async function renderFrameToCanvas(
 
           if (robotImage) {
             // Scale robot dimensions
-            const rw = (options.robotLengthPx ?? (robotImage.width || 0)) * scale;
-            const rh = (options.robotWidthPx ?? (robotImage.height || 0)) * scale;
+            const rw =
+              (options.robotLengthPx ?? (robotImage.width || 0)) * scale;
+            const rh =
+              (options.robotWidthPx ?? (robotImage.height || 0)) * scale;
 
             // Draw centered
             ctx.drawImage(robotImage, -rw / 2, -rh / 2, rw, rh);
@@ -143,7 +145,7 @@ async function renderFrameToCanvas(
             ctx.fillStyle = "rgba(34, 197, 94, 0.10)";
             ctx.strokeStyle = "#16a34a";
             ctx.lineWidth = 2 * scale;
-            
+
             // Draw rounded rectangle
             ctx.beginPath();
             if (ctx.roundRect) {
@@ -162,7 +164,7 @@ async function renderFrameToCanvas(
             ctx.lineJoin = "round";
             ctx.shadowColor = "rgba(255,255,255,0.8)";
             ctx.shadowBlur = 2 * scale;
-            
+
             ctx.scale(scale, scale);
             ctx.translate(-12, -12); // center the 24x24 viewBox
             ctx.beginPath();
@@ -316,13 +318,13 @@ export async function exportPathToImage(
         const rw = options.robotLengthPx ?? 16;
         const rh = options.robotWidthPx ?? 16;
         const state = options.robotScreenState;
-        
+
         const transform = `translate(${state.x}, ${state.y}) rotate(${state.heading})`;
         const arrowTransform = `translate(-12, -12)`;
-        
+
         const robotSvg = `
           <g transform="${transform}">
-            <rect x="${-rw/2}" y="${-rh/2}" width="${rw}" height="${rh}" fill="rgba(34, 197, 94, 0.10)" stroke="#16a34a" stroke-width="2" rx="8" />
+            <rect x="${-rw / 2}" y="${-rh / 2}" width="${rw}" height="${rh}" fill="rgba(34, 197, 94, 0.10)" stroke="#16a34a" stroke-width="2" rx="8" />
             <g transform="${arrowTransform}">
               <path stroke="rgba(34, 197, 94, 1.0)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M8.25 4.5l7.5 7.5-7.5 7.5" style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));" />
             </g>
