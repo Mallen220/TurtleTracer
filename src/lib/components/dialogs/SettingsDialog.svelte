@@ -1277,10 +1277,21 @@
                           </button>
                         </div>
                       </div>
-                      <div class="w-full flex justify-between items-center mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                      <div
+                        class="w-full flex justify-between items-center mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700"
+                      >
                         <div>
-                          <p class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Show Wheel Arrows</p>
-                          <p class="text-xs text-neutral-500 dark:text-neutral-400">Display arrows indicating wheel speeds/directions based on drive train type</p>
+                          <p
+                            class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+                          >
+                            Show Wheel Arrows
+                          </p>
+                          <p
+                            class="text-xs text-neutral-500 dark:text-neutral-400"
+                          >
+                            Display arrows indicating wheel speeds/directions
+                            based on drive train type
+                          </p>
                         </div>
                         <input
                           type="checkbox"
@@ -2153,7 +2164,7 @@
                       </div>
                       <div>
                         <h4 class="font-semibold mb-2">Project Links</h4>
-                        <div class="flex gap-3 text-xs">
+                        <div class="flex flex-wrap gap-3 text-xs">
                           <a
                             href="https://github.com/Mallen220/PedroPathingPlusVisualizer/issues"
                             target="_blank"
@@ -2168,6 +2179,51 @@
                             target="_blank"
                             class="text-blue-600 dark:text-blue-400 hover:underline"
                             >Releases</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/blob/main/README.md"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >README</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/blob/main/CODE_OF_CONDUCT.md"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >Code of Conduct</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/blob/main/CONTRIBUTING.md"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >Contributing</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/blob/main/LICENSE"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >License</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/blob/main/SECURITY.md"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >Security</a
                           >
                         </div>
                       </div>
