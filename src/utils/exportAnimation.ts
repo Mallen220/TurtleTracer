@@ -110,35 +110,69 @@ async function renderFrameToCanvas(
 
       // Draw robot overlay (if provided) on top of SVG
       try {
-        if (robotImage) {
-          let state: { x: number; y: number; heading: number } | undefined;
+        let state: { x: number; y: number; heading: number } | undefined;
 
-          // Check if explicit screen state provided (Export Image)
-          if ("robotScreenState" in options && options.robotScreenState) {
-            state = options.robotScreenState;
-          }
-          // Else use calculator (Animation)
-          else if ("getRobotState" in options && options.getRobotState) {
-            state = options.getRobotState(percent);
-          }
+        // Check if explicit screen state provided (Export Image)
+        if ("robotScreenState" in options && options.robotScreenState) {
+          state = options.robotScreenState;
+        }
+        // Else use calculator (Animation)
+        else if ("getRobotState" in options && options.getRobotState) {
+          state = options.getRobotState(percent);
+        }
 
-          if (state && !Number.isNaN(state.x) && !Number.isNaN(state.y)) {
-            ctx.save();
-            // Translate to robot center (scaled)
-            ctx.translate(state.x * scale, state.y * scale);
-            // Rotate by heading (convert deg -> rad)
-            ctx.rotate((state.heading * Math.PI) / 180);
+        if (state && !Number.isNaN(state.x) && !Number.isNaN(state.y)) {
+          ctx.save();
+          // Translate to robot center (scaled)
+          ctx.translate(state.x * scale, state.y * scale);
+          // Rotate by heading (convert deg -> rad)
+          ctx.rotate((state.heading * Math.PI) / 180);
 
+          if (robotImage) {
             // Scale robot dimensions
-            const rw =
-              (options.robotLengthPx ?? (robotImage.width || 0)) * scale;
-            const rh =
-              (options.robotWidthPx ?? (robotImage.height || 0)) * scale;
+            const rw = (options.robotLengthPx ?? (robotImage.width || 0)) * scale;
+            const rh = (options.robotWidthPx ?? (robotImage.height || 0)) * scale;
 
             // Draw centered
             ctx.drawImage(robotImage, -rw / 2, -rh / 2, rw, rh);
+          } else {
+            // Draw "no-image" robot (green square)
+            const rw = (options.robotLengthPx ?? 16) * scale;
+            const rh = (options.robotWidthPx ?? 16) * scale;
+
+            ctx.fillStyle = "rgba(34, 197, 94, 0.10)";
+            ctx.strokeStyle = "#16a34a";
+            ctx.lineWidth = 2 * scale;
+            
+            // Draw rounded rectangle
+            ctx.beginPath();
+            if (ctx.roundRect) {
+              ctx.roundRect(-rw / 2, -rh / 2, rw, rh, 8 * scale);
+            } else {
+              ctx.rect(-rw / 2, -rh / 2, rw, rh);
+            }
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw heading arrow
+            ctx.save();
+            ctx.strokeStyle = "rgba(34, 197, 94, 1.0)";
+            ctx.lineWidth = 3 * scale;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.shadowColor = "rgba(255,255,255,0.8)";
+            ctx.shadowBlur = 2 * scale;
+            
+            ctx.scale(scale, scale);
+            ctx.translate(-12, -12); // center the 24x24 viewBox
+            ctx.beginPath();
+            ctx.moveTo(8.25, 4.5);
+            ctx.lineTo(15.75, 12);
+            ctx.lineTo(8.25, 19.5);
+            ctx.stroke();
             ctx.restore();
           }
+          ctx.restore();
         }
       } catch (e) {
         console.warn("Failed to draw robot overlay onto canvas:", e);
@@ -257,18 +291,43 @@ export async function exportPathToImage(
     }
 
     // 2. Robot Image
-    if (options.robotImageSrc && options.robotScreenState && robotImage) {
-      const robotDataUri = await urlToDataUri(options.robotImageSrc);
-      if (robotDataUri) {
-        const rw = options.robotLengthPx ?? (robotImage.width || 50);
-        const rh = options.robotWidthPx ?? (robotImage.height || 50);
+    if (options.robotScreenState) {
+      if (options.robotImageSrc && robotImage) {
+        const robotDataUri = await urlToDataUri(options.robotImageSrc);
+        if (robotDataUri) {
+          const rw = options.robotLengthPx ?? (robotImage.width || 50);
+          const rh = options.robotWidthPx ?? (robotImage.height || 50);
+          const state = options.robotScreenState;
+
+          // SVG transform for robot
+          // translate(x, y) rotate(deg) translate(-rw/2, -rh/2)
+          const transform = `translate(${state.x}, ${state.y}) rotate(${state.heading}) translate(${-rw / 2}, ${-rh / 2})`;
+          const robotSvg = `<image href="${robotDataUri}" width="${rw}" height="${rh}" transform="${transform}" />`;
+
+          const robotFragment = parser.parseFromString(
+            `<svg xmlns="http://www.w3.org/2000/svg">${robotSvg}</svg>`,
+            "image/svg+xml",
+          ).documentElement.firstChild;
+          if (robotFragment) {
+            root.appendChild(robotFragment);
+          }
+        }
+      } else {
+        const rw = options.robotLengthPx ?? 16;
+        const rh = options.robotWidthPx ?? 16;
         const state = options.robotScreenState;
-
-        // SVG transform for robot
-        // translate(x, y) rotate(deg) translate(-rw/2, -rh/2)
-        const transform = `translate(${state.x}, ${state.y}) rotate(${state.heading}) translate(${-rw / 2}, ${-rh / 2})`;
-        const robotSvg = `<image href="${robotDataUri}" width="${rw}" height="${rh}" transform="${transform}" />`;
-
+        
+        const transform = `translate(${state.x}, ${state.y}) rotate(${state.heading})`;
+        const arrowTransform = `translate(-12, -12)`;
+        
+        const robotSvg = `
+          <g transform="${transform}">
+            <rect x="${-rw/2}" y="${-rh/2}" width="${rw}" height="${rh}" fill="rgba(34, 197, 94, 0.10)" stroke="#16a34a" stroke-width="2" rx="8" />
+            <g transform="${arrowTransform}">
+              <path stroke="rgba(34, 197, 94, 1.0)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M8.25 4.5l7.5 7.5-7.5 7.5" style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));" />
+            </g>
+          </g>
+        `;
         const robotFragment = parser.parseFromString(
           `<svg xmlns="http://www.w3.org/2000/svg">${robotSvg}</svg>`,
           "image/svg+xml",

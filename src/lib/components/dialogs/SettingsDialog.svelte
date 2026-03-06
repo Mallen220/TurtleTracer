@@ -1098,19 +1098,49 @@
                     <div
                       class="relative w-24 h-24 border-2 border-neutral-300 dark:border-neutral-600 rounded-md overflow-hidden bg-white dark:bg-neutral-900"
                     >
-                      <img
-                        src={settings.robotImage || "/robot.png"}
-                        alt="Robot Preview"
-                        class="w-full h-full object-contain"
-                        on:error={(e) => {
-                          console.error(
-                            "Failed to load robot image:",
-                            settings.robotImage,
-                          );
-                          handleImageError(e);
-                        }}
-                      />
-                      {#if settings.robotImage && settings.robotImage !== "/robot.png"}
+                      {#if settings.robotImage && settings.robotImage !== "none"}
+                        <img
+                          src={settings.robotImage}
+                          alt="Robot Preview"
+                          class="w-full h-full object-contain"
+                          on:error={(e) => {
+                            console.error(
+                              "Failed to load robot image:",
+                              settings.robotImage,
+                            );
+                            handleImageError(e);
+                          }}
+                        />
+                      {:else}
+                        <!-- show the green square with directional arrows when no-image mode is active -->
+                        <div class="w-full h-full flex items-center justify-center">
+                          <svg
+                            width="80%"
+                            height="80%"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <rect
+                              x="1"
+                              y="1"
+                              width="22"
+                              height="22"
+                              fill="rgba(34,197,94,0.1)"
+                              stroke="#16a34a"
+                              stroke-width="2"
+                              rx="4"
+                            />
+                            <!-- cardinal arrows -->
+                            <polygon points="12,4 10,6 14,6" fill="#16a34a" />
+                            <polygon points="20,12 18,10 18,14" fill="#16a34a" />
+                            <polygon points="12,20 10,18 14,18" fill="#16a34a" />
+                            <polygon points="4,12 6,10 6,14" fill="#16a34a" />
+                          </svg>
+                        </div>
+                      {/if}
+                      {#if settings.robotImage &&
+                        settings.robotImage !== "/robot.png" &&
+                        settings.robotImage !== "none"}
                         <button
                           on:click={() => {
                             settings.robotImage = "/robot.png";
@@ -1138,7 +1168,10 @@
                     <div
                       class="text-center text-xs text-neutral-600 dark:text-neutral-400"
                     >
-                      {#if settings.robotImage && settings.robotImage !== "/robot.png"}
+                      {#if settings.robotImage === "none"}
+                        <p>No robot image selected (default)</p>
+                      {:else if settings.robotImage &&
+                        settings.robotImage !== "/robot.png"}
                         <p class="font-medium">
                           {#if settings.robotImage === "/JefferyThePotato.png"}
                             🥔 Jeffery the Potato Active! 🥔
@@ -1147,7 +1180,7 @@
                           {/if}
                         </p>
                       {:else}
-                        <p>Using default robot image</p>
+                        <p>Using lightweight default image</p>
                       {/if}
                     </div>
                     <div class="flex flex-wrap justify-center gap-2 w-full">
@@ -1174,7 +1207,7 @@
                         disabled={!settings.robotImage ||
                           settings.robotImage === "/robot.png"}
                       >
-                        Use Default Image
+                        Use Robot Image
                       </button>
                       <button
                         on:click={() => {

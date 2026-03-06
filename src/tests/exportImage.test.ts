@@ -171,4 +171,16 @@ describe("exportPathToImage", () => {
     expect(global.fetch).toHaveBeenCalledWith("http://example.com/bg.png");
     expect(global.fetch).toHaveBeenCalledWith("http://example.com/robot.png");
   });
+
+  it("should not fetch a robot image when none is provided", async () => {
+    options.format = "svg";
+    options.backgroundImageSrc = "http://example.com/bg.png";
+    // robotImageSrc left undefined to simulate "none"
+
+    await exportPathToImage(options);
+
+    expect(global.fetch).toHaveBeenCalledWith("http://example.com/bg.png");
+    // should not trigger a second fetch for robot
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
 });

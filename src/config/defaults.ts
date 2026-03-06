@@ -51,7 +51,9 @@ export const DEFAULT_SETTINGS: Settings = {
   maxAngularAcceleration: 0, // 0 = Auto-calculate from linear acceleration
   fieldMap: "decode.webp",
   fieldRotation: 0,
-  robotImage: "/robot.png",
+  // use no-image by default; users can opt in to the lightweight
+  // legacy robot.png graphic via the settings panel if desired.
+  robotImage: "none",
   showFakeHeadingArrow: false,
   fakeHeadingArrowColor: "#ef4444",
   javaPackageName: "org.firstinspires.ftc.teamcode.Commands.AutoCommands",

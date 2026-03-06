@@ -172,6 +172,15 @@
     backRight: number;
   }
 
+  // helper to safely index WheelSpeeds from a string value. We
+  // occasionally iterate over a hardcoded list of wheel names in
+  // markup; this keeps the TypeScript happy and avoids `any` casts
+  // in the template.
+  function speedForWheel(wheel: string, speeds: WheelSpeeds | null): number {
+    if (!speeds) return 0;
+    return speeds[wheel as keyof WheelSpeeds];
+  }
+
   export function calculateFieldCentricMecanum(
     forward: number,
     strafe: number,
@@ -2866,7 +2875,7 @@
         >
           <!-- Mecanum wheel arrows -->
           {#each ["frontLeft", "frontRight", "backLeft", "backRight"] as wheel}
-            {@const speed = mecanumSpeeds ? mecanumSpeeds[wheel] : 0}
+            {@const speed = speedForWheel(wheel, mecanumSpeeds)}
             {@const arrowSize = 10 + Math.abs(speed) * 15}
             <!-- scale size dynamically -->
             <div
@@ -2948,16 +2957,23 @@
       <div
         style={`position: absolute; top: ${y(ghostRobotState.y)}px; left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghostRobotState.heading}deg); z-index: 19; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; border: 2px dashed #6b7280; border-radius: 4px;`}
       >
-        <img
-          src={settings.robotImage || "/robot.png"}
-          alt="Ghost Robot"
-          class="w-full h-full object-contain grayscale opacity-50"
-          draggable="false"
-          on:error={(e) => {
-            // @ts-ignore
-            e.target.src = "/robot.png";
-          }}
-        />
+        {#if settings.robotImage === "none"}
+          <div
+            class="w-full h-full"
+            style="background-color: rgba(107, 114, 128, 0.3);"
+          ></div>
+        {:else}
+          <img
+            src={settings.robotImage || "/robot.png"}
+            alt="Ghost Robot"
+            class="w-full h-full object-contain grayscale opacity-50"
+            draggable="false"
+            on:error={(e) => {
+              // @ts-ignore
+              e.target.src = "/robot.png";
+            }}
+          />
+        {/if}
         {#if settings.showFakeHeadingArrow && settings.robotImage !== "/robot.png"}
           <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: {settings.fakeHeadingArrowColor || '#ffffff'}; opacity: 0.5;">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-6 h-6" style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.4));">

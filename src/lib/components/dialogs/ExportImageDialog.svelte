@@ -98,7 +98,10 @@
         backgroundImageSrc: settings.fieldMap
           ? `/fields/${settings.fieldMap}`
           : "/fields/decode.webp",
-        robotImageSrc: settings.robotImage || "/robot.png",
+        robotImageSrc:
+          settings.robotImage && settings.robotImage !== "none"
+            ? settings.robotImage
+            : undefined,
         robotLengthPx,
         robotWidthPx,
         backgroundBounds: bgBounds,
@@ -328,6 +331,10 @@
           >
             <strong>Note:</strong> SVG export embeds the field and robot images. File
             size may be larger than expected.
+            <p class="mt-1">
+              If you select <em>No Image</em> in settings the green square robot with
+              directional arrows will be used instead of an external graphic.
+            </p>
           </div>
         {/if}
 
