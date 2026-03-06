@@ -2982,7 +2982,7 @@
           class="flex items-center justify-center relative shadow-sm"
           style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.10); border: 2px solid #16a34a; border-radius: 8px;`}
         >
-          {#if settings.robotDriveType !== "none"}
+          {#if settings.showRobotArrows}
             <!-- Mecanum / Swerve wheel arrows -->
             {#each ["frontLeft", "frontRight", "backLeft", "backRight"] as wheel}
               {@const val = speedForWheel(wheel, mecanumSpeeds)}

@@ -849,11 +849,47 @@
             <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
 
             <button
-              title={`Toggle Robot`}
-              aria-label="Toggle Robot"
+              title={`Cycle Robot Mode`}
+              aria-label="Cycle Robot Mode"
               role="menuitemcheckbox"
               aria-checked={$showRobot}
-              on:click={() => showRobot.update((v) => !v)}
+              on:click={() => {
+                // Ensure robot is always shown when cycling its modes.
+                if (!$showRobot) {
+                  showRobot.set(true);
+                }
+
+                import("../lib/projectStore").then(({ settingsStore }) => {
+                  settingsStore.update((s) => {
+                    const nextSettings = { ...s };
+
+                    if (
+                      nextSettings.robotImage === "none" &&
+                      nextSettings.showRobotArrows
+                    ) {
+                      // Mode 1: Default with arrows -> Mode 2: Default without arrows
+                      nextSettings.showRobotArrows = false;
+                    } else if (
+                      nextSettings.robotImage === "none" &&
+                      !nextSettings.showRobotArrows
+                    ) {
+                      // Mode 2: Default without arrows -> Mode 3: Old lightweight robot
+                      // Fallback to decode.webp as standard dummy image? Or robot.png? The field is decode.webp.
+                      nextSettings.robotImage = "robot.png"; // Commonly used old lightweight default
+                    } else {
+                      // Mode 3 (or any custom) -> Mode 1: Default with arrows
+                      nextSettings.robotImage = "none";
+                      nextSettings.showRobotArrows = true;
+                    }
+
+                    // Sync local settings object
+                    settings.robotImage = nextSettings.robotImage;
+                    settings.showRobotArrows = nextSettings.showRobotArrows;
+
+                    return nextSettings;
+                  });
+                });
+              }}
               class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
             >
               <div
