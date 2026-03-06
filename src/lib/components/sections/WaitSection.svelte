@@ -111,7 +111,7 @@
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
         on:click|stopPropagation={toggleCollapsed}
-        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
+        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         title="{collapsed ? 'Expand' : 'Collapse'} wait"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} wait"
         aria-expanded={!collapsed}
@@ -196,7 +196,7 @@
           wait.locked = !wait.locked;
           if (recordChange) recordChange();
         }}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
+        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
       >
         {#if wait.locked}
           <svg
@@ -239,7 +239,7 @@
             if (!wait.locked && canMoveUp && onMoveUp) onMoveUp();
           }}
           disabled={!canMoveUp || wait.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
+          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           title="Move Up"
           aria-label="Move Up"
         >
@@ -261,7 +261,7 @@
             if (!wait.locked && canMoveDown && onMoveDown) onMoveDown();
           }}
           disabled={!canMoveDown || wait.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
+          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           title="Move Down"
           aria-label="Move Down"
         >
@@ -344,8 +344,9 @@
                 else if (def.isWait) onInsertAfter();
                 else if (def.isRotate) onAddRotateAfter();
               }}
-              class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium ${getSmallButtonClass(color)}`}
+              class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${getSmallButtonClass(color)}`}
               title={`Add ${def.label} After`}
+              aria-label={`Add ${def.label} After`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

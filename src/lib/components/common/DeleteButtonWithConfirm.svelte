@@ -51,7 +51,7 @@
 </script>
 
 <button
-  class="{baseClasses} {stateClasses}"
+  class="{baseClasses} {stateClasses} focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
   on:click={handleClick}
   on:blur={handleBlur}
   {disabled}
