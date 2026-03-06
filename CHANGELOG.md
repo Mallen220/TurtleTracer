@@ -1,3 +1,7 @@
+## 1.8.0 (2026-03-06)
+
+- Add folder support to file manager. Enforce base directory constraint in file manager. Track and persist total usage time for ratings: fixes annoying requests. Add view options toggles for Robot, Onion Skin, and Velocity Heatmap in the NavBar. Add keybindings for small value modifications. Add facingPoint heading support and universal reverse flag! Add sectional timeline looping! Should restart playback on path change. Don't stop playback on UI interactions. Add digital strategy notes to strategy sheet. Field rendering optimizations for weaker OS's. Changed default robot image. Added heading arrow toggle. Added arrow for drivetrain showing wheel directions for holonomic and swerve drivetrains. Preserve endpoint headings on new path creation. Add git status updates during runtime.
+
 ## 1.7.5 (2026-02-28)
 
 - Add toggleable coordinate system (Pedro/FTC). Allow deleting the last path segment to reveal empty state and empty state fixes. Major fixes for Sequential NextFTC code exporter. Optimize analyzePathSegment with adaptive sampling. Add visual heading indicator to angle inputs in paths tab. Add Delta X/Y and Angle to Ruler. Trigger code auto-export on more project changes. Add feedback and rating dialogs. Fix for Microsoft update deleting user settings.
