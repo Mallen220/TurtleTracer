@@ -177,80 +177,56 @@
     strafe: number,
     rotate: number,
     botHeading: number,
+    rWidth: number,
+    rLength: number
   ): WheelSpeeds {
-    // Swerve drive vectors
+    // Rotate the movement direction counter to the bot's rotation
     const rotStrafe =
       strafe * Math.cos(-botHeading) - forward * Math.sin(-botHeading);
     const rotForward =
       strafe * Math.sin(-botHeading) + forward * Math.cos(-botHeading);
 
-    // According to documentation, we set turnAngle = turnPower * 45.0
-    // Then add/subtract to translation direction
-    const direction = Math.atan2(rotStrafe, rotForward) * (180 / Math.PI); // Convert to degrees
-    const turnAngle = rotate * 45.0; // scale rotate [-1, 1] to degrees
+    // Wheel coordinates relative to center
+    // X is right (+), Y is forward (+)
+    const rxFL = -rWidth / 2;
+    const ryFL = rLength / 2;
+    
+    const rxFR = rWidth / 2;
+    const ryFR = rLength / 2;
+    
+    const rxBL = -rWidth / 2;
+    const ryBL = -rLength / 2;
+    
+    const rxBR = rWidth / 2;
+    const ryBR = -rLength / 2;
 
-    // In documentation, closestAngle checks if wheel is closer to front or back to determine addition/subtraction.
-    // Instead of copying the exact `closestAngle`, we can use the vectors for each wheel position directly for a generic swerve:
-    // Wheel positions relative to center
-    // FL: (-w/2, +l/2) -> angle 135
-    // FR: (+w/2, +l/2) -> angle 45
-    // BL: (-w/2, -l/2) -> angle 225 (-135)
-    // BR: (+w/2, -l/2) -> angle 315 (-45)
-    // We compute vector sum: (rotStrafe, rotForward) + turn_vector
+    // Wheel velocity = V + (omega x r)
+    // Vx = V_strafe - omega * r_y
+    // Vy = V_forward + omega * r_x
+    const vxFL = rotStrafe - rotate * ryFL;
+    const vyFL = rotForward + rotate * rxFL;
 
-    // For visualization simplicity, let's use the exact documentation logic:
-    const closestAngle = (a: number, b: number) => {
-      let dir = (b % 360.0) - (a % 360.0);
-      if (Math.abs(dir) > 180.0) {
-        dir = -(Math.sign(dir) * 360.0) + dir;
-      }
-      return dir;
-    };
+    const vxFR = rotStrafe - rotate * ryFR;
+    const vyFR = rotForward + rotate * rxFR;
 
-    // Calculate each wheel's direction
-    // If translatePower == 0, use in-place turn:
-    const translatePower = Math.hypot(rotForward, rotStrafe);
-    if (translatePower < 0.05 && Math.abs(rotate) > 0.05) {
-      // In-place turn
-      return {
-        frontLeft: 135.0,
-        backLeft: 45.0,
-        frontRight: -45.0,
-        backRight: -135.0,
-      };
-    } else if (translatePower < 0.05 && Math.abs(rotate) <= 0.05) {
-      // Not moving, keep wheels facing forward
-      return {
-        frontLeft: 0,
-        backLeft: 0,
-        frontRight: 0,
-        backRight: 0,
-      };
+    const vxBL = rotStrafe - rotate * ryBL;
+    const vyBL = rotForward + rotate * rxBL;
+
+    const vxBR = rotStrafe - rotate * ryBR;
+    const vyBR = rotForward + rotate * rxBR;
+
+    // Special case for not moving or turning
+    if (Math.hypot(rotForward, rotStrafe) < 0.05 && Math.abs(rotate) <= 0.05) {
+      return { frontLeft: 0, backLeft: 0, frontRight: 0, backRight: 0 };
     }
 
-    // Translating/Turning
-    let fl = direction;
-    let bl = direction;
-    let fr = direction;
-    let br = direction;
-
-    if (closestAngle(direction, 135.0) >= 90.0) fl = direction + turnAngle;
-    else fl = direction - turnAngle;
-
-    if (closestAngle(direction, 225.0) > 90.0) bl = direction + turnAngle;
-    else bl = direction - turnAngle;
-
-    if (closestAngle(direction, 45.0) > 90.0) fr = direction + turnAngle;
-    else fr = direction - turnAngle;
-
-    if (closestAngle(direction, 315.0) >= 90.0) br = direction + turnAngle;
-    else br = direction - turnAngle;
+    const radToDeg = 180 / Math.PI;
 
     return {
-      frontLeft: fl,
-      backLeft: bl,
-      frontRight: fr,
-      backRight: br,
+      frontLeft: Math.atan2(vyFL, vxFL) * radToDeg,
+      backLeft: Math.atan2(vyBL, vxBL) * radToDeg,
+      frontRight: Math.atan2(vyFR, vxFR) * radToDeg,
+      backRight: Math.atan2(vyBR, vxBR) * radToDeg,
     };
   }
 
@@ -374,6 +350,8 @@
         normalizedStrafe,
         normalizedRotate,
         headingRad,
+        settings.rWidth || DEFAULT_ROBOT_WIDTH,
+        settings.rLength || DEFAULT_ROBOT_LENGTH
       );
     } else {
       return calculateFieldCentricMecanum(
@@ -2970,7 +2948,7 @@
               {@const val = speedForWheel(wheel, mecanumSpeeds)}
               {@const isSwerve = settings.robotDriveType === "swerve"}
               {@const arrowSize = isSwerve ? 15 : 10 + Math.abs(val) * 15}
-              {@const rot = isSwerve ? val + 90 : val >= 0 ? 90 : 270}
+              {@const rot = isSwerve ? val : val >= 0 ? 90 : 270}
               <!-- scale size dynamically for mecanum, fixed for swerve -->
               <div
                 class="absolute flex justify-center items-center"

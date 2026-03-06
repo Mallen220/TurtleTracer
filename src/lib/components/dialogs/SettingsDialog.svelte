@@ -1242,19 +1242,47 @@
                       >
                         <label
                           class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1"
-                          for="robot-drive-type"
                         >
                           Drive Train Visualization
                         </label>
-                        <select
-                          id="robot-drive-type"
-                          bind:value={settings.robotDriveType}
-                          class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                        >
-                          <option value="holonomic">Holonomic</option>
-                          <option value="swerve">Swerve</option>
-                          <option value="none">None (No Wheel Arrows)</option>
-                        </select>
+                        <div role="group" aria-label="Drive Train Visualization" class="flex gap-2">
+                          <button
+                            class="px-3 py-1.5 text-sm rounded-md transition-colors 
+                              {settings.robotDriveType === 'holonomic'
+                                ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
+                                : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+                            on:click={() => {
+                              settings.robotDriveType = 'holonomic';
+                              settings = { ...settings };
+                            }}
+                          >
+                            Holonomic
+                          </button>
+                          <button
+                            class="px-3 py-1.5 text-sm rounded-md transition-colors 
+                              {settings.robotDriveType === 'swerve'
+                                ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
+                                : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+                            on:click={() => {
+                              settings.robotDriveType = 'swerve';
+                              settings = { ...settings };
+                            }}
+                          >
+                            Swerve
+                          </button>
+                          <button
+                            class="px-3 py-1.5 text-sm rounded-md transition-colors 
+                              {settings.robotDriveType === 'none'
+                                ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
+                                : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+                            on:click={() => {
+                              settings.robotDriveType = 'none';
+                              settings = { ...settings };
+                            }}
+                          >
+                            None (No Wheel Arrows)
+                          </button>
+                        </div>
                       </div>
                     {/if}
                   </div>
