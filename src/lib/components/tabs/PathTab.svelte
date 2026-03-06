@@ -300,40 +300,41 @@
     return item.kind === "path" ? (item as any).lineId : undefined;
   }
 
+  /**
+   * Given the endPoint of the PREVIOUS line (or startPoint), build a new
+   * endPoint that:
+   *   - inherits the heading type
+   *   - for "linear":   startDeg = prev.endDeg  (direction continues), endDeg = prev.endDeg
+   *   - for "constant": degrees  = prev.degrees
+   *   - for "tangential" / "facingPoint": copies reverse / targetX,Y
+   */
+  function makeNewEndPointFrom(prev: Point): Point {
+    const x = _.random(36, 108);
+    const y = _.random(36, 108);
+    if (prev.heading === "linear") {
+      const linPrev = prev as Extract<Point, { heading: "linear" }>;
+      const deg = linPrev.endDeg ?? linPrev.startDeg ?? 0;
+      return { x, y, heading: "linear", startDeg: deg, endDeg: deg };
+    }
+    if (prev.heading === "constant") {
+      return { x, y, heading: "constant", degrees: prev.degrees ?? 0 };
+    }
+    if (prev.heading === "facingPoint") {
+      return { x, y, heading: "tangential" };
+    }
+    // tangential (default)
+    return { x, y, heading: "tangential", reverse: prev.reverse ?? false };
+  }
+
   function insertLineAfter(seqIndex: number) {
     const seqItem = sequence[seqIndex];
     if (!seqItem || seqItem.kind !== "path") return;
     const lineIndex = lines.findIndex((l) => l.id === seqItem.lineId);
     const currentLine = lines[lineIndex];
 
-    let newPoint: Point;
-    if (currentLine.endPoint.heading === "linear") {
-      newPoint = {
-        x: _.random(36, 108),
-        y: _.random(36, 108),
-        heading: "linear",
-        startDeg: currentLine.endPoint.startDeg,
-        endDeg: currentLine.endPoint.endDeg,
-      };
-    } else if (currentLine.endPoint.heading === "constant") {
-      newPoint = {
-        x: _.random(36, 108),
-        y: _.random(36, 108),
-        heading: "constant",
-        degrees: currentLine.endPoint.degrees,
-      };
-    } else {
-      newPoint = {
-        x: _.random(36, 108),
-        y: _.random(36, 108),
-        heading: "tangential",
-        reverse: currentLine.endPoint.reverse,
-      };
-    }
-
     const newLine = {
       id: makeId(),
-      endPoint: newPoint,
+      endPoint: makeNewEndPointFrom(currentLine.endPoint),
       controlPoints: [],
       color: getRandomColor(),
       name: "",
@@ -386,15 +387,21 @@
   }
 
   function addLine() {
+    // Inherit heading from the last line, or fall back to tangential
+    const lastLine = lines.length > 0 ? lines[lines.length - 1] : null;
+    const endPoint: Point = lastLine
+      ? makeNewEndPointFrom(lastLine.endPoint)
+      : {
+          x: _.random(0, 144),
+          y: _.random(0, 144),
+          heading: "tangential",
+          reverse: false,
+        };
+
     const newLine: Line = {
       id: makeId(),
       name: "",
-      endPoint: {
-        x: _.random(0, 144),
-        y: _.random(0, 144),
-        heading: "tangential",
-        reverse: false,
-      },
+      endPoint,
       controlPoints: [],
       color: getRandomColor(),
       waitBeforeMs: 0,
@@ -499,15 +506,21 @@
   }
 
   export function addPathAtStart() {
+    // Inherit heading from the first existing line, or fall back to tangential
+    const firstLine = lines.length > 0 ? lines[0] : null;
+    const endPoint: Point = firstLine
+      ? makeNewEndPointFrom(firstLine.endPoint)
+      : {
+          x: _.random(0, 144),
+          y: _.random(0, 144),
+          heading: "tangential",
+          reverse: false,
+        };
+
     const newLine: Line = {
       id: makeId(),
       name: "",
-      endPoint: {
-        x: _.random(0, 144),
-        y: _.random(0, 144),
-        heading: "tangential",
-        reverse: false,
-      },
+      endPoint,
       controlPoints: [],
       color: getRandomColor(),
       eventMarkers: [],
@@ -560,15 +573,32 @@
   }
 
   function insertPathAfter(seqIndex: number) {
+    // Find the closest preceding path item to inherit heading from
+    let prevEndPoint: Point | null = null;
+    for (let i = seqIndex; i >= 0; i--) {
+      const si = sequence[i];
+      if (si.kind === "path") {
+        const ln = lines.find((l) => l.id === si.lineId);
+        if (ln) {
+          prevEndPoint = ln.endPoint;
+          break;
+        }
+      }
+    }
+
+    const endPoint: Point = prevEndPoint
+      ? makeNewEndPointFrom(prevEndPoint)
+      : {
+          x: _.random(36, 108),
+          y: _.random(36, 108),
+          heading: "tangential",
+          reverse: false,
+        };
+
     const newLine: Line = {
       id: makeId(),
       name: "",
-      endPoint: {
-        x: _.random(36, 108),
-        y: _.random(36, 108),
-        heading: "tangential",
-        reverse: false,
-      },
+      endPoint,
       controlPoints: [],
       color: getRandomColor(),
       eventMarkers: [],

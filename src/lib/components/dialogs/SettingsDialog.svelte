@@ -1245,38 +1245,42 @@
                         >
                           Drive Train Visualization
                         </label>
-                        <div role="group" aria-label="Drive Train Visualization" class="flex gap-2">
+                        <div
+                          role="group"
+                          aria-label="Drive Train Visualization"
+                          class="flex gap-2"
+                        >
                           <button
-                            class="px-3 py-1.5 text-sm rounded-md transition-colors 
+                            class="px-3 py-1.5 text-sm rounded-md transition-colors
                               {settings.robotDriveType === 'holonomic'
-                                ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
-                                : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+                              ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
+                              : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
                             on:click={() => {
-                              settings.robotDriveType = 'holonomic';
+                              settings.robotDriveType = "holonomic";
                               settings = { ...settings };
                             }}
                           >
                             Holonomic
                           </button>
                           <button
-                            class="px-3 py-1.5 text-sm rounded-md transition-colors 
+                            class="px-3 py-1.5 text-sm rounded-md transition-colors
                               {settings.robotDriveType === 'swerve'
-                                ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
-                                : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+                              ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
+                              : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
                             on:click={() => {
-                              settings.robotDriveType = 'swerve';
+                              settings.robotDriveType = "swerve";
                               settings = { ...settings };
                             }}
                           >
                             Swerve
                           </button>
                           <button
-                            class="px-3 py-1.5 text-sm rounded-md transition-colors 
+                            class="px-3 py-1.5 text-sm rounded-md transition-colors
                               {settings.robotDriveType === 'none'
-                                ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
-                                : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+                              ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
+                              : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
                             on:click={() => {
-                              settings.robotDriveType = 'none';
+                              settings.robotDriveType = "none";
                               settings = { ...settings };
                             }}
                           >

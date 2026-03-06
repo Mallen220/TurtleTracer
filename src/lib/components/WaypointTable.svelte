@@ -988,7 +988,7 @@
 
     // Fallback if the action isn't registered yet — replicate PathAction insertion logic locally
     let insertAfterLineId: string | null = null;
-    let refPoint = startPoint;
+    let refPoint: Point = startPoint;
 
     for (let i = index - 1; i >= 0; i--) {
       if (sequence[i].kind === "path") {
@@ -999,15 +999,38 @@
       }
     }
 
-    const newLine: Line = {
-      id: makeId(),
-      name: "",
-      endPoint: {
+    let endPoint: Point;
+    if (refPoint.heading === "linear") {
+      const linRef = refPoint as Extract<Point, { heading: "linear" }>;
+      const deg = linRef.endDeg ?? linRef.startDeg ?? 0;
+      endPoint = {
+        x: Math.max(0, Math.min(144, (refPoint.x || 0) + 10)),
+        y: Math.max(0, Math.min(144, (refPoint.y || 0) + 10)),
+        heading: "linear",
+        startDeg: deg,
+        endDeg: deg,
+      };
+    } else if (refPoint.heading === "constant") {
+      endPoint = {
+        x: Math.max(0, Math.min(144, (refPoint.x || 0) + 10)),
+        y: Math.max(0, Math.min(144, (refPoint.y || 0) + 10)),
+        heading: "constant",
+        degrees:
+          (refPoint as Extract<Point, { heading: "constant" }>).degrees ?? 0,
+      };
+    } else {
+      endPoint = {
         x: Math.max(0, Math.min(144, (refPoint.x || 0) + 10)),
         y: Math.max(0, Math.min(144, (refPoint.y || 0) + 10)),
         heading: "tangential",
-        reverse: false,
-      },
+        reverse: (refPoint as any).reverse ?? false,
+      };
+    }
+
+    const newLine: Line = {
+      id: makeId(),
+      name: "",
+      endPoint,
       controlPoints: [],
       color: getRandomColor(),
       eventMarkers: [],

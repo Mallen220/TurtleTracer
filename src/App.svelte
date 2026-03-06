@@ -61,6 +61,7 @@
     showFeedbackDialog,
     showRatingDialog,
     ratingDialogAutoOpened,
+    gitStatusStore,
   } from "./stores";
   import {
     startPointStore,
@@ -206,9 +207,26 @@
     }
   }
 
+  async function fetchGitStatus() {
+    const dir = get(currentDirectoryStore);
+    if (!dir) return;
+    const currentSettings = get(settingsStore);
+    if (!currentSettings.gitIntegration) return;
+
+    if (electronAPI && (electronAPI as any).gitStatus) {
+      try {
+        const statuses = await (electronAPI as any).gitStatus(dir);
+        gitStatusStore.set(statuses);
+      } catch (e) {
+        console.warn("Failed to check git status on focus", e);
+      }
+    }
+  }
+
   onMount(() => {
     document.addEventListener("click", handleLinkClick);
     window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("focus", fetchGitStatus);
     checkMsStoreTracking();
 
     if (electronAPI && electronAPI.onUpdateAvailable) {
@@ -223,6 +241,7 @@
 
     return () => {
       clearInterval(ratingInterval);
+      window.removeEventListener("focus", fetchGitStatus);
     };
   });
 
@@ -272,6 +291,7 @@
   onDestroy(() => {
     document.removeEventListener("click", handleLinkClick);
     window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.removeEventListener("focus", fetchGitStatus);
     if (autosaveIntervalId) clearInterval(autosaveIntervalId);
   });
 

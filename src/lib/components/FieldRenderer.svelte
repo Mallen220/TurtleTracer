@@ -178,7 +178,7 @@
     rotate: number,
     botHeading: number,
     rWidth: number,
-    rLength: number
+    rLength: number,
   ): WheelSpeeds {
     // Rotate the movement direction counter to the bot's rotation
     const rotStrafe =
@@ -190,13 +190,13 @@
     // X is right (+), Y is forward (+)
     const rxFL = -rWidth / 2;
     const ryFL = rLength / 2;
-    
+
     const rxFR = rWidth / 2;
     const ryFR = rLength / 2;
-    
+
     const rxBL = -rWidth / 2;
     const ryBL = -rLength / 2;
-    
+
     const rxBR = rWidth / 2;
     const ryBR = -rLength / 2;
 
@@ -205,7 +205,6 @@
     // Vy = V_forward + omega * r_x
     const vxFL = rotStrafe + rotate * ryFL;
     const vyFL = rotForward - rotate * rxFL;
-
 
     const vxFR = rotStrafe - rotate * ryFR;
     const vyFR = rotForward + rotate * rxFR;
@@ -352,7 +351,7 @@
         normalizedRotate,
         headingRad,
         settings.rWidth || DEFAULT_ROBOT_WIDTH,
-        settings.rLength || DEFAULT_ROBOT_LENGTH
+        settings.rLength || DEFAULT_ROBOT_LENGTH,
       );
     } else {
       return calculateFieldCentricMecanum(
@@ -2460,10 +2459,50 @@
         inchY = Math.max(0, Math.min(FIELD_SIZE, inchY));
       }
 
+      const existingLines = get(linesStore);
+      const prevEndPoint =
+        existingLines.length > 0
+          ? existingLines[existingLines.length - 1].endPoint
+          : null;
+
+      let endPoint: Point;
+      if (!prevEndPoint) {
+        endPoint = {
+          x: inchX,
+          y: inchY,
+          heading: "tangential",
+          reverse: false,
+        };
+      } else if (prevEndPoint.heading === "linear") {
+        const linPrev = prevEndPoint as Extract<Point, { heading: "linear" }>;
+        const deg = linPrev.endDeg ?? linPrev.startDeg ?? 0;
+        endPoint = {
+          x: inchX,
+          y: inchY,
+          heading: "linear",
+          startDeg: deg,
+          endDeg: deg,
+        };
+      } else if (prevEndPoint.heading === "constant") {
+        endPoint = {
+          x: inchX,
+          y: inchY,
+          heading: "constant",
+          degrees: prevEndPoint.degrees ?? 0,
+        };
+      } else {
+        endPoint = {
+          x: inchX,
+          y: inchY,
+          heading: "tangential",
+          reverse: (prevEndPoint as any).reverse ?? false,
+        };
+      }
+
       const newLine: Line = {
         id: `line-${Math.random().toString(36).slice(2)}`,
         name: "",
-        endPoint: { x: inchX, y: inchY, heading: "tangential", reverse: false },
+        endPoint,
         controlPoints: [],
         color: getRandomColor(),
         locked: false,

@@ -733,6 +733,40 @@ ipcMain.handle("git:show", async (event, filePath) => {
   }
 });
 
+ipcMain.handle("git:status", async (event, directory) => {
+  if (!directory || typeof directory !== "string" || directory.trim() === "") {
+    return {};
+  }
+  let gitStatuses = {};
+  try {
+    const git = simpleGit(directory);
+    if (await git.checkIsRepo()) {
+      const status = await git.status();
+      const rootDir = await git.revparse(["--show-toplevel"]);
+
+      status.files.forEach((fileStatus) => {
+        const absPath = path.resolve(rootDir.trim(), fileStatus.path);
+        let statusStr = "clean";
+
+        if (fileStatus.working_dir === "?" || fileStatus.working_dir === "U")
+          statusStr = "untracked";
+        else if (
+          fileStatus.working_dir !== " " &&
+          fileStatus.working_dir !== "?"
+        )
+          statusStr = "modified";
+        else if (fileStatus.index !== " " && fileStatus.index !== "?")
+          statusStr = "staged";
+
+        gitStatuses[absPath] = statusStr;
+      });
+    }
+  } catch (e) {
+    console.warn("Error checking git status:", e);
+  }
+  return gitStatuses;
+});
+
 async function ensureDefaultPlugins() {
   const pluginsDir = getPluginsDirectory();
   try {
