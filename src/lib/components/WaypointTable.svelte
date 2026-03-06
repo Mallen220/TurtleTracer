@@ -55,6 +55,7 @@
   import { getShortcutFromSettings } from "../../utils";
   import { toUser, toField } from "../../utils/coordinates";
   import { calculatePathTime, formatTime } from "../../utils/timeCalculator";
+  import DebugPanel from "./common/DebugPanel.svelte";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -1265,15 +1266,14 @@
   </div>
 
   {#if showDebug}
-    <div class="p-2 text-xs text-neutral-500">
-      <div>
-        <strong>DEBUG</strong> — lines: {lines.length}, sequence: {(
-          sequence || []
-        ).length}, display: {(displaySequence || []).length}
-      </div>
-      <div>Missing: {JSON.stringify(debugMissing)}</div>
-      <div>Invalid refs: {JSON.stringify(debugInvalidRefs)}</div>
-    </div>
+    <DebugPanel
+      componentName="WaypointTable"
+      {debugMissing}
+      {debugInvalidRefs}
+      linesLength={lines.length}
+      sequenceLength={(sequence || []).length}
+      displaySequenceLength={(displaySequence || []).length}
+    />
   {/if}
 
   {#if optimizationOpen}
