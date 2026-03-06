@@ -281,3 +281,5 @@ test-paths.js
 patch_reorder_split.diff
 src/utils/animation.ts
 src/utils/math.ts
+src/lib/components/dialogs/ExportGifDialog.svelte
+test_field.js

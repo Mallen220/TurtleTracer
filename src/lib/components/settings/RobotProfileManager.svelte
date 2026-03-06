@@ -46,6 +46,7 @@
       xVelocity: settings.xVelocity,
       yVelocity: settings.yVelocity,
       robotImage: settings.robotImage,
+      robotDriveType: settings.robotDriveType,
       showFakeHeadingArrow: settings.showFakeHeadingArrow,
       fakeHeadingArrowColor: settings.fakeHeadingArrowColor,
     };
@@ -88,6 +89,9 @@
     if (profile.robotImage) {
       settings.robotImage = profile.robotImage;
     }
+    if (profile.robotDriveType) {
+      settings.robotDriveType = profile.robotDriveType;
+    }
     settings.showFakeHeadingArrow = profile.showFakeHeadingArrow ?? false;
     settings.fakeHeadingArrowColor = profile.fakeHeadingArrowColor || "#ef4444";
 
@@ -115,6 +119,7 @@
       xVelocity: settings.xVelocity,
       yVelocity: settings.yVelocity,
       robotImage: settings.robotImage,
+      robotDriveType: settings.robotDriveType,
       showFakeHeadingArrow: settings.showFakeHeadingArrow,
       fakeHeadingArrowColor: settings.fakeHeadingArrowColor,
     };
