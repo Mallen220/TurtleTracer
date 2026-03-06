@@ -66,7 +66,7 @@
           startPoint.locked = !startPoint.locked;
           startPoint = { ...startPoint };
         }}
-        class="ml-1 p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+        class="ml-1 p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         {#if startPoint.locked}
           <svg

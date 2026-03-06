@@ -106,7 +106,7 @@
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
         on:click|stopPropagation={toggleCollapsed}
-        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
+        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
         title="{collapsed ? 'Expand' : 'Collapse'} rotate"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} rotate"
         aria-expanded={!collapsed}
@@ -189,7 +189,7 @@
           rotate.locked = !rotate.locked;
           if (recordChange) recordChange();
         }}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
+        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
         title={rotate.locked ? "Unlock Rotate" : "Lock Rotate"}
         aria-label={rotate.locked ? "Unlock Rotate" : "Lock Rotate"}
       >
@@ -234,7 +234,7 @@
             if (!rotate.locked && canMoveUp && onMoveUp) onMoveUp();
           }}
           disabled={!canMoveUp || rotate.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
+          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
           title="Move Up"
           aria-label="Move Up"
         >
@@ -256,7 +256,7 @@
             if (!rotate.locked && canMoveDown && onMoveDown) onMoveDown();
           }}
           disabled={!canMoveDown || rotate.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
+          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
           title="Move Down"
           aria-label="Move Down"
         >
@@ -360,8 +360,9 @@
                 else if (def.isWait) onAddWaitAfter();
                 else if (def.isRotate) onInsertAfter();
               }}
-              class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium ${getSmallButtonClass(color)}`}
+              class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 ${getSmallButtonClass(color)}`}
               title={`Add ${def.label} After`}
+              aria-label={`Add ${def.label} After`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

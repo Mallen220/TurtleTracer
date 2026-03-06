@@ -230,7 +230,7 @@
       title={`Open File Manager${getShortcutFromSettings(settings, "toggle-file-manager")}`}
       aria-label="Open File Manager"
       on:click={() => showFileManager.set(true)}
-      class="text-neutral-700 dark:text-neutral-200 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+      class="text-neutral-700 dark:text-neutral-200 hover:text-purple-600 dark:hover:text-purple-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 rounded-md p-1 -ml-1"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -343,7 +343,7 @@
         title={action.title}
         aria-label={action.title}
         on:click={action.onClick}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         {@html action.icon}
       </button>
@@ -387,7 +387,7 @@
         title={action.title}
         aria-label={action.title}
         on:click={action.onClick}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors hidden md:block"
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors hidden md:block focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         {@html action.icon}
       </button>
@@ -403,7 +403,7 @@
         aria-label="Undo"
         on:click={undoAction}
         disabled={!canUndo}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -425,7 +425,7 @@
         aria-label="Redo"
         on:click={redoAction}
         disabled={!canRedo}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -451,7 +451,7 @@
             title={`History Panel${getShortcutFromSettings(settings, "toggle-history")}`}
             aria-label="History Panel"
             on:click={() => showHistory.set(!$showHistory)}
-            class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors {$showHistory
+            class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {$showHistory
               ? 'bg-neutral-100 dark:bg-neutral-800'
               : ''}"
           >
@@ -531,7 +531,7 @@
       title={`${showSidebar ? "Hide Sidebar" : "Show Sidebar"}${getShortcutFromSettings(settings, "toggle-sidebar")}`}
       aria-label={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
       on:click={() => (showSidebar = !showSidebar)}
-      class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+      class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
     >
       {#if showSidebar && isLargeScreen}
         <!-- Sidebar visible: show icon with left pane -->
@@ -579,10 +579,11 @@
       <button
         bind:this={viewOptionsButtonRef}
         title="View Options"
+        aria-label="View Options"
         aria-haspopup="true"
         aria-expanded={viewOptionsOpen}
         on:click={() => (viewOptionsOpen = !viewOptionsOpen)}
-        class="p-1.5 rounded-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-neutral-500 dark:text-neutral-400"
+        class="p-1.5 rounded-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-neutral-500 dark:text-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <!-- compact grid icon -->
         <svg
@@ -1034,7 +1035,7 @@
           id="save-project-btn"
           bind:this={saveButtonRef}
           on:click={() => (saveDropdownOpen = !saveDropdownOpen)}
-          class="flex items-center gap-1 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+          class="flex items-center gap-1 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
           title={`Save Options${getShortcutFromSettings(settings, "save-project")}`}
           aria-label="Save Options"
         >
@@ -1094,7 +1095,7 @@
           id="export-project-btn"
           bind:this={exportButtonRef}
           on:click={() => (exportMenuOpen = !exportMenuOpen)}
-          class="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md shadow-sm transition-colors text-sm font-medium"
+          class="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md shadow-sm transition-colors text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
         >
           <span>Export</span>
           <svg
@@ -1201,7 +1202,7 @@
           title={action.title}
           aria-label={action.title}
           on:click={action.onClick}
-          class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+          class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         >
           {@html action.icon}
         </button>
@@ -1218,7 +1219,7 @@
         title={`New Project${getShortcutFromSettings(settings, "new-file")}`}
         aria-label="New Project"
         on:click={() => resetProject()}
-        class="relative group p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+        class="relative group p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -1242,7 +1243,7 @@
         title="Report Issue / Rating"
         aria-label="Report Issue / Rating"
         on:click={() => showFeedbackDialog.set(true)}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -1266,7 +1267,7 @@
         title={`Settings${getShortcutFromSettings(settings, "open-settings")}`}
         aria-label="Settings"
         on:click={() => showSettings.set(true)}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -1296,7 +1297,7 @@
         title="GitHub Repo"
         aria-label="GitHub Repository"
         href="https://github.com/Mallen220/PedroPathingPlusVisualizer"
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
