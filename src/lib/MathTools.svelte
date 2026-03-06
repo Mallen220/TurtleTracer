@@ -400,12 +400,6 @@
         stroke-width="2"
         opacity="0.5"
       />
-      <text
-        x={protractorRadius + 15}
-        y="4"
-        class="fill-gray-400 dark:fill-gray-500 text-sm font-bold"
-        text-anchor="middle">0°</text
-      >
 
       <!-- Rotating radius line -->
       <g transform="rotate({protractorRadiusAngle})">
