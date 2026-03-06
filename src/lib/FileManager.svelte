@@ -44,7 +44,13 @@
     gitStatusStore,
     showTelemetryDialog,
   } from "../stores";
-  import { settingsStore, loadMacro, loadProjectData, macrosStore, updateMacroContent } from "./projectStore";
+  import {
+    settingsStore,
+    loadMacro,
+    loadProjectData,
+    macrosStore,
+    updateMacroContent,
+  } from "./projectStore";
   import { saveProject } from "../utils/fileHandlers";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
   import { hookRegistry } from "./registries";
@@ -599,17 +605,17 @@
         if (macros.has(sourceFile.path)) {
           const macroData = macros.get(sourceFile.path);
           if (macroData) {
-             updateMacroContent(newPath, macroData);
-             macrosStore.update(m => {
-                m.delete(sourceFile.path);
-                return m;
-             });
+            updateMacroContent(newPath, macroData);
+            macrosStore.update((m) => {
+              m.delete(sourceFile.path);
+              return m;
+            });
           }
           macrosChanged = true;
         }
 
         if (macrosChanged) {
-           isUnsaved.set(true); // Since we modified sequence, the file needs saving
+          isUnsaved.set(true); // Since we modified sequence, the file needs saving
         }
 
         showToast(
@@ -959,7 +965,7 @@
 
   // Mock path utils
   const path = {
-    join: (...parts: string[]) => parts.join("/").replace(/\/\//g, '/'),
+    join: (...parts: string[]) => parts.join("/").replace(/\/\//g, "/"),
     basename: (p: string) => p.split(/[\\/]/).pop() || "",
     extname: (p: string) => {
       const m = p.match(/\.[^/.]+$/);
@@ -969,7 +975,7 @@
       const parts = p.split(/[\\/]/);
       parts.pop();
       return parts.join("/") || "/";
-    }
+    },
   };
 </script>
 

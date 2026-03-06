@@ -285,3 +285,4 @@ src/lib/components/dialogs/ExportGifDialog.svelte
 test_field.js
 src/lib/components/whats-new/features/v1.8.0.md
 modify_settings_dialog.js
+src/lib/components/common/DebugPanel.svelte

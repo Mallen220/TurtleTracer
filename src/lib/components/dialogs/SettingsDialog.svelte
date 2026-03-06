@@ -807,7 +807,8 @@
 
                 <SettingsItem
                   label="Autosave Mode"
-                  isModified={settings.autosaveMode !== DEFAULT_SETTINGS.autosaveMode}
+                  isModified={settings.autosaveMode !==
+                    DEFAULT_SETTINGS.autosaveMode}
                   onReset={() => {
                     settings.autosaveMode = DEFAULT_SETTINGS.autosaveMode;
                     settings = { ...settings };
@@ -833,8 +834,9 @@
                   <div transition:fade>
                     <SettingsItem
                       label="Autosave Interval"
-                      isModified={settings.autosaveInterval !== DEFAULT_SETTINGS.autosaveInterval}
-                  onReset={() => {
+                      isModified={settings.autosaveInterval !==
+                        DEFAULT_SETTINGS.autosaveInterval}
+                      onReset={() => {
                         settings.autosaveInterval =
                           DEFAULT_SETTINGS.autosaveInterval;
                         settings = { ...settings };
@@ -922,7 +924,8 @@
 
                 <SettingsItem
                   label="Git Integration"
-                  isModified={settings.gitIntegration !== DEFAULT_SETTINGS.gitIntegration}
+                  isModified={settings.gitIntegration !==
+                    DEFAULT_SETTINGS.gitIntegration}
                   onReset={() => {
                     settings.gitIntegration = DEFAULT_SETTINGS.gitIntegration;
                     settings = { ...settings };
@@ -1001,7 +1004,7 @@
                   <SettingsItem
                     label="Robot Length (in)"
                     isModified={settings.rLength !== DEFAULT_SETTINGS.rLength}
-                  onReset={() => {
+                    onReset={() => {
                       settings.rLength = DEFAULT_SETTINGS.rLength;
                       settings = { ...settings };
                     }}
@@ -1023,7 +1026,7 @@
                   <SettingsItem
                     label="Robot Width (in)"
                     isModified={settings.rWidth !== DEFAULT_SETTINGS.rWidth}
-                  onReset={() => {
+                    onReset={() => {
                       settings.rWidth = DEFAULT_SETTINGS.rWidth;
                       settings = { ...settings };
                     }}
@@ -1046,7 +1049,8 @@
 
                 <SettingsItem
                   label="Safety Margin (in)"
-                  isModified={settings.safetyMargin !== DEFAULT_SETTINGS.safetyMargin}
+                  isModified={settings.safetyMargin !==
+                    DEFAULT_SETTINGS.safetyMargin}
                   onReset={() => {
                     settings.safetyMargin = DEFAULT_SETTINGS.safetyMargin;
                     settings = { ...settings };
@@ -1069,7 +1073,8 @@
 
                 <SettingsItem
                   label="Validate Field Boundaries"
-                  isModified={settings.validateFieldBoundaries !== DEFAULT_SETTINGS.validateFieldBoundaries}
+                  isModified={settings.validateFieldBoundaries !==
+                    DEFAULT_SETTINGS.validateFieldBoundaries}
                   onReset={() => {
                     settings.validateFieldBoundaries =
                       DEFAULT_SETTINGS.validateFieldBoundaries;
@@ -1088,7 +1093,8 @@
 
                 <SettingsItem
                   label="Restrict Dragging"
-                  isModified={settings.restrictDraggingToField !== DEFAULT_SETTINGS.restrictDraggingToField}
+                  isModified={settings.restrictDraggingToField !==
+                    DEFAULT_SETTINGS.restrictDraggingToField}
                   onReset={() => {
                     settings.restrictDraggingToField =
                       DEFAULT_SETTINGS.restrictDraggingToField;
@@ -1107,7 +1113,8 @@
 
                 <SettingsItem
                   label="Continuous Validation"
-                  isModified={settings.continuousValidation !== DEFAULT_SETTINGS.continuousValidation}
+                  isModified={settings.continuousValidation !==
+                    DEFAULT_SETTINGS.continuousValidation}
                   onReset={() => {
                     settings.continuousValidation =
                       DEFAULT_SETTINGS.continuousValidation;
@@ -1126,7 +1133,12 @@
 
                 <SettingsItem
                   label="Robot Image"
-                  isModified={settings.robotImage !== DEFAULT_SETTINGS.robotImage || settings.robotDriveType !== DEFAULT_SETTINGS.robotDriveType || settings.showRobotArrows !== DEFAULT_SETTINGS.showRobotArrows}
+                  isModified={settings.robotImage !==
+                    DEFAULT_SETTINGS.robotImage ||
+                    settings.robotDriveType !==
+                      DEFAULT_SETTINGS.robotDriveType ||
+                    settings.showRobotArrows !==
+                      DEFAULT_SETTINGS.showRobotArrows}
                   onReset={() => {
                     settings.robotImage = DEFAULT_SETTINGS.robotImage;
                     settings.robotDriveType = DEFAULT_SETTINGS.robotDriveType;
@@ -1363,8 +1375,9 @@
                   <div class="space-y-2">
                     <SettingsItem
                       label="Show Fake Heading Arrow"
-                      isModified={settings.showFakeHeadingArrow !== DEFAULT_SETTINGS.showFakeHeadingArrow}
-                  onReset={() => {
+                      isModified={settings.showFakeHeadingArrow !==
+                        DEFAULT_SETTINGS.showFakeHeadingArrow}
+                      onReset={() => {
                         settings.showFakeHeadingArrow =
                           DEFAULT_SETTINGS.showFakeHeadingArrow;
                         settings = { ...settings };
@@ -1383,8 +1396,9 @@
                     {#if settings.showFakeHeadingArrow}
                       <SettingsItem
                         label="Heading Arrow Color"
-                        isModified={settings.fakeHeadingArrowColor !== DEFAULT_SETTINGS.fakeHeadingArrowColor}
-                  onReset={() => {
+                        isModified={settings.fakeHeadingArrowColor !==
+                          DEFAULT_SETTINGS.fakeHeadingArrowColor}
+                        onReset={() => {
                           settings.fakeHeadingArrowColor =
                             DEFAULT_SETTINGS.fakeHeadingArrowColor;
                           settings = { ...settings };
@@ -1419,8 +1433,9 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <SettingsItem
                     label="X Velocity (in/s)"
-                    isModified={settings.xVelocity !== DEFAULT_SETTINGS.xVelocity}
-                  onReset={() => {
+                    isModified={settings.xVelocity !==
+                      DEFAULT_SETTINGS.xVelocity}
+                    onReset={() => {
                       settings.xVelocity = DEFAULT_SETTINGS.xVelocity;
                       settings = { ...settings };
                     }}
@@ -1439,8 +1454,9 @@
                   </SettingsItem>
                   <SettingsItem
                     label="Y Velocity (in/s)"
-                    isModified={settings.yVelocity !== DEFAULT_SETTINGS.yVelocity}
-                  onReset={() => {
+                    isModified={settings.yVelocity !==
+                      DEFAULT_SETTINGS.yVelocity}
+                    onReset={() => {
                       settings.yVelocity = DEFAULT_SETTINGS.yVelocity;
                       settings = { ...settings };
                     }}
@@ -1530,7 +1546,8 @@
 
                 <SettingsItem
                   label="Max Velocity (in/s)"
-                  isModified={settings.maxVelocity !== DEFAULT_SETTINGS.maxVelocity}
+                  isModified={settings.maxVelocity !==
+                    DEFAULT_SETTINGS.maxVelocity}
                   onReset={() => {
                     settings.maxVelocity = DEFAULT_SETTINGS.maxVelocity;
                     settings = { ...settings };
@@ -1552,8 +1569,9 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <SettingsItem
                     label="Max Acceleration (in/s²)"
-                    isModified={settings.maxAcceleration !== DEFAULT_SETTINGS.maxAcceleration}
-                  onReset={() => {
+                    isModified={settings.maxAcceleration !==
+                      DEFAULT_SETTINGS.maxAcceleration}
+                    onReset={() => {
                       settings.maxAcceleration =
                         DEFAULT_SETTINGS.maxAcceleration;
                       settings = { ...settings };
@@ -1573,8 +1591,9 @@
                   </SettingsItem>
                   <SettingsItem
                     label="Max Deceleration (in/s²)"
-                    isModified={settings.maxDeceleration !== DEFAULT_SETTINGS.maxDeceleration}
-                  onReset={() => {
+                    isModified={settings.maxDeceleration !==
+                      DEFAULT_SETTINGS.maxDeceleration}
+                    onReset={() => {
                       settings.maxDeceleration =
                         DEFAULT_SETTINGS.maxDeceleration;
                       settings = { ...settings };
@@ -1668,7 +1687,8 @@
 
                 <SettingsItem
                   label="Program Font Size"
-                  isModified={settings.programFontSize !== DEFAULT_SETTINGS.programFontSize}
+                  isModified={settings.programFontSize !==
+                    DEFAULT_SETTINGS.programFontSize}
                   onReset={() => {
                     settings.programFontSize = DEFAULT_SETTINGS.programFontSize;
                     settings = { ...settings };
@@ -1758,7 +1778,8 @@
 
                 <SettingsItem
                   label="Field Orientation"
-                  isModified={settings.fieldRotation !== DEFAULT_SETTINGS.fieldRotation}
+                  isModified={settings.fieldRotation !==
+                    DEFAULT_SETTINGS.fieldRotation}
                   onReset={() => {
                     settings.fieldRotation = DEFAULT_SETTINGS.fieldRotation;
                     settings = { ...settings };
@@ -1786,7 +1807,8 @@
 
                 <SettingsItem
                   label="Coordinate System"
-                  isModified={settings.coordinateSystem !== DEFAULT_SETTINGS.coordinateSystem}
+                  isModified={settings.coordinateSystem !==
+                    DEFAULT_SETTINGS.coordinateSystem}
                   onReset={() => {
                     settings.coordinateSystem =
                       DEFAULT_SETTINGS.coordinateSystem;
@@ -1808,7 +1830,8 @@
 
                 <SettingsItem
                   label="Smart Object Snapping"
-                  isModified={settings.smartSnapping !== DEFAULT_SETTINGS.smartSnapping}
+                  isModified={settings.smartSnapping !==
+                    DEFAULT_SETTINGS.smartSnapping}
                   onReset={() => {
                     settings.smartSnapping = DEFAULT_SETTINGS.smartSnapping;
                     settings = { ...settings };
@@ -1826,7 +1849,8 @@
 
                 <SettingsItem
                   label="Velocity Heatmap"
-                  isModified={settings.showVelocityHeatmap !== DEFAULT_SETTINGS.showVelocityHeatmap}
+                  isModified={settings.showVelocityHeatmap !==
+                    DEFAULT_SETTINGS.showVelocityHeatmap}
                   onReset={() => {
                     settings.showVelocityHeatmap =
                       DEFAULT_SETTINGS.showVelocityHeatmap;
@@ -1845,7 +1869,8 @@
 
                 <SettingsItem
                   label="Follow Robot"
-                  isModified={settings.followRobot !== DEFAULT_SETTINGS.followRobot}
+                  isModified={settings.followRobot !==
+                    DEFAULT_SETTINGS.followRobot}
                   onReset={() => {
                     settings.followRobot = DEFAULT_SETTINGS.followRobot;
                     settings = { ...settings };
@@ -1880,7 +1905,8 @@
 
                 <SettingsItem
                   label="Auto Export Code"
-                  isModified={settings.autoExportCode !== DEFAULT_SETTINGS.autoExportCode}
+                  isModified={settings.autoExportCode !==
+                    DEFAULT_SETTINGS.autoExportCode}
                   onReset={() => {
                     settings.autoExportCode = DEFAULT_SETTINGS.autoExportCode;
                     settings = { ...settings };
@@ -1900,8 +1926,9 @@
                   <div transition:fade>
                     <SettingsItem
                       label="Export Path Mode"
-                      isModified={settings.autoExportPathMode !== DEFAULT_SETTINGS.autoExportPathMode}
-                  onReset={() => {
+                      isModified={settings.autoExportPathMode !==
+                        DEFAULT_SETTINGS.autoExportPathMode}
+                      onReset={() => {
                         settings.autoExportPathMode =
                           DEFAULT_SETTINGS.autoExportPathMode;
                         settings = { ...settings };
@@ -1936,8 +1963,9 @@
 
                     <SettingsItem
                       label="Export Path"
-                      isModified={settings.autoExportPath !== DEFAULT_SETTINGS.autoExportPath}
-                  onReset={() => {
+                      isModified={settings.autoExportPath !==
+                        DEFAULT_SETTINGS.autoExportPath}
+                      onReset={() => {
                         settings.autoExportPath =
                           DEFAULT_SETTINGS.autoExportPath;
                         settings = { ...settings };
@@ -1989,8 +2017,9 @@
 
                     <SettingsItem
                       label="Export Format"
-                      isModified={settings.autoExportFormat !== DEFAULT_SETTINGS.autoExportFormat}
-                  onReset={() => {
+                      isModified={settings.autoExportFormat !==
+                        DEFAULT_SETTINGS.autoExportFormat}
+                      onReset={() => {
                         settings.autoExportFormat =
                           DEFAULT_SETTINGS.autoExportFormat;
                         settings = { ...settings };
@@ -2014,8 +2043,9 @@
                       <div transition:fade>
                         <SettingsItem
                           label="Generate Full Class"
-                          isModified={settings.autoExportFullClass !== DEFAULT_SETTINGS.autoExportFullClass}
-                  onReset={() => {
+                          isModified={settings.autoExportFullClass !==
+                            DEFAULT_SETTINGS.autoExportFullClass}
+                          onReset={() => {
                             settings.autoExportFullClass =
                               DEFAULT_SETTINGS.autoExportFullClass;
                             settings = { ...settings };
@@ -2033,8 +2063,9 @@
 
                         <SettingsItem
                           label="Telemetry Implementation"
-                          isModified={settings.telemetryImplementation !== DEFAULT_SETTINGS.telemetryImplementation}
-                  onReset={() => {
+                          isModified={settings.telemetryImplementation !==
+                            DEFAULT_SETTINGS.telemetryImplementation}
+                          onReset={() => {
                             settings.telemetryImplementation =
                               DEFAULT_SETTINGS.telemetryImplementation;
                             settings = { ...settings };
@@ -2060,8 +2091,9 @@
                       <div transition:fade>
                         <SettingsItem
                           label="Target Library"
-                          isModified={settings.autoExportTargetLibrary !== DEFAULT_SETTINGS.autoExportTargetLibrary}
-                  onReset={() => {
+                          isModified={settings.autoExportTargetLibrary !==
+                            DEFAULT_SETTINGS.autoExportTargetLibrary}
+                          onReset={() => {
                             settings.autoExportTargetLibrary =
                               DEFAULT_SETTINGS.autoExportTargetLibrary;
                             settings = { ...settings };
@@ -2081,8 +2113,9 @@
 
                         <SettingsItem
                           label="Embed Pose Data"
-                          isModified={settings.autoExportEmbedPoseData !== DEFAULT_SETTINGS.autoExportEmbedPoseData}
-                  onReset={() => {
+                          isModified={settings.autoExportEmbedPoseData !==
+                            DEFAULT_SETTINGS.autoExportEmbedPoseData}
+                          onReset={() => {
                             settings.autoExportEmbedPoseData =
                               DEFAULT_SETTINGS.autoExportEmbedPoseData;
                             settings = { ...settings };
@@ -2104,8 +2137,9 @@
                       <div transition:fade>
                         <SettingsItem
                           label="Package Name"
-                          isModified={settings.javaPackageName !== DEFAULT_SETTINGS.javaPackageName}
-                  onReset={() => {
+                          isModified={settings.javaPackageName !==
+                            DEFAULT_SETTINGS.javaPackageName}
+                          onReset={() => {
                             settings.javaPackageName =
                               DEFAULT_SETTINGS.javaPackageName;
                             settings = { ...settings };
@@ -2141,7 +2175,8 @@
 
                 <SettingsItem
                   label="Show Debug Sequence"
-                  isModified={settings.showDebugSequence !== DEFAULT_SETTINGS.showDebugSequence}
+                  isModified={settings.showDebugSequence !==
+                    DEFAULT_SETTINGS.showDebugSequence}
                   onReset={() => {
                     settings.showDebugSequence =
                       DEFAULT_SETTINGS.showDebugSequence;
@@ -2160,7 +2195,8 @@
 
                 <SettingsItem
                   label="Robot Onion Layers"
-                  isModified={settings.showOnionLayers !== DEFAULT_SETTINGS.showOnionLayers}
+                  isModified={settings.showOnionLayers !==
+                    DEFAULT_SETTINGS.showOnionLayers}
                   onReset={() => {
                     settings.showOnionLayers = DEFAULT_SETTINGS.showOnionLayers;
                     settings = { ...settings };
@@ -2182,8 +2218,9 @@
                   >
                     <SettingsItem
                       label="Show Only on Current Path"
-                      isModified={settings.onionSkinCurrentPathOnly !== DEFAULT_SETTINGS.onionSkinCurrentPathOnly}
-                  onReset={() => {
+                      isModified={settings.onionSkinCurrentPathOnly !==
+                        DEFAULT_SETTINGS.onionSkinCurrentPathOnly}
+                      onReset={() => {
                         settings.onionSkinCurrentPathOnly =
                           DEFAULT_SETTINGS.onionSkinCurrentPathOnly;
                         settings = { ...settings };
@@ -2201,8 +2238,9 @@
 
                     <SettingsItem
                       label="Onion Layer Spacing"
-                      isModified={settings.onionLayerSpacing !== DEFAULT_SETTINGS.onionLayerSpacing}
-                  onReset={() => {
+                      isModified={settings.onionLayerSpacing !==
+                        DEFAULT_SETTINGS.onionLayerSpacing}
+                      onReset={() => {
                         settings.onionLayerSpacing =
                           DEFAULT_SETTINGS.onionLayerSpacing;
                         settings = { ...settings };
@@ -2232,8 +2270,9 @@
                 <div class="mt-6 space-y-4">
                   <SettingsItem
                     label="Optimization Iterations"
-                    isModified={settings.optimizationIterations !== DEFAULT_SETTINGS.optimizationIterations}
-                  onReset={() => {
+                    isModified={settings.optimizationIterations !==
+                      DEFAULT_SETTINGS.optimizationIterations}
+                    onReset={() => {
                       settings.optimizationIterations =
                         DEFAULT_SETTINGS.optimizationIterations;
                       settings = { ...settings };
@@ -2256,8 +2295,9 @@
                   </SettingsItem>
                   <SettingsItem
                     label="Population Size"
-                    isModified={settings.optimizationPopulationSize !== DEFAULT_SETTINGS.optimizationPopulationSize}
-                  onReset={() => {
+                    isModified={settings.optimizationPopulationSize !==
+                      DEFAULT_SETTINGS.optimizationPopulationSize}
+                    onReset={() => {
                       settings.optimizationPopulationSize =
                         DEFAULT_SETTINGS.optimizationPopulationSize;
                       settings = { ...settings };
@@ -2280,8 +2320,9 @@
                   </SettingsItem>
                   <SettingsItem
                     label="Mutation Rate"
-                    isModified={settings.optimizationMutationRate !== DEFAULT_SETTINGS.optimizationMutationRate}
-                  onReset={() => {
+                    isModified={settings.optimizationMutationRate !==
+                      DEFAULT_SETTINGS.optimizationMutationRate}
+                    onReset={() => {
                       settings.optimizationMutationRate =
                         DEFAULT_SETTINGS.optimizationMutationRate;
                       settings = { ...settings };
@@ -2304,8 +2345,9 @@
                   </SettingsItem>
                   <SettingsItem
                     label="Mutation Strength"
-                    isModified={settings.optimizationMutationStrength !== DEFAULT_SETTINGS.optimizationMutationStrength}
-                  onReset={() => {
+                    isModified={settings.optimizationMutationStrength !==
+                      DEFAULT_SETTINGS.optimizationMutationStrength}
+                    onReset={() => {
                       settings.optimizationMutationStrength =
                         DEFAULT_SETTINGS.optimizationMutationStrength;
                       settings = { ...settings };
