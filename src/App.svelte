@@ -1494,7 +1494,8 @@
     const registeredThemes = $themesStore;
     if (settings) {
       // Check for Potato Mode first!
-      const isPotatoMode = settings.robotImage === "/JefferyThePotato.png";
+      const isAprilFools = new Date().getMonth() === 3 && new Date().getDate() === 1;
+      const isPotatoMode = settings.robotImage === "/JefferyThePotato.png" || isAprilFools;
 
       // Remove any existing custom theme style
       const existingStyle = document.getElementById("custom-theme-style");
