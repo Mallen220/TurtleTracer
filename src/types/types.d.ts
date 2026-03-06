@@ -159,6 +159,8 @@ interface Settings {
   fieldMap: string;
   fieldRotation?: number; // degrees
   robotImage?: string;
+  robotDriveType?: "holonomic" | "swerve"; // Drive train type for visualization
+  showRobotArrows?: boolean;
   theme: "light" | "dark" | "auto";
   autosaveMode?: "time" | "change" | "close" | "never";
   autosaveInterval?: number; // minutes

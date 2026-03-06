@@ -47,9 +47,10 @@
       yVelocity: settings.yVelocity,
       robotImage: settings.robotImage,
       robotDriveType: settings.robotDriveType,
+      showRobotArrows: settings.showRobotArrows,
       showFakeHeadingArrow: settings.showFakeHeadingArrow,
       fakeHeadingArrowColor: settings.fakeHeadingArrowColor,
-    };
+    } as RobotProfile;
 
     robotProfilesStore.update((p) => [...p, newProfile]);
     selectedProfileId = newProfile.id;
@@ -92,6 +93,9 @@
     if (profile.robotDriveType) {
       settings.robotDriveType = profile.robotDriveType;
     }
+    if (profile.showRobotArrows !== undefined) {
+      settings.showRobotArrows = profile.showRobotArrows;
+    }
     settings.showFakeHeadingArrow = profile.showFakeHeadingArrow ?? false;
     settings.fakeHeadingArrowColor = profile.fakeHeadingArrowColor || "#ef4444";
 
@@ -120,9 +124,10 @@
       yVelocity: settings.yVelocity,
       robotImage: settings.robotImage,
       robotDriveType: settings.robotDriveType,
+      showRobotArrows: settings.showRobotArrows,
       showFakeHeadingArrow: settings.showFakeHeadingArrow,
       fakeHeadingArrowColor: settings.fakeHeadingArrowColor,
-    };
+    } as RobotProfile;
 
     robotProfilesStore.update((p) => {
       const newProfiles = [...p];

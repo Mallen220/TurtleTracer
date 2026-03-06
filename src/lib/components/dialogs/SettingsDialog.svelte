@@ -1197,11 +1197,14 @@
                         on:change={handleImageUpload}
                       />
                       <button
-                        on:click={() =>
-                          document.getElementById("robot-image-input")?.click()}
-                        class="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
+                        on:click={() => {
+                          settings.robotImage = "none";
+                          settings = { ...settings };
+                        }}
+                        class="px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
+                        disabled={settings.robotImage === "none"}
                       >
-                        Upload Robot Image
+                        No Image (Recommended)
                       </button>
                       <button
                         on:click={() => {
@@ -1212,17 +1215,7 @@
                         disabled={!settings.robotImage ||
                           settings.robotImage === "/robot.png"}
                       >
-                        Use Robot Image
-                      </button>
-                      <button
-                        on:click={() => {
-                          settings.robotImage = "none";
-                          settings = { ...settings };
-                        }}
-                        class="px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
-                        disabled={settings.robotImage === "none"}
-                      >
-                        No Image
+                        Lightweight Image
                       </button>
                       <button
                         on:click={() => {
@@ -1233,6 +1226,13 @@
                         style="background-image: linear-gradient(45deg, #a16207 25%, #ca8a04 25%, #ca8a04 50%, #a16207 50%, #a16207 75%, #ca8a04 75%, #ca8a04 100%); background-size: 20px 20px;"
                       >
                         <span>🥔</span> Use Potato Robot
+                      </button>
+                      <button
+                        on:click={() =>
+                          document.getElementById("robot-image-input")?.click()}
+                        class="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
+                      >
+                        Upload Custom
                       </button>
                     </div>
 
@@ -1275,19 +1275,18 @@
                           >
                             Swerve
                           </button>
-                          <button
-                            class="px-3 py-1.5 text-sm rounded-md transition-colors
-                              {settings.robotDriveType === 'none'
-                              ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
-                              : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
-                            on:click={() => {
-                              settings.robotDriveType = "none";
-                              settings = { ...settings };
-                            }}
-                          >
-                            None (No Wheel Arrows)
-                          </button>
                         </div>
+                      </div>
+                      <div class="w-full flex justify-between items-center mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                        <div>
+                          <p class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Show Wheel Arrows</p>
+                          <p class="text-xs text-neutral-500 dark:text-neutral-400">Display arrows indicating wheel speeds/directions based on drive train type</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          bind:checked={settings.showRobotArrows}
+                          class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        />
                       </div>
                     {/if}
                   </div>

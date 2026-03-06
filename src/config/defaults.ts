@@ -55,6 +55,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // legacy robot.png graphic via the settings panel if desired.
   robotImage: "none",
   robotDriveType: "holonomic",
+  showRobotArrows: true,
   showFakeHeadingArrow: false,
   fakeHeadingArrowColor: "#ef4444",
   javaPackageName: "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
