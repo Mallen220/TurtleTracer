@@ -54,6 +54,7 @@
   } from "../../utils/buttonStyles";
   import { getShortcutFromSettings } from "../../utils";
   import { toUser, toField } from "../../utils/coordinates";
+  import { calculatePathTime, formatTime } from "../../utils/timeCalculator";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -88,6 +89,28 @@
   $: _collapsedObstaclesCount = Array.isArray(collapsedObstacles)
     ? collapsedObstacles.length
     : 0;
+
+  // Compute segment statistics for contextual display
+  $: timePrediction = calculatePathTime(
+    startPoint,
+    lines,
+    settings || ({} as any),
+    sequence,
+  );
+
+  let pathStatsMap = new Map();
+  $: {
+    pathStatsMap.clear();
+    if (timePrediction && timePrediction.timeline) {
+      timePrediction.timeline.forEach((event) => {
+        if (event.type === "travel" && event.lineIndex !== undefined) {
+          const lineId = lines[event.lineIndex]?.id;
+          if (lineId) pathStatsMap.set(lineId, event);
+        }
+      });
+    }
+    pathStatsMap = pathStatsMap; // trigger reactivity
+  }
 
   // Focus Handling Action
   function focusOnRequest(
@@ -632,9 +655,11 @@
 
   let hoveredLinkId: string | null = null;
   let hoveredWaitId: string | null = null;
+  let hoveredStatsLineId: string | null = null;
   // Anchor elements used for portal positioning (moved to body)
   let hoveredLinkAnchor: HTMLElement | null = null;
   let hoveredWaitAnchor: HTMLElement | null = null;
+  let hoveredStatsAnchor: HTMLElement | null = null;
 
   function handleLinkHoverEnter(e: MouseEvent, id: string | null) {
     hoveredLinkId = id;
@@ -653,6 +678,15 @@
   function handleWaitHoverLeave() {
     hoveredWaitId = null;
     hoveredWaitAnchor = null;
+  }
+
+  function handleStatsHoverEnter(e: MouseEvent, id: string | null) {
+    hoveredStatsLineId = id;
+    hoveredStatsAnchor = e.currentTarget as HTMLElement;
+  }
+  function handleStatsHoverLeave() {
+    hoveredStatsLineId = null;
+    hoveredStatsAnchor = null;
   }
 
   async function handleContextMenu(event: MouseEvent, seqIndex: number) {
@@ -1445,6 +1479,52 @@
                         placeholder="Path {lineIdx + 1}"
                         aria-label="Path Name"
                       />
+                      {#if line.id && pathStatsMap.has(line.id)}
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <div
+                          class="absolute right-[22px] top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 cursor-help flex items-center justify-center"
+                          on:mouseenter={(e) =>
+                            handleStatsHoverEnter(e, line.id || null)}
+                          on:mouseleave={handleStatsHoverLeave}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            class="w-3.5 h-3.5"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                            />
+                          </svg>
+                          {#if hoveredStatsLineId === line.id}
+                            <div
+                              use:tooltipPortal={hoveredStatsAnchor}
+                              class="w-48 p-2 bg-neutral-800 border border-neutral-700 rounded shadow-lg text-xs text-neutral-100 z-50 pointer-events-none"
+                            >
+                              <strong>Segment Stats</strong><br />
+                              Start: {formatTime(
+                                pathStatsMap.get(line.id).startTime,
+                              )}<br />
+                              End: {formatTime(
+                                pathStatsMap.get(line.id).endTime,
+                              )}<br />
+                              Duration: {formatTime(
+                                pathStatsMap.get(line.id).duration,
+                              )}<br />
+                              {#if pathStatsMap.get(line.id).distance !== undefined}
+                                Distance: {pathStatsMap
+                                  .get(line.id)
+                                  .distance.toFixed(2)} in
+                              {/if}
+                            </div>
+                          {/if}
+                        </div>
+                      {/if}
                       {#if line.id && isLineLinked(lines, line.id)}
                         <!-- svelte-ignore a11y-no-static-element-interactions -->
                         <div

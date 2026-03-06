@@ -5,3 +5,7 @@ Action: [When building new powerful editor features, always ensure they are expo
 2024-05-24 - [Digital Strategy Notes]
 Learning: Replacing static printed lines with an editable textarea linked to the project store allows users to draft their strategy before printing or exporting. This reduces manual work and ensures notes persist with the file.
 Action: Look for opportunities to upgrade read-only or print-only dialogs with active state management that adds tangible user value.
+
+2024-10-24 - [Contextualizing Sequence Statistics]
+Learning: Users often need to see the time/distance impact of individual segments without opening global dialogs. Extracting the `timePrediction.timeline` data and displaying it inline within the sequence list (`WaypointTable`) provides immediate feedback.
+Action: When building complex sequences, expose the derived/simulated data (like start/end times) directly alongside the editable items to tighten the feedback loop.
