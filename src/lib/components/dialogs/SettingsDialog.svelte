@@ -2225,6 +2225,15 @@
                             class="text-blue-600 dark:text-blue-400 hover:underline"
                             >Security</a
                           >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://discord.gg/chHSzS4ewF"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >Discord</a
+                          >
                         </div>
                       </div>
                     </div>
