@@ -2915,8 +2915,8 @@
 
     <!-- SVG Overlay for animated paths/layers -->
     <svg
-      class="absolute inset-0 pointer-events-none z-10"
-      style={`width: ${width}px; height: ${height}px;`}
+      class="absolute inset-0 pointer-events-none"
+      style={`z-index: 14; width: ${width}px; height: ${height}px;`}
     >
       {#each onionLayerElements as layer}
         <polygon
