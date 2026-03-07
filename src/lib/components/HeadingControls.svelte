@@ -180,6 +180,7 @@
           <button
             on:click={normalizeStart}
             title="Angle is out of bounds. Click to normalize to [-180, 180]."
+            aria-label="Normalize angle to between -180 and 180 degrees"
             class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
           >
             <svg
@@ -232,6 +233,7 @@
           <button
             on:click={normalizeEnd}
             title="Angle is out of bounds. Click to normalize to [-180, 180]."
+            aria-label="Normalize angle to between -180 and 180 degrees"
             class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
           >
             <svg
@@ -287,6 +289,7 @@
           <button
             on:click={normalizeConstant}
             title="Angle is out of bounds. Click to normalize to [-180, 180]."
+            aria-label="Normalize angle to between -180 and 180 degrees"
             class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
           >
             <svg

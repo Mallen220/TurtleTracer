@@ -162,6 +162,7 @@
         <button
           on:click={normalizeDegrees}
           title="Angle is out of bounds. Click to normalize to [-180, 180]."
+          aria-label="Normalize angle"
           class="p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
         >
           <svg
