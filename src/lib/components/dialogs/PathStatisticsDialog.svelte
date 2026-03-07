@@ -631,12 +631,14 @@
           <button
             class={`px-3 py-1 rounded-md transition-all ${activeTab === "summary" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
             on:click={() => (activeTab = "summary")}
+            aria-label="Summary view"
           >
             Summary
           </button>
           <button
             class={`px-3 py-1 rounded-md transition-all ${activeTab === "graphs" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
             on:click={() => (activeTab = "graphs")}
+            aria-label="Graphs view"
           >
             Graphs
           </button>
