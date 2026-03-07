@@ -1190,7 +1190,8 @@
                 showExportImage.set(true);
               }}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-              title="Export as Image">Export as Image</button
+              title={`Export Image${getShortcutFromSettings(settings, "export-image")}`}
+              >Export as Image</button
             >
             <button
               on:click={() => {

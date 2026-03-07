@@ -534,6 +534,10 @@ const createMenu = () => {
             },
             { type: "separator" },
             {
+              label: "Export as Image...",
+              click: () => sendToFocusedWindow("menu-action", "export-image"),
+            },
+            {
               label: "Export GIF...",
               click: () => sendToFocusedWindow("menu-action", "export-gif"),
             },
