@@ -158,7 +158,9 @@ function getCurvatureRadius(
   d2: { x: number; y: number },
 ): number {
   const numerator = Math.abs(d1.x * d2.y - d1.y * d2.x);
-  const denominator = Math.pow(d1.x * d1.x + d1.y * d1.y, 1.5);
+  // Optimization: d1Sq * Math.sqrt(d1Sq) is significantly faster than Math.pow(d1Sq, 1.5)
+  const d1Sq = d1.x * d1.x + d1.y * d1.y;
+  const denominator = d1Sq * Math.sqrt(d1Sq);
 
   if (Math.abs(d1.x) < 1e-6 && Math.abs(d1.y) < 1e-6) {
     return 0;
@@ -402,7 +404,9 @@ export function analyzePathSegment(
     let radius = Infinity;
     const numerator = Math.abs(d1x * d2y - d1y * d2x);
     if (numerator >= 1e-6) {
-      const denominator = Math.pow(d1x * d1x + d1y * d1y, 1.5);
+      // Optimization: d1Sq * Math.sqrt(d1Sq) is significantly faster than Math.pow(d1Sq, 1.5)
+      const d1Sq = d1x * d1x + d1y * d1y;
+      const denominator = d1Sq * Math.sqrt(d1Sq);
       radius = denominator / numerator;
     } else if (Math.abs(d1x) < 1e-6 && Math.abs(d1y) < 1e-6) {
       radius = 0; // Cusp or stop

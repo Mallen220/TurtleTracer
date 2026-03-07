@@ -18,7 +18,10 @@ export function quadraticToCubic(
 }
 
 export function easeInOutQuad(x: number): number {
-  return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+  // Optimization: direct multiplication is faster than Math.pow(t, 2)
+  if (x < 0.5) return 2 * x * x;
+  const t = -2 * x + 2;
+  return 1 - (t * t) / 2;
 }
 
 export function getMousePos(evt: MouseEvent, canvas: any) {

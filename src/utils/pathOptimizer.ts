@@ -353,14 +353,14 @@ export class PathOptimizer {
         // Use the robot footprint (half diagonal) so starting at a field edge
         // does not immediately trigger boundary collisions while the center is
         // still within the robot’s own radius.
-        const distToStart = Math.sqrt(
-          Math.pow(x - this.startPoint.x, 2) +
-            Math.pow(y - this.startPoint.y, 2),
-        );
+        // Optimization: direct multiplication instead of Math.pow(n, 2)
+        const dx = x - this.startPoint.x;
+        const dy = y - this.startPoint.y;
+        const distToStart = Math.sqrt(dx * dx + dy * dy);
 
-        const halfDiag = Math.sqrt(
-          Math.pow(rLength / 2, 2) + Math.pow(rWidth / 2, 2),
-        );
+        const rLenHalf = rLength / 2;
+        const rWidHalf = rWidth / 2;
+        const halfDiag = Math.sqrt(rLenHalf * rLenHalf + rWidHalf * rWidHalf);
 
         const exclusionDist = Math.max(
           2,

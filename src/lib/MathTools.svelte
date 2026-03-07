@@ -109,9 +109,10 @@
     protractorDragging = null;
   }
 
+  // Optimization: direct multiplication is faster than Math.pow(x, 2)
   $: rulerLength = Math.sqrt(
-    Math.pow(rulerEnd.x - rulerStart.x, 2) +
-      Math.pow(rulerEnd.y - rulerStart.y, 2),
+    (rulerEnd.x - rulerStart.x) * (rulerEnd.x - rulerStart.x) +
+      (rulerEnd.y - rulerStart.y) * (rulerEnd.y - rulerStart.y),
   );
 
   $: deltaX = Math.abs(rulerEnd.x - rulerStart.x);
