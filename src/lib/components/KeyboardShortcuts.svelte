@@ -346,6 +346,29 @@
           position: 0.5,
         });
         sequenceStore.set(sequence);
+        selectedPointId.set(`event-wait-${waitId}-${waitItem.eventMarkers.length - 1}`);
+        recordChange("Add Event Marker");
+        return;
+      }
+    }
+
+    // Check if a rotate is selected
+    if ($selectedPointId && $selectedPointId.startsWith("rotate-")) {
+      const rotateId = $selectedPointId.substring(7);
+      const rotateItem = sequence.find(
+        (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      ) as any;
+
+      if (rotateItem) {
+        if (rotateItem.locked) return;
+        rotateItem.eventMarkers = rotateItem.eventMarkers || [];
+        rotateItem.eventMarkers.push({
+          id: `event-${Date.now()}`,
+          name: "",
+          position: 0.5,
+        });
+        sequenceStore.set(sequence);
+        selectedPointId.set(`event-rotate-${rotateId}-${rotateItem.eventMarkers.length - 1}`);
         recordChange("Add Event Marker");
         return;
       }
@@ -363,6 +386,10 @@
         position: 0.5,
       });
       linesStore.set(lines);
+      const lineIdx = lines.findIndex((l) => l.id === targetId);
+      if (lineIdx !== -1) {
+        selectedPointId.set(`event-${lineIdx}-${targetLine.eventMarkers.length - 1}`);
+      }
       recordChange("Add Event Marker");
     }
   }
@@ -961,6 +988,54 @@
         selectedPointId.set(null);
         recordChange("Delete Selection");
       }
+      return;
+    }
+
+    if (sel.startsWith("event-wait-")) {
+      const parts = sel.split("-");
+      const evIdx = Number(parts.pop());
+      const waitId = parts.slice(2).join("-");
+
+      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        if (item.locked) return;
+        item.eventMarkers.splice(evIdx, 1);
+        sequenceStore.set(sequence);
+        selectedPointId.set(`wait-${waitId}`);
+        recordChange("Delete Event Marker");
+      }
+      return;
+    }
+
+    if (sel.startsWith("event-rotate-")) {
+      const parts = sel.split("-");
+      const evIdx = Number(parts.pop());
+      const rotateId = parts.slice(2).join("-");
+
+      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        if (item.locked) return;
+        item.eventMarkers.splice(evIdx, 1);
+        sequenceStore.set(sequence);
+        selectedPointId.set(`rotate-${rotateId}`);
+        recordChange("Delete Event Marker");
+      }
+      return;
+    }
+
+    if (sel.startsWith("event-")) {
+      const parts = sel.split("-");
+      const lineIdx = Number(parts[1]);
+      const evIdx = Number(parts[2]);
+      const line = lines[lineIdx];
+      if (line && line.eventMarkers && line.eventMarkers[evIdx]) {
+        if (line.locked) return;
+        line.eventMarkers.splice(evIdx, 1);
+        linesStore.set(lines);
+        selectedPointId.set(`point-${lineIdx + 1}-0`);
+        recordChange("Delete Event Marker");
+      }
+      return;
     }
   }
 
@@ -1095,6 +1170,36 @@
         shapesStore.set(shapes);
         recordChange("Move Obstacle Vertex");
       }
+    } else if (currentSel.startsWith("event-wait-")) {
+      const parts = currentSel.split("-");
+      // Format: event-wait-waitId-evIdx
+      // waitId can contain hyphens, so we need to rebuild it or handle it properly
+      const evIdx = Number(parts.pop());
+      const waitId = parts.slice(2).join("-");
+
+      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        const delta = (dx + dy) * 0.01;
+        let newPos = item.eventMarkers[evIdx].position + delta;
+        newPos = Math.max(0, Math.min(1, newPos));
+        item.eventMarkers[evIdx].position = newPos;
+        sequenceStore.set(sequence);
+        recordChange("Move Event Marker");
+      }
+    } else if (currentSel.startsWith("event-rotate-")) {
+      const parts = currentSel.split("-");
+      const evIdx = Number(parts.pop());
+      const rotateId = parts.slice(2).join("-");
+
+      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        const delta = (dx + dy) * 0.01;
+        let newPos = item.eventMarkers[evIdx].position + delta;
+        newPos = Math.max(0, Math.min(1, newPos));
+        item.eventMarkers[evIdx].position = newPos;
+        sequenceStore.set(sequence);
+        recordChange("Move Event Marker");
+      }
     } else if (currentSel.startsWith("event-")) {
       const parts = currentSel.split("-");
       const lineIdx = Number(parts[1]);
@@ -1126,8 +1231,18 @@
         }
       } else if (def?.isWait) {
         items.push(`wait-${(item as any).id}`);
+        if ((item as any).eventMarkers) {
+          (item as any).eventMarkers.forEach((_: any, evIdx: number) =>
+            items.push(`event-wait-${(item as any).id}-${evIdx}`),
+          );
+        }
       } else if (def?.isRotate) {
         items.push(`rotate-${(item as any).id}`);
+        if ((item as any).eventMarkers) {
+          (item as any).eventMarkers.forEach((_: any, evIdx: number) =>
+            items.push(`event-rotate-${(item as any).id}-${evIdx}`),
+          );
+        }
       }
     });
     lines.forEach((line, lineIdx) => {
@@ -1163,6 +1278,24 @@
           // For now "path" string is what ControlTab expects.
           controlTabRef.scrollToItem("path", line.id);
         }
+      }
+    } else if (sel.startsWith("event-wait-")) {
+      const parts = sel.split("-");
+      const evIdx = Number(parts.pop());
+      const waitId = parts.slice(2).join("-");
+
+      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        controlTabRef.scrollToItem("event", item.eventMarkers[evIdx].id);
+      }
+    } else if (sel.startsWith("event-rotate-")) {
+      const parts = sel.split("-");
+      const evIdx = Number(parts.pop());
+      const rotateId = parts.slice(2).join("-");
+
+      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        controlTabRef.scrollToItem("event", item.eventMarkers[evIdx].id);
       }
     } else if (sel.startsWith("event-")) {
       const parts = sel.split("-");
@@ -1260,6 +1393,40 @@
         item.degrees = Number((item.degrees + delta * step).toFixed(2));
         sequenceStore.set(updateLinkedRotations(sequence, item.id));
         recordChange("Modify Rotation");
+      }
+      return;
+    }
+    if (current.startsWith("event-wait-")) {
+      const parts = current.split("-");
+      const evIdx = Number(parts.pop());
+      const waitId = parts.slice(2).join("-");
+
+      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        if (item.locked) return; // Don't modify event markers on locked waits
+        const step = 0.01 * delta;
+        let newPos = item.eventMarkers[evIdx].position + step;
+        newPos = Math.max(0, Math.min(1, newPos));
+        item.eventMarkers[evIdx].position = newPos;
+        sequenceStore.set(sequence);
+        recordChange("Move Event Marker");
+      }
+      return;
+    }
+    if (current.startsWith("event-rotate-")) {
+      const parts = current.split("-");
+      const evIdx = Number(parts.pop());
+      const rotateId = parts.slice(2).join("-");
+
+      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        if (item.locked) return; // Don't modify event markers on locked rotates
+        const step = 0.01 * delta;
+        let newPos = item.eventMarkers[evIdx].position + step;
+        newPos = Math.max(0, Math.min(1, newPos));
+        item.eventMarkers[evIdx].position = newPos;
+        sequenceStore.set(sequence);
+        recordChange("Move Event Marker");
       }
       return;
     }
