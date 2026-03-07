@@ -346,7 +346,9 @@
           position: 0.5,
         });
         sequenceStore.set(sequence);
-        selectedPointId.set(`event-wait-${waitId}-${waitItem.eventMarkers.length - 1}`);
+        selectedPointId.set(
+          `event-wait-${waitId}-${waitItem.eventMarkers.length - 1}`,
+        );
         recordChange("Add Event Marker");
         return;
       }
@@ -356,7 +358,8 @@
     if ($selectedPointId && $selectedPointId.startsWith("rotate-")) {
       const rotateId = $selectedPointId.substring(7);
       const rotateItem = sequence.find(
-        (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
       ) as any;
 
       if (rotateItem) {
@@ -368,7 +371,9 @@
           position: 0.5,
         });
         sequenceStore.set(sequence);
-        selectedPointId.set(`event-rotate-${rotateId}-${rotateItem.eventMarkers.length - 1}`);
+        selectedPointId.set(
+          `event-rotate-${rotateId}-${rotateItem.eventMarkers.length - 1}`,
+        );
         recordChange("Add Event Marker");
         return;
       }
@@ -388,7 +393,9 @@
       linesStore.set(lines);
       const lineIdx = lines.findIndex((l) => l.id === targetId);
       if (lineIdx !== -1) {
-        selectedPointId.set(`event-${lineIdx}-${targetLine.eventMarkers.length - 1}`);
+        selectedPointId.set(
+          `event-${lineIdx}-${targetLine.eventMarkers.length - 1}`,
+        );
       }
       recordChange("Add Event Marker");
     }
@@ -996,7 +1003,9 @@
       const evIdx = Number(parts.pop());
       const waitId = parts.slice(2).join("-");
 
-      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId) as any;
+      const item = sequence.find(
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
+      ) as any;
       if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
         if (item.locked) return;
         item.eventMarkers.splice(evIdx, 1);
@@ -1012,7 +1021,10 @@
       const evIdx = Number(parts.pop());
       const rotateId = parts.slice(2).join("-");
 
-      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId) as any;
+      const item = sequence.find(
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      ) as any;
       if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
         if (item.locked) return;
         item.eventMarkers.splice(evIdx, 1);
@@ -1177,7 +1189,9 @@
       const evIdx = Number(parts.pop());
       const waitId = parts.slice(2).join("-");
 
-      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId) as any;
+      const item = sequence.find(
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
+      ) as any;
       if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
         const delta = (dx + dy) * 0.01;
         let newPos = item.eventMarkers[evIdx].position + delta;
@@ -1191,7 +1205,10 @@
       const evIdx = Number(parts.pop());
       const rotateId = parts.slice(2).join("-");
 
-      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId) as any;
+      const item = sequence.find(
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      ) as any;
       if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
         const delta = (dx + dy) * 0.01;
         let newPos = item.eventMarkers[evIdx].position + delta;
@@ -1284,7 +1301,9 @@
       const evIdx = Number(parts.pop());
       const waitId = parts.slice(2).join("-");
 
-      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId) as any;
+      const item = sequence.find(
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
+      ) as any;
       if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
         controlTabRef.scrollToItem("event", item.eventMarkers[evIdx].id);
       }
@@ -1293,7 +1312,10 @@
       const evIdx = Number(parts.pop());
       const rotateId = parts.slice(2).join("-");
 
-      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId) as any;
+      const item = sequence.find(
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      ) as any;
       if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
         controlTabRef.scrollToItem("event", item.eventMarkers[evIdx].id);
       }
@@ -1401,7 +1423,9 @@
       const evIdx = Number(parts.pop());
       const waitId = parts.slice(2).join("-");
 
-      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId) as any;
+      const item = sequence.find(
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
+      ) as any;
       if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
         if (item.locked) return; // Don't modify event markers on locked waits
         const step = 0.01 * delta;
@@ -1418,7 +1442,10 @@
       const evIdx = Number(parts.pop());
       const rotateId = parts.slice(2).join("-");
 
-      const item = sequence.find((s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId) as any;
+      const item = sequence.find(
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      ) as any;
       if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
         if (item.locked) return; // Don't modify event markers on locked rotates
         const step = 0.01 * delta;
