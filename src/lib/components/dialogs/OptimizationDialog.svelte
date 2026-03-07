@@ -259,6 +259,7 @@
       disabled={isRunning}
       class="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed"
       title="Close optimization panel"
+      aria-label="Close optimization panel"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
