@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import type {
     Point,
@@ -26,6 +26,7 @@
   export let settings: Settings;
   export let recordChange: () => void;
   export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
+  export let isActive: boolean = false;
 
   // Local state for optimization
   let optimizationOpen = false;
@@ -146,6 +147,7 @@
     <RobotPositionDisplay
       {robotXY}
       {robotHeading}
+      {settings}
       onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
       onValidate={handleValidate}
     />
@@ -189,5 +191,6 @@
     bind:shapes
     bind:collapsedObstacles={collapsedSections.obstacles}
     bind:collapsed={collapsedSections.obstaclesSection}
+    {isActive}
   />
 </div>

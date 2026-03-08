@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { render, screen } from "@testing-library/svelte";
 import { describe, it, expect } from "vitest";
 import FieldCoordinates from "../lib/components/FieldCoordinates.svelte";

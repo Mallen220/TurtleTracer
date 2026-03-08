@@ -1,7 +1,14 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, beforeEach } from "vitest";
 import { PathOptimizer } from "../utils/pathOptimizer";
 import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
+import { actionRegistry } from "../lib/actionRegistry";
+import { registerCoreUI } from "../lib/coreRegistrations";
+import type { SequencePathItem } from "../types";
+
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
 
 describe("PathOptimizer Keep-In Zones", () => {
   let startPoint: Point;
@@ -11,6 +18,10 @@ describe("PathOptimizer Keep-In Zones", () => {
   let shapes: Shape[];
 
   beforeEach(() => {
+    // Ensure core actions are registered for tests that rely on kinds
+    actionRegistry.reset();
+    registerCoreUI();
+
     startPoint = {
       x: 10,
       y: 10,
@@ -51,7 +62,7 @@ describe("PathOptimizer Keep-In Zones", () => {
 
     sequence = [
       {
-        kind: "path",
+        kind: pathKind(),
         lineId: "line1",
       },
     ];

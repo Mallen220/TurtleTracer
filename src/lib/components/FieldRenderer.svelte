@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
@@ -21,6 +21,8 @@
     hoveredMarkerId,
     fieldViewStore,
     pluginRedrawTrigger,
+    notification,
+    showRobot,
   } from "../../stores";
   import {
     hookRegistry,
@@ -28,6 +30,7 @@
     fieldRenderRegistry,
     type ContextMenuItem,
   } from "../registries";
+  import { actionRegistry } from "../actionRegistry";
   import ContextMenu from "./tools/ContextMenu.svelte";
   import {
     linesStore,
@@ -38,6 +41,8 @@
     robotHeadingStore,
     sequenceStore, // Imported for potential use, though main logic uses lines
     percentStore,
+    followRobotStore,
+    playingStore,
   } from "../projectStore";
   import {
     diffMode,
@@ -50,9 +55,15 @@
     showTelemetry,
     showTelemetryGhost,
   } from "../telemetryStore";
-  import LiveRobotLayer from "./telemetry/LiveRobotLayer.svelte";
+    import LiveRobotLayer from "./telemetry/LiveRobotLayer.svelte";
   import LiveFieldLayer from "./telemetry/LiveFieldLayer.svelte";
-  import { currentFilePath, gitStatusStore, isUnsaved } from "../../stores";
+  import {
+    currentFilePath,
+    gitStatusStore,
+    isUnsaved,
+    dimmedLinesStore,
+    showTransformDialog,
+  } from "../../stores";
   import {
     POINT_RADIUS,
     LINE_WIDTH,
@@ -60,6 +71,7 @@
     DEFAULT_ROBOT_LENGTH,
     DEFAULT_ROBOT_WIDTH,
   } from "../../config";
+  import { calculateRobotState } from "../../utils/animation";
   import {
     getCurvePoint,
     quadraticToCubic,
@@ -69,7 +81,9 @@
     updateRobotImageDisplay,
     easeInOutQuad,
     getAngularDifference,
+    getLineStartHeading,
   } from "../../utils";
+  import { toUser } from "../../utils/coordinates";
   import { updateLinkedWaypoints } from "../../utils/pointLinking";
   import type {
     Line,
@@ -100,13 +114,16 @@
   export let isObstructingHUD = false;
 
   // Callback props for interactions
-  export let onRecordChange: () => void;
+  export let onRecordChange: (action?: string) => void;
 
   // Local state
   let two: Two;
   let twoElement: HTMLDivElement;
   let wrapperDiv: HTMLDivElement;
   let overlayContainer: HTMLDivElement;
+
+  // Smart Snapping State
+  let snapGuides: InstanceType<typeof Two.Line>[] = [];
 
   // Context Menu State
   let showContextMenu = false;
@@ -145,6 +162,224 @@
 
   $: {
     fieldViewStore.set({ xScale: x, yScale: y, width, height });
+  }
+
+  // Mecanum Drivetrain Wheel Directions Calculation
+  interface WheelSpeeds {
+    frontLeft: number;
+    backLeft: number;
+    frontRight: number;
+    backRight: number;
+  }
+
+  export function calculateSwerveDriveAngles(
+    forward: number,
+    strafe: number,
+    rotate: number,
+    botHeading: number,
+    rWidth: number,
+    rLength: number,
+  ): WheelSpeeds {
+    // Rotate the movement direction counter to the bot's rotation
+    const rotStrafe =
+      strafe * Math.cos(-botHeading) - forward * Math.sin(-botHeading);
+    const rotForward =
+      strafe * Math.sin(-botHeading) + forward * Math.cos(-botHeading);
+
+    // Wheel coordinates relative to center
+    // X is right (+), Y is forward (+)
+    const rxFL = -rWidth / 2;
+    const ryFL = rLength / 2;
+
+    const rxFR = rWidth / 2;
+    const ryFR = rLength / 2;
+
+    const rxBL = -rWidth / 2;
+    const ryBL = -rLength / 2;
+
+    const rxBR = rWidth / 2;
+    const ryBR = -rLength / 2;
+
+    // Wheel velocity = V + (omega x r)
+    // Vx = V_strafe - omega * r_y
+    // Vy = V_forward + omega * r_x
+    const vxFL = rotStrafe + rotate * ryFL;
+    const vyFL = rotForward - rotate * rxFL;
+
+    const vxFR = rotStrafe - rotate * ryFR;
+    const vyFR = rotForward + rotate * rxFR;
+
+    const vxBL = rotStrafe - rotate * ryBL;
+    const vyBL = rotForward + rotate * rxBL;
+
+    const vxBR = rotStrafe + rotate * ryBR;
+    const vyBR = rotForward - rotate * rxBR;
+
+    // Special case for not moving or turning
+    if (Math.hypot(rotForward, rotStrafe) < 0.05 && Math.abs(rotate) <= 0.05) {
+      return { frontLeft: 0, backLeft: 0, frontRight: 0, backRight: 0 };
+    }
+
+    const radToDeg = 180 / Math.PI;
+
+    return {
+      frontLeft: Math.atan2(vyFL, vxFL) * radToDeg,
+      backLeft: Math.atan2(vyBL, vxBL) * radToDeg,
+      frontRight: Math.atan2(vyFR, vxFR) * radToDeg,
+      backRight: Math.atan2(vyBR, vxBR) * radToDeg,
+    };
+  }
+
+  // helper to safely index WheelSpeeds from a string value. We
+  // occasionally iterate over a hardcoded list of wheel names in
+  // markup; this keeps the TypeScript happy and avoids `any` casts
+  // in the template.
+  function speedForWheel(wheel: string, speeds: WheelSpeeds | null): number {
+    if (!speeds) return 0;
+    return speeds[wheel as keyof WheelSpeeds];
+  }
+
+  export function calculateFieldCentricMecanum(
+    forward: number,
+    strafe: number,
+    rotate: number,
+    botHeading: number,
+  ): WheelSpeeds {
+    // Rotate the movement direction counter to the bot's rotation
+    // Pedro Pathing uses radians but mathematically we might need to adjust
+    const rotStrafe =
+      strafe * Math.cos(-botHeading) - forward * Math.sin(-botHeading);
+    const rotForward =
+      strafe * Math.sin(-botHeading) + forward * Math.cos(-botHeading);
+
+    // Counteract imperfect strafing on the rotated vector
+    const adjustedRotStrafe = rotStrafe * 1.1;
+
+    // Normalize speeds
+    const denominator = Math.max(
+      Math.abs(rotForward) + Math.abs(adjustedRotStrafe) + Math.abs(rotate),
+      1.0,
+    );
+
+    return {
+      frontLeft: (rotForward + adjustedRotStrafe + rotate) / denominator,
+      backLeft: (rotForward - adjustedRotStrafe - rotate) / denominator,
+      frontRight: (rotForward - adjustedRotStrafe + rotate) / denominator,
+      backRight: (rotForward + adjustedRotStrafe - rotate) / denominator,
+    };
+  }
+
+  $: mecanumSpeeds = (() => {
+    if (!$showRobot || settings.robotImage !== "none") return null;
+
+    if (
+      !timePrediction ||
+      !timePrediction.timeline ||
+      timePrediction.timeline.length === 0
+    ) {
+      return { frontLeft: 0, backLeft: 0, frontRight: 0, backRight: 0 };
+    }
+
+    const totalDuration =
+      timePrediction.timeline[timePrediction.timeline.length - 1].endTime;
+    const currentSeconds = ($percentStore / 100) * totalDuration;
+
+    // Time delta for velocity calc
+    const dt = 0.05;
+    const futureSeconds = currentSeconds + dt;
+    const futurePercent = (futureSeconds / totalDuration) * 100;
+
+    // Use a neutral scale for calculation so we get real field inches
+    const scale = d3.scaleLinear().domain([0, 1]).range([0, 1]);
+
+    const state1 = calculateRobotState(
+      $percentStore,
+      timePrediction.timeline,
+      lines,
+      startPoint,
+      scale,
+      scale,
+    );
+    const state2 = calculateRobotState(
+      futurePercent,
+      timePrediction.timeline,
+      lines,
+      startPoint,
+      scale,
+      scale,
+    );
+
+    // Calculate velocity in inches per second
+    const vx = (state2.x - state1.x) / dt;
+    const vy = (state2.y - state1.y) / dt;
+
+    // Field coordinates: Right is +X, Forward is +Y.
+    // Note: Due to standard Y-down screen coordinates vs Y-up math coordinates,
+    // if Y goes up in your field space (e.g. standard FTC field), vy might already be correct.
+    // However, if Y goes down in screen coordinates (which calculateRobotState might output without negative depending on setup),
+    // you may need to invert vy for it to represent mathematical +Y forward.
+    // The user clarified: "0º is facing right (+X)".
+    // So when heading is 0, moving +X is forward, and moving +Y is left (which is negative strafe in standard right-hand rule, but could be positive in left-hand).
+    // Let's map it so that:
+    // When facing 0º (+X): forward = vx, strafe = -vy (assuming +Y is left and left is -strafe).
+    // When facing 90º (+Y): forward = vy, strafe = vx (moving +X is right, which is +strafe).
+    const forwardVel = vx;
+    const strafeVel = vy;
+
+    // Angular velocity
+    // shortestRotation is a utility. Let's just use simple diff for now:
+    let dHeading = state2.heading - state1.heading;
+    // Normalize dHeading to [-180, 180]
+    dHeading = (((dHeading % 360) + 540) % 360) - 180;
+    const omega = (dHeading * Math.PI) / 180 / dt; // radians per sec
+
+    // Convert heading to radians
+    const headingRad = (state1.heading * Math.PI) / 180;
+
+    // Calculate normalized magnitudes based on typical robot speeds (e.g. 60 in/s and 3 rad/s)
+    const maxV = 60;
+    const maxOmega = 3;
+
+    const normalizedForward = forwardVel / maxV;
+    const normalizedStrafe = strafeVel / maxV;
+    const normalizedRotate = omega / maxOmega;
+
+    if (settings.robotDriveType === "swerve") {
+      return calculateSwerveDriveAngles(
+        normalizedForward,
+        normalizedStrafe,
+        normalizedRotate,
+        headingRad,
+        settings.rWidth || DEFAULT_ROBOT_WIDTH,
+        settings.rLength || DEFAULT_ROBOT_LENGTH,
+      );
+    } else {
+      return calculateFieldCentricMecanum(
+        normalizedForward,
+        normalizedStrafe,
+        normalizedRotate,
+        headingRad,
+      );
+    }
+  })();
+
+  // Follow Robot Logic (Reactive for scrubbing/stepping)
+  $: if ($followRobotStore && robotXY && !$playingStore) {
+    panToField(robotXY.x, robotXY.y);
+  }
+
+  // Follow Robot Logic (Loop for playback)
+  let followLoopId: number;
+  function followLoop() {
+    if ($followRobotStore && $playingStore && robotXY) {
+      panToField(robotXY.x, robotXY.y);
+    }
+    followLoopId = requestAnimationFrame(followLoop);
+  }
+
+  // Resume Follow on Play Logic
+  $: if ($playingStore && settings.followRobot) {
+    followRobotStore.set(true);
   }
 
   function zoomTo(newZoom: number, focus?: { x: number; y: number }) {
@@ -189,6 +424,7 @@
   function handleWheel(e: WheelEvent) {
     if (!wrapperDiv) return;
     if (e.ctrlKey || e.metaKey) {
+      followRobotStore.set(false);
       e.preventDefault();
       const rect = wrapperDiv.getBoundingClientRect();
       const transformed = getTransformedCoordinates(
@@ -224,6 +460,26 @@
   $: sequence = $sequenceStore; // Needed for wait markers
   $: markers = $collisionMarkers;
 
+  // Keep `startPoint.startDeg` in sync with geometry when using linear start-heading.
+  // This ensures generated code (and any UI showing `startDeg`) updates as the
+  // start position or first path changes — fixing cases where heading looked
+  // "locked" to an old value after moving the start point.
+  $: if (
+    startPoint &&
+    startPoint.heading === "linear" &&
+    lines &&
+    lines.length > 0
+  ) {
+    const derived = getLineStartHeading(lines[0], startPoint);
+    if (
+      typeof startPoint.startDeg !== "number" ||
+      Math.abs(startPoint.startDeg - derived) > 1e-6
+    ) {
+      // Update store only when it differs to avoid extra churn
+      startPointStore.update((p) => ({ ...p, startDeg: derived }) as any);
+    }
+  }
+
   // Telemetry State
   $: isTelemetryVisible = $showTelemetry;
   $: isTelemetryGhostVisible = $showTelemetryGhost;
@@ -242,6 +498,8 @@
       gitStatus[currentFile] !== "clean" &&
       gitStatus[currentFile] !== "untracked") ||
     (currentFile && $isUnsaved);
+
+  $: dimmedIds = $dimmedLinesStore;
 
   function updateRects() {
     if (two?.renderer?.domElement) {
@@ -273,6 +531,77 @@
     const newPx = nx + w / 2;
     const newPy = ny + h / 2;
     return { x: newPx, y: newPy };
+  }
+
+  // Helper to parse element IDs
+  type ParsedPoint = { type: "point"; lineIndex: number; pointIndex: number };
+  type ParsedObstacle = {
+    type: "obstacle";
+    shapeIndex: number;
+    vertexIndex: number;
+  };
+  type ParsedEvent = { type: "event"; lineIndex: number; eventIndex: number };
+  type ParsedWaitEvent = {
+    type: "wait-event";
+    waitId: string;
+    eventIndex: number;
+  };
+  type ParsedRotateEvent = {
+    type: "rotate-event";
+    rotateId: string;
+    eventIndex: number;
+  };
+  type ParsedUnknown = { type: "unknown"; originalId: string };
+  type ParseResult =
+    | ParsedPoint
+    | ParsedObstacle
+    | ParsedEvent
+    | ParsedWaitEvent
+    | ParsedRotateEvent
+    | ParsedUnknown
+    | null;
+
+  function parseElementId(id: string | null): ParseResult {
+    if (!id) return null;
+    const parts = id.split("-");
+    const type = parts[0];
+
+    if (type === "point") {
+      // point-{lineIndex+1}-{pointIndex}
+      // point-0-0 is start point
+      const lineNum = Number(parts[1]);
+      const pointIdx = Number(parts[2]);
+      if (isNaN(lineNum) || isNaN(pointIdx)) return null;
+      return { type: "point", lineIndex: lineNum - 1, pointIndex: pointIdx };
+    } else if (type === "obstacle") {
+      // obstacle-{shapeIndex}-{vertexIndex}
+      const shapeIdx = Number(parts[1]);
+      const vertexIdx = Number(parts[2]);
+      if (isNaN(shapeIdx) || isNaN(vertexIdx)) return null;
+      return {
+        type: "obstacle",
+        shapeIndex: shapeIdx,
+        vertexIndex: vertexIdx,
+      };
+    } else if (type === "event") {
+      // event-{lineIndex}-{eventIndex}
+      const lineIdx = Number(parts[1]);
+      const evIdx = Number(parts[2]);
+      if (isNaN(lineIdx) || isNaN(evIdx)) return null;
+      return { type: "event", lineIndex: lineIdx, eventIndex: evIdx };
+    } else if (type === "wait" && parts[1] === "event") {
+      // wait-event-{waitId}-{eventIndex}
+      const waitId = parts[2];
+      const evIdx = Number(parts[3]);
+      return { type: "wait-event", waitId, eventIndex: evIdx };
+    } else if (type === "rotate" && parts[1] === "event") {
+      // rotate-event-{rotateId}-{eventIndex}
+      const rotateId = parts[2];
+      const evIdx = Number(parts[3]);
+      return { type: "rotate-event", rotateId, eventIndex: evIdx };
+    }
+
+    return { type: "unknown", originalId: id };
   }
 
   // --- Two.js Object Creation Logic (moved from App.svelte) ---
@@ -331,6 +660,34 @@
           _points.push(pointElem);
         }
       });
+
+      if (line.endPoint.heading === "facingPoint") {
+        const pathColor = line.color || "#60a5fa";
+        let pointGroup = new Two.Group();
+        pointGroup.id = `targetpoint-${idx + 1}`;
+        let pointElem = new Two.Circle(
+          x(line.endPoint.targetX || 72),
+          y(line.endPoint.targetY || 72),
+          uiLength(POINT_RADIUS * 0.85),
+        );
+        pointElem.id = `targetpoint-${idx + 1}-background`;
+        pointElem.fill = pathColor;
+        pointElem.noStroke();
+        let pointText = new Two.Text(
+          "T",
+          x(line.endPoint.targetX || 72),
+          y(line.endPoint.targetY || 72) - uiLength(0.05),
+        );
+        pointText.id = `targetpoint-${idx + 1}-text`;
+        pointText.size = uiLength(1.4);
+        pointText.family = "ui-sans-serif, system-ui, sans-serif";
+        pointText.alignment = "center";
+        pointText.baseline = "middle";
+        pointText.fill = "white";
+        pointText.weight = 700;
+        pointGroup.add(pointElem, pointText);
+        _points.push(pointGroup);
+      }
     });
 
     shapes.forEach((shape, shapeIdx) => {
@@ -343,7 +700,7 @@
           uiLength(POINT_RADIUS),
         );
         pointElem.id = `obstacle-${shapeIdx}-${vertexIdx}-background`;
-        pointElem.fill = "#991b1b";
+        pointElem.fill = shape.color;
         pointElem.noStroke();
         let pointText = new Two.Text(
           `${vertexIdx + 1}`,
@@ -365,6 +722,42 @@
     return _points;
   })();
 
+  // Animated facing-point line: drawn from current robot position to the facing target.
+  // Only shown when the robot is actively driving on that facingPoint segment.
+  // Rendered as SVG overlay to avoid clearing Two.js scene.
+  $: facingLineElements = (() => {
+    if (!robotXY || !timePrediction?.timeline?.length) return [];
+
+    // Determine the currently active travel event
+    const totalDuration =
+      timePrediction.timeline[timePrediction.timeline.length - 1].endTime;
+    const currentSeconds = ($percentStore / 100) * totalDuration;
+    const activeEvent =
+      timePrediction.timeline.find(
+        (e: any) =>
+          currentSeconds >= e.startTime && currentSeconds <= e.endTime,
+      ) ?? timePrediction.timeline[timePrediction.timeline.length - 1];
+
+    // Only render if it's a travel event on a facingPoint segment
+    if (activeEvent.type !== "travel") return [];
+    const activeLine: Line | undefined =
+      activeEvent.line ?? lines[activeEvent.lineIndex];
+    if (!activeLine || activeLine.endPoint.heading !== "facingPoint") return [];
+
+    const targetX = (activeLine.endPoint as any).targetX ?? 72;
+    const targetY = (activeLine.endPoint as any).targetY ?? 72;
+    const pathColor = activeLine.color || "#60a5fa";
+    return [
+      {
+        x1: x(robotXY.x),
+        y1: y(robotXY.y),
+        x2: x(targetX),
+        y2: y(targetY),
+        color: pathColor,
+      },
+    ];
+  })();
+
   // Reusable path generation function
   function generatePathElements(
     targetLines: Line[],
@@ -384,7 +777,7 @@
       // Check for Velocity Heatmap Mode (only for main path)
       const showHeatmap =
         isHeatmapEnabled && settings.showVelocityHeatmap && timePrediction;
-      let heatmapSegments: PathLine[] = [];
+      let heatmapSegments: (PathLine | Path)[] = [];
 
       if (showHeatmap) {
         // Try to find corresponding timeline event for velocity data
@@ -406,6 +799,33 @@
           let cps = [_startPoint, ...line.controlPoints, line.endPoint];
           let prevPt = getCurvePoint(0, cps);
 
+          let currentAnchors: any[] = [];
+          let currentColor: string | null = null;
+          let segmentCounter = 0;
+
+          const createHeatmapSegment = (
+            anchors: any[],
+            color: string,
+            segIdx: number,
+          ) => {
+            const path = new Two.Path(anchors, false, false);
+            path.noFill();
+            path.linewidth = getWidth(line);
+            path.id = `${idPrefix}-line-${idx + 1}-heatmap-${segIdx}`;
+
+            const isDimmed = line.id && dimmedIds.includes(line.id);
+            path.stroke = isDimmed ? "#9ca3af" : color;
+
+            if (line.locked) {
+              path.dashes = [uiLength(2), uiLength(2)];
+              path.opacity = 0.7;
+            } else if (isDimmed) {
+              path.dashes = [uiLength(1), uiLength(1)];
+              path.opacity = 0.3;
+            }
+            return path;
+          };
+
           for (let i = 1; i <= samples; i++) {
             const t = i / samples;
             const currPt = getCurvePoint(t, cps);
@@ -425,22 +845,66 @@
             const hue = 120 - ratio * 120;
             const color = `hsl(${hue}, 100%, 40%)`;
 
-            let seg = new Two.Line(
-              x(prevPt.x),
-              y(prevPt.y),
-              x(currPt.x),
-              y(currPt.y),
-            );
-            seg.stroke = color;
-            seg.linewidth = getWidth(line);
-            seg.id = `${idPrefix}-line-${idx + 1}-seg-${i}`;
-            if (line.locked) {
-              seg.dashes = [uiLength(2), uiLength(2)];
-              seg.opacity = 0.7;
+            if (color !== currentColor) {
+              if (currentAnchors.length > 0) {
+                heatmapSegments.push(
+                  createHeatmapSegment(
+                    currentAnchors,
+                    currentColor!,
+                    segmentCounter++,
+                  ),
+                );
+              }
+
+              // Start new path with previous point
+              currentAnchors = [
+                new Two.Anchor(
+                  x(prevPt.x),
+                  y(prevPt.y),
+                  0,
+                  0,
+                  0,
+                  0,
+                  Two.Commands.move,
+                ),
+                new Two.Anchor(
+                  x(currPt.x),
+                  y(currPt.y),
+                  0,
+                  0,
+                  0,
+                  0,
+                  Two.Commands.line,
+                ),
+              ];
+              currentColor = color;
+            } else {
+              // Extend current path
+              currentAnchors.push(
+                new Two.Anchor(
+                  x(currPt.x),
+                  y(currPt.y),
+                  0,
+                  0,
+                  0,
+                  0,
+                  Two.Commands.line,
+                ),
+              );
             }
-            heatmapSegments.push(seg);
 
             prevPt = currPt;
+          }
+
+          // Flush last segment
+          if (currentAnchors.length > 0 && currentColor) {
+            heatmapSegments.push(
+              createHeatmapSegment(
+                currentAnchors,
+                currentColor,
+                segmentCounter++,
+              ),
+            );
           }
         }
       }
@@ -525,12 +989,17 @@
         );
       }
       lineElem.id = `${idPrefix}-line-${idx + 1}`;
-      lineElem.stroke = getColor(line);
+
+      const isDimmed = line.id && dimmedIds.includes(line.id);
+
+      lineElem.stroke = isDimmed ? "#9ca3af" : getColor(line);
       lineElem.linewidth = getWidth(line);
       lineElem.noFill();
       if (line.locked) {
         lineElem.dashes = [uiLength(2), uiLength(2)];
         lineElem.opacity = 0.7;
+      } else if (isDimmed) {
+        lineElem.dashes = [uiLength(1), uiLength(1)];
       } else {
         lineElem.dashes = [];
         lineElem.opacity = 1;
@@ -544,6 +1013,7 @@
   $: path = (() => {
     x;
     y; // Trigger reactivity on pan/zoom
+    dimmedIds; // Trigger reactivity on selection/dimmed changes
     if (isDiffMode) return []; // Don't render standard path in diff mode
     const currentSelectedId = $selectedLineId;
 
@@ -864,8 +1334,8 @@
   })();
 
   // Onion Layers
+  // Rendered as SVG overlay to avoid clearing Two.js scene.
   $: onionLayerElements = (() => {
-    let onionLayers: Path[] = [];
     if (settings.showOnionLayers && lines.length > 0) {
       const spacing = settings.onionLayerSpacing || 6;
 
@@ -903,62 +1373,15 @@
         }
       }
 
-      const layers = generateOnionLayers(
+      return generateOnionLayers(
         targetStartPoint,
         targetLines,
         settings.rLength,
         settings.rWidth,
         spacing,
       );
-      layers.forEach((layer, idx) => {
-        let vertices = [];
-        vertices.push(
-          new Two.Anchor(
-            x(layer.corners[0].x),
-            y(layer.corners[0].y),
-            0,
-            0,
-            0,
-            0,
-            Two.Commands.move,
-          ),
-        );
-        for (let i = 1; i < layer.corners.length; i++) {
-          vertices.push(
-            new Two.Anchor(
-              x(layer.corners[i].x),
-              y(layer.corners[i].y),
-              0,
-              0,
-              0,
-              0,
-              Two.Commands.line,
-            ),
-          );
-        }
-        vertices.push(
-          new Two.Anchor(
-            x(layer.corners[0].x),
-            y(layer.corners[0].y),
-            0,
-            0,
-            0,
-            0,
-            Two.Commands.close,
-          ),
-        );
-        vertices.forEach((point) => (point.relative = false));
-        let onionRect = new Two.Path(vertices);
-        onionRect.id = `onion-layer-${idx}`;
-        onionRect.stroke = "#818cf8";
-        onionRect.noFill();
-        onionRect.opacity = 0.35;
-        onionRect.linewidth = uiLength(0.5);
-        onionRect.automatic = false;
-        onionLayers.push(onionRect);
-      });
     }
-    return onionLayers;
+    return [];
   })();
 
   // Preview Paths
@@ -1127,118 +1550,24 @@
       sequence &&
       sequence.length > 0
     ) {
-      const waitById = new Map<string, any>();
-      const rotateById = new Map<string, any>();
-      sequence.forEach((it) => {
-        if (it.kind === "wait") waitById.set(it.id, it);
-        if (it.kind === "rotate") rotateById.set(it.id, it);
-      });
-      timePrediction.timeline.forEach((ev: any) => {
-        if (ev.type !== "wait" || !ev.waitId || !ev.atPoint) return;
-        const seqWait = waitById.get(ev.waitId);
-        if (
-          !seqWait ||
-          !seqWait.eventMarkers ||
-          seqWait.eventMarkers.length === 0
-        )
-          return;
-        const point = ev.atPoint;
-        seqWait.eventMarkers.forEach((event: any, eventIdx: number) => {
-          const isHovered = $hoveredMarkerId === event.id;
-          const radiusMult = isHovered ? 1.3 : 0.9;
-
-          const markerGroup = new Two.Group();
-          markerGroup.id = `wait-event-${ev.waitId}-${eventIdx}`;
-          const markerCircle = new Two.Circle(
-            x(point.x),
-            y(point.y),
-            uiLength(POINT_RADIUS * radiusMult),
-          );
-          markerCircle.id = `wait-event-circle-${ev.waitId}-${eventIdx}`;
-          const waitSelected = $selectedPointId === `wait-${ev.waitId}`;
-          if (waitSelected) {
-            markerCircle.fill = "#f97316";
-            markerCircle.stroke = "#fffbeb";
-            markerCircle.linewidth = uiLength(0.6);
-          } else {
-            markerCircle.fill = isHovered ? "#8b5cf6" : "#a78bfa";
-            markerCircle.stroke = "#ffffff";
-            markerCircle.linewidth = uiLength(0.3);
+      // Use Registry for registered actions (e.g. Wait)
+      sequence.forEach((item) => {
+        const action = actionRegistry.get(item.kind);
+        if (action && action.renderField) {
+          const elems = action.renderField(item, {
+            x,
+            y,
+            uiLength,
+            settings,
+            hoveredId: $hoveredMarkerId,
+            selectedId: $selectedLineId,
+            selectedPointId: $selectedPointId,
+            timePrediction,
+          });
+          if (elems) {
+            elems.forEach((el) => twoMarkers.push(el));
           }
-          const flagSize = uiLength(isHovered ? 1 : 0.6);
-          const flagPoints = [
-            new Two.Anchor(x(point.x), y(point.y) - flagSize / 2),
-            new Two.Anchor(x(point.x) + flagSize / 2, y(point.y)),
-            new Two.Anchor(x(point.x), y(point.y) + flagSize / 2),
-          ];
-          const flag = new Two.Path(flagPoints, true);
-          flag.fill = waitSelected ? "#fffbeb" : "#ffffff";
-          flag.stroke = "none";
-          flag.id = `wait-event-flag-${ev.waitId}-${eventIdx}`;
-          markerGroup.add(markerCircle, flag);
-          twoMarkers.push(markerGroup);
-        });
-      });
-
-      // Rotate event markers
-      timePrediction.timeline.forEach((ev: any) => {
-        // Rotate events appear as wait type in timeline with waitId matching rotate id
-        if (ev.type !== "wait" || !ev.waitId || !ev.atPoint) return;
-        const seqRotate = rotateById.get(ev.waitId);
-        if (
-          !seqRotate ||
-          !seqRotate.eventMarkers ||
-          seqRotate.eventMarkers.length === 0
-        )
-          return;
-        const point = ev.atPoint;
-        seqRotate.eventMarkers.forEach((event: any, eventIdx: number) => {
-          const isHovered = $hoveredMarkerId === event.id;
-          const radiusMult = isHovered ? 1.3 : 0.9;
-
-          const markerGroup = new Two.Group();
-          markerGroup.id = `rotate-event-${ev.waitId}-${eventIdx}`;
-          const markerCircle = new Two.Circle(
-            x(point.x),
-            y(point.y),
-            uiLength(POINT_RADIUS * radiusMult),
-          );
-          markerCircle.id = `rotate-event-circle-${ev.waitId}-${eventIdx}`;
-          const rotateSelected = $selectedPointId === `rotate-${ev.waitId}`;
-          if (rotateSelected) {
-            markerCircle.fill = "#f97316";
-            markerCircle.stroke = "#fffbeb";
-            markerCircle.linewidth = uiLength(0.6);
-          } else {
-            markerCircle.fill = isHovered ? "#06b6d4" : "#67e8f9";
-            markerCircle.stroke = "#ffffff";
-            markerCircle.linewidth = uiLength(0.3);
-          }
-          // Arrow/rotation indicator shape (circular arrow segment)
-          const arrowSize = uiLength(isHovered ? 1 : 0.6);
-          const arrowPoints = [
-            new Two.Anchor(
-              x(point.x) - arrowSize / 3,
-              y(point.y) - arrowSize / 3,
-            ),
-            new Two.Anchor(
-              x(point.x) + arrowSize / 3,
-              y(point.y) - arrowSize / 3,
-            ),
-            new Two.Anchor(x(point.x) + arrowSize / 3, y(point.y)),
-            new Two.Anchor(x(point.x), y(point.y)),
-            new Two.Anchor(x(point.x), y(point.y) + arrowSize / 3),
-          ];
-          const arrow = new Two.Path(arrowPoints, false);
-          arrow.fill = "none";
-          arrow.stroke = rotateSelected ? "#fffbeb" : "#ffffff";
-          arrow.linewidth = uiLength(0.3);
-          arrow.cap = "round";
-          arrow.join = "round";
-          arrow.id = `rotate-event-arrow-${ev.waitId}-${eventIdx}`;
-          markerGroup.add(markerCircle, arrow);
-          twoMarkers.push(markerGroup);
-        });
+        }
       });
     }
     return twoMarkers;
@@ -1312,8 +1641,12 @@
               const lineIdx = ev.lineIndex;
               const line = lines[lineIdx];
               if (line) {
+                // Use the exact prevPoint captured in the timeline to anchor
+                // segment start; this stays correct across macro expansions and
+                // translated macros where array order may not match execution.
                 const lineStartPoint =
-                  lineIdx === 0 ? startPoint : lines[lineIdx - 1].endPoint;
+                  ev.prevPoint ||
+                  (lineIdx === 0 ? startPoint : lines[lineIdx - 1].endPoint);
                 let t1 = 0;
                 let t2 = 1;
 
@@ -1419,12 +1752,13 @@
     eventGroup.id = "event-group";
     const collisionGroup = new Two.Group();
     collisionGroup.id = "collision-group";
+    const snapGroup = new Two.Group();
+    snapGroup.id = "snap-group";
 
     two.clear();
 
     if (Array.isArray(shapeElements))
       shapeElements.forEach((el) => shapeGroup.add(el));
-    onionLayerElements.forEach((el) => shapeGroup.add(el));
 
     path.forEach((el) => lineGroup.add(el));
     diffPathElements.forEach((el) => lineGroup.add(el));
@@ -1435,6 +1769,7 @@
       eventMarkerElements.forEach((el) => eventGroup.add(el));
       // Ensure collisionElements is used in the reactive block to trigger updates
       collisionElements.forEach((el) => collisionGroup.add(el));
+      snapGuides.forEach((el) => snapGroup.add(el));
     }
 
     if (isDiffMode) {
@@ -1446,6 +1781,7 @@
     two.add(eventGroup);
     two.add(pointGroup);
     two.add(collisionGroup);
+    two.add(snapGroup);
 
     // Apply custom renderers
     $fieldRenderRegistry.forEach((entry) => {
@@ -1477,6 +1813,9 @@
 
     // Trigger hook for plugins to initialize overlays
     hookRegistry.run("fieldOverlayInit", overlayContainer);
+
+    // Start Follow Loop
+    followLoop();
 
     // Event Listeners
     two.renderer.domElement.addEventListener("mouseenter", () => {
@@ -1546,6 +1885,70 @@
           inchY = Math.round(rawInchY / $gridSize) * $gridSize;
         }
 
+        // Smart Object Snapping
+        const SNAP_THRESHOLD = 1.0; // inches
+        const isSnappingEnabled = settings.smartSnapping !== false; // Enabled by default
+        const shouldSnap = evt.altKey ? !isSnappingEnabled : isSnappingEnabled;
+        let newGuides: InstanceType<typeof Two.Line>[] = [];
+
+        if (shouldSnap && currentElem.startsWith("point-")) {
+          const targets: Point[] = [startPoint];
+          lines.forEach((l) => {
+            if (l.endPoint) targets.push(l.endPoint);
+          });
+
+          const parts = currentElem.split("-");
+          const lineNum = Number(parts[1]);
+          const pointIdx = Number(parts[2]);
+
+          // Determine which target corresponds to the point being dragged (to exclude it)
+          // Targets array structure: [StartPoint, Line1_End, Line2_End, ...]
+          let excludeIndex = -999;
+          if (lineNum === 0 && pointIdx === 0)
+            excludeIndex = 0; // Start Point
+          else if (lineNum > 0 && pointIdx === 0) excludeIndex = lineNum; // Line N endpoint
+
+          let bestX = null;
+          let bestY = null;
+          let minDistX = SNAP_THRESHOLD;
+          let minDistY = SNAP_THRESHOLD;
+
+          targets.forEach((target, idx) => {
+            if (idx === excludeIndex) return;
+
+            const dx = Math.abs(target.x - inchX);
+            const dy = Math.abs(target.y - inchY);
+
+            if (dx < minDistX) {
+              minDistX = dx;
+              bestX = target.x;
+            }
+            if (dy < minDistY) {
+              minDistY = dy;
+              bestY = target.y;
+            }
+          });
+
+          if (bestX !== null) {
+            inchX = bestX;
+            const guide = new Two.Line(x(inchX), y(0), x(inchX), y(FIELD_SIZE));
+            guide.stroke = "#f59e0b"; // Amber
+            guide.linewidth = uiLength(0.5);
+            guide.dashes = [uiLength(4), uiLength(4)];
+            newGuides.push(guide);
+          }
+
+          if (bestY !== null) {
+            inchY = bestY;
+            const guide = new Two.Line(x(0), y(inchY), x(FIELD_SIZE), y(inchY));
+            guide.stroke = "#f59e0b"; // Amber
+            guide.linewidth = uiLength(0.5);
+            guide.dashes = [uiLength(4), uiLength(4)];
+            newGuides.push(guide);
+          }
+        }
+        snapGuides = newGuides;
+
         // Determine clamping range
         let minX = -Infinity;
         let maxX = Infinity;
@@ -1602,6 +2005,13 @@
           shapes[shapeIdx].vertices[vertexIdx].x = inchX;
           shapes[shapeIdx].vertices[vertexIdx].y = inchY;
           shapesStore.set(shapes);
+        } else if (currentElem.startsWith("targetpoint-")) {
+          const line = Number(currentElem.split("-")[1]) - 1;
+          if (lines[line] && lines[line].endPoint) {
+            lines[line].endPoint.targetX = inchX;
+            lines[line].endPoint.targetY = inchY;
+            linesStore.set(lines);
+          }
         } else {
           const line = Number(currentElem.split("-")[1]) - 1;
           const point = Number(currentElem.split("-")[2]);
@@ -1637,6 +2047,7 @@
         }
       } else if (isPanning) {
         // Panning Logic
+        followRobotStore.set(false);
         // Calculate the delta in pixels
         const dx = evt.clientX - startPan.x;
         const dy = evt.clientY - startPan.y;
@@ -1666,7 +2077,8 @@
 
         if (
           target?.id.startsWith("point") ||
-          target?.id.startsWith("obstacle")
+          target?.id.startsWith("obstacle") ||
+          target?.id.startsWith("targetpoint")
         ) {
           two.renderer.domElement.style.cursor = "pointer";
           currentElem = target.id;
@@ -1776,7 +2188,11 @@
       // Optimization: use evt.target
       const el = evt.target as Element;
       if (el?.id) {
-        if (el.id.startsWith("point") || el.id.startsWith("obstacle-"))
+        if (
+          el.id.startsWith("point") ||
+          el.id.startsWith("obstacle-") ||
+          el.id.startsWith("targetpoint")
+        )
           clickedElem = el.id;
         else if (el.id.includes("event-")) {
           // Logic to normalize ID
@@ -1822,6 +2238,13 @@
               selectedPointId.set(null);
             }
           }
+        } else if (currentElem.startsWith("targetpoint-")) {
+          const parts = currentElem.split("-");
+          const lineIdx = Number(parts[1]) - 1;
+          if (!isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            selectedLineId.set(lines[lineIdx].id as string);
+            selectedPointId.set(currentElem);
+          }
         } else if (currentElem.startsWith("event-")) {
           const parts = currentElem.split("-");
           const lineIdx = Number(parts[1]);
@@ -1865,6 +2288,12 @@
             objectX = shapes[shapeIdx].vertices[vertexIdx].x;
             objectY = shapes[shapeIdx].vertices[vertexIdx].y;
           }
+        } else if (currentElem.startsWith("targetpoint-")) {
+          const line = Number(currentElem.split("-")[1]) - 1;
+          if (lines[line] && lines[line].endPoint) {
+            objectX = lines[line].endPoint.targetX || 0;
+            objectY = lines[line].endPoint.targetY || 0;
+          }
         } else if (currentElem.startsWith("point-")) {
           const line = Number(currentElem.split("-")[1]) - 1;
           const point = Number(currentElem.split("-")[2]);
@@ -1891,8 +2320,30 @@
     });
 
     two.renderer.domElement.addEventListener("mouseup", () => {
+      snapGuides = [];
       if (isDown) {
-        onRecordChange(); // Notify parent of change
+        // Infer action description based on currentElem
+        let action = "Move Object";
+        if (currentElem?.startsWith("point-0-0")) {
+          action = "Move Start Point";
+        } else if (currentElem?.startsWith("point-")) {
+          const parts = currentElem.split("-");
+          const ptIdx = Number(parts[2]);
+          if (ptIdx === 0) action = "Move Endpoint";
+          else action = "Move Control Point";
+        } else if (currentElem?.startsWith("targetpoint-")) {
+          action = "Move Facing Target";
+        } else if (currentElem?.startsWith("obstacle-")) {
+          action = "Edit Obstacle";
+        } else if (
+          currentElem?.includes("event-") ||
+          currentElem?.includes("wait-event") ||
+          currentElem?.includes("rotate-event")
+        ) {
+          action = "Move Event Marker";
+        }
+
+        onRecordChange(action); // Notify parent of change
       }
       isDown = false;
       isPanning = false;
@@ -1930,10 +2381,50 @@
         inchY = Math.max(0, Math.min(FIELD_SIZE, inchY));
       }
 
+      const existingLines = get(linesStore);
+      const prevEndPoint =
+        existingLines.length > 0
+          ? existingLines[existingLines.length - 1].endPoint
+          : null;
+
+      let endPoint: Point;
+      if (!prevEndPoint) {
+        endPoint = {
+          x: inchX,
+          y: inchY,
+          heading: "tangential",
+          reverse: false,
+        };
+      } else if (prevEndPoint.heading === "linear") {
+        const linPrev = prevEndPoint as Extract<Point, { heading: "linear" }>;
+        const deg = linPrev.endDeg ?? linPrev.startDeg ?? 0;
+        endPoint = {
+          x: inchX,
+          y: inchY,
+          heading: "linear",
+          startDeg: deg,
+          endDeg: deg,
+        };
+      } else if (prevEndPoint.heading === "constant") {
+        endPoint = {
+          x: inchX,
+          y: inchY,
+          heading: "constant",
+          degrees: prevEndPoint.degrees ?? 0,
+        };
+      } else {
+        endPoint = {
+          x: inchX,
+          y: inchY,
+          heading: "tangential",
+          reverse: (prevEndPoint as any).reverse ?? false,
+        };
+      }
+
       const newLine: Line = {
         id: `line-${Math.random().toString(36).slice(2)}`,
         name: "",
-        endPoint: { x: inchX, y: inchY, heading: "tangential", reverse: false },
+        endPoint,
         controlPoints: [],
         color: getRandomColor(),
         locked: false,
@@ -1951,7 +2442,7 @@
       const newIdx = $linesStore.length - 1;
       selectedPointId.set(`point-${newIdx + 1}-0`);
 
-      onRecordChange();
+      onRecordChange("Add Path");
     });
   });
 
@@ -1963,14 +2454,15 @@
   // Public method to pan the view to center on specific field coordinates (inches)
   export function panToField(fx: number, fy: number) {
     const factor = get(fieldZoom);
+    const baseSize = Math.min(width, height);
     // Calculate required pan to center the point
-    // x(v) = center - halfW + pan + (v/SIZE)*W
-    // target x(v) = center => pan = halfW - (v/SIZE)*W = W * (0.5 - v/SIZE)
-    const px = width * factor * (0.5 - fx / FIELD_SIZE);
+    // x(v) = center + pan + (v/SIZE - 0.5)*baseSize*zoom
+    // target x(v) = center => pan = - (v/SIZE - 0.5)*baseSize*zoom
+    const px = baseSize * factor * (0.5 - fx / FIELD_SIZE);
 
-    // y(v) = center + halfH + pan - (v/SIZE)*H
-    // target y(v) = center => pan = (v/SIZE)*H - halfH = H * (v/SIZE - 0.5)
-    const py = height * factor * (fy / FIELD_SIZE - 0.5);
+    // y(v) = center + pan - (v/SIZE - 0.5)*baseSize*zoom
+    // target y(v) = center => pan = (v/SIZE - 0.5)*baseSize*zoom
+    const py = baseSize * factor * (fy / FIELD_SIZE - 0.5);
 
     fieldPan.set({ x: px, y: py });
   }
@@ -1985,9 +2477,6 @@
       return;
     }
 
-    // Only allow if clicking empty space (currentElem is null)
-    if (currentElem) return;
-
     // Calculate field coordinates
     const rect = twoElement.getBoundingClientRect();
     const transformed = getTransformedCoordinates(
@@ -1999,29 +2488,323 @@
     const fieldX = x.invert(transformed.x);
     const fieldY = y.invert(transformed.y);
 
-    // Get items from registry
-    const registryItems = get(fieldContextMenuRegistry);
-    if (!registryItems || registryItems.length === 0) return;
+    let menuItems: any[] = [];
 
-    const validItems = registryItems.filter((item) => {
-      if (item.condition) {
-        return item.condition({ x: fieldX, y: fieldY });
+    // Parse clicked element
+    if (currentElem) {
+      const parsed = parseElementId(currentElem);
+      if (parsed) {
+        if (parsed.type === "point") {
+          const { lineIndex, pointIndex } = parsed as ParsedPoint;
+          const isStartPoint = lineIndex === -1;
+          const isControlPoint = pointIndex > 0;
+          const isEndPoint = !isStartPoint && !isControlPoint;
+
+          const pointName = isStartPoint
+            ? "Start Point"
+            : isControlPoint
+              ? "Control Point"
+              : `Path ${lineIndex + 1}`;
+
+          menuItems.push({ label: pointName, disabled: true });
+          menuItems.push({ separator: true });
+
+          // Copy Coordinates
+          menuItems.push({
+            label: "Copy Coordinates",
+            onClick: () => {
+              let pt: Point | BasePoint | undefined;
+              if (isStartPoint) pt = startPoint;
+              else if (lines[lineIndex]) {
+                if (isEndPoint) pt = lines[lineIndex].endPoint;
+                else pt = lines[lineIndex].controlPoints[pointIndex - 1];
+              }
+              if (pt) {
+                const system = settings.coordinateSystem || "Pedro";
+                const userPt = toUser(pt, system);
+                const text = `${userPt.x.toFixed(2)}, ${userPt.y.toFixed(2)}`;
+                navigator.clipboard.writeText(text);
+                notification.set({
+                  message: `Copied "${text}"`,
+                  type: "success",
+                });
+              }
+            },
+          });
+
+          // EndPoint specific actions
+          if (isEndPoint) {
+            menuItems.push({
+              label: "Add Wait Command",
+              onClick: () => {
+                const lineId = lines[lineIndex].id;
+                if (!lineId) return;
+
+                sequenceStore.update((seq) => {
+                  const newSeq = [...seq];
+                  // Find index of this path
+                  const idx = newSeq.findIndex(
+                    (s) => s.kind === "path" && (s as any).lineId === lineId,
+                  );
+                  if (idx !== -1) {
+                    // Insert wait after
+                    newSeq.splice(idx + 1, 0, {
+                      kind: "wait",
+                      id: `wait-${Math.random().toString(36).slice(2)}`,
+                      name: "Wait",
+                      durationMs: 1000, // default 1s
+                    });
+                  }
+                  return newSeq;
+                });
+                onRecordChange("Add Wait Command");
+              },
+            });
+
+            menuItems.push({
+              label: "Delete Path",
+              danger: true,
+              onClick: () => {
+                linesStore.update((l) => {
+                  const newLines = [...l];
+                  newLines.splice(lineIndex, 1);
+                  return newLines;
+                });
+                onRecordChange("Delete Path");
+                selectedLineId.set(null);
+              },
+            });
+
+            const currentHeading = lines[lineIndex].endPoint.heading;
+            menuItems.push({ separator: true });
+            menuItems.push({ label: "Heading Mode", disabled: true });
+            menuItems.push({
+              label: "Tangential",
+              disabled: currentHeading === "tangential",
+              onClick: () => {
+                linesStore.update((l) => {
+                  const line = l[lineIndex];
+                  if (!line) return l;
+                  const ep = line.endPoint;
+                  const base = {
+                    x: ep.x,
+                    y: ep.y,
+                    locked: ep.locked,
+                    isMacroElement: ep.isMacroElement,
+                    macroId: ep.macroId,
+                    originalId: ep.originalId,
+                  };
+                  line.endPoint = {
+                    ...base,
+                    heading: "tangential",
+                    reverse: (ep as any).reverse ?? false,
+                  };
+                  return l;
+                });
+                onRecordChange("Set Heading Tangential");
+              },
+            });
+            menuItems.push({
+              label: "Constant",
+              disabled: currentHeading === "constant",
+              onClick: () => {
+                linesStore.update((l) => {
+                  const line = l[lineIndex];
+                  if (!line) return l;
+                  const ep = line.endPoint;
+                  const base = {
+                    x: ep.x,
+                    y: ep.y,
+                    locked: ep.locked,
+                    isMacroElement: ep.isMacroElement,
+                    macroId: ep.macroId,
+                    originalId: ep.originalId,
+                  };
+                  line.endPoint = {
+                    ...base,
+                    heading: "constant",
+                    degrees: (ep as any).degrees ?? 0,
+                  };
+                  return l;
+                });
+                onRecordChange("Set Heading Constant");
+              },
+            });
+            menuItems.push({
+              label: "Linear",
+              disabled: currentHeading === "linear",
+              onClick: () => {
+                linesStore.update((l) => {
+                  const line = l[lineIndex];
+                  if (!line) return l;
+                  const ep = line.endPoint;
+                  const base = {
+                    x: ep.x,
+                    y: ep.y,
+                    locked: ep.locked,
+                    isMacroElement: ep.isMacroElement,
+                    macroId: ep.macroId,
+                    originalId: ep.originalId,
+                  };
+                  line.endPoint = {
+                    ...base,
+                    heading: "linear",
+                    startDeg: (ep as any).startDeg ?? 0,
+                    endDeg: (ep as any).endDeg ?? 0,
+                  };
+                  return l;
+                });
+                onRecordChange("Set Heading Linear");
+              },
+            });
+          } else if (isStartPoint) {
+            const currentHeading = startPoint.heading;
+            menuItems.push({ separator: true });
+            menuItems.push({ label: "Heading Mode", disabled: true });
+            menuItems.push({
+              label: "Tangential",
+              disabled: currentHeading === "tangential",
+              onClick: () => {
+                startPointStore.update((p) => {
+                  const base = {
+                    x: p.x,
+                    y: p.y,
+                    locked: p.locked,
+                    isMacroElement: p.isMacroElement,
+                    macroId: p.macroId,
+                    originalId: p.originalId,
+                  };
+                  return {
+                    ...base,
+                    heading: "tangential",
+                    reverse: (p as any).reverse ?? false,
+                  };
+                });
+                onRecordChange("Set Start Tangential");
+              },
+            });
+            menuItems.push({
+              label: "Constant",
+              disabled: currentHeading === "constant",
+              onClick: () => {
+                startPointStore.update((p) => {
+                  const base = {
+                    x: p.x,
+                    y: p.y,
+                    locked: p.locked,
+                    isMacroElement: p.isMacroElement,
+                    macroId: p.macroId,
+                    originalId: p.originalId,
+                  };
+                  return {
+                    ...base,
+                    heading: "constant",
+                    degrees: (p as any).degrees ?? 0,
+                  };
+                });
+                onRecordChange("Set Start Constant");
+              },
+            });
+            menuItems.push({
+              label: "Linear",
+              disabled: currentHeading === "linear",
+              onClick: () => {
+                startPointStore.update((p) => {
+                  const base = {
+                    x: p.x,
+                    y: p.y,
+                    locked: p.locked,
+                    isMacroElement: p.isMacroElement,
+                    macroId: p.macroId,
+                    originalId: p.originalId,
+                  };
+                  return {
+                    ...base,
+                    heading: "linear",
+                    startDeg: (p as any).startDeg ?? 0,
+                    endDeg: (p as any).endDeg ?? 0,
+                  };
+                });
+                onRecordChange("Set Start Linear");
+              },
+            });
+          }
+        } else if (parsed.type === "obstacle") {
+          const { shapeIndex } = parsed as ParsedObstacle;
+          menuItems.push({ label: "Obstacle", disabled: true });
+          menuItems.push({ separator: true });
+          menuItems.push({
+            label: shapes[shapeIndex].locked ? "Unlock" : "Lock",
+            onClick: () => {
+              shapesStore.update((s) => {
+                s[shapeIndex].locked = !s[shapeIndex].locked;
+                return s;
+              });
+              onRecordChange("Toggle Obstacle Lock");
+            },
+          });
+          menuItems.push({
+            label: "Delete Obstacle",
+            danger: true,
+            onClick: () => {
+              shapesStore.update((s) => {
+                const newShapes = [...s];
+                newShapes.splice(shapeIndex, 1);
+                return newShapes;
+              });
+              onRecordChange("Delete Obstacle");
+            },
+          });
+        }
       }
-      return true;
-    });
+    }
 
-    if (validItems.length === 0) return;
+    // Get items from registry (Empty Space or Append)
+    // If we clicked an element, we might still want to show global actions?
+    // Probably not, context specific is better.
+    // But plugins might want to add actions to specific elements?
+    // For now, let's keep registry items for empty space or if we decide to merge.
 
-    // Map to ContextMenu format
-    contextMenuItems = validItems.map((item) => ({
-      label: item.label,
-      icon: item.icon,
-      onClick: () => {
-        item.onClick({ x: fieldX, y: fieldY });
-        showContextMenu = false;
-      },
-    }));
+    // If we have items from the element, use them.
+    // If not (empty space), use registry.
+    if (menuItems.length === 0) {
+      const registryItems = get(fieldContextMenuRegistry);
+      if (registryItems && registryItems.length > 0) {
+        const validItems = registryItems.filter((item) => {
+          if (item.condition) {
+            return item.condition({ x: fieldX, y: fieldY });
+          }
+          return true;
+        });
 
+        if (validItems.length > 0) {
+          menuItems = validItems.map((item) => ({
+            label: item.label,
+            icon: item.icon,
+            onClick: () => {
+              item.onClick({ x: fieldX, y: fieldY });
+              showContextMenu = false;
+            },
+          }));
+        }
+      }
+
+      // Add global actions
+      if (menuItems.length > 0) {
+        menuItems.push({ separator: true });
+      }
+      menuItems.push({
+        label: "Transform Path",
+        onClick: () => {
+          showTransformDialog.set(true);
+          showContextMenu = false;
+        },
+      });
+    }
+
+    if (menuItems.length === 0) return;
+
+    contextMenuItems = menuItems;
     contextMenuX = e.clientX;
     contextMenuY = e.clientY;
     showContextMenu = true;
@@ -2032,6 +2815,7 @@
       window.removeEventListener("resize", updateRects);
       window.removeEventListener("scroll", updateRects, true);
     }
+    if (followLoopId) cancelAnimationFrame(followLoopId);
   });
 </script>
 
@@ -2073,6 +2857,33 @@
         {/if}
       </svg>
     {/if}
+    <!-- SVG Overlay for animated paths/layers -->
+    <svg
+      class="absolute inset-0 pointer-events-none"
+      style={`z-index: 14; width: ${width}px; height: ${height}px;`}
+    >
+      {#each onionLayerElements as layer}
+        <polygon
+          points={layer.corners.map((c) => `${x(c.x)},${y(c.y)}`).join(" ")}
+          fill="none"
+          stroke="#818cf8"
+          stroke-width={uiLength(0.5)}
+          opacity="0.35"
+        />
+      {/each}
+      {#each facingLineElements as fl}
+        <line
+          x1={fl.x1}
+          y1={fl.y1}
+          x2={fl.x2}
+          y2={fl.y2}
+          stroke={fl.color}
+          stroke-width={uiLength(0.4)}
+          stroke-dasharray={`${uiLength(1.5)} ${uiLength(1.5)}`}
+          opacity="0.7"
+        />
+      {/each}
+    </svg>
 
     {#if settings.customMaps?.some((m) => m.id === settings.fieldMap)}
       {@const activeMap = settings.customMaps.find(
@@ -2108,19 +2919,111 @@
       />
     {/if}
     <MathTools {x} {y} {twoElement} {robotXY} />
-    {#if !isDiffMode}
-      <img
-        src={settings.robotImage || "/robot.png"}
-        alt="Robot"
-        class="max-w-none"
-        style={`position: absolute; top: ${y(robotXY.y)}px;
-left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
-        draggable="false"
-        on:error={(e) => {
-          // @ts-ignore
-          e.target.src = "/robot.png";
-        }}
-      />
+    {#if !isDiffMode && $showRobot}
+      {#if settings.robotImage === "none"}
+        <!-- Current (Green Square) -->
+        <div
+          class="flex items-center justify-center relative shadow-sm"
+          style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; background-color: rgba(34, 197, 94, 0.10); border: 2px solid #16a34a; border-radius: 8px;`}
+        >
+          {#if settings.showRobotArrows}
+            <!-- Mecanum / Swerve wheel arrows -->
+            {#each ["frontLeft", "frontRight", "backLeft", "backRight"] as wheel}
+              {@const val = speedForWheel(wheel, mecanumSpeeds)}
+              {@const isSwerve = settings.robotDriveType === "swerve"}
+              {@const arrowSize = isSwerve ? 15 : 10 + Math.abs(val) * 15}
+              {@const rot = isSwerve ? val : val >= 0 ? 90 : 270}
+              <!-- scale size dynamically for mecanum, fixed for swerve -->
+              <div
+                class="absolute flex justify-center items-center"
+                style={`
+                  width: 24px;
+                  height: 24px;
+                  ${wheel.includes("front") ? "top: 4px;" : "bottom: 4px;"}
+                  ${wheel.includes("Left") ? "left: 4px;" : "right: 4px;"}
+                  opacity: ${isSwerve ? 0.8 : Math.abs(val) > 0.05 ? 0.8 : 0.2};
+                `}
+              >
+                <svg
+                  width={arrowSize}
+                  height={arrowSize}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#16a34a"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  style={`transform: rotate(${rot}deg); transition: transform 0.1s;`}
+                >
+                  <!-- Arrow now points forward when the wheel should drive
+                       in the robot's +X direction (original SVG is still an
+                       up‑arrow, but we pre‑rotate it here) -->
+                  <line x1="12" y1="19" x2="12" y2="5"></line>
+                  <polyline points="5 12 12 5 19 12"></polyline>
+                </svg>
+              </div>
+            {/each}
+          {/if}
+
+          <!-- heading arrow indicator for no-image robot -->
+          <div
+            style="position:absolute; top:50%; left:50%; transform: translate(-50%, -50%); color: rgba(34, 197, 94, 1.0);"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="3"
+              stroke="currentColor"
+              class="w-6 h-6"
+              style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8.25 4.5l7.5 7.5-7.5 7.5"
+              />
+            </svg>
+          </div>
+        </div>
+      {:else}
+        <div
+          style={`position: absolute; top: ${y(robotXY.y)}px; left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}deg); z-index: 20; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none;`}
+        >
+          <img
+            src={settings.robotImage || "/robot.png"}
+            alt="Robot"
+            class="w-full h-full object-contain"
+            draggable="false"
+            on:error={(e) => {
+              // @ts-ignore
+              e.target.src = "/robot.png";
+            }}
+          />
+          {#if settings.showFakeHeadingArrow && settings.robotImage !== "/robot.png"}
+            <div
+              style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: {settings.fakeHeadingArrowColor ||
+                '#ffffff'};"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="3"
+                stroke="currentColor"
+                class="w-6 h-6"
+                style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                />
+              </svg>
+            </div>
+          {/if}
+        </div>
+      {/if}
     {:else}
       <!-- Current (Green) -->
       <div
@@ -2134,7 +3037,64 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
         ></div>
       {/if}
     {/if}
+
+    <!-- Telemetry Ghost Robot -->
+    {#if ghostRobotState}
+      <div
+        style={`position: absolute; top: ${y(ghostRobotState.y)}px; left: ${x(ghostRobotState.x)}px; transform: translate(-50%, -50%) rotate(${ghostRobotState.heading}deg); z-index: 19; width: ${Math.abs(x(settings.rLength || DEFAULT_ROBOT_LENGTH) - x(0))}px; height: ${Math.abs(x(settings.rWidth || DEFAULT_ROBOT_WIDTH) - x(0))}px; pointer-events: none; border: 2px dashed #6b7280; border-radius: 4px;`}
+      >
+        {#if settings.robotImage === "none"}
+          <div
+            class="w-full h-full"
+            style="background-color: rgba(107, 114, 128, 0.3);"
+          ></div>
+        {:else}
+          <img
+            src={settings.robotImage || "/robot.png"}
+            alt="Ghost Robot"
+            class="w-full h-full object-contain grayscale opacity-50"
+            draggable="false"
+            on:error={(e) => {
+              // @ts-ignore
+              e.target.src = "/robot.png";
+            }}
+          />
+        {/if}
+        {#if settings.showFakeHeadingArrow && settings.robotImage !== "/robot.png"}
+          <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: {settings.fakeHeadingArrowColor ||
+              '#ffffff'}; opacity: 0.5;"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="3"
+              stroke="currentColor"
+              class="w-6 h-6"
+              style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.4));"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8.25 4.5l7.5 7.5-7.5 7.5"
+              />
+            </svg>
+          </div>
+        {/if}
+      </div>
+    {/if}
   </div>
+
+  {#if showContextMenu}
+    <ContextMenu
+      x={contextMenuX}
+      y={contextMenuY}
+      items={contextMenuItems}
+      on:close={() => (showContextMenu = false)}
+    />
+  {/if}
+
   {#if !$isPresentationMode}
     <FieldCoordinates
       x={currentMouseX}
@@ -2200,6 +3160,7 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
         on:click={() => {
+          followRobotStore.set(false);
           const step = computeZoomStep(zoom, 1);
           const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
           const focus = isMouseOverField
@@ -2224,6 +3185,7 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
         on:click={() => {
+          followRobotStore.set(false);
           const step = computeZoomStep(zoom, -1);
           const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
           const focus = isMouseOverField
@@ -2250,6 +3212,7 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
         on:click={() => {
+          followRobotStore.set(false);
           fieldZoom.set(1.0);
           fieldPan.set({ x: 0, y: 0 });
         }}
@@ -2286,6 +3249,7 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
           on:click={() => {
+            followRobotStore.set(false);
             const step = computeZoomStep(zoom, 1);
             const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
             const focus = isMouseOverField
@@ -2310,6 +3274,7 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
           on:click={() => {
+            followRobotStore.set(false);
             const step = computeZoomStep(zoom, -1);
             const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
             const focus = isMouseOverField
@@ -2336,6 +3301,7 @@ left: ${x(robotXY.x)}px; transform: translate(-50%, -50%) rotate(${robotHeading}
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
           on:click={() => {
+            followRobotStore.set(false);
             fieldZoom.set(1.0);
             fieldPan.set({ x: 0, y: 0 });
           }}

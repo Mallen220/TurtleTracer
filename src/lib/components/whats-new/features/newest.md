@@ -1,145 +1,26 @@
 ### What's New!
 
-## **Join the Community!**
-
-We've launched a new **Discord server**! Join us to connect with other users, get help, share your projects, share ideas, and be part of the early development of Pedro Pathing Visualizer. You'll be the first of an ever growing project!
-
-👉 **[Join Discord](https://discord.gg/ku59afNBBM)**
-
----
-
 ## **Features:**
 
-### **Telemetry Data Import & Visualization**
+- **Interactive Field Setup:** The Custom Field Map Wizard now features an intuitive, interactive bounding box—just drag and resize to calibrate your custom field images.
+- **File Manager Drag & Drop:** Easily organize your files with new drag-and-drop support, including moving items into parent folders.
+- **Event Marker Keybindings:** Use new keyboard shortcuts for quickly adding and modifying wait and rotate event markers.
+- **Path Segment Stats:** Hover over the new info icon in the Waypoint Table to see duration and distance statistics for specific path segments.
+- **Individual Setting Resets:** You can now reset specific settings back to their default values directly from the settings menu.
+- **Wheel Direction Toggles:** Added a new setting to toggle individual wheel direction arrows on or off for holonomic and swerve drivetrains.
+- **App State Export:** A new comprehensive debug panel allows you to view and export a full snapshot of your application's state for easier troubleshooting.
+- **Community Links:** Added direct links to our GitHub resources and Discord community in the Settings About section.
 
-Analyze actual robot telemetry from your matches and compare it with your planned paths.
+## **Enhancements & Optimizations:**
 
-- **Import Telemetry:** Load recorded movement data from your robot.
-- **Visual Overlay:** See your actual path overlaid on your planned path to identify discrepancies.
-- **Future Expansion:** More analysis tools coming in future versions.
+- **Smoother Animations:** Animation playback and timeline scrubbing are now noticeably faster and smoother.
+- **Improved Accessibility:** Clearer keyboard focus indicators and enhanced screen reader labels make navigating the app easier.
+- **App Rating Prompt:** The application will now wait until you've logged 10 hours of usage before asking for a rating.
+- **Protractor Tool:** Removed the redundant 0° label from the field protractor for a cleaner interface.
 
-### **File Macros with Transformations**
+## **Bug Fixes:**
 
-Reuse paths across files with powerful macro capabilities.
-
-- **Auto-Sequences:** Pass sequences automatically when referencing paths from other files.
-- **Path Transformations:** Mirror and reverse paths without duplicating code.
-- **Basic Recursion:** Build complex sequences by composing macros together.
-- **Drag & Drop:** Easily import macros by dragging files from the File Manager.
-
-### **Sticky Notes**
-
-Collaborate better by placing notes directly on the field.
-
-- **Context Menu:** Right-click anywhere on the field to add a note.
-- **Customizable:** Change colors, minimize notes, and drag them to position.
-- **Persisted:** Notes are saved with your project file.
-
-### **Custom Field Maps**
-
-Import your own field images for custom game elements or practice fields.
-
-- **Calibration Wizard:** Easily upload and calibrate any image using a simple 2-point system.
-- **Visual Validation:** Ensure your map is scaled correctly before using it.
-
-### **Visual Path Statistics**
-
-Get deeper insights into your path's performance with the updated Statistics dialog.
-
-- **Velocity Graphs:** View detailed charts for Linear and Angular Velocity over time.
-- **Path Analysis:** Comprehensive metrics including acceleration, deceleration, and timing breakdowns.
-- **Summary Metrics:** Quickly check max velocity, total time, and distance.
-
-### **Interactive Onboarding**
-
-New to the application? Our new interactive tutorial guides you through the basics of creating and managing paths.
-
-- **Step-by-Step Guide:** Learn the interface with a hands-on walkthrough.
-- **Smart Triggers:** The tutorial automatically activates for new users or can be started manually from Settings.
-
-### **Global Search (Command Palette)**
-
-Find what you need instantly with the enhanced Command Palette.
-
-- **Universal Search:** Search across Paths, Events, Waits, Shortcuts, and Commands from a single input.
-- **Current File Awareness:** Finds elements within your loaded project.
-- **Quick Navigation:** Jump directly to any element in your project.
-- **Access:** Open with `Ctrl + K` (or `Cmd + K`) and start typing.
-
-### **Keep-In Zones**
-
-Define boundaries for your robot with the new Keep-In Zones.
-
-- **Safety Limits:** Visual validation ensures your path stays within designated safe areas.
-- **Zone Management:** Easily toggle visibility and edit zone properties.
-- **Optimization Support:** The optimizer respects Keep-In Zones to ensure safe paths.
-
-### **Enhanced Validation**
-
-Collision checks are now more powerful and visual.
-
-- **Range-Based Detection:** Validation now works across ranges instead of single points for more accurate collision detection.
-- **Continuous Validation:** Optional real-time validation that checks your path as you edit (can be disabled in settings).
-- **Range Markers:** Visualize collision risks with new range indicators.
-- **Clearer Feedback:** Immediate visual cues when paths intersect with obstacles or leave safe zones.
-
-### **Refined Diff View**
-
-Review your changes with confidence using the updated comparison tool.
-
-- **Instant Comparison:** Toggle the diff overlay to see your current path overlaid on the last saved version.
-- **Focused UI:** A cleaner interface removes distractions, helping you focus on what changed.
-- **Smart Activation:** The diff toggle automatically appears when you have unsaved changes.
-- **Disableable:** Turn off diff view in settings if you prefer.
-
-### **Git Status Integration**
-
-Keep track of your project's version control status directly within the app.
-
-- **Status Indicators:** The Navbar now clearly displays if your current file is **Modified**, **Staged**, or **Untracked**.
-- **File Manager Support:** Quickly identify the Git status of your projects when browsing files.
-
-### **Plugin Manager**
-
-Extend Pedro with custom functionality and share your creations.
-
-- **Install Plugins:** Easily manage and install community plugins.
-- **Custom Integration:** Plugins can add custom tabs, navbar actions, and more.
-- **Access:** Open Plugin Manager from the Settings dialog.
-- **Shareable:** Make something cool? Feel free to share it in the new Discord server with others!
-
-### **Expanded Plugin System**
-
-The plugin system has been significantly expanded, allowing for deeper integration and more powerful extensions.
-
-- **Custom Tabs:** Plugins can now add their own tabs to the Control Panel.
-- **Navbar Actions:** New buttons and tools can be added directly to the top navigation bar by plugins.
-- **Deep Integration:** Developers can now build plugins that modify or replace core interface components.
-
-### **Presentation Mode**
-
-A new view mode designed for showcasing your paths without distractions.
-
-- **Full Focus:** Instantly hide the sidebar and navbar to dedicate the entire screen to the field view.
-- **Easy Toggle:** Enter Presentation Mode via the menu or by pressing `Alt + P`.
-
-### **Enhanced Keyboard Shortcuts**
-
-More powerful editing with expanded keyboard support.
-
-- **Copy, Cut, Paste:** Standard clipboard operations for efficient path editing.
-- **Always More:** Check the Keyboard Shortcuts dialog for a complete list of available binds. It is always recommended to reset your keybinds after every update because the list is always growing with rapid new support.
-
-### **Customizable Interface**
-
-Make Pedro work the way you want.
-
-- **Font Size Control:** Adjust the UI scale to your preference (75% - 150%).
-- **Theme Support:** Choose between light, dark, or system-default themes, plus custom theme plugins that can now be added. Including an example pink theme and secret theme.
-
-## **Improvements:**
-
-- **Path Optimization:** The optimizer now respects **Keep-In Zones**, ensuring your path stays within defined boundaries.
-- **Performance:** Major code refactoring for the Control Tab to improve responsiveness and maintainability.
-- **UX Enhancements:** Improved accessibility for delete buttons and section headers, plus a more intuitive Command Palette experience.
-- **Shape Visibility:** Toggle the visibility of individual shapes for cleaner path visualization.
+- **Export Image Shortcuts:** Fixed and aligned the shortcut keys and menu options for exporting images.
+- **Macro File Updates:** Moving files in the File Manager now reliably updates their references inside macros.
+- **UI Adjustments:** Resolved display issues with Onion Skinning and Facing Point headers.
+- **Menu Stability:** Fixed an issue that could cause application menus to stop responding on macOS.

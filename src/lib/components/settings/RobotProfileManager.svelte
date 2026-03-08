@@ -1,8 +1,9 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onDestroy } from "svelte";
   import type { RobotProfile, Settings } from "../../../types";
   import { notification } from "../../../stores";
+  import { robotProfilesStore } from "../../../lib/projectStore";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
   import SaveIcon from "../icons/SaveIcon.svelte";
   import { fade } from "svelte/transition";
@@ -11,7 +12,7 @@
   // Callback to force update of settings in parent
   export let onSettingsChange: () => void;
 
-  let profiles: RobotProfile[] = [];
+  $: profiles = $robotProfilesStore;
   let selectedProfileId: string = "";
   let newProfileName: string = "";
   let isCreating = false;
@@ -19,38 +20,9 @@
   let updateConfirming = false;
   let updateTimeout: ReturnType<typeof setTimeout>;
 
-  const STORAGE_KEY = "pedro_robot_profiles";
-
-  onMount(() => {
-    loadProfiles();
-  });
-
   onDestroy(() => {
     clearTimeout(updateTimeout);
   });
-
-  function loadProfiles() {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        profiles = JSON.parse(stored);
-      }
-    } catch (e) {
-      console.error("Failed to load robot profiles", e);
-    }
-  }
-
-  function saveProfiles() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
-    } catch (e) {
-      console.error("Failed to save robot profiles", e);
-      notification.set({
-        message: "Failed to save profiles to local storage",
-        type: "error",
-      });
-    }
-  }
 
   function handleCreateProfile() {
     if (!newProfileName.trim()) {
@@ -74,10 +46,13 @@
       xVelocity: settings.xVelocity,
       yVelocity: settings.yVelocity,
       robotImage: settings.robotImage,
-    };
+      robotDriveType: settings.robotDriveType,
+      showRobotArrows: settings.showRobotArrows,
+      showFakeHeadingArrow: settings.showFakeHeadingArrow,
+      fakeHeadingArrowColor: settings.fakeHeadingArrowColor,
+    } as RobotProfile;
 
-    profiles = [...profiles, newProfile];
-    saveProfiles();
+    robotProfilesStore.update((p) => [...p, newProfile]);
     selectedProfileId = newProfile.id;
     isCreating = false;
     newProfileName = "";
@@ -106,6 +81,8 @@
     settings.maxVelocity = profile.maxVelocity;
     settings.maxAcceleration = profile.maxAcceleration;
     settings.maxDeceleration = profile.maxDeceleration;
+    settings.maxAngularAcceleration =
+      profile.maxAngularAcceleration ?? settings.maxAngularAcceleration;
     settings.kFriction = profile.kFriction;
     settings.aVelocity = profile.aVelocity;
     settings.xVelocity = profile.xVelocity;
@@ -113,6 +90,14 @@
     if (profile.robotImage) {
       settings.robotImage = profile.robotImage;
     }
+    if (profile.robotDriveType) {
+      settings.robotDriveType = profile.robotDriveType;
+    }
+    if (profile.showRobotArrows !== undefined) {
+      settings.showRobotArrows = profile.showRobotArrows;
+    }
+    settings.showFakeHeadingArrow = profile.showFakeHeadingArrow ?? false;
+    settings.fakeHeadingArrowColor = profile.fakeHeadingArrowColor || "#ef4444";
 
     onSettingsChange();
     notification.set({
@@ -125,23 +110,31 @@
     const profileIndex = profiles.findIndex((p) => p.id === selectedProfileId);
     if (profileIndex === -1) return;
 
-    // No confirm() here, handled by inline logic
-    profiles[profileIndex] = {
+    const updatedProfile = {
       ...profiles[profileIndex],
       rLength: settings.rLength,
       rWidth: settings.rWidth,
       maxVelocity: settings.maxVelocity,
       maxAcceleration: settings.maxAcceleration,
       maxDeceleration: settings.maxDeceleration || 0,
+      maxAngularAcceleration: settings.maxAngularAcceleration,
       kFriction: settings.kFriction,
       aVelocity: settings.aVelocity,
       xVelocity: settings.xVelocity,
       yVelocity: settings.yVelocity,
       robotImage: settings.robotImage,
-    };
+      robotDriveType: settings.robotDriveType,
+      showRobotArrows: settings.showRobotArrows,
+      showFakeHeadingArrow: settings.showFakeHeadingArrow,
+      fakeHeadingArrowColor: settings.fakeHeadingArrowColor,
+    } as RobotProfile;
 
-    profiles = [...profiles]; // trigger reactivity
-    saveProfiles();
+    robotProfilesStore.update((p) => {
+      const newProfiles = [...p];
+      newProfiles[profileIndex] = updatedProfile;
+      return newProfiles;
+    });
+
     notification.set({
       message: `Profile "${profiles[profileIndex].name}" updated`,
       type: "success",
@@ -174,8 +167,9 @@
 
     // No confirm() here, handled by DeleteButtonWithConfirm
 
-    profiles = profiles.filter((p) => p.id !== selectedProfileId);
-    saveProfiles();
+    robotProfilesStore.update((p) =>
+      p.filter((x) => x.id !== selectedProfileId),
+    );
     selectedProfileId = "";
     notification.set({
       message: `Profile "${profile.name}" deleted`,

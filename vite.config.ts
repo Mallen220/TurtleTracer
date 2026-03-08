@@ -1,8 +1,14 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 
 export default defineConfig({
+  server: {
+    cors: false,
+  },
+  preview: {
+    cors: false,
+  },
   plugins: [svelte()],
   resolve: {
     alias: {

@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type {
   Line,
   Point,
@@ -117,7 +117,7 @@ function transformMacroData(
   }
 
   // Clone data deeply
-  const newData: PedroData = JSON.parse(JSON.stringify(data));
+  const newData: PedroData = structuredClone(data);
   const resolvedTransforms: Transformation[] = [];
 
   transforms.forEach((t) => {
@@ -253,23 +253,24 @@ export function expandMacro(
         macroId: macroItem.id,
       };
     } else if (target.heading === "linear") {
-      // Bridge ends where macro starts.
-      bridgeEndPoint = {
-        x: target.x,
-        y: target.y,
-        heading: "linear",
-        startDeg: 0, // Ignored by calculator (uses current)
-        endDeg: target.endDeg, // Use endDeg from target? or target.startDeg? Usually target.startDeg
-        isMacroElement: true,
-        macroId: macroItem.id,
-      };
-    } else {
-      // Tangential
+      // Use tangential bridges for macros even when the macro start is linear.
+      // Tangential bridges provide a smoother connection from caller paths
+      // and avoid introducing artificial linear headings.
       bridgeEndPoint = {
         x: target.x,
         y: target.y,
         heading: "tangential",
-        reverse: target.reverse,
+        reverse: false,
+        isMacroElement: true,
+        macroId: macroItem.id,
+      };
+    } else {
+      // Tangential (already tangential)
+      bridgeEndPoint = {
+        x: target.x,
+        y: target.y,
+        heading: "tangential",
+        reverse: target.reverse ?? false,
         isMacroElement: true,
         macroId: macroItem.id,
       };

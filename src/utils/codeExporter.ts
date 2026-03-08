@@ -1,9 +1,11 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import prettier from "prettier";
 import prettierJavaPlugin from "prettier-plugin-java";
 import type { Point, Line, BasePoint, SequenceItem } from "../types";
-import { getCurvePoint } from "./math";
+import { getCurvePoint, getLineStartHeading } from "./math";
 import pkg from "../../package.json";
+import { actionRegistry } from "../lib/actionRegistry";
+import { toUser, toUserHeading, type CoordinateSystem } from "./coordinates";
 
 /**
  * Generate Java code from path data
@@ -11,7 +13,7 @@ import pkg from "../../package.json";
 
 const AUTO_GENERATED_FILE_WARNING_MESSAGE: string = `
 /* ============================================================= *
- *           Pedro Pathing Visualizer — Auto-Generated           *
+ *        Pedro Pathing Plus Visualizer — Auto-Generated         *
  *                                                               *
  *  Version: ${pkg.version}.                                              *
  *  Copyright (c) ${new Date().getFullYear()} Matthew Allen                             *
@@ -26,6 +28,8 @@ export async function generateJavaCode(
   exportFullCode: boolean,
   sequence?: SequenceItem[],
   packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+  telemetryImpl: "Standard" | "Dashboard" | "Panels" | "None" = "Panels",
+  coordinateSystem: CoordinateSystem = "Pedro",
 ): Promise<string> {
   const headingTypeToFunctionName = {
     constant: "setConstantHeadingInterpolation",
@@ -97,36 +101,116 @@ export async function generateJavaCode(
       ${lines
         .map((line, idx) => {
           const variableName = pathChainNames[idx];
-          const start =
-            idx === 0
-              ? `new Pose(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)})`
-              : `new Pose(${lines[idx - 1].endPoint.x.toFixed(3)}, ${lines[idx - 1].endPoint.y.toFixed(3)})`;
 
-          const controlPoints =
-            line.controlPoints.length > 0
-              ? `${line.controlPoints
-                  .map(
-                    (point) =>
-                      `new Pose(${point.x.toFixed(3)}, ${point.y.toFixed(3)})`,
-                  )
-                  .join(",\n")},`
-              : "";
+          let startCode, controlPointsCode, endCode, headingConfig;
+
+          if (coordinateSystem === "FTC") {
+            // Helper to format buildPose call
+            const formatPose = (
+              pt: { x: number; y: number },
+              h: number = 0,
+            ) => {
+              const u = toUser(pt, "FTC");
+              // We pass 0 for heading if it doesn't matter (like start/CPs in curve constructor usually ignore heading except start?)
+              // Actually BezierCurve constructor uses Points. Pose has heading.
+              // If we use buildPose, it returns a Pose.
+              // The conversion helper should convert heading too.
+              const uh = toUserHeading(h, "FTC");
+              return `buildPose(${u.x.toFixed(3)}, ${u.y.toFixed(3)}, Math.toRadians(${uh.toFixed(3)}))`;
+            };
+
+            const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+            // For start point of path, heading matters if it's the very first point or if we need tangent?
+            // BezierCurve takes Points. Pose is a Point.
+            // We pass 0 heading for geometric points usually, but for start point it might use heading.
+            startCode = formatPose(startPt, 0);
+
+            controlPointsCode =
+              line.controlPoints.length > 0
+                ? `${line.controlPoints
+                    .map((point) => formatPose(point, 0))
+                    .join(",\n")},`
+                : "";
+
+            endCode = formatPose(line.endPoint, 0);
+
+            // Heading configurations
+            if (line.endPoint.heading === "constant") {
+              const uh = toUserHeading(line.endPoint.degrees || 0, "FTC");
+              headingConfig = `Math.toRadians(${uh.toFixed(3)})`;
+            } else if (line.endPoint.heading === "linear") {
+              const uhStart = toUserHeading(line.endPoint.startDeg || 0, "FTC");
+              const uhEnd = toUserHeading(line.endPoint.endDeg || 0, "FTC");
+              headingConfig = `Math.toRadians(${uhStart.toFixed(3)}), Math.toRadians(${uhEnd.toFixed(3)})`;
+            } else if (line.endPoint.heading === "facingPoint") {
+              const uTarget = toUser(
+                {
+                  x: line.endPoint.targetX || 0,
+                  y: line.endPoint.targetY || 0,
+                },
+                "FTC",
+              );
+              headingConfig = `new Pose(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)})`;
+            } else {
+              headingConfig = "";
+            }
+          } else {
+            // Standard Pedro (0-144)
+            const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+            startCode = `new Pose(${startPt.x.toFixed(3)}, ${startPt.y.toFixed(3)})`;
+
+            controlPointsCode =
+              line.controlPoints.length > 0
+                ? `${line.controlPoints
+                    .map(
+                      (point) =>
+                        `new Pose(${point.x.toFixed(3)}, ${point.y.toFixed(3)})`,
+                    )
+                    .join(",\n")},`
+                : "";
+
+            endCode = `new Pose(${line.endPoint.x.toFixed(3)}, ${line.endPoint.y.toFixed(3)})`;
+
+            headingConfig =
+              line.endPoint.heading === "constant"
+                ? `Math.toRadians(${line.endPoint.degrees})`
+                : line.endPoint.heading === "linear"
+                  ? `Math.toRadians(${line.endPoint.startDeg}), Math.toRadians(${line.endPoint.endDeg})`
+                  : line.endPoint.heading === "facingPoint"
+                    ? `new Pose(${(line.endPoint.targetX || 0).toFixed(3)}, ${(line.endPoint.targetY || 0).toFixed(3)})`
+                    : "";
+          }
 
           const curveType =
             line.controlPoints.length === 0
               ? `new BezierLine`
               : `new BezierCurve`;
 
-          const headingConfig =
-            line.endPoint.heading === "constant"
-              ? `Math.toRadians(${line.endPoint.degrees})`
-              : line.endPoint.heading === "linear"
-                ? `Math.toRadians(${line.endPoint.startDeg}), Math.toRadians(${line.endPoint.endDeg})`
-                : "";
-
-          const reverseConfig = line.endPoint.reverse
-            ? ".setReversed(true)"
-            : "";
+          let headingMethodCode = "";
+          if (line.endPoint.reverse) {
+            // Reversed: use setHeadingInterpolation(HeadingInterpolator.xxx).setReversed()
+            if (line.endPoint.heading === "constant") {
+              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.constant(${headingConfig}))\n        .setReversed()`;
+            } else if (line.endPoint.heading === "linear") {
+              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.linear(${headingConfig}))\n        .setReversed()`;
+            } else if (line.endPoint.heading === "tangential") {
+              // tangent is a field, not a method
+              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.tangent)\n        .setReversed()`;
+            } else if (line.endPoint.heading === "facingPoint") {
+              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${headingConfig}))\n        .setReversed()`;
+            }
+          } else {
+            // No reverse: use shorthand setters
+            if (line.endPoint.heading === "constant") {
+              headingMethodCode = `.setConstantHeadingInterpolation(${headingConfig})`;
+            } else if (line.endPoint.heading === "linear") {
+              headingMethodCode = `.setLinearHeadingInterpolation(${headingConfig})`;
+            } else if (line.endPoint.heading === "tangential") {
+              headingMethodCode = `.setTangentHeadingInterpolation()`;
+            } else if (line.endPoint.heading === "facingPoint") {
+              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${headingConfig}))`;
+            }
+          }
 
           // Add event markers to the path builder
           let eventMarkerCode = "";
@@ -141,15 +225,32 @@ export async function generateJavaCode(
 
           return `${variableName} = follower.pathBuilder().addPath(
           ${curveType}(
-            ${start},
-            ${controlPoints}
-            new Pose(${line.endPoint.x.toFixed(3)}, ${line.endPoint.y.toFixed(3)})
+            ${startCode},
+            ${controlPointsCode}
+            ${endCode}
           )
-        ).${headingTypeToFunctionName[line.endPoint.heading]}(${headingConfig})
-        ${reverseConfig}${eventMarkerCode}
+        )${headingMethodCode}${eventMarkerCode}
         .build();`;
         })
         .join("\n\n")}
+    }
+
+    ${
+      coordinateSystem === "FTC"
+        ? `
+    private Pose buildPose(double x, double y, double heading) {
+        return PoseConverter.pose2DToPose(
+            new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
+                org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH,
+                x, y,
+                org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS,
+                heading
+            ),
+            InvertedFTCCoordinates.INSTANCE
+        ).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+    }
+    `
+        : ""
     }
   }
   `;
@@ -194,6 +295,23 @@ export async function generateJavaCode(
   const targetSequence = flattenSequence(rawSequence);
 
   targetSequence.forEach((item) => {
+    // Check Registry
+    const action = actionRegistry.get(item.kind);
+    if (action && action.toJavaCode) {
+      // Registry Action (e.g. Wait)
+      // Note: we don't emit 'case stateStep:' here because toJavaCode is expected to generate it or return code block.
+      // But my WaitAction implementation generates `case stateStep: ... case stateStep+1: ...`
+      // So I should NOT emit `case stateStep:` before calling it if it handles it.
+      // My implementation of WaitAction.ts DOES generate "case ${stateStep}:".
+      // But the loop here previously emitted `stateMachineCode += ... case ...`.
+      // I should remove the pre-emission for registry items.
+
+      const res = action.toJavaCode(item, { stateStep });
+      stateMachineCode += res.code;
+      stateStep += res.stepsUsed;
+      return;
+    }
+
     stateMachineCode += `\n        case ${stateStep}:`;
 
     if (item.kind === "path") {
@@ -220,30 +338,6 @@ export async function generateJavaCode(
         stateMachineCode += `\n          break;`;
         stateStep += 1;
       }
-    } else if (item.kind === "wait") {
-      const waitMs = (item as any).durationMs || 0;
-      stateMachineCode += `\n          setPathState(${stateStep + 1});`;
-      stateMachineCode += `\n          break;`;
-
-      stateMachineCode += `\n        case ${stateStep + 1}:`;
-      stateMachineCode += `\n          if(pathTimer.getMilliseconds() > ${waitMs}) {`;
-      stateMachineCode += `\n            setPathState(${stateStep + 2});`;
-      stateMachineCode += `\n          }`;
-      stateMachineCode += `\n          break;`;
-      stateStep += 2;
-    } else if (item.kind === "rotate") {
-      const degrees = (item as any).degrees || 0;
-      const radians = (degrees * Math.PI) / 180;
-      stateMachineCode += `\n          follower.turnTo(${radians.toFixed(3)});`;
-      stateMachineCode += `\n          setPathState(${stateStep + 1});`;
-      stateMachineCode += `\n          break;`;
-
-      stateMachineCode += `\n        case ${stateStep + 1}:`;
-      stateMachineCode += `\n          if(!follower.isBusy()) {`;
-      stateMachineCode += `\n            setPathState(${stateStep + 2});`;
-      stateMachineCode += `\n          }`;
-      stateMachineCode += `\n          break;`;
-      stateStep += 2;
     }
   });
 
@@ -257,6 +351,107 @@ export async function generateJavaCode(
     file =
       AUTO_GENERATED_FILE_WARNING_MESSAGE + pathsClass + namedCommandsSection;
   } else {
+    // Determine imports based on telemetry implementation
+    let extraImports = "";
+    if (telemetryImpl === "Panels") {
+      extraImports = `
+    import com.bylazar.configurables.annotations.Configurable;
+    import com.bylazar.telemetry.TelemetryManager;
+    import com.bylazar.telemetry.PanelsTelemetry;`;
+    } else if (telemetryImpl === "Dashboard") {
+      extraImports = `
+    import com.acmerobotics.dashboard.FtcDashboard;
+    import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+    import org.firstinspires.ftc.robotcore.external.Telemetry;`;
+    }
+
+    const classAnnotations =
+      telemetryImpl === "Panels" ? "@Configurable // Panels" : "";
+
+    let telemetryField = "";
+    if (telemetryImpl === "Panels") {
+      telemetryField =
+        "private TelemetryManager panelsTelemetry; // Panels Telemetry instance";
+    } else if (telemetryImpl === "Dashboard") {
+      telemetryField = "private Telemetry telemetryA;";
+    }
+
+    let telemetryInit = "";
+    if (telemetryImpl === "Panels") {
+      telemetryInit = `
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        // ...
+        panelsTelemetry.debug("Status", "Initialized");
+        panelsTelemetry.update(telemetry);`;
+    } else if (telemetryImpl === "Dashboard") {
+      telemetryInit = `
+        telemetryA = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
+        telemetryA.addData("Status", "Initialized");
+        telemetryA.update();`;
+    } else if (telemetryImpl === "Standard") {
+      telemetryInit = `
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();`;
+    }
+
+    let telemetryLoop = "";
+    if (telemetryImpl === "Panels") {
+      telemetryLoop = `
+        // Log values to Panels and Driver Station
+        panelsTelemetry.debug("Path State", pathState);
+        panelsTelemetry.debug("X", follower.getPose().getX());
+        panelsTelemetry.debug("Y", follower.getPose().getY());
+        panelsTelemetry.debug("Heading", follower.getPose().getHeading());
+        panelsTelemetry.update(telemetry);`;
+    } else if (telemetryImpl === "Dashboard") {
+      telemetryLoop = `
+        // Log values to Dashboard and Driver Station
+        telemetryA.addData("Path State", pathState);
+        telemetryA.addData("X", follower.getPose().getX());
+        telemetryA.addData("Y", follower.getPose().getY());
+        telemetryA.addData("Heading", follower.getPose().getHeading());
+        telemetryA.update();`;
+    } else if (telemetryImpl === "Standard") {
+      telemetryLoop = `
+        // Log values to Driver Station
+        telemetry.addData("Path State", pathState);
+        telemetry.addData("X", follower.getPose().getX());
+        telemetry.addData("Y", follower.getPose().getY());
+        telemetry.addData("Heading", follower.getPose().getHeading());
+        telemetry.update();`;
+    }
+
+    // compute heading used in exported Java before building the file template
+    const startDegForExport = ((): number => {
+      if (
+        lines &&
+        lines.length > 0 &&
+        lines[0].endPoint.heading === "tangential"
+      ) {
+        return getLineStartHeading(lines[0], startPoint);
+      }
+
+      if (
+        startPoint.heading === "constant" &&
+        typeof (startPoint as any).degrees === "number"
+      ) {
+        return (startPoint as any).degrees;
+      }
+
+      if (lines && lines.length > 0) {
+        return getLineStartHeading(lines[0], startPoint);
+      }
+
+      if (
+        startPoint.heading === "linear" &&
+        typeof (startPoint as any).startDeg === "number"
+      ) {
+        return (startPoint as any).startDeg;
+      }
+
+      return (startPoint as any).degrees ?? 90;
+    })();
+
     file = `
     ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
@@ -264,21 +459,23 @@ export async function generateJavaCode(
     import com.qualcomm.robotcore.eventloop.opmode.OpMode;
     import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
     import com.qualcomm.robotcore.util.ElapsedTime;
-    import com.bylazar.configurables.annotations.Configurable;
-    import com.bylazar.telemetry.TelemetryManager;
-    import com.bylazar.telemetry.PanelsTelemetry;
-    import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+    import com.pedropathing.ftc.InvertedFTCCoordinates;
+    import com.pedropathing.geometry.PedroCoordinates;
+    import org.firstinspires.ftc.teamcode.pedroPathing.PedroConstants;
+    import com.pedropathing.ftc.PoseConverter;
+    ${extraImports}
     import com.pedropathing.geometry.BezierCurve;
     import com.pedropathing.geometry.BezierLine;
     import com.pedropathing.follower.Follower;
     import com.pedropathing.paths.PathChain;
     import com.pedropathing.geometry.Pose;
+    import com.pedropathing.paths.HeadingInterpolator;
     ${eventMarkerNames.size > 0 ? "import com.pedropathing.NamedCommands;" : ""}
     
     @Autonomous(name = "Pedro Pathing Autonomous", group = "Autonomous")
-    @Configurable // Panels
+    ${classAnnotations}
     public class PedroAutonomous extends OpMode {
-      private TelemetryManager panelsTelemetry; // Panels Telemetry instance
+      ${telemetryField}
       public Follower follower; // Pedro Pathing follower instance
       private int pathState; // Current autonomous path state (state machine)
       private ElapsedTime pathTimer; // Timer for path state machine
@@ -286,16 +483,22 @@ export async function generateJavaCode(
       
       @Override
       public void init() {
-        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        ${telemetryInit}
 
-        follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(72, 8, Math.toRadians(90)));
+        follower = PedroConstants.createFollower(hardwareMap);
+        // Determine starting heading: prefer geometric heading when a path exists, otherwise fall back to explicit startPoint values
+        ${
+          coordinateSystem === "FTC"
+            ? (() => {
+                const uStart = toUser(startPoint, "FTC");
+                const uHead = toUserHeading(startDegForExport, "FTC");
+                return `follower.setStartingPose(new Paths(follower).buildPose(${uStart.x.toFixed(3)}, ${uStart.y.toFixed(3)}, Math.toRadians(${uHead.toFixed(3)})));`;
+              })()
+            : `follower.setStartingPose(new Pose(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)}, Math.toRadians(${startDegForExport.toFixed(3)})));`
+        }
 
         pathTimer = new ElapsedTime();
         paths = new Paths(follower); // Build paths
-
-        panelsTelemetry.debug("Status", "Initialized");
-        panelsTelemetry.update(telemetry);
       }
       
       @Override
@@ -303,12 +506,7 @@ export async function generateJavaCode(
         follower.update(); // Update Pedro Pathing
         pathState = autonomousPathUpdate(); // Update autonomous state machine
 
-        // Log values to Panels and Driver Station
-        panelsTelemetry.debug("Path State", pathState);
-        panelsTelemetry.debug("X", follower.getPose().getX());
-        panelsTelemetry.debug("Y", follower.getPose().getY());
-        panelsTelemetry.debug("Heading", follower.getPose().getHeading());
-        panelsTelemetry.update(telemetry);
+        ${telemetryLoop}
       }
 
       ${pathsClass}
@@ -386,8 +584,10 @@ export async function generateSequentialCommandCode(
   lines: Line[],
   fileName: string | null = null,
   sequence?: SequenceItem[],
-  targetLibrary: "SolversLib" | "NextFTC" = "SolversLib", // - Added parameter
+  targetLibrary: "SolversLib" | "NextFTC" = "SolversLib",
   packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+  hardcodeValues: boolean = false,
+  coordinateSystem: CoordinateSystem = "Pedro",
 ): Promise<string> {
   // Determine class name from file name or use default
   let className = "AutoPath";
@@ -411,18 +611,54 @@ export async function generateSequentialCommandCode(
   const addPose = (
     variableName: string,
     lookupName: string = variableName,
+    point?: Point,
+    overrideDegrees?: number, // - New parameter
   ): void => {
     if (!declaredPoses.has(variableName)) {
       allPoseDeclarations.push(`    private Pose ${variableName};`);
-      allPoseInitializations.push(
-        `        ${variableName} = pp.get("${lookupName}");`,
-      );
+
+      if (hardcodeValues && point) {
+        // Use exact values
+        // Use overrideDegrees if provided, otherwise default to 0
+        const degrees =
+          overrideDegrees !== undefined
+            ? overrideDegrees
+            : (point as any).degrees || 0;
+
+        if (coordinateSystem === "FTC") {
+          const userPt = toUser(point, "FTC");
+          const userHead = toUserHeading(degrees, "FTC");
+          allPoseInitializations.push(
+            `        ${variableName} = buildPose(${userPt.x.toFixed(3)}, ${userPt.y.toFixed(3)}, Math.toRadians(${userHead.toFixed(3)}));`,
+          );
+        } else {
+          allPoseInitializations.push(
+            `        ${variableName} = new Pose(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, Math.toRadians(${degrees}));`,
+          );
+        }
+      } else {
+        // Use pp.get
+        allPoseInitializations.push(
+          `        ${variableName} = pp.get("${lookupName}");`,
+        );
+      }
       declaredPoses.add(variableName);
     }
   };
 
+  // Determine start degrees
+  let startDegrees = 0;
+  if (startPoint.heading === "constant" && startPoint.degrees !== undefined) {
+    startDegrees = startPoint.degrees;
+  } else if (
+    startPoint.heading === "linear" &&
+    startPoint.startDeg !== undefined
+  ) {
+    startDegrees = startPoint.startDeg;
+  }
+
   // Add start point
-  addPose("startPoint", "startPoint");
+  addPose("startPoint", "startPoint", startPoint, startDegrees);
   poseVariableNames.set("startPoint", "startPoint");
 
   // Track used path chain names to handle duplicates
@@ -435,112 +671,41 @@ export async function generateSequentialCommandCode(
       ? line.name.replace(/[^a-zA-Z0-9]/g, "")
       : `point${lineIdx + 1}`;
 
+    // Determine end degrees
+    let endDegrees = 0;
+    if (
+      line.endPoint.heading === "constant" &&
+      line.endPoint.degrees !== undefined
+    ) {
+      endDegrees = line.endPoint.degrees;
+    } else if (
+      line.endPoint.heading === "linear" &&
+      line.endPoint.endDeg !== undefined
+    ) {
+      endDegrees = line.endPoint.endDeg;
+    }
+
     // Add end point declaration (shared poses)
-    addPose(endPointName, endPointName);
+    // Note: line.endPoint includes degrees from BasePoint
+    addPose(endPointName, endPointName, line.endPoint, endDegrees);
     poseVariableNames.set(`point${lineIdx + 1}`, endPointName);
 
-    // Add control points if they exist
-    // Control points are tied to the line, but stored in .pp with a generated name if not explicit?
-    // The .pp format usually stores points with IDs or Names.
-    // If the standard exporter saves control points as "Score_control1", we must match that.
-    // Assuming the Reader uses the same logic or we need to ensure unique names for control points
-    // that don't conflict even if endpoints share names.
-    // For now, we will assume control points are unique to the line index to be safe,
-    // OR we follow the existing pattern if it matches the file format.
-    // The file format likely saves them nested or as separate points.
-    // The `PedroPathReader` gets them by string name.
-    // The previous code used `${endPointName}_control${controlIdx + 1}`.
-    // If endPointName is shared, this is ambiguous.
-    // We should use the line-specific control point name if possible, or assume the user/saver handles it.
-    // Given the requirement "Control points are always independent", we should probably use a unique name.
-    // However, we must match what `pp.get()` expects.
-    // If the .pp file contains "Score_control1", we must ask for "Score_control1".
-    // If we have two lines ending at Score, do we have "Score_control1" twice in .pp?
-    // Unlikely. The Saver likely handles unique names for control points.
-    // Let's look at how `saveProject` works -> it dumps `lines`.
-    // `Line` has `controlPoints`. They don't have names in the interface usually.
-    // The `PedroPathReader` probably iterates or expects specific naming conventions if it flattens them.
-    // WAIT. `PedroPathReader` reads the JSON.
-    // If `pp.get("name")` is used, the JSON must have a map with that key.
-    // The `PedroPathReader` implementation (which is external Java code) likely constructs the map.
-    // If the Java library parses the JSON, does it flatten everything into a map by name?
-    // If so, duplicate names in the JSON would overwrite each other.
-    // But `lines` is an array in JSON.
-    // `pp.get` implies retrieval by ID or Name.
-    // If the Java reader does `get(String name)`, it implies unique names.
-    // If the user has multiple lines ending at "Score", they share the "Score" point.
-    // But control points are unnamed in the UI usually.
-    // If the reader automatically generates names for unnamed points (like control points),
-    // it likely uses the line index or similar.
-    // However, the previous code used `${endPointName}_control...`.
-    // If I change this, I might break it if the reader expects that.
-    // BUT, if I have collision on `endPointName`, I have collision on control point name.
-    // FIX: We must assume the Reader handles specific naming for control points if they are shared.
-    // Use a safer naming scheme for control points: `${endPointName}_${lineIdx}_control${controlIdx}` ??
-    // No, I can't change what the Reader expects.
-    // The Reader parses the .pp file.
-    // If the .pp file is just the JSON dump of `lines`, it doesn't have "Score_control1" keys explicitly unless
-    // the Reader generates them upon loading.
-    // IF the Reader generates them, it probably follows a pattern.
-    // If the previous code worked for non-shared cases, it assumes the Reader uses `${endPointName}_controlN`.
-    // If we now support shared cases, we might need to rely on the Reader's behavior.
-    // Assumption: The Reader likely indexes control points by the line's end point name? That seems flawed for shared points.
-    // Let's assume for now we must use unique variables for control points in Java,
-    // but the string passed to `pp.get` must match what the Reader has.
-    // If `endPointName` is "Score", and we have two lines, the Reader might have "Score", "Score_control1" (from line 1), "Score_control1" (from line 2??).
-    // This implies the .pp format or Reader is limited?
-    // OR, we should use the `line.id` or similar if available?
-    // The prompt says: "Control points are always independent."
-    // Let's use `line${lineIdx}_control${controlIdx}` for the Java variable name to ensure uniqueness.
-    // For the `pp.get(...)`, we are stuck with what the reader provides.
-    // If the reader provides `${endPointName}_control${idx}`, and endPointName is shared, we have a problem.
-    // But maybe we can hope the reader is smart?
-    // Or maybe we should use `point${lineIdx+1}_control...` if the name is generated?
-    // Let's stick to unique Java variables first.
-
     if (line.controlPoints && line.controlPoints.length > 0) {
-      line.controlPoints.forEach((_, controlIdx) => {
-        // We use a unique variable name to avoid Java conflicts
-        const controlPointVarName = `${endPointName}_l${lineIdx}_c${controlIdx + 1}`;
-        // We try to guess the key. If the previous code used `${endPointName}_control...`, it might be unsafe.
-        // Let's stick to the previous pattern for the string key but ensure unique Java variable.
-        // Actually, if I look at `generateJavaCode` (standard), it generates `new Pose(...)` inline.
-        // Sequential code loads from file.
-        // If the file is just the project JSON, and the Reader parses it...
-        // The Reader code is not here.
-        // I will use `${endPointName}_control${controlIdx + 1}` for the key as before,
-        // BUT I will assign it to a unique variable.
-        // Wait, if two lines share "Score", and both have 1 control point.
-        // Both keys would be "Score_control1".
-        // Use unique variable names:
+      line.controlPoints.forEach((cp, controlIdx) => {
         const controlPointName = `${endPointName}_control${controlIdx + 1}`;
-        // If we already declared this variable (from another line sharing Score),
-        // we might be overwriting it or reusing it?
-        // "Control points are always independent."
-        // So we should NOT reuse it.
-        // But if `pp.get("Score_control1")` returns the same object...
-        // This implies the Reader might be merging them?
-        // Let's assume for now we generate unique variables.
-        // If the key is ambiguous, we can't fix it here without changing the Reader or the Saver.
-        // However, I can ensure the Java code compiles by making the variable unique.
-
-        // BETTER STRATEGY: Use the line index in the variable name.
         const uniqueControlVar = `${endPointName}_line${lineIdx}_control${controlIdx + 1}`;
+
         allPoseDeclarations.push(`    private Pose ${uniqueControlVar};`);
 
-        // For the key, we use what we think the reader expects.
-        // If the user has "Score" and "Score", checking the .pp file structure (JSON):
-        // It has `lines`.
-        // The Reader likely builds a map.
-        // If the map is built by iterating lines, and using "Name", then "Name_controlN",
-        // subsequent lines would overwrite previous ones in the map if keys collide.
-        // This is an issue in the Reader/Saver logic if true.
-        // But I can only fix the Java exporter.
-        // I will generate the code.
-
-        allPoseInitializations.push(
-          `        ${uniqueControlVar} = pp.get(\"${controlPointName}\");`,
-        );
+        if (hardcodeValues) {
+          allPoseInitializations.push(
+            `        ${uniqueControlVar} = new Pose(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)});`,
+          );
+        } else {
+          allPoseInitializations.push(
+            `        ${uniqueControlVar} = pp.get(\"${controlPointName}\");`,
+          );
+        }
 
         // Store for use in path building
         // Key: identifying the control point for this specific line/index
@@ -625,110 +790,10 @@ export async function generateSequentialCommandCode(
   );
 
   seq.forEach((item, idx) => {
-    if (item.kind === "rotate") {
-      const rotateItem: any = item as any;
-      const degrees = rotateItem.degrees || 0;
-      const radians = (degrees * Math.PI) / 180;
-
-      const markers: any[] = Array.isArray(rotateItem.eventMarkers)
-        ? [...rotateItem.eventMarkers]
-        : [];
-
-      if (markers.length === 0) {
-        commands.push(
-          `                new ${InstantCmdClass}(() -> follower.turnTo(${radians.toFixed(3)}))`,
-          `                new ${WaitUntilCmdClass}(() -> !follower.isTurning())`,
-        );
-        return;
-      }
-
-      // Sort markers by position (0-1)
-      markers.sort((a, b) => (a.position || 0) - (b.position || 0));
-
-      const firstMarker = markers[0];
-      let turnCommand = `                new ${InstantCmdClass}(() -> {
-                        progressTracker.turn(${radians.toFixed(3)}, "${firstMarker.name}", ${firstMarker.position.toFixed(3)});`;
-
-      // Register remaining markers
-      for (let i = 1; i < markers.length; i++) {
-        turnCommand += `
-                        progressTracker.registerEvent("${markers[i].name}", ${markers[i].position.toFixed(3)});`;
-      }
-      turnCommand += `
-                    })`;
-
-      commands.push(turnCommand);
-
-      let eventSequence = `                new ${ParallelRaceClass}(
-                    new ${WaitUntilCmdClass}(() -> !follower.isTurning()),
-                    new ${SequentialGroupClass}(`;
-
-      markers.forEach((marker, idx) => {
-        if (idx > 0) eventSequence += `,`;
-        eventSequence += `
-                        new ${WaitUntilCmdClass}(() -> progressTracker.shouldTriggerEvent("${marker.name}")),
-                        new ${InstantCmdClass}(() -> progressTracker.executeEvent("${marker.name}"))`;
-      });
-
-      // Ensure the event sequence doesn't finish before the turn completes
-      eventSequence += `,
-                        new ${WaitUntilCmdClass}(() -> !follower.isTurning())`;
-
-      eventSequence += `
-                    ))`;
-
-      commands.push(eventSequence);
-      return;
-    }
-
-    if (item.kind === "wait") {
-      const waitItem: any = item as any;
-      const waitDuration = waitItem.durationMs || 0;
-
-      const markers: any[] = Array.isArray(waitItem.eventMarkers)
-        ? [...waitItem.eventMarkers]
-        : [];
-
-      // Determine wait value and formatting
-      // NextFTC Delay uses seconds, SolversLib WaitCommand uses ms (or whatever SolversLib expects, assumed ms)
-      const getWaitValue = (ms: number) =>
-        isNextFTC ? (ms / 1000.0).toFixed(3) : ms.toFixed(0);
-
-      if (markers.length === 0) {
-        commands.push(
-          `                new ${WaitCmdClass}(${getWaitValue(waitDuration)})`,
-        );
-        return;
-      }
-
-      // Sort markers by position (0-1) to schedule in order
-      markers.sort((a, b) => (a.position || 0) - (b.position || 0));
-
-      let scheduled = 0;
-      const markerCommandParts: string[] = [];
-
-      markers.forEach((marker) => {
-        const targetMs =
-          Math.max(0, Math.min(1, marker.position || 0)) * waitDuration;
-        const delta = Math.max(0, targetMs - scheduled);
-        scheduled = targetMs;
-
-        markerCommandParts.push(
-          `new ${WaitCmdClass}(${getWaitValue(delta)}), new ${InstantCmdClass}(() -> progressTracker.executeEvent("${marker.name}"))`,
-        );
-      });
-
-      const remaining = Math.max(0, waitDuration - scheduled);
-      markerCommandParts.push(
-        `new ${WaitCmdClass}(${getWaitValue(remaining)})`,
-      );
-
-      commands.push(
-        `                new ${ParallelRaceClass}(
-                    new ${WaitCmdClass}(${getWaitValue(waitDuration)}),
-                    new ${SequentialGroupClass}(${markerCommandParts.join(",")})
-                )`,
-      );
+    // Registry Check
+    const action = actionRegistry.get(item.kind);
+    if (action && action.toSequentialCommand) {
+      commands.push(action.toSequentialCommand(item, { isNextFTC }));
       return;
     }
 
@@ -749,54 +814,58 @@ export async function generateSequentialCommandCode(
       ? `new ${FollowPathCmdClass}(${pathName})`
       : `new ${FollowPathCmdClass}(follower, ${pathName})`;
 
-    if (line.eventMarkers && line.eventMarkers.length > 0) {
-      // Path has event markers
+    if (isNextFTC) {
+      commands.push(followPathInstance);
+    } else {
+      if (line.eventMarkers && line.eventMarkers.length > 0) {
+        // Path has event markers
 
-      // First: InstantCommand to set up tracker
-      commands.push(
-        `                new ${InstantCmdClass}(
+        // First: InstantCommand to set up tracker
+        commands.push(
+          `                new ${InstantCmdClass}(
                     () -> {
                         progressTracker.setCurrentChain(${pathName});
                         progressTracker.setCurrentPathName("${pathDisplayName}");`,
-      );
+        );
 
-      // Add event registrations
-      line.eventMarkers.forEach((event) => {
-        commands[commands.length - 1] += `
+        // Add event registrations
+        line.eventMarkers.forEach((event) => {
+          commands[commands.length - 1] += `
                         progressTracker.registerEvent("${event.name}", ${event.position.toFixed(3)});`;
-      });
+        });
 
-      commands[commands.length - 1] += `
+        commands[commands.length - 1] += `
                     })`;
 
-      // Second: ParallelRaceGroup for following path with event handling
-      commands.push(`                new ${ParallelRaceClass}(
+        // Second: ParallelRaceGroup for following path with event handling
+        commands.push(`                new ${ParallelRaceClass}(
                     ${followPathInstance},
                     new ${SequentialGroupClass}(`);
 
-      // Add WaitUntilCommand for each event
-      line.eventMarkers.forEach((event, eventIdx) => {
-        if (eventIdx > 0) commands[commands.length - 1] += ",";
-        commands[commands.length - 1] += `
+        // Add WaitUntilCommand for each event
+        line.eventMarkers.forEach((event, eventIdx) => {
+          if (eventIdx > 0) commands[commands.length - 1] += ",";
+          commands[commands.length - 1] += `
                         new ${WaitUntilCmdClass}(() -> progressTracker.shouldTriggerEvent("${event.name}")),
                         new ${InstantCmdClass}(
                             () -> {
                                 progressTracker.executeEvent("${event.name}");
                             })`;
-      });
+        });
 
-      commands[commands.length - 1] += `
+        commands[commands.length - 1] += `
                     ))`;
-    } else {
-      // No event markers - simple InstantCommand + FollowPathCommand
-      commands.push(
-        `                new ${InstantCmdClass}(
+      } else {
+        // No event markers - simple InstantCommand + FollowPathCommand
+        commands.push(
+          `                new ${InstantCmdClass}(
                     () -> {
                         progressTracker.setCurrentChain(${pathName});
                         progressTracker.setCurrentPathName("${pathDisplayName}");
                     }),
                 ${followPathInstance}`,
-      );
+        );
+      }
     }
   });
 
@@ -846,16 +915,24 @@ export async function generateSequentialCommandCode(
       // Determine heading interpolation
       let headingConfig = "";
       if (line.endPoint.heading === "constant") {
-        headingConfig = `setConstantHeadingInterpolation(${endPoseVar}.getHeading())`;
+        if (hardcodeValues) {
+          headingConfig = `setConstantHeadingInterpolation(Math.toRadians(${line.endPoint.degrees || 0}))`;
+        } else {
+          headingConfig = `setConstantHeadingInterpolation(${endPoseVar}.getHeading())`;
+        }
       } else if (line.endPoint.heading === "linear") {
-        headingConfig = `setLinearHeadingInterpolation(${actualStartPose}.getHeading(), ${endPoseVar}.getHeading())`;
+        if (hardcodeValues) {
+          headingConfig = `setLinearHeadingInterpolation(Math.toRadians(${line.endPoint.startDeg || 0}), Math.toRadians(${line.endPoint.endDeg || 0}))`;
+        } else {
+          headingConfig = `setLinearHeadingInterpolation(${actualStartPose}.getHeading(), ${endPoseVar}.getHeading())`;
+        }
       } else {
         headingConfig = `setTangentHeadingInterpolation()`;
       }
 
       // Build reverse config
       const reverseConfig = line.endPoint.reverse
-        ? "\n                .setReversed(true)"
+        ? "\n                .setReversed()"
         : "";
 
       return `        ${pathName} = follower.pathBuilder()
@@ -869,12 +946,13 @@ export async function generateSequentialCommandCode(
   let imports = "";
   if (isNextFTC) {
     imports = `
-import dev.nextftc.core.command.groups.SequentialGroup;
-import dev.nextftc.core.command.groups.ParallelRaceGroup;
-import dev.nextftc.core.command.Delay;
-import dev.nextftc.core.command.WaitUntil;
-import dev.nextftc.core.command.InstantCommand;
-import dev.nextftc.extensions.pedro.command.FollowPath;
+import dev.nextftc.core.commands.Command;
+import dev.nextftc.core.commands.groups.SequentialGroup;
+import dev.nextftc.core.commands.groups.ParallelRaceGroup;
+import dev.nextftc.core.commands.delays.Delay;
+import dev.nextftc.core.commands.utility.InstantCommand;
+import dev.nextftc.core.commands.delays.WaitUntil;
+import org.firstinspires.ftc.teamcode.pedroPathing.FollowPath;
 `;
   } else {
     imports = `
@@ -887,7 +965,85 @@ import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
 `;
   }
 
-  const sequentialCommandCode = `
+  const ppReaderImport = hardcodeValues
+    ? ""
+    : "import com.pedropathingplus.PedroPathReader;";
+  const ppReaderInit = hardcodeValues
+    ? ""
+    : `PedroPathReader pp = new PedroPathReader("${fileName ? fileName.split(/[\\/]/).pop() + ".pp" || "AutoPath.pp" : "AutoPath.pp"}", hw.appContext);`;
+
+  let sequentialCommandCode = "";
+
+  if (isNextFTC) {
+    sequentialCommandCode = `
+${AUTO_GENERATED_FILE_WARNING_MESSAGE}
+
+package ${packageName};
+
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierCurve;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+${imports}
+${ppReaderImport}
+import java.io.IOException;
+import ${packageName.split(".").slice(0, 4).join(".")}.Subsystems.Drivetrain;
+
+public class ${className} extends Command {
+
+    private final Follower follower;
+    private Command group;
+
+    // Poses
+${allPoseDeclarations.join("\n")}
+
+    // Path chains
+${pathChainDeclarations}
+
+    public ${className}(final Drivetrain drive, HardwareMap hw) throws IOException {
+        this.follower = drive.getFollower();
+
+        ${ppReaderInit}
+
+        // Load poses
+${allPoseInitializations.join("\n")}
+
+        follower.setStartingPose(startPoint);
+    }
+
+    public void buildPaths() {
+        ${pathBuilders}
+    }
+
+    @Override
+    public void start() {
+        buildPaths();
+        group = new SequentialGroup(
+${commands.join(",\n")}
+        );
+        group.start();
+    }
+
+    @Override
+    public void update() {
+        if (group != null) group.update();
+    }
+
+    @Override
+    public void stop(boolean interrupted) {
+        if (group != null) group.stop(interrupted);
+    }
+
+    @Override
+    public boolean isDone() {
+        return group != null && group.isDone();
+    }
+}
+`;
+  } else {
+    sequentialCommandCode = `
 ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
 package ${packageName};
@@ -898,9 +1054,12 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.pedropathing.ftc.InvertedFTCCoordinates;
+import com.pedropathing.geometry.PedroCoordinates;
+import com.pedropathing.ftc.PoseConverter;
 ${imports}
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import com.pedropathingplus.PedroPathReader;
+${ppReaderImport}
 import com.pedropathingplus.pathing.ProgressTracker;
 import com.pedropathingplus.pathing.NamedCommands;
 import java.io.IOException;
@@ -921,7 +1080,7 @@ ${pathChainDeclarations}
         this.follower = drive.getFollower();
         this.progressTracker = new ProgressTracker(follower, telemetry);
 
-        PedroPathReader pp = new PedroPathReader("${fileName ? fileName.split(/[\\/]/).pop() || "AutoPath.pp" : "AutoPath.pp"}", hw.appContext);
+        ${ppReaderInit}
 
         // Load poses
 ${allPoseInitializations.join("\n")}
@@ -938,8 +1097,27 @@ ${commands.join(",\n")}
     public void buildPaths() {
         ${pathBuilders}
     }
+
+    ${
+      coordinateSystem === "FTC"
+        ? `
+    private Pose buildPose(double x, double y, double heading) {
+        return PoseConverter.pose2DToPose(
+            new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
+                org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH,
+                x, y,
+                org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS,
+                heading
+            ),
+            InvertedFTCCoordinates.INSTANCE
+        ).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+    }
+    `
+        : ""
+    }
 }
 `;
+  }
 
   try {
     const formattedCode = await prettier.format(sequentialCommandCode, {

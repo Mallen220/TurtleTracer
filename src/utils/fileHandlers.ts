@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { get } from "svelte/store";
 import {
   currentFilePath,
@@ -20,8 +20,15 @@ import {
   loadProjectData,
 } from "../lib/projectStore";
 import { loadTrajectoryFromFile, downloadTrajectory } from "./index";
+import {
+  generateJavaCode,
+  generatePointsArray,
+  generateSequentialCommandCode,
+} from "./codeExporter";
 import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
 import { makeId } from "./nameGenerator";
+import { getLineStartHeading, getLineEndHeading } from "./math";
+import pkg from "../../package.json";
 
 export { loadProjectData };
 
@@ -43,11 +50,33 @@ interface ExtendedElectronAPI {
     path?: string,
   ) => Promise<{ success: boolean; filepath: string; error?: string }>;
   makeRelativePath?: (base: string, target: string) => Promise<string>;
+  resolvePath?: (base: string, relative: string) => Promise<string>;
+  createDirectory?: (dirPath: string) => Promise<boolean>;
 }
 
 // Access electronAPI dynamically to allow mocking/runtime changes
 function getElectronAPI(): ExtendedElectronAPI | undefined {
   return (window as any).electronAPI as ExtendedElectronAPI | undefined;
+}
+
+// Helper to update startPoint headings based on path geometry
+function calculateStartPointHeadings(startPoint: Point, lines: Line[]): Point {
+  if (!lines || lines.length === 0) return startPoint;
+
+  const startHeading = getLineStartHeading(lines[0], startPoint);
+  const endHeading = getLineEndHeading(
+    lines[lines.length - 1],
+    lines.length > 1 ? lines[lines.length - 2].endPoint : startPoint,
+  );
+  // strip out the "degrees" field if it existed so the resulting object conforms
+  // to the linear-point variant of the Point union (which forbids degrees).
+  const { degrees, ...rest } = startPoint as any;
+  return {
+    ...rest,
+    heading: "linear",
+    startDeg: startHeading,
+    endDeg: endHeading,
+  };
 }
 
 function addToRecentFiles(path: string, settings?: Settings) {
@@ -108,6 +137,17 @@ export async function loadRecentFile(path: string) {
     currentFilePath.set(path);
     projectMetadataStore.set({ filepath: path, lastSaved: new Date() });
     addToRecentFiles(path);
+
+    // Trigger auto-export for recent file loads so exported code stays in sync
+    await handleAutoExport(
+      get(startPointStore),
+      get(linesStore),
+      get(sequenceStore),
+      get(settingsStore),
+      get(shapesStore),
+      data,
+      path,
+    );
   } catch (err) {
     console.error("Error loading recent file:", err);
     alert("Failed to load file: " + (err as Error).message);
@@ -206,12 +246,23 @@ async function performSave(
       }
     }
 
+    // Calculate correct headings for startPoint to ensure .pp file reflects the path geometry
+    const updatedStartPoint = calculateStartPointHeadings(
+      startPoint,
+      linesToSave,
+    );
+
     // Create the project data structure
     const projectData = {
-      version: 1,
-      startPoint,
+      version: pkg.version,
+      header: {
+        info: "Created with Pedro Pathing Plus Visualizer",
+        copyright:
+          "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
+        link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+      },
+      startPoint: updatedStartPoint,
       lines: linesToSave,
-      settings,
       sequence: sequenceToSave,
       shapes,
       extraData,
@@ -246,6 +297,16 @@ async function performSave(
 
         const dir = get(currentDirectoryStore);
         if (dir) scanEventsInDirectory(dir);
+
+        await handleAutoExport(
+          startPoint,
+          lines,
+          sequence,
+          settings,
+          shapes,
+          projectData,
+          result.filepath,
+        );
         return true;
       } else {
         if (result.error !== "canceled") {
@@ -281,6 +342,16 @@ async function performSave(
 
       const dir = get(currentDirectoryStore);
       if (dir) scanEventsInDirectory(dir);
+
+      await handleAutoExport(
+        startPoint,
+        lines,
+        sequence,
+        settings,
+        shapes,
+        projectData,
+        targetPath,
+      );
       return true;
     }
 
@@ -393,10 +464,22 @@ export async function exportAsPP() {
         }
       }
 
+      // Calculate correct headings for startPoint
+      const sp = get(startPointStore);
+      const ln = get(linesStore);
+      const updatedStartPoint = calculateStartPointHeadings(sp, ln);
+
       const jsonString = JSON.stringify(
         {
-          startPoint: get(startPointStore),
-          lines: get(linesStore),
+          version: pkg.version,
+          header: {
+            info: "Created with Pedro Pathing Plus Visualizer",
+            copyright:
+              "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
+            link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+          },
+          startPoint: updatedStartPoint,
+          lines: ln,
           shapes: get(shapesStore),
           sequence: sequence,
           extraData: get(extraDataStore),
@@ -411,10 +494,22 @@ export async function exportAsPP() {
     }
   }
 
+  // Calculate correct headings for startPoint
+  const sp = get(startPointStore);
+  const ln = get(linesStore);
+  const updatedStartPoint = calculateStartPointHeadings(sp, ln);
+
   const jsonString = JSON.stringify(
     {
-      startPoint: get(startPointStore),
-      lines: get(linesStore),
+      version: pkg.version,
+      header: {
+        info: "Created with Pedro Pathing Plus Visualizer",
+        copyright:
+          "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
+        link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+      },
+      startPoint: updatedStartPoint,
+      lines: ln,
       shapes: get(shapesStore),
       sequence: get(sequenceStore),
       extraData: get(extraDataStore),
@@ -471,6 +566,19 @@ export async function handleExternalFileOpen(filePath: string) {
       await loadProjectData(data, filePath);
       currentFilePath.set(filePath);
       addToRecentFiles(filePath);
+
+      // If auto-export is enabled, regenerate exported code for the newly loaded file
+      // (this covers external editors / file-watchers changing the .pp file on disk).
+      await handleAutoExport(
+        get(startPointStore),
+        get(linesStore),
+        get(sequenceStore),
+        get(settingsStore),
+        get(shapesStore),
+        data,
+        filePath,
+      );
+
       return;
     }
 
@@ -484,8 +592,19 @@ export async function handleExternalFileOpen(filePath: string) {
       await loadProjectData(data, filePath);
       currentFilePath.set(filePath);
       addToRecentFiles(filePath);
+
+      // If auto-export is enabled, regenerate exported code for the newly loaded file
+      await handleAutoExport(
+        get(startPointStore),
+        get(linesStore),
+        get(sequenceStore),
+        get(settingsStore),
+        get(shapesStore),
+        data,
+        filePath,
+      );
     } else {
-      // Not in directory. Prompt copy.
+      // Not in directory. Prompt copy,
       if (
         confirm(
           `The file "${fileName}" is not in your configured AutoPaths directory.\nWould you like to copy it there?`,
@@ -522,18 +641,51 @@ export async function handleExternalFileOpen(filePath: string) {
           await loadProjectData(data, destPath); // data is same
           currentFilePath.set(destPath);
           addToRecentFiles(destPath);
+
+          // Trigger auto-export for the copied/loaded file too
+          await handleAutoExport(
+            get(startPointStore),
+            get(linesStore),
+            get(sequenceStore),
+            get(settingsStore),
+            get(shapesStore),
+            data,
+            destPath,
+          );
         } else {
           // Fallback if copyFile not available (should be)
           await electronAPI.writeFile(destPath, content);
           await loadProjectData(data, destPath);
           currentFilePath.set(destPath);
           addToRecentFiles(destPath);
+
+          // Trigger auto-export for the loaded file
+          await handleAutoExport(
+            get(startPointStore),
+            get(linesStore),
+            get(sequenceStore),
+            get(settingsStore),
+            get(shapesStore),
+            data,
+            destPath,
+          );
         }
       } else {
         // User said no to copy
         await loadProjectData(data, filePath);
         currentFilePath.set(filePath);
         addToRecentFiles(filePath);
+
+        // Auto-export the file that was loaded externally as well
+        await handleAutoExport(
+          get(startPointStore),
+          get(linesStore),
+          get(sequenceStore),
+          get(settingsStore),
+          get(shapesStore),
+          data,
+          filePath,
+        );
       }
     }
   } catch (err) {
@@ -600,6 +752,17 @@ export async function loadFile(evt: Event) {
         await loadProjectData(data, destPath);
         currentFilePath.set(destPath);
         addToRecentFiles(destPath);
+
+        // Trigger auto-export after loading a file uploaded by the user
+        await handleAutoExport(
+          get(startPointStore),
+          get(linesStore),
+          get(sequenceStore),
+          get(settingsStore),
+          get(shapesStore),
+          data,
+          destPath,
+        );
       };
       reader.readAsText(file);
     } catch (error) {
@@ -619,4 +782,114 @@ export async function loadFile(evt: Event) {
     });
   }
   elem.value = "";
+}
+
+export async function handleAutoExport(
+  startPoint: Point,
+  lines: Line[],
+  sequence: SequenceItem[],
+  settings: Settings,
+  shapes: Shape[],
+  projectData: any, // passed for JSON export
+  targetPath: string,
+) {
+  const electronAPI = getElectronAPI();
+  if (!settings.autoExportCode || !electronAPI || !electronAPI.resolvePath)
+    return;
+
+  try {
+    const exportDirName = settings.autoExportPath || "GeneratedCode";
+    // Resolve export directory relative to the target .pp file
+    const exportDir = await electronAPI.resolvePath(targetPath, exportDirName);
+
+    // Create directory
+    if (electronAPI.createDirectory) {
+      await electronAPI.createDirectory(exportDir);
+    }
+
+    // Determine content and extension
+    let content = "";
+    let extension = "txt";
+    const baseName =
+      targetPath.split(/[\\/]/).pop()?.replace(".pp", "") || "AutoPath";
+
+    switch (settings.autoExportFormat) {
+      case "java":
+        content = await generateJavaCode(
+          startPoint,
+          lines,
+          settings.autoExportFullClass ?? true,
+          sequence,
+          settings.javaPackageName,
+          settings.telemetryImplementation,
+          settings.coordinateSystem,
+        );
+        extension = "java";
+        break;
+      case "sequential":
+        content = await generateSequentialCommandCode(
+          startPoint,
+          lines,
+          baseName,
+          sequence,
+          settings.autoExportTargetLibrary ?? "SolversLib",
+          settings.javaPackageName,
+          settings.autoExportEmbedPoseData,
+          settings.coordinateSystem,
+        );
+        extension = "java";
+        break;
+      case "points":
+        content = generatePointsArray(startPoint, lines);
+        extension = "txt";
+        break;
+      case "json":
+        content = JSON.stringify(projectData, null, 2);
+        extension = "json";
+        break;
+    }
+
+    // Determine filename
+    // If Java/Sequential, we might want to match class name if possible, but baseName is safe default
+    // generateJavaCode/Sequential uses internal logic for class name based on filename usually.
+    // If we use baseName + extension, it matches.
+
+    const filename = `${baseName}.${extension}`;
+
+    // Resolve final file path. resolvePath resolves base (file) + relative (path).
+    // So we need to construct relative path from targetPath's dir.
+    // We already have exportDir as absolute path (likely).
+    // If resolvePath returned absolute path for exportDir, we can't use it as base for resolvePath if resolvePath expects a FILE base.
+    // Wait, electronAPI.resolvePath(base, relative) -> path.resolve(dirname(base), relative).
+    // If exportDir is absolute, we can just join it with filename.
+    // But we don't have path.join.
+    // We can assume exportDir has no trailing slash usually?
+    // Let's use resolvePath again?
+    // resolvePath(exportDir, filename) -> path.resolve(dirname(exportDir), filename) -> SIBLING of exportDir?
+    // NO. If exportDir is a directory, dirname(exportDir) is its parent.
+    // So resolvePath(exportDir, filename) puts it outside GeneratedCode!
+    // We need to append filename to exportDir.
+    // Since we don't have path.join, and separators vary...
+    // We can rely on a relative path from the original .pp file.
+    // relativePath = exportDirName + separator + filename.
+    // separator: / works on Windows for path.resolve usually?
+    // or just use "/"
+    const relativePath = `${exportDirName}/${filename}`;
+    const finalPath = await electronAPI.resolvePath(targetPath, relativePath);
+
+    await electronAPI.writeFile(finalPath, content);
+
+    notification.set({
+      message: `Code auto-exported to ${filename}`,
+      type: "success",
+      timeout: 2000,
+    });
+  } catch (err: any) {
+    console.error("Auto Export Failed:", err);
+    notification.set({
+      message: `Auto Export Failed: ${err.message}`,
+      type: "warning", // Warning so we don't think save failed
+      timeout: 5000,
+    });
+  }
 }

@@ -1,7 +1,7 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <!-- src/lib/components/filemanager/FileList.svelte -->
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, tick } from "svelte";
   import type { FileInfo } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
   import PathPreview from "./PathPreview.svelte";
@@ -22,10 +22,18 @@
     "rename-save": string;
     "rename-cancel": void;
     "context-menu": { event: MouseEvent; file: FileInfo };
+    "move-file": { sourceFile: FileInfo; targetDir: FileInfo };
   }>();
 
   let contextMenu: { x: number; y: number; file: FileInfo } | null = null;
   let renameInput: string = "";
+
+  function focusInput(node: HTMLInputElement): { destroy: () => void } {
+    tick().then(() => node.select());
+    return {
+      destroy: () => {},
+    };
+  }
 
   // Preview cache + retry logic (similar to FileGrid)
   let previews: Record<string, { startPoint: any; lines: any[] } | undefined> =
@@ -41,8 +49,14 @@
   // Number of top files to proactively preload when icons are enabled
   const PRELOAD_COUNT = 30;
 
+  let lastRenamingPath: string | null = null;
   $: if (renamingFile) {
-    renameInput = renamingFile.name.replace(/\.pp$/, "");
+    if (renamingFile.path !== lastRenamingPath) {
+      renameInput = renamingFile.name.replace(/\.pp$/, "");
+      lastRenamingPath = renamingFile.path;
+    }
+  } else {
+    lastRenamingPath = null;
   }
 
   function formatFileSize(bytes: number): string {
@@ -167,7 +181,46 @@
     if (!e.dataTransfer) return;
     e.dataTransfer.setData("application/x-pedro-macro", file.path);
     e.dataTransfer.setData("text/plain", file.path);
-    e.dataTransfer.effectAllowed = "copy";
+    e.dataTransfer.setData("application/json", JSON.stringify(file));
+    e.dataTransfer.effectAllowed = "copyMove";
+  }
+
+  let dragOverTarget: string | null = null;
+
+  function handleDragOver(e: DragEvent, file: FileInfo) {
+    if (file.isDirectory) {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      dragOverTarget = file.path;
+    }
+  }
+
+  function handleDragLeave(e: DragEvent, file: FileInfo) {
+    if (dragOverTarget === file.path) {
+      dragOverTarget = null;
+    }
+  }
+
+  function handleDrop(e: DragEvent, file: FileInfo) {
+    dragOverTarget = null;
+    if (!file.isDirectory) return;
+
+    // Stop the event from bubbling up to the main window drop handlers
+    // which might try to interpret this as importing a new macro
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      const data = e.dataTransfer?.getData("application/json");
+      if (data) {
+        const sourceFile = JSON.parse(data) as FileInfo;
+        if (sourceFile.path !== file.path) {
+          dispatch("move-file", { sourceFile, targetDir: file });
+        }
+      }
+    } catch (err) {
+      // Ignored
+    }
   }
 
   function formatDate(date: Date): string {
@@ -224,7 +277,11 @@
     // Let's modify the dispatcher types in the parent component instead or here.
 
     // Actually, easier to dispatch a unified event for menu actions
-    dispatch("menu-action" as any, { action, file });
+    if (action === "rename") {
+      dispatch("rename-start", file);
+    } else {
+      dispatch("menu-action" as any, { action, file });
+    }
   }
 
   // Grouping logic for Date sort
@@ -232,11 +289,16 @@
     sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }];
 
   function groupFilesByDate(files: FileInfo[]) {
+    const folders: FileInfo[] = [];
     const today: FileInfo[] = [];
     const yesterday: FileInfo[] = [];
     const older: FileInfo[] = [];
 
     files.forEach((f) => {
+      if (f.isDirectory) {
+        folders.push(f);
+        return;
+      }
       const d = new Date(f.modified);
       if (isToday(d)) today.push(f);
       else if (isYesterday(d)) yesterday.push(f);
@@ -244,6 +306,7 @@
     });
 
     const result = [];
+    if (folders.length) result.push({ title: "Folders", files: folders });
     if (today.length) result.push({ title: "Today", files: today });
     if (yesterday.length) result.push({ title: "Yesterday", files: yesterday });
     if (older.length) result.push({ title: "Older", files: older });
@@ -273,9 +336,10 @@
     );
   }
 
-  function observeElement(node: HTMLElement, filePath: string) {
+  function observeElement(node: HTMLElement, file: FileInfo) {
+    if (file.isDirectory) return { destroy() {} };
     if (!observer) setupObserver();
-    elementMap.set(node, filePath);
+    elementMap.set(node, file.path);
     observer.observe(node);
 
     return {
@@ -283,9 +347,14 @@
         if (observer) observer.unobserve(node);
         elementMap.delete(node);
       },
-      update(newPath: string) {
-        if (newPath !== filePath) {
-          elementMap.set(node, newPath);
+      update(newFile: FileInfo) {
+        if (newFile.isDirectory) {
+          if (observer) observer.unobserve(node);
+          elementMap.delete(node);
+          return;
+        }
+        if (newFile.path !== file.path) {
+          elementMap.set(node, newFile.path);
           observer.unobserve(node);
           observer.observe(node);
         }
@@ -297,6 +366,7 @@
   $: if (files && files.length) {
     const PRELOAD_COUNT = 12;
     files.slice(0, PRELOAD_COUNT).forEach((f) => {
+      if (f.isDirectory) return;
       if (previews[f.path] === undefined) loadPreview(f.path);
       // If previous attempts failed, force a retry
       if (previews[f.path] && previews[f.path]!.startPoint == null)
@@ -335,11 +405,14 @@
     <div class="space-y-0.5 px-2 mt-1">
       {#each group.files as file (file.path)}
         <div
-          use:observeElement={file.path}
+          use:observeElement={file}
           class="group flex items-center p-2 rounded-md cursor-pointer transition-colors border border-transparent
           {selectedFilePath === file.path
             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800'
-            : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
+            : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}
+          {dragOverTarget === file.path
+            ? 'bg-blue-100 dark:bg-blue-900 ring-2 ring-blue-500'
+            : ''}"
           on:click={() => dispatch("select", file)}
           on:dblclick={() => dispatch("open", file)}
           on:contextmenu={(e) => handleContextMenu(e, file)}
@@ -348,13 +421,35 @@
           aria-label={file.name}
           draggable="true"
           on:dragstart={(e) => handleDragStart(e, file)}
+          on:dragover={(e) => handleDragOver(e, file)}
+          on:dragleave={(e) => handleDragLeave(e, file)}
+          on:drop={(e) => handleDrop(e, file)}
           on:keydown={(e) => {
             if (e.key === "Enter") dispatch("open", file);
           }}
         >
           <!-- Icon -->
           <div class="mr-3 text-blue-500 dark:text-blue-400 shrink-0">
-            {#if previews[file.path]?.startPoint}
+            {#if file.isDirectory}
+              <div
+                class="w-12 h-12 flex items-center justify-center text-blue-500 dark:text-blue-400"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="size-8"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
+                  />
+                </svg>
+              </div>
+            {:else if previews[file.path]?.startPoint}
               <PathPreview
                 startPoint={previews[file.path]?.startPoint}
                 lines={previews[file.path]?.lines ?? []}
@@ -395,8 +490,9 @@
                 <input
                   type="text"
                   bind:value={renameInput}
+                  use:focusInput
                   class="w-full px-1 py-0.5 text-sm border border-blue-400 rounded focus:outline-none dark:bg-neutral-700"
-                  on:keydown={(e) => {
+                  on:keydown|stopPropagation={(e) => {
                     if (e.key === "Enter") dispatch("rename-save", renameInput);
                     if (e.key === "Escape") dispatch("rename-cancel");
                   }}
@@ -485,9 +581,13 @@
               <div
                 class="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400"
               >
-                <span>{formatFileSize(file.size)}</span>
-                {#if sortMode === "name"}
+                {#if !file.isDirectory}
+                  <span>{formatFileSize(file.size)}</span>
+                {/if}
+                {#if sortMode === "name" && !file.isDirectory}
                   <span>•</span>
+                {/if}
+                {#if sortMode === "name" || file.isDirectory}
                   <span>{formatDate(file.modified)}</span>
                 {/if}
               </div>
@@ -531,6 +631,7 @@
     x={contextMenu.x}
     y={contextMenu.y}
     fileName={contextMenu.file.name}
+    isDirectory={contextMenu.file.isDirectory}
     on:close={() => (contextMenu = null)}
     on:action={(e) => handleMenuAction(e.detail)}
   />

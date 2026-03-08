@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
 import { mirrorPathData, reversePathData } from "../../utils/pathTransform";
@@ -73,7 +73,7 @@ describe("pathTransform fuzz tests", () => {
         const m2 = mirrorPathData(m1);
 
         // JSON cycle to normalize both original and result
-        const normalize = (o: any) => JSON.parse(JSON.stringify(o));
+        const normalize = (o: any) => structuredClone(o);
 
         const original = normalize(data);
         const doubleMirrored = normalize(m2);
@@ -101,7 +101,7 @@ describe("pathTransform fuzz tests", () => {
         const r1 = reversePathData(data);
         const r2 = reversePathData(r1);
 
-        const normalize = (o: any) => JSON.parse(JSON.stringify(o));
+        const normalize = (o: any) => structuredClone(o);
         const original = normalize(data);
         const doubleReversed = normalize(r2);
 

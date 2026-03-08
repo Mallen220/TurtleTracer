@@ -1,8 +1,30 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { render, screen } from "@testing-library/svelte";
 import { describe, it, expect, vi } from "vitest";
 import GlobalEventMarkers from "../lib/components/GlobalEventMarkers.svelte";
-import type { SequenceItem, Line } from "../types";
+import type {
+  SequenceItem,
+  Line,
+  SequencePathItem,
+  SequenceMacroItem,
+} from "../types";
+import { actionRegistry } from "../lib/actionRegistry";
+import { registerCoreUI } from "../lib/coreRegistrations";
+
+// Ensure core actions available for kind resolution
+registerCoreUI();
+
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const macroKind = (): SequenceMacroItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isMacro)
+    ?.kind as SequenceMacroItem["kind"]) ?? "macro";
+
+const isPathItem = (s: SequenceItem): s is SequencePathItem =>
+  s.kind === pathKind();
+const isMacroItem = (s: SequenceItem): s is SequenceMacroItem =>
+  s.kind === macroKind();
 
 // Mock stores
 vi.mock("../stores", () => ({
@@ -36,15 +58,15 @@ describe("GlobalEventMarkers", () => {
     ];
 
     const sequence: SequenceItem[] = [
-      { kind: "path", lineId: "line-1" },
+      { kind: pathKind(), lineId: "line-1" },
       {
-        kind: "macro",
+        kind: macroKind(),
         id: "macro-1",
         filePath: "test.pp",
         name: "Macro",
         sequence: [],
       },
-      { kind: "path", lineId: "line-2" },
+      { kind: pathKind(), lineId: "line-2" },
     ];
 
     render(GlobalEventMarkers, {
@@ -79,8 +101,8 @@ describe("GlobalEventMarkers", () => {
     ];
 
     const sequence: SequenceItem[] = [
-      { kind: "path", lineId: "line-1" },
-      { kind: "path", lineId: "line-2" },
+      { kind: pathKind(), lineId: "line-1" },
+      { kind: pathKind(), lineId: "line-2" },
     ];
 
     render(GlobalEventMarkers, {

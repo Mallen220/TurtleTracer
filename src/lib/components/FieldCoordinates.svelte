@@ -1,11 +1,19 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { settingsStore } from "../projectStore";
+  import { toUser } from "../../utils/coordinates";
+
   export let x: number;
   export let y: number;
   export let visible: boolean = true;
   export let isObstructed: boolean = false;
 
   $: positionClass = isObstructed ? "top-2 right-2" : "bottom-2 left-2";
+
+  // Use settings directly
+  $: system = $settingsStore.coordinateSystem || "Pedro";
+
+  $: userPoint = toUser({ x: x || 0, y: y || 0 }, system);
 </script>
 
 {#if visible}
@@ -19,11 +27,11 @@
     >
       <span class="flex gap-1">
         <span class="font-bold text-neutral-800 dark:text-neutral-200">X:</span>
-        <span>{(x || 0).toFixed(1)}"</span>
+        <span>{userPoint.x.toFixed(1)}"</span>
       </span>
       <span class="flex gap-1">
         <span class="font-bold text-neutral-800 dark:text-neutral-200">Y:</span>
-        <span>{(y || 0).toFixed(1)}"</span>
+        <span>{userPoint.y.toFixed(1)}"</span>
       </span>
     </div>
   </div>

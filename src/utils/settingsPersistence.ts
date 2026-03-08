@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { DEFAULT_SETTINGS } from "../config/defaults";
 import type { Settings } from "../types";
 
@@ -40,16 +40,16 @@ async function getSettingsFilePath(): Promise<string> {
   }
 }
 
-function migrateSettings(stored: Partial<StoredSettings>): Settings {
+export function mergeSettings(source: any): Settings {
   const defaults = { ...DEFAULT_SETTINGS };
 
-  if (!stored.settings) {
+  if (!source) {
     return defaults;
   }
 
   // Manual migration for rWidth/rHeight -> rLength/rWidth
   // If stored settings has rHeight (Old Width) and rWidth (Old Length)
-  const sourceSettings = { ...stored.settings } as any;
+  const sourceSettings = { ...source } as any;
   if ("rHeight" in sourceSettings && !("rLength" in sourceSettings)) {
     console.log("Migrating rWidth/rHeight to rLength/rWidth");
     sourceSettings.rLength = sourceSettings.rWidth; // Old rWidth was Length
@@ -64,14 +64,18 @@ function migrateSettings(stored: Partial<StoredSettings>): Settings {
   // Copy only the properties that exist in both objects
   Object.keys(sourceSettings).forEach((key) => {
     if (key in migrated) {
+      // Type checking to avoid illegal values
+      // We check against the default value type if it's not null/undefined
+      const defaultVal = (defaults as any)[key];
+      const sourceVal = sourceSettings[key];
+
+      // Skip if source value is undefined/null (will use default)
+      if (sourceVal === undefined || sourceVal === null) return;
+
       // Special-case merging for keyBindings so newly added defaults appear
-      if (
-        key === "keyBindings" &&
-        stored.settings &&
-        Array.isArray(stored.settings.keyBindings)
-      ) {
+      if (key === "keyBindings" && Array.isArray(sourceVal)) {
         const defaultBindings = defaults.keyBindings || [];
-        const storedBindings = stored.settings.keyBindings as any[];
+        const storedBindings = sourceVal as any[];
 
         // Map stored bindings by id for quick lookup
         const storedMap = new Map<string, any>();
@@ -91,13 +95,36 @@ function migrateSettings(stored: Partial<StoredSettings>): Settings {
         // @ts-ignore
         migrated.keyBindings = merged;
       } else {
+        // General type check
+        if (defaultVal !== undefined && defaultVal !== null) {
+          const defaultType = typeof defaultVal;
+          const sourceType = typeof sourceVal;
+
+          if (defaultType !== sourceType) {
+            console.warn(
+              `Ignoring setting ${key} due to type mismatch: expected ${defaultType}, got ${sourceType}`,
+            );
+            return;
+          }
+
+          // Additional check for arrays (typeof returns 'object' for both)
+          if (Array.isArray(defaultVal) && !Array.isArray(sourceVal)) {
+            console.warn(`Ignoring setting ${key}: expected array`);
+            return;
+          }
+        }
+
         // @ts-ignore - We know the key exists in Settings
-        migrated[key] = sourceSettings[key];
+        migrated[key] = sourceVal;
       }
     }
   });
 
   return migrated;
+}
+
+function migrateSettings(stored: Partial<StoredSettings>): Settings {
+  return mergeSettings(stored.settings);
 }
 
 // Load settings from file

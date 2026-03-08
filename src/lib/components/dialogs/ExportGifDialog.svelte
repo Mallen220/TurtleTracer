@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { scale } from "svelte/transition";
@@ -107,6 +107,8 @@
     previewUrl = null;
 
     try {
+      // reminder: if robotImage = "none", the export routines will render the
+      // green square with wheel-direction arrows rather than load an external image
       const options = {
         two: twoInstance,
         animationController,
@@ -118,7 +120,11 @@
         backgroundImageSrc: settings.fieldMap
           ? `/fields/${settings.fieldMap}`
           : "/fields/decode.webp",
-        robotImageSrc: settings.robotImage || "/robot.png",
+        robotImageSrc:
+          settings.robotImage && settings.robotImage !== "none"
+            ? settings.robotImage
+            : undefined,
+        // note: choosing 'none' in settings yields the green square robot instead
         robotLengthPx: robotLengthPx,
         robotWidthPx: robotWidthPx,
         getRobotState: robotStateFunction,

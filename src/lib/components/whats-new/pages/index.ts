@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { features } from "../features";
 
 // Import page content
@@ -12,6 +12,8 @@ import fileManagementContent from "./file-management.md?raw";
 import pathEditingContent from "./path-editing.md?raw";
 // @ts-ignore
 import simulationContent from "./simulation.md?raw";
+// @ts-ignore
+import telemetryContent from "./telemetry.md?raw";
 // @ts-ignore
 import obstaclesContent from "./obstacles.md?raw";
 // @ts-ignore
@@ -97,6 +99,14 @@ export const pages: Page[] = [
     type: "page",
     content: simulationContent,
     icon: "play",
+  },
+  {
+    id: "telemetry",
+    title: "Telemetry Overlay",
+    description: "Import real robot logs to verify path accuracy.",
+    type: "page",
+    content: telemetryContent,
+    icon: "chart-bar",
   },
   {
     id: "obstacles",

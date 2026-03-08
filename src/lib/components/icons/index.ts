@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Export all icons from a single entry point
 export { default as PlusIcon } from "./PlusIcon.svelte";
 export { default as MinusCircleIcon } from "./MinusCircleIcon.svelte";

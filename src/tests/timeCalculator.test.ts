@@ -1,11 +1,33 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-import { describe, it, expect } from "vitest";
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   calculatePathTime,
   formatTime,
   analyzePathSegment,
 } from "../utils/timeCalculator";
 import type { Point, Line, Settings, SequenceItem } from "../types";
+import { actionRegistry } from "../lib/actionRegistry";
+import { registerCoreUI } from "../lib/coreRegistrations";
+import type {
+  SequencePathItem,
+  SequenceWaitItem,
+  SequenceRotateItem,
+} from "../types";
+
+beforeEach(() => {
+  actionRegistry.reset();
+  registerCoreUI();
+});
+
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const waitKind = (): SequenceWaitItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isWait)
+    ?.kind as SequenceWaitItem["kind"]) ?? "wait";
+const rotateKind = (): SequenceRotateItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isRotate)
+    ?.kind as SequenceRotateItem["kind"]) ?? "rotate";
 
 describe("Time Calculator", () => {
   const defaultSettings: Settings = {
@@ -76,8 +98,8 @@ describe("Time Calculator", () => {
     ];
 
     const sequence: SequenceItem[] = [
-      { kind: "path", lineId: "line1" },
-      { kind: "wait", durationMs: 1000, name: "wait1", id: "wait1" },
+      { kind: pathKind(), lineId: "line1" },
+      { kind: waitKind(), durationMs: 1000, name: "wait1", id: "wait1" },
     ];
 
     const result = calculatePathTime(
@@ -126,8 +148,8 @@ describe("Time Calculator", () => {
 
     // Explicitly define sequence to ensure order
     const sequence: SequenceItem[] = [
-      { kind: "path", lineId: "line1" },
-      { kind: "path", lineId: "line2" },
+      { kind: pathKind(), lineId: "line1" },
+      { kind: pathKind(), lineId: "line2" },
     ];
 
     const result = calculatePathTime(
@@ -184,7 +206,7 @@ describe("Time Calculator", () => {
       },
     ];
     const sequence: SequenceItem[] = [
-      { kind: "rotate", id: "rot1", name: "Rotate", degrees: 90 },
+      { kind: rotateKind(), id: "rot1", name: "Rotate", degrees: 90 },
     ];
 
     // Need to set initial heading to 0.
@@ -217,9 +239,8 @@ describe("Time Calculator", () => {
       );
 
       // Should have steps covering the distance 10
-      // 50 samples = 50 intervals.
-      // steps array has length 50 (i=1 to 50)
-      expect(steps.steps.length).toBe(50);
+      // 50 samples requested, but adaptive uses 10 for linear.
+      expect(steps.steps.length).toBe(10);
       expect(steps.length).toBeCloseTo(10);
     });
 
@@ -237,7 +258,8 @@ describe("Time Calculator", () => {
         0,
       );
 
-      expect(steps.steps.length).toBe(50);
+      // Adaptive sampling: Length approx 20. Target 20 samples.
+      expect(steps.steps.length).toBe(20);
       // Midpoint curvature should be non-zero
       const midStep = steps.steps[Math.floor(steps.steps.length / 2)];
       // For a quadratic bezier with P0(0,0), P1(10,0), P2(10,10)

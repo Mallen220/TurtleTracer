@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Utility to export the current Two.js view / animation as a GIF or APNG.
 // Uses gif.js for GIFs and upng-js for APNGs.
 
@@ -41,13 +41,28 @@ export interface ExportAnimationOptions {
 // For backward compatibility alias
 export type ExportGifOptions = ExportAnimationOptions;
 
+export interface ExportImageOptions {
+  two: Two;
+  format: "png" | "jpeg" | "svg";
+  scale?: number; // resolution scale
+  quality?: number; // for jpeg (0.1 - 1.0)
+  backgroundImageSrc?: string;
+  robotImageSrc?: string;
+  robotLengthPx?: number;
+  robotWidthPx?: number;
+  // Screen Coordinates for background placement
+  backgroundBounds?: { x: number; y: number; width: number; height: number };
+  // Screen Coordinates for robot placement
+  robotScreenState?: { x: number; y: number; heading: number };
+}
+
 // Internal helper to render a single frame to a canvas
 async function renderFrameToCanvas(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
   svgEl: SVGElement,
   percent: number,
-  options: ExportAnimationOptions,
+  options: ExportAnimationOptions | ExportImageOptions,
   backgroundImage: HTMLImageElement | null,
   robotImage: HTMLImageElement | null,
   scale: number,
@@ -71,7 +86,20 @@ async function renderFrameToCanvas(
       // Draw background image first (if available)
       if (backgroundImage) {
         try {
-          ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+          if ("backgroundBounds" in options && options.backgroundBounds) {
+            // Draw using screen bounds scaled by resolution scale
+            const b = options.backgroundBounds;
+            ctx.drawImage(
+              backgroundImage,
+              b.x * scale,
+              b.y * scale,
+              b.width * scale,
+              b.height * scale,
+            );
+          } else {
+            // Fallback (Animation mode assumes full canvas usually)
+            ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+          }
         } catch (e) {
           console.warn("Failed to draw background image onto canvas:", e);
         }
@@ -82,15 +110,25 @@ async function renderFrameToCanvas(
 
       // Draw robot overlay (if provided) on top of SVG
       try {
-        if (robotImage && options.getRobotState) {
-          const state = options.getRobotState(percent);
-          if (state && !Number.isNaN(state.x) && !Number.isNaN(state.y)) {
-            ctx.save();
-            // Translate to robot center (scaled)
-            ctx.translate(state.x * scale, state.y * scale);
-            // Rotate by heading (convert deg -> rad)
-            ctx.rotate((state.heading * Math.PI) / 180);
+        let state: { x: number; y: number; heading: number } | undefined;
 
+        // Check if explicit screen state provided (Export Image)
+        if ("robotScreenState" in options && options.robotScreenState) {
+          state = options.robotScreenState;
+        }
+        // Else use calculator (Animation)
+        else if ("getRobotState" in options && options.getRobotState) {
+          state = options.getRobotState(percent);
+        }
+
+        if (state && !Number.isNaN(state.x) && !Number.isNaN(state.y)) {
+          ctx.save();
+          // Translate to robot center (scaled)
+          ctx.translate(state.x * scale, state.y * scale);
+          // Rotate by heading (convert deg -> rad)
+          ctx.rotate((state.heading * Math.PI) / 180);
+
+          if (robotImage) {
             // Scale robot dimensions
             const rw =
               (options.robotLengthPx ?? (robotImage.width || 0)) * scale;
@@ -99,8 +137,44 @@ async function renderFrameToCanvas(
 
             // Draw centered
             ctx.drawImage(robotImage, -rw / 2, -rh / 2, rw, rh);
+          } else {
+            // Draw "no-image" robot (green square)
+            const rw = (options.robotLengthPx ?? 16) * scale;
+            const rh = (options.robotWidthPx ?? 16) * scale;
+
+            ctx.fillStyle = "rgba(34, 197, 94, 0.10)";
+            ctx.strokeStyle = "#16a34a";
+            ctx.lineWidth = 2 * scale;
+
+            // Draw rounded rectangle
+            ctx.beginPath();
+            if (ctx.roundRect) {
+              ctx.roundRect(-rw / 2, -rh / 2, rw, rh, 8 * scale);
+            } else {
+              ctx.rect(-rw / 2, -rh / 2, rw, rh);
+            }
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw heading arrow
+            ctx.save();
+            ctx.strokeStyle = "rgba(34, 197, 94, 1.0)";
+            ctx.lineWidth = 3 * scale;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.shadowColor = "rgba(255,255,255,0.8)";
+            ctx.shadowBlur = 2 * scale;
+
+            ctx.scale(scale, scale);
+            ctx.translate(-12, -12); // center the 24x24 viewBox
+            ctx.beginPath();
+            ctx.moveTo(8.25, 4.5);
+            ctx.lineTo(15.75, 12);
+            ctx.lineTo(8.25, 19.5);
+            ctx.stroke();
             ctx.restore();
           }
+          ctx.restore();
         }
       } catch (e) {
         console.warn("Failed to draw robot overlay onto canvas:", e);
@@ -112,7 +186,9 @@ async function renderFrameToCanvas(
   });
 }
 
-async function prepareResources(options: ExportAnimationOptions) {
+async function prepareResources(
+  options: ExportAnimationOptions | ExportImageOptions,
+) {
   // Optionally preload a background image (field map)
   let backgroundImage: HTMLImageElement | null = null;
   if (options.backgroundImageSrc) {
@@ -153,6 +229,150 @@ async function prepareResources(options: ExportAnimationOptions) {
     }
   }
   return { backgroundImage, robotImage };
+}
+
+// Helper: Convert URL to base64 Data URI
+async function urlToDataUri(url: string): Promise<string> {
+  // Check if already data URI
+  if (url.startsWith("data:")) return url;
+
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn("Failed to fetch image for data URI conversion:", url, e);
+    return "";
+  }
+}
+
+export async function exportPathToImage(
+  options: ExportImageOptions,
+): Promise<Blob> {
+  const { two, format, scale = 1, quality = 0.9 } = options;
+
+  // 1. Prepare Resources (Field, Robot)
+  const { backgroundImage, robotImage } = await prepareResources(options);
+
+  // Get SVG dimensions
+  const svgEl = (two.renderer as any).domElement as SVGElement;
+  const rect = svgEl.getBoundingClientRect();
+  const width = Math.round(rect.width * scale);
+  const height = Math.round(rect.height * scale);
+
+  // SVG Export
+  if (format === "svg") {
+    const twoSvgString = new XMLSerializer().serializeToString(svgEl);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(twoSvgString, "image/svg+xml");
+    const root = doc.documentElement;
+
+    if (!root.hasAttribute("xmlns:xlink")) {
+      root.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    }
+
+    // 1. Background Image
+    if (options.backgroundImageSrc && options.backgroundBounds) {
+      const bgDataUri = await urlToDataUri(options.backgroundImageSrc);
+      if (bgDataUri) {
+        const b = options.backgroundBounds;
+        const bgSvg = `<image href="${bgDataUri}" x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" preserveAspectRatio="none" />`;
+        const bgFragment = parser.parseFromString(
+          `<svg xmlns="http://www.w3.org/2000/svg">${bgSvg}</svg>`,
+          "image/svg+xml",
+        ).documentElement.firstChild;
+        if (bgFragment) {
+          root.insertBefore(bgFragment, root.firstChild);
+        }
+      }
+    }
+
+    // 2. Robot Image
+    if (options.robotScreenState) {
+      if (options.robotImageSrc && robotImage) {
+        const robotDataUri = await urlToDataUri(options.robotImageSrc);
+        if (robotDataUri) {
+          const rw = options.robotLengthPx ?? (robotImage.width || 50);
+          const rh = options.robotWidthPx ?? (robotImage.height || 50);
+          const state = options.robotScreenState;
+
+          // SVG transform for robot
+          // translate(x, y) rotate(deg) translate(-rw/2, -rh/2)
+          const transform = `translate(${state.x}, ${state.y}) rotate(${state.heading}) translate(${-rw / 2}, ${-rh / 2})`;
+          const robotSvg = `<image href="${robotDataUri}" width="${rw}" height="${rh}" transform="${transform}" />`;
+
+          const robotFragment = parser.parseFromString(
+            `<svg xmlns="http://www.w3.org/2000/svg">${robotSvg}</svg>`,
+            "image/svg+xml",
+          ).documentElement.firstChild;
+          if (robotFragment) {
+            root.appendChild(robotFragment);
+          }
+        }
+      } else {
+        const rw = options.robotLengthPx ?? 16;
+        const rh = options.robotWidthPx ?? 16;
+        const state = options.robotScreenState;
+
+        const transform = `translate(${state.x}, ${state.y}) rotate(${state.heading})`;
+        const arrowTransform = `translate(-12, -12)`;
+
+        const robotSvg = `
+          <g transform="${transform}">
+            <rect x="${-rw / 2}" y="${-rh / 2}" width="${rw}" height="${rh}" fill="rgba(34, 197, 94, 0.10)" stroke="#16a34a" stroke-width="2" rx="8" />
+            <g transform="${arrowTransform}">
+              <path stroke="rgba(34, 197, 94, 1.0)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M8.25 4.5l7.5 7.5-7.5 7.5" style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));" />
+            </g>
+          </g>
+        `;
+        const robotFragment = parser.parseFromString(
+          `<svg xmlns="http://www.w3.org/2000/svg">${robotSvg}</svg>`,
+          "image/svg+xml",
+        ).documentElement.firstChild;
+        if (robotFragment) {
+          root.appendChild(robotFragment);
+        }
+      }
+    }
+
+    const finalSvg = new XMLSerializer().serializeToString(doc);
+    return new Blob([finalSvg], { type: "image/svg+xml;charset=utf-8" });
+  }
+
+  // Raster Export (PNG / JPEG)
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  await renderFrameToCanvas(
+    ctx,
+    canvas,
+    svgEl,
+    0,
+    options,
+    backgroundImage,
+    robotImage,
+    scale,
+  );
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Canvas export failed"));
+      },
+      format === "png" ? "image/png" : "image/jpeg",
+      format === "jpeg" ? quality : undefined,
+    );
+  });
 }
 
 export async function exportPathToGif(

@@ -1,13 +1,12 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /**
- * Type definitions for Pedro Pathing Visualizer Plugins.
+ * Type definitions for Pedro Pathing Plus Visualizer Plugins.
  * These types are automatically available in your .ts plugins.
  *
  * AUTO-GENERATED - DO NOT EDIT MANUALLY
  */
 
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Exported type definitions for use in Svelte and TS modules
 
 interface BasePoint {
@@ -26,23 +25,36 @@ type Point = BasePoint &
         startDeg: number;
         endDeg: number;
         degrees?: never;
-        reverse?: never;
+        targetX?: never;
+        targetY?: never;
       }
     | {
         heading: "constant";
         degrees: number;
         startDeg?: never;
         endDeg?: never;
-        reverse?: never;
+        targetX?: never;
+        targetY?: never;
       }
     | {
         heading: "tangential";
         degrees?: never;
         startDeg?: never;
         endDeg?: never;
-        reverse: boolean;
+        targetX?: never;
+        targetY?: never;
       }
-  );
+    | {
+        heading: "facingPoint";
+        targetX: number;
+        targetY: number;
+        degrees?: never;
+        startDeg?: never;
+        endDeg?: never;
+      }
+  ) & {
+    reverse?: boolean;
+  };
 
 type ControlPoint = BasePoint;
 
@@ -173,6 +185,10 @@ interface Settings {
   fieldMap: string;
   fieldRotation?: number; // 0, 90, 180, 270
   robotImage?: string;
+  robotDriveType?: "holonomic" | "swerve"; // Drive train type for visualization
+  showRobotArrows?: boolean; // Whether to display drive train direction arrows
+  showFakeHeadingArrow?: boolean;
+  fakeHeadingArrowColor?: string;
   javaPackageName?: string;
   theme: "light" | "dark" | "auto" | string;
   programFontSize?: number; // Scaling factor for the program font size (percentage)
@@ -189,14 +205,31 @@ interface Settings {
   validateFieldBoundaries?: boolean; // Check if robot goes out of bounds
   continuousValidation?: boolean; // Run validation continuously
   restrictDraggingToField?: boolean; // Restrict dragging to field bounds
+  smartSnapping?: boolean; // Snap points to align with other waypoints
   customMaps?: CustomFieldConfig[];
   keyBindings?: KeyBinding[];
   recentFiles?: string[];
   fileManagerSortMode?: "name" | "date"; // File manager sort preference
   lastSeenVersion?: string; // Version of the app the user last saw (for What's New dialog)
+  lastFeedbackSubmit?: string; // Timestamp of last feedback submission for rate limiting
+  submittedRatings?: Record<string, boolean>; // Map of version to whether user has rated it
+  dismissedRatings?: Record<string, boolean>; // Map of version to whether user dismissed the rating dialog
+  totalUsageTime?: number; // Total usage time in milliseconds
   hasSeenOnboarding?: boolean; // Whether the user has seen the onboarding tutorial
   gitIntegration?: boolean; // Enable/Disable Git integration
   obstaclePresets?: ObstaclePreset[]; // User-saved obstacle presets
+  showDebugSequence?: boolean; // Developer/debugging aids
+  // Auto Export Settings
+  autoExportCode?: boolean;
+  autoExportPath?: string;
+  autoExportPathMode?: "relative" | "absolute";
+  autoExportFormat?: "java" | "sequential" | "points" | "json";
+  autoExportTargetLibrary?: "SolversLib" | "NextFTC";
+  autoExportFullClass?: boolean;
+  autoExportEmbedPoseData?: boolean; // Embed pose data in the generated code
+  telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
+  followRobot?: boolean;
+  coordinateSystem?: "Pedro" | "FTC";
 }
 
 interface RobotProfile {
@@ -207,11 +240,16 @@ interface RobotProfile {
   maxVelocity: number;
   maxAcceleration: number;
   maxDeceleration: number;
+  maxAngularAcceleration?: number;
   kFriction: number;
   aVelocity: number; // angular velocity
   xVelocity: number;
   yVelocity: number;
   robotImage?: string;
+  robotDriveType?: "holonomic" | "swerve"; // Drive train type for visualization
+  showRobotArrows?: boolean;
+  showFakeHeadingArrow?: boolean;
+  fakeHeadingArrowColor?: string;
 }
 
 interface Shape {
@@ -274,6 +312,7 @@ interface FileInfo {
   modified: Date;
   error?: string;
   gitStatus?: "modified" | "staged" | "untracked" | "ignored" | "clean";
+  isDirectory?: boolean;
 }
 
 interface CollisionMarker {
@@ -480,6 +519,7 @@ interface PedroAPI {
     navbarActions: Registry<NavbarAction>;
     hooks: HookRegistry;
     contextMenuItems: Registry<ContextMenuItem>;
+    actions: Registry<ActionDefinition>;
   };
 
   /**
@@ -521,55 +561,144 @@ interface PedroAPI {
   };
 }
 
-// Telemetry Types
-interface RobotPose {
-  x: number;
-  y: number;
-  heading: number; // radians
+interface FieldRenderContext {
+  x: (val: number) => number;
+  y: (val: number) => number;
+  uiLength: (inches: number) => number;
+  settings: any;
+  // Determine hover/select state inside the renderer based on item ID, or pass global state?
+  // Ideally, the renderer logic checks if this item is hovered.
+  // We can pass the hovered ID and selected ID.
+  hoveredId: string | null;
+  selectedId: string | null;
+  selectedPointId: string | null;
+
+  timePrediction?: any;
 }
 
-type FieldOperation =
-  | {
-      type: "circle";
-      x: number;
-      y: number;
-      r: number;
-      color: string;
-      stroke?: boolean;
-    }
-  | {
-      type: "line";
-      x1: number;
-      y1: number;
-      x2: number;
-      y2: number;
-      color: string;
-      strokeWidth?: number;
-    }
-  | {
-      type: "polygon";
-      xPoints: number[];
-      yPoints: number[];
-      color: string;
-      fill?: boolean;
-      stroke?: boolean;
-    }
-  | {
-      type: "text";
-      x: number;
-      y: number;
-      content: string;
-      color: string;
-      fontSize?: number;
-    };
-
-interface TelemetryPacket {
-  timestamp: number;
-  robotPose?: RobotPose;
-  data: Record<string, string | number | boolean>;
-  fieldOverlay?: FieldOperation | FieldOperation[];
+interface CodeExportContext {
+  stateStep?: number; // For state machine generation
+  indent?: string;
+  variableName?: string;
+  isNextFTC?: boolean; // For sequential generation target
+  targetLibrary?: "SolversLib" | "NextFTC";
 }
 
+interface JavaCodeResult {
+  code: string;
+  stepsUsed: number;
+}
+
+interface TimeCalculationContext {
+  currentTime: number;
+  currentHeading: number;
+  lastPoint: Point;
+  settings: any;
+  lines: Line[];
+}
+
+interface TimeCalculationResult {
+  events: TimelineEvent[];
+  duration: number;
+  endHeading?: number; // If changed
+  endPoint?: Point; // If changed
+}
+
+interface InsertionContext {
+  index: number;
+  sequence: SequenceItem[];
+  lines: Line[];
+  startPoint: Point;
+  triggerReactivity: () => void; // Call to update stores/UI
+}
+
+interface ActionDefinition {
+  kind: string;
+  label: string;
+  icon?: string; // SVG string
+  description?: string;
+
+  // UI Configuration
+  buttonColor?: string; // e.g. "amber", "pink", "indigo"
+  buttonFilledIcon?: string; // Optional filled icon for buttons
+  // Optional raw color hex for renderers and other quick references
+  color?: string;
+
+  // Toolbar/Button affordances
+  showInToolbar?: boolean;
+  button?: {
+    label?: string;
+    icon?: string;
+  };
+
+  // Type Flags
+  isPath?: boolean;
+  isWait?: boolean;
+  isRotate?: boolean;
+  isMacro?: boolean;
+
+  /**
+   * Handler for inserting a new item of this type.
+   */
+  onInsert?: (context: InsertionContext) => void;
+
+  /**
+   * Svelte component to render in the WaypointTable row.
+   * Props passed: { item, index, isLocked, isSelected, isHovered, onUpdate, onDelete, onLock, ... }
+   */
+  component: any;
+
+  /**
+   * Svelte component to render in the PathTab section view.
+   * Props passed: { [kind]: item, sequence, collapsed, onRemove, onInsertAfter, ... }
+   */
+  sectionComponent?: any;
+
+  /**
+   * Factory function to create a default instance of this action.
+   */
+  createDefault?: () => SequenceItem;
+
+  /**
+   * Function to render the action on the field using Two.js.
+   * This is called inside a reactive block in FieldRenderer.
+   * It should return an array of Two.js objects (Groups, Shapes, etc.) to be added to the scene.
+   */
+  renderField?: (item: SequenceItem, context: FieldRenderContext) => any[];
+
+  /**
+   * Generate Java code for the OpMode state machine approach.
+   * Returns code and number of state steps used.
+   */
+  toJavaCode?: (
+    item: SequenceItem,
+    context: CodeExportContext,
+  ) => JavaCodeResult;
+
+  /**
+   * Generate Java code for the SequentialCommandGroup approach.
+   * Returns a string command instantiation.
+   */
+  toSequentialCommand?: (
+    item: SequenceItem,
+    context: CodeExportContext,
+  ) => string;
+
+  /**
+   * Calculate timeline events and duration for this action.
+   * Used for time estimation and timeline visualization.
+   */
+  calculateTime?: (
+    item: SequenceItem,
+    context: TimeCalculationContext,
+  ) => TimeCalculationResult;
+}
+
+interface UpdateData {
+  version: string;
+  releaseNotes: string;
+  url: string;
+}
 
 export {};
 

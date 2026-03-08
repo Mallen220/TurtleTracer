@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 declare global {
   interface Window {
     electronAPI: {
@@ -159,6 +159,8 @@ interface Settings {
   fieldMap: string;
   fieldRotation?: number; // degrees
   robotImage?: string;
+  robotDriveType?: "holonomic" | "swerve"; // Drive train type for visualization
+  showRobotArrows?: boolean;
   theme: "light" | "dark" | "auto";
   autosaveMode?: "time" | "change" | "close" | "never";
   autosaveInterval?: number; // minutes

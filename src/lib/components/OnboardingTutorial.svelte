@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { driver } from "driver.js";
@@ -28,7 +28,7 @@
       {
         element: "#field-container",
         popover: {
-          title: "Welcome to Pedro Pathing Visualizer!",
+          title: "Welcome to Pedro Pathing Plus Visualizer!",
           description:
             "This is your main workspace. Here you can visualize your robot's path and field obstacles. Double-click to add points.",
           side: "left",

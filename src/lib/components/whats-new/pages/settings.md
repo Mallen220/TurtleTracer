@@ -19,7 +19,7 @@ Set physical dimensions for collision detection.
 - **Validation**:
   - **Field Boundaries**: Warn if the robot leaves the field or goes close then the safety margin to the field wall.
   - **Restrict Dragging**: Prevent moving points outside the field.
-- **Robot Image**: Upload a custom top-down image or use the default.
+- **Robot Image**: The default is now **no image** (transparent square). You can upload a custom picture or opt into the lightweight `/robot.png` graphic when needed.
 
 ## Motion Parameters
 

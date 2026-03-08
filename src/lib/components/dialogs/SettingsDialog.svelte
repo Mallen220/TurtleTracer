@@ -1,9 +1,12 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { onMount } from "svelte";
   import { cubicInOut } from "svelte/easing";
   import { fade, fly } from "svelte/transition";
-  import { resetSettings } from "../../../utils/settingsPersistence";
+  import {
+    resetSettings,
+    mergeSettings,
+  } from "../../../utils/settingsPersistence";
   import {
     AVAILABLE_FIELD_MAPS,
     DEFAULT_SETTINGS,
@@ -17,7 +20,12 @@
     showPluginManager,
     showShortcuts,
     startTutorial,
+    currentFilePath,
+    currentDirectoryStore,
+    settingsActiveTab,
+    notification,
   } from "../../../stores";
+  import { followRobotStore } from "../../projectStore";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -27,14 +35,20 @@
     | "robot"
     | "motion"
     | "interface"
+    | "code-export"
     | "advanced"
     | "about";
   let activeTab: TabId = "general";
   let searchQuery = "";
 
+  // Sync active tab from store when opening
+  $: if (isOpen) {
+    activeTab = $settingsActiveTab as TabId;
+  }
+
   // Reset tab when closed so it's fresh on next open
   $: if (!isOpen) {
-    activeTab = "general";
+    // We don't reset the store here to avoid loops, but we reset local state if needed
     searchQuery = "";
   }
 
@@ -46,6 +60,12 @@
   let appVersion = packageJson.version;
 
   let downloadCount: number | null = null;
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape" && isOpen && !isCustomFieldWizardOpen) {
+      isOpen = false;
+    }
+  }
 
   const tabs = [
     {
@@ -69,6 +89,11 @@
       icon: "M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42",
     },
     {
+      id: "code-export",
+      label: "Code Export",
+      icon: "M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5",
+    },
+    {
       id: "advanced",
       label: "Advanced",
       icon: "M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z",
@@ -85,10 +110,11 @@
       let page = 1;
       let count = 0;
       let hasMore = true;
+      let completed = true; // will be false if any page fails to fetch fully
 
       while (hasMore) {
         const response = await fetch(
-          `https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases?per_page=100&page=${page}`,
+          `https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases?per_page=100&page=${page}`,
         );
 
         if (response.ok) {
@@ -99,32 +125,35 @@
             releases.forEach((release: any) => {
               release.assets.forEach((asset: any) => {
                 const name = asset.name.toLowerCase();
-                if (
-                  name.endsWith(".exe") ||
-                  name.endsWith(".dmg") ||
-                  name.endsWith(".deb") ||
-                  name.endsWith(".rpm") ||
-                  name.endsWith(".appimage") ||
-                  name.endsWith(".pkg") ||
-                  name.endsWith(".zip") ||
-                  name.endsWith(".tar.gz")
-                ) {
-                  count += asset.download_count;
+                const releaseAssetRegex =
+                  /\.(exe|dmg|deb|rpm|appimage|pkg|zip|tar\.gz)(?:\.|$)/;
+                if (releaseAssetRegex.test(name)) {
+                  count += asset.download_count || 0;
                 }
               });
             });
             page++;
           }
         } else {
+          // Non-OK response (rate-limited or network issue). Abort and mark incomplete so we don't display a partial value.
+          completed = false;
           hasMore = false;
+          break;
         }
       }
-      downloadCount = count;
+
+      if (completed) {
+        downloadCount = count;
+      } else {
+        console.warn(
+          "Incomplete fetch of releases — download count may be partial or unavailable",
+        );
+        downloadCount = null;
+      }
     } catch (e) {
       console.error("Failed to fetch download count", e);
     }
   });
-
   // Display units state
   let angularVelocityUnit: "rad" | "deg" = "rad";
 
@@ -184,6 +213,124 @@
   async function handleSave() {
     await saveSettings(settings);
     isOpen = false;
+  }
+
+  async function handleExport() {
+    try {
+      const dataStr = JSON.stringify(settings, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchorNode = document.createElement("a");
+      downloadAnchorNode.setAttribute("href", url);
+      downloadAnchorNode.setAttribute("download", "pedro-settings.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      notification.set({
+        message: "Settings exported",
+        type: "success",
+        timeout: 3000,
+      });
+      downloadAnchorNode.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      notification.set({
+        message: "Failed to export settings: " + (e as Error).message,
+        type: "error",
+      });
+    }
+  }
+
+  async function handleImport(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        if (typeof event.target?.result === "string") {
+          const json = JSON.parse(event.target.result);
+          // Handle if it's wrapped in StoredSettings or raw Settings
+          // StoredSettings has a 'settings' property
+          const rawSettings = json.settings || json;
+          const merged = mergeSettings(rawSettings);
+
+          // Update local state
+          settings = merged;
+
+          // Persist
+          await saveSettings(settings);
+          notification.set({
+            message: "Settings imported",
+            type: "success",
+            timeout: 3000,
+          });
+        }
+      } catch (err) {
+        notification.set({
+          message: "Error importing settings: " + (err as Error).message,
+          type: "error",
+        });
+      }
+      // Reset input
+      target.value = "";
+    };
+    reader.readAsText(file);
+  }
+
+  let isCheckingForUpdates = false;
+
+  async function handleCheckForUpdates() {
+    const electronAPI = (window as any).electronAPI;
+    if (electronAPI && electronAPI.checkForUpdates) {
+      isCheckingForUpdates = true;
+      try {
+        const result = await electronAPI.checkForUpdates();
+        if (result.success) {
+          if (result.updateAvailable) {
+            isOpen = false;
+            // The global listener in App.svelte will handle opening the update dialog
+            notification.set({
+              message: "Update available — opening installer...",
+              type: "info",
+              timeout: 4000,
+            });
+          } else {
+            if (result.reason === "store") {
+              notification.set({
+                message: "Updates are managed by the Microsoft Store.",
+                type: "info",
+              });
+            } else {
+              notification.set({
+                message: "You are on the newest version.",
+                type: "success",
+              });
+            }
+          }
+        } else {
+          // Fallback if success is false but no error thrown
+          notification.set({
+            message:
+              "Failed to check for updates: " +
+              (result.message || "Unknown error"),
+            type: "error",
+          });
+        }
+      } catch (e) {
+        notification.set({
+          message: "Failed to check for updates: " + (e as Error).message,
+          type: "error",
+        });
+      } finally {
+        isCheckingForUpdates = false;
+      }
+    } else {
+      notification.set({
+        message: "Update check not supported in this environment.",
+        type: "warning",
+      });
+    }
   }
 
   async function handleReset() {
@@ -335,14 +482,16 @@
         settings.robotImage = base64;
         settings = { ...settings };
 
-        const successMsg = document.createElement("div");
-        successMsg.className =
-          "fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg";
-        successMsg.textContent = "Robot image updated!";
-        document.body.appendChild(successMsg);
-        setTimeout(() => successMsg.remove(), 3000);
+        notification.set({
+          message: "Robot image updated!",
+          type: "success",
+          timeout: 3000,
+        });
       } catch (error) {
-        alert("Error loading image: " + (error as Error).message);
+        notification.set({
+          message: "Error loading image: " + (error as Error).message,
+          type: "error",
+        });
       }
     }
   }
@@ -383,6 +532,64 @@
     }
   }
 
+  function getBasePath(): string | null {
+    if ($currentFilePath) return $currentFilePath;
+    if ($currentDirectoryStore)
+      return $currentDirectoryStore + "/placeholder.pp";
+    return null;
+  }
+
+  async function handleBrowse() {
+    const electronAPI = (window as any).electronAPI;
+    if (!electronAPI || !electronAPI.selectDirectory) return;
+
+    const path = await electronAPI.selectDirectory();
+    if (path) {
+      const base = getBasePath();
+      if (settings.autoExportPathMode === "relative" && base) {
+        settings.autoExportPath = await electronAPI.makeRelativePath(
+          base,
+          path,
+        );
+      } else {
+        settings.autoExportPath = path;
+      }
+    }
+  }
+
+  async function handleModeChange(newMode: "relative" | "absolute") {
+    const electronAPI = (window as any).electronAPI;
+    // Current mode defaults to 'relative' if undefined
+    const currentMode = settings.autoExportPathMode || "relative";
+
+    if (currentMode === newMode) return;
+
+    const base = getBasePath();
+
+    if (
+      electronAPI &&
+      base &&
+      settings.autoExportPath &&
+      settings.autoExportPath.trim() !== ""
+    ) {
+      if (newMode === "absolute") {
+        // Convert relative to absolute
+        settings.autoExportPath = await electronAPI.resolvePath(
+          base,
+          settings.autoExportPath,
+        );
+      } else if (newMode === "relative") {
+        // Convert absolute to relative
+        settings.autoExportPath = await electronAPI.makeRelativePath(
+          base,
+          settings.autoExportPath,
+        );
+      }
+    }
+
+    settings.autoExportPathMode = newMode;
+  }
+
   $: availableMaps = [
     ...AVAILABLE_FIELD_MAPS,
     ...(settings.customMaps || []).map((m) => ({
@@ -391,6 +598,8 @@
     })),
   ];
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 {#if isOpen && !isCustomFieldWizardOpen}
   <div
@@ -597,18 +806,58 @@
                 {/if}
 
                 <SettingsItem
-                  label="Keyboard Shortcuts"
-                  description="View and customize keyboard shortcuts"
+                  label="Autosave Mode"
+                  isModified={settings.autosaveMode !==
+                    DEFAULT_SETTINGS.autosaveMode}
+                  onReset={() => {
+                    settings.autosaveMode = DEFAULT_SETTINGS.autosaveMode;
+                    settings = { ...settings };
+                  }}
+                  description="Choose when to automatically save the project"
                   {searchQuery}
-                  layout="row"
+                  layout="col"
+                  forId="autosave-mode"
                 >
-                  <button
-                    on:click={() => showShortcuts.set(true)}
-                    class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  <select
+                    id="autosave-mode"
+                    bind:value={settings.autosaveMode}
+                    class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    Open Editor
-                  </button>
+                    <option value="never">Never</option>
+                    <option value="time">Time Based</option>
+                    <option value="change">On Change</option>
+                    <option value="close">On Close</option>
+                  </select>
                 </SettingsItem>
+
+                {#if settings.autosaveMode === "time"}
+                  <div transition:fade>
+                    <SettingsItem
+                      label="Autosave Interval"
+                      isModified={settings.autosaveInterval !==
+                        DEFAULT_SETTINGS.autosaveInterval}
+                      onReset={() => {
+                        settings.autosaveInterval =
+                          DEFAULT_SETTINGS.autosaveInterval;
+                        settings = { ...settings };
+                      }}
+                      description={`Save every ${settings.autosaveInterval} minutes`}
+                      {searchQuery}
+                      layout="col"
+                      forId="autosave-interval"
+                    >
+                      <select
+                        id="autosave-interval"
+                        bind:value={settings.autosaveInterval}
+                        class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {#each [1, 5, 10, 15, 20, 40, 60] as interval}
+                          <option value={interval}>{interval} minutes</option>
+                        {/each}
+                      </select>
+                    </SettingsItem>
+                  </div>
+                {/if}
 
                 <SettingsItem
                   label="Welcome Tutorial"
@@ -624,6 +873,35 @@
                     class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     Start Tutorial
+                  </button>
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Software Update"
+                  description="Check for new versions of the application"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <button
+                    on:click={handleCheckForUpdates}
+                    disabled={isCheckingForUpdates}
+                    class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors disabled:opacity-50"
+                  >
+                    {isCheckingForUpdates ? "Checking..." : "Check for Updates"}
+                  </button>
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Keyboard Shortcuts"
+                  description="View and customize keyboard shortcuts"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <button
+                    on:click={() => showShortcuts.set(true)}
+                    class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Open Editor
                   </button>
                 </SettingsItem>
 
@@ -646,6 +924,12 @@
 
                 <SettingsItem
                   label="Git Integration"
+                  isModified={settings.gitIntegration !==
+                    DEFAULT_SETTINGS.gitIntegration}
+                  onReset={() => {
+                    settings.gitIntegration = DEFAULT_SETTINGS.gitIntegration;
+                    settings = { ...settings };
+                  }}
                   description="Show git status indicators for files"
                   {searchQuery}
                   layout="row"
@@ -658,45 +942,38 @@
                 </SettingsItem>
 
                 <SettingsItem
-                  label="Autosave Mode"
-                  description="Choose when to automatically save the project"
+                  label="Transfer Settings"
+                  description="Export or import your settings configuration"
                   {searchQuery}
-                  layout="col"
-                  forId="autosave-mode"
+                  layout="row"
                 >
-                  <select
-                    id="autosave-mode"
-                    bind:value={settings.autosaveMode}
-                    class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="never">Never</option>
-                    <option value="time">Time Based</option>
-                    <option value="change">On Change</option>
-                    <option value="close">On Close</option>
-                  </select>
-                </SettingsItem>
-
-                {#if settings.autosaveMode === "time"}
-                  <div transition:fade>
-                    <SettingsItem
-                      label="Autosave Interval"
-                      description={`Save every ${settings.autosaveInterval} minutes`}
-                      {searchQuery}
-                      layout="col"
-                      forId="autosave-interval"
+                  <div class="flex gap-2">
+                    <button
+                      on:click={handleExport}
+                      title="Export Settings"
+                      class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
                     >
-                      <select
-                        id="autosave-interval"
-                        bind:value={settings.autosaveInterval}
-                        class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        {#each [1, 5, 10, 15, 20, 40, 60] as interval}
-                          <option value={interval}>{interval} minutes</option>
-                        {/each}
-                      </select>
-                    </SettingsItem>
+                      Export
+                    </button>
+                    <button
+                      on:click={() =>
+                        document
+                          .getElementById("settings-import-input")
+                          ?.click()}
+                      title="Import Settings"
+                      class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
+                    >
+                      Import
+                    </button>
+                    <input
+                      type="file"
+                      id="settings-import-input"
+                      class="hidden"
+                      accept=".json"
+                      on:change={handleImport}
+                    />
                   </div>
-                {/if}
+                </SettingsItem>
               </div>
             {/if}
 
@@ -726,6 +1003,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <SettingsItem
                     label="Robot Length (in)"
+                    isModified={settings.rLength !== DEFAULT_SETTINGS.rLength}
+                    onReset={() => {
+                      settings.rLength = DEFAULT_SETTINGS.rLength;
+                      settings = { ...settings };
+                    }}
                     description="Length of the robot base"
                     {searchQuery}
                     forId="robot-length"
@@ -743,6 +1025,11 @@
                   </SettingsItem>
                   <SettingsItem
                     label="Robot Width (in)"
+                    isModified={settings.rWidth !== DEFAULT_SETTINGS.rWidth}
+                    onReset={() => {
+                      settings.rWidth = DEFAULT_SETTINGS.rWidth;
+                      settings = { ...settings };
+                    }}
                     description="Width of the robot base"
                     {searchQuery}
                     forId="robot-width"
@@ -762,6 +1049,12 @@
 
                 <SettingsItem
                   label="Safety Margin (in)"
+                  isModified={settings.safetyMargin !==
+                    DEFAULT_SETTINGS.safetyMargin}
+                  onReset={() => {
+                    settings.safetyMargin = DEFAULT_SETTINGS.safetyMargin;
+                    settings = { ...settings };
+                  }}
                   description="Buffer around obstacles and field boundaries"
                   {searchQuery}
                   forId="safety-margin"
@@ -780,6 +1073,13 @@
 
                 <SettingsItem
                   label="Validate Field Boundaries"
+                  isModified={settings.validateFieldBoundaries !==
+                    DEFAULT_SETTINGS.validateFieldBoundaries}
+                  onReset={() => {
+                    settings.validateFieldBoundaries =
+                      DEFAULT_SETTINGS.validateFieldBoundaries;
+                    settings = { ...settings };
+                  }}
                   description="Warn if robot exits the field"
                   {searchQuery}
                   layout="row"
@@ -793,6 +1093,13 @@
 
                 <SettingsItem
                   label="Restrict Dragging"
+                  isModified={settings.restrictDraggingToField !==
+                    DEFAULT_SETTINGS.restrictDraggingToField}
+                  onReset={() => {
+                    settings.restrictDraggingToField =
+                      DEFAULT_SETTINGS.restrictDraggingToField;
+                    settings = { ...settings };
+                  }}
                   description="Keep points inside field bounds"
                   {searchQuery}
                   layout="row"
@@ -806,6 +1113,13 @@
 
                 <SettingsItem
                   label="Continuous Validation"
+                  isModified={settings.continuousValidation !==
+                    DEFAULT_SETTINGS.continuousValidation}
+                  onReset={() => {
+                    settings.continuousValidation =
+                      DEFAULT_SETTINGS.continuousValidation;
+                    settings = { ...settings };
+                  }}
                   description="Show validation issues as you work"
                   {searchQuery}
                   layout="row"
@@ -819,6 +1133,18 @@
 
                 <SettingsItem
                   label="Robot Image"
+                  isModified={settings.robotImage !==
+                    DEFAULT_SETTINGS.robotImage ||
+                    settings.robotDriveType !==
+                      DEFAULT_SETTINGS.robotDriveType ||
+                    settings.showRobotArrows !==
+                      DEFAULT_SETTINGS.showRobotArrows}
+                  onReset={() => {
+                    settings.robotImage = DEFAULT_SETTINGS.robotImage;
+                    settings.robotDriveType = DEFAULT_SETTINGS.robotDriveType;
+                    settings.showRobotArrows = DEFAULT_SETTINGS.showRobotArrows;
+                    settings = { ...settings };
+                  }}
                   description="Upload a custom image for your robot"
                   {searchQuery}
                   section
@@ -840,19 +1166,55 @@
                     <div
                       class="relative w-24 h-24 border-2 border-neutral-300 dark:border-neutral-600 rounded-md overflow-hidden bg-white dark:bg-neutral-900"
                     >
-                      <img
-                        src={settings.robotImage || "/robot.png"}
-                        alt="Robot Preview"
-                        class="w-full h-full object-contain"
-                        on:error={(e) => {
-                          console.error(
-                            "Failed to load robot image:",
-                            settings.robotImage,
-                          );
-                          handleImageError(e);
-                        }}
-                      />
-                      {#if settings.robotImage && settings.robotImage !== "/robot.png"}
+                      {#if settings.robotImage && settings.robotImage !== "none"}
+                        <img
+                          src={settings.robotImage}
+                          alt="Robot Preview"
+                          class="w-full h-full object-contain"
+                          on:error={(e) => {
+                            console.error(
+                              "Failed to load robot image:",
+                              settings.robotImage,
+                            );
+                            handleImageError(e);
+                          }}
+                        />
+                      {:else}
+                        <!-- show the green square with directional arrows when no-image mode is active -->
+                        <div
+                          class="w-full h-full flex items-center justify-center"
+                        >
+                          <svg
+                            width="80%"
+                            height="80%"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <rect
+                              x="1"
+                              y="1"
+                              width="22"
+                              height="22"
+                              fill="rgba(34,197,94,0.1)"
+                              stroke="#16a34a"
+                              stroke-width="2"
+                              rx="4"
+                            />
+                            <!-- cardinal arrows -->
+                            <polygon points="12,4 10,6 14,6" fill="#16a34a" />
+                            <polygon
+                              points="20,12 18,10 18,14"
+                              fill="#16a34a"
+                            />
+                            <polygon
+                              points="12,20 10,18 14,18"
+                              fill="#16a34a"
+                            />
+                            <polygon points="4,12 6,10 6,14" fill="#16a34a" />
+                          </svg>
+                        </div>
+                      {/if}
+                      {#if settings.robotImage && settings.robotImage !== "/robot.png" && settings.robotImage !== "none"}
                         <button
                           on:click={() => {
                             settings.robotImage = "/robot.png";
@@ -880,7 +1242,9 @@
                     <div
                       class="text-center text-xs text-neutral-600 dark:text-neutral-400"
                     >
-                      {#if settings.robotImage && settings.robotImage !== "/robot.png"}
+                      {#if settings.robotImage === "none"}
+                        <p>No robot image selected (default)</p>
+                      {:else if settings.robotImage && settings.robotImage !== "/robot.png"}
                         <p class="font-medium">
                           {#if settings.robotImage === "/JefferyThePotato.png"}
                             🥔 Jeffery the Potato Active! 🥔
@@ -889,7 +1253,7 @@
                           {/if}
                         </p>
                       {:else}
-                        <p>Using default robot image</p>
+                        <p>Using lightweight default image</p>
                       {/if}
                     </div>
                     <div class="flex flex-wrap justify-center gap-2 w-full">
@@ -901,11 +1265,14 @@
                         on:change={handleImageUpload}
                       />
                       <button
-                        on:click={() =>
-                          document.getElementById("robot-image-input")?.click()}
-                        class="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
+                        on:click={() => {
+                          settings.robotImage = "none";
+                          settings = { ...settings };
+                        }}
+                        class="px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
+                        disabled={settings.robotImage === "none"}
                       >
-                        Upload Robot Image
+                        No Image (Recommended)
                       </button>
                       <button
                         on:click={() => {
@@ -916,7 +1283,7 @@
                         disabled={!settings.robotImage ||
                           settings.robotImage === "/robot.png"}
                       >
-                        Use Default Image
+                        Lightweight Image
                       </button>
                       <button
                         on:click={() => {
@@ -928,9 +1295,127 @@
                       >
                         <span>🥔</span> Use Potato Robot
                       </button>
+                      <button
+                        on:click={() =>
+                          document.getElementById("robot-image-input")?.click()}
+                        class="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
+                      >
+                        Upload Custom
+                      </button>
                     </div>
+
+                    {#if settings.robotImage === "none" || !settings.robotImage}
+                      <div
+                        class="w-full border-t border-neutral-300 dark:border-neutral-700 pt-3 mt-1"
+                      >
+                        <p
+                          id="drive-train-label"
+                          class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                        >
+                          Drive Train Visualization
+                        </p>
+                        <div
+                          role="group"
+                          aria-labelledby="drive-train-label"
+                          class="flex gap-2"
+                        >
+                          <button
+                            class="px-3 py-1.5 text-sm rounded-md transition-colors
+                              {settings.robotDriveType === 'holonomic'
+                              ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
+                              : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+                            on:click={() => {
+                              settings.robotDriveType = "holonomic";
+                              settings = { ...settings };
+                            }}
+                          >
+                            Holonomic
+                          </button>
+                          <button
+                            class="px-3 py-1.5 text-sm rounded-md transition-colors
+                              {settings.robotDriveType === 'swerve'
+                              ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
+                              : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
+                            on:click={() => {
+                              settings.robotDriveType = "swerve";
+                              settings = { ...settings };
+                            }}
+                          >
+                            Swerve
+                          </button>
+                        </div>
+                      </div>
+                      <div
+                        class="w-full flex justify-between items-center mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700"
+                      >
+                        <div>
+                          <p
+                            class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+                          >
+                            Show Wheel Arrows
+                          </p>
+                          <p
+                            class="text-xs text-neutral-500 dark:text-neutral-400"
+                          >
+                            Display arrows indicating wheel speeds/directions
+                            based on drive train type
+                          </p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          bind:checked={settings.showRobotArrows}
+                          class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </div>
+                    {/if}
                   </div>
                 </SettingsItem>
+
+                {#if settings.robotImage && settings.robotImage !== "/robot.png" && settings.robotImage !== "none"}
+                  <div class="space-y-2">
+                    <SettingsItem
+                      label="Show Fake Heading Arrow"
+                      isModified={settings.showFakeHeadingArrow !==
+                        DEFAULT_SETTINGS.showFakeHeadingArrow}
+                      onReset={() => {
+                        settings.showFakeHeadingArrow =
+                          DEFAULT_SETTINGS.showFakeHeadingArrow;
+                        settings = { ...settings };
+                      }}
+                      description="Display an arrow indicating the robot's heading to help with custom images"
+                      {searchQuery}
+                      layout="row"
+                    >
+                      <input
+                        type="checkbox"
+                        bind:checked={settings.showFakeHeadingArrow}
+                        class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </SettingsItem>
+
+                    {#if settings.showFakeHeadingArrow}
+                      <SettingsItem
+                        label="Heading Arrow Color"
+                        isModified={settings.fakeHeadingArrowColor !==
+                          DEFAULT_SETTINGS.fakeHeadingArrowColor}
+                        onReset={() => {
+                          settings.fakeHeadingArrowColor =
+                            DEFAULT_SETTINGS.fakeHeadingArrowColor;
+                          settings = { ...settings };
+                        }}
+                        description="Color of the fake heading arrow"
+                        {searchQuery}
+                        layout="row"
+                      >
+                        <input
+                          type="color"
+                          bind:value={settings.fakeHeadingArrowColor}
+                          class="w-8 h-8 rounded border border-neutral-300 dark:border-neutral-600 cursor-pointer p-0"
+                        />
+                      </SettingsItem>
+                    {/if}
+                  </div>
+                {/if}
               </div>
             {/if}
 
@@ -948,6 +1433,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <SettingsItem
                     label="X Velocity (in/s)"
+                    isModified={settings.xVelocity !==
+                      DEFAULT_SETTINGS.xVelocity}
+                    onReset={() => {
+                      settings.xVelocity = DEFAULT_SETTINGS.xVelocity;
+                      settings = { ...settings };
+                    }}
                     {searchQuery}
                     forId="x-velocity"
                   >
@@ -963,6 +1454,12 @@
                   </SettingsItem>
                   <SettingsItem
                     label="Y Velocity (in/s)"
+                    isModified={settings.yVelocity !==
+                      DEFAULT_SETTINGS.yVelocity}
+                    onReset={() => {
+                      settings.yVelocity = DEFAULT_SETTINGS.yVelocity;
+                      settings = { ...settings };
+                    }}
                     {searchQuery}
                     forId="y-velocity"
                   >
@@ -999,6 +1496,11 @@
 
                 <SettingsItem
                   label="Angular Velocity"
+                  isModified={settings.aVelocity !== DEFAULT_SETTINGS.aVelocity}
+                  onReset={() => {
+                    settings.aVelocity = DEFAULT_SETTINGS.aVelocity;
+                    settings = { ...settings };
+                  }}
                   {searchQuery}
                   forId="angular-velocity"
                 >
@@ -1044,6 +1546,12 @@
 
                 <SettingsItem
                   label="Max Velocity (in/s)"
+                  isModified={settings.maxVelocity !==
+                    DEFAULT_SETTINGS.maxVelocity}
+                  onReset={() => {
+                    settings.maxVelocity = DEFAULT_SETTINGS.maxVelocity;
+                    settings = { ...settings };
+                  }}
                   {searchQuery}
                   forId="max-velocity"
                 >
@@ -1061,6 +1569,13 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <SettingsItem
                     label="Max Acceleration (in/s²)"
+                    isModified={settings.maxAcceleration !==
+                      DEFAULT_SETTINGS.maxAcceleration}
+                    onReset={() => {
+                      settings.maxAcceleration =
+                        DEFAULT_SETTINGS.maxAcceleration;
+                      settings = { ...settings };
+                    }}
                     {searchQuery}
                     forId="max-acceleration"
                   >
@@ -1076,6 +1591,13 @@
                   </SettingsItem>
                   <SettingsItem
                     label="Max Deceleration (in/s²)"
+                    isModified={settings.maxDeceleration !==
+                      DEFAULT_SETTINGS.maxDeceleration}
+                    onReset={() => {
+                      settings.maxDeceleration =
+                        DEFAULT_SETTINGS.maxDeceleration;
+                      settings = { ...settings };
+                    }}
                     {searchQuery}
                     forId="max-deceleration"
                   >
@@ -1093,6 +1615,11 @@
 
                 <SettingsItem
                   label="Friction Coefficient"
+                  isModified={settings.kFriction !== DEFAULT_SETTINGS.kFriction}
+                  onReset={() => {
+                    settings.kFriction = DEFAULT_SETTINGS.kFriction;
+                    settings = { ...settings };
+                  }}
                   description="Higher values = more resistance"
                   {searchQuery}
                   forId="friction-coefficient"
@@ -1123,6 +1650,11 @@
 
                 <SettingsItem
                   label="Theme"
+                  isModified={settings.theme !== DEFAULT_SETTINGS.theme}
+                  onReset={() => {
+                    settings.theme = DEFAULT_SETTINGS.theme;
+                    settings = { ...settings };
+                  }}
                   description="Interface color scheme"
                   {searchQuery}
                   forId="theme-select"
@@ -1155,6 +1687,12 @@
 
                 <SettingsItem
                   label="Program Font Size"
+                  isModified={settings.programFontSize !==
+                    DEFAULT_SETTINGS.programFontSize}
+                  onReset={() => {
+                    settings.programFontSize = DEFAULT_SETTINGS.programFontSize;
+                    settings = { ...settings };
+                  }}
                   description="Adjust the scale of the user interface"
                   {searchQuery}
                   forId="program-font-size"
@@ -1179,6 +1717,11 @@
 
                 <SettingsItem
                   label="Field Map"
+                  isModified={settings.fieldMap !== DEFAULT_SETTINGS.fieldMap}
+                  onReset={() => {
+                    settings.fieldMap = DEFAULT_SETTINGS.fieldMap;
+                    settings = { ...settings };
+                  }}
                   description="Select the competition field"
                   {searchQuery}
                   forId="field-map-select"
@@ -1235,6 +1778,12 @@
 
                 <SettingsItem
                   label="Field Orientation"
+                  isModified={settings.fieldRotation !==
+                    DEFAULT_SETTINGS.fieldRotation}
+                  onReset={() => {
+                    settings.fieldRotation = DEFAULT_SETTINGS.fieldRotation;
+                    settings = { ...settings };
+                  }}
                   description="Rotate the view of the field"
                   {searchQuery}
                 >
@@ -1257,7 +1806,56 @@
                 </SettingsItem>
 
                 <SettingsItem
+                  label="Coordinate System"
+                  isModified={settings.coordinateSystem !==
+                    DEFAULT_SETTINGS.coordinateSystem}
+                  onReset={() => {
+                    settings.coordinateSystem =
+                      DEFAULT_SETTINGS.coordinateSystem;
+                    settings = { ...settings };
+                  }}
+                  description="Choose between standard Pedro Pathing (0-144) or FTC Center (±72)"
+                  {searchQuery}
+                  forId="coordinate-system-select"
+                >
+                  <select
+                    id="coordinate-system-select"
+                    bind:value={settings.coordinateSystem}
+                    class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Pedro">Pedro Pathing (0-144)</option>
+                    <option value="FTC">FTC Center (±72)</option>
+                  </select>
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Smart Object Snapping"
+                  isModified={settings.smartSnapping !==
+                    DEFAULT_SETTINGS.smartSnapping}
+                  onReset={() => {
+                    settings.smartSnapping = DEFAULT_SETTINGS.smartSnapping;
+                    settings = { ...settings };
+                  }}
+                  description="Snap points to align with other waypoints (Hold Alt/Option to invert)"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <input
+                    type="checkbox"
+                    bind:checked={settings.smartSnapping}
+                    class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  />
+                </SettingsItem>
+
+                <SettingsItem
                   label="Velocity Heatmap"
+                  isModified={settings.showVelocityHeatmap !==
+                    DEFAULT_SETTINGS.showVelocityHeatmap}
+                  onReset={() => {
+                    settings.showVelocityHeatmap =
+                      DEFAULT_SETTINGS.showVelocityHeatmap;
+                    settings = { ...settings };
+                  }}
                   description="Visualize robot speed along path (Green to Red)"
                   {searchQuery}
                   layout="row"
@@ -1268,6 +1866,299 @@
                     class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                   />
                 </SettingsItem>
+
+                <SettingsItem
+                  label="Follow Robot"
+                  isModified={settings.followRobot !==
+                    DEFAULT_SETTINGS.followRobot}
+                  onReset={() => {
+                    settings.followRobot = DEFAULT_SETTINGS.followRobot;
+                    settings = { ...settings };
+                  }}
+                  description="Automatically pan to keep robot centered during playback"
+                  {searchQuery}
+                  layout="row"
+                  forId="follow-robot"
+                >
+                  <input
+                    id="follow-robot"
+                    type="checkbox"
+                    bind:checked={settings.followRobot}
+                    on:change={() =>
+                      followRobotStore.set(!!settings.followRobot)}
+                    class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  />
+                </SettingsItem>
+              </div>
+            {/if}
+
+            <!-- Code Export Section -->
+            {#if activeTab === "code-export" || searchQuery}
+              <div class="section-container mb-8">
+                {#if searchQuery}
+                  <h4
+                    class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
+                  >
+                    Code Export
+                  </h4>
+                {/if}
+
+                <SettingsItem
+                  label="Auto Export Code"
+                  isModified={settings.autoExportCode !==
+                    DEFAULT_SETTINGS.autoExportCode}
+                  onReset={() => {
+                    settings.autoExportCode = DEFAULT_SETTINGS.autoExportCode;
+                    settings = { ...settings };
+                  }}
+                  description="Automatically export code when project is saved"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <input
+                    type="checkbox"
+                    bind:checked={settings.autoExportCode}
+                    class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  />
+                </SettingsItem>
+
+                {#if settings.autoExportCode}
+                  <div transition:fade>
+                    <SettingsItem
+                      label="Export Path Mode"
+                      isModified={settings.autoExportPathMode !==
+                        DEFAULT_SETTINGS.autoExportPathMode}
+                      onReset={() => {
+                        settings.autoExportPathMode =
+                          DEFAULT_SETTINGS.autoExportPathMode;
+                        settings = { ...settings };
+                      }}
+                      description="How the path is stored relative to the project file"
+                      {searchQuery}
+                      layout="row"
+                    >
+                      <div
+                        class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-lg border border-neutral-200 dark:border-neutral-700"
+                      >
+                        <button
+                          class="px-3 py-1 text-xs font-medium rounded-md transition-all {settings.autoExportPathMode ===
+                            'relative' || !settings.autoExportPathMode
+                            ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                            : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}"
+                          on:click={() => handleModeChange("relative")}
+                        >
+                          Relative
+                        </button>
+                        <button
+                          class="px-3 py-1 text-xs font-medium rounded-md transition-all {settings.autoExportPathMode ===
+                          'absolute'
+                            ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                            : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}"
+                          on:click={() => handleModeChange("absolute")}
+                        >
+                          Absolute
+                        </button>
+                      </div>
+                    </SettingsItem>
+
+                    <SettingsItem
+                      label="Export Path"
+                      isModified={settings.autoExportPath !==
+                        DEFAULT_SETTINGS.autoExportPath}
+                      onReset={() => {
+                        settings.autoExportPath =
+                          DEFAULT_SETTINGS.autoExportPath;
+                        settings = { ...settings };
+                      }}
+                      description="Directory to save exported code"
+                      {searchQuery}
+                      layout="col"
+                    >
+                      <div class="flex gap-2">
+                        <input
+                          type="text"
+                          bind:value={settings.autoExportPath}
+                          class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                          placeholder="GeneratedCode"
+                        />
+                        <button
+                          on:click={handleBrowse}
+                          class="px-3 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded-md text-neutral-700 dark:text-neutral-300 transition-colors"
+                          title="Browse Directory"
+                        >
+                          <!-- Folder Icon -->
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width={1.5}
+                            stroke="currentColor"
+                            class="size-5"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                      <div
+                        class="text-xs text-neutral-500 dark:text-neutral-400 mt-1"
+                      >
+                        {#if settings.autoExportPathMode === "absolute"}
+                          Absolute path to the export directory.
+                        {:else}
+                          Relative to the project file location. Default:
+                          'GeneratedCode'.
+                        {/if}
+                      </div>
+                    </SettingsItem>
+
+                    <SettingsItem
+                      label="Export Format"
+                      isModified={settings.autoExportFormat !==
+                        DEFAULT_SETTINGS.autoExportFormat}
+                      onReset={() => {
+                        settings.autoExportFormat =
+                          DEFAULT_SETTINGS.autoExportFormat;
+                        settings = { ...settings };
+                      }}
+                      description="Format of the generated code"
+                      {searchQuery}
+                      layout="col"
+                    >
+                      <select
+                        bind:value={settings.autoExportFormat}
+                        class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="java">Java Class</option>
+                        <option value="sequential">Sequential Command</option>
+                        <option value="points">Points Array</option>
+                        <option value="json">JSON Project Data</option>
+                      </select>
+                    </SettingsItem>
+
+                    {#if settings.autoExportFormat === "java"}
+                      <div transition:fade>
+                        <SettingsItem
+                          label="Generate Full Class"
+                          isModified={settings.autoExportFullClass !==
+                            DEFAULT_SETTINGS.autoExportFullClass}
+                          onReset={() => {
+                            settings.autoExportFullClass =
+                              DEFAULT_SETTINGS.autoExportFullClass;
+                            settings = { ...settings };
+                          }}
+                          description="Include class definition and imports"
+                          {searchQuery}
+                          layout="row"
+                        >
+                          <input
+                            type="checkbox"
+                            bind:checked={settings.autoExportFullClass}
+                            class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </SettingsItem>
+
+                        <SettingsItem
+                          label="Telemetry Implementation"
+                          isModified={settings.telemetryImplementation !==
+                            DEFAULT_SETTINGS.telemetryImplementation}
+                          onReset={() => {
+                            settings.telemetryImplementation =
+                              DEFAULT_SETTINGS.telemetryImplementation;
+                            settings = { ...settings };
+                          }}
+                          description="Select telemetry backend for generated code"
+                          {searchQuery}
+                          layout="col"
+                        >
+                          <select
+                            bind:value={settings.telemetryImplementation}
+                            class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="Panels">Panels (Bylazar)</option>
+                            <option value="Standard">Standard (FTC)</option>
+                            <option value="Dashboard"
+                              >FtcDashboard + Standard</option
+                            >
+                            <option value="None">None</option>
+                          </select>
+                        </SettingsItem>
+                      </div>
+                    {:else if settings.autoExportFormat === "sequential"}
+                      <div transition:fade>
+                        <SettingsItem
+                          label="Target Library"
+                          isModified={settings.autoExportTargetLibrary !==
+                            DEFAULT_SETTINGS.autoExportTargetLibrary}
+                          onReset={() => {
+                            settings.autoExportTargetLibrary =
+                              DEFAULT_SETTINGS.autoExportTargetLibrary;
+                            settings = { ...settings };
+                          }}
+                          description="Command-based library to target"
+                          {searchQuery}
+                          layout="col"
+                        >
+                          <select
+                            bind:value={settings.autoExportTargetLibrary}
+                            class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="SolversLib">SolversLib</option>
+                            <option value="NextFTC">NextFTC</option>
+                          </select>
+                        </SettingsItem>
+
+                        <SettingsItem
+                          label="Embed Pose Data"
+                          isModified={settings.autoExportEmbedPoseData !==
+                            DEFAULT_SETTINGS.autoExportEmbedPoseData}
+                          onReset={() => {
+                            settings.autoExportEmbedPoseData =
+                              DEFAULT_SETTINGS.autoExportEmbedPoseData;
+                            settings = { ...settings };
+                          }}
+                          description="Embed pose data directly in the code (no .pp file)"
+                          {searchQuery}
+                          layout="row"
+                        >
+                          <input
+                            type="checkbox"
+                            bind:checked={settings.autoExportEmbedPoseData}
+                            class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </SettingsItem>
+                      </div>
+                    {/if}
+
+                    {#if settings.autoExportFormat === "java" || settings.autoExportFormat === "sequential"}
+                      <div transition:fade>
+                        <SettingsItem
+                          label="Package Name"
+                          isModified={settings.javaPackageName !==
+                            DEFAULT_SETTINGS.javaPackageName}
+                          onReset={() => {
+                            settings.javaPackageName =
+                              DEFAULT_SETTINGS.javaPackageName;
+                            settings = { ...settings };
+                          }}
+                          description="Java package for the generated class"
+                          {searchQuery}
+                          layout="col"
+                        >
+                          <input
+                            type="text"
+                            bind:value={settings.javaPackageName}
+                            class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                            placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
+                          />
+                        </SettingsItem>
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
               </div>
             {/if}
 
@@ -1283,7 +2174,33 @@
                 {/if}
 
                 <SettingsItem
+                  label="Show Debug Sequence"
+                  isModified={settings.showDebugSequence !==
+                    DEFAULT_SETTINGS.showDebugSequence}
+                  onReset={() => {
+                    settings.showDebugSequence =
+                      DEFAULT_SETTINGS.showDebugSequence;
+                    settings = { ...settings };
+                  }}
+                  description="Display internal sequence execution order"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <input
+                    type="checkbox"
+                    bind:checked={settings.showDebugSequence}
+                    class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-pink-500 focus:ring-2 focus:ring-pink-500 cursor-pointer"
+                  />
+                </SettingsItem>
+
+                <SettingsItem
                   label="Robot Onion Layers"
+                  isModified={settings.showOnionLayers !==
+                    DEFAULT_SETTINGS.showOnionLayers}
+                  onReset={() => {
+                    settings.showOnionLayers = DEFAULT_SETTINGS.showOnionLayers;
+                    settings = { ...settings };
+                  }}
                   description="Show robot body at intervals along the path"
                   {searchQuery}
                   layout="row"
@@ -1301,6 +2218,13 @@
                   >
                     <SettingsItem
                       label="Show Only on Current Path"
+                      isModified={settings.onionSkinCurrentPathOnly !==
+                        DEFAULT_SETTINGS.onionSkinCurrentPathOnly}
+                      onReset={() => {
+                        settings.onionSkinCurrentPathOnly =
+                          DEFAULT_SETTINGS.onionSkinCurrentPathOnly;
+                        settings = { ...settings };
+                      }}
                       description="Only show onion layers for the selected path"
                       {searchQuery}
                       layout="row"
@@ -1314,6 +2238,13 @@
 
                     <SettingsItem
                       label="Onion Layer Spacing"
+                      isModified={settings.onionLayerSpacing !==
+                        DEFAULT_SETTINGS.onionLayerSpacing}
+                      onReset={() => {
+                        settings.onionLayerSpacing =
+                          DEFAULT_SETTINGS.onionLayerSpacing;
+                        settings = { ...settings };
+                      }}
                       description="Distance in inches between each robot body trace"
                       {searchQuery}
                     >
@@ -1339,6 +2270,13 @@
                 <div class="mt-6 space-y-4">
                   <SettingsItem
                     label="Optimization Iterations"
+                    isModified={settings.optimizationIterations !==
+                      DEFAULT_SETTINGS.optimizationIterations}
+                    onReset={() => {
+                      settings.optimizationIterations =
+                        DEFAULT_SETTINGS.optimizationIterations;
+                      settings = { ...settings };
+                    }}
                     description="Generations for path optimization"
                     {searchQuery}
                     layout="col"
@@ -1357,6 +2295,13 @@
                   </SettingsItem>
                   <SettingsItem
                     label="Population Size"
+                    isModified={settings.optimizationPopulationSize !==
+                      DEFAULT_SETTINGS.optimizationPopulationSize}
+                    onReset={() => {
+                      settings.optimizationPopulationSize =
+                        DEFAULT_SETTINGS.optimizationPopulationSize;
+                      settings = { ...settings };
+                    }}
                     description="Candidate paths per generation"
                     {searchQuery}
                     layout="col"
@@ -1375,6 +2320,13 @@
                   </SettingsItem>
                   <SettingsItem
                     label="Mutation Rate"
+                    isModified={settings.optimizationMutationRate !==
+                      DEFAULT_SETTINGS.optimizationMutationRate}
+                    onReset={() => {
+                      settings.optimizationMutationRate =
+                        DEFAULT_SETTINGS.optimizationMutationRate;
+                      settings = { ...settings };
+                    }}
                     description="Fraction of control points mutated"
                     {searchQuery}
                     layout="col"
@@ -1393,6 +2345,13 @@
                   </SettingsItem>
                   <SettingsItem
                     label="Mutation Strength"
+                    isModified={settings.optimizationMutationStrength !==
+                      DEFAULT_SETTINGS.optimizationMutationStrength}
+                    onReset={() => {
+                      settings.optimizationMutationStrength =
+                        DEFAULT_SETTINGS.optimizationMutationStrength;
+                      settings = { ...settings };
+                    }}
                     description="Max mutation distance (inches)"
                     {searchQuery}
                     layout="col"
@@ -1425,7 +2384,7 @@
                 {/if}
 
                 <SettingsItem
-                  label="Pedro Pathing Visualizer"
+                  label="Pedro Pathing Plus Visualizer"
                   description={`Version ${appVersion}`}
                   {searchQuery}
                   section
@@ -1439,7 +2398,7 @@
                     <h3
                       class="text-xl font-bold text-neutral-900 dark:text-white"
                     >
-                      Pedro Pathing Visualizer
+                      Pedro Pathing Plus Visualizer
                     </h3>
                     <p
                       class="text-sm text-neutral-500 dark:text-neutral-400 mb-6"
@@ -1449,7 +2408,7 @@
 
                     <div class="text-sm space-y-1 mb-6">
                       <p>Copyright © 2026 Matthew Allen</p>
-                      <p>Licensed under Apache License, Version 2.0</p>
+                      <p>Licensed under Modified Apache License, Version 2.0</p>
                     </div>
 
                     <div class="flex gap-4 text-sm font-medium mb-8">
@@ -1472,7 +2431,7 @@
                         >•</span
                       >
                       <a
-                        href="https://github.com/Mallen220/PedroPathingVisualizer"
+                        href="https://github.com/Mallen220/PedroPathingPlusVisualizer"
                         target="_blank"
                         class="text-blue-600 dark:text-blue-400 hover:underline"
                         >GitHub</a
@@ -1482,16 +2441,6 @@
                     <div
                       class="w-full max-w-sm bg-neutral-50 dark:bg-neutral-800 rounded-lg p-4 text-left text-sm space-y-4"
                     >
-                      <div>
-                        <h4 class="font-semibold mb-2">Support & Community</h4>
-                        <a
-                          href="https://discord.gg/ku59afNBBM"
-                          target="_blank"
-                          class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline"
-                        >
-                          <span>Join Discord Server</span>
-                        </a>
-                      </div>
                       <div>
                         <h4 class="font-semibold mb-2">Acknowledgments</h4>
                         <ul
@@ -1504,9 +2453,9 @@
                       </div>
                       <div>
                         <h4 class="font-semibold mb-2">Project Links</h4>
-                        <div class="flex gap-3 text-xs">
+                        <div class="flex flex-wrap gap-3 text-xs">
                           <a
-                            href="https://github.com/Mallen220/PedroPathingVisualizer/issues"
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/issues"
                             target="_blank"
                             class="text-blue-600 dark:text-blue-400 hover:underline"
                             >Issues</a
@@ -1515,10 +2464,64 @@
                             >•</span
                           >
                           <a
-                            href="https://github.com/Mallen220/PedroPathingVisualizer/releases"
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/releases"
                             target="_blank"
                             class="text-blue-600 dark:text-blue-400 hover:underline"
                             >Releases</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/blob/main/README.md"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >README</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/blob/main/CODE_OF_CONDUCT.md"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >Code of Conduct</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/blob/main/CONTRIBUTING.md"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >Contributing</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/blob/main/LICENSE"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >License</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://github.com/Mallen220/PedroPathingPlusVisualizer/blob/main/SECURITY.md"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >Security</a
+                          >
+                          <span class="text-neutral-300 dark:text-neutral-600"
+                            >•</span
+                          >
+                          <a
+                            href="https://discord.gg/chHSzS4ewF"
+                            target="_blank"
+                            class="text-blue-600 dark:text-blue-400 hover:underline"
+                            >Discord</a
                           >
                         </div>
                       </div>

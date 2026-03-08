@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import {
   getCurvePoint,
   easeInOutQuad,
@@ -23,6 +23,9 @@ type AnimationState = {
   animationFrameId: number | null;
   totalDuration: number;
   loop: boolean;
+  loopRangeActive: boolean;
+  loopMinPercent: number;
+  loopMaxPercent: number;
 };
 
 /**
@@ -44,11 +47,23 @@ export function calculateRobotState(
   const totalDuration = timeline[timeline.length - 1].endTime;
   const currentSeconds = (percent / 100) * totalDuration;
 
-  // Find the active event for this time
-  const activeEvent =
-    timeline.find(
-      (e) => currentSeconds >= e.startTime && currentSeconds <= e.endTime,
-    ) || timeline[timeline.length - 1];
+  // Find the active event for this time using binary search
+  let left = 0;
+  let right = timeline.length - 1;
+  let activeEvent = timeline[timeline.length - 1];
+
+  while (left <= right) {
+    const mid = (left + right) >> 1;
+    const e = timeline[mid];
+    if (currentSeconds >= e.startTime && currentSeconds <= e.endTime) {
+      activeEvent = e;
+      break;
+    } else if (currentSeconds < e.startTime) {
+      right = mid - 1;
+    } else {
+      left = mid + 1;
+    }
+  }
 
   if (activeEvent.type === "wait") {
     // --- STATIONARY ROTATION ---
@@ -163,17 +178,30 @@ export function calculateRobotState(
     } else {
       // Fallback Heading Calculation
       switch (currentLine.endPoint.heading) {
-        case "linear":
-          robotHeading = -shortestRotation(
-            currentLine.endPoint.startDeg,
-            currentLine.endPoint.endDeg,
-            linePercent,
-          );
+        case "linear": {
+          const startDeg = currentLine.endPoint.startDeg;
+          const endDeg = currentLine.endPoint.endDeg;
+          if (currentLine.endPoint.reverse) {
+            // Go the long way around: invert the rotation direction
+            const shortDiff = endDeg - startDeg;
+            const normalizedShort = ((shortDiff % 360) + 360) % 360;
+            // shortArc is in [0,360). If > 180, that's already the long arc, so go short instead.
+            const longDiff =
+              normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
+            robotHeading = -(startDeg + longDiff * linePercent);
+          } else {
+            robotHeading = -shortestRotation(startDeg, endDeg, linePercent);
+          }
           break;
-        case "constant":
-          robotHeading = -currentLine.endPoint.degrees;
+        }
+        case "constant": {
+          const deg = currentLine.endPoint.reverse
+            ? currentLine.endPoint.degrees + 180
+            : currentLine.endPoint.degrees;
+          robotHeading = -deg;
           break;
-        case "tangential":
+        }
+        case "tangential": {
           const nextPointInches = getCurvePoint(
             linePercent + (currentLine.endPoint.reverse ? -0.01 : 0.01),
             [prevPoint, ...currentLine.controlPoints, currentLine.endPoint],
@@ -190,6 +218,30 @@ export function calculateRobotState(
             robotHeading = radiansToDegrees(angle);
           }
           break;
+        }
+        case "facingPoint": {
+          const targetX = (currentLine.endPoint as any).targetX || 0;
+          const targetY = (currentLine.endPoint as any).targetY || 0;
+          // Compute position on curve at linePercent in field-space (inches)
+          const curvePos = getCurvePoint(linePercent, [
+            prevPoint,
+            ...currentLine.controlPoints,
+            currentLine.endPoint,
+          ]);
+          // Use field-space (inches) to compute angle, then apply scales just for sign
+          const dx = targetX - curvePos.x;
+          const dy = targetY - curvePos.y;
+          if (dx !== 0 || dy !== 0) {
+            // xScale and yScale are linear; yScale may be inverted (screen y is flipped)
+            // We compute the screen-space angle to account for axis flipping
+            const sdx = xScale(targetX) - xScale(curvePos.x);
+            const sdy = yScale(targetY) - yScale(curvePos.y);
+            let angle = Math.atan2(sdy, sdx);
+            if ((currentLine.endPoint as any).reverse) angle += Math.PI;
+            robotHeading = radiansToDegrees(angle);
+          }
+          break;
+        }
       }
     }
 
@@ -217,9 +269,13 @@ export function createAnimationController(
     animationFrameId: null,
     totalDuration,
     loop: true,
+    loopRangeActive: false,
+    loopMinPercent: 0,
+    loopMaxPercent: 100,
   };
 
   let isExternalChange = false;
+  let absoluteStartTime: number | null = null; // Used for perfect time tracking
 
   function updatePercentFromAccumulated() {
     if (state.totalDuration > 0) {
@@ -235,42 +291,60 @@ export function createAnimationController(
     // If we aren't playing anymore, ensure we don't schedule anything further.
     if (!state.playing) {
       state.lastTimestamp = null;
+      absoluteStartTime = null;
       state.animationFrameId = null;
       return;
     }
 
     // Initialize lastTimestamp on first tick after play
-    if (state.lastTimestamp === null) {
+    if (state.lastTimestamp === null || absoluteStartTime === null) {
       state.lastTimestamp = timestamp;
+      absoluteStartTime = timestamp - state.accumulatedSeconds * 1000;
       state.animationFrameId = requestAnimationFrame(animate);
       return;
     }
 
-    // Compute delta time since last frame (in seconds)
-    const deltaSeconds = (timestamp - state.lastTimestamp) / 1000;
     state.lastTimestamp = timestamp;
 
-    // Advance accumulated time
-    state.accumulatedSeconds += deltaSeconds;
+    // Calculate elapsed time from the absolute start time, ensures perfect time accuracy
+    state.accumulatedSeconds = (timestamp - absoluteStartTime) / 1000;
 
     if (state.totalDuration > 0) {
+      let startSec = isExternalChange
+        ? 0
+        : state.loopRangeActive
+          ? (state.loopMinPercent / 100) * state.totalDuration
+          : 0;
+      let endSec = state.loopRangeActive
+        ? (state.loopMaxPercent / 100) * state.totalDuration
+        : state.totalDuration;
+      if (endSec <= startSec) endSec = state.totalDuration;
+
       if (state.loop) {
-        // For looping, wrap accumulatedSeconds so it doesn't grow unbounded.
-        // Use modulo to allow continuous time even for large deltas.
-        state.accumulatedSeconds =
-          state.accumulatedSeconds % state.totalDuration;
+        if (state.accumulatedSeconds > endSec) {
+          state.accumulatedSeconds =
+            startSec +
+            ((state.accumulatedSeconds - endSec) % (endSec - startSec));
+          // Reset absolute start time when looping
+          absoluteStartTime = timestamp - state.accumulatedSeconds * 1000;
+        } else if (state.accumulatedSeconds < startSec) {
+          state.accumulatedSeconds = startSec;
+          absoluteStartTime = timestamp - state.accumulatedSeconds * 1000;
+        }
         updatePercentFromAccumulated();
         if (!isExternalChange) onPercentChange(state.percent);
         // keep animating
         state.animationFrameId = requestAnimationFrame(animate);
       } else {
         // Not looping: clamp to duration and stop when done
-        if (state.accumulatedSeconds >= state.totalDuration) {
-          state.accumulatedSeconds = state.totalDuration;
+        if (state.accumulatedSeconds >= endSec) {
+          state.accumulatedSeconds = endSec;
           updatePercentFromAccumulated();
-          if (!isExternalChange) onPercentChange(100);
+          if (!isExternalChange)
+            onPercentChange(state.loopRangeActive ? state.loopMaxPercent : 100);
           state.playing = false;
           state.lastTimestamp = null;
+          absoluteStartTime = null;
           if (state.animationFrameId) {
             cancelAnimationFrame(state.animationFrameId);
             state.animationFrameId = null;
@@ -295,21 +369,39 @@ export function createAnimationController(
     // If already playing, nothing to do
     if (state.playing) return;
 
+    let startSec = state.loopRangeActive
+      ? (state.loopMinPercent / 100) * state.totalDuration
+      : 0;
+    let endSec = state.loopRangeActive
+      ? (state.loopMaxPercent / 100) * state.totalDuration
+      : state.totalDuration;
+    if (endSec <= startSec) endSec = state.totalDuration;
+
     // If at the very end and not looping, reset to start so play restarts
     if (
       !state.loop &&
       state.totalDuration > 0 &&
-      state.accumulatedSeconds >= state.totalDuration
+      state.accumulatedSeconds >= endSec
     ) {
-      state.accumulatedSeconds = 0;
-      state.percent = 0;
-      if (!isExternalChange) onPercentChange(0);
+      state.accumulatedSeconds = startSec;
+      updatePercentFromAccumulated();
+      if (!isExternalChange) onPercentChange(state.percent);
+    } else if (state.totalDuration > 0 && state.loopRangeActive) {
+      // Even if looping, if we are outside the loop range, snap back into it
+      if (
+        state.accumulatedSeconds < startSec ||
+        state.accumulatedSeconds >= endSec
+      ) {
+        state.accumulatedSeconds = startSec;
+        updatePercentFromAccumulated();
+        if (!isExternalChange) onPercentChange(state.percent);
+      }
     }
 
     state.playing = true;
     // schedule the loop if not already scheduled
     if (state.animationFrameId === null) {
-      state.lastTimestamp = null; // ensure animate initializes its timestamp properly
+      state.lastTimestamp = performance.now(); // ensure animate initializes its timestamp properly
       state.animationFrameId = requestAnimationFrame(animate);
     }
   }
@@ -323,12 +415,14 @@ export function createAnimationController(
       state.animationFrameId = null;
     }
     state.lastTimestamp = null;
+    absoluteStartTime = null;
   }
 
   function reset() {
     state.accumulatedSeconds = 0;
     state.percent = 0;
     state.lastTimestamp = null;
+    absoluteStartTime = null;
     if (!isExternalChange) onPercentChange(0);
   }
 
@@ -347,6 +441,13 @@ export function createAnimationController(
       } else {
         state.accumulatedSeconds = 0;
       }
+
+      // Update absolute start time if currently playing
+      if (absoluteStartTime !== null && state.lastTimestamp !== null) {
+        absoluteStartTime =
+          state.lastTimestamp - state.accumulatedSeconds * 1000;
+      }
+
       updatePercentFromAccumulated();
       onPercentChange(clamped);
 
@@ -371,11 +472,25 @@ export function createAnimationController(
           Math.max(0, duration),
         );
       }
+
+      // Update absolute start time if currently playing
+      if (absoluteStartTime !== null && state.lastTimestamp !== null) {
+        absoluteStartTime =
+          state.lastTimestamp - state.accumulatedSeconds * 1000;
+      }
+
       updatePercentFromAccumulated();
       if (!isExternalChange) onPercentChange(state.percent);
     },
     setLoop(loop: boolean) {
       state.loop = loop;
+    },
+    setPlaybackRange(minPercent: number, maxPercent: number, active: boolean) {
+      state.loopRangeActive = active;
+      state.loopMinPercent = Math.max(0, Math.min(100, minPercent));
+      state.loopMaxPercent = Math.max(0, Math.min(100, maxPercent));
+      if (state.loopMaxPercent <= state.loopMinPercent)
+        state.loopMaxPercent = 100;
     },
     isPlaying() {
       return state.playing;
@@ -507,6 +622,16 @@ export function generateOnionLayers(
           const tdy = nextPos.y - robotPosInches.y;
           if (tdx !== 0 || tdy !== 0) {
             heading = radiansToDegrees(Math.atan2(tdy, tdx));
+          }
+        } else if (line.endPoint.heading === "facingPoint") {
+          const targetX = (line.endPoint as any).targetX || 0;
+          const targetY = (line.endPoint as any).targetY || 0;
+          const tdx = targetX - robotPosInches.x;
+          const tdy = targetY - robotPosInches.y;
+          if (tdx !== 0 || tdy !== 0) {
+            let angle = radiansToDegrees(Math.atan2(tdy, tdx));
+            if ((line.endPoint as any).reverse) angle += 180;
+            heading = angle;
           }
         }
 

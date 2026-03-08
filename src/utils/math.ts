@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Line, Point } from "../types";
 
 export function quadraticToCubic(
@@ -93,7 +93,9 @@ export function getDistance(
   p1: { x: number; y: number },
   p2: { x: number; y: number },
 ) {
-  return Math.hypot(p2.x - p1.x, p2.y - p1.y);
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 /**
@@ -179,6 +181,51 @@ export function getCurvePoint(
   return work[0];
 }
 
+/**
+ * Splits a Bezier curve of any degree at parameter t into two curves.
+ * Returns [leftCurve, rightCurve], where each is an array of control points.
+ */
+export function splitBezier(
+  t: number,
+  points: { x: number; y: number }[],
+): [{ x: number; y: number }[], { x: number; y: number }[]] {
+  const left: { x: number; y: number }[] = [];
+  const right: { x: number; y: number }[] = [];
+  const n = points.length - 1;
+
+  // De Casteljau's algorithm
+  // We need to keep intermediate points to form the control points of the two sub-curves
+  // Left curve: First point of each level of recursion (P0, Q0, R0, ...)
+  // Right curve: Last point of each level of recursion (..., R_last, Q_last, P_last) - reversed
+
+  let currentPoints = points.slice();
+
+  // Add initial points
+  left.push(currentPoints[0]);
+  right.push(currentPoints[currentPoints.length - 1]);
+
+  for (let i = 0; i < n; i++) {
+    const nextPoints: { x: number; y: number }[] = [];
+    for (let j = 0; j < currentPoints.length - 1; j++) {
+      const p0 = currentPoints[j];
+      const p1 = currentPoints[j + 1];
+      const newP = {
+        x: p0.x + (p1.x - p0.x) * t,
+        y: p0.y + (p1.y - p0.y) * t,
+      };
+      nextPoints.push(newP);
+    }
+    currentPoints = nextPoints;
+    left.push(currentPoints[0]);
+    right.push(currentPoints[currentPoints.length - 1]);
+  }
+
+  // Right array was filled from outside in (P3, Q2, R1, S0), so reverse it to get (S0, R1, Q2, P3)
+  right.reverse();
+
+  return [left, right];
+}
+
 // Helpers for Heading Calculation
 export function getTangentAngle(
   p1: { x: number; y: number },
@@ -195,12 +242,22 @@ export function getLineStartHeading(
 
   if (line.endPoint.heading === "constant") return line.endPoint.degrees;
   if (line.endPoint.heading === "linear") return line.endPoint.startDeg;
+  if (line.endPoint.heading === "facingPoint") {
+    const targetX = (line.endPoint as any).targetX || 0;
+    const targetY = (line.endPoint as any).targetY || 0;
+    const angle = getTangentAngle(previousPoint, { x: targetX, y: targetY });
+    return line.endPoint.reverse
+      ? transformAngle(angle + 180)
+      : transformAngle(angle);
+  }
   if (line.endPoint.heading === "tangential") {
     let nextP: { x: number; y: number } = line.endPoint;
     // Find the first point that isn't the start point (overlap handling)
     if (line.controlPoints && line.controlPoints.length > 0) {
       for (const cp of line.controlPoints) {
-        const dist = Math.hypot(cp.x - previousPoint.x, cp.y - previousPoint.y);
+        const dx = cp.x - previousPoint.x;
+        const dy = cp.y - previousPoint.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist > 1e-6) {
           nextP = cp;
           break;
@@ -223,13 +280,23 @@ export function getLineEndHeading(
 
   if (line.endPoint.heading === "constant") return line.endPoint.degrees;
   if (line.endPoint.heading === "linear") return line.endPoint.endDeg;
+  if (line.endPoint.heading === "facingPoint") {
+    const targetX = (line.endPoint as any).targetX || 0;
+    const targetY = (line.endPoint as any).targetY || 0;
+    const angle = getTangentAngle(line.endPoint, { x: targetX, y: targetY });
+    return line.endPoint.reverse
+      ? transformAngle(angle + 180)
+      : transformAngle(angle);
+  }
   if (line.endPoint.heading === "tangential") {
     let prevP: { x: number; y: number } = previousPoint;
     // Find the last point that isn't the end point (overlap handling)
     if (line.controlPoints && line.controlPoints.length > 0) {
       for (let i = line.controlPoints.length - 1; i >= 0; i--) {
         const cp = line.controlPoints[i];
-        const dist = Math.hypot(cp.x - line.endPoint.x, cp.y - line.endPoint.y);
+        const dx = cp.x - line.endPoint.x;
+        const dy = cp.y - line.endPoint.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist > 1e-6) {
           prevP = cp;
           break;

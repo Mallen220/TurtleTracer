@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+# Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -19,18 +19,30 @@ print_logo() {
     echo -e "${PURPLE}"
     echo '╔══════════════════════════════════════════════════════════════╗'
     echo '║                                                              ║'
-    echo '║     Pedro Pathing Visualizer                                 ║'
+    echo '║     Pedro Pathing Plus Visualizer                            ║'
     echo '║                     Installation                             ║'
     echo '║                                                              ║'
     echo '╚══════════════════════════════════════════════════════════════╝'
     echo -e "${NC}"
 }
 
+# Global variable to store selected version (set by user choice)
+SELECTED_VERSION=""
+
 # Return all asset download URLs that match a pattern from the latest release
 # Uses extended grep to support alternation patterns and is case-insensitive
+# If SELECTED_VERSION is set, uses that specific release instead
 get_download_urls() {
     local pattern=$1
-    curl -s "https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases/latest" | \
+    local api_url
+    
+    if [ -n "$SELECTED_VERSION" ]; then
+        api_url="https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases/tags/v${SELECTED_VERSION}"
+    else
+        api_url="https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases/latest"
+    fi
+    
+    curl -s "$api_url" | \
     grep -o '"browser_download_url": "[^"]*"' | \
     cut -d'"' -f4 | \
     grep -Ei "$pattern" || true
@@ -38,8 +50,16 @@ get_download_urls() {
 
 # Return the latest release version (tag_name) without leading 'v'
 get_latest_version() {
-    curl -s "https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases/latest" | \
+    curl -s "https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases/latest" | \
     grep -o '"tag_name": "[^"]*"' | \
+    head -1 | cut -d'"' -f4 | sed 's/^v//' || true
+}
+
+# Return the latest pre-release version if one exists, empty string otherwise
+get_prerelease_version() {
+    curl -s "https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases" | \
+    grep -B 5 '"prerelease": true' | \
+    grep '"tag_name"' | \
     head -1 | cut -d'"' -f4 | sed 's/^v//' || true
 }
 
@@ -194,10 +214,10 @@ install_dependencies() {
 install_icon() {
     ICON_DIR="$HOME/.local/share/icons/hicolor/512x512/apps"
     mkdir -p "$ICON_DIR"
-    ICON_PATH="$ICON_DIR/pedro-pathing-visualizer.png"
+    ICON_PATH="$ICON_DIR/pedro-pathing-plus-visualizer.png"
     
     # URL to the icon in the repo
-    ICON_URL="https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/build/icon.png"
+    ICON_URL="https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/build/icon.png"
     
     print_info "Downloading icon..."
     if curl -L -s -o "$ICON_PATH" "$ICON_URL"; then
@@ -217,14 +237,14 @@ patch_deb_desktop_file() {
     print_info "Patching installed desktop file for compatibility..."
     
     # Look for the desktop file installed by the deb
-    # usually in /usr/share/applications/pedro-pathing-visualizer.desktop
-    DESKTOP_FILE=$(grep -l "Pedro Pathing Visualizer" /usr/share/applications/*.desktop 2>/dev/null | head -n 1)
+    # usually in /usr/share/applications/pedro-pathing-plus-visualizer.desktop or pedro-pathing-visualizer.desktop
+    DESKTOP_FILE=$(grep -l -E "Pedro Pathing Visualizer|Pedro Pathing Plus Visualizer" /usr/share/applications/*.desktop 2>/dev/null | head -n 1)
     
     if [ -f "$DESKTOP_FILE" ]; then
         print_status "Found desktop file at $DESKTOP_FILE"
         
         # Read the current Exec line
-        # e.g., Exec=/opt/Pedro Pathing Visualizer/pedro-pathing-visualizer %U
+        # e.g., Exec=/opt/Pedro Pathing Plus Visualizer/pedro-pathing-visualizer %U
         current_exec=$(grep "^Exec=" "$DESKTOP_FILE" | cut -d= -f2-)
         
         # Check if already patched with --no-sandbox
@@ -237,12 +257,12 @@ patch_deb_desktop_file() {
             # A simple heuristic: everything before " %U" or just the whole line if no args.
             # But the issue is specifically spaces in the path not being quoted.
             
-            # Since we know the install path is likely "/opt/Pedro Pathing Visualizer/pedro-pathing-visualizer"
+            # Since we know the install path is likely "/opt/Pedro Pathing Plus Visualizer/pedro-pathing-plus-visualizer" or the legacy '/opt/Pedro Pathing Plus Visualizer/pedro-pathing-visualizer'
             # We can try to construct a safe Exec string.
             
-            # Let's rely on finding the 'pedro-pathing-visualizer' binary path.
-            # If the current line is: /opt/Pedro Pathing Visualizer/pedro-pathing-visualizer %U
-            # We want: "/opt/Pedro Pathing Visualizer/pedro-pathing-visualizer" --no-sandbox %U
+            # Let's rely on finding the 'pedro-pathing-plus-visualizer' or legacy 'pedro-pathing-visualizer' binary path.
+            # If the current line is: /opt/Pedro Pathing Plus Visualizer/pedro-pathing-visualizer %U
+            # We want: "/opt/Pedro Pathing Plus Visualizer/pedro-pathing-visualizer" --no-sandbox %U
             
             # Strip existing arguments like %U
             clean_path=$(echo "$current_exec" | sed 's/ %U//g' | sed 's/ --no-sandbox//g')
@@ -297,11 +317,13 @@ install_mac() {
         if [ -n "$version" ]; then
             # Candidate filename patterns to try (covers common naming conventions and the requested variant)
             candidates=(
-                "Pedro-Pathing-Visualizer-${version}.dmg"
-                "Pedro-Pathing-Visualizer-${version}-amd64.dmg"
-                "pedro-pathing-visualizer_${version}.dmg"
-                "pedro-pathing-visualizer-${version}.dmg"
-                "Pedro-Pathing-Visualizer-${version}-arm64.dmg"
+                "Pedro-Pathing-Plus-Visualizer-${version}.dmg"
+                "Pedro-Pathing-Plus-Visualizer-${version}-amd64.dmg"
+                "Pedro-Pathing-Plus-Visualizer-${version}-arm64.dmg"
+                "Pedro-Pathing-Plus-Visualizer-${version}.dmg"
+                "Pedro-Pathing-Plus-Visualizer-${version}-amd64.dmg"
+                "pedro-pathing-plus-visualizer_${version}.dmg"
+                "pedro-pathing-plus-visualizer-${version}.dmg"
             )
 
             for c in "${candidates[@]}"; do
@@ -356,6 +378,11 @@ install_mac() {
         print_status "Removing old version..."
         sudo rm -rf "/Applications/Pedro Pathing Visualizer.app"
     fi
+    # Also remove prior installs that used the new product name (if present)
+    if [ -d "/Applications/Pedro Pathing Plus Visualizer.app" ]; then
+        print_status "Removing prior install..."
+        sudo rm -rf "/Applications/Pedro Pathing Plus Visualizer.app"
+    fi
 
     print_status "Copying new version..."
     cp -R "$APP_SOURCE" "/Applications/"
@@ -363,8 +390,10 @@ install_mac() {
     rm "$DMG_PATH"
     rm -rf "$TEMP_MOUNT"
 
-    # Fix permissions
-    sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Visualizer.app" 2>/dev/null
+    # Fix permissions: use the actual copied app bundle name (safer than a hardcoded path)
+    APP_BASENAME=$(basename "$APP_SOURCE")
+    sudo xattr -rd com.apple.quarantine "/Applications/$APP_BASENAME" 2>/dev/null
+    print_status "Installation Complete! Look in your Applications folder."
     
     print_status "Installation Complete! Look in your Applications folder."
 }
@@ -413,7 +442,7 @@ install_linux() {
         TMP_APP_PATH="/tmp/$fname"
 
         # Remove any previously installed AppImages to avoid stale versions
-        old_appimages=$(find "$INSTALL_DIR" -maxdepth 1 -type f \( -iname "Pedro-Pathing-Visualizer*.AppImage" -o -iname "pedro-pathing-visualizer*.appimage" \) 2>/dev/null)
+        old_appimages=$(find "$INSTALL_DIR" -maxdepth 1 -type f \( -iname "Pedro-Pathing-Plus-Visualizer*.AppImage" -o -iname "Pedro-Pathing-Visualizer*.AppImage" -o -iname "pedro-pathing-plus-visualizer*.appimage" -o -iname "pedro-pathing-visualizer*.appimage" \) 2>/dev/null)
         if [ -n "$old_appimages" ]; then
             print_info "Removing old AppImage(s)..."
             while IFS= read -r old; do
@@ -440,14 +469,14 @@ install_linux() {
             print_info "Creating desktop entry..."
             cat > "$HOME/.local/share/applications/pedro-visualizer.desktop" << EOL
 [Desktop Entry]
-Name=Pedro Pathing Visualizer
+Name=Pedro Pathing Plus Visualizer
 Exec="$APP_PATH" --no-sandbox
-Icon=pedro-pathing-visualizer
+Icon=pedro-pathing-plus-visualizer
 Type=Application
 Categories=Development;
 Comment=Visualizer for Pedro Pathing
 Terminal=false
-StartupWMClass=pedro-pathing-visualizer
+StartupWMClass=pedro-pathing-plus-visualizer
 EOL
             print_status "Desktop shortcut created."
         fi
@@ -478,7 +507,7 @@ EOL
         
     elif [[ "$lower" == *.tar.gz ]]; then
         TMP_TAR="/tmp/$fname"
-        DEST_DIR="$INSTALL_DIR/pedro-pathing-visualizer"
+        DEST_DIR="$INSTALL_DIR/pedro-pathing-plus-visualizer"
 
         # Clean previous extracted version so the new one replaces it
         if [ -d "$DEST_DIR" ]; then
@@ -532,6 +561,48 @@ if [ -z "$CHOICE" ]; then
     esac
 fi
 
+# Check for pre-release versions and prompt user if found
+print_info "Checking for available versions..."
+LATEST_VERSION=$(get_latest_version)
+PRERELEASE_VERSION=$(get_prerelease_version)
+
+if [ -n "$PRERELEASE_VERSION" ] && [ "$PRERELEASE_VERSION" != "$LATEST_VERSION" ]; then
+    echo ""
+    print_info "Pre-release version available!"
+    echo ""
+    echo "Select version to install:"
+    echo "  1) Latest stable release: v$LATEST_VERSION"
+    echo "  2) Pre-release version: v$PRERELEASE_VERSION"
+    echo ""
+    read -p "Enter choice [1-2] (Default: 1): " VERSION_CHOICE < /dev/tty
+    
+    if [ -z "$VERSION_CHOICE" ]; then
+        VERSION_CHOICE=1
+    fi
+    
+    case "$VERSION_CHOICE" in
+        1)
+            SELECTED_VERSION="$LATEST_VERSION"
+            print_status "Using stable release: v$LATEST_VERSION"
+            ;;
+        2)
+            SELECTED_VERSION="$PRERELEASE_VERSION"
+            print_status "Using pre-release: v$PRERELEASE_VERSION"
+            ;;
+        *)
+            print_error "Invalid selection. Using stable release."
+            SELECTED_VERSION="$LATEST_VERSION"
+            ;;
+    esac
+    echo ""
+else
+    if [ -n "$LATEST_VERSION" ]; then
+        SELECTED_VERSION="$LATEST_VERSION"
+        print_status "Using latest release: v$LATEST_VERSION"
+        echo ""
+    fi
+fi
+
 case "$CHOICE" in
     1)
         install_mac
@@ -542,9 +613,9 @@ case "$CHOICE" in
     3)
         print_header "Windows Installation"
         echo "This script cannot install the Windows .exe directly."
-        echo "Please download the latest 'Pedro-Pathing-Visualizer-Setup.exe' from:"
+        echo "Please download the latest 'Pedro-Pathing-Plus-Visualizer-Setup.exe' from:"
         echo ""
-        echo "   https://github.com/Mallen220/PedroPathingVisualizer/releases/latest"
+        echo "   https://github.com/Mallen220/PedroPathingPlusVisualizer/releases/latest"
         echo ""
         ;;
     *)

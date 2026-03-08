@@ -1,9 +1,11 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { render, fireEvent, screen } from "@testing-library/svelte";
 import { describe, it, expect, vi } from "vitest";
 import PlaybackControls from "../lib/components/PlaybackControls.svelte";
 
 describe("PlaybackControls", () => {
+  const minimalSettings = {} as any;
+
   it("renders play button when paused", async () => {
     const play = vi.fn();
     render(PlaybackControls, {
@@ -17,6 +19,7 @@ describe("PlaybackControls", () => {
         timelineItems: [],
         playbackSpeed: 1,
         setPlaybackSpeed: vi.fn(),
+        settings: minimalSettings,
       },
     });
 
@@ -40,6 +43,7 @@ describe("PlaybackControls", () => {
         timelineItems: [],
         playbackSpeed: 1,
         setPlaybackSpeed: vi.fn(),
+        settings: minimalSettings,
       },
     });
 
@@ -62,6 +66,7 @@ describe("PlaybackControls", () => {
         timelineItems: [],
         playbackSpeed: 1,
         setPlaybackSpeed: vi.fn(),
+        settings: minimalSettings,
       },
     });
 
@@ -87,6 +92,7 @@ describe("PlaybackControls", () => {
         timelineItems: [],
         playbackSpeed: 1.0,
         setPlaybackSpeed,
+        settings: minimalSettings,
       },
     });
 
@@ -112,6 +118,7 @@ describe("PlaybackControls", () => {
         timelineItems: [],
         playbackSpeed: 1.0,
         setPlaybackSpeed: vi.fn(),
+        settings: minimalSettings,
       },
     });
 
@@ -138,6 +145,7 @@ describe("PlaybackControls", () => {
         timelineItems: timelineItems as any[],
         playbackSpeed: 1.0,
         setPlaybackSpeed: vi.fn(),
+        settings: minimalSettings,
       },
     });
 

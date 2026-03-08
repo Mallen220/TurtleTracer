@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script context="module" lang="ts">
   import { tabRegistry as tabRegistryModule } from "./registries";
   import PathTab from "./components/tabs/PathTab.svelte";
@@ -6,6 +6,7 @@
   import TableTab from "./components/tabs/TableTab.svelte";
   import DiffTab from "./components/tabs/DiffTab.svelte";
   import TelemetryTab from "./components/tabs/TelemetryTab.svelte";
+  import CodeTab from "./components/tabs/CodeTab.svelte";
 
   // Register default tabs; callable so plugin reloads can restore baseline tabs
   export const registerDefaultControlTabs = () => {
@@ -36,6 +37,13 @@
       component: TelemetryTab,
       order: 3,
       icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="size-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>`,
+      });
+     tabRegistryModule.register({
+      id: "code",
+      label: "Code",
+      component: CodeTab,
+      order: 3,
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="size-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>`,
     });
   };
 
@@ -54,9 +62,10 @@
   } from "../types/index";
   import { tick } from "svelte";
   import PlaybackControls from "./components/PlaybackControls.svelte";
-  import { calculatePathTime } from "../utils";
+  import { calculatePathTime, getShortcutFromSettings } from "../utils";
   import { tabRegistry, timelineTransformerRegistry } from "./registries";
   import { diffMode } from "./diffStore";
+  import { actionRegistry } from "./actionRegistry";
 
   export let percent: number;
   export let playing: boolean;
@@ -73,6 +82,7 @@
   export let handleSeek: (percent: number) => void;
   export let loopAnimation: boolean;
   export let playbackSpeed: number = 1.0;
+  export let splitPath: () => void = () => {};
   export const resetPlaybackSpeed = undefined as unknown as () => void;
   export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
   export let totalSeconds: number = 0;
@@ -80,7 +90,7 @@
   export const resetAnimation = undefined as unknown as () => void;
 
   export let shapes: Shape[];
-  export let recordChange: () => void;
+  export let recordChange: (action?: string) => void;
   export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
   export let statsOpen = false;
   export let activeTab: string = "path";
@@ -89,6 +99,15 @@
   let tabInstances: Record<string, any> = {};
 
   $: activeTabInstance = tabInstances[activeTab];
+
+  // If code tab is active but setting is disabled, switch to path
+  $: if (
+    activeTab === "code" &&
+    settings &&
+    settings.autoExportCode === false
+  ) {
+    activeTab = "path";
+  }
 
   export async function openAndStartOptimization() {
     if (activeTabInstance && activeTabInstance.openAndStartOptimization) {
@@ -117,6 +136,24 @@
   export function retryOptimization() {
     if (activeTabInstance && activeTabInstance.retryOptimization) {
       activeTabInstance.retryOptimization();
+    }
+  }
+
+  export function copyCode() {
+    if (activeTabInstance && activeTabInstance.copyCode) {
+      activeTabInstance.copyCode();
+    }
+  }
+
+  export function downloadJava() {
+    if (activeTabInstance && activeTabInstance.downloadJava) {
+      activeTabInstance.downloadJava();
+    }
+  }
+
+  export function copyTable() {
+    if (activeTabInstance && activeTabInstance.copyTable) {
+      activeTabInstance.copyTable();
     }
   }
 
@@ -191,6 +228,8 @@
       name: string;
       explicit?: boolean;
       fromWait?: boolean;
+      id?: string;
+      parentId?: string;
     }[] = [];
 
     if (
@@ -219,15 +258,20 @@
         const durPct = toPct(ev.duration);
         let isRotate = false;
         let explicit = undefined as boolean | undefined;
+        let itemName = ev.name || "Wait";
+
         if (ev.waitId) {
           const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
           if (seqItem) {
-            if (seqItem.kind === "rotate") {
+            const def = actionRegistry.get(seqItem.kind);
+            if (def?.isRotate) {
               isRotate = true;
               explicit = true;
-            } else if (seqItem.kind === "wait") {
+              itemName = "Rotate";
+            } else if (def?.isWait) {
               isRotate = false;
               explicit = true;
+              itemName = "Wait";
             }
           }
         }
@@ -237,13 +281,14 @@
         ) {
           isRotate = true;
           explicit = false;
+          itemName = "Rotate";
         }
 
         items.push({
           type: isRotate ? "rotate" : "wait",
           percent: startPct,
           durationPercent: durPct,
-          name: ev.name || (isRotate ? "Rotate" : "Wait"),
+          name: ev.name || itemName,
           explicit: isRotate ? explicit : explicit,
         });
       } else if (ev.type === "macro") {
@@ -279,6 +324,8 @@
               percent: toPct(absTime),
               color: line.color,
               name: m.name,
+              id: m.id,
+              parentId: line.id,
             });
           });
         }
@@ -288,12 +335,13 @@
     timeline.forEach((ev) => {
       if (ev.type === "wait" && ev.waitId) {
         const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
+        const def = seqItem ? actionRegistry.get(seqItem.kind) : null;
         if (
           seqItem &&
           (seqItem.kind === "wait" || seqItem.kind === "rotate") &&
           seqItem.eventMarkers
         ) {
-          seqItem.eventMarkers.forEach((m) => {
+          seqItem.eventMarkers.forEach((m: any) => {
             const timeOffset = ev.duration * m.position;
             const absTime = ev.startTime + timeOffset;
             items.push({
@@ -301,6 +349,8 @@
               percent: toPct(absTime),
               fromWait: true,
               name: m.name,
+              id: m.id,
+              parentId: seqItem.id,
             });
           });
         }
@@ -324,6 +374,144 @@
 
     return transformedItems;
   })();
+
+  function handleMarkerChange(e: CustomEvent) {
+    const { id, percent } = e.detail;
+    if (!timePrediction || timePrediction.totalTime <= 0) return;
+
+    const globalTime = (percent / 100) * timePrediction.totalTime;
+
+    // Find segment in timeline
+    const timeline = timePrediction.timeline;
+    let targetEvent: any = null;
+
+    for (let i = 0; i < timeline.length; i++) {
+      const ev = timeline[i];
+      if (globalTime >= ev.startTime && globalTime <= ev.endTime) {
+        targetEvent = ev;
+        break;
+      }
+    }
+
+    if (!targetEvent) {
+      // Clamping logic: if < 0, first event; if > total, last event
+      if (globalTime < 0 && timeline.length > 0) targetEvent = timeline[0];
+      else if (globalTime > timePrediction.totalTime && timeline.length > 0)
+        targetEvent = timeline[timeline.length - 1];
+    }
+
+    if (!targetEvent) return;
+
+    // Determine target segment (line or wait)
+    let targetLine: Line | null = null;
+    let targetWait: any | null = null; // wait or rotate
+
+    if (targetEvent.type === "travel") {
+      targetLine =
+        (targetEvent as any).line ||
+        lines[(targetEvent as any).lineIndex as number];
+    } else if (targetEvent.type === "wait") {
+      // Find wait/rotate in sequence
+      const waitId = (targetEvent as any).waitId;
+      if (waitId) {
+        const item = sequence.find((s) => (s as any).id === waitId);
+        if (item) targetWait = item;
+      }
+    }
+
+    // Determine local position (0-1)
+    let localPos = 0;
+    if (targetEvent.duration > 0) {
+      if (targetLine && targetEvent.motionProfile) {
+        const profile = targetEvent.motionProfile as number[];
+        const steps = profile.length - 1;
+        const relTime = globalTime - targetEvent.startTime;
+
+        // Find i such that profile[i] <= relTime < profile[i+1]
+        let stepIndex = -1;
+        for (let i = 0; i < steps; i++) {
+          if (relTime >= profile[i] && relTime <= profile[i + 1]) {
+            stepIndex = i;
+            // Interpolate
+            const t0 = profile[i];
+            const t1 = profile[i + 1];
+            const ratio = (relTime - t0) / (t1 - t0);
+            localPos = (i + ratio) / steps;
+            break;
+          }
+        }
+        if (stepIndex === -1) {
+          if (relTime <= 0) localPos = 0;
+          else localPos = 1;
+        }
+      } else {
+        // Fallback: linear mapping
+        localPos = (globalTime - targetEvent.startTime) / targetEvent.duration;
+      }
+    }
+    localPos = Math.max(0, Math.min(1, localPos));
+
+    // Now update the marker
+    // 1. Find the marker in the old location
+    let found = false;
+    let oldMarker: any = null;
+
+    // Check lines
+    for (const l of lines) {
+      if (l.eventMarkers) {
+        const idx = l.eventMarkers.findIndex((m) => m.id === id);
+        if (idx !== -1) {
+          oldMarker = l.eventMarkers[idx];
+          l.eventMarkers.splice(idx, 1);
+          found = true;
+          lines = [...lines]; // Reactivity
+          break;
+        }
+      }
+    }
+
+    // Check sequence (waits/rotates)
+    if (!found) {
+      for (const s of sequence) {
+        if ((s.kind === "wait" || s.kind === "rotate") && s.eventMarkers) {
+          const idx = s.eventMarkers.findIndex((m: any) => m.id === id);
+          if (idx !== -1) {
+            oldMarker = s.eventMarkers[idx];
+            s.eventMarkers.splice(idx, 1);
+            found = true;
+            sequence = [...sequence]; // Reactivity
+            break;
+          }
+        }
+      }
+    }
+
+    if (found && oldMarker) {
+      // Update properties
+      oldMarker.position = localPos;
+      // Remove old association fields
+      delete oldMarker.lineIndex;
+      delete oldMarker.waitId;
+      delete oldMarker.rotateId;
+
+      // Add to new parent
+      if (targetLine) {
+        if (!targetLine.eventMarkers) targetLine.eventMarkers = [];
+        targetLine.eventMarkers.push(oldMarker);
+        // lineIndex is optional but good for internal consistency if used
+        oldMarker.lineIndex = lines.findIndex((l) => l.id === targetLine!.id);
+        lines = [...lines];
+      } else if (targetWait) {
+        if (!targetWait.eventMarkers) targetWait.eventMarkers = [];
+        targetWait.eventMarkers.push(oldMarker);
+        if (targetWait.kind === "wait") oldMarker.waitId = targetWait.id;
+        if (targetWait.kind === "rotate") oldMarker.rotateId = targetWait.id;
+        sequence = [...sequence];
+      }
+
+      recordChange();
+    }
+  }
 
   // Use the registry for tabs
   $: currentTab =
@@ -370,29 +558,31 @@
         aria-label="Editor View Selection"
       >
         {#each $tabRegistry as tab (tab.id)}
-          <button
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            aria-controls="{tab.id}-panel"
-            id="{tab.id}-tab"
-            class="flex-1 min-w-[80px] px-3 py-2 text-sm font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 flex items-center justify-center gap-2 {activeTab ===
-            tab.id
-              ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white ring-1 ring-black/5 dark:ring-white/5'
-              : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-50/50 dark:hover:bg-neutral-700/50'}"
-            on:click={() => (activeTab = tab.id)}
-          >
-            {#if tab.icon}
-              {@html tab.icon}
-            {/if}
-            {tab.label}
-          </button>
+          {#if tab.id !== "code" || settings?.autoExportCode}
+            <button
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls="{tab.id}-panel"
+              id="{tab.id}-tab"
+              class="flex-1 min-w-[80px] px-3 py-2 text-sm font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 flex items-center justify-center gap-2 {activeTab ===
+              tab.id
+                ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white ring-1 ring-black/5 dark:ring-white/5'
+                : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-50/50 dark:hover:bg-neutral-700/50'}"
+              on:click={() => (activeTab = tab.id)}
+            >
+              {#if tab.icon}
+                {@html tab.icon}
+              {/if}
+              {tab.label}
+            </button>
+          {/if}
         {/each}
       </div>
       <button
         id="stats-btn"
         on:click={() => (statsOpen = !statsOpen)}
         class="flex-none flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:text-neutral-900 dark:hover:text-neutral-200 gap-2 shadow-sm"
-        title="Path Statistics"
+        title={`Path Statistics${getShortcutFromSettings(settings, "toggle-stats")}`}
         aria-label="View path statistics"
       >
         <svg
@@ -414,28 +604,32 @@
     </div>
 
     <div
-      class="flex flex-col justify-start items-start w-full overflow-y-auto overflow-x-hidden flex-1 min-h-0 relative scroll-smooth pb-20"
+      class="flex flex-col justify-start items-start w-full overflow-y-auto overflow-x-hidden flex-1 min-h-0 relative scroll-smooth"
+      class:pb-20={activeTab !== "code"}
+      class:pb-0={activeTab === "code"}
       role="tabpanel"
       id="{activeTab}-panel"
       aria-labelledby="{activeTab}-tab"
     >
       {#each $tabRegistry as tab (tab.id)}
-        <div class:hidden={activeTab !== tab.id} class="w-full">
-          <svelte:component
-            this={tab.component}
-            bind:this={tabInstances[tab.id]}
-            bind:startPoint
-            bind:lines
-            bind:sequence
-            bind:shapes
-            bind:settings
-            bind:robotXY
-            bind:robotHeading
-            {recordChange}
-            {onPreviewChange}
-            isActive={activeTab === tab.id}
-          />
-        </div>
+        {#if tab.id !== "code" || settings?.autoExportCode}
+          <div class:hidden={activeTab !== tab.id} class="w-full h-full">
+            <svelte:component
+              this={tab.component}
+              bind:this={tabInstances[tab.id]}
+              bind:startPoint
+              bind:lines
+              bind:sequence
+              bind:shapes
+              bind:settings
+              bind:robotXY
+              bind:robotHeading
+              {recordChange}
+              {onPreviewChange}
+              isActive={activeTab === tab.id}
+            />
+          </div>
+        {/if}
       {/each}
     </div>
   {/if}
@@ -454,6 +648,9 @@
       {playbackSpeed}
       {setPlaybackSpeed}
       {totalSeconds}
+      {settings}
+      {splitPath}
+      on:markerChange={handleMarkerChange}
     />
   </div>
 </div>

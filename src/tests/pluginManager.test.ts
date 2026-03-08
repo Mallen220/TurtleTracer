@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { PluginManager } from "../lib/pluginManager";
 import {
@@ -69,6 +69,9 @@ describe("PluginManager", () => {
   });
 
   it("should handle execution errors", async () => {
+    const mockConsoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const mockListPlugins = vi.fn().mockResolvedValue(["bad-plugin.js"]);
     const mockReadPlugin = vi.fn().mockResolvedValue(`
       throw new Error("Boom");
@@ -88,6 +91,8 @@ describe("PluginManager", () => {
     expect(plugins).toHaveLength(1);
     expect(plugins[0].loaded).toBe(false);
     expect(plugins[0].error).toContain("Boom");
+
+    mockConsoleError.mockRestore();
   });
 
   it("should register themes", async () => {

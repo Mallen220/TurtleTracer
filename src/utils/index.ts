@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 export * from "./animation";
 export * from "./codeExporter";
 export * from "./draw";
@@ -14,3 +14,5 @@ export const DPI = 96 / 5;
 
 export const titleCase = (str: string) =>
   `${str[0].toUpperCase()}${str.slice(1).toLowerCase()}`;
+export * from "./platform";
+export * from "./shortcutFormatter";

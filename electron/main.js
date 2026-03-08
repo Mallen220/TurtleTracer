@@ -1,10 +1,11 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from "electron";
 import path from "path";
 import express from "express";
 import http from "http";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
+import fsSync from "fs";
 import AppUpdater from "./updater.js";
 import rateLimit from "express-rate-limit";
 import simpleGit from "simple-git";
@@ -19,8 +20,12 @@ const __dirname = path.dirname(__filename);
 // Replace single mainWindow with a Set of windows
 const windows = new Set();
 let server;
-let serverPort = 34567;
+let serverPort = 17218;
 let appUpdater;
+
+// Global references to prevent Electron Menu garbage collection (macOS WeakPtr bug)
+let appMenu = null;
+let dockMenu = null;
 
 // Track if we've already cleared the default session storage/cache once
 let sessionCleared = false;
@@ -72,6 +77,30 @@ app.on("open-file", (event, path) => {
 });
 
 // Single Instance Lock
+// Fix for Microsoft Store updates wiping LocalCache
+if (process.windowsStore) {
+  const oldUserDataPath = app.getPath("userData");
+  if (oldUserDataPath.includes("LocalCache")) {
+    const newUserDataPath = oldUserDataPath.replace(
+      /LocalCache[\\/]Roaming/,
+      "LocalState",
+    );
+    app.setPath("userData", newUserDataPath);
+
+    // Migrate existing data if needed
+    try {
+      if (
+        fsSync.existsSync(oldUserDataPath) &&
+        !fsSync.existsSync(newUserDataPath)
+      ) {
+        fsSync.cpSync(oldUserDataPath, newUserDataPath, { recursive: true });
+      }
+    } catch (e) {
+      console.error("Failed to migrate userData to LocalState", e);
+    }
+  }
+}
+
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
@@ -268,7 +297,7 @@ const createWindow = async () => {
   let newWindow = new BrowserWindow({
     width: 1360,
     height: 800,
-    title: "Pedro Pathing Visualizer",
+    title: "Pedro Pathing Plus Visualizer",
     webPreferences: {
       nodeIntegration: false, // Security: Sandbox the web code
       contextIsolation: true, // Security: Sandbox the web code
@@ -387,16 +416,15 @@ const createWindow = async () => {
 
 const updateDockMenu = () => {
   if (process.platform === "darwin") {
-    app.dock.setMenu(
-      Menu.buildFromTemplate([
-        {
-          label: "New Window",
-          click() {
-            createWindow();
-          },
+    dockMenu = Menu.buildFromTemplate([
+      {
+        label: "New Window",
+        click() {
+          createWindow();
         },
-      ]),
-    );
+      },
+    ]);
+    app.dock.setMenu(dockMenu);
   }
 };
 
@@ -593,7 +621,7 @@ const createMenu = () => {
           label: "See Project on GitHub",
           click: async () => {
             await shell.openExternal(
-              "https://github.com/Mallen220/PedroPathingVisualizer",
+              "https://github.com/Mallen220/PedroPathingPlusVisualizer",
             );
           },
         },
@@ -601,8 +629,8 @@ const createMenu = () => {
     },
   ];
 
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
+  appMenu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(appMenu);
 };
 
 // CRITICAL: Satisfies "when the project closes it should auto close"
@@ -708,6 +736,40 @@ ipcMain.handle("git:show", async (event, filePath) => {
     console.warn("Error running git show:", error);
     return null;
   }
+});
+
+ipcMain.handle("git:status", async (event, directory) => {
+  if (!directory || typeof directory !== "string" || directory.trim() === "") {
+    return {};
+  }
+  let gitStatuses = {};
+  try {
+    const git = simpleGit(directory);
+    if (await git.checkIsRepo()) {
+      const status = await git.status();
+      const rootDir = await git.revparse(["--show-toplevel"]);
+
+      status.files.forEach((fileStatus) => {
+        const absPath = path.resolve(rootDir.trim(), fileStatus.path);
+        let statusStr = "clean";
+
+        if (fileStatus.working_dir === "?" || fileStatus.working_dir === "U")
+          statusStr = "untracked";
+        else if (
+          fileStatus.working_dir !== " " &&
+          fileStatus.working_dir !== "?"
+        )
+          statusStr = "modified";
+        else if (fileStatus.index !== " " && fileStatus.index !== "?")
+          statusStr = "staged";
+
+        gitStatuses[absPath] = statusStr;
+      });
+    }
+  } catch (e) {
+    console.warn("Error checking git status:", e);
+  }
+  return gitStatuses;
 });
 
 async function ensureDefaultPlugins() {
@@ -818,6 +880,19 @@ ipcMain.handle("file:set-directory", async (event) => {
   return null;
 });
 
+ipcMain.handle("file:select-directory", async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showOpenDialog(win, {
+    properties: ["openDirectory"],
+    title: "Select Directory",
+  });
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  }
+  return null;
+});
+
 // Add new IPC handlers for directory settings
 ipcMain.handle("directory:get-settings", async () => {
   return await loadDirectorySettings();
@@ -922,6 +997,43 @@ ipcMain.handle("app:get-version", () => {
   return app.getVersion();
 });
 
+ipcMain.handle("app:is-windows-store", () => {
+  return process.windowsStore || false;
+});
+
+ipcMain.handle("update:download", (event, version, url) => {
+  if (appUpdater) {
+    appUpdater.handleDownloadAndInstall(version, url);
+  }
+});
+
+ipcMain.handle("update:skip", (event, version) => {
+  if (appUpdater) {
+    appUpdater.skipVersion(version);
+  }
+});
+
+ipcMain.handle("update:check", async (event) => {
+  try {
+    if (!appUpdater) {
+      const win =
+        BrowserWindow.getFocusedWindow() || windows.values().next().value;
+      if (win) appUpdater = new AppUpdater(win);
+    }
+    if (appUpdater) {
+      const result = await appUpdater.checkForUpdates(true);
+      return { success: true, ...result };
+    }
+    return { success: false, message: "no-updater" };
+  } catch (err) {
+    console.error("Error during manual update check:", err);
+    return {
+      success: false,
+      error: err && err.message ? err.message : String(err),
+    };
+  }
+});
+
 // Add to existing IPC handlers
 ipcMain.handle("file:rename", async (event, oldPath, newPath) => {
   try {
@@ -965,8 +1077,10 @@ ipcMain.handle("file:list", async (event, directory) => {
   }
 
   try {
-    const files = await fs.readdir(directory);
-    const ppFiles = files.filter((file) => file.endsWith(".pp"));
+    const dirents = await fs.readdir(directory, { withFileTypes: true });
+    const ppFilesAndDirs = dirents.filter(
+      (dirent) => dirent.isDirectory() || dirent.name.endsWith(".pp"),
+    );
 
     // Check git status
     let gitStatuses = {};
@@ -998,17 +1112,18 @@ ipcMain.handle("file:list", async (event, directory) => {
     }
 
     const fileDetails = await Promise.all(
-      ppFiles.map(async (file) => {
-        const filePath = path.join(directory, file);
+      ppFilesAndDirs.map(async (dirent) => {
+        const filePath = path.join(directory, dirent.name);
         const stats = await fs.stat(filePath);
         // On Windows, paths might differ in normalization, so we resolve to be safe
         const resolvedPath = path.resolve(filePath);
         return {
-          name: file,
+          name: dirent.name,
           path: filePath,
-          size: stats.size,
+          size: dirent.isDirectory() ? 0 : stats.size,
           modified: stats.mtime,
           gitStatus: gitStatuses[resolvedPath] || "clean",
+          isDirectory: dirent.isDirectory(),
         };
       }),
     );
@@ -1091,7 +1206,13 @@ ipcMain.handle(
 );
 ipcMain.handle("file:delete", async (event, filePath) => {
   try {
-    await fs.unlink(filePath);
+    // Check if it's a directory
+    const stats = await fs.stat(filePath);
+    if (stats.isDirectory()) {
+      await fs.rm(filePath, { recursive: true, force: true });
+    } else {
+      await fs.unlink(filePath);
+    }
     return true;
   } catch (error) {
     console.error("Error deleting file:", error);

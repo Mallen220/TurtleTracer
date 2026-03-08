@@ -1,6 +1,9 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /// <reference path="./pedro.d.ts" />
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+
+pedro.registerMetadata({
+  description: "Exports the path as a comma-separated values (CSV) file.",
+});
 
 pedro.registerExporter("Custom CSV", (data) => {
   let csv = "Type,X,Y,Heading\n";

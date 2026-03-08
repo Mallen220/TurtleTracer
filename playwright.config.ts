@@ -1,17 +1,24 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-import { defineConfig } from "@playwright/test";
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  timeout: 180000,
+  timeout: 30 * 1000,
   expect: {
-    timeout: 10000,
+    timeout: 5000,
   },
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
     trace: "on-first-retry",
-    screenshot: "only-on-failure",
-    actionTimeout: 120000,
-    navigationTimeout: 120000,
   },
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+    },
+  ],
 });

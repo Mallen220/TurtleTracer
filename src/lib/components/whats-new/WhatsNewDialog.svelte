@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import MarkdownIt from "markdown-it";
@@ -783,7 +783,7 @@
             <div
               class="mt-12 text-center text-sm text-neutral-400 dark:text-neutral-600"
             >
-              Pedro Pathing Visualizer v{appVersion}
+              Pedro Pathing Plus Visualizer v{appVersion}
             </div>
           </div>
         {:else if activeTab === "home" && currentView === "release-list"}

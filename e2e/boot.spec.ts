@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { test, _electron as electron, expect } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
@@ -55,12 +55,27 @@ test("app boots and displays main interface", async () => {
     }
 
     // Playwright needs the executable inside the bundle
-    executablePath = path.join(
-      appPath,
-      "Contents",
-      "MacOS",
-      "Pedro Pathing Visualizer",
-    );
+    // Try the updated display name first, then fall back to the legacy name if packaging hasn't been updated
+    {
+      const macCandidates = [
+        "Pedro Pathing Plus Visualizer",
+        "Pedro Pathing Visualizer",
+      ];
+      let foundBinary: string | null = null;
+      for (const name of macCandidates) {
+        const p = path.join(appPath, "Contents", "MacOS", name);
+        if (fs.existsSync(p)) {
+          foundBinary = p;
+          break;
+        }
+      }
+      if (!foundBinary) {
+        throw new Error(
+          `Could not find macOS binary inside ${appPath}/Contents/MacOS`,
+        );
+      }
+      executablePath = foundBinary;
+    }
   } else if (platform === "win32") {
     // Windows
     // Look for unpacked folder
@@ -70,10 +85,19 @@ test("app boots and displays main interface", async () => {
     for (const dir of possibleDirs) {
       const fullDir = path.join(releaseDir, dir);
       if (fs.existsSync(fullDir)) {
-        exePath = path.join(fullDir, "Pedro Pathing Visualizer.exe");
-        if (fs.existsSync(exePath)) {
-          break;
+        // Prefer the new product name executable, but accept the legacy name as fallback
+        const winCandidates = [
+          "Pedro Pathing Plus Visualizer.exe",
+          "Pedro Pathing Visualizer.exe",
+        ];
+        for (const cand of winCandidates) {
+          const p = path.join(fullDir, cand);
+          if (fs.existsSync(p)) {
+            exePath = p;
+            break;
+          }
         }
+        if (exePath) break;
       }
     }
 
@@ -101,7 +125,10 @@ test("app boots and displays main interface", async () => {
         // It uses the `executableName` property if set, else `name`.
         // Let's check for likely candidates.
         const candidates = [
+          // Prefer kebab-case new name, then fallback to legacy names if necessary
+          "pedro-pathing-plus-visualizer",
           "pedro-pathing-visualizer",
+          "Pedro Pathing Plus Visualizer",
           "Pedro Pathing Visualizer",
         ];
         for (const cand of candidates) {
@@ -155,7 +182,7 @@ test("app boots and displays main interface", async () => {
   console.log(`Screenshot saved to ${screenshotPath}`);
 
   // Basic assertion
-  expect(title).toContain("Pedro Pathing Visualizer");
+  expect(title).toContain("Pedro Pathing Plus Visualizer");
   console.log(`Screenshot saved to ${screenshotPath}`);
 
   await app.close();

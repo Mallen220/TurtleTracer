@@ -1,5 +1,5 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-import { describe, it, expect } from "vitest";
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { describe, it, expect, beforeEach } from "vitest";
 import { expandMacro, regenerateProjectMacros } from "../lib/macroUtils";
 import { generateJavaCode } from "../utils/codeExporter";
 import type {
@@ -8,7 +8,27 @@ import type {
   SequenceItem,
   PedroData,
   SequenceMacroItem,
+  SequencePathItem,
 } from "../types";
+import { actionRegistry } from "../lib/actionRegistry";
+import { registerCoreUI } from "../lib/coreRegistrations";
+
+beforeEach(() => {
+  actionRegistry.reset();
+  registerCoreUI();
+});
+
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const macroKind = (): SequenceMacroItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isMacro)
+    ?.kind as SequenceMacroItem["kind"]) ?? "macro";
+
+const isPathItem = (s: SequenceItem): s is SequencePathItem =>
+  s.kind === pathKind();
+const isMacroItem = (s: SequenceItem): s is SequenceMacroItem =>
+  s.kind === macroKind();
 
 describe("Macro Integration", () => {
   const startPoint: Point = {
@@ -36,12 +56,12 @@ describe("Macro Integration", () => {
     startPoint: { x: 15, y: 15, heading: "tangential", reverse: false },
     lines: [macroLine],
     shapes: [],
-    sequence: [{ kind: "path", lineId: "m-line-1" }],
+    sequence: [{ kind: pathKind(), lineId: "m-line-1" }],
     extraData: {},
   };
 
   const macroItem: SequenceMacroItem = {
-    kind: "macro",
+    kind: macroKind(),
     id: "macro-1",
     filePath: "macro.pp",
     name: "Test Macro",
@@ -65,6 +85,8 @@ describe("Macro Integration", () => {
     expect(bridge).toBeDefined();
     expect(bridge?.startPoint?.x).toBe(prevPoint.x);
     expect(bridge?.endPoint.x).toBe(macroData.startPoint.x);
+    // Bridge to macros should use tangential heading to create a smooth connection
+    expect(bridge?.endPoint.heading).toBe("tangential");
 
     const expandedLine = result.lines.find((l) => l.originalId === "m-line-1");
     expect(expandedLine).toBeDefined();
@@ -74,12 +96,16 @@ describe("Macro Integration", () => {
     // Check sequence
     expect(result.sequence.length).toBeGreaterThan(1); // Bridge + Path
     const bridgeSeq = result.sequence.find(
-      (s) => s.kind === "path" && s.lineId === bridge?.id,
+      (s): s is import("../types").SequencePathItem =>
+        s.kind === pathKind() &&
+        (s as import("../types").SequencePathItem).lineId === bridge?.id,
     );
     expect(bridgeSeq).toBeDefined();
 
     const macroSeq = result.sequence.find(
-      (s) => s.kind === "path" && s.lineId === expandedLine?.id,
+      (s): s is import("../types").SequencePathItem =>
+        s.kind === pathKind() &&
+        (s as import("../types").SequencePathItem).lineId === expandedLine?.id,
     );
     expect(macroSeq).toBeDefined();
   });
@@ -96,7 +122,7 @@ describe("Macro Integration", () => {
     ];
 
     const sequence: SequenceItem[] = [
-      { kind: "path", lineId: "line-1" },
+      { kind: pathKind(), lineId: "line-1" },
       macroItem,
     ];
 
@@ -140,13 +166,13 @@ describe("Macro Integration", () => {
     ];
 
     const sequence: SequenceItem[] = [
-      { kind: "path", lineId: "line-1" },
+      { kind: pathKind(), lineId: "line-1" },
       {
-        kind: "macro",
+        kind: macroKind(),
         id: "macro-1",
         filePath: "macro.pp",
         name: "Test Macro",
-        sequence: [{ kind: "path", lineId: "macro-line-1" }],
+        sequence: [{ kind: pathKind(), lineId: "macro-line-1" }],
       },
     ];
 

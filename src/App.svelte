@@ -1,9 +1,15 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import * as d3 from "d3";
   import { debounce } from "lodash";
+
+  // ⚡ Bolt Optimization:
+  // Caching d3.scaleLinear() avoids repeated expensive instantiations during
+  // highly frequent operations (e.g. calculateRobotState called on every animation frame)
+  // This reduces garbage collection pressure and makes the timeline/simulation significantly faster
+  const IDENTITY_SCALE = d3.scaleLinear();
 
   // Components
   import ControlTab from "./lib/ControlTab.svelte";
@@ -11,6 +17,7 @@
   import FieldRenderer from "./lib/components/FieldRenderer.svelte";
   import KeyboardShortcuts from "./lib/components/KeyboardShortcuts.svelte";
   import ExportGifDialog from "./lib/components/dialogs/ExportGifDialog.svelte";
+  import ExportImageDialog from "./lib/components/dialogs/ExportImageDialog.svelte";
   import PathStatisticsDialog from "./lib/components/dialogs/PathStatisticsDialog.svelte";
   import NotificationToast from "./lib/components/NotificationToast.svelte";
   import OnboardingTutorial from "./lib/components/OnboardingTutorial.svelte";
@@ -23,7 +30,12 @@
   import PluginManagerDialog from "./lib/components/dialogs/PluginManagerDialog.svelte";
   import KeyboardShortcutsDialog from "./lib/components/dialogs/KeyboardShortcutsDialog.svelte";
   import ExportCodeDialog from "./lib/components/dialogs/ExportCodeDialog.svelte";
+  import StrategySheetPreview from "./lib/components/dialogs/StrategySheetPreview.svelte";
   import DialogHost from "./lib/components/DialogHost.svelte";
+  import UpdateAvailableDialog from "./lib/components/dialogs/UpdateAvailableDialog.svelte";
+  import FeedbackDialog from "./lib/components/dialogs/FeedbackDialog.svelte";
+  import RatingDialog from "./lib/components/dialogs/RatingDialog.svelte";
+  import TransformDialog from "./lib/components/dialogs/TransformDialog.svelte";
 
   // Stores
   import {
@@ -32,6 +44,8 @@
     showSettings,
     isPresentationMode,
     showExportGif,
+    showExportImage,
+    showStrategySheet,
     showShortcuts,
     exportDialogState,
     selectedPointId,
@@ -42,6 +56,14 @@
     currentDirectoryStore,
     showPluginManager,
     showTelemetryDialog,
+    selectedLineId,
+    showUpdateAvailableDialog,
+    updateDataStore,
+    showFeedbackDialog,
+    showRatingDialog,
+    ratingDialogAutoOpened,
+    gitStatusStore,
+    showTransformDialog,
   } from "./stores";
   import {
     startPointStore,
@@ -49,6 +71,7 @@
     shapesStore,
     sequenceStore,
     settingsStore,
+    extraDataStore,
     robotXYStore,
     robotHeadingStore,
     percentStore,
@@ -59,6 +82,8 @@
     macrosStore,
     refreshMacros,
     loadMacro,
+    loopRangeStore,
+    loopRangeActiveStore,
   } from "./lib/projectStore";
   import { diffMode, committedData } from "./lib/diffStore";
 
@@ -81,7 +106,9 @@
     loadRecentFile,
     exportAsPP,
     handleExternalFileOpen,
+    handleAutoExport,
   } from "./utils/fileHandlers";
+  import { splitPathAtPercent } from "./utils/pathEditing";
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { PluginManager } from "./lib/pluginManager";
   import { themesStore } from "./lib/pluginsStore";
@@ -104,6 +131,8 @@
   // Package info
   import pkg from "../package.json";
 
+  let sessionStartTime = Date.now();
+
   // Electron API
   interface ElectronAPI {
     onMenuAction?: (callback: (action: string) => void) => void;
@@ -118,8 +147,43 @@
     getPathForFile?: (file: File) => string;
     getSavedDirectory?: () => Promise<string>;
     gitShow?: (filePath: string) => Promise<string | null>;
+    isWindowsStore?: () => Promise<boolean>;
+    onUpdateAvailable?: (callback: (data: any) => void) => void;
+    downloadUpdate?: (version: string, url: string) => void;
+    skipUpdate?: (version: string) => void;
   }
   const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
+
+  async function checkMsStoreTracking() {
+    if (!electronAPI || !electronAPI.isWindowsStore) return;
+    try {
+      const isStore = await electronAPI.isWindowsStore();
+      if (isStore) {
+        const tracked = localStorage.getItem("msStoreTracked");
+        if (!tracked) {
+          // Attempt to fetch the tracking asset to increment the download count on GitHub
+          // This requires a release tagged 'tracker' with a file 'ms-store-tracker.zip'
+          try {
+            const response = await fetch(
+              "https://github.com/Mallen220/PedroPathingPlusVisualizer/releases/download/tracker/ms-store-tracker.zip",
+            );
+            if (response.ok) {
+              localStorage.setItem("msStoreTracked", "true");
+              console.log("Microsoft Store tracking successful");
+            } else {
+              console.warn(
+                "Microsoft Store tracking failed: Asset not found or network error",
+              );
+            }
+          } catch (e) {
+            console.warn("Microsoft Store tracking failed", e);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Error checking Microsoft Store status", e);
+    }
+  }
 
   // Delegated handler: open external links in the user's default browser when running in Electron
   function handleLinkClick(e: MouseEvent) {
@@ -145,14 +209,91 @@
     }
   }
 
+  async function fetchGitStatus() {
+    const dir = get(currentDirectoryStore);
+    if (!dir) return;
+    const currentSettings = get(settingsStore);
+    if (!currentSettings.gitIntegration) return;
+
+    if (electronAPI && (electronAPI as any).gitStatus) {
+      try {
+        const statuses = await (electronAPI as any).gitStatus(dir);
+        gitStatusStore.set(statuses);
+      } catch (e) {
+        console.warn("Failed to check git status on focus", e);
+      }
+    }
+  }
+
   onMount(() => {
     document.addEventListener("click", handleLinkClick);
     window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("focus", fetchGitStatus);
+    checkMsStoreTracking();
+
+    if (electronAPI && electronAPI.onUpdateAvailable) {
+      electronAPI.onUpdateAvailable((data: any) => {
+        updateDataStore.set(data);
+        showUpdateAvailableDialog.set(true);
+      });
+    }
+
+    // Rating dialog interval logic
+    const ratingInterval = setInterval(tryShowRatingDialog, 10 * 60 * 1000); // Check every 10 minutes
+
+    return () => {
+      clearInterval(ratingInterval);
+      window.removeEventListener("focus", fetchGitStatus);
+    };
   });
+
+  function tryShowRatingDialog() {
+    const settings = get(settingsStore);
+
+    // If they already rated THIS version, or chose Not Interested, don't show.
+    if (
+      settings.submittedRatings?.[pkg.version] ||
+      settings.dismissedRatings?.[pkg.version]
+    ) {
+      return;
+    }
+
+    // If offline, don't show. Wait for the interval to check again later.
+    if (!navigator.onLine) {
+      return;
+    }
+
+    // Don't pop it up if it's currently open
+    if (get(showRatingDialog)) {
+      return;
+    }
+
+    const now = Date.now();
+    const currentSessionUsage = now - sessionStartTime;
+    const totalUsageMs = (settings.totalUsageTime || 0) + currentSessionUsage;
+
+    // Save total usage time periodically
+    settingsStore.update((s) => ({
+      ...s,
+      totalUsageTime: totalUsageMs,
+    }));
+    sessionStartTime = now; // Reset session start time to avoid double counting
+    saveSettings(get(settingsStore)).catch((e) =>
+      console.error("Failed to save usage time", e),
+    );
+
+    const tenHoursMs = 10 * 60 * 60 * 1000; //10 Hours rating delay
+
+    if (totalUsageMs >= tenHoursMs) {
+      ratingDialogAutoOpened.set(true);
+      showRatingDialog.set(true);
+    }
+  }
 
   onDestroy(() => {
     document.removeEventListener("click", handleLinkClick);
     window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.removeEventListener("focus", fetchGitStatus);
     if (autosaveIntervalId) clearInterval(autosaveIntervalId);
   });
 
@@ -257,7 +398,7 @@
     currentFilePath.set(null);
     projectMetadataStore.set({ filepath: "" });
 
-    recordChange();
+    recordChange("New Project");
     // Mark as clean new project
     lastSavedState = getCurrentState();
     isUnsaved.set(false);
@@ -379,6 +520,7 @@
         }
 
         await handleExternalFileOpen(path);
+        recordChange("Load Project");
       } catch (err) {
         console.error("Error opening dropped file:", err);
         alert("Failed to open file: " + err);
@@ -432,6 +574,18 @@
   }
 
   async function handleAppCloseRequested() {
+    // Accumulate total usage time on close
+    const now = Date.now();
+    const currentSessionUsage = now - sessionStartTime;
+    settingsStore.update((s) => ({
+      ...s,
+      totalUsageTime: (s.totalUsageTime || 0) + currentSessionUsage,
+    }));
+    sessionStartTime = now;
+    try {
+      await saveSettings(get(settingsStore));
+    } catch (e) {}
+
     const unsaved = get(isUnsaved);
     const autosaveMode = settings?.autosaveMode;
 
@@ -544,6 +698,8 @@
   $: playing = $playingStore;
   $: loopAnimation = $loopAnimationStore;
   $: playbackSpeed = $playbackSpeedStore;
+  $: loopRange = $loopRangeStore;
+  $: loopRangeActive = $loopRangeActiveStore;
 
   // --- D3 Scales (Used for resizing logic / math) ---
   $: x = d3
@@ -564,7 +720,7 @@
 
   // --- History ---
   const history = createHistory();
-  const { canUndoStore, canRedoStore } = history;
+  const { canUndoStore, canRedoStore, historyStore } = history;
   $: canUndo = $canUndoStore;
   $: canRedo = $canRedoStore;
 
@@ -616,15 +772,17 @@
     return JSON.stringify(getAppState());
   }
 
-  function onRecordChange() {
-    recordChange();
+  function onRecordChange(action?: string) {
+    recordChange(action);
   }
 
-  function recordChange() {
+  // Exported for tests
+  export async function recordChange(description: string = "Change") {
     refreshMacros();
     previewOptimizedLines = null;
-    history.record(getAppState());
+    history.record(getAppState(), description);
     if (isLoaded) isUnsaved.set(true);
+    if (isLoaded && animationController) animationController.seekToPercent(0);
 
     // Autosave on change
     if (isLoaded && settings?.autosaveMode === "change") {
@@ -641,6 +799,41 @@
           { quiet: true },
         );
         console.log("Autosaved project (on change)");
+      }
+    }
+
+    // Auto-export on any change when enabled
+    if (isLoaded && settings?.autoExportCode) {
+      const path = get(currentFilePath);
+      if (path) {
+        // Build minimal project data (full header included for JSON export)
+        const projectData = {
+          version: pkg.version,
+          header: {
+            info: "Created with Pedro Pathing Plus Visualizer",
+            copyright:
+              "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
+            link: "https://github.com/Mallen220/PedroPathingPlusVisualizer",
+          },
+          startPoint: get(startPointStore),
+          lines: get(linesStore),
+          sequence: get(sequenceStore),
+          shapes: get(shapesStore),
+          extraData: get(extraDataStore),
+        };
+
+        // fire-and-forget; we don't care about awaiting in the UI path
+        handleAutoExport(
+          get(startPointStore),
+          get(linesStore),
+          get(sequenceStore),
+          get(settingsStore),
+          get(shapesStore),
+          projectData,
+          path,
+        ).catch((e: any) => {
+          console.error("Auto-export during change failed", e);
+        });
       }
     }
   }
@@ -763,7 +956,7 @@
     // Stabilize
     setTimeout(async () => {
       // Record initial state before marking as loaded to prevent unsaved flag
-      recordChange();
+      recordChange("Initial State");
       isLoaded = true;
       lastSavedState = getCurrentState(); // Assume fresh start is "saved" unless loaded
 
@@ -813,6 +1006,9 @@
         loader.style.opacity = "0";
         setTimeout(() => loader.remove(), 500);
       }
+
+      // Rating dialog logic
+      tryShowRatingDialog();
     }, 500);
 
     // Expose debug trigger for testing setup dialog
@@ -825,8 +1021,9 @@
     if (electronAPI) {
       // Listen for external file opens BEFORE signaling ready
       if (electronAPI.onOpenFilePath) {
-        electronAPI.onOpenFilePath((filePath) => {
-          handleExternalFileOpen(filePath);
+        electronAPI.onOpenFilePath(async (filePath) => {
+          await handleExternalFileOpen(filePath);
+          recordChange("Load Project");
         });
       }
 
@@ -859,6 +1056,9 @@
               break;
             case "export-gif":
               exportGif();
+              break;
+            case "export-image":
+              showExportImage.set(true);
               break;
             case "export-pp":
               // Open the Export Code dialog pre-selected to JSON (.pp) format
@@ -946,6 +1146,11 @@
   $: if (animationController) {
     animationController.setDuration(animationDuration);
     animationController.setLoop(loopAnimation);
+    animationController.setPlaybackRange(
+      loopRange[0],
+      loopRange[1],
+      loopRangeActive,
+    );
     // If playing state changes externally (e.g. store update), sync controller?
     // Actually controller drives percent. `playing` store drives controller.
   }
@@ -962,7 +1167,11 @@
     null;
 
   $: {
-    if (timePrediction && timePrediction.timeline && lines.length > 0) {
+    if (
+      timePrediction &&
+      timePrediction.timeline &&
+      (lines.length > 0 || sequence.length > 0)
+    ) {
       // Calculate Global Time based on effective duration
       const globalTime = (percent / 100) * effectiveDuration;
 
@@ -980,8 +1189,8 @@
         timePrediction.timeline,
         lines,
         startPoint,
-        d3.scaleLinear(),
-        d3.scaleLinear(),
+        IDENTITY_SCALE,
+        IDENTITY_SCALE,
       );
       robotXYStore.set({ x: state.x, y: state.y });
       robotHeadingStore.set(state.heading);
@@ -999,8 +1208,8 @@
           committedTimePrediction.timeline,
           committed.lines,
           committed.startPoint,
-          d3.scaleLinear(),
-          d3.scaleLinear(),
+          IDENTITY_SCALE,
+          IDENTITY_SCALE,
         );
         committedRobotState = {
           x: commState.x,
@@ -1013,9 +1222,11 @@
     } else {
       // Store position in inches
       robotXYStore.set({ x: startPoint.x, y: startPoint.y });
-      robotHeadingStore.set(
-        startPoint.heading === "constant" ? -startPoint.degrees : 0,
-      );
+      let h = 0;
+      if (startPoint.heading === "constant") h = -startPoint.degrees;
+      else if (startPoint.heading === "linear") h = -startPoint.startDeg;
+      // Tangential defaults to 0 if no lines
+      robotHeadingStore.set(h);
       committedRobotState = null;
     }
   }
@@ -1065,6 +1276,33 @@
   }
   function setPlaybackSpeed(val: number) {
     playbackSpeedStore.set(val);
+  }
+
+  function handleSplitPath() {
+    if (!timePrediction || timePrediction.totalTime <= 0) return;
+    const currentLines = get(linesStore);
+    const currentSequence = get(sequenceStore);
+    const currentPercent = get(percentStore);
+
+    const res = splitPathAtPercent(
+      currentPercent,
+      timePrediction,
+      currentLines,
+      currentSequence,
+    );
+
+    if (res) {
+      linesStore.set(res.lines);
+      sequenceStore.set(res.sequence);
+      recordChange("Split Path");
+
+      // Select the split point
+      const splitLine = res.lines[res.splitIndex];
+      if (splitLine && splitLine.id) {
+        selectedLineId.set(splitLine.id);
+        selectedPointId.set(`point-${res.splitIndex + 1}-0`);
+      }
+    }
   }
 
   // --- Resizing Logic ---
@@ -1163,6 +1401,52 @@
       userFieldHeightLimit = Math.max(200, Math.min(nh, max));
     }
   }
+
+  function handleResizeKeyDown(
+    e: KeyboardEvent,
+    mode: "horizontal" | "vertical",
+  ) {
+    const step = e.shiftKey ? 50 : 10;
+
+    if (mode === "horizontal") {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        // Initialize if null
+        if (userFieldLimit === null) {
+          userFieldLimit = mainContentWidth * 0.55;
+        }
+
+        let current = userFieldLimit;
+        if (e.key === "ArrowLeft") current -= step;
+        else current += step;
+
+        // Clamp to min/max
+        const min = MIN_FIELD_PANE_WIDTH;
+        const max = mainContentWidth - MIN_SIDEBAR_WIDTH;
+
+        userFieldLimit = Math.max(min, Math.min(current, max));
+      }
+    } else {
+      // Vertical
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+
+        if (userFieldHeightLimit === null) {
+          userFieldHeightLimit = mainContentHeight * 0.6;
+        }
+
+        let current = userFieldHeightLimit;
+        // ArrowUp decreases height (pulls up), ArrowDown increases height (pulls down)
+        if (e.key === "ArrowUp") current -= step;
+        else current += step;
+
+        const rect = mainContentDiv.getBoundingClientRect();
+        const max = rect.height - 100;
+        userFieldHeightLimit = Math.max(200, Math.min(current, max));
+      }
+    }
+  }
+
   function stopResize() {
     resizeMode = null;
   }
@@ -1212,7 +1496,10 @@
     const registeredThemes = $themesStore;
     if (settings) {
       // Check for Potato Mode first!
-      const isPotatoMode = settings.robotImage === "/JefferyThePotato.png";
+      const isAprilFools =
+        new Date().getMonth() === 3 && new Date().getDate() === 1;
+      const isPotatoMode =
+        settings.robotImage === "/JefferyThePotato.png" || isAprilFools;
 
       // Remove any existing custom theme style
       const existingStyle = document.getElementById("custom-theme-style");
@@ -1299,6 +1586,7 @@
   resetProject={handleResetProject}
   {saveFileAs}
   {exportGif}
+  exportImage={() => showExportImage.set(true)}
   {undoAction}
   {redoAction}
   {play}
@@ -1307,6 +1595,7 @@
   {stepForward}
   {stepBackward}
   {recordChange}
+  splitPath={handleSplitPath}
   bind:controlTabRef
   bind:activeControlTab
   toggleStats={() => (statsOpen = !statsOpen)}
@@ -1327,6 +1616,44 @@
       calculateRobotState(p, timePrediction.timeline, lines, startPoint, x, y)}
     {electronAPI}
     on:close={() => showExportGif.set(false)}
+  />
+{/if}
+
+{#if $showExportImage && fieldRenderer}
+  <ExportImageDialog
+    bind:show={$showExportImage}
+    twoInstance={fieldRenderer.getTwoInstance()}
+    {settings}
+    robotLengthPx={x(robotLength)}
+    robotWidthPx={x(robotWidth)}
+    xScale={x}
+    yScale={y}
+    robotState={{
+      x: $startPointStore.x,
+      y: $startPointStore.y,
+      heading: calculateRobotState(
+        0,
+        timePrediction.timeline,
+        lines,
+        startPoint,
+        IDENTITY_SCALE,
+        IDENTITY_SCALE,
+      ).heading,
+    }}
+    {electronAPI}
+    on:close={() => showExportImage.set(false)}
+  />
+{/if}
+
+{#if $showStrategySheet && fieldRenderer}
+  <StrategySheetPreview
+    bind:isOpen={$showStrategySheet}
+    twoInstance={fieldRenderer.getTwoInstance()}
+    startPoint={$startPointStore}
+    lines={$linesStore}
+    sequence={$sequenceStore}
+    settings={$settingsStore}
+    {timePrediction}
   />
 {/if}
 
@@ -1368,8 +1695,11 @@
   onCancel={handleUnsavedCancel}
 />
 
+<UpdateAvailableDialog bind:show={$showUpdateAvailableDialog} />
+
 <SettingsDialog bind:isOpen={$showSettings} bind:settings={$settingsStore} />
 <TelemetryDialog bind:isOpen={$showTelemetryDialog} />
+<TransformDialog bind:isOpen={$showTransformDialog} />
 <KeyboardShortcutsDialog
   bind:isOpen={$showShortcuts}
   bind:settings={$settingsStore}
@@ -1397,6 +1727,8 @@
 />
 
 <DialogHost />
+<FeedbackDialog />
+<RatingDialog />
 
 <!-- Drag Overlay -->
 {#if isDraggingFile}
@@ -1454,6 +1786,7 @@
         {recordChange}
         {canUndo}
         {canRedo}
+        {history}
         on:previewOptimizedLines={handleNavbarPreviewChange}
       />
     </div>
@@ -1494,13 +1827,14 @@
     <!-- Resizer Handle (Desktop) -->
     {#if isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
       <button
-        class="w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
+        class="w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
         on:mousedown={() => startResize("horizontal")}
+        on:keydown={(e) => handleResizeKeyDown(e, "horizontal")}
         on:dblclick={() => {
           userFieldLimit = null;
         }}
         aria-label="Resize Sidebar"
-        title="Drag to resize. Double-click to reset to default width"
+        title="Drag to resize. Double-click to reset. Use Arrow keys to adjust width."
       >
         <div
           class="w-1 h-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
@@ -1511,8 +1845,9 @@
     <!-- Resizer Handle (Mobile) -->
     {#if !isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
       <button
-        class="h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
+        class="h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
         on:mousedown={() => startResize("vertical")}
+        on:keydown={(e) => handleResizeKeyDown(e, "vertical")}
         on:touchstart={(e) => {
           e.preventDefault();
           startResize("vertical");
@@ -1521,7 +1856,7 @@
           userFieldHeightLimit = null;
         }}
         aria-label="Resize Tab"
-        title="Drag to resize. Double-click to reset to default height"
+        title="Drag to resize. Double-click to reset. Use Arrow keys to adjust height."
       >
         <div
           class="h-1 w-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
@@ -1580,6 +1915,7 @@
         bind:activeTab={activeControlTab}
         onPreviewChange={handlePreviewChange}
         totalSeconds={effectiveDuration * 1000}
+        splitPath={handleSplitPath}
       />
     </div>
   </div>

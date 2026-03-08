@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { dialog, app, shell } from "electron";
 import * as fs from "fs";
 import * as path from "path";
@@ -14,13 +14,21 @@ class AppUpdater {
     );
   }
 
-  async checkForUpdates() {
+  async checkForUpdates(manual = false) {
     try {
+      // Check if running in Microsoft Store context
+      if (process.windowsStore) {
+        console.log(
+          "Running in Microsoft Store context. Skipping GitHub update check.",
+        );
+        return { updateAvailable: false, reason: "store" };
+      }
+
       console.log("Checking for updates...");
 
       // GitHub API URL for your repository releases
       const repoUrl =
-        "https://api.github.com/repos/Mallen220/PedroPathingVisualizer/releases/latest";
+        "https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases/latest";
 
       const response = await fetch(repoUrl);
 
@@ -34,20 +42,26 @@ class AppUpdater {
       console.log(`Current: ${this.currentVersion}, Latest: ${latestVersion}`);
 
       // Check if this version was skipped
-      const skippedVersions = this.loadSkippedVersions();
-      if (skippedVersions.includes(latestVersion)) {
-        console.log(`Version ${latestVersion} was previously skipped.`);
-        return;
+      if (!manual) {
+        const skippedVersions = this.loadSkippedVersions();
+        if (skippedVersions.includes(latestVersion)) {
+          console.log(`Version ${latestVersion} was previously skipped.`);
+          return { updateAvailable: false, reason: "skipped" };
+        }
       }
 
       if (this.isNewerVersion(latestVersion, this.currentVersion)) {
-        this.showUpdateAvailableDialog(releaseData);
+        this.showUpdateAvailableDialog(releaseData, manual ? 0 : 3000);
+        return { updateAvailable: true, version: latestVersion, releaseData };
       } else {
         console.log("Application is up to date.");
+        return { updateAvailable: false, reason: "latest" };
       }
     } catch (error) {
       console.error("Failed to check for updates:", error);
       // Don't show error to user on startup to avoid annoyance
+      if (manual) throw error;
+      return { updateAvailable: false, error: error.message };
     }
   }
 
@@ -98,63 +112,43 @@ class AppUpdater {
     }
   }
 
-  async showUpdateAvailableDialog(releaseData) {
+  async showUpdateAvailableDialog(releaseData, delay = 3000) {
     // Wait a bit for the main window to be fully ready
     setTimeout(() => {
-      const result = dialog.showMessageBoxSync(this.mainWindow, {
-        type: "info",
-        title: "Update Available",
-        message: `A new version of Pedro Pathing Visualizer is available!`,
-        detail: `Current version: ${this.currentVersion}\nLatest version: ${releaseData.tag_name}\n\n\nWould you like to download the update?`,
-        buttons: [
-          "Download and Install",
-          "Open Releases Page",
-          "Skip This Version",
-          "Remind Me Later",
-        ],
-        defaultId: 0,
-        cancelId: 3,
-      });
-
       const version = releaseData.tag_name.replace("v", "");
-
-      switch (result) {
-        case 0: // Download and Install
-          this.handleDownloadAndInstall(version, releaseData.html_url);
-          break;
-        case 1: // Open Releases Page
-          shell.openExternal(releaseData.html_url);
-          break;
-        case 2: // Skip This Version
-          const skippedVersions = this.loadSkippedVersions();
-          const versionToSkip = version;
-          if (!skippedVersions.includes(versionToSkip)) {
-            skippedVersions.push(versionToSkip);
-            this.saveSkippedVersions(skippedVersions);
-            console.log(`User skipped version ${versionToSkip}`);
-          }
-          break;
-        case 3: // Remind Me Later
-          // Do nothing, will check again on next startup
-          break;
+      if (this.mainWindow && this.mainWindow.webContents) {
+        this.mainWindow.webContents.send("update-available", {
+          version: version,
+          releaseNotes: releaseData.body,
+          url: releaseData.html_url,
+        });
       }
-    }, 3000);
+    }, delay);
+  }
+
+  skipVersion(version) {
+    const skippedVersions = this.loadSkippedVersions();
+    if (!skippedVersions.includes(version)) {
+      skippedVersions.push(version);
+      this.saveSkippedVersions(skippedVersions);
+      console.log(`User skipped version ${version}`);
+    }
   }
 
   handleDownloadAndInstall(version, releasesUrl) {
     try {
       if (process.platform === "win32") {
-        const downloadUrl = `https://github.com/Mallen220/PedroPathingVisualizer/releases/download/v${version}/Pedro-Pathing-Visualizer-Setup-${version}.exe`;
+        const downloadUrl = `https://github.com/Mallen220/PedroPathingPlusVisualizer/releases/download/v${version}/Pedro-Pathing-Plus-Visualizer-Setup-${version}.exe`;
         shell.openExternal(downloadUrl);
       } else if (process.platform === "darwin") {
         const command =
-          "curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash";
+          "curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/install.sh | bash";
         const appleScript = `tell application "Terminal" to do script "${command}"`;
         spawn("osascript", ["-e", appleScript]);
         spawn("osascript", ["-e", 'tell application "Terminal" to activate']);
       } else if (process.platform === "linux") {
         const command =
-          "curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash";
+          "curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/install.sh | bash";
         if (!this.openTerminalLinux(command)) {
           // Fallback
           shell.openExternal(releasesUrl);

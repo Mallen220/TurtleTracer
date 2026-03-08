@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { writable } from "svelte/store";
 
 export interface PluginInfo {
@@ -6,6 +6,7 @@ export interface PluginInfo {
   loaded: boolean;
   error?: string;
   enabled: boolean;
+  description?: string;
 }
 
 export interface CustomExporter {
