@@ -54,8 +54,10 @@
   import {
     showTelemetry,
     showTelemetryGhost,
+    telemetryData,
+    telemetryOffset,
   } from "../telemetryStore";
-    import LiveRobotLayer from "./telemetry/LiveRobotLayer.svelte";
+  import LiveRobotLayer from "./telemetry/LiveRobotLayer.svelte";
   import LiveFieldLayer from "./telemetry/LiveFieldLayer.svelte";
   import {
     currentFilePath,
@@ -118,6 +120,8 @@
 
   // Local state
   let two: Two;
+  let ghostRobotState: { x: number; y: number; heading: number } | null = null;
+
   let twoElement: HTMLDivElement;
   let wrapperDiv: HTMLDivElement;
   let overlayContainer: HTMLDivElement;
@@ -483,6 +487,29 @@
   // Telemetry State
   $: isTelemetryVisible = $showTelemetry;
   $: isTelemetryGhostVisible = $showTelemetryGhost;
+
+  // compute ghost robot based on imported telemetry data and offset
+  $: if (
+    $telemetryData &&
+    $telemetryData.length > 0 &&
+    isTelemetryGhostVisible
+  ) {
+    const pts = $telemetryData;
+    const baseTime = pts[0].time;
+    const offset = $telemetryOffset || 0;
+    const targetTime = baseTime + offset;
+    // find first point at or after targetTime
+    let target = pts[0];
+    for (const pt of pts) {
+      if (pt.time >= targetTime) {
+        target = pt;
+        break;
+      }
+    }
+    ghostRobotState = { x: target.x, y: target.y, heading: target.heading };
+  } else {
+    ghostRobotState = null;
+  }
 
   // Diff Mode State
   $: isDiffMode = $diffMode;

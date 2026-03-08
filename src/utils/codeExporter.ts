@@ -907,7 +907,9 @@ export async function generateSequentialCommandCode(
       if (isCurve) {
         const controlPoints: string[] = [];
         line.controlPoints.forEach((cp) => {
-          controlPoints.push(`new Pose(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)})`);
+          controlPoints.push(
+            `new Pose(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)})`,
+          );
         });
         controlPointsStr = controlPoints.join(", ") + ", ";
       }

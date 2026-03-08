@@ -90,7 +90,8 @@
     "two.js": "^0.8.23",
     "typescript": "^5.9.3",
     "update-electron-app": "^3.1.2",
-    "upng-js": "^2.1.0"
+    "upng-js": "^2.1.0",
+    "ws": "^8.19.0"
   },
   "build": {
     "appId": "com.pedropathing.visualizer",

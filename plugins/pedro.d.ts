@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+
 /**
  * Type definitions for Pedro Pathing Plus Visualizer Plugins.
  * These types are automatically available in your .ts plugins.
@@ -230,6 +231,8 @@ interface Settings {
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
   followRobot?: boolean;
   coordinateSystem?: "Pedro" | "FTC";
+  // UI control: show or hide the telemetry tab in the control panel
+  showTelemetryTab?: boolean;
 }
 
 interface RobotProfile {
@@ -559,6 +562,55 @@ interface PedroAPI {
   graphics: {
     requestRedraw: () => void;
   };
+}
+
+// Telemetry Types
+interface RobotPose {
+  x: number;
+  y: number;
+  heading: number; // radians
+}
+
+type FieldOperation =
+  | {
+      type: "circle";
+      x: number;
+      y: number;
+      r: number;
+      color: string;
+      stroke?: boolean;
+    }
+  | {
+      type: "line";
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      color: string;
+      strokeWidth?: number;
+    }
+  | {
+      type: "polygon";
+      xPoints: number[];
+      yPoints: number[];
+      color: string;
+      fill?: boolean;
+      stroke?: boolean;
+    }
+  | {
+      type: "text";
+      x: number;
+      y: number;
+      content: string;
+      color: string;
+      fontSize?: number;
+    };
+
+interface TelemetryPacket {
+  timestamp: number;
+  robotPose?: RobotPose;
+  data: Record<string, string | number | boolean>;
+  fieldOverlay?: FieldOperation | FieldOperation[];
 }
 
 interface FieldRenderContext {

@@ -222,7 +222,9 @@ export interface Settings {
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
   followRobot?: boolean;
   coordinateSystem?: "Pedro" | "FTC";
-}
+  // UI control: show or hide the telemetry tab in the control panel
+  showTelemetryTab?: boolean;
+} 
 
 export interface RobotProfile {
   id: string;
@@ -600,6 +602,8 @@ export interface TelemetryPacket {
   robotPose?: RobotPose;
   data: Record<string, string | number | boolean>;
   fieldOverlay?: FieldOperation | FieldOperation[];
+}
+
 export interface FieldRenderContext {
   x: (val: number) => number;
   y: (val: number) => number;

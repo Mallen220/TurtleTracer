@@ -37,8 +37,8 @@
       component: TelemetryTab,
       order: 3,
       icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="size-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>`,
-      });
-     tabRegistryModule.register({
+    });
+    tabRegistryModule.register({
       id: "code",
       label: "Code",
       component: CodeTab,
@@ -105,6 +105,15 @@
     activeTab === "code" &&
     settings &&
     settings.autoExportCode === false
+  ) {
+    activeTab = "path";
+  }
+
+  // collapse telemetry tab if user disabled it
+  $: if (
+    activeTab === "telemetry" &&
+    settings &&
+    settings.showTelemetryTab === false
   ) {
     activeTab = "path";
   }
@@ -558,7 +567,10 @@
         aria-label="Editor View Selection"
       >
         {#each $tabRegistry as tab (tab.id)}
-          {#if tab.id !== "code" || settings?.autoExportCode}
+          {#if
+            (tab.id !== "code" || settings?.autoExportCode) &&
+            (tab.id !== "telemetry" || settings?.showTelemetryTab)
+          }
             <button
               role="tab"
               aria-selected={activeTab === tab.id}
@@ -612,7 +624,10 @@
       aria-labelledby="{activeTab}-tab"
     >
       {#each $tabRegistry as tab (tab.id)}
-        {#if tab.id !== "code" || settings?.autoExportCode}
+        {#if
+          (tab.id !== "code" || settings?.autoExportCode) &&
+          (tab.id !== "telemetry" || settings?.showTelemetryTab)
+        }
           <div class:hidden={activeTab !== tab.id} class="w-full h-full">
             <svelte:component
               this={tab.component}

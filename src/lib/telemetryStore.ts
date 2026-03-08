@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { writable, derived } from "svelte/store";
 import type {
   TelemetryPacket,
@@ -57,11 +57,11 @@ if (typeof window !== "undefined") {
       telemetryState.update((s) => ({ ...s, fps: frameCount }));
       frameCount = 0;
     } else {
-        // If connected but no frames, FPS drops to 0
-        telemetryState.update(s => {
-            if (s.status === 'CONNECTED' && s.fps > 0) return { ...s, fps: 0 };
-            return s;
-        });
+      // If connected but no frames, FPS drops to 0
+      telemetryState.update((s) => {
+        if (s.status === "CONNECTED" && s.fps > 0) return { ...s, fps: 0 };
+        return s;
+      });
     }
   }, 1000);
 }

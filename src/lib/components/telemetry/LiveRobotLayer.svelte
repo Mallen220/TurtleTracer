@@ -1,3 +1,4 @@
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { robotPose } from "../../telemetryStore";
   import type { ScaleFunction } from "../../../types";
@@ -7,7 +8,8 @@
   export let y: ScaleFunction;
   export let robotLength = DEFAULT_ROBOT_LENGTH;
   export let robotWidth = DEFAULT_ROBOT_WIDTH;
-  export let overridePose: { x: number; y: number; heading: number } | null = null;
+  export let overridePose: { x: number; y: number; heading: number } | null =
+    null;
 
   $: pose = overridePose || $robotPose;
 
@@ -28,16 +30,16 @@
   // If $robotPose, assume radians (new).
 
   $: rotation = (() => {
-      if (overridePose) {
-          // Legacy: Degrees. Negate for CSS?
-          // FieldRenderer used `rotate(${heading}deg)`.
-          // If heading is CCW deg, CSS needs -heading.
-          return -overridePose.heading;
-      }
-      if ($robotPose) {
-          return -($robotPose.heading * 180 / Math.PI);
-      }
-      return 0;
+    if (overridePose) {
+      // Legacy: Degrees. Negate for CSS?
+      // FieldRenderer used `rotate(${heading}deg)`.
+      // If heading is CCW deg, CSS needs -heading.
+      return -overridePose.heading;
+    }
+    if ($robotPose) {
+      return -(($robotPose.heading * 180) / Math.PI);
+    }
+    return 0;
   })();
 
   // Calculate pixel dimensions
@@ -48,8 +50,8 @@
 {#if pose}
   <g transform="translate({x(pose.x)}, {y(pose.y)}) rotate({rotation})">
     <rect
-      x={-widthPx/2}
-      y={-heightPx/2}
+      x={-widthPx / 2}
+      y={-heightPx / 2}
       width={widthPx}
       height={heightPx}
       fill="rgba(0, 255, 0, 0.2)"
@@ -63,7 +65,14 @@
     <!-- Usually 0 is 'forward' relative to chassis? Or 0 is right? -->
     <!-- If chassis is rectangle, length is X-axis size? -->
     <!-- Let's draw a line from center to right edge (local X) -->
-    <line x1="0" y1="0" x2={widthPx/2} y2="0" stroke="#22c55e" stroke-width="2" />
+    <line
+      x1="0"
+      y1="0"
+      x2={widthPx / 2}
+      y2="0"
+      stroke="#22c55e"
+      stroke-width="2"
+    />
 
     <!-- Center Point -->
     <circle cx="0" cy="0" r="2" fill="#22c55e" />

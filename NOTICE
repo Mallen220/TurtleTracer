@@ -289,3 +289,6 @@ src/lib/components/common/DebugPanel.svelte
 .jules/palette.md
 src/config/keybindings.ts
 src/lib/components/dialogs/TransformDialog.svelte
+src/lib/components/tabs/TelemetryTab.svelte
+src/lib/components/telemetry/LiveFieldLayer.svelte
+src/lib/components/telemetry/LiveRobotLayer.svelte

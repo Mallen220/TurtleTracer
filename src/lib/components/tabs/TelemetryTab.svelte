@@ -1,3 +1,4 @@
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import {
@@ -72,8 +73,8 @@
       api.telemetry.onStatus((s: any) => {
         setStatus(s);
         // Sync connecting state
-        if (s === 'CONNECTED' || s === 'DISCONNECTED' || s === 'ERROR') {
-             connecting = false;
+        if (s === "CONNECTED" || s === "DISCONNECTED" || s === "ERROR") {
+          connecting = false;
         }
       });
     }
@@ -128,7 +129,9 @@
           disabled={$isConnected}
           class="text-purple-600 focus:ring-purple-500"
         />
-        <span class="text-neutral-700 dark:text-neutral-300">TCP (PedroPathing)</span>
+        <span class="text-neutral-700 dark:text-neutral-300"
+          >TCP (PedroPathing)</span
+        >
       </label>
       <label class="flex items-center gap-2 cursor-pointer">
         <input
@@ -139,7 +142,9 @@
           disabled={$isConnected}
           class="text-purple-600 focus:ring-purple-500"
         />
-        <span class="text-neutral-700 dark:text-neutral-300">WebSocket (Panels)</span>
+        <span class="text-neutral-700 dark:text-neutral-300"
+          >WebSocket (Panels)</span
+        >
       </label>
     </div>
 
@@ -205,9 +210,7 @@
     <div
       class="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50"
     >
-      <h3
-        class="font-semibold text-sm text-neutral-700 dark:text-neutral-300"
-      >
+      <h3 class="font-semibold text-sm text-neutral-700 dark:text-neutral-300">
         Telemetry Data
       </h3>
     </div>
