@@ -4,6 +4,8 @@ import {
   mirrorPointHeading,
   mirrorPathData,
   reversePathData,
+  translatePathData,
+  rotatePathData,
 } from "../utils/pathTransform";
 import type { Point, Line, Shape, SequenceItem } from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
@@ -139,6 +141,95 @@ describe("pathTransform", () => {
       // Should not throw
       const mirrored = mirrorPathData(data);
       expect(mirrored.startPoint).toBeDefined();
+    });
+  });
+
+  describe("translatePathData", () => {
+    it("should translate start point and lines correctly", () => {
+      const data = {
+        startPoint: { x: 10, y: 10, heading: "tangential" } as Point,
+        lines: [
+          {
+            endPoint: {
+              x: 20,
+              y: 20,
+              heading: "facingPoint",
+              targetX: 50,
+              targetY: 50,
+            } as Point,
+            controlPoints: [{ x: 15, y: 15 }],
+            id: "line1",
+          } as Line,
+        ],
+        shapes: [
+          {
+            type: "obstacle",
+            vertices: [{ x: 5, y: 5 }],
+          } as Shape,
+        ],
+      };
+
+      const translated = translatePathData(data, 5, -5);
+
+      expect(translated.startPoint.x).toBe(15);
+      expect(translated.startPoint.y).toBe(5);
+
+      expect(translated.lines[0].endPoint.x).toBe(25);
+      expect(translated.lines[0].endPoint.y).toBe(15);
+      expect((translated.lines[0].endPoint as any).targetX).toBe(55);
+      expect((translated.lines[0].endPoint as any).targetY).toBe(45);
+
+      expect(translated.lines[0].controlPoints[0].x).toBe(20);
+      expect(translated.lines[0].controlPoints[0].y).toBe(10);
+
+      expect(translated.shapes![0].vertices[0].x).toBe(10);
+      expect(translated.shapes![0].vertices[0].y).toBe(0);
+    });
+  });
+
+  describe("rotatePathData", () => {
+    it("should rotate points around a pivot correctly (90 degrees)", () => {
+      const data = {
+        startPoint: { x: 10, y: 0, heading: "constant", degrees: 0 } as Point,
+        lines: [
+          {
+            endPoint: {
+              x: 20,
+              y: 0,
+              heading: "linear",
+              startDeg: 10,
+              endDeg: 20,
+            } as Point,
+            controlPoints: [{ x: 15, y: 0 }],
+            id: "line1",
+          } as Line,
+        ],
+        shapes: [
+          {
+            type: "obstacle",
+            vertices: [{ x: 5, y: 0 }],
+          } as Shape,
+        ],
+      };
+
+      // Rotate 90 degrees around origin (0, 0)
+      const rotated = rotatePathData(data, 90, 0, 0);
+
+      // x = 10, y = 0 -> x = 0, y = 10
+      expect(rotated.startPoint.x).toBeCloseTo(0, 5);
+      expect(rotated.startPoint.y).toBeCloseTo(10, 5);
+      expect(rotated.startPoint.degrees).toBe(90);
+
+      expect(rotated.lines[0].endPoint.x).toBeCloseTo(0, 5);
+      expect(rotated.lines[0].endPoint.y).toBeCloseTo(20, 5);
+      expect(rotated.lines[0].endPoint.startDeg).toBe(100);
+      expect(rotated.lines[0].endPoint.endDeg).toBe(110);
+
+      expect(rotated.lines[0].controlPoints[0].x).toBeCloseTo(0, 5);
+      expect(rotated.lines[0].controlPoints[0].y).toBeCloseTo(15, 5);
+
+      expect(rotated.shapes![0].vertices[0].x).toBeCloseTo(0, 5);
+      expect(rotated.shapes![0].vertices[0].y).toBeCloseTo(5, 5);
     });
   });
 

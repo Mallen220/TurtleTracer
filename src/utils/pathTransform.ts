@@ -49,6 +49,139 @@ export function mirrorPathData(data: {
   return m;
 }
 
+// Translate path data by a given (dx, dy) offset
+export function translatePathData(
+  data: { startPoint: Point; lines: Line[]; shapes?: Shape[] },
+  dx: number,
+  dy: number,
+) {
+  const t = structuredClone(data);
+
+  if (t.startPoint) {
+    t.startPoint.x += dx;
+    t.startPoint.y += dy;
+  }
+
+  if (t.lines) {
+    t.lines.forEach((line: Line) => {
+      if (line.endPoint) {
+        line.endPoint.x += dx;
+        line.endPoint.y += dy;
+        if (line.endPoint.targetX !== undefined) {
+          line.endPoint.targetX += dx;
+        }
+        if (line.endPoint.targetY !== undefined) {
+          line.endPoint.targetY += dy;
+        }
+      }
+      if (line.controlPoints) {
+        line.controlPoints.forEach((cp: ControlPoint) => {
+          cp.x += dx;
+          cp.y += dy;
+        });
+      }
+    });
+  }
+
+  if (t.shapes) {
+    t.shapes.forEach((s: Shape) =>
+      s.vertices?.forEach((v: any) => {
+        v.x += dx;
+        v.y += dy;
+      }),
+    );
+  }
+
+  return t;
+}
+
+// Rotate path data by a given angle (in degrees) around a pivot point
+export function rotatePathData(
+  data: { startPoint: Point; lines: Line[]; shapes?: Shape[] },
+  degrees: number,
+  pivotX: number,
+  pivotY: number,
+) {
+  const r = structuredClone(data);
+  const rad = (degrees * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  const rotatePoint = (x: number, y: number) => {
+    const dx = x - pivotX;
+    const dy = y - pivotY;
+    return {
+      x: pivotX + dx * cos - dy * sin,
+      y: pivotY + dx * sin + dy * cos,
+    };
+  };
+
+  const rotateHeading = (point: Point) => {
+    if (point.heading === "linear") {
+      return {
+        ...point,
+        startDeg: (point.startDeg + degrees + 360) % 360,
+        endDeg: (point.endDeg + degrees + 360) % 360,
+      };
+    }
+    if (point.heading === "constant") {
+      return {
+        ...point,
+        degrees: (point.degrees + degrees + 360) % 360,
+      };
+    }
+    return point;
+  };
+
+  if (r.startPoint) {
+    const newPt = rotatePoint(r.startPoint.x, r.startPoint.y);
+    r.startPoint.x = newPt.x;
+    r.startPoint.y = newPt.y;
+    r.startPoint = rotateHeading(r.startPoint);
+  }
+
+  if (r.lines) {
+    r.lines.forEach((line: Line) => {
+      if (line.endPoint) {
+        const newPt = rotatePoint(line.endPoint.x, line.endPoint.y);
+        line.endPoint.x = newPt.x;
+        line.endPoint.y = newPt.y;
+        if (
+          line.endPoint.targetX !== undefined &&
+          line.endPoint.targetY !== undefined
+        ) {
+          const newTarget = rotatePoint(
+            line.endPoint.targetX,
+            line.endPoint.targetY,
+          );
+          line.endPoint.targetX = newTarget.x;
+          line.endPoint.targetY = newTarget.y;
+        }
+        line.endPoint = rotateHeading(line.endPoint);
+      }
+      if (line.controlPoints) {
+        line.controlPoints.forEach((cp: ControlPoint) => {
+          const newPt = rotatePoint(cp.x, cp.y);
+          cp.x = newPt.x;
+          cp.y = newPt.y;
+        });
+      }
+    });
+  }
+
+  if (r.shapes) {
+    r.shapes.forEach((s: Shape) =>
+      s.vertices?.forEach((v: any) => {
+        const newPt = rotatePoint(v.x, v.y);
+        v.x = newPt.x;
+        v.y = newPt.y;
+      }),
+    );
+  }
+
+  return r;
+}
+
 // Reverse path direction
 export function reversePathData(data: {
   startPoint: Point;

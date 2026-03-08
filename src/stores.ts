@@ -32,6 +32,7 @@ export const showFeedbackDialog = writable(false);
 export const showRatingDialog = writable(false);
 export const ratingDialogAutoOpened = writable(false);
 export const showHistory = writable(false);
+export const showTransformDialog = writable(false);
 export const exportDialogState = writable<{
   isOpen: boolean;
   format: "java" | "points" | "sequential" | "json" | "custom";

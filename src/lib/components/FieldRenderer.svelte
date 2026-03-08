@@ -63,6 +63,7 @@
     gitStatusStore,
     isUnsaved,
     dimmedLinesStore,
+    showTransformDialog,
   } from "../../stores";
   import {
     POINT_RADIUS,
@@ -2866,6 +2867,18 @@
           }));
         }
       }
+
+      // Add global actions
+      if (menuItems.length > 0) {
+        menuItems.push({ separator: true });
+      }
+      menuItems.push({
+        label: "Transform Path",
+        onClick: () => {
+          showTransformDialog.set(true);
+          showContextMenu = false;
+        },
+      });
     }
 
     if (menuItems.length === 0) return;

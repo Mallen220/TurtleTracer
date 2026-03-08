@@ -27,6 +27,7 @@
     showTelemetryDialog,
     showStrategySheet,
     showHistory,
+    showTransformDialog,
     protractorLockToRobot,
     showExportGif,
     notification,
@@ -2057,6 +2058,7 @@
     toggleHistory: () => showHistory.update((v) => !v),
     toggleStrategySheet: () => showStrategySheet.update((v) => !v),
     toggleProtractorLock: () => protractorLockToRobot.update((v) => !v),
+    toggleTransformDialog: () => showTransformDialog.update((v) => !v),
     addObstacle: () => {
       shapesStore.update((s) => [...s, createTriangle(s.length)]);
       activeControlTab = "field";
