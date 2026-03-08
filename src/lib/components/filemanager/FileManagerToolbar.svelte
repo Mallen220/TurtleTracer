@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <!-- src/lib/components/filemanager/FileManagerToolbar.svelte -->
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
@@ -9,6 +9,7 @@
 
   const dispatch = createEventDispatcher<{
     "new-file": void;
+    "new-folder": void;
     "change-dir": void;
     refresh: void;
     "sort-change": "name" | "date";
@@ -31,6 +32,8 @@
       target.value = ""; // Reset
     }
   }
+
+  let fileInput: HTMLInputElement;
 </script>
 
 <div
@@ -71,7 +74,7 @@
     <button
       on:click={() =>
         dispatch("sort-change", sortMode === "name" ? "date" : "name")}
-      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
+      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       title={`Sort by ${sortMode === "name" ? "Date" : "Name"}`}
       aria-label={`Sort by ${sortMode === "name" ? "Date" : "Name"}`}
     >
@@ -112,7 +115,7 @@
     <button
       on:click={() =>
         dispatch("view-change", viewMode === "list" ? "grid" : "list")}
-      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
+      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       title={`Switch to ${viewMode === "list" ? "Grid" : "List"} View`}
       aria-label={`Switch to ${viewMode === "list" ? "Grid" : "List"} View`}
     >
@@ -154,7 +157,7 @@
     <!-- Import Telemetry -->
     <button
       on:click={() => dispatch("import-telemetry")}
-      class="p-1.5 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
+      class="p-1.5 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       title="Import Telemetry Data"
       aria-label="Import Telemetry Data"
     >
@@ -179,12 +182,20 @@
     ></div>
 
     <!-- Import -->
-    <label
-      class="p-1.5 text-neutral-500 hover:text-purple-600 dark:text-neutral-400 dark:hover:text-purple-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer shrink-0"
+    <input
+      bind:this={fileInput}
+      type="file"
+      accept=".pp"
+      class="hidden"
+      on:change={handleImport}
+      tabindex="-1"
+    />
+    <button
+      on:click={() => fileInput?.click()}
+      class="p-1.5 text-neutral-500 hover:text-purple-600 dark:text-neutral-400 dark:hover:text-purple-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       title="Import .pp File"
       aria-label="Import .pp File"
     >
-      <input type="file" accept=".pp" class="hidden" on:change={handleImport} />
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
@@ -199,12 +210,35 @@
           d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
         />
       </svg>
-    </label>
+    </button>
+
+    <!-- New Folder -->
+    <button
+      on:click={() => dispatch("new-folder")}
+      class="p-1.5 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      title="New Folder"
+      aria-label="New Folder"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+        stroke="currentColor"
+        class="size-5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M12 10.5v6m3-3H9m4.06-7.19-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
+        />
+      </svg>
+    </button>
 
     <!-- New File -->
     <button
       on:click={() => dispatch("new-file")}
-      class="p-1.5 text-neutral-500 hover:text-green-600 dark:text-neutral-400 dark:hover:text-green-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
+      class="p-1.5 text-neutral-500 hover:text-green-600 dark:text-neutral-400 dark:hover:text-green-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
       title="New File"
       aria-label="New File"
     >
@@ -231,7 +265,7 @@
     <!-- Refresh -->
     <button
       on:click={() => dispatch("refresh")}
-      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
+      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       title="Refresh"
       aria-label="Refresh"
     >
@@ -254,7 +288,7 @@
     <!-- Change Dir -->
     <button
       on:click={() => dispatch("change-dir")}
-      class="p-1.5 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
+      class="p-1.5 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       title="Change Directory"
       aria-label="Change Directory"
     >

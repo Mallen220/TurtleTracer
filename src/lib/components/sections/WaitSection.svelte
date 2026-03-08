@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { selectedPointId, selectedLineId } from "../../../stores";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
@@ -9,6 +9,8 @@
     updateLinkedWaits,
   } from "../../../utils/pointLinking";
   import { tooltipPortal } from "../../actions/portal";
+  import { actionRegistry } from "../../actionRegistry";
+  import { getSmallButtonClass } from "../../../utils/buttonStyles";
 
   export let wait: SequenceWaitItem;
   export let sequence: SequenceItem[];
@@ -20,9 +22,10 @@
   // export let collapsedMarkers: boolean = false;
 
   export let onRemove: () => void;
-  export let onInsertAfter: () => void;
-  export let onAddPathAfter: () => void;
-  export let onAddRotateAfter: () => void;
+  export let onInsertAfter: () => void; // Deprecated in favor of onAddAction, but kept for compatibility if needed
+  export let onAddPathAfter: () => void; // Deprecated
+  export let onAddRotateAfter: () => void; // Deprecated
+  export let onAddAction: ((def: any) => void) | undefined = undefined;
   export let onMoveUp: () => void;
   export let onMoveDown: () => void;
   export let canMoveUp: boolean = true;
@@ -68,6 +71,8 @@
     }
     if (linked) {
       sequence = updateLinkedWaits(sequence, wait.id);
+    } else {
+      sequence = [...sequence];
     }
     if (recordChange) recordChange();
   }
@@ -106,7 +111,7 @@
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
         on:click|stopPropagation={toggleCollapsed}
-        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
+        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         title="{collapsed ? 'Expand' : 'Collapse'} wait"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} wait"
         aria-expanded={!collapsed}
@@ -191,7 +196,7 @@
           wait.locked = !wait.locked;
           if (recordChange) recordChange();
         }}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
+        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
       >
         {#if wait.locked}
           <svg
@@ -234,7 +239,7 @@
             if (!wait.locked && canMoveUp && onMoveUp) onMoveUp();
           }}
           disabled={!canMoveUp || wait.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
+          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           title="Move Up"
           aria-label="Move Up"
         >
@@ -256,7 +261,7 @@
             if (!wait.locked && canMoveDown && onMoveDown) onMoveDown();
           }}
           disabled={!canMoveDown || wait.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
+          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           title="Move Down"
           aria-label="Move Down"
         >
@@ -324,65 +329,39 @@
 
       <!-- Action Bar -->
       <div
-        class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50"
+        class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50 flex-wrap"
       >
         <span class="text-xs font-medium text-neutral-400 mr-auto"
           >Insert after:</span
         >
-
-        <button
-          on:click|stopPropagation={onAddPathAfter}
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800/30"
-          title="Add Path After"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3"
-          >
-            <path
-              d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
-            />
-          </svg>
-          Path
-        </button>
-
-        <button
-          on:click|stopPropagation={onInsertAfter}
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200 dark:border-amber-800/30"
-          title="Add Wait After"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3"
-          >
-            <path
-              d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
-            />
-          </svg>
-          Wait
-        </button>
-
-        <button
-          on:click|stopPropagation={onAddRotateAfter}
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30"
-          title="Add Rotate After"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3"
-          >
-            <path
-              d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
-            />
-          </svg>
-          Rotate
-        </button>
+        {#each Object.values($actionRegistry) as def (def.kind)}
+          {#if def.createDefault || def.isPath}
+            {@const color = def.buttonColor || "gray"}
+            <button
+              on:click|stopPropagation={() => {
+                if (onAddAction) onAddAction(def);
+                else if (def.isPath) onAddPathAfter();
+                else if (def.isWait) onInsertAfter();
+                else if (def.isRotate) onAddRotateAfter();
+              }}
+              class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${getSmallButtonClass(color)}`}
+              title={`Add ${def.label} After`}
+              aria-label={`Add ${def.label} After`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="size-3"
+              >
+                <path
+                  d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
+                />
+              </svg>
+              {def.label}
+            </button>
+          {/if}
+        {/each}
       </div>
     </div>
   {/if}

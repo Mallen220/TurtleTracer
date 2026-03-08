@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import TrashIcon from "../icons/TrashIcon.svelte";
   import { createEventDispatcher, onDestroy } from "svelte";
@@ -44,14 +44,14 @@
   });
 
   // Base classes + state dependent classes
-  $: baseClasses = `ml-1 p-1.5 rounded-md transition-all duration-200 disabled:opacity-30 flex items-center justify-center ${className}`;
+  $: baseClasses = `p-1.5 rounded-md transition-all duration-200 disabled:opacity-30 flex items-center justify-center ${className}`;
   $: stateClasses = confirming
     ? "bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 ring-1 ring-red-500/50 w-20"
     : "hover:bg-red-50 dark:hover:bg-red-900/20 text-neutral-400 hover:text-red-500 w-8";
 </script>
 
 <button
-  class="{baseClasses} {stateClasses}"
+  class="{baseClasses} {stateClasses} focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
   on:click={handleClick}
   on:blur={handleBlur}
   {disabled}

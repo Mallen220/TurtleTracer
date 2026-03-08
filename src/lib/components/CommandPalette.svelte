@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
@@ -18,6 +18,26 @@
   let selectedIndex = 0;
   let inputElement: HTMLInputElement;
   let recentCommandIds: string[] = [];
+
+  function getDisplayShortcut(shortcut: string): string {
+    if (!shortcut) return "";
+    const isMac =
+      /Mac|iPod|iPhone|iPad/.test(navigator.platform) ||
+      /Mac/.test(navigator.userAgent);
+    const parts = shortcut.split(",").map((s) => s.trim());
+    let best = parts[0];
+    if (isMac) {
+      const mac = parts.find((p) => p.toLowerCase().includes("cmd"));
+      if (mac) best = mac;
+    } else {
+      const nonMac = parts.find(
+        (p) =>
+          !p.toLowerCase().includes("cmd") || p.toLowerCase().includes("ctrl"),
+      );
+      if (nonMac) best = nonMac;
+    }
+    return best;
+  }
 
   onMount(() => {
     try {
@@ -55,7 +75,9 @@
 
   $: if (isOpen && inputElement) {
     // Focus input when opened
-    setTimeout(() => inputElement.focus(), 50);
+    setTimeout(() => {
+      if (inputElement) inputElement.focus();
+    }, 50);
     selectedIndex = 0;
   }
 
@@ -117,6 +139,7 @@
     on:click|self={onClose}
     role="dialog"
     aria-modal="true"
+    aria-label="Command Palette"
   >
     <!-- Wrapper for floating elements -->
     <div
@@ -147,14 +170,34 @@
           bind:value={searchQuery}
           placeholder="Type a command or search..."
           class="w-full bg-transparent border-none focus:ring-0 text-xl text-neutral-900 dark:text-white placeholder-neutral-400 font-medium outline-none"
+          role="combobox"
+          aria-expanded="true"
+          aria-controls="command-results"
+          aria-activedescendant={filteredCommands.length > 0
+            ? `command-option-${selectedIndex}`
+            : undefined}
+          aria-label="Search commands"
         />
+      </div>
+
+      <!-- Live Region for search results -->
+      <div class="sr-only" aria-live="polite">
+        {#if filteredCommands.length === 0}
+          No commands found.
+        {:else}
+          {filteredCommands.length} commands found. Use up and down arrows to navigate.
+        {/if}
       </div>
 
       <!-- Results List -->
       <div
         class="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl overflow-hidden flex flex-col border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
       >
-        <div class="max-h-[60vh] overflow-y-auto py-2 px-2 scrollbar-thin">
+        <div
+          id="command-results"
+          class="max-h-[60vh] overflow-y-auto py-2 px-2 scrollbar-thin"
+          role="listbox"
+        >
           {#if filteredCommands.length === 0}
             <div
               class="px-4 py-12 text-center text-neutral-500 dark:text-neutral-400"
@@ -165,6 +208,9 @@
           {:else}
             {#each filteredCommands as command, index}
               <button
+                id="command-option-{index}"
+                role="option"
+                aria-selected={index === selectedIndex}
                 class="w-full px-4 py-4 flex items-center justify-between text-left transition-all duration-75 rounded-lg mb-0.5
                 {index === selectedIndex
                   ? 'bg-indigo-600 text-white shadow-md transform scale-[1.00]'
@@ -188,8 +234,8 @@
                 </div>
                 {#if command.shortcut}
                   <div class="flex items-center gap-1">
-                    <!-- Show only the first shortcut if multiple are defined -->
-                    {#each command.shortcut.split(",")[0].split("+") as key}
+                    <!-- Show appropriate shortcut for platform -->
+                    {#each getDisplayShortcut(command.shortcut).split("+") as key}
                       <kbd
                         class="text-xs font-mono font-bold px-1.5 py-0.5 rounded border
                        {index === selectedIndex

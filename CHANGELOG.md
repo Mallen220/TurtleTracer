@@ -1,3 +1,31 @@
+## 1.8.0 (2026-03-06)
+
+- Add folder support to file manager. Enforce base directory constraint in file manager. Track and persist total usage time for ratings: fixes annoying requests. Add view options toggles for Robot, Onion Skin, and Velocity Heatmap in the NavBar. Add keybindings for small value modifications. Add facingPoint heading support and universal reverse flag! Add sectional timeline looping! Should restart playback on path change. Don't stop playback on UI interactions. Add digital strategy notes to strategy sheet. Field rendering optimizations for weaker OS's. Changed default robot image. Added heading arrow toggle. Added arrow for drivetrain showing wheel directions for holonomic and swerve drivetrains. Preserve endpoint headings on new path creation. Add git status updates during runtime.
+
+## 1.7.5 (2026-02-28)
+
+- Add toggleable coordinate system (Pedro/FTC). Allow deleting the last path segment to reveal empty state and empty state fixes. Major fixes for Sequential NextFTC code exporter. Optimize analyzePathSegment with adaptive sampling. Add visual heading indicator to angle inputs in paths tab. Add Delta X/Y and Angle to Ruler. Trigger code auto-export on more project changes. Add feedback and rating dialogs. Fix for Microsoft update deleting user settings.
+
+## 1.7.4 (2026-02-20)
+
+- New UI for the update prompt and add ms store support. Add manual update check. Add ability to optimize individual paths. Several critical fixes to code exporting. Add ability to import and export settings. Fix start position data being written incorrectly. Show actual .pp file content in Export dialog. Better playback controls. Add export image option. Fixed Plugins icon.
+
+## 1.7.3 (2026-02-10)
+
+- Add Sticky Notes plugin, disabled by default. Add Telemetry documentation page. Redesign Plugin Manager UI for better usability and descriptions. More keybinds and fixed conflicts. Users can drag Timeline Event Markers. Remove Discord for now. Add header info to saved .pp files. Prevent dragging on action names. Add heading normalization for Rotate and Path commands. Fix file renaming in FileManager. Fix correctly handling initial rotation in path time calculation. Update LICENSE and Privacy Policy. Add confirmation for obstacle deletion. Add Split Path keybind (K). Add MSIX windows 11 autopackager. Add Windows tile assets and generation tooling. FIX: Should add ".pp" in sequentially exported code. Remove settings from .pp file save. Added hard coded position toggle for sequential commands.
+
+## 1.7.2 (2026-02-04)
+
+- Quick Fix: Rename to pedro-pathing-plus-visualizer across project. Add live code preview tab when auto export is enabled (recommended). Changed default port from 34567 to 17218. Several critical security fixes. Added keybind hints. Add Follow Robot toggle to settings and field renderer. Configurable Telemetry Export within exported code. Telemetry support for Panels, Standard FTC, FtcDashboard + Standard, future support for PPP visualizer. Add keybindings for copying code/table and downloading java when in certain tabs. Add smart object snapping for field waypoints, can be disabled in settings interface.
+
+## 1.7.1 (2026-01-29)
+
+- Improve download count fetch robustness. Refactor action types to use a dynamic registry system for increased plugin support. Add Auto Export Code feature, disabled by default in settings. Implement History Panel and enhance undo/redo visibility. Preparation for stable release. Added Strategy Sheet export option. Rename to Pedro Pathing Plus Visualizer to better distinguish between the original program.
+
+## 1.7.0 (2026-01-23)
+
+- Added new Discord server link to Navbar! Join new and be one of the first members! Added Presentation Mode (Option/Alt + P). Added Plugin Manager. Add Git Status checker and diff view (Can be disabled in settings). Add Custom Field Map Import Wizard. Always more key binds, now supporting Copy, Cut, Paste. Add Keep-In Zones (opposite of Obstacles) and shape visibility controls. Add interactive onboarding tutorial to help new users. Command Palette now searches for paths, events, and waits in current file. Validation checks now works in ranges instead of points. Added continuous validation checker (disabled in settings by default). Add path analysis graphs to statistics dialog. Add Telemetry Data Import & Visualization (Will be expanded in future versions). Added file macros allowing users to pass auto sequences into other files (Drag and drop from file manager). Macros support path transformations and basic recursion. Added setting to change font size. Overhauled settings UI for cleaner interface.
+
 ## 1.6.2 (2026-01-15)
 
 - Fixed faulty Linux support. Add setting to show onion skins only on current path. Add drag-and-drop support for .pp files. Fix linked points rotation logic. Implement initial directory setup dialog. Added Autosave functionality. Remove ghost path feature entirely; it will not be implemented in future versions. Disable Chromium keyboard shortcuts for a safer experience. Always more keybinds. Improve new project reset logic. Replace event text input with searchable dropdown. Added PedroPathingPlus documentation. Improve Robot Profile Manager UX. Angular Velocity settings correctly affect path time. Add Angular Acceleration setting and Deg/s unit toggle. Better Close/Save Checking and UI dialog.

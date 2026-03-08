@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import type { Point, Line, Shape, Settings, SequenceItem } from "../types";
   import { onMount, onDestroy } from "svelte";
@@ -14,16 +14,27 @@
     showSettings,
     exportDialogState,
     showFileManager,
-    gitStatusStore,
     showPluginManager,
+    showStrategySheet,
+    showExportImage,
+    showHistory,
+    showFeedbackDialog,
+    gitStatusStore,
+    showRobot,
   } from "../stores";
   import { getRandomColor } from "../utils";
   import { SaveIcon } from "./components/icons";
-  import { calculatePathTime, formatTime } from "../utils";
+  import {
+    calculatePathTime,
+    formatTime,
+    getShortcutFromSettings,
+  } from "../utils";
   import { showShortcuts } from "../stores";
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
   import { menuNavigation } from "./actions/menuNavigation";
+  import type { createHistory } from "../utils/history";
+
   export let startPoint: Point;
   export let lines: Line[];
   export let sequence: SequenceItem[];
@@ -40,9 +51,34 @@
   export let exportGif: () => any;
   export let undoAction: () => any;
   export let redoAction: () => any;
-  export const recordChange: () => any = () => {};
+  export const recordChange: (action?: string) => any = () => {};
   export let canUndo: boolean;
   export let canRedo: boolean;
+  export let history: ReturnType<typeof createHistory>;
+
+  $: historyStore = history?.historyStore;
+  // Subscribe to description stores if available
+  $: undoDescription = history?.undoDescriptionStore;
+  $: redoDescription = history?.redoDescriptionStore;
+
+  // Compute tooltips
+  $: undoTooltip = (() => {
+    let title = !canUndo ? "Nothing to Undo" : "Undo";
+    if (canUndo && $undoDescription) {
+      title = `Undo: ${$undoDescription}`;
+    }
+    const shortcut = getShortcutFromSettings(settings, "undo");
+    return shortcut ? `${title}${shortcut}` : title;
+  })();
+
+  $: redoTooltip = (() => {
+    let title = !canRedo ? "Nothing to Redo" : "Redo";
+    if (canRedo && $redoDescription) {
+      title = `Redo: ${$redoDescription}`;
+    }
+    const shortcut = getShortcutFromSettings(settings, "redo");
+    return shortcut ? `${title}${shortcut}` : title;
+  })();
 
   let shortcutsOpen = false;
   let exportMenuOpen = false;
@@ -52,6 +88,8 @@
   let saveButtonRef: HTMLElement;
   let exportMenuRef: HTMLElement;
   let exportButtonRef: HTMLElement;
+  let historyButtonRef: HTMLElement;
+  let historyDropdownRef: HTMLElement;
 
   let selectedGridSize = 12;
   const gridSizeOptions = [1, 3, 6, 12, 24];
@@ -123,6 +161,16 @@
     }
 
     if (
+      $showHistory &&
+      historyDropdownRef &&
+      !historyDropdownRef.contains(event.target as Node) &&
+      historyButtonRef &&
+      !historyButtonRef.contains(event.target as Node)
+    ) {
+      showHistory.set(false);
+    }
+
+    if (
       viewOptionsOpen &&
       viewOptionsRef &&
       !viewOptionsRef.contains(event.target as Node) &&
@@ -140,6 +188,9 @@
     }
     if (exportMenuOpen && event.key === "Escape") {
       exportMenuOpen = false;
+    }
+    if ($showHistory && event.key === "Escape") {
+      showHistory.set(false);
     }
   }
 
@@ -176,10 +227,10 @@
     <!-- Menu Button (Mobile/Sidebar toggle for consistency if desired, or just File Manager) -->
     <button
       id="file-manager-btn"
-      title="Open File Manager"
+      title={`Open File Manager${getShortcutFromSettings(settings, "toggle-file-manager")}`}
       aria-label="Open File Manager"
       on:click={() => showFileManager.set(true)}
-      class="text-neutral-700 dark:text-neutral-200 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+      class="text-neutral-700 dark:text-neutral-200 hover:text-purple-600 dark:hover:text-purple-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 rounded-md p-1 -ml-1"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -200,7 +251,7 @@
     <div class="flex flex-col">
       <span
         class="font-bold text-lg leading-tight tracking-tight text-neutral-900 dark:text-neutral-100"
-        >Pedro Pathing Visualizer</span
+        >Pedro Pathing Plus Visualizer</span
       >
       {#if $currentFilePath}
         <div
@@ -292,7 +343,7 @@
         title={action.title}
         aria-label={action.title}
         on:click={action.onClick}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         {@html action.icon}
       </button>
@@ -336,7 +387,7 @@
         title={action.title}
         aria-label={action.title}
         on:click={action.onClick}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors hidden md:block"
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors hidden md:block focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         {@html action.icon}
       </button>
@@ -348,11 +399,11 @@
     <!-- Undo/Redo Group -->
     <div class="flex items-center gap-1">
       <button
-        title="Undo"
+        title={undoTooltip}
         aria-label="Undo"
         on:click={undoAction}
         disabled={!canUndo}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -370,11 +421,11 @@
         </svg>
       </button>
       <button
-        title="Redo"
+        title={redoTooltip}
         aria-label="Redo"
         on:click={redoAction}
         disabled={!canRedo}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -391,6 +442,83 @@
           />
         </svg>
       </button>
+
+      <!-- History Dropdown -->
+      {#if history}
+        <div class="relative">
+          <button
+            bind:this={historyButtonRef}
+            title={`History Panel${getShortcutFromSettings(settings, "toggle-history")}`}
+            aria-label="History Panel"
+            on:click={() => showHistory.set(!$showHistory)}
+            class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {$showHistory
+              ? 'bg-neutral-100 dark:bg-neutral-800'
+              : ''}"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="size-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+              />
+            </svg>
+          </button>
+
+          {#if $showHistory && $historyStore}
+            <div
+              bind:this={historyDropdownRef}
+              use:menuNavigation
+              on:close={() => showHistory.set(false)}
+              class="absolute right-0 mt-2 w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
+            >
+              <div
+                class="px-4 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider border-b border-neutral-200 dark:border-neutral-700 mb-1"
+              >
+                History
+              </div>
+              {#if $historyStore.length === 0}
+                <div
+                  class="px-4 py-3 text-sm text-neutral-500 dark:text-neutral-400 text-center italic"
+                >
+                  No history yet
+                </div>
+              {:else}
+                {#each $historyStore as entry, i}
+                  <button
+                    on:click={() => {
+                      history.restore(entry.item.id);
+                      showHistory.set(false);
+                    }}
+                    class="w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between group {entry.future
+                      ? 'opacity-50 hover:opacity-100 text-neutral-600 dark:text-neutral-400'
+                      : i === 0 && !entry.future // First non-future item is "Current"
+                        ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium'
+                        : 'text-neutral-700 dark:text-neutral-200'}"
+                  >
+                    <span class="truncate">{entry.item.description}</span>
+                    <span
+                      class="text-xs text-neutral-400 dark:text-neutral-500 ml-2"
+                    >
+                      {new Date(entry.item.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </span>
+                  </button>
+                {/each}
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/if}
     </div>
 
     <div
@@ -400,10 +528,10 @@
     <!-- Sidebar Toggle -->
     <button
       id="sidebar-toggle-btn"
-      title={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
+      title={`${showSidebar ? "Hide Sidebar" : "Show Sidebar"}${getShortcutFromSettings(settings, "toggle-sidebar")}`}
       aria-label={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
       on:click={() => (showSidebar = !showSidebar)}
-      class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+      class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
     >
       {#if showSidebar && isLargeScreen}
         <!-- Sidebar visible: show icon with left pane -->
@@ -451,10 +579,11 @@
       <button
         bind:this={viewOptionsButtonRef}
         title="View Options"
+        aria-label="View Options"
         aria-haspopup="true"
         aria-expanded={viewOptionsOpen}
         on:click={() => (viewOptionsOpen = !viewOptionsOpen)}
-        class="p-1.5 rounded-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-neutral-500 dark:text-neutral-400"
+        class="p-1.5 rounded-sm hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-neutral-500 dark:text-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <!-- compact grid icon -->
         <svg
@@ -500,7 +629,7 @@
 
           <div class="px-2 py-2 grid grid-cols-1 gap-1">
             <button
-              title="Toggle Ruler"
+              title={`Toggle Ruler${getShortcutFromSettings(settings, "toggle-ruler")}`}
               aria-label="Toggle Ruler"
               role="menuitemcheckbox"
               aria-checked={$showRuler}
@@ -538,7 +667,7 @@
             </button>
 
             <button
-              title="Toggle Protractor"
+              title={`Toggle Protractor${getShortcutFromSettings(settings, "toggle-protractor")}`}
               aria-label="Toggle Protractor"
               role="menuitemcheckbox"
               aria-checked={$showProtractor}
@@ -630,7 +759,7 @@
             {/if}
 
             <button
-              title="Toggle Grid"
+              title={`Toggle Grid${getShortcutFromSettings(settings, "toggle-grid")}`}
               aria-label="Toggle Grid"
               role="menuitemcheckbox"
               aria-checked={$showGrid}
@@ -669,7 +798,7 @@
               <div class="flex items-center justify-between px-2 py-1.5">
                 <div class="flex items-center gap-2 w-full">
                   <button
-                    title={$snapToGrid ? "Disable Snap" : "Enable Snap"}
+                    title={`Toggle Snap${getShortcutFromSettings(settings, "toggle-snap")}`}
                     aria-label={$snapToGrid ? "Disable Snap" : "Enable Snap"}
                     role="menuitemcheckbox"
                     aria-checked={$snapToGrid}
@@ -716,6 +845,215 @@
                 </div>
               </div>
             {/if}
+
+            <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
+
+            <button
+              title={`Cycle Robot Mode`}
+              aria-label="Cycle Robot Mode"
+              role="menuitemcheckbox"
+              aria-checked={$showRobot}
+              on:click={() => {
+                // Ensure robot is always shown when cycling its modes.
+                if (!$showRobot) {
+                  showRobot.set(true);
+                }
+
+                import("../lib/projectStore").then(({ settingsStore }) => {
+                  settingsStore.update((s) => {
+                    const nextSettings = { ...s };
+
+                    if (
+                      nextSettings.robotImage === "none" &&
+                      nextSettings.showRobotArrows
+                    ) {
+                      // Mode 1: Default with arrows -> Mode 2: Default without arrows
+                      nextSettings.showRobotArrows = false;
+                    } else if (
+                      nextSettings.robotImage === "none" &&
+                      !nextSettings.showRobotArrows
+                    ) {
+                      // Mode 2: Default without arrows -> Mode 3: Old lightweight robot
+                      // Fallback to decode.webp as standard dummy image? Or robot.png? The field is decode.webp.
+                      nextSettings.robotImage = "robot.png"; // Commonly used old lightweight default
+                    } else {
+                      // Mode 3 (or any custom) -> Mode 1: Default with arrows
+                      nextSettings.robotImage = "none";
+                      nextSettings.showRobotArrows = true;
+                    }
+
+                    // Sync local settings object
+                    settings.robotImage = nextSettings.robotImage;
+                    settings.showRobotArrows = nextSettings.showRobotArrows;
+
+                    return nextSettings;
+                  });
+                });
+              }}
+              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
+            >
+              <div
+                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {$showRobot
+                  ? 'text-blue-500'
+                  : 'text-neutral-500 dark:text-neutral-400'}"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                  <circle cx="12" cy="5" r="2"></circle>
+                  <path d="M12 7v4"></path>
+                  <line x1="8" y1="16" x2="8" y2="16"></line>
+                  <line x1="16" y1="16" x2="16" y2="16"></line>
+                </svg>
+              </div>
+              <span class="text-sm text-neutral-700 dark:text-neutral-200"
+                >Robot</span
+              >
+            </button>
+
+            <button
+              title={`Toggle Onion Skin${getShortcutFromSettings(settings, "toggle-onion")}`}
+              aria-label="Toggle Onion Skin"
+              role="menuitemcheckbox"
+              aria-checked={settings.showOnionLayers}
+              on:click={() => {
+                settings.showOnionLayers = !settings.showOnionLayers;
+                import("../lib/projectStore").then(({ settingsStore }) => {
+                  settingsStore.update((s) => ({
+                    ...s,
+                    showOnionLayers: settings.showOnionLayers,
+                  }));
+                });
+              }}
+              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
+            >
+              <div
+                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {settings.showOnionLayers
+                  ? 'text-blue-500'
+                  : 'text-neutral-500 dark:text-neutral-400'}"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                </svg>
+              </div>
+              <span class="text-sm text-neutral-700 dark:text-neutral-200"
+                >Onion Skin</span
+              >
+            </button>
+
+            {#if settings.showOnionLayers}
+              <div class="flex items-center justify-between px-2 py-1.5">
+                <div class="flex items-center gap-2 w-full pl-6">
+                  <button
+                    title={`Toggle Current Path Only${getShortcutFromSettings(settings, "toggle-onion-current-path")}`}
+                    aria-label={settings.onionSkinCurrentPathOnly
+                      ? "Show All Paths"
+                      : "Show Current Path Only"}
+                    role="menuitemcheckbox"
+                    aria-checked={settings.onionSkinCurrentPathOnly}
+                    on:click={() => {
+                      settings.onionSkinCurrentPathOnly =
+                        !settings.onionSkinCurrentPathOnly;
+                      import("../lib/projectStore").then(
+                        ({ settingsStore }) => {
+                          settingsStore.update((s) => ({
+                            ...s,
+                            onionSkinCurrentPathOnly:
+                              settings.onionSkinCurrentPathOnly,
+                          }));
+                        },
+                      );
+                    }}
+                    class="flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md py-1 px-2 -ml-2 transition-colors group w-full text-left"
+                  >
+                    <div
+                      class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {settings.onionSkinCurrentPathOnly
+                        ? 'text-blue-500'
+                        : 'text-neutral-400'}"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                        ></path>
+                      </svg>
+                    </div>
+                    <span class="text-xs text-neutral-600 dark:text-neutral-300"
+                      >Current Path Only</span
+                    >
+                  </button>
+                </div>
+              </div>
+            {/if}
+
+            <button
+              title={`Toggle Velocity Heatmap`}
+              aria-label="Toggle Velocity Heatmap"
+              role="menuitemcheckbox"
+              aria-checked={settings.showVelocityHeatmap}
+              on:click={() => {
+                settings.showVelocityHeatmap = !settings.showVelocityHeatmap;
+                import("../lib/projectStore").then(({ settingsStore }) => {
+                  settingsStore.update((s) => ({
+                    ...s,
+                    showVelocityHeatmap: settings.showVelocityHeatmap,
+                  }));
+                });
+              }}
+              class="flex items-center gap-3 w-full px-2 py-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors group text-left"
+            >
+              <div
+                class="p-0.5 rounded-sm group-hover:bg-white dark:group-hover:bg-neutral-600 transition-colors {settings.showVelocityHeatmap
+                  ? 'text-blue-500'
+                  : 'text-neutral-500 dark:text-neutral-400'}"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+              </div>
+              <span class="text-sm text-neutral-700 dark:text-neutral-200"
+                >Heatmap</span
+              >
+            </button>
           </div>
         </div>
       {/if}
@@ -733,8 +1071,8 @@
           id="save-project-btn"
           bind:this={saveButtonRef}
           on:click={() => (saveDropdownOpen = !saveDropdownOpen)}
-          class="flex items-center gap-1 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
-          title="Save Options"
+          class="flex items-center gap-1 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+          title={`Save Options${getShortcutFromSettings(settings, "save-project")}`}
           aria-label="Save Options"
         >
           <SaveIcon className="size-5" />
@@ -769,6 +1107,7 @@
                 saveDropdownOpen = false;
               }}
               class="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Save${getShortcutFromSettings(settings, "save-project")}`}
             >
               <span class="font-medium">Save</span>
             </button>
@@ -778,6 +1117,7 @@
                 saveDropdownOpen = false;
               }}
               class="flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Save As${getShortcutFromSettings(settings, "save-file-as")}`}
             >
               <span class="font-medium">Save As...</span>
             </button>
@@ -791,7 +1131,7 @@
           id="export-project-btn"
           bind:this={exportButtonRef}
           on:click={() => (exportMenuOpen = !exportMenuOpen)}
-          class="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md shadow-sm transition-colors text-sm font-medium"
+          class="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md shadow-sm transition-colors text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
         >
           <span>Export</span>
           <svg
@@ -821,21 +1161,25 @@
             <button
               on:click={() => handleExport("java")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Export Java${getShortcutFromSettings(settings, "export-java")}`}
               >Java Code</button
             >
             <button
               on:click={() => handleExport("points")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Export Points${getShortcutFromSettings(settings, "export-points")}`}
               >Points Array</button
             >
             <button
               on:click={() => handleExport("sequential")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Export Sequential${getShortcutFromSettings(settings, "export-sequential")}`}
               >Sequential Command</button
             >
             <button
               on:click={() => handleExport("json")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Export .pp${getShortcutFromSettings(settings, "export-pp")}`}
               >.pp File</button
             >
 
@@ -843,10 +1187,27 @@
             <button
               on:click={() => {
                 exportMenuOpen = false;
+                showExportImage.set(true);
+              }}
+              class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title="Export as Image">Export as Image</button
+            >
+            <button
+              on:click={() => {
+                exportMenuOpen = false;
                 exportGif && exportGif();
               }}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title={`Export GIF${getShortcutFromSettings(settings, "export-gif")}`}
               >Export Animated</button
+            >
+            <button
+              on:click={() => {
+                exportMenuOpen = false;
+                showStrategySheet.set(true);
+              }}
+              class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+              title="Print Strategy Sheet">Strategy Sheet</button
             >
 
             {#if $customExportersStore.length > 0}
@@ -877,7 +1238,7 @@
           title={action.title}
           aria-label={action.title}
           on:click={action.onClick}
-          class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+          class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         >
           {@html action.icon}
         </button>
@@ -891,10 +1252,10 @@
       <!-- New Project -->
       <button
         id="new-project-btn"
-        title="New Project"
+        title={`New Project${getShortcutFromSettings(settings, "new-file")}`}
         aria-label="New Project"
         on:click={() => resetProject()}
-        class="relative group p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+        class="relative group p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -912,13 +1273,37 @@
         </svg>
       </button>
 
+      <!-- Feedback / Report Bug Button -->
+      <button
+        id="feedback-btn"
+        title="Report Issue / Rating"
+        aria-label="Report Issue / Rating"
+        on:click={() => showFeedbackDialog.set(true)}
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-5 text-purple-600 dark:text-purple-400"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z"
+          />
+        </svg>
+      </button>
+
       <!-- Settings Button -->
       <button
         id="settings-btn"
-        title="Settings"
+        title={`Settings${getShortcutFromSettings(settings, "open-settings")}`}
         aria-label="Settings"
         on:click={() => showSettings.set(true)}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -941,34 +1326,14 @@
         </svg>
       </button>
 
-      <!-- Discord Link -->
-      <a
-        target="_blank"
-        rel="noreferrer"
-        title="Discord Server"
-        aria-label="Discord Server"
-        href="https://discord.gg/ku59afNBBM"
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 71 55"
-          class="size-5 fill-current"
-        >
-          <path
-            d="M60.105 4.902A58.55 58.55 0 0 0 46.852.79a40.643 40.643 0 0 0-1.955 4.025 56.548 56.548 0 0 0-16.788 0A40.704 40.704 0 0 0 26.155.79a58.864 58.864 0 0 0-13.26 4.13C3.102 16.61 1.501 28.07 2.236 39.44A58.834 58.834 0 0 0 17.42 47.2a42.11 42.11 0 0 0 3.48-5.64 36.84 36.84 0 0 1-5.473-2.617c.46-.34.91-.694 1.344-1.06a39.82 39.82 0 0 0 33.057 0c.44.366.89.722 1.343 1.06a36.52 36.52 0 0 1-5.48 2.62c.99 2.036 2.144 3.985 3.46 5.826a58.63 58.63 0 0 0 15.23-7.79c1.246-17.352-2.127-28.724-4.876-34.717ZM23.725 33.468c-3.23 0-5.878-2.99-5.878-6.665 0-3.676 2.6-6.666 5.878-6.666 3.295 0 5.93 3.007 5.878 6.666 0 3.675-2.6 6.665-5.878 6.665Zm22.55 0c-3.23 0-5.878-2.99-5.878-6.665 0-3.676 2.6-6.666 5.878-6.666 3.295 0 5.93 3.007 5.878 6.666 0 3.675-2.6 6.665-5.878 6.665Z"
-          />
-        </svg>
-      </a>
-
       <!-- GitHub Repo Link -->
       <a
         target="_blank"
         rel="norefferer"
         title="GitHub Repo"
         aria-label="GitHub Repository"
-        href="https://github.com/Mallen220/PedroPathingVisualizer"
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors"
+        href="https://github.com/Mallen220/PedroPathingPlusVisualizer"
+        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

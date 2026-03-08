@@ -1,9 +1,31 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-import { describe, it, expect } from "vitest";
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { describe, it, expect, beforeEach } from "vitest";
 import * as fc from "fast-check";
 import { analyzePathSegment, calculatePathTime } from "../utils/timeCalculator";
 import { getCurvePoint } from "../utils/math";
 import type { Point, Line, SequenceItem, Settings } from "../types";
+import { actionRegistry } from "../lib/actionRegistry";
+import { registerCoreUI } from "../lib/coreRegistrations";
+import type {
+  SequencePathItem,
+  SequenceWaitItem,
+  SequenceRotateItem,
+} from "../types";
+
+beforeEach(() => {
+  actionRegistry.reset();
+  registerCoreUI();
+});
+
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const waitKind = (): SequenceWaitItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isWait)
+    ?.kind as SequenceWaitItem["kind"]) ?? "wait";
+const rotateKind = (): SequenceRotateItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isRotate)
+    ?.kind as SequenceRotateItem["kind"]) ?? "rotate";
 
 describe("Time Calculator Extended", () => {
   const defaultSettings: Settings = {
@@ -116,10 +138,10 @@ describe("Time Calculator Extended", () => {
 
       // Sequence: Path L1 -> Wait 1s -> Rotate to 45 -> Path L2
       const sequence: SequenceItem[] = [
-        { kind: "path", lineId: "L1" },
-        { kind: "wait", id: "w1", name: "w1", durationMs: 1000 },
-        { kind: "rotate", id: "r1", degrees: 45, name: "Turn" },
-        { kind: "path", lineId: "L2" },
+        { kind: pathKind(), lineId: "L1" },
+        { kind: waitKind(), id: "w1", name: "w1", durationMs: 1000 },
+        { kind: rotateKind(), id: "r1", degrees: 45, name: "Turn" },
+        { kind: pathKind(), lineId: "L2" },
       ];
 
       const result = calculatePathTime(

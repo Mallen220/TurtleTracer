@@ -1,11 +1,11 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import fs from "fs";
 import path from "path";
 
 const OWNER = "Matthew Allen";
 const CURRENT_YEAR = new Date().getFullYear();
 
-const ONE_LINE_LICENSE = `Licensed under the Apache License, Version 2.0.`;
+const ONE_LINE_LICENSE = `Licensed under the Modified Apache License, Version 2.0.`;
 
 const EXTENSIONS = {
   ".js": "LINE",

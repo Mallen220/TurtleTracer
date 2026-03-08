@@ -1,6 +1,7 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { onMount } from "svelte";
+  import { get } from "svelte/store";
   import hotkeys from "hotkeys-js";
   import CommandPalette from "./CommandPalette.svelte";
   import {
@@ -22,6 +23,15 @@
     fileManagerNewFileMode,
     showPluginManager,
     showRuler,
+    settingsActiveTab,
+    showTelemetryDialog,
+    showStrategySheet,
+    showHistory,
+    showTransformDialog,
+    protractorLockToRobot,
+    showExportGif,
+    notification,
+    showRobot,
   } from "../../stores";
   import {
     startPointStore,
@@ -32,7 +42,9 @@
     playingStore,
     playbackSpeedStore,
     renumberDefaultPathNames,
+    robotProfilesStore,
   } from "../projectStore";
+  import type { Point } from "../../types";
   import {
     updateLinkedWaypoints,
     updateLinkedWaits,
@@ -44,14 +56,16 @@
   import { createTriangle } from "../../utils";
   import { toggleDiff } from "../../lib/diffStore";
   import {
-    DEFAULT_KEY_BINDINGS,
     FIELD_SIZE,
     DEFAULT_SETTINGS,
     getDefaultStartPoint,
     AVAILABLE_FIELD_MAPS,
+    SETTINGS_TAB_ORDER,
   } from "../../config";
+  import { DEFAULT_KEY_BINDINGS } from "../../config/keybindings";
   import { getRandomColor } from "../../utils";
   import { computeZoomStep } from "../zoomHelpers";
+  import { actionRegistry } from "../actionRegistry";
   import _ from "lodash";
 
   // Actions
@@ -59,6 +73,7 @@
   export let resetProject: () => void;
   export let saveFileAs: () => void;
   export let exportGif: () => void;
+  export let exportImage: () => void = () => {};
   export let undoAction: () => void;
   export let redoAction: () => void;
   export let play: () => void;
@@ -66,18 +81,16 @@
   export let resetAnimation: () => void;
   export let stepForward: () => void;
   export let stepBackward: () => void;
-  export let recordChange: () => void;
+  export let splitPath: () => void = () => {};
+  export let recordChange: (action?: string) => void;
   export let controlTabRef: any = null;
-  export let activeControlTab: "path" | "field" | "table" = "path";
+  export let activeControlTab: "path" | "field" | "table" | "code" = "path";
   export let toggleStats: () => void = () => {};
   export let toggleSidebar: () => void = () => {};
   export let fieldRenderer: any = null;
 
   // Optional callback provided by App.svelte to open the What's New dialog
   export let openWhatsNew: () => void;
-  // This is no longer passed as a prop, handled internally, but kept for compatibility if needed.
-  // We'll mark it optional or ignore if passed.
-  export let toggleCommandPalette: (() => void) | undefined = undefined;
 
   // Reactive Values
   $: settings = $settingsStore;
@@ -151,7 +164,19 @@
     return tag === "BUTTON" || el.getAttribute("role") === "button";
   }
 
-  function shouldBlockShortcut(e: KeyboardEvent): boolean {
+  function shouldBlockShortcut(e: KeyboardEvent, actionId?: string): boolean {
+    // Whitelist specific actions that should work even when input is focused
+    if (
+      actionId === "toggle-command-palette" ||
+      actionId === "cycle-tabs-next" ||
+      actionId === "cycle-tabs-prev" ||
+      actionId === "select-code-tab" ||
+      actionId === "select-paths-tab" ||
+      actionId === "select-field-tab" ||
+      actionId === "select-table-tab"
+    )
+      return false;
+    if (e.key === "Escape") return false;
     if (isInputFocused()) return true;
     if (isButtonFocused()) {
       // If focused on a button, only block interaction keys (Space, Enter)
@@ -169,12 +194,6 @@
     return false;
   }
 
-  function getKey(action: string): string {
-    const bindings = settings?.keyBindings || DEFAULT_KEY_BINDINGS;
-    const binding = bindings.find((b) => b.action === action);
-    return binding ? binding.key : "";
-  }
-
   // --- Logic Extracted from App.svelte ---
 
   // Helper: get the sequence index corresponding to the current selection
@@ -187,7 +206,7 @@
     if (sel.startsWith("wait-")) {
       const wid = sel.substring(5);
       const idx = seq.findIndex(
-        (s) => s.kind === "wait" && (s as any).id === wid,
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === wid,
       );
       return idx >= 0 ? idx : null;
     }
@@ -196,7 +215,7 @@
     if (sel.startsWith("rotate-")) {
       const rid = sel.substring(7);
       const idx = seq.findIndex(
-        (s) => s.kind === "rotate" && (s as any).id === rid,
+        (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rid,
       );
       return idx >= 0 ? idx : null;
     }
@@ -206,7 +225,8 @@
       const targetId = $selectedLineId || null;
       if (!targetId) return null;
       const idx = seq.findIndex(
-        (s) => s.kind === "path" && (s as any).lineId === targetId,
+        (s) =>
+          actionRegistry.get(s.kind)?.isPath && (s as any).lineId === targetId,
       );
       return idx >= 0 ? idx : null;
     }
@@ -257,7 +277,7 @@
       selectedPointId.set(`point-${newIndex + 1}-0`);
     }
 
-    recordChange();
+    recordChange("Add Path");
   }
 
   function addWait() {
@@ -282,7 +302,7 @@
 
     selectedPointId.set(`wait-${wait.id}`);
     selectedLineId.set(null);
-    recordChange();
+    recordChange("Add Wait");
   }
 
   function addRotate() {
@@ -307,7 +327,7 @@
 
     selectedPointId.set(`rotate-${rotate.id}`);
     selectedLineId.set(null);
-    recordChange();
+    recordChange("Add Rotate");
   }
 
   function addEventMarker() {
@@ -315,7 +335,7 @@
     if ($selectedPointId && $selectedPointId.startsWith("wait-")) {
       const waitId = $selectedPointId.substring(5);
       const waitItem = sequence.find(
-        (s) => s.kind === "wait" && (s as any).id === waitId,
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
       ) as any;
 
       if (waitItem) {
@@ -327,7 +347,35 @@
           position: 0.5,
         });
         sequenceStore.set(sequence);
-        recordChange();
+        selectedPointId.set(
+          `event-wait-${waitId}-${waitItem.eventMarkers.length - 1}`,
+        );
+        recordChange("Add Event Marker");
+        return;
+      }
+    }
+
+    // Check if a rotate is selected
+    if ($selectedPointId && $selectedPointId.startsWith("rotate-")) {
+      const rotateId = $selectedPointId.substring(7);
+      const rotateItem = sequence.find(
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      ) as any;
+
+      if (rotateItem) {
+        if (rotateItem.locked) return;
+        rotateItem.eventMarkers = rotateItem.eventMarkers || [];
+        rotateItem.eventMarkers.push({
+          id: `event-${Date.now()}`,
+          name: "",
+          position: 0.5,
+        });
+        sequenceStore.set(sequence);
+        selectedPointId.set(
+          `event-rotate-${rotateId}-${rotateItem.eventMarkers.length - 1}`,
+        );
+        recordChange("Add Event Marker");
         return;
       }
     }
@@ -344,7 +392,13 @@
         position: 0.5,
       });
       linesStore.set(lines);
-      recordChange();
+      const lineIdx = lines.findIndex((l) => l.id === targetId);
+      if (lineIdx !== -1) {
+        selectedPointId.set(
+          `event-${lineIdx}-${targetLine.eventMarkers.length - 1}`,
+        );
+      }
+      recordChange("Add Event Marker");
     }
   }
 
@@ -365,7 +419,7 @@
     const cpIndex = targetLine.controlPoints.length;
     selectedLineId.set(targetLine.id as string);
     selectedPointId.set(`point-${lineIndex + 1}-${cpIndex}`);
-    recordChange();
+    recordChange("Add Control Point");
   }
 
   function removeControlPoint() {
@@ -377,7 +431,7 @@
         if (targetLine.locked) return; // Don't allow removing control points from locked lines
         targetLine.controlPoints.pop();
         linesStore.set(lines);
-        recordChange();
+        recordChange("Remove Control Point");
       }
     }
   }
@@ -425,15 +479,15 @@
     if (sel.startsWith("wait-")) {
       const waitId = sel.substring(5);
       const waitItem = $sequenceStore.find(
-        (s) => s.kind === "wait" && (s as any).id === waitId,
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
       ) as any;
       if (!waitItem) return;
 
-      const newWait = _.cloneDeep(waitItem);
+      const newWait = structuredClone(waitItem);
       newWait.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
       const existingWaitNames = sequence
-        .filter((s) => s.kind === "wait")
+        .filter((s) => actionRegistry.get(s.kind)?.isWait)
         .map((s) => (s as any).name || "");
       // Preserve empty name when duplicating unnamed waits
       if (waitItem.name && waitItem.name.trim() !== "") {
@@ -450,7 +504,7 @@
           return s2;
         });
         selectedPointId.set(`wait-${newWait.id}`);
-        recordChange();
+        recordChange("Duplicate Selection");
       }
       return;
     }
@@ -458,14 +512,15 @@
     if (sel.startsWith("rotate-")) {
       const rotateId = sel.substring(7);
       const rotateItem = $sequenceStore.find(
-        (s) => s.kind === "rotate" && (s as any).id === rotateId,
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
       ) as any;
       if (!rotateItem) return;
 
-      const newRotate = _.cloneDeep(rotateItem);
+      const newRotate = structuredClone(rotateItem);
       newRotate.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
       const existingRotateNames = sequence
-        .filter((s) => s.kind === "rotate")
+        .filter((s) => actionRegistry.get(s.kind)?.isRotate)
         .map((s) => (s as any).name || "");
       // Preserve empty name when duplicating unnamed rotates
       if (rotateItem.name && rotateItem.name.trim() !== "") {
@@ -482,7 +537,7 @@
           return s2;
         });
         selectedPointId.set(`rotate-${newRotate.id}`);
-        recordChange();
+        recordChange("Duplicate Selection");
       }
       return;
     }
@@ -513,7 +568,7 @@
       const deltaX = originalLine.endPoint.x - prevPoint.x;
       const deltaY = originalLine.endPoint.y - prevPoint.y;
 
-      const newLine = _.cloneDeep(originalLine);
+      const newLine = structuredClone(originalLine);
       newLine.id = `line-${Math.random().toString(36).slice(2)}`;
 
       // Update name (preserve empty name if original was unnamed)
@@ -544,7 +599,9 @@
       // Insert into sequence
       // We need to find where the original line was in the sequence
       const seqIdx = sequence.findIndex(
-        (s) => s.kind === "path" && s.lineId === originalLine.id,
+        (s) =>
+          actionRegistry.get(s.kind)?.isPath &&
+          (s as any).lineId === originalLine.id,
       );
       if (seqIdx !== -1) {
         sequenceStore.update((s) => {
@@ -562,22 +619,36 @@
 
       selectedLineId.set(newLine.id!);
       selectedPointId.set(`point-${lineIndex + 2}-0`); // Selected the end point of new line
-      recordChange();
+      recordChange("Duplicate Selection");
     }
   }
 
   function copy() {
     if (isUIElementFocused()) return;
+
+    // Context-aware copy
+    if (activeControlTab === "code") {
+      if (controlTabRef && controlTabRef.copyCode) {
+        controlTabRef.copyCode();
+        return;
+      }
+    } else if (activeControlTab === "table") {
+      if (controlTabRef && controlTabRef.copyTable) {
+        controlTabRef.copyTable();
+        return;
+      }
+    }
+
     const sel = $selectedPointId;
     if (!sel) return;
 
     if (sel.startsWith("wait-")) {
       const waitId = sel.substring(5);
       const waitItem = $sequenceStore.find(
-        (s) => s.kind === "wait" && (s as any).id === waitId,
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
       ) as any;
       if (waitItem) {
-        clipboard = _.cloneDeep(waitItem);
+        clipboard = structuredClone(waitItem);
       }
       return;
     }
@@ -585,10 +656,11 @@
     if (sel.startsWith("rotate-")) {
       const rotateId = sel.substring(7);
       const rotateItem = $sequenceStore.find(
-        (s) => s.kind === "rotate" && (s as any).id === rotateId,
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
       ) as any;
       if (rotateItem) {
-        clipboard = _.cloneDeep(rotateItem);
+        clipboard = structuredClone(rotateItem);
       }
       return;
     }
@@ -606,8 +678,16 @@
     if (targetLineId) {
       const line = lines.find((l) => l.id === targetLineId);
       if (line) {
-        clipboard = _.cloneDeep(line);
+        clipboard = structuredClone(line);
       }
+    }
+
+    if (clipboard) {
+      notification.set({
+        message: "Selection copied",
+        type: "info",
+        timeout: 1500,
+      });
     }
   }
 
@@ -615,21 +695,29 @@
     if (isUIElementFocused()) return;
     copy();
     removeSelected();
+    notification.set({
+      message: "Selection cut",
+      type: "info",
+      timeout: 1500,
+    });
   }
 
   function paste() {
     if (isUIElementFocused()) return;
     if (!clipboard) return;
 
+    const clipKind = (clipboard as any).kind;
+    const clipDef = clipKind ? actionRegistry.get(clipKind) : null;
+
     // Handle Wait
-    if ((clipboard as any).kind === "wait") {
+    if (clipDef?.isWait) {
       const waitItem = clipboard as SequenceItem;
-      const newWait = _.cloneDeep(waitItem) as any;
+      const newWait = structuredClone(waitItem) as any;
       newWait.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
       // Generate unique name
       const existingWaitNames = sequence
-        .filter((s) => s.kind === "wait")
+        .filter((s) => actionRegistry.get(s.kind)?.isWait)
         .map((s) => (s as any).name || "");
       if (newWait.name && newWait.name.trim() !== "") {
         newWait.name = generateName(newWait.name, existingWaitNames);
@@ -648,19 +736,24 @@
         sequenceStore.update((s) => [...s, newWait]);
       }
       selectedPointId.set(`wait-${newWait.id}`);
-      recordChange();
+      recordChange("Paste");
+      notification.set({
+        message: "Wait pasted",
+        type: "success",
+        timeout: 1500,
+      });
       return;
     }
 
     // Handle Rotate
-    if ((clipboard as any).kind === "rotate") {
+    if (clipDef?.isRotate) {
       const rotateItem = clipboard as SequenceItem;
-      const newRotate = _.cloneDeep(rotateItem) as any;
+      const newRotate = structuredClone(rotateItem) as any;
       newRotate.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
       // Generate unique name
       const existingRotateNames = sequence
-        .filter((s) => s.kind === "rotate")
+        .filter((s) => actionRegistry.get(s.kind)?.isRotate)
         .map((s) => (s as any).name || "");
       if (newRotate.name && newRotate.name.trim() !== "") {
         newRotate.name = generateName(newRotate.name, existingRotateNames);
@@ -679,7 +772,12 @@
         sequenceStore.update((s) => [...s, newRotate]);
       }
       selectedPointId.set(`rotate-${newRotate.id}`);
-      recordChange();
+      recordChange("Paste");
+      notification.set({
+        message: "Rotate pasted",
+        type: "success",
+        timeout: 1500,
+      });
       return;
     }
 
@@ -701,7 +799,7 @@
       if (insertIdx !== null) {
         // Find path element at or before insertIdx
         for (let i = insertIdx; i >= 0; i--) {
-          if (sequence[i].kind === "path") {
+          if (actionRegistry.get(sequence[i].kind)?.isPath) {
             const lineId = (sequence[i] as any).lineId;
             const l = lines.find((line) => line.id === lineId);
             if (l) {
@@ -745,7 +843,7 @@
       // Let's stick to: Paste exactly, but regenerate ID and Name.
       // If it overlaps, user can move it.
 
-      const newLine = _.cloneDeep(originalLine);
+      const newLine = structuredClone(originalLine);
       newLine.id = `line-${Math.random().toString(36).slice(2)}`;
 
       const existingLineNames = lines.map((l) => l.name || "");
@@ -767,7 +865,7 @@
 
         let insertionLineIndex = -1;
         for (let i = insertIdx; i >= 0; i--) {
-          if (sequence[i].kind === "path") {
+          if (actionRegistry.get(sequence[i].kind)?.isPath) {
             const lid = (sequence[i] as any).lineId;
             insertionLineIndex = lines.findIndex((l) => l.id === lid);
             break;
@@ -814,7 +912,12 @@
       // We can just set selectedLineId and let the UI handle it, or try to guess point ID.
       // Point ID depends on index.
       // Let's record change.
-      recordChange();
+      recordChange("Paste");
+      notification.set({
+        message: "Path pasted",
+        type: "success",
+        timeout: 1500,
+      });
     }
   }
 
@@ -834,7 +937,7 @@
         s.filter((item) => !(item.kind === "wait" && item.id === waitId)),
       );
       selectedPointId.set(null);
-      recordChange();
+      recordChange("Delete Selection");
       return;
     }
 
@@ -849,7 +952,7 @@
         s.filter((item) => !(item.kind === "rotate" && item.id === rotateId)),
       );
       selectedPointId.set(null);
-      recordChange();
+      recordChange("Delete Selection");
       return;
     }
 
@@ -865,20 +968,23 @@
 
       if (ptIdx === 0) {
         // End Point -> Remove line
-        if (lines.length <= 1) return;
         if (line.locked) return; // Don't allow keyboard delete of locked lines
         const removedId = line.id;
         linesStore.update((l) => l.filter((_, i) => i !== lineIndex));
         if (removedId) {
           sequenceStore.update((s) =>
             s.filter(
-              (item) => !(item.kind === "path" && item.lineId === removedId),
+              (item) =>
+                !(
+                  actionRegistry.get(item.kind)?.isPath &&
+                  (item as any).lineId === removedId
+                ),
             ),
           );
         }
         selectedPointId.set(null);
         selectedLineId.set(null);
-        recordChange();
+        recordChange("Delete Selection");
         return;
       }
       // Control Point
@@ -888,8 +994,61 @@
         line.controlPoints.splice(cpIndex, 1);
         linesStore.set(lines);
         selectedPointId.set(null);
-        recordChange();
+        recordChange("Delete Selection");
       }
+      return;
+    }
+
+    if (sel.startsWith("event-wait-")) {
+      const parts = sel.split("-");
+      const evIdx = Number(parts.pop());
+      const waitId = parts.slice(2).join("-");
+
+      const item = sequence.find(
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
+      ) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        if (item.locked) return;
+        item.eventMarkers.splice(evIdx, 1);
+        sequenceStore.set(sequence);
+        selectedPointId.set(`wait-${waitId}`);
+        recordChange("Delete Event Marker");
+      }
+      return;
+    }
+
+    if (sel.startsWith("event-rotate-")) {
+      const parts = sel.split("-");
+      const evIdx = Number(parts.pop());
+      const rotateId = parts.slice(2).join("-");
+
+      const item = sequence.find(
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      ) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        if (item.locked) return;
+        item.eventMarkers.splice(evIdx, 1);
+        sequenceStore.set(sequence);
+        selectedPointId.set(`rotate-${rotateId}`);
+        recordChange("Delete Event Marker");
+      }
+      return;
+    }
+
+    if (sel.startsWith("event-")) {
+      const parts = sel.split("-");
+      const lineIdx = Number(parts[1]);
+      const evIdx = Number(parts[2]);
+      const line = lines[lineIdx];
+      if (line && line.eventMarkers && line.eventMarkers[evIdx]) {
+        if (line.locked) return;
+        line.eventMarkers.splice(evIdx, 1);
+        linesStore.set(lines);
+        selectedPointId.set(`point-${lineIdx + 1}-0`);
+        recordChange("Delete Event Marker");
+      }
+      return;
     }
   }
 
@@ -941,7 +1100,7 @@
           startPoint.x = Number(startPoint.x.toFixed(3));
           startPoint.y = Number(startPoint.y.toFixed(3));
           startPointStore.set(startPoint);
-          recordChange();
+          recordChange("Move Point");
         }
         return;
       }
@@ -969,7 +1128,7 @@
             line.endPoint.y = Number(line.endPoint.y.toFixed(3));
             // Ensure linked lines (same-named waypoints) are updated when a point is moved via keybinds
             linesStore.set(updateLinkedWaypoints(lines, line.id!));
-            recordChange();
+            recordChange("Move Point");
           }
         } else {
           const cpIndex = ptIdx - 1;
@@ -1002,7 +1161,7 @@
               line.controlPoints[cpIndex].y.toFixed(3),
             );
             linesStore.set(lines);
-            recordChange();
+            recordChange("Move Point");
           }
         }
       }
@@ -1022,7 +1181,42 @@
         v.x = Number(v.x.toFixed(3));
         v.y = Number(v.y.toFixed(3));
         shapesStore.set(shapes);
-        recordChange();
+        recordChange("Move Obstacle Vertex");
+      }
+    } else if (currentSel.startsWith("event-wait-")) {
+      const parts = currentSel.split("-");
+      // Format: event-wait-waitId-evIdx
+      // waitId can contain hyphens, so we need to rebuild it or handle it properly
+      const evIdx = Number(parts.pop());
+      const waitId = parts.slice(2).join("-");
+
+      const item = sequence.find(
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
+      ) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        const delta = (dx + dy) * 0.01;
+        let newPos = item.eventMarkers[evIdx].position + delta;
+        newPos = Math.max(0, Math.min(1, newPos));
+        item.eventMarkers[evIdx].position = newPos;
+        sequenceStore.set(sequence);
+        recordChange("Move Event Marker");
+      }
+    } else if (currentSel.startsWith("event-rotate-")) {
+      const parts = currentSel.split("-");
+      const evIdx = Number(parts.pop());
+      const rotateId = parts.slice(2).join("-");
+
+      const item = sequence.find(
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      ) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        const delta = (dx + dy) * 0.01;
+        let newPos = item.eventMarkers[evIdx].position + delta;
+        newPos = Math.max(0, Math.min(1, newPos));
+        item.eventMarkers[evIdx].position = newPos;
+        sequenceStore.set(sequence);
+        recordChange("Move Event Marker");
       }
     } else if (currentSel.startsWith("event-")) {
       const parts = currentSel.split("-");
@@ -1035,7 +1229,7 @@
         newPos = Math.max(0, Math.min(1, newPos));
         line.eventMarkers[evIdx].position = newPos;
         linesStore.set(lines);
-        recordChange();
+        recordChange("Move Event Marker");
       }
     }
   }
@@ -1043,8 +1237,9 @@
   function getSelectableItems() {
     const items: string[] = ["point-0-0"];
     sequence.forEach((item) => {
-      if (item.kind === "path") {
-        const lineIdx = lines.findIndex((l) => l.id === item.lineId);
+      const def = actionRegistry.get(item.kind);
+      if (def?.isPath) {
+        const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
         if (lineIdx !== -1) {
           const line = lines[lineIdx];
           line.controlPoints.forEach((_, cpIdx) =>
@@ -1052,10 +1247,20 @@
           );
           items.push(`point-${lineIdx + 1}-0`);
         }
-      } else if (item.kind === "wait") {
-        items.push(`wait-${item.id}`);
-      } else if (item.kind === "rotate") {
-        items.push(`rotate-${item.id}`);
+      } else if (def?.isWait) {
+        items.push(`wait-${(item as any).id}`);
+        if ((item as any).eventMarkers) {
+          (item as any).eventMarkers.forEach((_: any, evIdx: number) =>
+            items.push(`event-wait-${(item as any).id}-${evIdx}`),
+          );
+        }
+      } else if (def?.isRotate) {
+        items.push(`rotate-${(item as any).id}`);
+        if ((item as any).eventMarkers) {
+          (item as any).eventMarkers.forEach((_: any, evIdx: number) =>
+            items.push(`event-rotate-${(item as any).id}-${evIdx}`),
+          );
+        }
       }
     });
     lines.forEach((line, lineIdx) => {
@@ -1068,6 +1273,62 @@
       s.vertices.forEach((_, vIdx) => items.push(`obstacle-${sIdx}-${vIdx}`));
     });
     return items;
+  }
+
+  function syncSelectionToUI() {
+    const sel = $selectedPointId;
+    if (!sel || !controlTabRef || !controlTabRef.scrollToItem) return;
+
+    if (sel.startsWith("wait-")) {
+      controlTabRef.scrollToItem("wait", sel.substring(5));
+    } else if (sel.startsWith("rotate-")) {
+      controlTabRef.scrollToItem("rotate", sel.substring(7));
+    } else if (sel.startsWith("point-")) {
+      // Points map to paths
+      // point-LINENUM-PTIDX
+      const parts = sel.split("-");
+      const lineNum = Number(parts[1]);
+      if (lineNum > 0) {
+        const line = lines[lineNum - 1];
+        if (line && line.id) {
+          // Assuming control tab can handle generic path scroll requests
+          // If not, we might need to check registry for path alias?
+          // For now "path" string is what ControlTab expects.
+          controlTabRef.scrollToItem("path", line.id);
+        }
+      }
+    } else if (sel.startsWith("event-wait-")) {
+      const parts = sel.split("-");
+      const evIdx = Number(parts.pop());
+      const waitId = parts.slice(2).join("-");
+
+      const item = sequence.find(
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
+      ) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        controlTabRef.scrollToItem("event", item.eventMarkers[evIdx].id);
+      }
+    } else if (sel.startsWith("event-rotate-")) {
+      const parts = sel.split("-");
+      const evIdx = Number(parts.pop());
+      const rotateId = parts.slice(2).join("-");
+
+      const item = sequence.find(
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      ) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        controlTabRef.scrollToItem("event", item.eventMarkers[evIdx].id);
+      }
+    } else if (sel.startsWith("event-")) {
+      const parts = sel.split("-");
+      const lineIdx = Number(parts[1]);
+      const evIdx = Number(parts[2]);
+      const line = lines[lineIdx];
+      if (line && line.eventMarkers && line.eventMarkers[evIdx]) {
+        controlTabRef.scrollToItem("event", line.eventMarkers[evIdx].id);
+      }
+    }
   }
 
   function cycleSelection(dir: number) {
@@ -1086,6 +1347,42 @@
       if (lineNum > 0) selectedLineId.set(lines[lineNum - 1].id || null);
       else selectedLineId.set(null);
     } else selectedLineId.set(null);
+
+    syncSelectionToUI();
+  }
+
+  function cycleSequenceSelection(dir: number) {
+    if (isUIElementFocused()) return;
+    if (sequence.length === 0) return;
+
+    let currentIdx = getSelectedSequenceIndex();
+
+    if (currentIdx === null) {
+      currentIdx = 0;
+    } else {
+      currentIdx = (currentIdx + dir + sequence.length) % sequence.length;
+    }
+
+    const item = sequence[currentIdx];
+    if (!item) return;
+
+    const def = actionRegistry.get(item.kind);
+
+    if (def?.isPath) {
+      selectedLineId.set((item as any).lineId);
+      const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
+      if (lineIdx !== -1) {
+        selectedPointId.set(`point-${lineIdx + 1}-0`);
+      }
+    } else if (def?.isWait) {
+      selectedPointId.set(`wait-${(item as any).id}`);
+      selectedLineId.set(null);
+    } else if (def?.isRotate) {
+      selectedPointId.set(`rotate-${(item as any).id}`);
+      selectedLineId.set(null);
+    }
+
+    syncSelectionToUI();
   }
 
   function modifyValue(delta: number) {
@@ -1096,28 +1393,68 @@
     if (current.startsWith("wait-")) {
       const waitId = current.substring(5);
       const item = sequence.find(
-        (s) => s.kind === "wait" && s.id === waitId,
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
       ) as any;
       if (item) {
         if (item.locked) return; // Don't modify locked waits
         item.durationMs = Math.max(0, item.durationMs + delta * 100);
         // Update linked waits so waits that share a name keep the same duration
         sequenceStore.set(updateLinkedWaits(sequence, item.id));
-        recordChange();
+        recordChange("Modify Duration");
       }
       return;
     }
     if (current.startsWith("rotate-")) {
       const rotateId = current.substring(7);
       const item = sequence.find(
-        (s) => s.kind === "rotate" && s.id === rotateId,
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
       ) as any;
       if (item) {
         if (item.locked) return; // Don't modify locked rotates
         const step = 5;
         item.degrees = Number((item.degrees + delta * step).toFixed(2));
         sequenceStore.set(updateLinkedRotations(sequence, item.id));
-        recordChange();
+        recordChange("Modify Rotation");
+      }
+      return;
+    }
+    if (current.startsWith("event-wait-")) {
+      const parts = current.split("-");
+      const evIdx = Number(parts.pop());
+      const waitId = parts.slice(2).join("-");
+
+      const item = sequence.find(
+        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
+      ) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        if (item.locked) return; // Don't modify event markers on locked waits
+        const step = 0.01 * delta;
+        let newPos = item.eventMarkers[evIdx].position + step;
+        newPos = Math.max(0, Math.min(1, newPos));
+        item.eventMarkers[evIdx].position = newPos;
+        sequenceStore.set(sequence);
+        recordChange("Move Event Marker");
+      }
+      return;
+    }
+    if (current.startsWith("event-rotate-")) {
+      const parts = current.split("-");
+      const evIdx = Number(parts.pop());
+      const rotateId = parts.slice(2).join("-");
+
+      const item = sequence.find(
+        (s) =>
+          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      ) as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        if (item.locked) return; // Don't modify event markers on locked rotates
+        const step = 0.01 * delta;
+        let newPos = item.eventMarkers[evIdx].position + step;
+        newPos = Math.max(0, Math.min(1, newPos));
+        item.eventMarkers[evIdx].position = newPos;
+        sequenceStore.set(sequence);
+        recordChange("Move Event Marker");
       }
       return;
     }
@@ -1128,12 +1465,12 @@
       const line = lines[lineIdx];
       if (line && line.eventMarkers && line.eventMarkers[evIdx]) {
         if (line.locked) return; // Don't modify event markers on locked lines
-        const step = 0.01 * Math.sign(delta);
+        const step = 0.01 * delta;
         let newPos = line.eventMarkers[evIdx].position + step;
         newPos = Math.max(0, Math.min(1, newPos));
         line.eventMarkers[evIdx].position = newPos;
         linesStore.set(lines);
-        recordChange();
+        recordChange("Move Event Marker");
       }
       return;
     }
@@ -1143,12 +1480,12 @@
       if (line && line.eventMarkers && line.eventMarkers.length > 0) {
         if (line.locked) return; // Don't modify event markers on locked lines
         const lastIdx = line.eventMarkers.length - 1;
-        const step = 0.01 * Math.sign(delta);
+        const step = 0.01 * delta;
         let newPos = line.eventMarkers[lastIdx].position + step;
         newPos = Math.max(0, Math.min(1, newPos));
         line.eventMarkers[lastIdx].position = newPos;
         linesStore.set(lines);
-        recordChange();
+        recordChange("Move Event Marker");
       }
     }
   }
@@ -1180,9 +1517,8 @@
           degrees: undefined,
           startDeg: undefined,
           endDeg: undefined,
-        });
+        } as unknown as Point);
       } else if (next === "constant") {
-        // @ts-ignore
         startPointStore.set({
           ...startPoint,
           heading: "constant",
@@ -1190,9 +1526,8 @@
           reverse: undefined,
           startDeg: undefined,
           endDeg: undefined,
-        });
+        } as unknown as Point);
       } else {
-        // @ts-ignore
         startPointStore.set({
           ...startPoint,
           heading: "linear",
@@ -1200,9 +1535,9 @@
           endDeg: 180,
           reverse: undefined,
           degrees: undefined,
-        });
+        } as unknown as Point);
       }
-      recordChange();
+      recordChange("Toggle Heading Mode");
       return;
     }
 
@@ -1215,7 +1550,6 @@
       const current = line.endPoint.heading;
       const next = modes[(modes.indexOf(current) + 1) % modes.length];
 
-      // @ts-ignore
       if (next === "tangential") {
         line.endPoint = {
           ...line.endPoint,
@@ -1224,9 +1558,8 @@
           degrees: undefined,
           startDeg: undefined,
           endDeg: undefined,
-        };
+        } as unknown as Point;
       } else if (next === "constant") {
-        // @ts-ignore
         line.endPoint = {
           ...line.endPoint,
           heading: "constant",
@@ -1234,9 +1567,8 @@
           reverse: undefined,
           startDeg: undefined,
           endDeg: undefined,
-        };
+        } as unknown as Point;
       } else {
-        // @ts-ignore
         line.endPoint = {
           ...line.endPoint,
           heading: "linear",
@@ -1244,10 +1576,10 @@
           endDeg: 180,
           reverse: undefined,
           degrees: undefined,
-        };
+        } as unknown as Point;
       }
       linesStore.set(lines);
-      recordChange();
+      recordChange("Toggle Heading Mode");
     }
   }
 
@@ -1267,7 +1599,7 @@
           ...startPoint,
           reverse: !startPoint.reverse,
         });
-        recordChange();
+        recordChange("Toggle Reverse");
       }
       return;
     }
@@ -1280,7 +1612,7 @@
       if (line.endPoint.heading === "tangential") {
         line.endPoint.reverse = !line.endPoint.reverse;
         linesStore.set(lines);
-        recordChange();
+        recordChange("Toggle Reverse");
       }
     }
   }
@@ -1294,13 +1626,13 @@
       const waitId = sel.substring(5);
       sequenceStore.update((seq) =>
         seq.map((s) => {
-          if (s.kind === "wait" && (s as any).id === waitId) {
+          if (actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId) {
             return { ...s, locked: !(s as any).locked };
           }
           return s;
         }),
       );
-      recordChange();
+      recordChange("Toggle Lock");
       return;
     }
 
@@ -1308,13 +1640,16 @@
       const rotateId = sel.substring(7);
       sequenceStore.update((seq) =>
         seq.map((s) => {
-          if (s.kind === "rotate" && (s as any).id === rotateId) {
+          if (
+            actionRegistry.get(s.kind)?.isRotate &&
+            (s as any).id === rotateId
+          ) {
             return { ...s, locked: !(s as any).locked };
           }
           return s;
         }),
       );
-      recordChange();
+      recordChange("Toggle Lock");
       return;
     }
 
@@ -1324,7 +1659,7 @@
 
       if (lineNum === 0) {
         startPointStore.update((p) => ({ ...p, locked: !p.locked }));
-        recordChange();
+        recordChange("Toggle Lock");
         return;
       }
 
@@ -1339,7 +1674,7 @@
         }
         return newLines;
       });
-      recordChange();
+      recordChange("Toggle Lock");
       return;
     }
 
@@ -1355,7 +1690,7 @@
         }
         return newLines;
       });
-      recordChange();
+      recordChange("Toggle Lock");
     }
   }
 
@@ -1403,6 +1738,25 @@
     playbackSpeedStore.set(1.0);
   }
 
+  function cyclePathColor() {
+    if (isUIElementFocused()) return;
+    if ($selectedLineId) {
+      linesStore.update((l) => {
+        const newLines = [...l];
+        const idx = newLines.findIndex((line) => line.id === $selectedLineId);
+        if (idx !== -1) {
+          newLines[idx] = { ...newLines[idx], color: getRandomColor() };
+        }
+        return newLines;
+      });
+      recordChange("Cycle Path Color");
+    }
+  }
+
+  function toggleRobotVisibility() {
+    showRobot.update((v) => !v);
+  }
+
   // --- New Capabilities ---
 
   function snapSelection() {
@@ -1423,7 +1777,7 @@
         x: snap(p.x),
         y: snap(p.y),
       }));
-      recordChange();
+      recordChange("Snap Selection");
       return;
     }
 
@@ -1438,7 +1792,7 @@
         newLines[lineIdx].endPoint.y = snap(newLines[lineIdx].endPoint.y);
         return newLines;
       });
-      recordChange();
+      recordChange("Snap Selection");
     } else {
       const cpIdx = ptIdx - 1;
       if (line.controlPoints[cpIdx]) {
@@ -1452,7 +1806,7 @@
           );
           return newLines;
         });
-        recordChange();
+        recordChange("Snap Selection");
       }
     }
   }
@@ -1461,7 +1815,7 @@
     if (startPoint.locked) return;
     const def = getDefaultStartPoint();
     startPointStore.set(def);
-    recordChange();
+    recordChange("Reset Start Point");
   }
 
   function panToStart() {
@@ -1515,8 +1869,19 @@
     };
     navigator.clipboard
       .writeText(JSON.stringify(data, null, 2))
-      .then(() => alert("Path data copied to clipboard!"))
-      .catch((err) => console.error("Failed to copy", err));
+      .then(() => {
+        notification.set({
+          message: "Path data copied to clipboard!",
+          type: "success",
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to copy", err);
+        notification.set({
+          message: "Failed to copy path data.",
+          type: "error",
+        });
+      });
   }
 
   function cycleFieldMap() {
@@ -1558,6 +1923,7 @@
     saveProject: () => saveProject(),
     saveFileAs: () => saveFileAs(),
     exportGif: () => exportGif(),
+    exportImage: () => exportImage(),
     addNewLine: () => addNewLine(),
     addWait: () => addWait(),
     addRotate: () => addRotate(),
@@ -1568,6 +1934,7 @@
     copy: () => copy(),
     cut: () => cut(),
     paste: () => paste(),
+    splitPath: () => splitPath && splitPath(),
     removeSelected: () => removeSelected(),
     undo: () => undoAction(),
     redo: () => redoAction(),
@@ -1578,10 +1945,12 @@
     movePointDown: () => movePoint(0, -1),
     movePointLeft: () => movePoint(-1, 0),
     movePointRight: () => movePoint(1, 0),
-    selectNext: () => cycleSelection(1),
-    selectPrev: () => cycleSelection(-1),
+    selectNextSequence: () => cycleSequenceSelection(1),
+    selectPrevSequence: () => cycleSequenceSelection(-1),
     increaseValue: () => modifyValue(1),
     decreaseValue: () => modifyValue(-1),
+    increaseValueSmall: () => modifyValue(0.1),
+    decreaseValueSmall: () => modifyValue(-0.1),
     toggleHeadingMode: () => toggleHeadingMode(),
     toggleReverse: () => toggleReverse(),
     toggleLock: () => toggleLock(),
@@ -1630,15 +1999,34 @@
     selectTabPaths: () => (activeControlTab = "path"),
     selectTabField: () => (activeControlTab = "field"),
     selectTabTable: () => (activeControlTab = "table"),
+    selectTabCode: () => (activeControlTab = "code"),
     cycleTabNext: () => {
-      if (activeControlTab === "path") activeControlTab = "field";
-      else if (activeControlTab === "field") activeControlTab = "table";
-      else activeControlTab = "path";
+      if ($showSettings) {
+        const tabs = SETTINGS_TAB_ORDER;
+        const current = $settingsActiveTab;
+        const idx = tabs.indexOf(current);
+        const next = tabs[(idx + 1) % tabs.length];
+        settingsActiveTab.set(next);
+      } else {
+        if (activeControlTab === "path") activeControlTab = "field";
+        else if (activeControlTab === "field") activeControlTab = "table";
+        else if (activeControlTab === "table") activeControlTab = "code";
+        else activeControlTab = "path";
+      }
     },
     cycleTabPrev: () => {
-      if (activeControlTab === "path") activeControlTab = "table";
-      else if (activeControlTab === "field") activeControlTab = "path";
-      else activeControlTab = "field";
+      if ($showSettings) {
+        const tabs = SETTINGS_TAB_ORDER;
+        const current = $settingsActiveTab;
+        const idx = tabs.indexOf(current);
+        const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
+        settingsActiveTab.set(prev);
+      } else {
+        if (activeControlTab === "path") activeControlTab = "code";
+        else if (activeControlTab === "code") activeControlTab = "table";
+        else if (activeControlTab === "table") activeControlTab = "field";
+        else activeControlTab = "path";
+      }
     },
     toggleCollapseAll: () => toggleCollapseAllTrigger.update((v) => v + 1),
     toggleCollapseSelected: () => {
@@ -1653,9 +2041,7 @@
       if (openWhatsNew) openWhatsNew();
     },
     toggleCommandPalette: () => {
-      if (toggleCommandPalette)
-        toggleCommandPalette(); // external override?
-      else showCommandPalette = !showCommandPalette; // internal toggle
+      showCommandPalette = !showCommandPalette;
     },
     toggleStats: () => {
       if (toggleStats) toggleStats();
@@ -1669,6 +2055,10 @@
         ...s,
         showVelocityHeatmap: !s.showVelocityHeatmap,
       })),
+    toggleHistory: () => showHistory.update((v) => !v),
+    toggleStrategySheet: () => showStrategySheet.update((v) => !v),
+    toggleProtractorLock: () => protractorLockToRobot.update((v) => !v),
+    toggleTransformDialog: () => showTransformDialog.update((v) => !v),
     addObstacle: () => {
       shapesStore.update((s) => [...s, createTriangle(s.length)]);
       activeControlTab = "field";
@@ -1683,9 +2073,63 @@
         });
       }
     },
+    editItem: () => {
+      const sel = $selectedPointId;
+      if (!sel) return;
+      if (sel.startsWith("wait-")) {
+        // Map 'x' to duration for Wait items
+        focusRequest.set({ field: "x", timestamp: Date.now(), id: sel });
+      } else if (sel.startsWith("rotate-")) {
+        // Map 'heading' (or 'degrees') for Rotate items
+        focusRequest.set({ field: "heading", timestamp: Date.now(), id: sel });
+      } else {
+        // Default to X for points/obstacles
+        focusRequest.set({ field: "x", timestamp: Date.now(), id: sel });
+      }
+    },
     deselectAll: () => {
+      if ($showSettings) {
+        showSettings.set(false);
+        return;
+      }
+      if ($showFileManager) {
+        showFileManager.set(false);
+        return;
+      }
+      if ($showPluginManager) {
+        showPluginManager.set(false);
+        return;
+      }
+      if ($showShortcuts) {
+        showShortcuts.set(false);
+        return;
+      }
+      if ($showExportGif) {
+        showExportGif.set(false);
+        return;
+      }
+      if ($exportDialogState.isOpen) {
+        exportDialogState.update((s) => ({ ...s, isOpen: false }));
+        return;
+      }
+      if ($showTelemetryDialog) {
+        showTelemetryDialog.set(false);
+        return;
+      }
+      if ($showStrategySheet) {
+        showStrategySheet.set(false);
+        return;
+      }
+
       selectedPointId.set(null);
       selectedLineId.set(null);
+      // Blur any active input
+      if (
+        document.activeElement &&
+        (document.activeElement as HTMLElement).blur
+      ) {
+        (document.activeElement as HTMLElement).blur();
+      }
     },
     focusX: () => focusRequest.set({ field: "x", timestamp: Date.now() }),
     focusY: () => focusRequest.set({ field: "y", timestamp: Date.now() }),
@@ -1740,7 +2184,7 @@
     },
     clearObstacles: () => {
       shapesStore.set([]);
-      recordChange();
+      recordChange("Clear Obstacles");
     },
     snapSelection: () => snapSelection(),
     resetStartPoint: () => resetStartPoint(),
@@ -1787,13 +2231,27 @@
       if (openWhatsNew) openWhatsNew();
     },
     reportIssue: () => {
-      const url = "https://github.com/Mallen220/PedroPathingVisualizer/issues";
+      const url =
+        "https://github.com/Mallen220/PedroPathingPlusVisualizer/issues";
       // @ts-ignore
       if (window.electronAPI && window.electronAPI.openExternal) {
         // @ts-ignore
         window.electronAPI.openExternal(url);
       } else {
         window.open(url, "_blank");
+      }
+    },
+    checkForUpdates: () => {
+      const api = (window as any).electronAPI;
+      if (api && api.checkForUpdates) {
+        api
+          .checkForUpdates()
+          .catch((err: any) => console.warn("Manual update check failed", err));
+      } else {
+        const url =
+          "https://github.com/Mallen220/PedroPathingPlusVisualizer/releases";
+        if (api && api.openExternal) api.openExternal(url);
+        else window.open(url, "_blank");
       }
     },
     setFileManagerDirectory: async () => {
@@ -1816,7 +2274,7 @@
       }
     },
     resetSettings: () => {
-      settingsStore.set(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)));
+      settingsStore.set(structuredClone(DEFAULT_SETTINGS));
     },
     cycleTheme: () => {
       settingsStore.update((s) => {
@@ -1845,6 +2303,101 @@
     rotateField: () => rotateField(),
     toggleContinuousValidation: () => toggleContinuousValidation(),
     toggleOnionCurrentPath: () => toggleOnionCurrentPath(),
+    cyclePathColor: () => cyclePathColor(),
+    toggleRobotVisibility: () => toggleRobotVisibility(),
+    copyCode: () => {
+      if (controlTabRef && controlTabRef.copyCode) {
+        controlTabRef.copyCode();
+      }
+    },
+    copyTable: () => {
+      if (controlTabRef && controlTabRef.copyTable) {
+        controlTabRef.copyTable();
+      }
+    },
+    downloadJava: () => {
+      if (controlTabRef && controlTabRef.downloadJava) {
+        controlTabRef.downloadJava();
+      }
+    },
+    cycleRobotProfile: () => {
+      const profiles = get(robotProfilesStore);
+      if (profiles.length === 0) {
+        notification.set({
+          message: "No robot profiles found.",
+          type: "warning",
+        });
+        return;
+      }
+
+      const currentSettings = get(settingsStore);
+      // Simple heuristic match
+      const currentIndex = profiles.findIndex(
+        (p) =>
+          p.rLength === currentSettings.rLength &&
+          p.rWidth === currentSettings.rWidth &&
+          p.maxVelocity === currentSettings.maxVelocity,
+      );
+
+      const nextIndex = (currentIndex + 1) % profiles.length;
+      const nextProfile = profiles[nextIndex];
+
+      settingsStore.update((s) => ({
+        ...s,
+        rLength: nextProfile.rLength,
+        rWidth: nextProfile.rWidth,
+        maxVelocity: nextProfile.maxVelocity,
+        maxAcceleration: nextProfile.maxAcceleration,
+        maxDeceleration: nextProfile.maxDeceleration,
+        maxAngularAcceleration:
+          nextProfile.maxAngularAcceleration ?? s.maxAngularAcceleration,
+        kFriction: nextProfile.kFriction,
+        aVelocity: nextProfile.aVelocity,
+        xVelocity: nextProfile.xVelocity,
+        yVelocity: nextProfile.yVelocity,
+        robotImage: nextProfile.robotImage || s.robotImage,
+      }));
+
+      notification.set({
+        message: `Switched to profile: ${nextProfile.name}`,
+        type: "success",
+      });
+    },
+    toggleFollowRobot: () => {
+      settingsStore.update((s) => {
+        const newVal = !s.followRobot;
+        notification.set({
+          message: `Follow Robot: ${newVal ? "On" : "Off"}`,
+          type: "info",
+          timeout: 1500,
+        });
+        return { ...s, followRobot: newVal };
+      });
+    },
+    focusPathList: () => {
+      activeControlTab = "path";
+      setTimeout(() => {
+        document.getElementById("path-list-container")?.focus();
+      }, 50);
+    },
+    focusCodeEditor: () => {
+      activeControlTab = "code";
+      setTimeout(() => {
+        document.getElementById("code-preview-container")?.focus();
+      }, 50);
+    },
+    confirmDialog: () => {
+      if ($showSettings) showSettings.set(false);
+      else if ($showFileManager) showFileManager.set(false);
+      else if ($showPluginManager) showPluginManager.set(false);
+      else if ($showExportGif) showExportGif.set(false);
+      else if ($exportDialogState.isOpen)
+        exportDialogState.update((s) => ({ ...s, isOpen: false }));
+      // Add more as needed
+    },
+    cancelDialog: () => {
+      (actions as any).deselectAll();
+    },
   };
 
   // --- Derived Commands for Search ---
@@ -1866,7 +2419,7 @@
   }));
 
   $: waitCommands = sequence
-    .filter((s) => s.kind === "wait")
+    .filter((s) => actionRegistry.get(s.kind)?.isWait)
     .map((s: any) => ({
       id: `cmd-wait-${s.id}`,
       label: s.name ? `Wait: ${s.name}` : "Wait",
@@ -1881,7 +2434,7 @@
     }));
 
   $: rotateCommands = sequence
-    .filter((s) => s.kind === "rotate")
+    .filter((s) => actionRegistry.get(s.kind)?.isRotate)
     .map((s: any) => ({
       id: `cmd-rotate-${s.id}`,
       label: s.name ? `Rotate: ${s.name}` : "Rotate",
@@ -1916,15 +2469,18 @@
     });
 
     sequence.forEach((s) => {
-      if (s.kind === "wait" || s.kind === "rotate") {
+      const def = actionRegistry.get(s.kind);
+      // Generalize to actions that support event markers?
+      // For now, Wait and Rotate support them. Path supports them but is handled above.
+      // If new actions support markers, they should be included.
+      // We can use a new flag `hasEventMarkers` or assume standard ones.
+      if (def?.isWait || def?.isRotate) {
         const item = s as any;
         if (item.eventMarkers) {
           item.eventMarkers.forEach((m: any) => {
             cmds.push({
               id: `cmd-event-${m.id}`,
-              label: m.name
-                ? `Event: ${m.name}`
-                : `Event (${s.kind === "wait" ? "Wait" : "Rotate"})`,
+              label: m.name ? `Event: ${m.name}` : `Event (${def.label})`,
               category: "Event Marker",
               action: () => {
                 if (controlTabRef && controlTabRef.scrollToItem) {
@@ -1965,7 +2521,7 @@
       const handler = (actions as any)[binding.action];
       if (handler && binding.key) {
         hotkeys(binding.key, (e) => {
-          if (shouldBlockShortcut(e)) return;
+          if (shouldBlockShortcut(e, binding.id)) return;
           e.preventDefault();
           handler(e);
         });

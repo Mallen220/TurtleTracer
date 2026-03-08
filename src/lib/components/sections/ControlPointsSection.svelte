@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import _ from "lodash";
   import {
@@ -8,6 +8,8 @@
     selectedPointId,
     focusRequest,
   } from "../../../stores";
+  import { settingsStore } from "../../projectStore";
+  import { toUser, toField } from "../../../utils/coordinates";
   import type { Line } from "../../../types/index";
   import {
     calculateDragPosition,
@@ -177,7 +179,7 @@
         ];
         recordChange();
       }}
-      class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded transition-colors"
+      class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
       title="Add Control Point"
       disabled={line.locked}
       aria-label="Add Control Point"
@@ -262,7 +264,7 @@
                   title={line.locked ? "Locked" : "Move up"}
                   aria-label="Move control point up"
                   on:click|stopPropagation={() => moveControlPoint(idx, -1)}
-                  class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30"
+                  class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={idx === 0 || line.locked}
                 >
                   <svg
@@ -285,7 +287,7 @@
                   title={line.locked ? "Locked" : "Move down"}
                   aria-label="Move control point down"
                   on:click|stopPropagation={() => moveControlPoint(idx, 1)}
-                  class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30"
+                  class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={idx === line.controlPoints.length - 1 ||
                     line.locked}
                 >
@@ -320,46 +322,76 @@
             </div>
 
             <!-- Position Inputs -->
-            <div class="flex items-center gap-2">
-              <div class="relative w-20">
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="relative flex-1 min-w-[4rem]">
                 <span
                   class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none"
                   >X</span
                 >
                 <input
                   bind:this={xInputs[idx]}
-                  bind:value={point.x}
+                  value={toUser(
+                    point,
+                    $settingsStore.coordinateSystem || "Pedro",
+                  ).x}
                   type="number"
-                  min="0"
-                  max="144"
+                  min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
+                  max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
                   step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                   class="w-full pl-5 pr-1 py-1 text-xs rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} X"
-                  on:change={() => {
-                    // Update the array to trigger reactivity
-                    line.controlPoints = [...line.controlPoints];
+                  on:input={(e) => {
+                    const val = parseFloat(e.currentTarget.value);
+                    if (!isNaN(val)) {
+                      const userPt = toUser(
+                        point,
+                        $settingsStore.coordinateSystem || "Pedro",
+                      );
+                      const newPt = toField(
+                        { x: val, y: userPt.y },
+                        $settingsStore.coordinateSystem || "Pedro",
+                      );
+                      point.x = newPt.x;
+                      point.y = newPt.y;
+                      line.controlPoints = [...line.controlPoints];
+                    }
                   }}
                   disabled={line.locked}
                   title={snapToGridTitle}
                 />
               </div>
-              <div class="relative w-20">
+              <div class="relative flex-1 min-w-[4rem]">
                 <span
                   class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none"
                   >Y</span
                 >
                 <input
                   bind:this={yInputs[idx]}
-                  bind:value={point.y}
+                  value={toUser(
+                    point,
+                    $settingsStore.coordinateSystem || "Pedro",
+                  ).y}
                   type="number"
-                  min="0"
-                  max="144"
+                  min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
+                  max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
                   step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                   class="w-full pl-5 pr-1 py-1 text-xs rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} Y"
-                  on:change={() => {
-                    // Update the array to trigger reactivity
-                    line.controlPoints = [...line.controlPoints];
+                  on:input={(e) => {
+                    const val = parseFloat(e.currentTarget.value);
+                    if (!isNaN(val)) {
+                      const userPt = toUser(
+                        point,
+                        $settingsStore.coordinateSystem || "Pedro",
+                      );
+                      const newPt = toField(
+                        { x: userPt.x, y: val },
+                        $settingsStore.coordinateSystem || "Pedro",
+                      );
+                      point.x = newPt.x;
+                      point.y = newPt.y;
+                      line.controlPoints = [...line.controlPoints];
+                    }
                   }}
                   disabled={line.locked}
                   title={snapToGridTitle}

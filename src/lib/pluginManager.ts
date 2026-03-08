@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { get } from "svelte/store";
 import {
   pluginsStore,
@@ -20,6 +20,7 @@ import {
   timelineTransformerRegistry,
   fieldRenderRegistry,
 } from "./registries";
+import { actionRegistry } from "./actionRegistry";
 import { registerCoreUI } from "./coreRegistrations";
 import PluginPromptDialog from "./components/dialogs/PluginPromptDialog.svelte";
 import PluginConfirmDialog from "./components/dialogs/PluginConfirmDialog.svelte";
@@ -36,6 +37,12 @@ const {
   sequenceStore,
   settingsStore,
 } = projectStore;
+
+interface PluginMetadata {
+  description?: string;
+  author?: string;
+  version?: string;
+}
 
 export class PluginManager {
   private static allExporters: CustomExporter[] = [];
@@ -57,16 +64,29 @@ export class PluginManager {
         const enabled = this.getEnabledState(file);
 
         try {
-          if (enabled) {
-            let code = await electronAPI.readPlugin(file);
-            if (file.endsWith(".ts")) {
-              code = await electronAPI.transpilePlugin(code);
-            }
-            this.executePlugin(file, code);
+          let description: string | undefined;
+
+          let code = await electronAPI.readPlugin(file);
+          if (file.endsWith(".ts")) {
+            code = await electronAPI.transpilePlugin(code);
           }
+
+          if (enabled) {
+            const meta = this.executePlugin(file, code);
+            description = meta?.description;
+          } else {
+            const meta = this.extractMetadata(file, code);
+            description = meta?.description;
+          }
+
           // "loaded" means we successfully discovered and (if enabled) executed the plugin
           // Disabled plugins should still appear as loaded to avoid showing a false error state in the UI
-          plugins.push({ name: file, loaded: true, enabled });
+          plugins.push({
+            name: file,
+            loaded: true,
+            enabled,
+            description,
+          });
         } catch (error: any) {
           console.error(`Failed to load plugin ${file}:`, error);
           const errorMessage = error?.message || String(error);
@@ -125,11 +145,52 @@ export class PluginManager {
     themesStore.set(activeThemes);
   }
 
-  static executePlugin(filename: string, code: string) {
+  static extractMetadata(
+    filename: string,
+    code: string,
+  ): PluginMetadata | undefined {
+    let metadata: PluginMetadata | undefined;
+
+    const handler = {
+      get(target: any, prop: string) {
+        if (prop === "registerMetadata") {
+          return (meta: PluginMetadata) => {
+            metadata = meta;
+          };
+        }
+        // Return a new proxy for any other property access to handle nested objects
+        return new Proxy(() => {}, handler);
+      },
+      apply(target: any, thisArg: any, argumentsList: any[]) {
+        // Return a new proxy when called as a function
+        return new Proxy(() => {}, handler);
+      },
+    };
+
+    const proxyAPI = new Proxy(() => {}, handler);
+
+    try {
+      const fn = new Function("pedro", code);
+      fn(proxyAPI);
+    } catch (e) {
+      // Ignore errors during metadata extraction
+    }
+
+    return metadata;
+  }
+
+  static executePlugin(
+    filename: string,
+    code: string,
+  ): PluginMetadata | undefined {
     let codeToExecute = code;
+    let metadata: PluginMetadata | undefined;
 
     // Restricted API exposed to plugins
     const pedroAPI = {
+      registerMetadata: (meta: PluginMetadata) => {
+        metadata = meta;
+      },
       registerExporter: (name: string, handler: (data: any) => string) => {
         // Add to internal list
         this.allExporters = this.allExporters.filter((e) => e.name !== name); // unique by name
@@ -320,6 +381,7 @@ export class PluginManager {
         dialogs: dialogRegistry,
         timelineTransformers: timelineTransformerRegistry,
         fieldRenderers: fieldRenderRegistry,
+        actions: actionRegistry,
       },
       stores: {
         project: projectStore,
@@ -412,6 +474,8 @@ export class PluginManager {
     } catch (e) {
       throw new Error(`Execution failed: ${e}`);
     }
+
+    return metadata;
   }
 
   static async openPluginsFolder() {
@@ -443,6 +507,7 @@ export class PluginManager {
     dialogRegistry.reset();
     timelineTransformerRegistry.reset();
     fieldRenderRegistry.reset();
+    actionRegistry.reset();
 
     // Restore built-in components/tabs before loading plugins so the UI baseline persists
     registerCoreUI();

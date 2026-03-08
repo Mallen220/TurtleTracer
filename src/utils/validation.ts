@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { PathOptimizer } from "./pathOptimizer";
 import { collisionMarkers, notification } from "../stores";
 import type {
@@ -27,7 +27,9 @@ export function validatePath(
     sequence,
     shapes,
   );
-  const markers: CollisionMarker[] = optimizer.getCollisions(timeline);
+  // Pass both the timeline and the exact lines array used to generate it so
+  // segment indices stay aligned even when macros reorder or inject lines.
+  const markers: CollisionMarker[] = optimizer.getCollisions(timeline, lines);
 
   // Zero-length path validation
   let currentStart = startPoint;

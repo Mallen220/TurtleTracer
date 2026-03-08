@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import type {
     Point,
@@ -38,6 +38,12 @@
   }
 
   // Exported methods
+  export function copyTable() {
+    if (waypointTableRef && waypointTableRef.copyTableToClipboard) {
+      waypointTableRef.copyTableToClipboard();
+    }
+  }
+
   export function openAndStartOptimization() {
     if (waypointTableRef && waypointTableRef.openAndStartOptimization) {
       return waypointTableRef.openAndStartOptimization();

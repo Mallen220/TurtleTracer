@@ -1,6 +1,5 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // src/utils/pathOptimizer.ts
-import _ from "lodash";
 import type {
   Line,
   Point,
@@ -50,8 +49,8 @@ export class PathOptimizer {
     sequence: SequenceItem[],
     shapes: Shape[] = [],
   ) {
-    this.startPoint = _.cloneDeep(startPoint);
-    this.originalLines = _.cloneDeep(lines);
+    this.startPoint = structuredClone(startPoint);
+    this.originalLines = structuredClone(lines);
     this.settings = settings;
     this.sequence = sequence;
     this.shapes = shapes;
@@ -79,7 +78,7 @@ export class PathOptimizer {
 
   // Generate a mutated version of the lines
   private mutate(lines: Line[], isColliding: boolean = false): Line[] {
-    const newLines = _.cloneDeep(lines);
+    const newLines = structuredClone(lines);
     const MIN_DIST = 10; // Minimum distance in inches for control points
 
     let prevPoint = this.startPoint;
@@ -217,7 +216,12 @@ export class PathOptimizer {
 
     if (!timeline || timeline.length === 0) return [];
 
-    const lastEvent = timeline[timeline.length - 1];
+    // Filter out aggregate macro events which overlap the inner travel/wait events.
+    // Including them in scanning can cause incorrect break/advance behavior.
+    const effectiveTimeline = timeline.filter((ev) => ev.type !== "macro");
+    if (effectiveTimeline.length === 0) return [];
+
+    const lastEvent = effectiveTimeline[effectiveTimeline.length - 1];
     if (!lastEvent) return [];
 
     const totalTime = lastEvent.endTime;
@@ -237,10 +241,13 @@ export class PathOptimizer {
 
     for (let t = 0; t <= totalTime; t += step) {
       // Optimized timeline lookup: Advance event index if t exceeds current event end
-      while (eventIdx < timeline.length - 1 && t > timeline[eventIdx].endTime) {
+      while (
+        eventIdx < effectiveTimeline.length - 1 &&
+        t > effectiveTimeline[eventIdx].endTime
+      ) {
         eventIdx++;
       }
-      const activeEvent = timeline[eventIdx];
+      const activeEvent = effectiveTimeline[eventIdx];
       // Guard against undefined activeEvent if logic slightly off
       if (!activeEvent) break;
 
@@ -269,11 +276,26 @@ export class PathOptimizer {
         heading = -currentHeading;
       } else {
         const lineIdx = activeEvent.lineIndex!;
-        const currentLine = lines[lineIdx];
-        if (!currentLine) break; // Should not happen
 
+        // Use the line captured in the timeline when available; it reflects the
+        // exact segment that was simulated (including macro expansions and
+        // synthetic bridges) and avoids mismatches when the lines array order
+        // changes after timeline generation.
+        const currentLine =
+          activeEvent.line ||
+          lines[lineIdx] ||
+          lines.find((ln) => ln.id && ln.id === activeEvent.line?.id);
+
+        if (!currentLine) break; // No line to evaluate
+
+        // Prefer the prevPoint captured in the timeline so macro-expanded
+        // segments don’t borrow the wrong predecessor when the lines array
+        // order differs from execution order (e.g., macro inserts).
         const prevPoint =
-          lineIdx === 0 ? this.startPoint : lines[lineIdx - 1].endPoint;
+          activeEvent.prevPoint ||
+          (lineIdx === 0 ? this.startPoint : lines[lineIdx - 1]?.endPoint);
+
+        if (!prevPoint || !currentLine.endPoint) continue;
 
         const timeProgress =
           activeEvent.duration > 0
@@ -327,16 +349,33 @@ export class PathOptimizer {
 
       // 1. Boundary Checks (if enabled)
       if (this.settings.validateFieldBoundaries !== false) {
-        // Calculate distance from start point to ignore validation near start
-        // This handles cases where safety margin protrudes at start (which is allowed)
+        // Calculate distance from start point to ignore validation near start.
+        // Use the robot footprint (half diagonal) so starting at a field edge
+        // does not immediately trigger boundary collisions while the center is
+        // still within the robot’s own radius.
         const distToStart = Math.sqrt(
           Math.pow(x - this.startPoint.x, 2) +
             Math.pow(y - this.startPoint.y, 2),
         );
+
+        const halfDiag = Math.sqrt(
+          Math.pow(rLength / 2, 2) + Math.pow(rWidth / 2, 2),
+        );
+
         const exclusionDist = Math.max(
           2,
           (this.settings.safetyMargin || 0) * 2,
+          halfDiag + 0.1,
         );
+
+        // Extra guard for the first segment: allow the robot body to clear the
+        // start area before boundary checks, which avoids false positives when
+        // starting flush to an edge with safety margins applied.
+        const nearStartBuffer = exclusionDist * 1.5;
+
+        if (activeEvent.lineIndex === 0 && distToStart <= nearStartBuffer) {
+          continue;
+        }
 
         if (distToStart > exclusionDist) {
           const BOUNDARY_EPSILON = 0.05;
@@ -413,31 +452,38 @@ export class PathOptimizer {
       }
 
       if (isColliding) {
-        if (currentCollision && currentCollision.type === collisionType) {
-          // Extend current collision
-          currentCollision.endTime = t;
-          currentCollision.endX = x;
-          currentCollision.endY = y;
-          currentCollision.segmentEndIndex =
-            activeEvent.type === "travel" ? activeEvent.lineIndex : undefined;
+        const currentSegmentIndex =
+          activeEvent.type === "travel" ? activeEvent.lineIndex : undefined;
+
+        const shouldExtend =
+          currentCollision &&
+          currentCollision.type === collisionType &&
+          currentCollision.segmentEndIndex === currentSegmentIndex;
+
+        if (shouldExtend) {
+          // Extend current collision within the same segment
+          // Guard with a runtime check so TypeScript knows currentCollision is defined
+          if (currentCollision) {
+            currentCollision.endTime = t;
+            currentCollision.endX = x;
+            currentCollision.endY = y;
+          }
         } else {
-          // Close previous collision if it exists (e.g. type change)
+          // Close previous collision if it exists (type change or segment change)
           if (currentCollision) {
             markers.push(currentCollision);
           }
-          // Start new collision
+          // Start new collision anchored to the current segment
           currentCollision = {
             x,
             y,
             time: t,
-            segmentIndex:
-              activeEvent.type === "travel" ? activeEvent.lineIndex : undefined,
+            segmentIndex: currentSegmentIndex,
             type: collisionType,
             endTime: t,
             endX: x,
             endY: y,
-            segmentEndIndex:
-              activeEvent.type === "travel" ? activeEvent.lineIndex : undefined,
+            segmentEndIndex: currentSegmentIndex,
           };
         }
       } else {
@@ -501,7 +547,7 @@ export class PathOptimizer {
     // Iterate through grid points
     for (let x = step / 2; x < FIELD_SIZE; x += step) {
       for (let y = step / 2; y < FIELD_SIZE; y += step) {
-        const seedLines = _.cloneDeep(this.originalLines);
+        const seedLines = structuredClone(this.originalLines);
         let modified = false;
         seedLines.forEach((line) => {
           if (!line.locked && line.controlPoints.length < 1) {
@@ -547,7 +593,7 @@ export class PathOptimizer {
     // Smart Initialization: Seed with variants that have extra control points
     if (this.shapes && this.shapes.length > 0) {
       for (let i = 0; i < Math.min(20, this.populationSize); i++) {
-        const seedLines = _.cloneDeep(this.originalLines);
+        const seedLines = structuredClone(this.originalLines);
         let prevPoint = this.startPoint;
 
         seedLines.forEach((line) => {

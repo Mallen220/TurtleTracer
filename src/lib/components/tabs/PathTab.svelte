@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import type {
     Point,
@@ -34,12 +34,21 @@
     toggleCollapseAllTrigger,
   } from "../../../stores";
   import { loadMacro } from "../../../lib/projectStore";
+  import { getShortcutFromSettings } from "../../../utils";
+  import { actionRegistry } from "../../actionRegistry";
+  import { getButtonFilledClass } from "../../../utils/buttonStyles";
+  import {
+    updateLinkedWaits,
+    updateLinkedRotations,
+  } from "../../../utils/pointLinking";
+  import PathActionButtons from "./PathActionButtons.svelte";
+  import DebugPanel from "../common/DebugPanel.svelte";
 
   export let startPoint: Point;
   export let lines: Line[];
   export let sequence: SequenceItem[];
   export let settings: Settings;
-  export let recordChange: () => void;
+  export let recordChange: (action?: string) => void;
   export let isActive: boolean = false; // instead of checking activeTab === 'path'
 
   $: showDebug = (settings as any)?.showDebugSequence;
@@ -51,12 +60,8 @@
   let collapsedSections = {
     lines: lines.map(() => false),
     controlPoints: lines.map(() => true), // Start with control points collapsed
-    // Track collapsed state for waits by their ID
-    waits: {} as Record<string, boolean>,
-    // Track collapsed state for rotates by their ID
-    rotates: {} as Record<string, boolean>,
-    // Track collapsed state for macros by their ID
-    macros: {} as Record<string, boolean>,
+    // Generic map for all sequence items by ID (waits, rotates, macros, etc.)
+    items: {} as Record<string, boolean>,
   };
 
   // Debug helpers
@@ -101,7 +106,7 @@
         ),
       ];
       repairedSequenceOnce = true;
-      recordChange?.();
+      recordChange?.("Repair Sequence");
     }
   }
 
@@ -150,6 +155,15 @@
       isLocked = line?.locked ?? false;
     } else {
       isLocked = item.locked ?? false;
+    }
+
+    if (
+      originElem?.tagName === "INPUT" ||
+      originElem?.tagName === "TEXTAREA" ||
+      originElem?.tagName === "SELECT"
+    ) {
+      e.preventDefault();
+      return;
     }
 
     if (isLocked) {
@@ -214,7 +228,7 @@
       );
       sequence = newSequence;
       syncLinesToSequence(newSequence);
-      recordChange?.();
+      recordChange?.("Reorder Sequence");
     } else if (isMacroDrop) {
       const filePath = e.dataTransfer?.getData("application/x-pedro-macro");
       if (filePath) {
@@ -254,9 +268,9 @@
     }
     sequence = newSeq;
 
-    collapsedSections.macros[macroId] = false;
+    collapsedSections.items[macroId] = false;
     collapsedSections = { ...collapsedSections };
-    recordChange?.();
+    recordChange?.("Add Macro");
   }
 
   function handleDragEnd() {
@@ -277,8 +291,40 @@
     return i as SequenceMacroItem;
   }
 
+  // Generic getter for ID
+  function getItemId(item: SequenceItem) {
+    if (item.kind === "path") return (item as any).lineId;
+    return (item as any).id;
+  }
+
   function getPathLineId(item: SequenceItem) {
     return item.kind === "path" ? (item as any).lineId : undefined;
+  }
+
+  /**
+   * Given the endPoint of the PREVIOUS line (or startPoint), build a new
+   * endPoint that:
+   *   - inherits the heading type
+   *   - for "linear":   startDeg = prev.endDeg  (direction continues), endDeg = prev.endDeg
+   *   - for "constant": degrees  = prev.degrees
+   *   - for "tangential" / "facingPoint": copies reverse / targetX,Y
+   */
+  function makeNewEndPointFrom(prev: Point): Point {
+    const x = _.random(36, 108);
+    const y = _.random(36, 108);
+    if (prev.heading === "linear") {
+      const linPrev = prev as Extract<Point, { heading: "linear" }>;
+      const deg = linPrev.endDeg ?? linPrev.startDeg ?? 0;
+      return { x, y, heading: "linear", startDeg: deg, endDeg: deg };
+    }
+    if (prev.heading === "constant") {
+      return { x, y, heading: "constant", degrees: prev.degrees ?? 0 };
+    }
+    if (prev.heading === "facingPoint") {
+      return { x, y, heading: "tangential" };
+    }
+    // tangential (default)
+    return { x, y, heading: "tangential", reverse: prev.reverse ?? false };
   }
 
   function insertLineAfter(seqIndex: number) {
@@ -287,34 +333,9 @@
     const lineIndex = lines.findIndex((l) => l.id === seqItem.lineId);
     const currentLine = lines[lineIndex];
 
-    let newPoint: Point;
-    if (currentLine.endPoint.heading === "linear") {
-      newPoint = {
-        x: _.random(36, 108),
-        y: _.random(36, 108),
-        heading: "linear",
-        startDeg: currentLine.endPoint.startDeg,
-        endDeg: currentLine.endPoint.endDeg,
-      };
-    } else if (currentLine.endPoint.heading === "constant") {
-      newPoint = {
-        x: _.random(36, 108),
-        y: _.random(36, 108),
-        heading: "constant",
-        degrees: currentLine.endPoint.degrees,
-      };
-    } else {
-      newPoint = {
-        x: _.random(36, 108),
-        y: _.random(36, 108),
-        heading: "tangential",
-        reverse: currentLine.endPoint.reverse,
-      };
-    }
-
     const newLine = {
       id: makeId(),
-      endPoint: newPoint,
+      endPoint: makeNewEndPointFrom(currentLine.endPoint),
       controlPoints: [],
       color: getRandomColor(),
       name: "",
@@ -346,7 +367,6 @@
   }
 
   function removeLine(idx: number) {
-    if (lines.length <= 1) return;
     if (lines[idx]?.locked) return;
 
     const removedId = lines[idx]?.id;
@@ -364,19 +384,25 @@
     collapsedSections.lines.splice(idx, 1);
     collapsedSections.controlPoints.splice(idx, 1);
     collapsedEventMarkers.splice(idx, 1);
-    recordChange();
+    recordChange("Remove Path");
   }
 
   function addLine() {
+    // Inherit heading from the last line, or fall back to tangential
+    const lastLine = lines.length > 0 ? lines[lines.length - 1] : null;
+    const endPoint: Point = lastLine
+      ? makeNewEndPointFrom(lastLine.endPoint)
+      : {
+          x: _.random(0, 144),
+          y: _.random(0, 144),
+          heading: "tangential",
+          reverse: false,
+        };
+
     const newLine: Line = {
       id: makeId(),
       name: "",
-      endPoint: {
-        x: _.random(0, 144),
-        y: _.random(0, 144),
-        heading: "tangential",
-        reverse: false,
-      },
+      endPoint,
       controlPoints: [],
       color: getRandomColor(),
       waitBeforeMs: 0,
@@ -391,7 +417,17 @@
     selectedLineId.set(newLine.id!);
     const newIndex = lines.findIndex((l) => l.id === newLine.id!);
     selectedPointId.set(`point-${newIndex + 1}-0`);
-    recordChange();
+    recordChange("Add Path");
+  }
+
+  // Deprecated specific add functions - replaced by handleAddAction
+  // kept if needed by exported bindings
+  function addWait() {
+    handleAddAction($actionRegistry["wait"]);
+  }
+
+  function addRotate() {
+    handleAddAction($actionRegistry["rotate"]);
   }
 
   function collapseAll() {
@@ -399,29 +435,13 @@
     collapsedSections.controlPoints = lines.map(() => true);
     collapsedEventMarkers = lines.map(() => true);
 
-    const newWaits = { ...collapsedSections.waits };
+    const newItems = { ...collapsedSections.items };
     sequence.forEach((s) => {
-      if (s.kind === "wait") {
-        newWaits[s.id] = true;
+      if (s.kind !== "path") {
+        newItems[(s as any).id] = true;
       }
     });
-    collapsedSections.waits = newWaits;
-
-    const newRotates = { ...collapsedSections.rotates };
-    sequence.forEach((s) => {
-      if (s.kind === "rotate") {
-        newRotates[s.id] = true;
-      }
-    });
-    collapsedSections.rotates = newRotates;
-
-    const newMacros = { ...collapsedSections.macros };
-    sequence.forEach((s) => {
-      if (s.kind === "macro") {
-        newMacros[s.id] = true;
-      }
-    });
-    collapsedSections.macros = newMacros;
+    collapsedSections.items = newItems;
 
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
@@ -432,29 +452,13 @@
     collapsedSections.controlPoints = lines.map(() => false);
     collapsedEventMarkers = lines.map(() => false);
 
-    const newWaits = { ...collapsedSections.waits };
+    const newItems = { ...collapsedSections.items };
     sequence.forEach((s) => {
-      if (s.kind === "wait") {
-        newWaits[s.id] = false;
+      if (s.kind !== "path") {
+        newItems[(s as any).id] = false;
       }
     });
-    collapsedSections.waits = newWaits;
-
-    const newRotates = { ...collapsedSections.rotates };
-    sequence.forEach((s) => {
-      if (s.kind === "rotate") {
-        newRotates[s.id] = false;
-      }
-    });
-    collapsedSections.rotates = newRotates;
-
-    const newMacros = { ...collapsedSections.macros };
-    sequence.forEach((s) => {
-      if (s.kind === "macro") {
-        newMacros[s.id] = false;
-      }
-    });
-    collapsedSections.macros = newMacros;
+    collapsedSections.items = newItems;
 
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
@@ -465,50 +469,13 @@
     collapsedSections.lines.every((v) => v) &&
     collapsedSections.controlPoints.every((v) => v) &&
     collapsedEventMarkers.every((v) => v) &&
-    (sequence.filter((s) => s.kind === "wait").length === 0 ||
-      sequence
-        .filter((s) => s.kind === "wait")
-        .every((s) => collapsedSections.waits[s.id])) &&
-    (sequence.filter((s) => s.kind === "rotate").length === 0 ||
-      sequence
-        .filter((s) => s.kind === "rotate")
-        .every((s) => collapsedSections.rotates[s.id])) &&
-    (sequence.filter((s) => s.kind === "macro").length === 0 ||
-      sequence
-        .filter((s) => s.kind === "macro")
-        .every((s) => collapsedSections.macros[s.id]));
+    sequence
+      .filter((s) => s.kind !== "path")
+      .every((s) => collapsedSections.items[(s as any).id]);
 
   function toggleCollapseAll() {
     if (allCollapsed) expandAll();
     else collapseAll();
-  }
-
-  function addWait() {
-    const wait = {
-      kind: "wait",
-      id: makeId(),
-      name: "",
-      durationMs: 1000,
-      locked: false,
-    } as SequenceItem;
-    sequence = [...sequence, wait];
-    selectedPointId.set(`wait-${(wait as any).id}`);
-    selectedLineId.set(null);
-    recordChange();
-  }
-
-  function addRotate() {
-    const rotate = {
-      kind: "rotate",
-      id: makeId(),
-      name: "",
-      degrees: 0,
-      locked: false,
-    } as SequenceItem;
-    sequence = [...sequence, rotate];
-    selectedPointId.set(`rotate-${(rotate as any).id}`);
-    selectedLineId.set(null);
-    recordChange();
   }
 
   export function addWaitAtStart() {
@@ -522,7 +489,7 @@
     sequence = [wait, ...sequence];
     selectedPointId.set(`wait-${(wait as any).id}`);
     selectedLineId.set(null);
-    recordChange();
+    recordChange("Add Wait");
   }
 
   export function addRotateAtStart() {
@@ -536,19 +503,25 @@
     sequence = [rotate, ...sequence];
     selectedPointId.set(`rotate-${(rotate as any).id}`);
     selectedLineId.set(null);
-    recordChange();
+    recordChange("Add Rotate");
   }
 
   export function addPathAtStart() {
+    // Inherit heading from the first existing line, or fall back to tangential
+    const firstLine = lines.length > 0 ? lines[0] : null;
+    const endPoint: Point = firstLine
+      ? makeNewEndPointFrom(firstLine.endPoint)
+      : {
+          x: _.random(0, 144),
+          y: _.random(0, 144),
+          heading: "tangential",
+          reverse: false,
+        };
+
     const newLine: Line = {
       id: makeId(),
       name: "",
-      endPoint: {
-        x: _.random(0, 144),
-        y: _.random(0, 144),
-        heading: "tangential",
-        reverse: false,
-      },
+      endPoint,
       controlPoints: [],
       color: getRandomColor(),
       eventMarkers: [],
@@ -573,7 +546,7 @@
       ...collapsedEventMarkers,
     ];
     selectedLineId.set(newLine.id!);
-    recordChange();
+    recordChange("Add Path");
   }
 
   function insertWaitAfter(seqIndex: number) {
@@ -601,15 +574,32 @@
   }
 
   function insertPathAfter(seqIndex: number) {
+    // Find the closest preceding path item to inherit heading from
+    let prevEndPoint: Point | null = null;
+    for (let i = seqIndex; i >= 0; i--) {
+      const si = sequence[i];
+      if (si.kind === "path") {
+        const ln = lines.find((l) => l.id === si.lineId);
+        if (ln) {
+          prevEndPoint = ln.endPoint;
+          break;
+        }
+      }
+    }
+
+    const endPoint: Point = prevEndPoint
+      ? makeNewEndPointFrom(prevEndPoint)
+      : {
+          x: _.random(36, 108),
+          y: _.random(36, 108),
+          heading: "tangential",
+          reverse: false,
+        };
+
     const newLine: Line = {
       id: makeId(),
       name: "",
-      endPoint: {
-        x: _.random(36, 108),
-        y: _.random(36, 108),
-        heading: "tangential",
-        reverse: false,
-      },
+      endPoint,
       controlPoints: [],
       color: getRandomColor(),
       eventMarkers: [],
@@ -632,7 +622,7 @@
 
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
-    recordChange();
+    recordChange("Add Path");
   }
 
   function syncLinesToSequence(newSeq: SequenceItem[]) {
@@ -703,7 +693,7 @@
     sequence = newSeq;
 
     syncLinesToSequence(newSeq);
-    recordChange?.();
+    recordChange?.("Reorder Sequence");
   }
 
   function isItemLocked(item: SequenceItem, lines: Line[]): boolean {
@@ -722,10 +712,7 @@
   export async function scrollToItem(itemId: string) {
     const seqIndex = sequence.findIndex((s) => {
       if (s.kind === "path") return s.lineId === itemId;
-      if (s.kind === "wait") return (s as any).id === itemId;
-      if (s.kind === "rotate") return (s as any).id === itemId;
-      if (s.kind === "macro") return (s as any).id === itemId;
-      return false;
+      return (s as any).id === itemId;
     });
 
     if (seqIndex !== -1) {
@@ -737,12 +724,8 @@
         if (lineIdx !== -1) {
           collapsedSections.lines[lineIdx] = false;
         }
-      } else if (item.kind === "wait") {
-        collapsedSections.waits[(item as any).id] = false;
-      } else if (item.kind === "rotate") {
-        collapsedSections.rotates[(item as any).id] = false;
-      } else if (item.kind === "macro") {
-        collapsedSections.macros[(item as any).id] = false;
+      } else {
+        collapsedSections.items[(item as any).id] = false;
       }
 
       collapsedSections = { ...collapsedSections };
@@ -760,28 +743,65 @@
     const sel = $selectedPointId;
     if (!sel) return;
 
-    if (sel.startsWith("wait-")) {
-      const id = sel.substring(5);
-      collapsedSections.waits[id] = !collapsedSections.waits[id];
-    } else if (sel.startsWith("rotate-")) {
-      const id = sel.substring(7);
-      collapsedSections.rotates[id] = !collapsedSections.rotates[id];
-    } else if (sel.startsWith("macro-")) {
-      const id = sel.substring(6);
-      collapsedSections.macros[id] = !collapsedSections.macros[id];
-    } else if (sel.startsWith("point-")) {
-      const parts = sel.split("-");
+    const parts = sel.split("-");
+    if (parts[0] === "point") {
       const lineNum = Number(parts[1]);
       if (lineNum > 0) {
         const lineIdx = lineNum - 1;
         collapsedSections.lines[lineIdx] = !collapsedSections.lines[lineIdx];
       }
+    } else if (parts.length >= 2) {
+      // "wait-ID", "rotate-ID", etc.
+      // We need to extract ID which might contain dashes? IDs from makeId don't have dashes usually.
+      // But format is kind-ID.
+      const id = sel.substring(parts[0].length + 1);
+      collapsedSections.items[id] = !collapsedSections.items[id];
     }
     collapsedSections = { ...collapsedSections };
   }
+
+  function handleAddAction(def: any) {
+    if (def.createDefault) {
+      const newItem = def.createDefault();
+      sequence = [...sequence, newItem];
+      selectedPointId.set(`${def.kind}-${newItem.id}`);
+      selectedLineId.set(null);
+      if (def.isWait) sequence = updateLinkedWaits(sequence, newItem.id);
+      if (def.isRotate) sequence = updateLinkedRotations(sequence, newItem.id);
+      recordChange(`Add ${def.label}`);
+    }
+  }
+
+  function handleAddActionAfter(seqIndex: number, def: any) {
+    if (def.isPath) {
+      insertLineAfter(seqIndex);
+    } else if (def.createDefault) {
+      const newItem = def.createDefault();
+      const newSeq = [...sequence];
+      newSeq.splice(seqIndex + 1, 0, newItem);
+      sequence = newSeq;
+      if (def.isWait) sequence = updateLinkedWaits(sequence, newItem.id);
+      if (def.isRotate) sequence = updateLinkedRotations(sequence, newItem.id);
+      recordChange(`Add ${def.label}`);
+    }
+  }
+
+  // Small helper to wrap handlers and avoid inline typed parameters in markup
+  function addActionAfterFor(idx: number, def: any) {
+    handleAddActionAfter(idx, def);
+  }
+
+  // Helper for button classes
+  function getButtonColorClass(color: string) {
+    return getButtonFilledClass(color);
+  }
 </script>
 
-<div class="w-full flex flex-col gap-4 p-4 pb-32">
+<div
+  class="w-full flex flex-col gap-4 p-4 pb-32 outline-none"
+  id="path-list-container"
+  tabindex="-1"
+>
   <div class="flex items-center justify-between gap-4 w-full">
     <StartingPointSection
       bind:startPoint
@@ -790,23 +810,18 @@
       {addRotateAtStart}
       {toggleCollapseAll}
       {allCollapsed}
+      {settings}
     />
   </div>
 
   {#if showDebug}
-    <div class="p-2 text-xs text-neutral-500">
-      <div>
-        <strong>DEBUG (PathTab)</strong> — lines: {lines.length}, sequence: {(
-          sequence || []
-        ).length}
-      </div>
-      <div>
-        Missing: {JSON.stringify(debugMissing)}
-      </div>
-      <div>
-        Invalid refs: {JSON.stringify(debugInvalidRefs)}
-      </div>
-    </div>
+    <DebugPanel
+      componentName="PathTab"
+      {debugMissing}
+      {debugInvalidRefs}
+      linesLength={lines.length}
+      sequenceLength={(sequence || []).length}
+    />
   {/if}
 
   {#if sequence.length === 0}
@@ -830,18 +845,26 @@
           />
         </svg>
       </div>
+      <div
+        slot="action"
+        class="flex flex-row justify-center items-center gap-3 flex-wrap"
+      >
+        <PathActionButtons
+          {settings}
+          onAddLine={addLine}
+          onHandleAddAction={handleAddAction}
+        />
+      </div>
     </EmptyState>
   {/if}
 
-  {#each sequence as item, sIdx (item.kind === "path" ? getPathLineId(item) : item.kind === "wait" ? getWait(item).id : item.kind === "rotate" ? getRotate(item).id : getMacro(item).id)}
-    {@const isLocked =
-      item.kind === "path"
-        ? (lines.find((l) => l.id === getPathLineId(item))?.locked ?? false)
-        : (item.locked ?? false)}
+  {#each sequence as item, sIdx (getItemId(item))}
+    {@const isLocked = isItemLocked(item, lines)}
+    {@const def = $actionRegistry[item.kind]}
     <div
       role="listitem"
       data-index={sIdx}
-      id={`sequence-item-${item.kind === "path" ? getPathLineId(item) : item.kind === "wait" ? getWait(item).id : item.kind === "rotate" ? getRotate(item).id : getMacro(item).id}`}
+      id={`sequence-item-${getItemId(item)}`}
       class="w-full transition-all duration-200 rounded-lg"
       draggable={!isItemLocked(item, lines)}
       on:dragstart={(e) => handleDragStart(e, sIdx)}
@@ -868,8 +891,11 @@
             }
             onRemove={() => removeLine(lines.findIndex((l) => l.id === ln.id))}
             onInsertAfter={() => insertLineAfter(sIdx)}
-            onAddWaitAfter={() => insertWaitAfter(sIdx)}
-            onAddRotateAfter={() => insertRotateAfter(sIdx)}
+            onAddWaitAfter={() =>
+              handleAddActionAfter(sIdx, $actionRegistry["wait"])}
+            onAddRotateAfter={() =>
+              handleAddActionAfter(sIdx, $actionRegistry["rotate"])}
+            onAddAction={addActionAfterFor.bind(null, sIdx)}
             onMoveUp={() => moveSequenceItem(sIdx, -1)}
             onMoveDown={() => moveSequenceItem(sIdx, 1)}
             canMoveUp={sIdx !== 0}
@@ -877,74 +903,25 @@
             {recordChange}
           />
         {/each}
-      {:else if item.kind === "rotate"}
-        <RotateSection
-          bind:rotate={item}
+      {:else if def && def.sectionComponent}
+        <svelte:component
+          this={def.sectionComponent}
+          {...{ [def.kind]: item }}
           bind:sequence
-          bind:collapsed={collapsedSections.rotates[getRotate(item).id]}
+          collapsed={collapsedSections.items[getItemId(item)]}
           onRemove={() => {
             const newSeq = [...sequence];
             newSeq.splice(sIdx, 1);
             sequence = newSeq;
-            recordChange?.();
+            recordChange?.("Remove Item");
           }}
-          onInsertAfter={() => insertRotateAfter(sIdx)}
-          onAddPathAfter={() => insertPathAfter(sIdx)}
-          onAddWaitAfter={() => insertWaitAfter(sIdx)}
-          onMoveUp={() => moveSequenceItem(sIdx, -1)}
-          onMoveDown={() => moveSequenceItem(sIdx, 1)}
-          canMoveUp={sIdx !== 0}
-          canMoveDown={sIdx !== sequence.length - 1}
-          {recordChange}
-        />
-      {:else if item.kind === "macro"}
-        <MacroSection
-          bind:macro={item}
-          bind:sequence
-          bind:collapsed={collapsedSections.macros[getMacro(item).id]}
-          onRemove={() => {
-            const newSeq = [...sequence];
-            newSeq.splice(sIdx, 1);
-            sequence = newSeq;
-            recordChange?.();
-          }}
-          onInsertAfter={() => {
-            // Not implemented for Macro currently in UI buttons, but interface requires it
-          }}
-          onAddPathAfter={() => insertPathAfter(sIdx)}
-          onAddWaitAfter={() => insertWaitAfter(sIdx)}
-          onAddRotateAfter={() => insertRotateAfter(sIdx)}
-          onMoveUp={() => moveSequenceItem(sIdx, -1)}
-          onMoveDown={() => moveSequenceItem(sIdx, 1)}
-          canMoveUp={sIdx !== 0}
-          canMoveDown={sIdx !== sequence.length - 1}
-          {recordChange}
-        />
-      {:else}
-        <WaitSection
-          bind:wait={item}
-          bind:sequence
-          bind:collapsed={collapsedSections.waits[getWait(item).id]}
-          onRemove={() => {
-            const newSeq = [...sequence];
-            newSeq.splice(sIdx, 1);
-            sequence = newSeq;
-            recordChange?.();
-          }}
-          onInsertAfter={() => {
-            const newSeq = [...sequence];
-            newSeq.splice(sIdx + 1, 0, {
-              kind: "wait",
-              id: makeId(),
-              name: "",
-              durationMs: 1000,
-              locked: false,
-            });
-            sequence = newSeq;
-            recordChange?.();
-          }}
-          onAddPathAfter={() => insertPathAfter(sIdx)}
-          onAddRotateAfter={() => insertRotateAfter(sIdx)}
+          onInsertAfter={() => handleAddActionAfter(sIdx, def)}
+          onAddPathAfter={() => insertLineAfter(sIdx)}
+          onAddWaitAfter={() =>
+            handleAddActionAfter(sIdx, $actionRegistry["wait"])}
+          onAddRotateAfter={() =>
+            handleAddActionAfter(sIdx, $actionRegistry["rotate"])}
+          onAddAction={addActionAfterFor.bind(null, sIdx)}
           onMoveUp={() => moveSequenceItem(sIdx, -1)}
           onMoveDown={() => moveSequenceItem(sIdx, 1)}
           canMoveUp={sIdx !== 0}
@@ -955,70 +932,15 @@
     </div>
   {/each}
   <!-- Add Buttons at end of list -->
-  <div class="flex flex-row justify-center items-center gap-3 pt-4">
-    <button
-      on:click={addLine}
-      class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
-      aria-label="Add new path segment"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width="2"
-        stroke="currentColor"
-        class="size-4"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M12 4.5v15m7.5-7.5h-15"
-        />
-      </svg>
-      Add Path
-    </button>
-
-    <button
-      on:click={addWait}
-      class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-500 dark:bg-amber-600 rounded-md shadow-sm hover:bg-amber-600 dark:hover:bg-amber-500 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-200 dark:focus:ring-amber-500"
-      aria-label="Add wait command"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        class="size-4"
-      >
-        <circle cx="12" cy="12" r="9" />
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
-      </svg>
-      Add Wait
-    </button>
-
-    <button
-      on:click={addRotate}
-      class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-pink-500 dark:bg-pink-600 rounded-md shadow-sm hover:bg-pink-600 dark:hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500"
-      aria-label="Add rotate command"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        class="size-4"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-        />
-      </svg>
-      Add Rotate
-    </button>
-  </div>
+  {#if sequence.length > 0}
+    <div class="flex flex-row justify-center items-center gap-3 pt-4 flex-wrap">
+      <PathActionButtons
+        {settings}
+        onAddLine={addLine}
+        onHandleAddAction={handleAddAction}
+      />
+    </div>
+  {/if}
 </div>
 
 <svelte:window on:dragover={handleWindowDragOver} on:drop={handleWindowDrop} />

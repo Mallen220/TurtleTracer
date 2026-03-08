@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /**
  * Action to handle keyboard navigation within a menu.
  * Supports Arrow keys (Up/Down), Home, End, and Escape.

@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { render, fireEvent } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Mock } from "vitest";
@@ -32,7 +32,7 @@ describe("SettingsDialog", () => {
       props: { isOpen: true, settings },
     });
 
-    const btn = getByText("Reset All");
+    const btn = getByText("Reset Defaults");
     await fireEvent.click(btn);
 
     expect(resetSettings).toHaveBeenCalled();

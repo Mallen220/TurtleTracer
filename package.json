@@ -1,94 +1,100 @@
 {
-  "name": "pedro-pathing-visualizer",
+  "name": "pedro-pathing-plus-visualizer",
   "private": true,
-  "version": "1.6.2",
+  "version": "1.8.0",
   "main": "electron/main.js",
   "author": "Matthew Allen <allenmc220@gmail.com>",
   "email": "allenmc220@gmail.com",
-  "license": "Apache-2.0",
-  "description": "A better alternative to pedro pathing visualizer",
+  "license": "Modified Apache 2.0",
+  "description": "A better alternative to the Pedro Pathing Plus Visualizer",
   "type": "module",
   "scripts": {
     "fix:notice": "node scripts/generate-file-notice.js",
     "fix:headers": "node scripts/add-copyright.js",
     "version:bump": "node scripts/bump-version.js",
     "generate:types": "node scripts/generate-plugin-types.js",
-    "build": "npm run generate:types && vite build",
+    "generate:icons": "node scripts/generate-windows-icons.cjs",
+    "check:tiles": "node scripts/check-tile-assets.cjs",
+    "copy:icon": "cp public/icon.png build/icon.png",
+    "build": "npm run generate:types && npm run generate:icons && npm run copy:icon && vite build",
     "preview": "vite preview",
-    "test": "vitest",
-    "tests": "vitest",
-    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
+    "test": "vitest run",
+    "tests": "vitest run",
+    "check": "npm run generate:types && npm run generate:icons && npm run check:tiles && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
     "test:e2e": "playwright test",
     "dev": "npm run generate:types && npm run fix:headers && npm run format && npm run fix:notice && vite build && electron .",
     "start": "npm run build && electron .",
-    "dist:mac": "npm run build && electron-builder --mac --arm64 --publish=never",
+    "dist:mac": "npm run build && npm run copy:icon && electron-builder --mac --arm64 --publish=never",
     "dist:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --arm64 --publish=never",
     "dist:all": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --linux --x64 --arm64 --publish=never && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --linux --x64 --publish=never",
     "dist:windows": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --x64 --publish=never",
+    "dist:appx": "npm run build && electron-builder --win appx --publish=never",
     "dist:linux": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --linux --x64 --arm64 --publish=never",
     "dist:linux:x64": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --linux --x64 --publish=never",
     "dist:publish": "node scripts/publish.js",
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@playwright/test": "^1.57.0",
+    "@playwright/test": "^1.58.2",
     "@rollup/plugin-alias": "^6.0.0",
     "@sveltejs/vite-plugin-svelte": "^3.1.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.3.1",
     "@testing-library/user-event": "^14.6.1",
-    "@tsconfig/svelte": "^5.0.4",
-    "@types/jsdom": "^27.0.0",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/jsdom": "^28.0.0",
     "@types/markdown-it": "^14.1.2",
     "@types/upng-js": "^2.1.5",
-    "@types/ws": "^8.18.1",
-    "autoprefixer": "^10.4.20",
+    "autoprefixer": "^10.4.27",
     "cli-progress": "^3.12.0",
     "electron": "^39.2.3",
-    "electron-builder": "^24.9.1",
+    "electron-builder": "^24.13.3",
     "electron-installer-dmg": "^5.0.1",
     "fast-check": "^4.5.3",
     "hotkeys-js": "^3.13.9",
-    "jsdom": "^27.3.0",
-    "postcss": "^8.4.41",
-    "prettier": "^3.7.4",
-    "prettier-plugin-svelte": "^3.4.0",
+    "jsdom": "^28.1.0",
+    "postcss": "^8.5.8",
+    "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.5.1",
+    "sharp": "^0.34.5",
     "svelte": "^4.2.20",
     "svelte-check": "^3.8.6",
     "tailwindcss": "^3.4.9",
-    "tslib": "^2.6.3",
-    "vite": "^5.4.21",
+    "tslib": "^2.8.1",
+    "vite": "^5.4.15",
     "vitest": "^2.1.8"
   },
   "dependencies": {
     "@types/d3": "^7.4.3",
-    "@types/lodash": "^4.17.7",
-    "canvas": "^3.2.0",
+    "@types/diff": "^8.0.0",
+    "@types/lodash": "^4.17.24",
+    "canvas": "^3.2.1",
     "d3": "^7.9.0",
+    "diff": "^8.0.3",
     "driver.js": "^1.4.0",
-    "electron-updater": "^6.6.2",
+    "electron-updater": "^6.8.3",
     "express": "^4.18.2",
-    "express-rate-limit": "^8.2.1",
-    "get-port": "^7.0.0",
+    "express-rate-limit": "^8.3.0",
+    "get-port": "^7.1.0",
     "gif.js": "^0.2.0",
     "hotkeys-js": "^3.13.9",
-    "lodash": "^4.17.21",
-    "markdown-it": "^14.1.0",
-    "prettier-plugin-java": "^2.7.7",
-    "sass": "^1.77.8",
-    "simple-git": "^3.30.0",
+    "html2pdf.js": "^0.14.0",
+    "lodash": "^4.17.23",
+    "markdown-it": "^14.1.1",
+    "prettier-plugin-java": "^2.8.1",
+    "sass": "^1.97.3",
+    "simple-git": "^3.32.3",
     "svelte-copy": "^1.4.2",
-    "svelte-dnd-action": "^0.9.67",
-    "svelte-highlight": "^7.7.0",
-    "two.js": "^0.8.14",
-    "typescript": "^5.5.3",
-    "update-electron-app": "^3.1.1",
-    "upng-js": "^2.1.0",
-    "ws": "^8.19.0"
+    "svelte-dnd-action": "^0.9.69",
+    "svelte-highlight": "^7.9.0",
+    "two.js": "^0.8.23",
+    "typescript": "^5.9.3",
+    "update-electron-app": "^3.1.2",
+    "upng-js": "^2.1.0"
   },
   "build": {
     "appId": "com.pedropathing.visualizer",
-    "productName": "Pedro Pathing Visualizer",
+    "productName": "Pedro Pathing Plus Visualizer",
     "asar": true,
     "asarUnpack": [
       "node_modules/electron-updater"
@@ -97,7 +103,7 @@
       "output": "release",
       "buildResources": "build"
     },
-    "artifactName": "Pedro-Pathing-Visualizer-${version}-${arch}.${ext}",
+    "artifactName": "Pedro-Pathing-Plus-Visualizer-${version}-${arch}.${ext}",
     "files": [
       "dist/**/*",
       "public/**/*",
@@ -119,22 +125,31 @@
     },
     "dmg": {
       "icon": "build/icon.png",
-      "background": "build/dmg-background.png",
       "window": {
         "width": 540,
         "height": 380
       }
     },
     "win": {
-      "target": "nsis",
-      "icon": "build/icon.png"
+      "target": [
+        "nsis",
+        "appx"
+      ],
+      "icon": "build/icon.png",
+      "timeStampServer": ""
+    },
+    "appx": {
+      "identityName": "PedroPathingPlus.PedroPathingPlusVisualizer",
+      "publisher": "CN=D17DA008-76B7-4978-BFAA-9ED056EE08B9",
+      "publisherDisplayName": "Pedro Pathing Plus",
+      "applicationId": "PedroPathingPlus.PedroPathingPlusVisualizer"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "perMachine": true,
-      "artifactName": "Pedro-Pathing-Visualizer-Setup-${version}.${ext}"
+      "artifactName": "Pedro-Pathing-Plus-Visualizer-Setup-${version}.${ext}"
     },
     "linux": {
       "target": [
@@ -144,14 +159,11 @@
       "icon": "build/icon.png",
       "category": "Development",
       "maintainer": "Matthew Allen <allenmc220@gmail.com>",
-      "executableName": "pedro-pathing-visualizer",
-      "artifactName": "Pedro-Pathing-Visualizer-${version}-${arch}.${ext}",
-      "desktop": {
-        "StartupWMClass": "pedro-pathing-visualizer"
-      }
+      "executableName": "pedro-pathing-plus-visualizer",
+      "artifactName": "Pedro-Pathing-Plus-Visualizer-${version}-${arch}.${ext}"
     },
     "appImage": {
-      "artifactName": "Pedro-Pathing-Visualizer-${version}-${arch}.${ext}"
+      "artifactName": "Pedro-Pathing-Plus-Visualizer-${version}-${arch}.${ext}"
     },
     "fileAssociations": [
       {
@@ -170,6 +182,7 @@
     }
   },
   "overrides": {
-    "tar": "7.5.4"
+    "tar": "7.5.7",
+    "esbuild": "^0.25.0"
   }
 }

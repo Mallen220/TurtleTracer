@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import type { Line } from "../../../types/index";
   import { snapToGrid, showGrid, gridSize } from "../../../stores";
@@ -15,8 +15,12 @@
     handleWaypointRename,
     isLineLinked,
   } from "../../../utils/pointLinking";
+  import { settingsStore } from "../../projectStore";
+  import { toUser, toField } from "../../../utils/coordinates";
   import { tooltipPortal } from "../../actions/portal";
   import { onMount, onDestroy } from "svelte";
+  import { actionRegistry } from "../../actionRegistry";
+  import { getSmallButtonClass } from "../../../utils/buttonStyles";
 
   export let line: Line;
   export let idx: number;
@@ -28,7 +32,8 @@
   export let onInsertAfter: () => void;
   export let onAddWaitAfter: () => void;
   export let onAddRotateAfter: () => void;
-  export let recordChange: () => void;
+  export let onAddAction: ((def: any) => void) | undefined = undefined;
+  export let recordChange: (action?: string) => void;
   export let onMoveUp: () => void;
   export let onMoveDown: () => void;
   export let canMoveUp: boolean = true;
@@ -67,6 +72,11 @@
 
     return () => ro.disconnect();
   });
+
+  $: userPoint = toUser(
+    line.endPoint,
+    $settingsStore.coordinateSystem || "Pedro",
+  );
 
   // Listen for focus requests
   $: if ($focusRequest) {
@@ -141,7 +151,7 @@
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
         on:click|stopPropagation={toggleCollapsed}
-        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
+        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title="{collapsed ? 'Expand' : 'Collapse'} path"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} Path {idx + 1}"
         aria-expanded={!collapsed}
@@ -179,7 +189,7 @@
             class:text-green-500={hoveredLinkId === line.id}
             disabled={line.locked}
             on:input={handleNameInput}
-            on:blur={() => recordChange && recordChange()}
+            on:blur={() => recordChange && recordChange("Rename Path")}
             on:click|stopPropagation
           />
           {#if line.id && isLineLinked(lines, line.id)}
@@ -230,7 +240,7 @@
           line.locked = !line.locked;
           lines = [...lines];
         }}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
+        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title={line.locked ? "Unlock Path" : "Lock Path"}
         aria-label={line.locked ? "Unlock Path" : "Lock Path"}
       >
@@ -274,7 +284,7 @@
           on:click|stopPropagation={() =>
             !line.locked && onMoveUp && onMoveUp()}
           disabled={!canMoveUp || line.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
+          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
           title="Move Up"
           aria-label="Move Up"
         >
@@ -295,7 +305,7 @@
           on:click|stopPropagation={() =>
             !line.locked && onMoveDown && onMoveDown()}
           disabled={!canMoveDown || line.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
+          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
           title="Move Down"
           aria-label="Move Down"
         >
@@ -314,13 +324,12 @@
         </button>
       </div>
 
-      {#if lines.length > 1}
-        <DeleteButtonWithConfirm
-          on:click={() => !line.locked && onRemove && onRemove()}
-          disabled={line.locked}
-          title="Delete Path"
-        />
-      {/if}
+      <DeleteButtonWithConfirm
+        on:click={() => !line.locked && onRemove && onRemove()}
+        disabled={line.locked}
+        title="Delete Path"
+        className="ml-1"
+      />
     </div>
   </div>
 
@@ -351,9 +360,20 @@
                 class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 type="number"
-                min="0"
-                max="144"
-                bind:value={line.endPoint.x}
+                min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
+                max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
+                value={userPoint.x}
+                on:input={(e) => {
+                  const val = parseFloat(e.currentTarget.value);
+                  if (!isNaN(val)) {
+                    const newPt = toField(
+                      { x: val, y: userPoint.y },
+                      $settingsStore.coordinateSystem || "Pedro",
+                    );
+                    line.endPoint.x = newPt.x;
+                    line.endPoint.y = newPt.y;
+                  }
+                }}
                 disabled={line.locked}
                 title={snapToGridTitle}
                 aria-label="Target X position"
@@ -369,10 +389,21 @@
                 bind:this={yInput}
                 class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
-                min="0"
-                max="144"
+                min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
+                max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
                 type="number"
-                bind:value={line.endPoint.y}
+                value={userPoint.y}
+                on:input={(e) => {
+                  const val = parseFloat(e.currentTarget.value);
+                  if (!isNaN(val)) {
+                    const newPt = toField(
+                      { x: userPoint.x, y: val },
+                      $settingsStore.coordinateSystem || "Pedro",
+                    );
+                    line.endPoint.x = newPt.x;
+                    line.endPoint.y = newPt.y;
+                  }
+                }}
                 disabled={line.locked}
                 title={snapToGridTitle}
                 aria-label="Target Y position"
@@ -396,7 +427,7 @@
             on:change={() => (lines = [...lines])}
             on:commit={() => {
               lines = [...lines];
-              recordChange();
+              recordChange("Update Heading");
             }}
           />
         </div>
@@ -411,65 +442,40 @@
 
       <!-- Action Bar -->
       <div
-        class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50"
+        class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50 flex-wrap"
       >
         <span class="text-xs font-medium text-neutral-400 mr-auto"
           >Insert after:</span
         >
 
-        <button
-          on:click={onInsertAfter}
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800/30"
-          title="Add Path After"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3"
-          >
-            <path
-              d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
-            />
-          </svg>
-          Path
-        </button>
-
-        <button
-          on:click={onAddWaitAfter}
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200 dark:border-amber-800/30"
-          title="Add Wait After"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3"
-          >
-            <path
-              d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
-            />
-          </svg>
-          Wait
-        </button>
-
-        <button
-          on:click={onAddRotateAfter}
-          class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30"
-          title="Add Rotate After"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3"
-          >
-            <path
-              d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
-            />
-          </svg>
-          Rotate
-        </button>
+        {#each Object.values($actionRegistry) as def (def.kind)}
+          {#if def.createDefault || def.isPath}
+            {@const color = def.buttonColor || "gray"}
+            <button
+              on:click={() => {
+                if (onAddAction) onAddAction(def);
+                else if (def.isPath) onInsertAfter();
+                else if (def.isWait) onAddWaitAfter();
+                else if (def.isRotate) onAddRotateAfter();
+              }}
+              class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 ${getSmallButtonClass(color)}`}
+              title={`Add ${def.label} After`}
+              aria-label={`Add ${def.label} After`}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="size-3"
+              >
+                <path
+                  d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
+                />
+              </svg>
+              {def.label}
+            </button>
+          {/if}
+        {/each}
       </div>
     </div>
   {/if}

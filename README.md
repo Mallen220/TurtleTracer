@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="public/icon.png" alt="Pedro Pathing Visualizer Logo" width="120" height="120">
-  <h1 align="center">Pedro Pathing Visualizer</h1>
+  <img src="public/icon.png" alt="Pedro Pathing Plus Visualizer Logo" width="120" height="120">
+  <h1 align="center">Pedro Pathing Plus Visualizer</h1>
   <p align="center">
     <strong>The modern, intuitive path planner for FIRST Robotics Competition.</strong>
   </p>
@@ -9,15 +9,22 @@
   </p>
 
   <p align="center">
-    <a href="https://github.com/Mallen220/PedroPathingVisualizer/releases">
-      <img src="https://img.shields.io/github/v/release/Mallen220/PedroPathingVisualizer?style=flat-square&color=blue" alt="Latest Release">
+    <a href="https://github.com/Mallen220/PedroPathingPlusVisualizer/releases">
+      <img src="https://img.shields.io/github/v/release/Mallen220/PedroPathingPlusVisualizer?style=flat-square&color=blue" alt="Latest Release">
     </a>
     <a href="LICENSE">
       <img src="https://img.shields.io/badge/license-Apache%202.0-green.svg?style=flat-square" alt="License">
     </a>
     <img src="https://img.shields.io/badge/platform-macOS%20|%20Windows%20|%20Linux-lightgrey.svg?style=flat-square" alt="Platform">
+    <br/>
+    <br/>
+    <a href="https://apps.microsoft.com/detail/9nb7sqkhhct6?cid=DevShareMCLPCS&hl=en-US&gl=US" target="_blank" rel="noopener noreferrer" style="margin-left:8px;">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/f/f7/Get_it_from_Microsoft_Badge.svg" height="50" alt="Microsoft Store">
+    </a>
   </p>
 </div>
+
+Windows Users can download from the Microsoft Store to receive auto-updates for stable releases. Manual installs and pre-releases can be found [here](https://github.com/Mallen220/PedroPathingPlusVisualizer/releases).
 
 > ## This project is currently undergoing rapid updates. Please check back regularly for bug fixes and new features. If you find an error, please report it and revert to a previous version.
 
@@ -25,29 +32,76 @@
 
 ## 🚀 Overview
 
-**Pedro Pathing Visualizer** is a powerful desktop application built with Electron and Svelte, designed to revolutionize how FIRST Robotics Competition teams plan their autonomous routines. Unlike web-based alternatives, this tool runs natively on your machine, offering superior performance, local file management, and deep integration with your development workflow.
+**Pedro Pathing Plus Visualizer** is a powerful desktop application built with Electron and Svelte, designed to revolutionize how FIRST Robotics Competition teams plan their autonomous routines. Unlike web-based alternatives, this tool runs natively on your machine, offering superior performance, local file management, and deep integration with your development workflow.
 
-## ✨ Features
+## 🌟 Unmatched Features
 
-Experience a comprehensive suite of tools designed for precision and efficiency:
+Pedro Pathing Plus Visualizer isn't just a port of the web tool—it's a complete reimagining of what path planning should be. Here's why you should make the switch:
 
-- **🎨 Visual Path Editing**: Intuitive drag-and-drop interface for creating complex Bezier curves, straight lines, and path chains.
-- **🤖 Advanced Simulation**: Real-time robot physics simulation featuring accurate kinematics, velocity constraints, and acceleration profiles.
-- **⚠️ Obstacle & Collision Detection**: Define custom field obstacles (polygons) and get immediate feedback on potential collisions during path planning.
-- **🔄 Sequence Editor**: Build full autonomous routines by sequencing paths, adding wait times, and triggering event markers.
-- **💾 Local File Management**: Robust system for saving, loading, and organizing `.pp` project files directly on your file system.
-- **📤 Powerful Export Options**:
-  - **Java Code**: Generate full OpModes for the Pedro Pathing library.
-  - **APNG & GIF Export**: Share your path animations with the team using high-quality exported visualizer recordings.
-  - **JSON Export**: Raw data export for custom parsers.
-- **⚡ Productivity Tools**:
-  - **Onion Skinning**: Visualize previous path states for precise adjustments.
-  - **Undo/Redo**: Full history support for mistake-free editing.
-  - **Multi-Window Support**: Open multiple project windows simultaneously.
-- **📏 Precision Tools**: Integrated Ruler, Protractor, and customizable Grid snapping (1" - 24") for exact field positioning.
-- **🛠️ Customization**: Full support for custom field maps, robot sizing, color themes, and adjustable safe margins.
-- **📦 Cross-Platform**: Native, optimized applications for macOS, Windows, and Linux.
-- **♾️ And so, so much more!** Check back often for updates and new features.
+### 🚀 **Next-Level Performance & Workflow**
+
+- **Native Desktop Experience**: Built with Electron for blazing fast performance. Works offline, supports multiple windows, and integrates with your OS.
+- **Local File System**: Open and save `.pp` files directly on your computer. No more uploading/downloading or losing work to browser cache clears.
+- **Git Integration**: See your file status (Modified, Staged, Untracked) instantly. Version control your paths alongside your robot code.
+- **Auto-Save & History**: Never lose progress with robust Auto-Save, full Undo/Redo support, and a dedicated History Panel to jump back to any point.
+
+### 📊 **Professional Analysis & Simulation**
+
+- **Telemetry Overlay**: Import real robot log data to see exactly how your path performed on the field compared to the plan.
+- **Advanced Statistics**: View Velocity Graphs, Acceleration profiles, and Timing breakdowns.
+- **Heatmaps**: Visualize robot velocity along the path with color-coded gradients to spot bottlenecks.
+- **Physics-Based Simulation**: Real-time kinematics simulation with accurate velocity constraints and acceleration profiles.
+
+### 🛠️ **Powerful Planning Tools**
+
+- **File Macros**: Reuse successful path sequences! Drag and drop other `.pp` files to use them as sub-routines (macros) with support for transformations (mirror/reverse).
+- **Smart Validators**:
+  - **Collision Detection**: Real-time feedback on Obstacles and Keep-In Zones.
+  - **Continuous Validation**: Option to check your path's safety in real-time as you edit.
+  - **Diff View**: Visually compare your current changes against the saved version.
+  - **Onion Skinning**: See previous path states to make precise adjustments.
+- **Path Optimizer**: Single-click optimization to refine your paths for maximum speed while respecting field boundaries and obstacles.
+- **Custom Field Maps**: Import any field image with the built-in Calibration Wizard.
+- **Smart Object Snapping**: Intelligent snapping for field waypoints and markers to ensure precise alignment.
+- **Sticky Notes**: Annotate your paths directly on the field with customizable sticky notes.
+
+### ⚡ **Efficiency Boosters**
+
+- **Interactive Onboarding**: New to the app? The built-in interactive tutorial will guide you through your first path.
+- **Robot Profile Manager**: Manage multiple robot configurations with unique dimensions and constraints, and switch between them instantly.
+- **Command Palette**: Press `Cmd+K` (or `Ctrl+K`) to instantly search for paths, settings, or commands.
+- **Plugin System**: Extend functionality with community plugins or build your own to add custom tabs and tools.
+- **Presentation Mode**: One-click cleaner interface for demonstrating paths to judges or teammates.
+- **Export Power**:
+  - **Java Code**: Generates `PedroPathingPlus` compliant code.
+  - **Live Code Preview**: See your generated code update in real-time as you edit.
+  - **Strategy Sheet**: Export a printable summary of your routine for strategizing with alliance partners.
+  - **Visuals**: Export high-quality **APNG**, **GIF**, and **Static Images** of your paths.
+
+### ✨ **Stunning UI & UX Overhaul**
+
+We've polished every pixel to make path planning a joy.
+
+- **Modern Clean Interface**: A complete visual refresh with standardized color-coding (Green for Paths, Amber for Waits, Pink for Rotates) makes complex routines easy to read at a glance.
+- **Responsive Design**: Whether you're on a laptop or a massive monitor, the UI scales perfectly. Mobile-friendly resizing means it even works on smaller screens if you need to check a path on the go.
+- **Intuitive Dialogs**: Redesigned settings and file managers that are easier to navigate and nicer to look at.
+
+### ⚙️ **Under-the-Hood Engineering**
+
+It's not just about looks—the engine is brand new.
+
+- **Performance**: Major backend refactoring and optimized field rendering logic mean the app runs smoother, even with complex paths and heavy telemetry data.
+- **Readability**: The codebase has been cleaned up and modernized, making it easier for contributors to add features (and for the app to run without hiccups).
+- **Stability**: Automated testing and continuous validation ensure that the app is reliable when you need it most—at the competition.
+
+### 🎨 **Fully Customizable**
+
+- **Theming**: Light Mode, Dark Mode, and custom theme plugins.
+- **Keybindings**: Every action is remappable. Custom profiles supported.
+- **Font Sizing**: Adjustable font sizes to suit your preference and screen resolution.
+- **Settings Management**: Import and export your configuration to share with teammates or move between devices.
+
+Oh, and so so many little improvements not even included yet! Check back often for a growing list of upgrades!
 
 ## 📥 Installation
 
@@ -57,24 +111,34 @@ Experience a comprehensive suite of tools designed for precision and efficiency:
 Open Terminal and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/install.sh | bash
 ```
 
 _Enter your password when prompted to complete installation._
 
 **Manual Installation:**
 
-1.  Download the latest `.dmg` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
+1.  Download the latest `.dmg` from [Releases](https://github.com/Mallen220/PedroPathingPlusVisualizer/releases).
 2.  Mount the DMG and drag the app to your Applications folder.
 3.  **Important**: Run the following command in Terminal to clear the quarantine attribute (prevents "App is damaged" errors):
     ```bash
-    sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Visualizer.app"
+    sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Plus Visualizer.app"
     ```
 4.  Launch the application.
 
 ### **Windows**
 
-1.  Download the latest `.exe` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
+**Microsoft Store (Recommended):**
+
+<a href="https://apps.microsoft.com/detail/9nb7sqkhhct6?cid=DevShareMCLPCS&hl=en-US&gl=US" target="_blank" rel="noopener noreferrer">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/f/f7/Get_it_from_Microsoft_Badge.svg" height="50" alt="Microsoft Store">
+</a>
+
+Download from the Microsoft Store to receive auto-updates for stable releases.
+
+**Manual Installation (.exe):**
+
+1.  Download the latest `.exe` from [Releases](https://github.com/Mallen220/PedroPathingPlusVisualizer/releases).
 2.  Run the installer.
 3.  _Note: If SmartScreen appears, click "More info" > "Run anyway"._
 
@@ -84,14 +148,14 @@ _Enter your password when prompted to complete installation._
 Open Terminal and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/install.sh | bash
 ```
 
 _Enter your password when prompted to complete installation._
 
 **Manual Installation:**
 
-1.  Download the `.deb` (Debian/Ubuntu) or `.AppImage` from [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases).
+1.  Download the `.deb` (Debian/Ubuntu) or `.AppImage` from [Releases](https://github.com/Mallen220/PedroPathingPlusVisualizer/releases).
 2.  Fix permissions for Sandboxing by installing and adding "--no-sandboxing" to the .desktop icons.
 3.  Install using your package manager of choice `libfuse2` and `zlib1g` as well as any sub-dependencies.
 4.  **Important**: Other various errors are likely to occur including depending on your Distro of choice. Testing is varied by Ubuntu is most closely watched. If you would like to become a tester please reach out.
@@ -106,7 +170,7 @@ chmod +x Pedro*.AppImage
 
 ## 🗂️ File Management
 
-One of the critical advantages of Pedro Pathing Visualizer over web-based tools is its **Local File Management system**.
+One of the critical advantages of Pedro Pathing Plus Visualizer over web-based tools is its **Local File Management system**.
 
 - **Security & Persistence**: Your paths are saved as actual files (`.pp`) on your hard drive, not in a temporary browser cache that can be accidentally cleared.
 - **Version Control**: You can easily commit your path files to Git alongside your robot code, ensuring your team always has the latest versions.
@@ -146,7 +210,7 @@ The visualizer provides flexible export capabilities to suit your team's workflo
 - **"App is damaged" / Can't Open**:
   Run the quarantine fix command:
   ```bash
-  sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Visualizer.app"
+  sudo xattr -rd com.apple.quarantine "/Applications/Pedro Pathing Plus Visualizer.app"
   ```
 - **Gatekeeper**: If the app is blocked, go to _System Settings > Privacy & Security_ and click "Open Anyway".
 
@@ -172,7 +236,7 @@ Want to contribute or build from source?
 
 ```bash
 # Clone the repository
-git clone https://github.com/Mallen220/PedroPathingVisualizer.git
+git clone https://github.com/Mallen220/PedroPathingPlusVisualizer.git
 cd PedroPathingVisualizer
 
 # Install dependencies
@@ -205,6 +269,12 @@ This project is open for everyone! We believe in the power of open source and co
 
 See the [LICENSE](LICENSE) file for the full Apache 2.0 legal text.
 
+## 🔒 Privacy
+
+Your privacy is important to us. The Pedro Pathing Plus Visualizer is designed to run locally on your machine and does not collect personal data.
+
+For more details, please review our full [Privacy Policy](PRIVACY.md).
+
 ## 🙏 Acknowledgments
 
 - **#16166 Watt's Up**: For the initial concept, development, and inspiration.
@@ -214,9 +284,9 @@ See the [LICENSE](LICENSE) file for the full Apache 2.0 legal text.
 
 ## 🔗 Links
 
-- [GitHub Repository](https://github.com/Mallen220/PedroPathingVisualizer)
-- [Releases](https://github.com/Mallen220/PedroPathingVisualizer/releases)
-- [Issues & Bug Reports](https://github.com/Mallen220/PedroPathingVisualizer/issues)
+- [GitHub Repository](https://github.com/Mallen220/PedroPathingPlusVisualizer)
+- [Releases](https://github.com/Mallen220/PedroPathingPlusVisualizer/releases)
+- [Issues & Bug Reports](https://github.com/Mallen220/PedroPathingPlusVisualizer/issues)
 
 ---
 

@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi } from "vitest";
 import {
   generateJavaCode,
@@ -6,6 +6,18 @@ import {
   generateSequentialCommandCode,
 } from "../utils/codeExporter";
 import type { Point, Line, SequenceItem } from "../types";
+import { registerCoreUI } from "../lib/coreRegistrations";
+
+// Register actions for tests
+registerCoreUI();
+import { actionRegistry } from "../lib/actionRegistry";
+import type { SequencePathItem, SequenceWaitItem } from "../types";
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const waitKind = (): SequenceWaitItem["kind"] =>
+  (actionRegistry.getAll().find((a: any) => a.isWait)
+    ?.kind as SequenceWaitItem["kind"]) ?? "wait";
 
 // Mock prettier to just return the code as-is or with simple modification
 vi.mock("prettier", () => ({
@@ -120,8 +132,43 @@ describe("codeExporter", () => {
       const lines = [line3];
       const code = await generateJavaCode(startPoint, lines, false);
 
-      expect(code).toContain("setTangentHeadingInterpolation()");
-      expect(code).toContain(".setReversed(true)");
+      expect(code).toContain(
+        ".setHeadingInterpolation(HeadingInterpolator.tangent)",
+      );
+      expect(code).toContain(".setReversed()");
+    });
+
+    it("should generate code with Facing Point Heading", async () => {
+      const facingPointLine: Line = {
+        id: "line4",
+        name: "line4",
+        endPoint: {
+          x: 50,
+          y: 0,
+          heading: "facingPoint",
+          targetX: 20,
+          targetY: 30,
+          reverse: false,
+        },
+        controlPoints: [],
+        color: "#000",
+        locked: false,
+      };
+      const code = await generateJavaCode(startPoint, [facingPointLine], false);
+      expect(code).toContain(
+        ".setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(20.000, 30.000)))",
+      );
+
+      facingPointLine.endPoint.reverse = true;
+      const codeReverse = await generateJavaCode(
+        startPoint,
+        [facingPointLine],
+        false,
+      );
+      expect(codeReverse).toContain(
+        ".setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(20.000, 30.000)))",
+      );
+      expect(codeReverse).toContain(".setReversed()");
     });
 
     it("should include event markers", async () => {
@@ -155,7 +202,7 @@ describe("codeExporter", () => {
     it("should handle wait events in sequence when provided", async () => {
       const sequence: SequenceItem[] = [
         {
-          kind: "wait",
+          kind: waitKind(),
           durationMs: 500,
           eventMarkers: [{ name: "waitMarker", position: 0.5 }],
         } as any,
@@ -203,6 +250,70 @@ describe("codeExporter", () => {
       expect(code).toMatch(/Score = follower/);
       expect(code).toMatch(/Score_1 = follower/);
     });
+
+    it("should use correct start heading in setStartingPose", async () => {
+      // Create a line that forces a specific start heading
+      // For a line from (10,10) to (20,20), the tangent is 45 degrees.
+      // If endPoint.heading is 'tangential', the start heading should be 45.
+      const line: Line = {
+        id: "l1",
+        endPoint: { x: 20, y: 20, heading: "tangential", reverse: false },
+        controlPoints: [],
+        color: "black",
+      };
+
+      const code = await generateJavaCode(startPoint, [line], true);
+
+      // startPoint is (10,10). Tangent to (20,20) is 45 degrees.
+      // Math.toRadians(45) approx 0.785
+      // 45 degrees
+      expect(code).toContain(
+        "follower.setStartingPose(new Pose(10.000, 10.000, Math.toRadians(45.000)))",
+      );
+    });
+
+    it("should use default start heading if lines array is empty", async () => {
+      // construct a point without the constant-heading `degrees` field so it
+      // matches the linear variant of Point.
+      const sp: Point = {
+        x: startPoint.x,
+        y: startPoint.y,
+        heading: "linear",
+        startDeg: 120,
+        endDeg: 180,
+      };
+      const code = await generateJavaCode(sp, [], true);
+      expect(code).toContain(
+        "follower.setStartingPose(new Pose(10.000, 10.000, Math.toRadians(120.000)))",
+      );
+    });
+
+    it("uses geometric start heading when path geometry exists (updates with position)", async () => {
+      // startPoint explicitly requests a different startDeg than geometry
+      const sp: Point = {
+        x: 10,
+        y: 10,
+        heading: "linear",
+        startDeg: 123,
+        endDeg: 180,
+      };
+
+      // A line whose geometric tangent would be 45 degrees (different from 123)
+      const line: Line = {
+        id: "l1",
+        endPoint: { x: 20, y: 20, heading: "tangential", reverse: false },
+        controlPoints: [],
+        color: "black",
+      };
+
+      const code = await generateJavaCode(sp, [line], true);
+
+      // When line geometry exists, export should reflect the geometric start heading (45°),
+      // so updating the start position will change the exported angle accordingly.
+      expect(code).toContain(
+        "follower.setStartingPose(new Pose(10.000, 10.000, Math.toRadians(45.000)))",
+      );
+    });
   });
 
   describe("generateSequentialCommandCode", () => {
@@ -222,7 +333,7 @@ describe("codeExporter", () => {
       );
     });
 
-    it("should handle NextFTC library", async () => {
+    it("should handle NextFTC library and structure", async () => {
       const lines = [line1];
       const code = await generateSequentialCommandCode(
         startPoint,
@@ -233,17 +344,57 @@ describe("codeExporter", () => {
       );
 
       expect(code).toContain(
-        "import dev.nextftc.core.command.groups.SequentialGroup",
+        "import dev.nextftc.core.commands.groups.SequentialGroup",
       );
-      expect(code).toContain("public class TestPath extends SequentialGroup");
+      expect(code).toContain("public class TestPath extends Command");
+      expect(code).toContain("private Command group;");
+
+      // Constructor shouldn't contain addCommands
+      expect(code).not.toContain("addCommands(");
+
+      // Check Imports
+      expect(code).toContain("import dev.nextftc.core.commands.Command;");
+      expect(code).toContain(
+        "import dev.nextftc.core.commands.groups.SequentialGroup;",
+      );
+      expect(code).toContain(
+        "import org.firstinspires.ftc.teamcode.pedroPathing.FollowPath;",
+      );
+
+      // Check Methods
+      expect(code).toContain("public void start() {");
+      expect(code).toContain("buildPaths();");
+      expect(code).toContain("group = new SequentialGroup(");
       expect(code).toContain("new FollowPath(startPointTOline1)");
+      expect(code).toContain("group.start();");
+
+      expect(code).toContain("public void update() {");
+      expect(code).toContain("if (group != null) group.update();");
+
+      expect(code).toContain("public void stop(boolean interrupted) {");
+      expect(code).toContain("if (group != null) group.stop(interrupted);");
+
+      expect(code).toContain("public boolean isDone() {");
+      expect(code).toContain("return group != null && group.isDone();");
+
+      // Verify no ProgressTracker or Telemetry
+      expect(code).not.toContain("ProgressTracker progressTracker");
+      expect(code).not.toContain(
+        "import com.pedropathingplus.pathing.ProgressTracker;",
+      );
+      expect(code).not.toContain(
+        "public TestPath(final Drivetrain drive, HardwareMap hw, Telemetry telemetry)",
+      );
+      expect(code).toContain(
+        "public TestPath(final Drivetrain drive, HardwareMap hw) throws IOException",
+      );
     });
 
     it("should handle wait commands in sequence", async () => {
       const lines = [line1];
       const sequence: SequenceItem[] = [
-        { kind: "path", lineId: "line1" },
-        { kind: "wait", durationMs: 1000 } as any,
+        { kind: pathKind(), lineId: "line1" },
+        { kind: waitKind(), durationMs: 1000 } as any,
       ];
       const code = await generateSequentialCommandCode(
         startPoint,
@@ -258,8 +409,8 @@ describe("codeExporter", () => {
     it("should handle NextFTC wait commands (seconds conversion)", async () => {
       const lines = [line1];
       const sequence: SequenceItem[] = [
-        { kind: "path", lineId: "line1" },
-        { kind: "wait", durationMs: 1500 } as any,
+        { kind: pathKind(), lineId: "line1" },
+        { kind: waitKind(), durationMs: 1500 } as any,
       ];
       const code = await generateSequentialCommandCode(
         startPoint,
@@ -289,7 +440,7 @@ describe("codeExporter", () => {
     it("should handle wait events with markers", async () => {
       const sequence: SequenceItem[] = [
         {
-          kind: "wait",
+          kind: waitKind(),
           durationMs: 2000,
           eventMarkers: [
             { name: "midWait", position: 0.5 },
@@ -408,6 +559,39 @@ describe("codeExporter", () => {
       expect(loopCode).toMatch(/private PathChain ATOB_1;/);
       expect(loopCode).toMatch(/ATOB = follower/);
       expect(loopCode).toMatch(/ATOB_1 = follower/);
+    });
+
+    it("should embed pose data when hardcodeValues is true", async () => {
+      const lines = [line1, line2]; // Add line2 which has linear heading
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestPath.pp",
+        undefined,
+        "SolversLib",
+        "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+        true, // hardcodeValues
+      );
+
+      expect(code).not.toContain(
+        "import com.pedropathingplus.PedroPathReader;",
+      );
+      expect(code).not.toContain("new PedroPathReader");
+      expect(code).toContain("new Pose(10.000, 10.000, Math.toRadians(0))"); // startPoint
+      // Check line1 (constant 90)
+      expect(code).toContain("new Pose(20.000, 20.000, Math.toRadians(90))");
+      // Check line2 (linear 90 -> 180). End point should use endDeg (180)
+      expect(code).toContain("new Pose(30.000, 10.000, Math.toRadians(180))");
+
+      expect(code).not.toContain("pp.get(");
+
+      // Check hardcoded heading interpolation
+      expect(code).toContain(
+        "setConstantHeadingInterpolation(Math.toRadians(90))",
+      );
+      expect(code).toContain(
+        "setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))",
+      );
     });
   });
 });

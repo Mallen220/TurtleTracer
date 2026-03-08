@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to build (e.g., v1.6.1)"
+        description: "Release tag to build (e.g., 'v1.6.1')"
         required: true
         default: ""
 
@@ -43,18 +43,22 @@ jobs:
           cat > base_notes.md << 'EOF'
           ## 🚀 Quick Update
 
-          Refer to the README installation section for instructions on installing or updating Pedro Pathing Visualizer. Below is a condensed version of the instructions for quick reference.
+          Refer to the README installation section for instructions on installing or updating Pedro Pathing Plus Visualizer. Below is a condensed version of the instructions for quick reference.
 
           This repo is regularly updated with new features and bug fixes but tested primarily on macOS. Should an issue arise, please report it via the GitHub Issues page and revert to the previous stable version if needed.
 
           #### **macOS / Linux**
           Run the following command in terminal and provide your password when prompted:
           ```bash
-          curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingVisualizer/main/install.sh | bash
+          curl -fsSL https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/install.sh | bash
           ```
 
           #### **Windows**
-          Download and install via the `.exe` installer below.
+          <a href="https://apps.microsoft.com/detail/9nb7sqkhhct6?cid=DevShareMCLPCS&hl=en-US&gl=US" target="_blank" rel="noopener noreferrer" style="margin-left:8px;">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/f/f7/Get_it_from_Microsoft_Badge.svg" height="50" alt="Microsoft Store">
+          </a>
+
+          Windows Users can download from the Microsoft Store to receive auto-updates for stable releases. A .exe file is also provided below. 
 
           ## 📝 Release Notes
           EOF
@@ -95,7 +99,7 @@ jobs:
           set -e
 
           VERSION="${TAG_NAME#v}"
-          TITLE="Pedro Pathing Visualizer ${VERSION}"
+          TITLE="Pedro Pathing Plus Visualizer ${VERSION}"
 
           # Check for existing release
           RELEASE_JSON=$(gh release view "$TAG_NAME" --json isDraft,uploadUrl 2>/dev/null || true)
@@ -130,7 +134,11 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build
+      - name: Build Web Bundle
+        env:
+          VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
+          VITE_DISCORD_ISSUES: ${{ secrets.DISCORD_ISSUES }}
+        run: npm run build
 
       - name: Build (Mac)
         run: |
@@ -162,9 +170,41 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build
+      - name: Build Web Bundle
+        env:
+          VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
+          VITE_DISCORD_ISSUES: ${{ secrets.DISCORD_ISSUES }}
+        run: npm run build
+
+      - name: Decode Signing Certificate
+        shell: pwsh
+        env:
+          MSIX_CERT_BASE64: ${{ secrets.MSIX_CERT_BASE64 }}
+        run: |
+          if ($env:MSIX_CERT_BASE64) {
+            $pfxPath = Join-Path (Get-Location) 'msix-signing.pfx'
+            [System.IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:MSIX_CERT_BASE64))
+            Write-Host "Certificate decoded to $pfxPath"
+          } else {
+            Write-Host "No certificate found in secrets."
+          }
+
+      - name: Import Cert to Store
+        shell: pwsh
+        env:
+          PFX_PASSWORD: ${{ secrets.MSIX_CERT_PASSWORD }}
+        run: |
+          # Use the environment variable $env:PFX_PASSWORD
+          $pfxPassword = ConvertTo-SecureString -String $env:PFX_PASSWORD -AsPlainText -Force
+          Import-PfxCertificate -FilePath msix-signing.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pfxPassword
 
       - name: Build (Windows)
+        env:
+          # Note: WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD are intentionally removed.
+          # Electron-builder will find the cert in the Windows User Store via 'certificateSubjectName' in package.json
+          MSIX_PUBLISHER: ${{ secrets.MSIX_PUBLISHER }}
+          MSIX_PACKAGE_ID: ${{ secrets.MSIX_PACKAGE_ID }}
+          MSIX_PUBLISHER_DISPLAY_NAME: ${{ secrets.MSIX_PUBLISHER_DISPLAY_NAME }}
         run: |
           echo "Building Windows packages..."
           npx electron-builder --win --x64 --publish never
@@ -177,8 +217,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          echo "Uploading .exe setup file:"
-          find release -maxdepth 1 -name "*Setup*.exe" -type f | while read file; do
+          echo "Uploading .exe, .appx, .appxupload and .msix artifacts:"
+          find release -maxdepth 1 \( -name "*Setup*.exe" -o -name "*.appx" -o -name "*.appxupload" -o -name "*.msix" \) -type f | while read file; do
             echo "Uploading: $file"
             gh release upload "$TAG_NAME" "$file" --clobber || echo "Failed to upload $file"
           done
@@ -208,7 +248,11 @@ jobs:
             libzstd-dev
 
       - run: npm ci
-      - run: npm run build
+      - name: Build Web Bundle
+        env:
+          VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
+          VITE_DISCORD_ISSUES: ${{ secrets.DISCORD_ISSUES }}
+        run: npm run build
 
       - name: Build (Linux)
         run: |

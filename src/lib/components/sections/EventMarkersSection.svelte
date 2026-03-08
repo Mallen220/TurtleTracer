@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import TrashIcon from "../icons/TrashIcon.svelte";
   import type { Line } from "../../../types/index";
@@ -75,6 +75,7 @@
   <div class="flex items-center justify-between w-full">
     <button
       on:click={toggleCollapsed}
+      aria-label="Toggle Path Event Markers"
       class="flex items-center gap-2 font-light hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-sm"
       title="{collapsed ? 'Show' : 'Hide'} event markers"
     >
@@ -98,6 +99,7 @@
     </button>
     <button
       on:click={addEventMarker}
+      aria-label="Add Event Marker"
       class="text-sm text-purple-500 hover:text-purple-600 flex items-center gap-1 px-2 py-1"
       title="Add Event Marker"
       disabled={line.locked}

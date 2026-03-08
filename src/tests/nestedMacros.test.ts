@@ -1,5 +1,5 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-import { describe, it, expect } from "vitest";
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { describe, it, expect, beforeEach } from "vitest";
 import { expandMacro, regenerateProjectMacros } from "../lib/macroUtils";
 import type {
   Line,
@@ -7,7 +7,22 @@ import type {
   SequenceItem,
   PedroData,
   SequenceMacroItem,
+  SequencePathItem,
 } from "../types";
+import { actionRegistry } from "../lib/actionRegistry";
+import { registerCoreUI } from "../lib/coreRegistrations";
+
+beforeEach(() => {
+  actionRegistry.reset();
+  registerCoreUI();
+});
+
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const macroKind = (): SequenceMacroItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isMacro)
+    ?.kind as SequenceMacroItem["kind"]) ?? "macro";
 
 describe("Nested Macros and Recursion", () => {
   const startPoint: Point = {
@@ -35,12 +50,12 @@ describe("Nested Macros and Recursion", () => {
     startPoint: { x: 15, y: 15, heading: "tangential", reverse: false },
     lines: [macroLine1],
     shapes: [],
-    sequence: [{ kind: "path", lineId: "m1-line" }],
+    sequence: [{ kind: pathKind(), lineId: "m1-line" }],
     extraData: {},
   };
 
   const macroItem1: SequenceMacroItem = {
-    kind: "macro",
+    kind: macroKind(),
     id: "macro-1",
     filePath: "macro1.pp",
     name: "Macro 1",
@@ -56,7 +71,7 @@ describe("Nested Macros and Recursion", () => {
   };
 
   const macroItem2: SequenceMacroItem = {
-    kind: "macro",
+    kind: macroKind(),
     id: "macro-2",
     filePath: "macro2.pp",
     name: "Macro 2",
@@ -88,10 +103,10 @@ describe("Nested Macros and Recursion", () => {
     expect(result.sequence.length).toBeGreaterThanOrEqual(1);
 
     const expandedMacro1 = result.sequence.find(
-      (s) => s.kind === "macro",
+      (s) => s.kind === macroKind(),
     ) as SequenceMacroItem;
     expect(expandedMacro1).toBeDefined();
-    expect(expandedMacro1.kind).toBe("macro");
+    expect(expandedMacro1.kind).toBe(macroKind());
     expect(expandedMacro1.sequence).toBeDefined();
     expect(expandedMacro1.sequence!.length).toBeGreaterThan(0);
   });
@@ -105,7 +120,7 @@ describe("Nested Macros and Recursion", () => {
       lines: [],
       shapes: [],
       sequence: [
-        { kind: "macro", id: "m-b", filePath: "macroB.pp", name: "B" },
+        { kind: macroKind(), id: "m-b", filePath: "macroB.pp", name: "B" },
       ],
       extraData: {},
     };
@@ -116,7 +131,7 @@ describe("Nested Macros and Recursion", () => {
       lines: [],
       shapes: [],
       sequence: [
-        { kind: "macro", id: "m-a", filePath: "macroA.pp", name: "A" },
+        { kind: macroKind(), id: "m-a", filePath: "macroA.pp", name: "A" },
       ],
       extraData: {},
     };
@@ -125,7 +140,7 @@ describe("Nested Macros and Recursion", () => {
     macrosMap.set("macroB.pp", macroDataB);
 
     const macroItemA: SequenceMacroItem = {
-      kind: "macro",
+      kind: macroKind(),
       id: "root",
       filePath: "macroA.pp",
       name: "A",

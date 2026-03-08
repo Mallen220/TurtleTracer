@@ -27,3 +27,9 @@ ws_client.html
 /release
 digest.txtplaywright-report
 test-results
+*.pem
+*.pfx
+/Keys
+/build/win
+/build
+playwright-report/index.html

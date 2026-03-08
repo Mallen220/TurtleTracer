@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /**
  * Compute adaptive zoom step to make zooming feel faster after 1x.
  * direction: +1 for zoom in, -1 for zoom out

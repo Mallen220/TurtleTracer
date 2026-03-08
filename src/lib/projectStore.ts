@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { writable, get } from "svelte/store";
 import type {
   Line,
@@ -8,6 +8,7 @@ import type {
   Settings,
   SequencePathItem,
   PedroData,
+  RobotProfile,
 } from "../types/index";
 import {
   getDefaultStartPoint,
@@ -19,6 +20,7 @@ import { getRandomColor } from "../utils";
 import { regenerateProjectMacros } from "./macroUtils";
 import { notification } from "../stores";
 import { hookRegistry } from "./registries";
+import { actionRegistry } from "./actionRegistry";
 
 export function normalizeLines(input: Line[]): Line[] {
   return (input || []).map((line) => ({
@@ -51,12 +53,15 @@ export function sanitizeSequence(
 
   // Remove path entries that reference lines not present
   const pruned = candidate.filter(
-    (s) => s.kind !== "path" || lineIds.has((s as any).lineId),
+    (s) =>
+      !actionRegistry.get(s.kind)?.isPath || lineIds.has((s as any).lineId),
   );
 
   // Append any lines that are missing from the sequence
   const presentIds = new Set(
-    pruned.filter((s) => s.kind === "path").map((s) => (s as any).lineId),
+    pruned
+      .filter((s) => actionRegistry.get(s.kind)?.isPath)
+      .map((s) => (s as any).lineId),
   );
   const missing = lines.filter(
     (l) => !presentIds.has(l.id) && !l.isMacroElement,
@@ -106,10 +111,40 @@ export const percentStore = writable(0);
 export const playingStore = writable(false);
 export const playbackSpeedStore = writable(1.0);
 export const loopAnimationStore = writable(true);
+export const loopRangeActiveStore = writable(true);
+export const loopRangeStore = writable<[number, number]>([0, 100]);
 
 // Robot State (derived or managed)
 export const robotXYStore = writable({ x: 0, y: 0 });
 export const robotHeadingStore = writable(0);
+export const followRobotStore = writable(false);
+
+// Robot Profiles Store
+const STORAGE_KEY_PROFILES = "pedro_robot_profiles";
+let initialProfiles: RobotProfile[] = [];
+try {
+  if (typeof localStorage !== "undefined") {
+    const stored = localStorage.getItem(STORAGE_KEY_PROFILES);
+    if (stored) {
+      initialProfiles = JSON.parse(stored);
+    }
+  }
+} catch (e) {
+  console.error("Failed to load robot profiles from localStorage", e);
+}
+
+export const robotProfilesStore = writable<RobotProfile[]>(initialProfiles);
+
+// Subscribe to changes and persist
+robotProfilesStore.subscribe((profiles) => {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(profiles));
+    }
+  } catch (e) {
+    console.error("Failed to save robot profiles to localStorage", e);
+  }
+});
 
 export function resetProject() {
   startPointStore.set(getDefaultStartPoint());
@@ -153,7 +188,7 @@ export function refreshMacros() {
   const macros = get(macrosStore);
 
   // Optimization: Check if any macros exist or if there are leftover macro elements before doing heavy work
-  const hasMacro = sequence.some((s) => s.kind === "macro");
+  const hasMacro = sequence.some((s) => actionRegistry.get(s.kind)?.isMacro);
   const hasMacroElements = lines.some((l) => l.isMacroElement);
 
   if (!hasMacro && !hasMacroElements) return;
@@ -223,7 +258,7 @@ export async function loadMacro(filePath: string, force = false) {
         const promises: Promise<void>[] = [];
         if (data.sequence && data.sequence.length > 0) {
           for (const item of data.sequence) {
-            if (item.kind === "macro") {
+            if (actionRegistry.get(item.kind)?.isMacro) {
               if (api.resolvePath) {
                 // Resolve potential relative paths against the current macro file path
                 promises.push(

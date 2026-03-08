@@ -1,10 +1,16 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { writable } from "svelte/store";
-import type { CollisionMarker, Notification, FieldView } from "./types";
+import type {
+  CollisionMarker,
+  Notification,
+  FieldView,
+  UpdateData,
+} from "./types";
 
 // Math tools stores
 export const showRuler = writable(false);
 export const showProtractor = writable(false);
+export const showRobot = writable(true);
 export const showGrid = writable(false);
 export const protractorLockToRobot = writable(true);
 export const gridSize = writable(12);
@@ -15,15 +21,27 @@ export const fieldZoom = writable(1.0);
 export const fieldPan = writable({ x: 0, y: 0 });
 export const showShortcuts = writable(false);
 export const showSettings = writable(false);
+export const settingsActiveTab = writable("general");
 export const showPluginManager = writable(false);
 export const showTelemetryDialog = writable(false);
 export const isPresentationMode = writable(false);
 export const showExportGif = writable(false);
+export const showExportImage = writable(false);
+export const showStrategySheet = writable(false);
+export const showFeedbackDialog = writable(false);
+export const showRatingDialog = writable(false);
+export const ratingDialogAutoOpened = writable(false);
+export const showHistory = writable(false);
+export const showTransformDialog = writable(false);
 export const exportDialogState = writable<{
   isOpen: boolean;
   format: "java" | "points" | "sequential" | "json" | "custom";
   exporterName?: string;
 }>({ isOpen: false, format: "java" });
+
+// Update Notification Store
+export const showUpdateAvailableDialog = writable(false);
+export const updateDataStore = writable<UpdateData | null>(null);
 
 // File Manager Stores
 export const showFileManager = writable(false);
@@ -92,3 +110,4 @@ export const fieldViewStore = writable<FieldView>({
 
 // Plugin Redraw Trigger
 export const pluginRedrawTrigger = writable(0);
+export const dimmedLinesStore = writable<string[]>([]);

@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getAppDataPath: () => ipcRenderer.invoke("app:get-app-data-path"),
   getDirectory: () => ipcRenderer.invoke("file:get-directory"),
   setDirectory: () => ipcRenderer.invoke("file:set-directory"),
+  selectDirectory: () => ipcRenderer.invoke("file:select-directory"),
   listFiles: (directory) => ipcRenderer.invoke("file:list", directory),
   readFile: (filePath) => ipcRenderer.invoke("file:read", filePath),
   writeFile: (filePath, content) =>
@@ -54,6 +55,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Git operations
   gitShow: (filePath) => ipcRenderer.invoke("git:show", filePath),
+  gitStatus: (directory) => ipcRenderer.invoke("git:status", directory),
 
   // Renderer ready signal
   rendererReady: () => ipcRenderer.invoke("renderer-ready"),
@@ -75,6 +77,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Get app version
   getAppVersion: () => ipcRenderer.invoke("app:get-version"),
+  // Check if running in Microsoft Store
+  isWindowsStore: () => ipcRenderer.invoke("app:is-windows-store"),
   // Open external URL in the user's default browser
   openExternal: (url) => ipcRenderer.invoke("app:open-external", url),
 
@@ -95,4 +99,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     onStatus: (callback) =>
       ipcRenderer.on("telemetry:status", (_event, status) => callback(status)),
   },
+  // Update
+  onUpdateAvailable: (callback) =>
+    ipcRenderer.on("update-available", (_event, data) => callback(data)),
+  downloadUpdate: (version, url) =>
+    ipcRenderer.invoke("update:download", version, url),
+  skipUpdate: (version) => ipcRenderer.invoke("update:skip", version),
+  checkForUpdates: () => ipcRenderer.invoke("update:check"),
 });

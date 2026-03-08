@@ -1,4 +1,4 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type {
   Point,
   BasePoint,
@@ -16,6 +16,7 @@ import {
   getDistance,
 } from "./math";
 import { getRandomColor } from "./draw";
+import { actionRegistry } from "../lib/actionRegistry";
 
 /**
  * Calculates the first derivative of a Bezier curve of degree N at t.
@@ -186,7 +187,7 @@ interface PathAnalysis {
 /**
  * Unwraps target angle to be closest to reference angle.
  */
-function unwrapAngle(target: number, reference: number): number {
+export function unwrapAngle(target: number, reference: number): number {
   const diff = getAngularDifference(reference, target);
   return reference + diff;
 }
@@ -299,8 +300,29 @@ export function analyzePathSegment(
   const useFallback = degree > 3;
   const fullPoints = useFallback ? [start, ...cps, end] : [];
 
-  for (let i = 0; i <= samples; i++) {
-    const t = i / samples;
+  // Adaptive Sampling: reduce samples for short or linear segments
+  let adaptiveSamples = samples;
+  if (degree === 1) {
+    adaptiveSamples = 10; // Linear: minimal samples needed
+  } else {
+    // Estimate length using control polygon
+    let estimatedLength = 0;
+    let prev = start;
+    for (const p of cps) {
+      estimatedLength += getDistance(prev, p);
+      prev = p;
+    }
+    estimatedLength += getDistance(prev, end);
+
+    // Density: 1 sample per unit (e.g. inch)
+    // Clamp between 20 (min resolution) and samples (max resolution)
+    const density = 1;
+    const target = Math.ceil(estimatedLength * density);
+    adaptiveSamples = Math.max(20, Math.min(target, samples));
+  }
+
+  for (let i = 0; i <= adaptiveSamples; i++) {
+    const t = i / adaptiveSamples;
 
     let px = 0,
       py = 0;
@@ -433,7 +455,7 @@ export function analyzePathSegment(
  * Calculates time to rotate a certain angle using a trapezoidal motion profile
  * Accounts for angular acceleration limits derived from robot dimensions.
  */
-function calculateRotationTime(
+export function calculateRotationTime(
   angleDiffDegrees: number,
   settings: Settings,
 ): number {
@@ -644,46 +666,24 @@ export function calculatePathTime(
     });
 
     seq.forEach((item, idx) => {
-      if (item.kind === "wait") {
-        const waitSeconds = msToSeconds(item.durationMs);
-        if (waitSeconds > 0) {
-          timeline.push({
-            type: "wait",
-            name: item.name,
-            duration: waitSeconds,
-            startTime: currentTime,
-            endTime: currentTime + waitSeconds,
-            waitId: item.id,
-            startHeading: currentHeading,
-            targetHeading: currentHeading,
-            atPoint: lastPoint,
-          });
-          currentTime += waitSeconds;
+      // Registry Check
+      const action = actionRegistry.get(item.kind);
+      if (action && action.calculateTime) {
+        const res = action.calculateTime(item, {
+          currentTime,
+          currentHeading,
+          lastPoint,
+          settings: safeSettings,
+          lines: contextLines,
+        });
+        res.events.forEach((ev) => timeline.push(ev));
+        currentTime += res.duration;
+        if (res.endHeading !== undefined) {
+          currentHeading = res.endHeading;
+          // If the action explicitly sets the heading, we shouldn't snap the next path start
+          isFirstPathItem = false;
         }
-        return;
-      }
-
-      if (item.kind === "rotate") {
-        // Calculate rotation duration
-        const targetHeading = unwrapAngle(item.degrees, currentHeading);
-        const diff = Math.abs(currentHeading - targetHeading);
-        const rotTime = calculateRotationTime(diff, safeSettings);
-
-        if (rotTime > 0) {
-          timeline.push({
-            type: "wait", // Reuse wait type for stationary actions
-            name: item.name,
-            duration: rotTime,
-            startTime: currentTime,
-            endTime: currentTime + rotTime,
-            waitId: item.id,
-            startHeading: currentHeading,
-            targetHeading: targetHeading,
-            atPoint: lastPoint,
-          });
-          currentTime += rotTime;
-          currentHeading = targetHeading;
-        }
+        if (res.endPoint) lastPoint = res.endPoint;
         return;
       }
 
@@ -788,6 +788,21 @@ export function calculatePathTime(
           for (const step of analysis.steps) {
             headingProfile.push(step.heading);
           }
+        } else if (line.endPoint.heading === "facingPoint") {
+          const targetX = (line.endPoint as any).targetX || 0;
+          const targetY = (line.endPoint as any).targetY || 0;
+          // headingProfile for facingPoint: at each step, face the target
+          // This is simply a constant heading pointing from robot position to target
+          // We pre-compute once per segment samples
+          headingProfile = [currentHeading];
+          for (const step of analysis.steps) {
+            // The robot's position at this step isn't in PathStep, but we can use
+            // a constant facing direction (target point angle from segment midpoints)
+            // Since Pedro computes per-step positions, we approximate here as constant.
+            // A proper implementation would track position per step, but for now
+            // the end heading drives the profile.
+            headingProfile.push(step.heading);
+          }
         }
       } else {
         const avgVelocity =
@@ -806,24 +821,80 @@ export function calculatePathTime(
         endHeading = currentHeading + analysis.netRotation;
         rotationRequired = analysis.tangentRotation;
       } else if (line.endPoint.heading === "constant") {
-        // Rotate to specific constant heading
-        endHeading = unwrapAngle(line.endPoint.degrees, currentHeading);
+        // Constant heading, apply reverse by flipping 180°
+        const constDeg = line.endPoint.reverse
+          ? line.endPoint.degrees + 180
+          : line.endPoint.degrees;
+        endHeading = unwrapAngle(constDeg, currentHeading);
         rotationRequired = 0;
       } else if (line.endPoint.heading === "linear") {
-        // Linear: Interpolate from start to end.
-        endHeading = unwrapAngle(line.endPoint.endDeg, currentHeading);
-        rotationRequired = Math.abs(endHeading - currentHeading);
+        const startDeg = line.endPoint.startDeg;
+        const endDeg = line.endPoint.endDeg;
+        if (line.endPoint.reverse) {
+          // Use the longer arc: invert the rotation direction
+          const shortDiff = endDeg - startDeg;
+          const normalizedShort = ((shortDiff % 360) + 360) % 360;
+          const longDiff =
+            normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
+          endHeading = startDeg + longDiff;
+          rotationRequired = Math.abs(longDiff);
+
+          if (useMotionProfile) {
+            headingProfile = [currentHeading];
+            const baseline = unwrapAngle(startDeg, currentHeading);
+            const samples = analysis.steps.length;
+            for (let i = 1; i <= samples; i++) {
+              const ratio = i / samples;
+              headingProfile!.push(baseline + longDiff * ratio);
+            }
+          }
+        } else {
+          endHeading = unwrapAngle(endDeg, currentHeading);
+          const startUnwound = unwrapAngle(startDeg, currentHeading);
+          rotationRequired = Math.abs(endHeading - startUnwound);
+
+          if (useMotionProfile) {
+            headingProfile = [currentHeading];
+            const samples = analysis.steps.length;
+            for (let i = 1; i <= samples; i++) {
+              const ratio = i / samples;
+              headingProfile!.push(
+                startUnwound + (endHeading - startUnwound) * ratio,
+              );
+            }
+          }
+        }
+      } else if (line.endPoint.heading === "facingPoint") {
+        // FacingPoint: Robot rotates to always face the fixed target point.
+        const targetX = (line.endPoint as any).targetX || 0;
+        const targetY = (line.endPoint as any).targetY || 0;
+        // Compute the angle from the endpoint to the target
+        const facingAngle =
+          Math.atan2(targetY - line.endPoint.y, targetX - line.endPoint.x) *
+          (180 / Math.PI);
+        const finalFacing = (line.endPoint as any).reverse
+          ? facingAngle + 180
+          : facingAngle;
+        endHeading = unwrapAngle(finalFacing, currentHeading);
 
         if (useMotionProfile) {
+          // Build a per-step heading profile for facingPoint:
+          // At each step point on the curve, compute angle from robot → target.
+          const cps = [prevPoint, ...line.controlPoints, line.endPoint];
+          const samples = analysis.steps.length;
           headingProfile = [currentHeading];
-          const samples = analysis.steps.length; // 100
           for (let i = 1; i <= samples; i++) {
-            const ratio = i / samples;
-            headingProfile!.push(
-              currentHeading + (endHeading - currentHeading) * ratio,
+            const t = i / samples;
+            const pos = getCurvePoint(t, cps);
+            let angle =
+              Math.atan2(targetY - pos.y, targetX - pos.x) * (180 / Math.PI);
+            if ((line.endPoint as any).reverse) angle += 180;
+            headingProfile.push(
+              unwrapAngle(angle, headingProfile[headingProfile.length - 1]),
             );
           }
         }
+        rotationRequired = Math.abs(endHeading - currentHeading);
       }
 
       if (!Number.isFinite(endHeading)) endHeading = currentHeading;

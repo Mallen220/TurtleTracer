@@ -1,11 +1,30 @@
-// Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0.
-import { describe, it, expect } from "vitest";
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   normalizeLines,
   sanitizeSequence,
   renumberDefaultPathNames,
 } from "../lib/projectStore";
-import type { Line, SequenceItem, SequencePathItem } from "../types";
+import type {
+  Line,
+  SequenceItem,
+  SequencePathItem,
+  SequenceWaitItem,
+} from "../types";
+import { actionRegistry } from "../lib/actionRegistry";
+import { registerCoreUI } from "../lib/coreRegistrations";
+
+beforeEach(() => {
+  actionRegistry.reset();
+  registerCoreUI();
+});
+
+const pathKind = (): SequencePathItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isPath)
+    ?.kind as SequencePathItem["kind"]) ?? "path";
+const waitKind = (): SequenceWaitItem["kind"] =>
+  (actionRegistry.getAll().find((a) => a.isWait)
+    ?.kind as SequenceWaitItem["kind"]) ?? "wait";
 
 describe("projectStore Utilities", () => {
   describe("normalizeLines", () => {
@@ -49,8 +68,8 @@ describe("projectStore Utilities", () => {
 
     it("should remove sequence items referring to non-existent lines", () => {
       const seq: SequenceItem[] = [
-        { kind: "path", lineId: "l1" },
-        { kind: "path", lineId: "missing" } as any,
+        { kind: pathKind(), lineId: "l1" },
+        { kind: pathKind(), lineId: "missing" } as any,
       ];
       const result = sanitizeSequence(lines, seq);
       expect(result).toHaveLength(2); // l1 is kept, missing is removed, but then l2 is appended because it's missing from sequence
@@ -66,7 +85,7 @@ describe("projectStore Utilities", () => {
     });
 
     it("should append missing lines to sequence", () => {
-      const seq: SequenceItem[] = [{ kind: "path", lineId: "l1" }];
+      const seq: SequenceItem[] = [{ kind: pathKind(), lineId: "l1" }];
       const result = sanitizeSequence(lines, seq);
       expect(result).toHaveLength(2);
       expect((result[1] as SequencePathItem).lineId).toBe("l2");
@@ -74,15 +93,15 @@ describe("projectStore Utilities", () => {
 
     it("should preserve wait items", () => {
       const seq: SequenceItem[] = [
-        { kind: "path", lineId: "l1" },
-        { kind: "wait", durationMs: 1000 } as any,
+        { kind: pathKind(), lineId: "l1" },
+        { kind: waitKind(), durationMs: 1000 } as any,
       ];
       const result = sanitizeSequence(lines, seq);
       // pruned = [l1, wait]
       // missing = [l2]
       // result = [l1, wait, l2]
       expect(result).toHaveLength(3);
-      expect(result[1].kind).toBe("wait");
+      expect(result[1].kind).toBe(waitKind());
     });
   });
 

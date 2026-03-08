@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts" context="module">
   declare global {
     interface Window {
@@ -17,6 +17,7 @@
           oldPath: string,
           newPath: string,
         ) => Promise<{ success: boolean; newPath: string }>;
+        resolvePath?: (base: string, relative: string) => Promise<string>;
       };
     }
   }
@@ -43,7 +44,13 @@
     gitStatusStore,
     showTelemetryDialog,
   } from "../stores";
-  import { settingsStore, loadMacro, loadProjectData } from "./projectStore";
+  import {
+    settingsStore,
+    loadMacro,
+    loadProjectData,
+    macrosStore,
+    updateMacroContent,
+  } from "./projectStore";
   import { saveProject } from "../utils/fileHandlers";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
   import { hookRegistry } from "./registries";
@@ -54,6 +61,7 @@
   import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
   import FileList from "./components/filemanager/FileList.svelte";
   import FileGrid from "./components/filemanager/FileGrid.svelte";
+  import LoadingSpinner from "./components/common/LoadingSpinner.svelte";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -68,6 +76,7 @@
   let sortModeInitialized = false;
   let viewMode: "list" | "grid" = session.viewMode;
   let currentDirectory = "";
+  let baseDirectory = "";
   let files: FileInfo[] = [];
   let filteredFiles: FileInfo[] = [];
   let loading = false;
@@ -84,6 +93,10 @@
   // New file state
   let creatingNewFile = false;
   let newFileName = "";
+
+  // New folder state
+  let creatingNewFolder = false;
+  let newFolderName = "";
 
   const supportedFileTypes = [".pp"];
   const electronAPI = window.electronAPI;
@@ -108,10 +121,15 @@
   // New file input reference for programmatic focus
   import { tick } from "svelte";
   let newFileInput: HTMLInputElement | null = null;
+  let newFolderInput: HTMLInputElement | null = null;
 
   $: if (creatingNewFile) {
     // Focus the input after it renders
     tick().then(() => newFileInput?.focus());
+  }
+
+  $: if (creatingNewFolder) {
+    tick().then(() => newFolderInput?.focus());
   }
 
   $: if ($fileManagerNewFileMode) {
@@ -236,9 +254,11 @@
       const savedDir = await electronAPI.getSavedDirectory();
       if (savedDir && savedDir.trim() !== "") {
         currentDirectory = savedDir;
+        baseDirectory = savedDir;
       } else {
         const dir = await electronAPI.getDirectory();
         currentDirectory = dir || "";
+        baseDirectory = dir || "";
       }
       await refreshDirectory();
     } catch (error) {
@@ -279,15 +299,27 @@
       files = allFiles
         .map((file) => ({
           ...file,
-          error: supportedFileTypes.includes(
-            path.extname(file.name).toLowerCase(),
-          )
-            ? undefined
-            : `Unsupported type`,
+          error:
+            file.isDirectory ||
+            supportedFileTypes.includes(path.extname(file.name).toLowerCase())
+              ? undefined
+              : `Unsupported type`,
         }))
-        .filter((file) =>
-          supportedFileTypes.includes(path.extname(file.name).toLowerCase()),
+        .filter(
+          (file) =>
+            file.isDirectory ||
+            supportedFileTypes.includes(path.extname(file.name).toLowerCase()),
         );
+
+      if (currentDirectory !== baseDirectory) {
+        files.unshift({
+          name: "..",
+          path: path.dirname(currentDirectory),
+          isDirectory: true,
+          size: 0,
+          modified: new Date(),
+        } as FileInfo);
+      }
 
       sortFiles();
       errorMessage = "";
@@ -301,12 +333,21 @@
 
   function sortFiles() {
     if (sortMode === "name") {
-      files.sort((a, b) => a.name.localeCompare(b.name));
+      files.sort((a, b) => {
+        if (a.name === "..") return -1;
+        if (b.name === "..") return 1;
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return a.name.localeCompare(b.name);
+      });
     } else if (sortMode === "date") {
-      files.sort(
-        (a, b) =>
-          new Date(b.modified).getTime() - new Date(a.modified).getTime(),
-      );
+      files.sort((a, b) => {
+        if (a.name === "..") return -1;
+        if (b.name === "..") return 1;
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return new Date(b.modified).getTime() - new Date(a.modified).getTime();
+      });
     }
     files = files; // trigger update
   }
@@ -321,6 +362,7 @@
       const newDir = await electronAPI.setDirectory();
       if (newDir) {
         currentDirectory = newDir;
+        baseDirectory = newDir;
         await saveAutoPathsDirectory(newDir);
         await refreshDirectory();
         showToast(`Directory changed to: ${path.basename(newDir)}`, "success");
@@ -354,26 +396,56 @@
     }
   }
 
+  async function goUpDirectory() {
+    if (currentDirectory === baseDirectory) {
+      return; // Cannot go up beyond the base directory
+    }
+    try {
+      if (electronAPI.resolvePath) {
+        // electronAPI.resolvePath(base, relative) calls path.resolve(path.dirname(base), relative).
+        // Since currentDirectory is a directory and not a file, passing it directly as `base`
+        // would drop the last directory segment and then apply "..", going up TWO levels.
+        // We append a dummy file so dirname(base) gives us the current directory,
+        // and then ".." correctly moves up exactly ONE level.
+        const parentDir = await electronAPI.resolvePath(
+          path.join(currentDirectory, "dummy.txt"),
+          "..",
+        );
+        if (parentDir && parentDir !== currentDirectory) {
+          // Additional safety check to prevent going outside baseDirectory
+          // parentDir must start with baseDirectory
+          if (parentDir.startsWith(baseDirectory)) {
+            currentDirectory = parentDir;
+            await refreshDirectory();
+          } else {
+            currentDirectory = baseDirectory;
+            await refreshDirectory();
+          }
+        }
+      }
+    } catch (err) {
+      showToast(`Failed to go up directory: ${getErrorMessage(err)}`, "error");
+    }
+  }
+
   // Handle directory change (manual input)
   async function changeDirectoryManual(e: CustomEvent<string>) {
     const newDir = e.detail;
     if (!newDir) return;
 
     try {
-      // Ideally we verify if it exists first, but `listFiles` will fail if not
-      // Or we can try to save it directly.
-      // NOTE: `setDirectory` normally opens a dialog, so we can't use it for direct set if it doesn't take args.
-      // However, `saveAutoPathsDirectory` saves to store.
-      // Let's try to verify via listFiles or check directory existence if API allows.
+      // Ensure the manual directory is still within the base directory
+      if (!newDir.startsWith(baseDirectory)) {
+        showToast(`Cannot navigate outside the base directory`, "error");
+        return;
+      }
 
-      // Assuming user knows what they are doing or we catch error
       currentDirectory = newDir;
-      await saveAutoPathsDirectory(newDir);
+      // Do NOT call saveAutoPathsDirectory(newDir) here to avoid changing the base
       await refreshDirectory();
 
       if (errorMessage) {
-        // If refresh failed, revert? Or just show error?
-        // Keeping error is fine.
+        // Keep error
       } else {
         showToast(`Directory changed`, "success");
       }
@@ -496,12 +568,77 @@
   }
 
   // File Operations
+  async function handleMoveFile(
+    e: CustomEvent<{ sourceFile: FileInfo; targetDir: FileInfo }>,
+  ) {
+    const { sourceFile, targetDir } = e.detail;
+    if (!targetDir.isDirectory) return;
+    if (sourceFile.path === targetDir.path) return;
+    if (sourceFile.name === "..") return; // cannot move the .. directory itself
+
+    try {
+      let newDir = targetDir.path;
+      if (targetDir.name === "..") {
+        newDir = path.dirname(currentDirectory);
+      }
+
+      const newPath = path.join(newDir, sourceFile.name);
+
+      const result = await electronAPI.renameFile(sourceFile.path, newPath);
+      if (result.success) {
+        if (selectedFile?.path === sourceFile.path) {
+          selectedFile = { ...selectedFile, path: newPath };
+          currentFilePath.set(newPath);
+        }
+        // Update sequence references if this file was used as a macro
+        let macrosChanged = false;
+        sequence = sequence.map((item) => {
+          if (item.kind === "macro" && item.filePath === sourceFile.path) {
+            macrosChanged = true;
+            return { ...item, filePath: newPath };
+          }
+          return item;
+        });
+
+        // Update macrosStore
+        const macros = get(macrosStore);
+        if (macros.has(sourceFile.path)) {
+          const macroData = macros.get(sourceFile.path);
+          if (macroData) {
+            updateMacroContent(newPath, macroData);
+            macrosStore.update((m) => {
+              m.delete(sourceFile.path);
+              return m;
+            });
+          }
+          macrosChanged = true;
+        }
+
+        if (macrosChanged) {
+          isUnsaved.set(true); // Since we modified sequence, the file needs saving
+        }
+
+        showToast(
+          `Moved to ${targetDir.name === ".." ? "parent folder" : targetDir.name}`,
+          "success",
+        );
+        await refreshDirectory();
+      }
+    } catch (error) {
+      showToast(`Failed to move: ${getErrorMessage(error)}`, "error");
+    }
+  }
+
   async function renameFile(file: FileInfo, newName: string) {
     renamingFile = null;
     const cleanName = newName.trim();
     if (!cleanName) return;
 
-    const fileName = cleanName.endsWith(".pp") ? cleanName : cleanName + ".pp";
+    let fileName = cleanName;
+    if (!file.isDirectory) {
+      fileName = cleanName.endsWith(".pp") ? cleanName : cleanName + ".pp";
+    }
+
     if (fileName === file.name) return;
 
     const newFilePath = path.join(currentDirectory, fileName);
@@ -523,6 +660,19 @@
       }
     } catch (error) {
       showToast(`Failed to rename: ${getErrorMessage(error)}`, "error");
+    }
+  }
+
+  function handleOpen(file: FileInfo) {
+    if (file.isDirectory) {
+      if (file.name === "..") {
+        goUpDirectory();
+        return;
+      }
+      currentDirectory = file.path;
+      refreshDirectory();
+    } else {
+      loadFile(file);
     }
   }
 
@@ -599,6 +749,26 @@
         fileList.refreshPreview(targetFile.path);
     } catch (error) {
       showToast(`Failed to save: ${getErrorMessage(error)}`, "error");
+    }
+  }
+
+  async function createNewFolder(name: string) {
+    if (!name.trim()) return;
+
+    const dirPath = path.join(currentDirectory, name.trim());
+    try {
+      if (await electronAPI.fileExists(dirPath)) {
+        showToast(`Folder "${name}" already exists.`, "error");
+        return;
+      }
+
+      await electronAPI.createDirectory(dirPath);
+      creatingNewFolder = false;
+      newFolderName = "";
+      await refreshDirectory();
+      showToast(`Created folder: ${name}`, "success");
+    } catch (error) {
+      showToast(`Failed to create folder: ${getErrorMessage(error)}`, "error");
     }
   }
 
@@ -760,7 +930,7 @@
     const { action, file } = e.detail || e;
     switch (action) {
       case "open":
-        loadFile(file);
+        handleOpen(file);
         break;
       case "rename-start":
         renamingFile = file;
@@ -787,16 +957,29 @@
     loadDirectory();
   });
 
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape" && isOpen && !creatingNewFile && !renamingFile) {
+      isOpen = false;
+    }
+  }
+
   // Mock path utils
   const path = {
-    join: (...parts: string[]) => parts.join("/"),
+    join: (...parts: string[]) => parts.join("/").replace(/\/\//g, "/"),
     basename: (p: string) => p.split(/[\\/]/).pop() || "",
     extname: (p: string) => {
       const m = p.match(/\.[^/.]+$/);
       return m ? m[0] : "";
     },
+    dirname: (p: string) => {
+      const parts = p.split(/[\\/]/);
+      parts.pop();
+      return parts.join("/") || "/";
+    },
   };
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <div class="fixed inset-0 z-[1010] flex" class:pointer-events-none={!isOpen}>
   <!-- Backdrop -->
@@ -902,6 +1085,7 @@
       on:refresh={handleRefresh}
       on:change-dir={changeDirectoryDialog}
       on:new-file={() => (creatingNewFile = true)}
+      on:new-folder={() => (creatingNewFolder = true)}
       on:import-file={handleImportFile}
       on:import-telemetry={() => {
         isOpen = false;
@@ -912,7 +1096,9 @@
     <!-- Breadcrumbs -->
     <FileManagerBreadcrumbs
       currentPath={currentDirectory}
+      isAtBase={currentDirectory === baseDirectory}
       on:change-dir={changeDirectoryManual}
+      on:go-up={goUpDirectory}
     />
 
     <!-- Error Display -->
@@ -921,6 +1107,38 @@
         class="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-xs text-red-600 dark:text-red-400 border-b border-red-100 dark:border-red-900/30"
       >
         {errorMessage}
+      </div>
+    {/if}
+
+    <!-- New Folder Input -->
+    {#if creatingNewFolder}
+      <div
+        class="p-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700"
+      >
+        <div class="text-xs font-medium text-neutral-500 mb-1">
+          New Folder Name
+        </div>
+        <input
+          bind:value={newFolderName}
+          bind:this={newFolderInput}
+          class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
+          placeholder="New Folder"
+          on:keydown={(e) => {
+            if (e.key === "Enter") createNewFolder(newFolderName);
+            if (e.key === "Escape") creatingNewFolder = false;
+          }}
+        />
+
+        <div class="flex gap-2">
+          <button
+            class="flex-1 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+            on:click={() => createNewFolder(newFolderName)}>Create</button
+          >
+          <button
+            class="flex-1 py-1 text-xs bg-neutral-400 text-white rounded hover:bg-neutral-500"
+            on:click={() => (creatingNewFolder = false)}>Cancel</button
+          >
+        </div>
       </div>
     {/if}
 
@@ -961,7 +1179,7 @@
       <div
         class="flex-1 flex items-center justify-center text-neutral-400 text-sm"
       >
-        Loading...
+        <LoadingSpinner />
       </div>
     {:else if filteredFiles.length === 0}
       <div
@@ -1003,11 +1221,13 @@
         fieldImage={settings.fieldMap}
         {renamingFile}
         on:select={(e) => (selectedFile = e.detail)}
-        on:open={(e) => loadFile(e.detail)}
+        on:open={(e) => handleOpen(e.detail)}
+        on:rename-start={(e) => (renamingFile = e.detail)}
         on:rename-save={(e) =>
           renamingFile && renameFile(renamingFile, e.detail)}
         on:rename-cancel={() => (renamingFile = null)}
         on:menu-action={handleMenuAction}
+        on:move-file={handleMoveFile}
       />
     {:else}
       <FileGrid
@@ -1017,9 +1237,15 @@
         {sortMode}
         fieldImage={settings.fieldMap}
         showGitStatus={settings.gitIntegration}
+        {renamingFile}
         on:select={(e) => (selectedFile = e.detail)}
-        on:open={(e) => loadFile(e.detail)}
+        on:open={(e) => handleOpen(e.detail)}
+        on:rename-start={(e) => (renamingFile = e.detail)}
+        on:rename-save={(e) =>
+          renamingFile && renameFile(renamingFile, e.detail)}
+        on:rename-cancel={() => (renamingFile = null)}
         on:menu-action={handleMenuAction}
+        on:move-file={handleMoveFile}
       />
     {/if}
 

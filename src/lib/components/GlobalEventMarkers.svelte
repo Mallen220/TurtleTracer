@@ -1,4 +1,4 @@
-<!-- Copyright 2026 Matthew Allen. Licensed under the Apache License, Version 2.0. -->
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import type {
     Line,
@@ -17,6 +17,7 @@
     diskEventNamesStore,
   } from "../../stores";
   import SearchableDropdown from "./common/SearchableDropdown.svelte";
+  import { actionRegistry } from "../actionRegistry";
 
   export let sequence: SequenceItem[];
   export let lines: Line[];
@@ -76,9 +77,10 @@
     let markerIndex = 0;
 
     seq.forEach((item, index) => {
-      if (item.kind === "macro") return; // Skip macros
+      const def = actionRegistry.get(item.kind);
+      if (def?.isMacro) return; // Skip macros
 
-      if (item.kind === "path") {
+      if (def?.isPath) {
         const line = linesList.find((l) => l.id === (item as any).lineId);
         if (line && line.eventMarkers) {
           line.eventMarkers.forEach((m) => {
@@ -95,7 +97,7 @@
             });
           });
         }
-      } else if (item.kind === "wait") {
+      } else if (def?.isWait) {
         const wait = item as SequenceWaitItem;
         if (wait.eventMarkers) {
           wait.eventMarkers.forEach((m) => {
@@ -112,7 +114,7 @@
             });
           });
         }
-      } else if (item.kind === "rotate") {
+      } else if (def?.isRotate) {
         const rotate = item as any;
         const rotateMarkers = rotate.eventMarkers as EventMarker[] | undefined;
         if (rotateMarkers && rotateMarkers.length) {
@@ -186,13 +188,15 @@
     targetIndex = map[count - 1];
 
     const item = sequence[targetIndex];
+    const def = actionRegistry.get(item.kind);
+
     const newMarker: EventMarker = {
       id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: "",
       position: 0.5,
     };
 
-    if (item.kind === "path") {
+    if (def?.isPath) {
       const line = lines.find((l) => l.id === (item as any).lineId);
       if (line) {
         if (!line.eventMarkers) line.eventMarkers = [];
@@ -201,13 +205,13 @@
         line.eventMarkers = [...line.eventMarkers, newMarker];
         lines = [...lines]; // Trigger reactivity
       }
-    } else if (item.kind === "wait") {
+    } else if (def?.isWait) {
       const wait = item as SequenceWaitItem;
       if (!wait.eventMarkers) wait.eventMarkers = [];
       newMarker.waitId = wait.id;
       wait.eventMarkers = [...wait.eventMarkers, newMarker];
       sequence = [...sequence]; // Trigger reactivity
-    } else if (item.kind === "rotate") {
+    } else if (def?.isRotate) {
       const rotate = item as any;
       if (!rotate.eventMarkers) rotate.eventMarkers = [];
       newMarker.rotateId = rotate.id;
@@ -284,7 +288,9 @@
         position: newLocalPos,
       };
 
-      if (newItem.kind === "path") {
+      const def = actionRegistry.get(newItem.kind);
+
+      if (def?.isPath) {
         const line = lines.find((l) => l.id === (newItem as any).lineId);
         if (line) {
           if (!line.eventMarkers) line.eventMarkers = [];
@@ -296,7 +302,7 @@
           line.eventMarkers = [...line.eventMarkers, newMarkerData];
           lines = [...lines];
         }
-      } else if (newItem.kind === "wait") {
+      } else if (def?.isWait) {
         const wait = newItem as SequenceWaitItem;
         if (!wait.eventMarkers) wait.eventMarkers = [];
         if (newMarkerData.lineIndex !== undefined)
@@ -306,7 +312,7 @@
 
         wait.eventMarkers = [...wait.eventMarkers, newMarkerData];
         sequence = [...sequence];
-      } else if (newItem.kind === "rotate") {
+      } else if (def?.isRotate) {
         const rotate = newItem as any;
         if (!rotate.eventMarkers) rotate.eventMarkers = [];
         if (newMarkerData.lineIndex !== undefined)
