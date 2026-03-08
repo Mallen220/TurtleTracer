@@ -13,11 +13,14 @@
 
 ## **Enhancements & Optimizations:**
 
-- **Smoother Animations:** Under-the-hood math and timeline optimizations provide noticeably faster and smoother animation playback and scrubbing.
+- **Smoother Animations:** Animation playback and timeline scrubbing are now noticeably faster and smoother.
 - **Improved Accessibility:** Clearer keyboard focus indicators and enhanced screen reader labels make navigating the app easier.
+- **App Rating Prompt:** The application will now wait until you've logged 10 hours of usage before asking for a rating.
+- **Protractor Tool:** Removed the redundant 0° label from the field protractor for a cleaner interface.
 
 ## **Bug Fixes:**
 
 - **Export Image Shortcuts:** Fixed and aligned the shortcut keys and menu options for exporting images.
 - **Macro File Updates:** Moving files in the File Manager now reliably updates their references inside macros.
 - **UI Adjustments:** Resolved display issues with Onion Skinning and Facing Point headers.
+- **Menu Stability:** Fixed an issue that could cause application menus to stop responding on macOS.
