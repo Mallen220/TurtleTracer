@@ -231,6 +231,8 @@ interface Settings {
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
   followRobot?: boolean;
   coordinateSystem?: "Pedro" | "FTC";
+  visualizerUnits?: "imperial" | "metric";
+  codeUnits?: "imperial" | "metric";
 }
 
 interface RobotProfile {

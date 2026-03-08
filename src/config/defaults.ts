@@ -186,6 +186,8 @@ export const DEFAULT_SETTINGS: Settings = {
   telemetryImplementation: "Panels",
   followRobot: false,
   coordinateSystem: "Pedro",
+  visualizerUnits: "imperial",
+  codeUnits: "imperial",
 };
 
 /**

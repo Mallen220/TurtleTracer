@@ -70,11 +70,11 @@
     ? sequence.filter((s) => s.kind === "path").map((s: any) => s.lineId)
     : [];
   $: debugMissing = debugLinesIds.filter(
-    (id) => !debugSequenceIds.includes(id),
-  );
+    (id) => id && !debugSequenceIds.includes(id),
+  ) as string[];
   $: debugInvalidRefs = debugSequenceIds.filter(
     (id) => !debugLinesIds.includes(id),
-  );
+  ) as string[];
 
   let repairedSequenceOnce = false;
 
