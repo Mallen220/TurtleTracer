@@ -675,6 +675,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "Editing",
   },
   {
+    id: "toggle-transform-dialog",
+    key: "shift+m",
+    description: "Transform Path",
+    action: "toggleTransformDialog",
+    category: "Tools",
+  },
+  {
     id: "toggle-diff",
     key: "alt+d",
     description: "Toggle Diff View",

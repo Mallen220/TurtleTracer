@@ -35,6 +35,7 @@
   import UpdateAvailableDialog from "./lib/components/dialogs/UpdateAvailableDialog.svelte";
   import FeedbackDialog from "./lib/components/dialogs/FeedbackDialog.svelte";
   import RatingDialog from "./lib/components/dialogs/RatingDialog.svelte";
+  import TransformDialog from "./lib/components/dialogs/TransformDialog.svelte";
 
   // Stores
   import {
@@ -62,6 +63,7 @@
     showRatingDialog,
     ratingDialogAutoOpened,
     gitStatusStore,
+    showTransformDialog,
   } from "./stores";
   import {
     startPointStore,
@@ -1697,6 +1699,7 @@
 
 <SettingsDialog bind:isOpen={$showSettings} bind:settings={$settingsStore} />
 <TelemetryDialog bind:isOpen={$showTelemetryDialog} />
+<TransformDialog bind:isOpen={$showTransformDialog} />
 <KeyboardShortcutsDialog
   bind:isOpen={$showShortcuts}
   bind:settings={$settingsStore}
