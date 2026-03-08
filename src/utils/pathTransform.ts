@@ -182,6 +182,105 @@ export function rotatePathData(
   return r;
 }
 
+// Flip path data horizontally and/or vertically around a pivot point
+export function flipPathData(
+  data: { startPoint: Point; lines: Line[]; shapes?: Shape[] },
+  horizontal: boolean,
+  vertical: boolean,
+  pivotX: number,
+  pivotY: number,
+) {
+  const f = structuredClone(data);
+
+  const flipPoint = (x: number, y: number) => {
+    let nx = x;
+    let ny = y;
+    if (horizontal) {
+      nx = pivotX - (x - pivotX);
+    }
+    if (vertical) {
+      ny = pivotY - (y - pivotY);
+    }
+    return { x: nx, y: ny };
+  };
+
+  const flipHeading = (point: Point) => {
+    // If heading is linear or constant, flipping horizontal negates degrees (e.g. 30 -> 150? No, wait)
+    // Actually, mathematical angle in this app is generally 0 pointing right.
+    // Horizontal flip: mirror across Y axis (x -> -x). Angle: 180 - angle.
+    // Vertical flip: mirror across X axis (y -> -y). Angle: -angle or 360 - angle.
+
+    let newPoint = { ...point };
+
+    if (newPoint.heading === "linear") {
+      if (horizontal) {
+        newPoint.startDeg = (180 - newPoint.startDeg + 360) % 360;
+        newPoint.endDeg = (180 - newPoint.endDeg + 360) % 360;
+      }
+      if (vertical) {
+        newPoint.startDeg = (-newPoint.startDeg + 360) % 360;
+        newPoint.endDeg = (-newPoint.endDeg + 360) % 360;
+      }
+    } else if (newPoint.heading === "constant") {
+      if (horizontal) {
+        newPoint.degrees = (180 - newPoint.degrees + 360) % 360;
+      }
+      if (vertical) {
+        newPoint.degrees = (-newPoint.degrees + 360) % 360;
+      }
+    }
+    return newPoint;
+  };
+
+  if (f.startPoint) {
+    const newPt = flipPoint(f.startPoint.x, f.startPoint.y);
+    f.startPoint.x = newPt.x;
+    f.startPoint.y = newPt.y;
+    f.startPoint = flipHeading(f.startPoint);
+  }
+
+  if (f.lines) {
+    f.lines.forEach((line: Line) => {
+      if (line.endPoint) {
+        const newPt = flipPoint(line.endPoint.x, line.endPoint.y);
+        line.endPoint.x = newPt.x;
+        line.endPoint.y = newPt.y;
+        if (
+          line.endPoint.targetX !== undefined &&
+          line.endPoint.targetY !== undefined
+        ) {
+          const newTarget = flipPoint(
+            line.endPoint.targetX,
+            line.endPoint.targetY,
+          );
+          line.endPoint.targetX = newTarget.x;
+          line.endPoint.targetY = newTarget.y;
+        }
+        line.endPoint = flipHeading(line.endPoint);
+      }
+      if (line.controlPoints) {
+        line.controlPoints.forEach((cp: ControlPoint) => {
+          const newPt = flipPoint(cp.x, cp.y);
+          cp.x = newPt.x;
+          cp.y = newPt.y;
+        });
+      }
+    });
+  }
+
+  if (f.shapes) {
+    f.shapes.forEach((s: Shape) =>
+      s.vertices?.forEach((v: any) => {
+        const newPt = flipPoint(v.x, v.y);
+        v.x = newPt.x;
+        v.y = newPt.y;
+      }),
+    );
+  }
+
+  return f;
+}
+
 // Reverse path direction
 export function reversePathData(data: {
   startPoint: Point;

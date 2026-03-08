@@ -6,6 +6,7 @@ import {
   reversePathData,
   translatePathData,
   rotatePathData,
+  flipPathData,
 } from "../utils/pathTransform";
 import type { Point, Line, Shape, SequenceItem } from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
@@ -230,6 +231,64 @@ describe("pathTransform", () => {
 
       expect(rotated.shapes![0].vertices[0].x).toBeCloseTo(0, 5);
       expect(rotated.shapes![0].vertices[0].y).toBeCloseTo(5, 5);
+    });
+  });
+
+  describe("flipPathData", () => {
+    it("should flip points horizontally around a pivot", () => {
+      const data = {
+        startPoint: { x: 10, y: 10, heading: "constant", degrees: 30 } as Point,
+        lines: [
+          {
+            endPoint: {
+              x: 20,
+              y: 20,
+              heading: "linear",
+              startDeg: 10,
+              endDeg: 20,
+            } as Point,
+            controlPoints: [{ x: 15, y: 15 }],
+            id: "line1",
+          } as Line,
+        ],
+        shapes: [],
+      };
+
+      // Flip horizontally around x=15
+      const flipped = flipPathData(data, true, false, 15, 15);
+
+      // x: 10 -> pivot: 15. 15 - (10 - 15) = 20
+      expect(flipped.startPoint.x).toBe(20);
+      expect(flipped.startPoint.y).toBe(10); // unchanged
+      // angle: 180 - 30 = 150
+      expect(flipped.startPoint.degrees).toBe(150);
+
+      // x: 20 -> pivot: 15. 15 - (20 - 15) = 10
+      expect(flipped.lines[0].endPoint.x).toBe(10);
+      expect(flipped.lines[0].endPoint.y).toBe(20); // unchanged
+      expect(flipped.lines[0].endPoint.startDeg).toBe(170); // 180 - 10
+      expect(flipped.lines[0].endPoint.endDeg).toBe(160); // 180 - 20
+
+      // control point x: 15 -> pivot 15 -> 15
+      expect(flipped.lines[0].controlPoints[0].x).toBe(15);
+      expect(flipped.lines[0].controlPoints[0].y).toBe(15);
+    });
+
+    it("should flip points vertically around a pivot", () => {
+      const data = {
+        startPoint: { x: 10, y: 10, heading: "constant", degrees: 30 } as Point,
+        lines: [],
+        shapes: [],
+      };
+
+      // Flip vertically around y=15
+      const flipped = flipPathData(data, false, true, 15, 15);
+
+      expect(flipped.startPoint.x).toBe(10); // unchanged
+      // y: 10 -> pivot: 15. 15 - (10 - 15) = 20
+      expect(flipped.startPoint.y).toBe(20);
+      // angle: -30 = 330
+      expect(flipped.startPoint.degrees).toBe(330);
     });
   });
 

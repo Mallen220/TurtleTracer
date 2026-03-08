@@ -12,20 +12,33 @@
   import {
     translatePathData,
     rotatePathData,
+    flipPathData,
   } from "../../../utils/pathTransform";
 
   export let isOpen = false;
 
-  let activeTab: "translate" | "rotate" = "translate";
+  let activeTab: "translate" | "rotate" | "flip" = "translate";
 
   // Translate State
   let translateX = 0;
   let translateY = 0;
 
+  // Pivot Settings (shared for Rotate & Flip)
+  let pivotMode: "center" | "origin" | "custom" = "center";
+  let customPivotX = 72;
+  let customPivotY = 72;
+
   // Rotate State
   let rotateDegrees = 0;
-  let pivotX = 72; // Center of field
-  let pivotY = 72;
+
+  // Flip State
+  let flipHorizontal = false;
+  let flipVertical = false;
+
+  $: effectivePivotX =
+    pivotMode === "center" ? 72 : pivotMode === "origin" ? 0 : customPivotX;
+  $: effectivePivotY =
+    pivotMode === "center" ? 72 : pivotMode === "origin" ? 0 : customPivotY;
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && isOpen) {
@@ -51,11 +64,30 @@
           type: "success",
           timeout: 2000,
         });
-      } else {
+      } else if (activeTab === "rotate") {
         if (rotateDegrees === 0) return;
-        transformedData = rotatePathData(data, rotateDegrees, pivotX, pivotY);
+        transformedData = rotatePathData(
+          data,
+          rotateDegrees,
+          effectivePivotX,
+          effectivePivotY,
+        );
         notification.set({
           message: `Path rotated by ${rotateDegrees}°`,
+          type: "success",
+          timeout: 2000,
+        });
+      } else {
+        if (!flipHorizontal && !flipVertical) return;
+        transformedData = flipPathData(
+          data,
+          flipHorizontal,
+          flipVertical,
+          effectivePivotX,
+          effectivePivotY,
+        );
+        notification.set({
+          message: `Path flipped`,
           type: "success",
           timeout: 2000,
         });
@@ -74,6 +106,8 @@
       translateX = 0;
       translateY = 0;
       rotateDegrees = 0;
+      flipHorizontal = false;
+      flipVertical = false;
     } catch (e: any) {
       notification.set({
         message: `Transformation failed: ${e.message}`,
@@ -150,6 +184,15 @@
         >
           Rotate
         </button>
+        <button
+          on:click={() => (activeTab = "flip")}
+          class="flex-1 py-3 text-sm font-medium border-b-2 transition-colors {activeTab ===
+          'flip'
+            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+            : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200'}"
+        >
+          Flip
+        </button>
       </div>
 
       <div class="p-6 bg-white dark:bg-neutral-900 space-y-6">
@@ -193,54 +236,134 @@
         {:else}
           <div>
             <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-              Rotate the entire path around a pivot point.
+              {activeTab === "rotate"
+                ? "Rotate the entire path around a pivot point."
+                : "Flip the entire path across an axis."}
             </p>
 
             <div class="space-y-4">
-              <div>
-                <label
-                  for="rotate-degrees"
-                  class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
-                >
-                  Angle (Degrees, Clockwise)
-                </label>
-                <input
-                  id="rotate-degrees"
-                  type="number"
-                  bind:value={rotateDegrees}
-                  class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              {#if activeTab === "rotate"}
+                <div>
+                  <label
+                    for="rotate-degrees"
+                    class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                  >
+                    Angle (Degrees, Clockwise)
+                  </label>
+                  <input
+                    id="rotate-degrees"
+                    type="number"
+                    bind:value={rotateDegrees}
+                    class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              {:else}
+                <div class="flex gap-6 pt-2 pb-2">
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      bind:checked={flipHorizontal}
+                      class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800"
+                    />
+                    <span
+                      class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+                      >Flip Horizontal (X)</span
+                    >
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      bind:checked={flipVertical}
+                      class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800"
+                    />
+                    <span
+                      class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+                      >Flip Vertical (Y)</span
+                    >
+                  </label>
+                </div>
+              {/if}
 
-              <div class="grid grid-cols-2 gap-4">
-                <div>
+              <div
+                class="mt-4 p-4 border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-50 dark:bg-neutral-800/50"
+              >
+                <label
+                  for="pivot-mode"
+                  class="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-2"
+                >
+                  Pivot Point
+                </label>
+                <div class="flex gap-2 mb-3">
                   <label
-                    for="pivot-x"
-                    class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                    class="flex items-center gap-1.5 cursor-pointer text-sm text-neutral-700 dark:text-neutral-300"
                   >
-                    Pivot X
+                    <input
+                      type="radio"
+                      bind:group={pivotMode}
+                      value="center"
+                      name="pivot-mode"
+                      class="text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600"
+                    /> Center (72, 72)
                   </label>
-                  <input
-                    id="pivot-x"
-                    type="number"
-                    bind:value={pivotX}
-                    class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
                   <label
-                    for="pivot-y"
-                    class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                    class="flex items-center gap-1.5 cursor-pointer text-sm text-neutral-700 dark:text-neutral-300 ml-4"
                   >
-                    Pivot Y
+                    <input
+                      type="radio"
+                      bind:group={pivotMode}
+                      value="origin"
+                      name="pivot-mode"
+                      class="text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600"
+                    /> Origin (0, 0)
                   </label>
-                  <input
-                    id="pivot-y"
-                    type="number"
-                    bind:value={pivotY}
-                    class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <label
+                    class="flex items-center gap-1.5 cursor-pointer text-sm text-neutral-700 dark:text-neutral-300 ml-4"
+                  >
+                    <input
+                      type="radio"
+                      bind:group={pivotMode}
+                      value="custom"
+                      name="pivot-mode"
+                      class="text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600"
+                    /> Custom
+                  </label>
                 </div>
+
+                {#if pivotMode === "custom"}
+                  <div
+                    class="grid grid-cols-2 gap-4"
+                    transition:fade={{ duration: 100 }}
+                  >
+                    <div>
+                      <label
+                        for="pivot-x"
+                        class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                      >
+                        Pivot X
+                      </label>
+                      <input
+                        id="pivot-x"
+                        type="number"
+                        bind:value={customPivotX}
+                        class="w-full px-3 py-2 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        for="pivot-y"
+                        class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                      >
+                        Pivot Y
+                      </label>
+                      <input
+                        id="pivot-y"
+                        type="number"
+                        bind:value={customPivotY}
+                        class="w-full px-3 py-2 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                {/if}
               </div>
             </div>
           </div>
