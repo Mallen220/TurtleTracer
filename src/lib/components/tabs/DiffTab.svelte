@@ -1,7 +1,10 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { diffResult } from "../../diffStore";
+  import { formatDisplayDistance } from "../../../utils/coordinates";
+  import type { Settings } from "../../../types";
 
+  export let settings: Settings;
   $: result = $diffResult;
 
   // Derived lists from the flat eventDiff array
@@ -65,11 +68,11 @@
           </p>
           <div class="flex items-baseline gap-2">
             <span class="text-2xl font-bold text-neutral-900 dark:text-white"
-              >{formatNum(result.statsDiff.distance.new)} in</span
+              >{formatDisplayDistance(result.statsDiff.distance.new, settings, 2)}</span
             >
             {#if result.statsDiff.distance.diff !== 0}
               <span class="text-sm font-semibold text-neutral-500">
-                {formatDiff(result.statsDiff.distance.diff)} in
+                {(result.statsDiff.distance.diff > 0 ? "+" : "") + formatDisplayDistance(Math.abs(result.statsDiff.distance.diff), settings, 2).replace("-", "")}
               </span>
             {/if}
           </div>
