@@ -292,3 +292,4 @@ src/lib/components/dialogs/TransformDialog.svelte
 src/lib/components/tabs/TelemetryTab.svelte
 src/lib/components/telemetry/LiveFieldLayer.svelte
 src/lib/components/telemetry/LiveRobotLayer.svelte
+src/tests/telemetryTabVisibility.test.ts

@@ -52,6 +52,7 @@
   } from "../../utils/pointLinking";
   import { loadFile, loadRecentFile } from "../../utils/fileHandlers";
   import { validatePath } from "../../utils/validation";
+  import { reversePathData } from "../../utils/pathTransform";
   import type { Line, SequenceItem } from "../../types/index";
   import { createTriangle } from "../../utils";
   import { toggleDiff } from "../../lib/diffStore";
@@ -2181,6 +2182,39 @@
     },
     validatePath: () => {
       validatePath(startPoint, lines, settings, sequence, shapes);
+    },
+    reversePath: () => {
+      try {
+        const transformedData = reversePathData({
+          startPoint,
+          lines,
+          shapes,
+          sequence,
+        });
+
+        if (transformedData) {
+          startPointStore.set(transformedData.startPoint);
+          linesStore.set(transformedData.lines);
+          if (transformedData.shapes) {
+            shapesStore.set(transformedData.shapes);
+          }
+          if (transformedData.sequence) {
+            sequenceStore.set(transformedData.sequence);
+          }
+          recordChange("Reverse Path");
+          notification.set({
+            message: `Path reversed`,
+            type: "success",
+            timeout: 2000,
+          });
+        }
+      } catch (e: any) {
+        notification.set({
+          message: `Failed to reverse path: ${e.message}`,
+          type: "error",
+          timeout: 5000,
+        });
+      }
     },
     clearObstacles: () => {
       shapesStore.set([]);
