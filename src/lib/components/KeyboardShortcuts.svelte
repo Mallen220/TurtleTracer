@@ -2120,6 +2120,26 @@
         showStrategySheet.set(false);
         return;
       }
+      if ($showFeedbackDialog) {
+        showFeedbackDialog.set(false);
+        return;
+      }
+      if ($showRatingDialog) {
+        showRatingDialog.set(false);
+        return;
+      }
+      if ($showTransformDialog) {
+        showTransformDialog.set(false);
+        return;
+      }
+      if ($showUpdateAvailableDialog) {
+        showUpdateAvailableDialog.set(false);
+        return;
+      }
+      if (showCommandPalette) {
+        showCommandPalette = false;
+        return;
+      }
 
       selectedPointId.set(null);
       selectedLineId.set(null);
@@ -2393,6 +2413,11 @@
       else if ($showExportGif) showExportGif.set(false);
       else if ($exportDialogState.isOpen)
         exportDialogState.update((s) => ({ ...s, isOpen: false }));
+      else if ($showFeedbackDialog) showFeedbackDialog.set(false);
+      else if ($showRatingDialog) showRatingDialog.set(false);
+      else if ($showTransformDialog) showTransformDialog.set(false);
+      else if ($showUpdateAvailableDialog) showUpdateAvailableDialog.set(false);
+      else if (showCommandPalette) showCommandPalette = false;
       // Add more as needed
     },
     cancelDialog: () => {

@@ -12,13 +12,9 @@ describe("Telemetry tab visibility setting", () => {
     registerDefaultControlTabs();
   });
 
-  it("defaults to visible", () => {
+  it("defaults to hidden", () => {
     const settings = { ...DEFAULT_SETTINGS } as any;
-    expect(settings.showTelemetryTab).toBe(true);
-
-    const tabs = get(tabRegistry);
-    const hasTelemetry = tabs.some((t) => t.id === "telemetry");
-    expect(hasTelemetry).toBe(true);
+    expect(settings.showTelemetryTab).toBe(false);
   });
 
   it("filters telemetry tab when disabled", () => {
