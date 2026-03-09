@@ -224,7 +224,7 @@ export interface Settings {
   coordinateSystem?: "Pedro" | "FTC";
   // UI control: show or hide the telemetry tab in the control panel
   showTelemetryTab?: boolean;
-} 
+}
 
 export interface RobotProfile {
   id: string;

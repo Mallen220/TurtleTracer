@@ -13,11 +13,13 @@
     translatePathData,
     rotatePathData,
     flipPathData,
+    reversePathData,
   } from "../../../utils/pathTransform";
+  import { sequenceStore } from "../../../lib/projectStore";
 
   export let isOpen = false;
 
-  let activeTab: "translate" | "rotate" | "flip" = "translate";
+  let activeTab: "translate" | "rotate" | "flip" | "reverse" = "translate";
 
   // Translate State
   let translateX = 0;
@@ -52,6 +54,7 @@
         startPoint: get(startPointStore),
         lines: get(linesStore),
         shapes: get(shapesStore),
+        sequence: get(sequenceStore),
       };
 
       let transformedData;
@@ -77,7 +80,7 @@
           type: "success",
           timeout: 2000,
         });
-      } else {
+      } else if (activeTab === "flip") {
         if (!flipHorizontal && !flipVertical) return;
         transformedData = flipPathData(
           data,
@@ -91,14 +94,26 @@
           type: "success",
           timeout: 2000,
         });
+      } else if (activeTab === "reverse") {
+        transformedData = reversePathData(data);
+        notification.set({
+          message: `Path reversed`,
+          type: "success",
+          timeout: 2000,
+        });
       }
 
-      startPointStore.set(transformedData.startPoint);
-      linesStore.set(transformedData.lines);
-      if (transformedData.shapes) {
-        shapesStore.set(transformedData.shapes);
+      if (transformedData) {
+        startPointStore.set(transformedData.startPoint);
+        linesStore.set(transformedData.lines);
+        if (transformedData.shapes) {
+          shapesStore.set(transformedData.shapes);
+        }
+        if (transformedData.sequence) {
+          sequenceStore.set(transformedData.sequence);
+        }
+        isUnsaved.set(true);
       }
-      isUnsaved.set(true);
 
       isOpen = false;
 
@@ -193,10 +208,25 @@
         >
           Flip
         </button>
+        <button
+          on:click={() => (activeTab = "reverse")}
+          class="flex-1 py-3 text-sm font-medium border-b-2 transition-colors {activeTab ===
+          'reverse'
+            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+            : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200'}"
+        >
+          Reverse
+        </button>
       </div>
 
       <div class="p-6 bg-white dark:bg-neutral-900 space-y-6">
-        {#if activeTab === "translate"}
+        {#if activeTab === "reverse"}
+          <div>
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+              Reverse the direction of the entire path and sequence.
+            </p>
+          </div>
+        {:else if activeTab === "translate"}
           <div>
             <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
               Shift the entire path and all its points by a given offset in

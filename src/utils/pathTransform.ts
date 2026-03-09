@@ -329,10 +329,19 @@ export function reversePathData(data: {
     // Control points need to be reversed order
     const newControlPoints = [...(originalLine.controlPoints || [])].reverse();
 
+    // Reverse event markers
+    const newEventMarkers = (originalLine.eventMarkers || [])
+      .map((marker) => ({
+        ...marker,
+        position: 1 - marker.position,
+      }))
+      .reverse();
+
     const newLine: Line = {
       ...originalLine,
       endPoint: targetEndPoint,
       controlPoints: newControlPoints,
+      eventMarkers: newEventMarkers,
       // Swap waits
       waitBefore: originalLine.waitAfter,
       waitAfter: originalLine.waitBefore,
@@ -342,7 +351,17 @@ export function reversePathData(data: {
       waitAfterName: originalLine.waitBeforeName,
     };
 
+    // Need to swap tangential reverses
+    if (newLine.endPoint.heading === "tangential") {
+      // Typically, going backwards along a path means tangental reversing behavior might swap.
+      newLine.endPoint.reverse = !newLine.endPoint.reverse;
+    }
+
     newLines.push(newLine);
+  }
+
+  if (newStartPoint.heading === "tangential") {
+    newStartPoint.reverse = !newStartPoint.reverse;
   }
 
   r.startPoint = newStartPoint;

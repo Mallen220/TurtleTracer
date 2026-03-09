@@ -567,10 +567,7 @@
         aria-label="Editor View Selection"
       >
         {#each $tabRegistry as tab (tab.id)}
-          {#if
-            (tab.id !== "code" || settings?.autoExportCode) &&
-            (tab.id !== "telemetry" || settings?.showTelemetryTab)
-          }
+          {#if (tab.id !== "code" || settings?.autoExportCode) && (tab.id !== "telemetry" || settings?.showTelemetryTab)}
             <button
               role="tab"
               aria-selected={activeTab === tab.id}
@@ -624,10 +621,7 @@
       aria-labelledby="{activeTab}-tab"
     >
       {#each $tabRegistry as tab (tab.id)}
-        {#if
-          (tab.id !== "code" || settings?.autoExportCode) &&
-          (tab.id !== "telemetry" || settings?.showTelemetryTab)
-        }
+        {#if (tab.id !== "code" || settings?.autoExportCode) && (tab.id !== "telemetry" || settings?.showTelemetryTab)}
           <div class:hidden={activeTab !== tab.id} class="w-full h-full">
             <svelte:component
               this={tab.component}
