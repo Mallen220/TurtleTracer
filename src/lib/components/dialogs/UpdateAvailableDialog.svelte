@@ -3,7 +3,11 @@
   import { onMount } from "svelte";
   import { fade, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
-  import { showUpdateAvailableDialog, updateDataStore } from "../../../stores";
+  // alias the store import so that the variable name used throughout the
+  // component remains `showUpdateAvailableDialog` and cannot be removed/renamed
+  // by the bundler.
+  import { showUpdateAvailableDialog as _showUpdateAvailableDialog, updateDataStore } from "../../../stores";
+  const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import MarkdownIt from "markdown-it";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
 

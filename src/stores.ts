@@ -43,6 +43,12 @@ export const exportDialogState = writable<{
 export const showUpdateAvailableDialog = writable(false);
 export const updateDataStore = writable<UpdateData | null>(null);
 
+// expose some stores globally (fallback for bundler issues)
+if (typeof window !== "undefined") {
+  // these names are intentionally global to support legacy references in compiled code
+  (window as any).showUpdateAvailableDialog = showUpdateAvailableDialog;
+}
+
 // File Manager Stores
 export const showFileManager = writable(false);
 export const fileManagerNewFileMode = writable(false);
