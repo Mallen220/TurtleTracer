@@ -38,6 +38,10 @@
   import TransformDialog from "./lib/components/dialogs/TransformDialog.svelte";
 
   // Stores
+  // Import stores and explicitly alias the update-available store to
+  // prevent bundler renaming mismatches. The rest of the code (including
+  // Svelte-generated watchers) refers to the local variable
+  // `showUpdateAvailableDialog`, so we point that at the imported store.
   import {
     currentFilePath,
     isUnsaved,
@@ -57,7 +61,8 @@
     showPluginManager,
     showTelemetryDialog,
     selectedLineId,
-    showUpdateAvailableDialog,
+    // alias the import so the original name can be used safely below
+    showUpdateAvailableDialog as _showUpdateAvailableDialog,
     updateDataStore,
     showFeedbackDialog,
     showRatingDialog,
@@ -65,6 +70,9 @@
     gitStatusStore,
     showTransformDialog,
   } from "./stores";
+
+  // keep a locally-named binding for the watchers and template
+  const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import {
     startPointStore,
     linesStore,

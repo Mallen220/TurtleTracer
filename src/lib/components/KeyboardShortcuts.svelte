@@ -32,7 +32,12 @@
     showExportGif,
     notification,
     showRobot,
+    showUpdateAvailableDialog as _showUpdateAvailableDialog,
+    showFeedbackDialog,
+    showRatingDialog,
   } from "../../stores";
+  // keep a local binding for the update-available store
+  const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import {
     startPointStore,
     linesStore,
