@@ -80,6 +80,7 @@
           settings.javaPackageName,
           settings.telemetryImplementation,
           settings.coordinateSystem,
+          settings.codeUnits,
         );
       } else {
         newCode = await generateSequentialCommandCode(
@@ -91,6 +92,7 @@
           settings.javaPackageName,
           settings.autoExportEmbedPoseData,
           settings.coordinateSystem,
+          settings.codeUnits,
         );
       }
 
