@@ -30,7 +30,7 @@
   export let recordChange: (() => void) | undefined = undefined;
 
   $: isSelected = $selectedPointId === `macro-${macro.id}`;
-  $: isDisabled = macro.disabled ?? false;
+  $: isHidden = macro.hidden ?? false;
 
   function toggleCollapsed() {
     collapsed = !collapsed;
@@ -59,7 +59,7 @@
     isSelected
       ? "border-teal-400 ring-1 ring-teal-400/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
-  } ${isDisabled ? "opacity-50 grayscale-[50%]" : ""}`}
+  } ${isHidden ? "opacity-50 grayscale-[50%]" : ""}`}
   on:click|stopPropagation={() => {
     if (!macro.locked) {
       selectedPointId.set(`macro-${macro.id}`);
@@ -130,15 +130,15 @@
     <div class="flex items-center gap-1">
       <button
         on:click|stopPropagation={() => {
-          macro.disabled = !isDisabled;
+          macro.hidden = !isHidden;
           sequence = [...sequence];
           if (recordChange) recordChange();
         }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
-        title={isDisabled ? "Enable Macro" : "Disable Macro"}
-        aria-label={isDisabled ? "Enable Macro" : "Disable Macro"}
+        title={isHidden ? "Show Macro" : "Hide Macro"}
+        aria-label={isHidden ? "Show Macro" : "Hide Macro"}
       >
-        {#if isDisabled}
+        {#if isHidden}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"

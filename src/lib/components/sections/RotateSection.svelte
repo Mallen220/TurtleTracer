@@ -30,7 +30,7 @@
   export let recordChange: (() => void) | undefined = undefined;
 
   $: isSelected = $selectedPointId === `rotate-${rotate.id}`;
-  $: isDisabled = rotate.disabled ?? false;
+  $: isHidden = rotate.hidden ?? false;
   $: linked = isRotateLinked(sequence, rotate.id);
 
   let hoveredRotateId: string | null = null;
@@ -84,7 +84,7 @@
     isSelected
       ? "border-pink-500 ring-1 ring-pink-500/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
-  } ${isDisabled ? "opacity-50 grayscale-[50%]" : ""}`}
+  } ${isHidden ? "opacity-50 grayscale-[50%]" : ""}`}
   on:click|stopPropagation={() => {
     if (!rotate.locked) {
       selectedPointId.set(`rotate-${rotate.id}`);
@@ -187,15 +187,15 @@
     <div class="flex items-center gap-1">
       <button
         on:click|stopPropagation={() => {
-          rotate.disabled = !isDisabled;
+          rotate.hidden = !isHidden;
           sequence = [...sequence];
           if (recordChange) recordChange();
         }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
-        title={isDisabled ? "Enable Rotate" : "Disable Rotate"}
-        aria-label={isDisabled ? "Enable Rotate" : "Disable Rotate"}
+        title={isHidden ? "Show Rotate" : "Hide Rotate"}
+        aria-label={isHidden ? "Show Rotate" : "Hide Rotate"}
       >
-        {#if isDisabled}
+        {#if isHidden}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"

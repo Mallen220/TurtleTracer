@@ -624,16 +624,14 @@ export function calculatePathTime(
   let currentHeading = 0;
   let isFirstPathItem = true;
 
-  const enabledLines = lines.filter((l) => !l.disabled);
-
   // Initialize heading based on start point settings
   // Note: We don't have a previous reference, so we take the raw value.
   if (startPoint.heading === "linear") currentHeading = startPoint.startDeg;
   else if (startPoint.heading === "constant")
     currentHeading = startPoint.degrees;
   else if (startPoint.heading === "tangential") {
-    if (enabledLines.length > 0) {
-      const firstLine = enabledLines[0];
+    if (lines.length > 0) {
+      const firstLine = lines[0];
       const nextP =
         firstLine.controlPoints.length > 0
           ? firstLine.controlPoints[0]
@@ -668,9 +666,6 @@ export function calculatePathTime(
     });
 
     seq.forEach((item, idx) => {
-      // Skip disabled items entirely
-      if ((item as any).disabled) return;
-
       // Registry Check
       const action = actionRegistry.get(item.kind);
       if (action && action.calculateTime) {
@@ -718,7 +713,7 @@ export function calculatePathTime(
       }
 
       const line = lineById.get((item as any).lineId);
-      if (!line || !line.endPoint || line.disabled) {
+      if (!line || !line.endPoint) {
         return;
       }
       const prevPoint = lastPoint;

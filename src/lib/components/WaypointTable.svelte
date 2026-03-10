@@ -1426,7 +1426,7 @@
                 on:dragstart={(e) => handleDragStart(e, seqIndex)}
                 on:dragend={handleDragEnd}
                 on:contextmenu={(e) => handleContextMenu(e, seqIndex)}
-                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150 ${line.disabled ? "opacity-50 grayscale-[50%]" : ""}`}
+                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
                 class:border-t-2={dragOverIndex === seqIndex &&
                   dragPosition === "top"}
                 class:border-b-2={dragOverIndex === seqIndex &&
@@ -1602,18 +1602,18 @@
                   />
                 </td>
                 <td class="px-3 py-2 flex items-center justify-between gap-1">
-                  <!-- Eye/Disable icon -->
+                  <!-- Eye/Hide icon -->
                   <button
-                    title={line.disabled ? "Enable Path" : "Disable Path"}
-                    aria-label={line.disabled ? "Enable Path" : "Disable Path"}
+                    title={line.hidden ? "Show Path" : "Hide Path"}
+                    aria-label={line.hidden ? "Show Path" : "Hide Path"}
                     on:click|stopPropagation={() => {
-                      line.disabled = !line.disabled;
+                      line.hidden = !line.hidden;
                       lines = [...lines];
                       if (recordChange) recordChange();
                     }}
                     class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
                   >
-                    {#if line.disabled}
+                    {#if line.hidden}
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
