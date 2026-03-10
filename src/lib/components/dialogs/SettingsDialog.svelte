@@ -2082,7 +2082,7 @@
                         <option value="imperial">Imperial (Inches)</option>
                         <option value="metric">Metric (cm)</option>
                       </select>
-                      {#if settings.codeUnits === "metric" && !settings.autoExportEmbedPoseData}
+                      {#if settings.codeUnits === "metric" && !settings.autoExportEmbedPoseData && settings.autoExportFormat === "sequential"}
                         <div
                           class="mt-2 flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-lg border border-yellow-200 dark:border-yellow-800/50"
                           role="alert"

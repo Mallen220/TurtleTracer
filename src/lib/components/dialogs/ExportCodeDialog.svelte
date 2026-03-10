@@ -756,7 +756,7 @@
                 <span>NextFTC output is <strong>experimental</strong>.</span>
               </div>
             {/if}
-            {#if codeUnits === "metric" && !embedPoseData}
+            {#if codeUnits === "metric" && !embedPoseData && exportFormat === "sequential"}
               <div
                 class="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-lg border border-yellow-200 dark:border-yellow-800/50"
                 role="alert"

@@ -514,9 +514,15 @@ export async function generateJavaCode(
             ? (() => {
                 const uStart = toUser(startPoint, "FTC");
                 const uHead = toUserHeading(startDegForExport, "FTC");
-                return `follower.setStartingPose(new Paths(follower).buildPose(${uStart.x.toFixed(3)}, ${uStart.y.toFixed(3)}, Math.toRadians(${uHead.toFixed(3)})));`;
+                const px = codeUnits === "metric" ? `cmToInches(${(uStart.x * 2.54).toFixed(3)})` : uStart.x.toFixed(3);
+                const py = codeUnits === "metric" ? `cmToInches(${(uStart.y * 2.54).toFixed(3)})` : uStart.y.toFixed(3);
+                return `follower.setStartingPose(new Paths(follower).buildPose(${px}, ${py}, Math.toRadians(${uHead.toFixed(3)})));`;
               })()
-            : `follower.setStartingPose(new Pose(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)}, Math.toRadians(${startDegForExport.toFixed(3)})));`
+            : (() => {
+                const px = codeUnits === "metric" ? `cmToInches(${(startPoint.x * 2.54).toFixed(3)})` : startPoint.x.toFixed(3);
+                const py = codeUnits === "metric" ? `cmToInches(${(startPoint.y * 2.54).toFixed(3)})` : startPoint.y.toFixed(3);
+                return `follower.setStartingPose(new Pose(${px}, ${py}, Math.toRadians(${startDegForExport.toFixed(3)})));`;
+              })()
         }
 
         pathTimer = new ElapsedTime();
