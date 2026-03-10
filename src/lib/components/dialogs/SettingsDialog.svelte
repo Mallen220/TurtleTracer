@@ -2426,24 +2426,6 @@
 
                     <div class="flex gap-4 text-sm font-medium mb-8">
                       <a
-                        href="https://mallen220.github.io/Portfolio/"
-                        target="_blank"
-                        class="text-blue-600 dark:text-blue-400 hover:underline"
-                        >Portfolio</a
-                      >
-                      <span class="text-neutral-300 dark:text-neutral-600"
-                        >•</span
-                      >
-                      <a
-                        href="https://www.linkedin.com/in/allenmc220/"
-                        target="_blank"
-                        class="text-blue-600 dark:text-blue-400 hover:underline"
-                        >LinkedIn</a
-                      >
-                      <span class="text-neutral-300 dark:text-neutral-600"
-                        >•</span
-                      >
-                      <a
                         href="https://github.com/Mallen220/PedroPathingPlusVisualizer"
                         target="_blank"
                         class="text-blue-600 dark:text-blue-400 hover:underline"
