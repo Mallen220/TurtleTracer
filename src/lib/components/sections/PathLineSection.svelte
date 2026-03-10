@@ -40,7 +40,7 @@
   export let canMoveDown: boolean = true;
 
   $: isSelected = $selectedLineId === line.id;
-  $: isDisabled = line.disabled ?? false;
+  $: isHidden = line.hidden ?? false;
 
   $: snapToGridTitle =
     $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping";
@@ -135,7 +135,7 @@
     isSelected
       ? "border-purple-500 ring-1 ring-purple-500/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
-  } ${isDisabled ? "opacity-50 grayscale-[50%]" : ""}`}
+  } ${isHidden ? "opacity-50 grayscale-[50%]" : ""}`}
   on:click={() => {
     if (line.id) selectedLineId.set(line.id);
   }}
@@ -233,20 +233,20 @@
       <ColorPicker
         bind:color={line.color}
         title="Change Path Color"
-        disabled={line.locked || isDisabled}
+        disabled={line.locked}
       />
 
       <button
         on:click|stopPropagation={() => {
-          line.disabled = !isDisabled;
+          line.hidden = !isHidden;
           lines = [...lines];
           if (recordChange) recordChange();
         }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
-        title={isDisabled ? "Enable Path" : "Disable Path"}
-        aria-label={isDisabled ? "Enable Path" : "Disable Path"}
+        title={isHidden ? "Show Path" : "Hide Path"}
+        aria-label={isHidden ? "Show Path" : "Hide Path"}
       >
-        {#if isDisabled}
+        {#if isHidden}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"

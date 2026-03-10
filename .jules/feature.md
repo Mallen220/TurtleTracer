@@ -9,3 +9,7 @@ Action: Look for opportunities to upgrade read-only or print-only dialogs with a
 2024-10-24 - [Contextualizing Sequence Statistics]
 Learning: Users often need to see the time/distance impact of individual segments without opening global dialogs. Extracting the `timePrediction.timeline` data and displaying it inline within the sequence list (`WaypointTable`) provides immediate feedback.
 Action: When building complex sequences, expose the derived/simulated data (like start/end times) directly alongside the editable items to tighten the feedback loop.
+
+2026-03-10 - [Hide/Show Path Visibility Feature]
+Learning: Features that filter out data entirely from simulation and code generation can cause dangerous disconnects in visual trajectory stitching (i.e. if Path 2 is removed, Path 3 visually starts from Path 2's endpoint but exported code has it starting from Path 1). It is often better to implement purely visual filters (like 'Hide') that leave the core data and simulation logic intact, ensuring what you simulate is exactly what you export.
+Action: Next time a user requests to 'disable' or 'hide' a segment of a larger sequence, clarify whether the exclusion should affect simulation/export or just rendering. Prefer separating visual state (e.g., hidden) from structural state (e.g., deleted/disabled) to avoid complex stitching and state desyncs.

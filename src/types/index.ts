@@ -78,7 +78,7 @@ export interface Line {
   name?: string;
   eventMarkers?: EventMarker[];
   locked?: boolean;
-  disabled?: boolean;
+  hidden?: boolean;
   waitBefore?: WaitSegment;
   waitAfter?: WaitSegment;
   waitBeforeMs?: number;
@@ -94,7 +94,7 @@ export interface Line {
 export type SequencePathItem = {
   kind: "path";
   lineId: string;
-  disabled?: boolean;
+  hidden?: boolean;
 };
 
 export type SequenceWaitItem = {
@@ -103,7 +103,7 @@ export type SequenceWaitItem = {
   name: string;
   durationMs: number;
   locked?: boolean;
-  disabled?: boolean;
+  hidden?: boolean;
   eventMarkers?: EventMarker[];
   _linkedName?: string; // Metadata for linked names
 };
@@ -114,7 +114,7 @@ export type SequenceRotateItem = {
   name: string;
   degrees: number;
   locked?: boolean;
-  disabled?: boolean;
+  hidden?: boolean;
   eventMarkers?: EventMarker[];
   _linkedName?: string; // Metadata for linked names
 };
@@ -137,7 +137,7 @@ export type SequenceMacroItem = {
   filePath: string; // The macro file path
   name: string;
   locked?: boolean;
-  disabled?: boolean;
+  hidden?: boolean;
   eventMarkers?: EventMarker[]; // Maybe macros can have markers too?
   sequence?: SequenceItem[]; // The expanded sequence for this macro instance
   transformations?: Transformation[];
