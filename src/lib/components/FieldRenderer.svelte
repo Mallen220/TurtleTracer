@@ -647,7 +647,7 @@
     _points.push(startPointElem);
 
     lines.forEach((line, idx) => {
-      if (!line || !line.endPoint) return;
+      if (!line || !line.endPoint || line.disabled) return;
       [line.endPoint, ...line.controlPoints].forEach((point, idx1) => {
         if (idx1 > 0) {
           let pointGroup = new Two.Group();
@@ -795,11 +795,13 @@
     isHeatmapEnabled: boolean = false,
   ) {
     let _path: (Path | PathLine)[] = [];
+
+    // Track the last valid (enabled) endpoint to correctly stitch paths
+    let currentStartPoint = targetStartPoint;
+
     targetLines.forEach((line, idx) => {
-      if (!line || !line.endPoint) return;
-      let _startPoint =
-        idx === 0 ? targetStartPoint : targetLines[idx - 1]?.endPoint || null;
-      if (!_startPoint) return;
+      if (!line || !line.endPoint || line.disabled) return;
+      let _startPoint = currentStartPoint;
 
       // Check for Velocity Heatmap Mode (only for main path)
       const showHeatmap =
@@ -941,6 +943,9 @@
         heatmapSegments.forEach((seg) => _path.push(seg));
         return;
       }
+
+      // Update for the next line
+      currentStartPoint = line.endPoint;
 
       // Fallback: Standard Line Rendering
       let lineElem: Path | PathLine;
@@ -1525,22 +1530,22 @@
       });
     }
 
+    // Track the last valid (enabled) endpoint to correctly stitch markers for missing timeline
+    let currentStartPointForFallback = startPoint;
+
     lines.forEach((line, idx) => {
-      if (
-        !line ||
-        !line.endPoint ||
-        !line.eventMarkers ||
-        line.eventMarkers.length === 0
-      )
-        return;
+      if (!line || !line.endPoint || line.disabled) return;
 
       let _startPoint = startPointMap.get(line.id!);
       if (!_startPoint) {
         // Fallback for lines not in timeline or if timeline missing
-        _startPoint = idx === 0 ? startPoint : lines[idx - 1]?.endPoint || null;
+        _startPoint = currentStartPointForFallback;
       }
 
-      if (!_startPoint) return;
+      // Update for the next line
+      currentStartPointForFallback = line.endPoint;
+
+      if (!line.eventMarkers || line.eventMarkers.length === 0) return;
 
       line.eventMarkers.forEach((ev, evIdx) => {
         const isHovered = $hoveredMarkerId === ev.id;
@@ -1579,6 +1584,7 @@
     ) {
       // Use Registry for registered actions (e.g. Wait)
       sequence.forEach((item) => {
+        if ((item as any).disabled) return;
         const action = actionRegistry.get(item.kind);
         if (action && action.renderField) {
           const elems = action.renderField(item, {

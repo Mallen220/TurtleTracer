@@ -47,6 +47,13 @@ export async function generateJavaCode(
   const flattenSequence = (seq: SequenceItem[]): SequenceItem[] => {
     const result: SequenceItem[] = [];
     seq.forEach((item) => {
+      if ((item as any).disabled) return;
+
+      if (item.kind === "path") {
+        const line = lines.find((l) => l.id === (item as any).lineId);
+        if (line && line.disabled) return;
+      }
+
       if (item.kind === "macro") {
         if (item.sequence && item.sequence.length > 0) {
           result.push(...flattenSequence(item.sequence));
@@ -72,8 +79,13 @@ export async function generateJavaCode(
   const pathChainNames: string[] = [];
   const usedPathNames = new Map<string, number>();
 
-  // First pass: generate unique variable names for all lines
-  lines.forEach((line, idx) => {
+  // Filter out disabled lines globally for code generation path arrays if needed
+  // Note: we just iterate sequence and use lines, but pathsClass iterates `lines`.
+  // To avoid unused variables, we will filter `lines` down to only those that are not disabled.
+  const enabledLines = lines.filter((l) => !l.disabled);
+
+  // First pass: generate unique variable names for all enabled lines
+  enabledLines.forEach((line, idx) => {
     let baseName = line.name
       ? line.name.replace(/[^a-zA-Z0-9]/g, "")
       : `line${idx + 1}`;
@@ -98,7 +110,7 @@ export async function generateJavaCode(
       .join("\n")}
     
     public Paths(Follower follower) {
-      ${lines
+      ${enabledLines
         .map((line, idx) => {
           const variableName = pathChainNames[idx];
 
@@ -119,7 +131,8 @@ export async function generateJavaCode(
               return `buildPose(${u.x.toFixed(3)}, ${u.y.toFixed(3)}, Math.toRadians(${uh.toFixed(3)}))`;
             };
 
-            const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+            const startPt =
+              idx === 0 ? startPoint : enabledLines[idx - 1].endPoint;
             // For start point of path, heading matters if it's the very first point or if we need tangent?
             // BezierCurve takes Points. Pose is a Point.
             // We pass 0 heading for geometric points usually, but for start point it might use heading.
@@ -156,7 +169,8 @@ export async function generateJavaCode(
             }
           } else {
             // Standard Pedro (0-144)
-            const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+            const startPt =
+              idx === 0 ? startPoint : enabledLines[idx - 1].endPoint;
             startCode = `new Pose(${startPt.x.toFixed(3)}, ${startPt.y.toFixed(3)})`;
 
             controlPointsCode =
@@ -284,7 +298,7 @@ export async function generateJavaCode(
   const rawSequence =
     sequence && sequence.length > 0
       ? sequence
-      : lines.map(
+      : enabledLines.map(
           (line, i) =>
             ({
               kind: "path",
@@ -315,9 +329,10 @@ export async function generateJavaCode(
     stateMachineCode += `\n        case ${stateStep}:`;
 
     if (item.kind === "path") {
-      const lineIndex = lines.findIndex(
+      const lineIndex = enabledLines.findIndex(
         (l) =>
-          (l.id || `line-${lines.indexOf(l) + 1}`) === (item as any).lineId,
+          (l.id || `line-${enabledLines.indexOf(l) + 1}`) ===
+          (item as any).lineId,
       );
 
       const idx = lineIndex !== -1 ? lineIndex : -1;
@@ -424,11 +439,11 @@ export async function generateJavaCode(
     // compute heading used in exported Java before building the file template
     const startDegForExport = ((): number => {
       if (
-        lines &&
-        lines.length > 0 &&
-        lines[0].endPoint.heading === "tangential"
+        enabledLines &&
+        enabledLines.length > 0 &&
+        enabledLines[0].endPoint.heading === "tangential"
       ) {
-        return getLineStartHeading(lines[0], startPoint);
+        return getLineStartHeading(enabledLines[0], startPoint);
       }
 
       if (
@@ -438,8 +453,8 @@ export async function generateJavaCode(
         return (startPoint as any).degrees;
       }
 
-      if (lines && lines.length > 0) {
-        return getLineStartHeading(lines[0], startPoint);
+      if (enabledLines && enabledLines.length > 0) {
+        return getLineStartHeading(enabledLines[0], startPoint);
       }
 
       if (
@@ -589,6 +604,7 @@ export async function generateSequentialCommandCode(
   hardcodeValues: boolean = false,
   coordinateSystem: CoordinateSystem = "Pedro",
 ): Promise<string> {
+  const enabledLines = lines.filter((l) => !l.disabled);
   // Determine class name from file name or use default
   let className = "AutoPath";
   if (fileName) {
@@ -666,7 +682,7 @@ export async function generateSequentialCommandCode(
   const pathChainVariables: string[] = []; // Stores the variable name for each line index
 
   // Process each line
-  lines.forEach((line, lineIdx) => {
+  enabledLines.forEach((line, lineIdx) => {
     const endPointName = line.name
       ? line.name.replace(/[^a-zA-Z0-9]/g, "")
       : `point${lineIdx + 1}`;
@@ -718,16 +734,16 @@ export async function generateSequentialCommandCode(
   });
 
   // Generate path chain declarations
-  const pathChainDeclarations = lines
+  const pathChainDeclarations = enabledLines
     .map((_, idx) => {
       const startPoseName =
         idx === 0
           ? "startPoint"
-          : lines[idx - 1]?.name
-            ? lines[idx - 1]!.name!.replace(/[^a-zA-Z0-9]/g, "")
+          : enabledLines[idx - 1]?.name
+            ? enabledLines[idx - 1]!.name!.replace(/[^a-zA-Z0-9]/g, "")
             : `point${idx}`;
-      const endPoseName = lines[idx].name
-        ? lines[idx].name.replace(/[^a-zA-Z0-9]/g, "")
+      const endPoseName = enabledLines[idx].name
+        ? enabledLines[idx].name.replace(/[^a-zA-Z0-9]/g, "")
         : `point${idx + 1}`;
 
       let pathName = `${startPoseName}TO${endPoseName}`;
@@ -766,7 +782,7 @@ export async function generateSequentialCommandCode(
   // Generate addCommands calls with event handling; iterate sequence if provided
   const commands: string[] = [];
 
-  const defaultSequence: SequenceItem[] = lines.map((ln, idx) => ({
+  const defaultSequence: SequenceItem[] = enabledLines.map((ln, idx) => ({
     kind: "path",
     lineId: ln.id || `line-${idx + 1}`,
   }));
@@ -774,6 +790,12 @@ export async function generateSequentialCommandCode(
   const flattenSequence = (seq: SequenceItem[]): SequenceItem[] => {
     const result: SequenceItem[] = [];
     seq.forEach((item) => {
+      if ((item as any).disabled) return;
+      if (item.kind === "path") {
+        const line = enabledLines.find((l) => l.id === (item as any).lineId);
+        if (!line || line.disabled) return;
+      }
+
       if (item.kind === "macro") {
         if (item.sequence && item.sequence.length > 0) {
           result.push(...flattenSequence(item.sequence));
@@ -797,11 +819,13 @@ export async function generateSequentialCommandCode(
       return;
     }
 
-    const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
+    const lineIdx = enabledLines.findIndex(
+      (l) => l.id === (item as any).lineId,
+    );
     if (lineIdx < 0) {
       return; // skip if sequence references a missing line
     }
-    const line = lines[lineIdx];
+    const line = enabledLines[lineIdx];
     if (!line) {
       return;
     }
@@ -870,13 +894,13 @@ export async function generateSequentialCommandCode(
   });
 
   // Generate path building
-  const pathBuilders = lines
+  const pathBuilders = enabledLines
     .map((line, idx) => {
       const startPoseName =
         idx === 0
           ? "startPoint"
-          : lines[idx - 1]?.name
-            ? lines[idx - 1]!.name!.replace(/[^a-zA-Z0-9]/g, "")
+          : enabledLines[idx - 1]?.name
+            ? enabledLines[idx - 1]!.name!.replace(/[^a-zA-Z0-9]/g, "")
             : `point${idx}`; // Uses 'pointN' which maps to endPointName in poseVariableNames?
 
       // Correctly resolve the variable name for start pose
