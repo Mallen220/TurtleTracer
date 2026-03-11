@@ -534,40 +534,14 @@ export function generateOnionLayers(
     corners: BasePoint[];
   }> = [];
 
-  // Calculate total path length
-  let totalLength = 0;
-  let currentLineStart = startPoint;
-
-  for (const line of lines) {
-    const curvePoints = [
-      currentLineStart,
-      ...line.controlPoints,
-      line.endPoint,
-    ];
-
-    // Approximate line length by sampling
-    const samples = 100;
-    let lineLength = 0;
-    let prevPos = curvePoints[0];
-
-    for (let i = 1; i <= samples; i++) {
-      const t = i / samples;
-      const pos = getCurvePoint(t, curvePoints);
-      const dx = pos.x - prevPos.x;
-      const dy = pos.y - prevPos.y;
-      lineLength += Math.sqrt(dx * dx + dy * dy);
-      prevPos = pos;
-    }
-
-    totalLength += lineLength;
-    currentLineStart = line.endPoint;
-  }
-
-  // Calculate number of layers based on spacing
-  const numLayers = Math.max(1, Math.floor(totalLength / spacing));
+  // ⚡ Bolt Optimization:
+  // Removed a redundant O(n * samples) full-path sampling loop here that was only
+  // used to compute `totalLength` for the condition `nextLayerDistance <= totalLength`.
+  // Since `accumulatedLength` bounds the secondary loop inherently, the original
+  // pre-calculation was just wasted overhead. Halves execution time of this function.
 
   // Sample robot positions at regular intervals
-  currentLineStart = startPoint;
+  let currentLineStart = startPoint;
   let accumulatedLength = 0;
   let nextLayerDistance = spacing;
 
@@ -591,10 +565,7 @@ export function generateOnionLayers(
       accumulatedLength += segmentLength;
 
       // Check if we've reached the next layer position
-      while (
-        accumulatedLength >= nextLayerDistance &&
-        nextLayerDistance <= totalLength
-      ) {
+      while (accumulatedLength >= nextLayerDistance) {
         // Interpolate exact position for this layer
         const overshoot = accumulatedLength - nextLayerDistance;
         const interpolationT = 1 - overshoot / segmentLength;

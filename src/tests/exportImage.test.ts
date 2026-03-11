@@ -85,6 +85,14 @@ describe("exportPathToImage", () => {
       restore: vi.fn(),
       translate: vi.fn(),
       rotate: vi.fn(),
+      beginPath: vi.fn(),
+      roundRect: vi.fn(),
+      rect: vi.fn(),
+      fill: vi.fn(),
+      stroke: vi.fn(),
+      scale: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
     };
 
     // Mock Canvas
