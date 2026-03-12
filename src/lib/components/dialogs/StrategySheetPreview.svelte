@@ -11,7 +11,10 @@
   import { fade, fly } from "svelte/transition";
   import { currentFilePath } from "../../../stores";
   import { formatTime } from "../../../utils";
-  import { formatDisplayDistance, formatDisplayCoordinate } from "../../../utils/coordinates";
+  import {
+    formatDisplayDistance,
+    formatDisplayCoordinate,
+  } from "../../../utils/coordinates";
   import { extraDataStore } from "../../projectStore";
 
   export let isOpen = false;
@@ -629,7 +632,11 @@
                   </div>
                   <div class="text-gray-600">Total Distance:</div>
                   <div class="font-medium">
-                    {formatDisplayDistance(timePrediction?.totalDistance ?? 0, settings, 1)}
+                    {formatDisplayDistance(
+                      timePrediction?.totalDistance ?? 0,
+                      settings,
+                      1,
+                    )}
                   </div>
                   <div class="text-gray-600">Path Segments:</div>
                   <div class="font-medium">{lines.length}</div>
@@ -673,7 +680,10 @@
                   <td class="py-2 px-3 text-gray-500">0</td>
                   <td class="py-2 px-3 font-medium">Start</td>
                   <td class="py-2 px-3"
-                    >({formatDisplayCoordinate(startPoint.x, settings)}, {formatDisplayCoordinate(startPoint.y, settings)})</td
+                    >({formatDisplayCoordinate(startPoint.x, settings)}, {formatDisplayCoordinate(
+                      startPoint.y,
+                      settings,
+                    )})</td
                   >
                   <td class="py-2 px-3"></td>
                 </tr>
