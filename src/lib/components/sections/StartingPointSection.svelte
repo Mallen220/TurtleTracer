@@ -4,7 +4,12 @@
   import { selectedPointId, focusRequest } from "../../../stores";
   import { linesStore } from "../../../lib/projectStore";
   import { getShortcutFromSettings } from "../../../utils";
-  import { toField, toUser, formatDisplayCoordinate, cmToInch } from "../../../utils/coordinates";
+  import {
+    toField,
+    toUser,
+    formatDisplayCoordinate,
+    cmToInch,
+  } from "../../../utils/coordinates";
   import HeadingControls from "../HeadingControls.svelte";
 
   export let startPoint: Point;
@@ -113,12 +118,22 @@
         >
         <input
           bind:this={xInput}
-          value={formatDisplayCoordinate(toUser(startPoint, settings?.coordinateSystem || "Pedro").x, settings)}
+          value={formatDisplayCoordinate(
+            toUser(startPoint, settings?.coordinateSystem || "Pedro").x,
+            settings,
+          )}
           on:change={(e) => {
             let val = parseFloat(e.currentTarget.value);
             if (!isNaN(val)) {
               if (settings?.visualizerUnits === "metric") val = cmToInch(val);
-              const newPt = toField({ x: val, y: toUser(startPoint, settings?.coordinateSystem || "Pedro").y }, settings?.coordinateSystem || "Pedro");
+              const newPt = toField(
+                {
+                  x: val,
+                  y: toUser(startPoint, settings?.coordinateSystem || "Pedro")
+                    .y,
+                },
+                settings?.coordinateSystem || "Pedro",
+              );
               startPoint.x = newPt.x;
             }
           }}
@@ -139,12 +154,22 @@
         >
         <input
           bind:this={yInput}
-          value={formatDisplayCoordinate(toUser(startPoint, settings?.coordinateSystem || "Pedro").y, settings)}
+          value={formatDisplayCoordinate(
+            toUser(startPoint, settings?.coordinateSystem || "Pedro").y,
+            settings,
+          )}
           on:change={(e) => {
             let val = parseFloat(e.currentTarget.value);
             if (!isNaN(val)) {
               if (settings?.visualizerUnits === "metric") val = cmToInch(val);
-              const newPt = toField({ x: toUser(startPoint, settings?.coordinateSystem || "Pedro").x, y: val }, settings?.coordinateSystem || "Pedro");
+              const newPt = toField(
+                {
+                  x: toUser(startPoint, settings?.coordinateSystem || "Pedro")
+                    .x,
+                  y: val,
+                },
+                settings?.coordinateSystem || "Pedro",
+              );
               startPoint.y = newPt.y;
             }
           }}

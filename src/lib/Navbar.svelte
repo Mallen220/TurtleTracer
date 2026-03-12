@@ -371,7 +371,11 @@
           >Distance</span
         >
         <span class="font-semibold text-neutral-800 dark:text-neutral-200"
-          >{formatDisplayDistance(timePrediction?.totalDistance ?? 0, settings, 0)}</span
+          >{formatDisplayDistance(
+            timePrediction?.totalDistance ?? 0,
+            settings,
+            0,
+          )}</span
         >
       </div>
     </div>
@@ -380,7 +384,13 @@
       class="flex flex-col md:hidden text-xs text-neutral-600 dark:text-neutral-300"
     >
       <span>{formatTime(timePrediction?.totalTime ?? 0)}</span>
-      <span>{formatDisplayDistance(timePrediction?.totalDistance ?? 0, settings, 0)}</span>
+      <span
+        >{formatDisplayDistance(
+          timePrediction?.totalDistance ?? 0,
+          settings,
+          0,
+        )}</span
+      >
     </div>
 
     {#each centerActions as action (action.id)}

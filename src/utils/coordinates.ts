@@ -82,7 +82,7 @@ export function cmToInch(cm: number): number {
 export function formatDisplayCoordinate(
   val: number,
   settings: { visualizerUnits?: "imperial" | "metric" },
-  fractionDigits: number = 3
+  fractionDigits: number = 3,
 ): string {
   if (settings?.visualizerUnits === "metric") {
     return inchToCm(val).toFixed(fractionDigits);
@@ -96,7 +96,7 @@ export function formatDisplayCoordinate(
 export function formatDisplayDistance(
   val: number,
   settings: { visualizerUnits?: "imperial" | "metric" },
-  fractionDigits: number = 2
+  fractionDigits: number = 2,
 ): string {
   if (settings?.visualizerUnits === "metric") {
     return `${inchToCm(val).toFixed(fractionDigits)} cm`;

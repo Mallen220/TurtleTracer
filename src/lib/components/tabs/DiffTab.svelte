@@ -68,11 +68,20 @@
           </p>
           <div class="flex items-baseline gap-2">
             <span class="text-2xl font-bold text-neutral-900 dark:text-white"
-              >{formatDisplayDistance(result.statsDiff.distance.new, settings, 2)}</span
+              >{formatDisplayDistance(
+                result.statsDiff.distance.new,
+                settings,
+                2,
+              )}</span
             >
             {#if result.statsDiff.distance.diff !== 0}
               <span class="text-sm font-semibold text-neutral-500">
-                {(result.statsDiff.distance.diff > 0 ? "+" : "") + formatDisplayDistance(Math.abs(result.statsDiff.distance.diff), settings, 2).replace("-", "")}
+                {(result.statsDiff.distance.diff > 0 ? "+" : "") +
+                  formatDisplayDistance(
+                    Math.abs(result.statsDiff.distance.diff),
+                    settings,
+                    2,
+                  ).replace("-", "")}
               </span>
             {/if}
           </div>

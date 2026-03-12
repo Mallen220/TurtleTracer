@@ -13,7 +13,11 @@
     getClosestTarget,
     type DragPosition,
   } from "../../utils/dragDrop";
-  import { formatDisplayCoordinate, formatDisplayDistance, cmToInch } from "../../utils/coordinates";
+  import {
+    formatDisplayCoordinate,
+    formatDisplayDistance,
+    cmToInch,
+  } from "../../utils/coordinates";
   import {
     snapToGrid,
     showGrid,
@@ -214,7 +218,10 @@
     const input = e.target as HTMLInputElement;
     let val = parseFloat(input.value);
     if (!isNaN(val)) {
-      if (settings?.visualizerUnits === "metric" && (field === "x" || field === "y")) {
+      if (
+        settings?.visualizerUnits === "metric" &&
+        (field === "x" || field === "y")
+      ) {
         val = cmToInch(val);
       }
       const system = settings?.coordinateSystem || "Pedro";
@@ -1366,7 +1373,10 @@
               type="number"
               class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               step={stepSize}
-              value={formatDisplayCoordinate(toUser(startPoint, settings?.coordinateSystem || "Pedro").x, settings || {})}
+              value={formatDisplayCoordinate(
+                toUser(startPoint, settings?.coordinateSystem || "Pedro").x,
+                settings || {},
+              )}
               aria-label="Start Point X"
               on:change={(e) => handleInput(e, startPoint, "x")}
               use:focusOnRequest={{ id: "point-0-0", field: "x" }}
@@ -1378,7 +1388,10 @@
               type="number"
               class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               step={stepSize}
-              value={formatDisplayCoordinate(toUser(startPoint, settings?.coordinateSystem || "Pedro").y, settings || {})}
+              value={formatDisplayCoordinate(
+                toUser(startPoint, settings?.coordinateSystem || "Pedro").y,
+                settings || {},
+              )}
               aria-label="Start Point Y"
               on:change={(e) => handleInput(e, startPoint, "y")}
               use:focusOnRequest={{ id: "point-0-0", field: "y" }}
@@ -1521,7 +1534,11 @@
                                 pathStatsMap.get(line.id).duration,
                               )}<br />
                               {#if pathStatsMap.get(line.id).distance !== undefined}
-                                Distance: {formatDisplayDistance(pathStatsMap.get(line.id).distance, settings || {}, 2)}
+                                Distance: {formatDisplayDistance(
+                                  pathStatsMap.get(line.id).distance,
+                                  settings || {},
+                                  2,
+                                )}
                               {/if}
                             </div>
                           {/if}
@@ -1570,10 +1587,13 @@
                       type="number"
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       step={stepSize}
-                      value={formatDisplayCoordinate(toUser(
-                        line.endPoint,
-                        settings?.coordinateSystem || "Pedro",
-                      ).x, settings || {})}
+                      value={formatDisplayCoordinate(
+                        toUser(
+                          line.endPoint,
+                          settings?.coordinateSystem || "Pedro",
+                        ).x,
+                        settings || {},
+                      )}
                       aria-label="{line.name || `Path ${lineIdx + 1}`} X"
                       on:change={(e) =>
                         handleInput(e, line.endPoint, "x", line.id)}
@@ -1590,10 +1610,13 @@
                     type="number"
                     class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     step={stepSize}
-                    value={formatDisplayCoordinate(toUser(
-                      line.endPoint,
-                      settings?.coordinateSystem || "Pedro",
-                    ).y, settings || {})}
+                    value={formatDisplayCoordinate(
+                      toUser(
+                        line.endPoint,
+                        settings?.coordinateSystem || "Pedro",
+                      ).y,
+                      settings || {},
+                    )}
                     aria-label="{line.name || `Path ${lineIdx + 1}`} Y"
                     on:change={(e) =>
                       handleInput(e, line.endPoint, "y", line.id)}
@@ -1742,7 +1765,10 @@
                       type="number"
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
                       step={stepSize}
-                      value={formatDisplayCoordinate(toUser(cp, settings?.coordinateSystem || "Pedro").x, settings || {})}
+                      value={formatDisplayCoordinate(
+                        toUser(cp, settings?.coordinateSystem || "Pedro").x,
+                        settings || {},
+                      )}
                       aria-label="Control Point {j + 1} X for {line.name ||
                         `Path ${lineIdx + 1}`}"
                       on:change={(e) => handleInput(e, cp, "x")}
@@ -1755,7 +1781,10 @@
                       type="number"
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
                       step={stepSize}
-                      value={formatDisplayCoordinate(toUser(cp, settings?.coordinateSystem || "Pedro").y, settings || {})}
+                      value={formatDisplayCoordinate(
+                        toUser(cp, settings?.coordinateSystem || "Pedro").y,
+                        settings || {},
+                      )}
                       aria-label="Control Point {j + 1} Y for {line.name ||
                         `Path ${lineIdx + 1}`}"
                       on:change={(e) => handleInput(e, cp, "y")}

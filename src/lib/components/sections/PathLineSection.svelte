@@ -16,7 +16,12 @@
     isLineLinked,
   } from "../../../utils/pointLinking";
   import { settingsStore } from "../../projectStore";
-  import { toUser, toField, formatDisplayCoordinate, cmToInch } from "../../../utils/coordinates";
+  import {
+    toUser,
+    toField,
+    formatDisplayCoordinate,
+    cmToInch,
+  } from "../../../utils/coordinates";
   import { tooltipPortal } from "../../actions/portal";
   import { onMount, onDestroy } from "svelte";
   import { actionRegistry } from "../../actionRegistry";
