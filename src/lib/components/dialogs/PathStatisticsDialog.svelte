@@ -15,6 +15,7 @@
   import { onMount } from "svelte";
   import { getAngularDifference } from "../../../utils/math";
   import { notification } from "../../../stores";
+  import { formatDisplayDistance } from "../../../utils/coordinates";
   import SimpleChart from "../tools/SimpleChart.svelte";
 
   export let startPoint: Point;
@@ -746,7 +747,7 @@
             <span
               class="text-xl font-bold text-neutral-900 dark:text-white mt-1"
             >
-              {pathStats.totalDistance.toFixed(1)}"
+              {formatDisplayDistance(pathStats.totalDistance, settings, 1)}
             </span>
           </div>
           <div

@@ -44,6 +44,7 @@
   let sequentialClassName = "AutoPath";
   let targetLibrary: "SolversLib" | "NextFTC" = "SolversLib";
   let embedPoseData = false;
+  let codeUnits: "imperial" | "metric" = "imperial";
   const DEFAULT_PACKAGE =
     "org.firstinspires.ftc.teamcode.Commands.AutoCommands";
   let packageName = DEFAULT_PACKAGE;
@@ -114,6 +115,12 @@
     if (settings.telemetryImplementation) {
       telemetryImplementation = settings.telemetryImplementation;
     }
+    if (settings.codeUnits) {
+      codeUnits = settings.codeUnits;
+    }
+    if (settings.autoExportEmbedPoseData !== undefined) {
+      embedPoseData = settings.autoExportEmbedPoseData;
+    }
   });
 
   async function handlePackageKeydown(event: KeyboardEvent) {
@@ -144,10 +151,11 @@
           packageName,
           telemetryImplementation,
           settings?.coordinateSystem,
+          codeUnits,
         );
         currentLanguage = java;
       } else if (exportFormat === "points") {
-        exportedCode = generatePointsArray(startPoint, lines);
+        exportedCode = generatePointsArray(startPoint, lines, codeUnits);
         currentLanguage = plaintext;
       } else if (exportFormat === "sequential") {
         exportedCode = await generateSequentialCommandCode(
@@ -159,6 +167,7 @@
           packageName,
           embedPoseData,
           settings?.coordinateSystem,
+          codeUnits,
         );
         currentLanguage = java;
       } else if (exportFormat === "json") {
@@ -747,6 +756,30 @@
                 <span>NextFTC output is <strong>experimental</strong>.</span>
               </div>
             {/if}
+            {#if codeUnits === "metric" && !embedPoseData && exportFormat === "sequential"}
+              <div
+                class="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-lg border border-yellow-200 dark:border-yellow-800/50"
+                role="alert"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="size-4 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                  ></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span>Metric code generation requires embedding poses. Please enable 'Embed Pose Data'.</span>
+              </div>
+            {/if}
           {/if}
 
           <!-- Java Controls -->
@@ -765,6 +798,38 @@
               </div>
               <span>Generate Full Class</span>
             </label>
+          {/if}
+
+          {#if exportFormat === "java" || exportFormat === "sequential" || exportFormat === "points"}
+            <div class="flex flex-col gap-1.5 mt-2">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                Code Units
+              </span>
+              <div class="flex gap-2" role="radiogroup">
+                <label class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="codeUnits"
+                    value="imperial"
+                    bind:group={codeUnits}
+                    on:change={refreshCode}
+                    class="h-4 w-4 text-blue-600"
+                  />
+                  <span>Imperial (Inches)</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="codeUnits"
+                    value="metric"
+                    bind:group={codeUnits}
+                    on:change={refreshCode}
+                    class="h-4 w-4 text-blue-600"
+                  />
+                  <span>Metric (cm)</span>
+                </label>
+              </div>
+            </div>
           {/if}
         </div>
       {/if}

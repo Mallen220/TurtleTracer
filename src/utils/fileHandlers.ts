@@ -823,6 +823,7 @@ export async function handleAutoExport(
           settings.javaPackageName,
           settings.telemetryImplementation,
           settings.coordinateSystem,
+          settings.codeUnits,
         );
         extension = "java";
         break;
@@ -836,11 +837,12 @@ export async function handleAutoExport(
           settings.javaPackageName,
           settings.autoExportEmbedPoseData,
           settings.coordinateSystem,
+          settings.codeUnits,
         );
         extension = "java";
         break;
       case "points":
-        content = generatePointsArray(startPoint, lines);
+        content = generatePointsArray(startPoint, lines, settings.codeUnits);
         extension = "txt";
         break;
       case "json":

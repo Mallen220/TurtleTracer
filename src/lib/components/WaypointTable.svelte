@@ -13,6 +13,7 @@
     getClosestTarget,
     type DragPosition,
   } from "../../utils/dragDrop";
+  import { formatDisplayCoordinate, formatDisplayDistance, cmToInch } from "../../utils/coordinates";
   import {
     snapToGrid,
     showGrid,
@@ -211,8 +212,11 @@
     lineId?: string,
   ) {
     const input = e.target as HTMLInputElement;
-    const val = parseFloat(input.value);
+    let val = parseFloat(input.value);
     if (!isNaN(val)) {
+      if (settings?.visualizerUnits === "metric" && (field === "x" || field === "y")) {
+        val = cmToInch(val);
+      }
       const system = settings?.coordinateSystem || "Pedro";
       const userPt = toUser(point, system);
       const newUserPt = { ...userPt, [field]: val };
@@ -343,11 +347,11 @@
       )
     : [];
   $: debugMissing = debugLinesIds.filter(
-    (id) => !debugSequenceIds.includes(id),
-  );
+    (id) => id && !debugSequenceIds.includes(id),
+  ) as string[];
   $: debugInvalidRefs = debugSequenceIds.filter(
-    (id) => id != null && !debugLinesIds.includes(id),
-  );
+    (id) => id && !debugLinesIds.includes(id),
+  ) as string[];
 
   $: {
     // Optional console logs for development convenience
@@ -1362,10 +1366,9 @@
               type="number"
               class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               step={stepSize}
-              value={toUser(startPoint, settings?.coordinateSystem || "Pedro")
-                .x}
+              value={formatDisplayCoordinate(toUser(startPoint, settings?.coordinateSystem || "Pedro").x, settings || {})}
               aria-label="Start Point X"
-              on:input={(e) => handleInput(e, startPoint, "x")}
+              on:change={(e) => handleInput(e, startPoint, "x")}
               use:focusOnRequest={{ id: "point-0-0", field: "x" }}
               disabled={startPoint.locked}
             />
@@ -1375,10 +1378,9 @@
               type="number"
               class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               step={stepSize}
-              value={toUser(startPoint, settings?.coordinateSystem || "Pedro")
-                .y}
+              value={formatDisplayCoordinate(toUser(startPoint, settings?.coordinateSystem || "Pedro").y, settings || {})}
               aria-label="Start Point Y"
-              on:input={(e) => handleInput(e, startPoint, "y")}
+              on:change={(e) => handleInput(e, startPoint, "y")}
               use:focusOnRequest={{ id: "point-0-0", field: "y" }}
               disabled={startPoint.locked}
             />
@@ -1519,9 +1521,7 @@
                                 pathStatsMap.get(line.id).duration,
                               )}<br />
                               {#if pathStatsMap.get(line.id).distance !== undefined}
-                                Distance: {pathStatsMap
-                                  .get(line.id)
-                                  .distance.toFixed(2)} in
+                                Distance: {formatDisplayDistance(pathStatsMap.get(line.id).distance, settings || {}, 2)}
                               {/if}
                             </div>
                           {/if}
@@ -1570,12 +1570,12 @@
                       type="number"
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       step={stepSize}
-                      value={toUser(
+                      value={formatDisplayCoordinate(toUser(
                         line.endPoint,
                         settings?.coordinateSystem || "Pedro",
-                      ).x}
+                      ).x, settings || {})}
                       aria-label="{line.name || `Path ${lineIdx + 1}`} X"
-                      on:input={(e) =>
+                      on:change={(e) =>
                         handleInput(e, line.endPoint, "x", line.id)}
                       use:focusOnRequest={{ id: endPointId, field: "x" }}
                       disabled={line.locked}
@@ -1590,12 +1590,12 @@
                     type="number"
                     class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     step={stepSize}
-                    value={toUser(
+                    value={formatDisplayCoordinate(toUser(
                       line.endPoint,
                       settings?.coordinateSystem || "Pedro",
-                    ).y}
+                    ).y, settings || {})}
                     aria-label="{line.name || `Path ${lineIdx + 1}`} Y"
-                    on:input={(e) =>
+                    on:change={(e) =>
                       handleInput(e, line.endPoint, "y", line.id)}
                     use:focusOnRequest={{ id: endPointId, field: "y" }}
                     disabled={line.locked}
@@ -1742,11 +1742,10 @@
                       type="number"
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
                       step={stepSize}
-                      value={toUser(cp, settings?.coordinateSystem || "Pedro")
-                        .x}
+                      value={formatDisplayCoordinate(toUser(cp, settings?.coordinateSystem || "Pedro").x, settings || {})}
                       aria-label="Control Point {j + 1} X for {line.name ||
                         `Path ${lineIdx + 1}`}"
-                      on:input={(e) => handleInput(e, cp, "x")}
+                      on:change={(e) => handleInput(e, cp, "x")}
                       use:focusOnRequest={{ id: pointId, field: "x" }}
                       disabled={line.locked}
                     />
@@ -1756,11 +1755,10 @@
                       type="number"
                       class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
                       step={stepSize}
-                      value={toUser(cp, settings?.coordinateSystem || "Pedro")
-                        .y}
+                      value={formatDisplayCoordinate(toUser(cp, settings?.coordinateSystem || "Pedro").y, settings || {})}
                       aria-label="Control Point {j + 1} Y for {line.name ||
                         `Path ${lineIdx + 1}`}"
-                      on:input={(e) => handleInput(e, cp, "y")}
+                      on:change={(e) => handleInput(e, cp, "y")}
                       use:focusOnRequest={{ id: pointId, field: "y" }}
                       disabled={line.locked}
                     />

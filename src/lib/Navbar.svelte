@@ -29,6 +29,7 @@
     formatTime,
     getShortcutFromSettings,
   } from "../utils";
+  import { formatDisplayDistance } from "../utils/coordinates";
   import { showShortcuts } from "../stores";
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
@@ -370,7 +371,7 @@
           >Distance</span
         >
         <span class="font-semibold text-neutral-800 dark:text-neutral-200"
-          >{(timePrediction?.totalDistance ?? 0).toFixed(0)} in</span
+          >{formatDisplayDistance(timePrediction?.totalDistance ?? 0, settings, 0)}</span
         >
       </div>
     </div>
@@ -379,7 +380,7 @@
       class="flex flex-col md:hidden text-xs text-neutral-600 dark:text-neutral-300"
     >
       <span>{formatTime(timePrediction?.totalTime ?? 0)}</span>
-      <span>{(timePrediction?.totalDistance ?? 0).toFixed(0)} in</span>
+      <span>{formatDisplayDistance(timePrediction?.totalDistance ?? 0, settings, 0)}</span>
     </div>
 
     {#each centerActions as action (action.id)}

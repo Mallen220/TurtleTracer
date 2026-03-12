@@ -80,6 +80,7 @@
           settings.javaPackageName,
           settings.telemetryImplementation,
           settings.coordinateSystem,
+          settings.codeUnits,
         );
       } else {
         newCode = await generateSequentialCommandCode(
@@ -91,6 +92,7 @@
           settings.javaPackageName,
           settings.autoExportEmbedPoseData,
           settings.coordinateSystem,
+          settings.codeUnits,
         );
       }
 
@@ -198,7 +200,7 @@
   // Trigger update when dependencies change
   $: if (
     isActive &&
-    (startPoint || lines || sequence || settings || format || targetLibrary)
+    (startPoint || lines || sequence || settings || (settings as Settings)?.codeUnits || format || targetLibrary)
   ) {
     updateCode();
   }

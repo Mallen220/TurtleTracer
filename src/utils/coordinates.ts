@@ -61,3 +61,45 @@ export function toFieldCoordinate(
 ): number {
   return val; // Placeholder
 }
+
+/**
+ * Converts inches to centimeters.
+ */
+export function inchToCm(inches: number): number {
+  return inches * 2.54;
+}
+
+/**
+ * Converts centimeters to inches.
+ */
+export function cmToInch(cm: number): number {
+  return cm / 2.54;
+}
+
+/**
+ * Formats a coordinate value for display based on the visualizer units setting.
+ */
+export function formatDisplayCoordinate(
+  val: number,
+  settings: { visualizerUnits?: "imperial" | "metric" },
+  fractionDigits: number = 3
+): string {
+  if (settings?.visualizerUnits === "metric") {
+    return inchToCm(val).toFixed(fractionDigits);
+  }
+  return val.toFixed(fractionDigits);
+}
+
+/**
+ * Formats a distance value with its unit label based on the visualizer units setting.
+ */
+export function formatDisplayDistance(
+  val: number,
+  settings: { visualizerUnits?: "imperial" | "metric" },
+  fractionDigits: number = 2
+): string {
+  if (settings?.visualizerUnits === "metric") {
+    return `${inchToCm(val).toFixed(fractionDigits)} cm`;
+  }
+  return `${val.toFixed(fractionDigits)} in`;
+}
