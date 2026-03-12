@@ -81,7 +81,7 @@ export function calculateRobotState(
       clampedProgress,
     );
 
-    // Note: We use negative heading for visualizer (SVG/CSS rotation is CW, Math is usually CCW)
+
     return {
       x: xScale(point.x),
       y: yScale(point.y),
@@ -111,7 +111,7 @@ export function calculateRobotState(
       const profileEndTime = profile[profile.length - 1];
 
       if (relativeTime >= profileEndTime) {
-        // If we exceeded the profile (e.g. rotation time extended the segment), we are at the end
+
         linePercent = 1;
         if (
           activeEvent.headingProfile &&
@@ -141,7 +141,7 @@ export function calculateRobotState(
 
         linePercent = tStart + localProgress * (tEnd - tStart);
 
-        // Use detailed heading profile if available and we are using motion profile
+
         if (
           activeEvent.headingProfile &&
           activeEvent.headingProfile.length === profile.length
@@ -233,7 +233,7 @@ export function calculateRobotState(
           const dy = targetY - curvePos.y;
           if (dx !== 0 || dy !== 0) {
             // xScale and yScale are linear; yScale may be inverted (screen y is flipped)
-            // We compute the screen-space angle to account for axis flipping
+
             const sdx = xScale(targetX) - xScale(curvePos.x);
             const sdy = yScale(targetY) - yScale(curvePos.y);
             let angle = Math.atan2(sdy, sdx);
@@ -288,7 +288,7 @@ export function createAnimationController(
   }
 
   function animate(timestamp: number) {
-    // If we aren't playing anymore, ensure we don't schedule anything further.
+
     if (!state.playing) {
       state.lastTimestamp = null;
       absoluteStartTime = null;
@@ -387,7 +387,7 @@ export function createAnimationController(
       updatePercentFromAccumulated();
       if (!isExternalChange) onPercentChange(state.percent);
     } else if (state.totalDuration > 0 && state.loopRangeActive) {
-      // Even if looping, if we are outside the loop range, snap back into it
+
       if (
         state.accumulatedSeconds < startSec ||
         state.accumulatedSeconds >= endSec
@@ -451,9 +451,6 @@ export function createAnimationController(
       updatePercentFromAccumulated();
       onPercentChange(clamped);
 
-      // If playing, we keep animating; lastTimestamp will sync on next tick
-      // Clear the external flag immediately so normal anim ticks resume updating.
-      // Use setTimeout(..., 0) so this call does not interrupt the current stack where this may be called
       setTimeout(() => {
         isExternalChange = false;
       }, 0);

@@ -38,10 +38,6 @@
   import TransformDialog from "./lib/components/dialogs/TransformDialog.svelte";
 
   // Stores
-  // Import stores and explicitly alias the update-available store to
-  // prevent bundler renaming mismatches. The rest of the code (including
-  // Svelte-generated watchers) refers to the local variable
-  // `showUpdateAvailableDialog`, so we point that at the imported store.
   import {
     currentFilePath,
     isUnsaved,
@@ -480,7 +476,7 @@
               "You have unsaved changes. Press OK to save them before opening. Press Cancel to proceed without saving.",
             )
           ) {
-            // Check if we need to name the file (new file)
+
             const currentPath = get(currentFilePath);
             let success = false;
 
@@ -734,8 +730,7 @@
 
   // Continuous validation when path/settings change
   $: {
-    // We depend on timePrediction to ensure we validate with the latest timeline
-    // The stores are also dependencies, but timePrediction aggregates most of them
+    // depend on timePrediction to ensure validation with the latest timeline
     if (
       $startPointStore &&
       $linesStore &&
@@ -830,7 +825,7 @@
           extraData: get(extraDataStore),
         };
 
-        // fire-and-forget; we don't care about awaiting in the UI path
+        // fire-and-forget; don't care about awaiting in the UI path
         handleAutoExport(
           get(startPointStore),
           get(linesStore),
@@ -1002,7 +997,6 @@
         const hasSeenTutorial = s.hasSeenOnboarding;
 
         // If version mismatch or never seen, show dialog
-        // But only if we have already seen the tutorial (otherwise tutorial runs first)
         if (lastSeen !== currentVersion && hasSeenTutorial) {
           showWhatsNew = true;
         }
@@ -1035,7 +1029,7 @@
         });
       }
 
-      // Signal main process that we are ready to receive file paths
+      // Signal main process that ready to receive file paths
       if (electronAPI.rendererReady) {
         electronAPI.rendererReady();
       }
@@ -1050,7 +1044,6 @@
         electronAPI.onMenuAction((action) => {
           // Some actions are handled in KeyboardShortcuts via props or bindings,
           // but menu clicks come here.
-          // We can invoke the functions directly.
           switch (action) {
             case "save-project":
               handleSaveProject();
@@ -1382,7 +1375,6 @@
     // when sidebar is visible, reserve space for it (use userFieldHeightLimit or default fraction)
     if (effectiveShowSidebar) {
       const h = userFieldHeightLimit ?? mainContentHeight * 0.6;
-      // ensure we don't exceed the available height
       const target = Math.min(h, mainContentHeight);
       return `${Math.max(120, Math.floor(target))}px`;
     } else {
@@ -1500,7 +1492,7 @@
 
   // --- Apply Theme ---
   $: {
-    // Depend on themesStore so we re-run when plugins load
+    // Depend on themesStore so re-run when plugins load
     const registeredThemes = $themesStore;
     if (settings) {
       // Check for Potato Mode first!

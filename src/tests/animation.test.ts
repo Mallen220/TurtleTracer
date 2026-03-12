@@ -148,8 +148,6 @@ describe("animation", () => {
       expect(controller.isPlaying()).toBe(false);
     });
 
-    // Testing async behavior of requestAnimationFrame is tricky in unit tests without fake timers.
-    // We can rely on basic state checks here.
   });
 
   describe("generateOnionLayers", () => {

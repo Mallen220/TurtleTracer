@@ -65,7 +65,6 @@ export function mergeSettings(source: any): Settings {
   Object.keys(sourceSettings).forEach((key) => {
     if (key in migrated) {
       // Type checking to avoid illegal values
-      // We check against the default value type if it's not null/undefined
       const defaultVal = (defaults as any)[key];
       const sourceVal = sourceSettings[key];
 
@@ -114,7 +113,6 @@ export function mergeSettings(source: any): Settings {
           }
         }
 
-        // @ts-ignore - We know the key exists in Settings
         migrated[key] = sourceVal;
       }
     }

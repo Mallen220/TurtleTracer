@@ -86,7 +86,7 @@ export function renumberDefaultPathNames(lines: Line[]): Line[] {
 // Create writable stores for the project state
 export const startPointStore = writable<Point>(getDefaultStartPoint());
 
-// Ensure we use the exact same default lines instance for both linesStore and sequenceStore
+// Ensure using the exact same default lines instance for both linesStore and sequenceStore
 // to prevent ID mismatches when getDefaultLines() generates random IDs.
 const initialDefaultLines = normalizeLines(getDefaultLines());
 
@@ -159,13 +159,6 @@ export function resetProject() {
   );
   extraDataStore.set({});
   macrosStore.set(new Map());
-  // We don't reset settings usually, or maybe we do?
-  // The original App.svelte reset code:
-  // startPoint = getDefaultStartPoint();
-  // lines = normalizeLines(getDefaultLines());
-  // sequence = ...
-  // shapes = getDefaultShapes();
-  // currentFilePath.set(null);
 }
 
 export function updateMacroContent(filePath: string, data: PedroData) {
@@ -268,7 +261,6 @@ export async function loadMacro(filePath: string, force = false) {
                       item.filePath,
                     );
                     // Update the sequence item to use the absolute path for this session
-                    // This ensures that when we expand the macro later, we can look it up in the map
                     item.filePath = resolved;
                     await loadMacro(resolved);
                   })(),

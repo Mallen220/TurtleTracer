@@ -29,7 +29,6 @@ describe("Geometry Properties (Extended)", () => {
           pointArb,
           (polygon, point) => {
             // Remove duplicates and collinear points essentially by convex hull logic
-            // But here we test the function as is.
             const hull = convexHull(polygon);
             const isInPolygon = pointInPolygon([point.x, point.y], polygon);
             const isInHull = pointInPolygon([point.x, point.y], hull);
@@ -41,7 +40,7 @@ describe("Geometry Properties (Extended)", () => {
               // If it's in polygon, but not in hull, check distance to hull.
               if (!isInHull) {
                 const dist = minDistanceToPolygon([point.x, point.y], hull);
-                // If distance is negligible, we consider it inside (on boundary)
+
                 return dist < 1e-4;
               }
               return true;

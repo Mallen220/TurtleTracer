@@ -33,7 +33,7 @@ function getHeader(yearRange, styleType) {
   } else if (styleType === "HASH") {
     return `# ${text}\n`;
   } else if (styleType === "BLOCK") {
-    // Fallback if we ever use it, but we want one line
+    // Fallback
     return `/* ${text} */\n`;
   }
 }
@@ -120,8 +120,6 @@ function processFile(filePath, styleType) {
   }
 
   // 3. Remove Hash Comments (# ...)
-  // This is tricky because it might match code. We only look at the top.
-  // Matches a block of lines starting with #, containing Copyright and Matthew Allen.
   const hashBlockRegex = /^(\s*#[^\n]*\n)+/;
   const m = body.match(hashBlockRegex);
   if (m && m[0].includes("Copyright") && m[0].includes("Matthew Allen")) {

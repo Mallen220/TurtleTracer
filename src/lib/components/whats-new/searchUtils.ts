@@ -29,7 +29,6 @@ export function highlightSnippet(text: string, query: string): string {
     result += escapeHtml(text.slice(lastIndex, i));
 
     // Append match (escaped and wrapped)
-    // We use the text from the original string to preserve case
     const match = text.slice(i, i + query.length);
     result += `<span class="bg-yellow-200 dark:bg-yellow-800 text-neutral-900 dark:text-neutral-100 rounded-sm px-0.5">${escapeHtml(match)}</span>`;
 

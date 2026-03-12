@@ -286,7 +286,7 @@
 
     if (!electronAPI || !electronAPI.showSaveDialog || !electronAPI.writeFile) {
       // Fallback for web: use download attribute trick via Blob
-      // But downloadTrajectory is specialized for JSON/PP usually, let's make a generic one.
+      // But downloadTrajectory is specialized for JSON/PP usually; make a generic one.
       const blob = new Blob([exportedCode], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -850,7 +850,7 @@
           class="absolute inset-0 overflow-auto custom-scrollbar p-4 pb-20"
         >
           <!-- Highlight Layer for Search Results -->
-          <!-- We render invisible text that matches layout, but with highlighted backgrounds -->
+          <!-- render invisible text that matches layout, but with highlighted backgrounds -->
           <div
             class="absolute top-4 left-4 right-4 bottom-20 pointer-events-none select-none font-mono text-sm leading-relaxed"
             aria-hidden="true"

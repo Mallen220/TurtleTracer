@@ -146,8 +146,6 @@ function extractMarkers(data: ProjectData): Map<string, MarkerInfo> {
   // Helper to add marker
   const add = (m: EventMarker, parentName: string) => {
     // If id is missing, generate one based on parent and index?
-    // Ideally markers have IDs. If not, we might have trouble matching.
-    // Assuming they have IDs or we fallback to name.
     const id = m.id || `${parentName}-${m.name}-${m.position}`;
     markers.set(id, {
       id,

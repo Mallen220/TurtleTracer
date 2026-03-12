@@ -123,9 +123,6 @@
           const partLinesRaw = part.value.replace(/\n$/, "").split("\n");
           const count = partLinesRaw.length;
 
-          // Note: highlightAndSplit preserves all lines including trailing empty ones if they exist.
-          // diffLines 'value' usually contains the exact text.
-          // We map diff parts to our highlighted arrays.
 
           if (part.added) {
             // Take lines from newLinesHL
@@ -163,25 +160,14 @@
           }
         });
 
-        // Optimization: Coalesce adjacent Remove -> Add as "Modified" (Yellow)
-        // We can just style them. But user wants "Yellow for changed".
-        // A change is effectively a remove followed by an add.
-        // We can post-process the list.
-        // If we see REMOVE, immediately followed by ADD, mark both? Or mark ADD as 'modified'?
-        // Visually, usually you show the old line (red) and new line (green/yellow).
-        // If we want "Yellow", maybe we style the Added line as Yellow if it was preceded by a removal.
+        
 
         for (let i = 0; i < newDisplayLines.length - 1; i++) {
           if (
             newDisplayLines[i].type === "removed" &&
             newDisplayLines[i + 1].type === "added"
           ) {
-            newDisplayLines[i + 1].type = "modified"; // Custom type for styling
-            // Should we hide the removed line? Usually diff shows both.
-            // "If a line was just changed it should be yellow" implies inline replacement?
-            // If we hide the removed line, the user doesn't see what changed.
-            // But standard editor behavior for "changed" often just highlights the new line.
-            // Let's keep the removed line (fading out) and show the new line as yellow.
+            newDisplayLines[i + 1].type = "modified";
           }
         }
 
@@ -240,14 +226,8 @@
   }
 
   // Reset diff state when format changes
-  $: if (format || targetLibrary) {
-    // Only clear if actually changed from what we have generated
-    // But since this is reactive to settings, it might clear on load?
-    // We rely on `updateCode` being triggered by reactive dependencies.
-    // If format changes, we should reset previousCode so we don't diff Java vs Sequential.
-    // However, updateCode handles generation. We just need to reset previousCode if we want a clean slate.
-    // Ideally, we reset if the *type* of code changes fundamentally.
-  }
+  // $: if (format || targetLibrary) {
+  // }
 
   async function handleDownloadJava() {
     if (!code) return;

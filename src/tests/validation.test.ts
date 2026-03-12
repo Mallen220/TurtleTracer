@@ -218,7 +218,6 @@ describe("Validation Utils", () => {
       ]),
     );
 
-    // We expect the message to contain "1 obstacle" and "1 zero-length"
     const expectedMessageParts = ["1 obstacle", "1 zero-length"];
     const lastCall = mocks.notificationSet.mock.calls[0][0];
 

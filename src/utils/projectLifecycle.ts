@@ -63,7 +63,6 @@ export async function handleResetPathWithConfirmation(
   const filePath = get(currentFilePath);
 
   // Check if there's unsaved work
-  // We consider it "changed" if unsaved flag is true, or if content differs from default significantly
   const hasChanges = unsaved || lines.length > 1 || shapes.length > 0;
 
   let message = "Are you sure you want to reset the path?\n\n";

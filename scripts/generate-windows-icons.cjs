@@ -60,7 +60,7 @@ async function main() {
   const src = path.resolve(__dirname, "..", "public", "icon.png");
   // electron-builder defaults to `build/appx` for AppX assets if not specified
   const outDir = path.resolve(__dirname, "..", "build", "appx");
-  // we also need `build/win` for NSIS icon.ico
+  // also need `build/win` for NSIS icon.ico
   const winDir = path.resolve(__dirname, "..", "build", "win");
 
   if (!fs.existsSync(src)) {
@@ -83,7 +83,7 @@ async function main() {
     const out100 = path.join(outDir, `${tile.name}.png`);
     const out200 = path.join(outDir, `${tile.name}.scale-200.png`);
 
-    // For scale-200, we double dimensions
+    // For scale-200, double dimensions
     const w1 = tile.width;
     const h1 = tile.height;
     const w2 = tile.width * 2;

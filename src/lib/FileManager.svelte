@@ -405,7 +405,6 @@
         // electronAPI.resolvePath(base, relative) calls path.resolve(path.dirname(base), relative).
         // Since currentDirectory is a directory and not a file, passing it directly as `base`
         // would drop the last directory segment and then apply "..", going up TWO levels.
-        // We append a dummy file so dirname(base) gives us the current directory,
         // and then ".." correctly moves up exactly ONE level.
         const parentDir = await electronAPI.resolvePath(
           path.join(currentDirectory, "dummy.txt"),
@@ -474,12 +473,8 @@
     }
 
     try {
-      // If we are in Electron and have a current directory, we copy the file
       if (electronAPI && currentDirectory) {
         // Read file content first
-        // Note: For File object in Electron/Web, we might need FileReader or electron path.
-        // If it's Electron, the File object usually has a 'path' property.
-        // If it's Web, we just have the file content in memory.
         const sourcePath = (file as any).path;
 
         let content = "";
@@ -548,9 +543,6 @@
             shapes = data.shapes || [];
             sequence = deriveSequence(data, lines);
 
-            // We don't have a path, so we can't set currentFilePath to a persistent location
-            // But we can set it to the file name for display?
-            // Usually currentFilePath implies it's saved.
             currentFilePath.set(null);
             isUnsaved.set(true); // Treat as unsaved imported data
             selectedFile = null;
@@ -615,7 +607,7 @@
         }
 
         if (macrosChanged) {
-          isUnsaved.set(true); // Since we modified sequence, the file needs saving
+          isUnsaved.set(true); // Since modified sequence, the file needs saving
         }
 
         showToast(

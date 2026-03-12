@@ -132,12 +132,6 @@ describe("fileHandlers", () => {
         return "/resolved/" + relative;
       });
 
-      // We need to mock loadMacro to verify it gets the resolved path
-      // But loadMacro is internal to projectStore.
-      // However, loadProjectData calls loadMacro, which calls electronAPI.readFile.
-      // So checking resolvePath call is enough to verify resolution logic trigger.
-      // And we can check if readFile is called with resolved path if we want deep verification.
-
       mockElectronAPI.readFile.mockResolvedValue(JSON.stringify({ lines: [] }));
 
       await fileHandlers.loadProjectData(data, "/project/base/path.pp");
@@ -214,7 +208,7 @@ describe("fileHandlers", () => {
         success: true,
         filepath: "/saved/file.pp",
       });
-      // Ensure we have some data
+
       linesStore.set([{ id: "1", name: "Line 1" } as any]);
 
       await fileHandlers.saveProject();
@@ -286,7 +280,7 @@ describe("fileHandlers", () => {
         filepath: "/saved/file.pp",
       });
       mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.pp");
-      // Ensure we have some data
+
       linesStore.set([{ id: "1", name: "Line 1" } as any]);
 
       await fileHandlers.saveProject();
@@ -308,7 +302,7 @@ describe("fileHandlers", () => {
     });
 
     it("should NOT save settings in the .pp file", async () => {
-      // Ensure we have some data
+
       linesStore.set([{ id: "1", name: "Line 1" } as any]);
       // Set a specific setting to verify
       settingsStore.update((s) => ({ ...s, fieldMap: "ShouldNotBeSaved" }));
@@ -351,7 +345,7 @@ describe("fileHandlers", () => {
       // Should check if it copies to /my/projects/file.pp
       // Depending on separator logic in implementation
       expect(mockElectronAPI.copyFile).toHaveBeenCalled();
-      // We can't easily check exact string due to separator logic, but we verify copyFile was called
+
     });
 
     it("should just load if in saved directory", async () => {
@@ -442,11 +436,6 @@ describe("fileHandlers", () => {
       ]);
       sequenceStore.set([]);
       shapesStore.set([]);
-      // extraDataStore may not be imported here, but the handleAutoExport code will still work if undefined
-
-      // The test previously failed because recordChange could not be imported.
-      // We can directly call the auto-export function to simulate what recordChange does.
-      // pass settings explicitly
       const currentSettings = get(settingsStore);
       const currentStartPoint = get(startPointStore);
       const currentLines = get(linesStore);

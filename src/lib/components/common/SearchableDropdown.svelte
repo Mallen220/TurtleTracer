@@ -36,15 +36,6 @@
   }
 
   function handleBlur() {
-    // If interaction was with an option (mousedown), that handler fires before blur
-    // thanks to event order or we handle it via other means.
-    // However, if we click outside, we want to close.
-    // If we click an option, we want to select it.
-    // Standard pattern: use a small delay OR rely on mousedown preventing default focus change?
-    // Let's stick to a small delay for safety unless we use relatedTarget,
-    // but relatedTarget might be null if clicking a non-focusable div.
-    // The previous implementation used 200ms. I'll reduce it but keep it as a fallback,
-    // but I will primarily rely on mousedown|preventDefault on the options.
     setTimeout(() => {
       isOpen = false;
       highlightedIndex = -1;

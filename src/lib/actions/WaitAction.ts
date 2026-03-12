@@ -47,9 +47,6 @@ export const WaitAction: ActionDefinition = {
     };
 
     ctx.sequence.splice(ctx.index, 0, newWait);
-    // Wait doesn't modify lines, but we need to trigger reactivity
-    // In WaypointTable we called syncLinesToSequence, but wait doesn't affect lines order usually.
-    // Just calling the trigger is enough.
     ctx.triggerReactivity();
   },
 
@@ -77,7 +74,6 @@ export const WaitAction: ActionDefinition = {
           const radiusMult = isHovered ? 1.3 : 0.9;
 
           const markerGroup = new Two.Group();
-          // ID structure must match what FieldRenderer/Interaction expects if we want to reuse that logic
           // FieldRenderer uses: `wait-event-${ev.waitId}-${eventIdx}`
           markerGroup.id = `wait-event-${waitItem.id}-${idx}`;
 

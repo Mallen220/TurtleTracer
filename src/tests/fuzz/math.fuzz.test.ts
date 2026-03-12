@@ -43,7 +43,6 @@ if (fc) {
     });
 
     it("getAngularDifference should be reversible", () => {
-      // If we move from A to B by the difference, we should arrive at B (mod 360)
       fc.assert(
         fc.property(
           fc.float({ min: -3600, max: 3600, noNaN: true }),

@@ -13,7 +13,7 @@
     PathOptimizer,
     type OptimizationResult,
   } from "../../../utils/pathOptimizer";
-  import { formatTime } from "../../../utils"; // Assuming formatTime is exported from index or timeCalculator
+  import { formatTime } from "../../../utils"; // formatTime exported from utility index
   import { dimmedLinesStore } from "../../../stores";
   import { onDestroy } from "svelte";
 
@@ -51,7 +51,6 @@
 
   // Update dimmed lines store whenever selection state changes
   $: {
-    // We depend on selectionState to trigger this updates
     // Filter lines where selectionState is false
     const unselectedIds = lines
       .filter((l, idx) => {
@@ -61,10 +60,6 @@
       .map((l) => l.id as string)
       .filter((id) => !!id);
 
-    // Only update if changed to avoid loops (though set() usually checks equality for primitives/references, arrays are new refs)
-    // Svelte store .set() notifies subscribers even if value is same reference? No, depends on store implementation.
-    // Standard svelte store checks strict equality. New array != old array.
-    // But this is fine, FieldRenderer handles it efficiently.
     dimmedLinesStore.set(unselectedIds);
   }
 
@@ -165,7 +160,6 @@
         const originalLine = lines[idx];
         if (originalLine) {
           const id = originalLine.id || `idx-${idx}`;
-          // If it wasn't selected (so we forced lock), restore the original user lock state
           if (!selectionState[id]) {
             l.locked = originalLine.locked;
           }

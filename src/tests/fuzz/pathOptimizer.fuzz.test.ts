@@ -93,7 +93,6 @@ describe("PathOptimizer Fuzzing", () => {
               expect(c.time).toBeTypeOf("number");
             });
           } catch (e) {
-            // We want to catch unexpected crashes, but timeouts or logic errors are what we look for
             throw e;
           }
         },

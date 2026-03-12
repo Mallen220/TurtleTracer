@@ -86,9 +86,6 @@
 
   // Listen for focus requests
   $: if ($focusRequest) {
-    // Only focus if this line is selected AND we are focusing the endpoint (point-IDX-0)
-    // The selectedPointId format is point-{lineIndex+1}-{pointIndex}
-    // So if idx (line index) matches, and pointIndex is 0, we focus this line's X/Y/H
     if ($selectedPointId === `point-${idx + 1}-0`) {
       if ($focusRequest.field === "x" && xInput) xInput.focus();
       if ($focusRequest.field === "y" && yInput) yInput.focus();

@@ -63,7 +63,6 @@
     const range = maxVal - minVal;
     const pad = range === 0 ? maxVal * 0.1 || 1 : range * 0.1;
 
-    // If we only have positive values, start at 0
     if (minVal >= 0) minVal = 0;
 
     const y = d3

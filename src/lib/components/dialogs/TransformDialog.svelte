@@ -58,7 +58,6 @@
       };
 
       // Use the PathData interface so the optional sequence field is recognised
-      // pathTransform.ts lives under src/utils so we must ascend three levels.
       let transformedData:
         | import("../../../utils/pathTransform").PathData
         | undefined;

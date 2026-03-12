@@ -64,7 +64,7 @@
     <!-- Assuming standard: 0 degrees is right (positive X). But in robot frame? -->
     <!-- Usually 0 is 'forward' relative to chassis? Or 0 is right? -->
     <!-- If chassis is rectangle, length is X-axis size? -->
-    <!-- Let's draw a line from center to right edge (local X) -->
+    <!-- Draw a line from center to right edge (local X) -->
     <line
       x1="0"
       y1="0"

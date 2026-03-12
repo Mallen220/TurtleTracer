@@ -41,7 +41,7 @@ describe("CommandPalette", () => {
   it("options have option role and aria-selected", async () => {
     render(CommandPalette, { isOpen: true, commands, onClose });
 
-    // We need to wait for the component to render and process commands
+    // need to wait for the component to render and process commands
     const options = screen.getAllByRole("option");
     expect(options).toHaveLength(2);
     expect(options[0]).toHaveAttribute("aria-selected", "true");

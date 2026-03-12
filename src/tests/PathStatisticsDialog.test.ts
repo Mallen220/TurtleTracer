@@ -12,10 +12,6 @@ import type {
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 
-// Mock d3 since we are testing in a headless environment and JSDOM might struggle with some SVG details
-// But actually, we want to test if the component renders. SimpleChart uses d3.
-// We can mock SimpleChart if needed, but let's try rendering the whole thing first.
-// If SimpleChart fails, we might need to mock d3 or the component.
 
 describe("PathStatisticsDialog", () => {
   let defaultStartPoint: Point;

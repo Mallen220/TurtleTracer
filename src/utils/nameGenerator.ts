@@ -30,9 +30,7 @@ export function generateName(
   const normalize = (n: string) => n.trim().toLowerCase();
   const existingSet = new Set(existingNames.map(normalize));
 
-  // If the base name doesn't exist, return it (though usually this function is called for duplication)
-  // For duplication, we usually want to append something.
-  // But if we just want a unique name:
+
   if (!existingSet.has(normalize(baseName))) {
     return baseName;
   }
@@ -56,20 +54,13 @@ export function generateName(
     }
   }
 
-  // Try " duplicate" (implicitly 0) if we stripped it, or increment
-  // Actually, standard pattern:
-  // "Name" -> "Name duplicate"
-  // "Name duplicate" -> "Name duplicate 1"
-  // "Name duplicate 1" -> "Name duplicate 2"
 
   let candidate = "";
 
-  // If we extracted a core name, we want to find the next available slot
-  // If the original was "Name", we start checking "Name duplicate", "Name duplicate 1"...
-  // If the original was "Name duplicate", core is "Name", start checking "Name duplicate 1"...
+
 
   if (match) {
-    // We are duplicating a duplicate. Start looking from currentNum + 1
+
     let i = currentNum + 1;
     while (true) {
       candidate = `${coreName} duplicate ${i}`;

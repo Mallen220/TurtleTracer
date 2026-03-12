@@ -166,9 +166,7 @@ export function getCurvePoint(
       const nx = p0.x + (p1.x - p0.x) * t;
       const ny = p0.y + (p1.y - p0.y) * t;
 
-      // In the first pass, we must create new objects because 'work' elements
-      // reference the original 'points' objects.
-      // In subsequent passes, we can mutate the objects we created in the first pass.
+
       if (n === len) {
         work[i] = { x: nx, y: ny };
       } else {
@@ -193,10 +191,7 @@ export function splitBezier(
   const right: { x: number; y: number }[] = [];
   const n = points.length - 1;
 
-  // De Casteljau's algorithm
-  // We need to keep intermediate points to form the control points of the two sub-curves
-  // Left curve: First point of each level of recursion (P0, Q0, R0, ...)
-  // Right curve: Last point of each level of recursion (..., R_last, Q_last, P_last) - reversed
+
 
   let currentPoints = points.slice();
 

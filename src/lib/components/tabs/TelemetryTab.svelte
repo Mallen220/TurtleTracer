@@ -36,35 +36,6 @@
     const api = (window as any).electronAPI;
     if (api && api.telemetry) {
       // Set up listeners
-      // Note: In strict mode, we might duplicate listeners if not careful,
-      // but Electron IPC listeners usually stack. We should clear them on destroy if possible.
-      // electronAPI.onData returns a callback? No, it registers.
-      // The preload script implementation:
-      // onData: (callback) => ipcRenderer.on('telemetry:data', ...)
-      // This adds a listener. We can't easily remove it unless preload exposed a removeListener.
-      // Assuming single instance of TelemetryTab for now.
-      // But if user switches tabs and component unmounts?
-      // Listeners might accumulate.
-      // Ideally preload should return a cleanup function or allow removeListener.
-      // For now, let's assume it persists or just accept overhead.
-      // Actually, if we add listener every mount, we get multiple callbacks.
-      // We should check if listeners are already set up?
-      // Or move the listeners to a central place (e.g. App.svelte or telemetryStore).
-      // Moving to telemetryStore is better if possible, but store shouldn't know about electronAPI directly if we want to keep it pure?
-      // Actually `processTelemetryMessage` is exported.
-      // Let's set up listeners once in `App.svelte` or `ControlTab.svelte`?
-      // Or here, but guard it.
-      // Since `TelemetryTab` is mounted/unmounted when switching tabs in `ControlTab`, putting listeners here is bad (leak).
-      // I should move listener setup to `ControlTab` or `App`.
-      // `ControlTab` is always present even if tab content is hidden?
-      // In `ControlTab.svelte`:
-      // `{#each $tabRegistry as tab ...}`
-      //   `<div class:hidden={activeTab !== tab.id} ...>`
-      //     `<svelte:component ... />`
-      //   `</div>`
-      // So components ARE kept alive (just hidden).
-      // So `onMount` only runs once!
-      // Great.
 
       api.telemetry.onData((data: string) => {
         processTelemetryMessage(data);

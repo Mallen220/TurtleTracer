@@ -73,7 +73,7 @@
   function handleWindowDragOver(e: DragEvent) {
     if (draggingIndex === null) return;
 
-    // Ensure we are dragging over THIS component's container
+
     if (!containerRef) return;
 
     e.preventDefault();

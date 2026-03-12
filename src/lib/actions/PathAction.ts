@@ -24,9 +24,7 @@ export const PathAction: ActionDefinition = {
     label: "Add Path",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>`,
   },
-  // We point to null component to indicate it's handled natively if fallback logic exists,
-  // or we could eventually migrate the row component here.
-  // For now, we only need the flag lookup.
+
   component: null,
 
   onInsert: (ctx: InsertionContext) => {
@@ -95,26 +93,14 @@ export const PathAction: ActionDefinition = {
       eventMarkers: [],
     };
 
-    // If we found a reference line, we insert after it in `lines`.
-    // If not (inserting at start), insert at 0.
     let lineInsertIdx = 0;
     if (insertAfterLineId) {
       const idx = ctx.lines.findIndex((l) => l.id === insertAfterLineId);
       if (idx !== -1) lineInsertIdx = idx + 1;
     }
 
-    // We MUST modify the lines array in place because InsertionContext provides references
-    // However, ctx.lines might be a reference to the store value?
-    // The `lines` passed in context should be mutable or the context handler should handle store update?
-    // In `WaypointTable` we usually do `lines.splice(...)` then assign `lines = [...lines]`.
-    // The `onInsert` contract implies it mutates the state passed to it.
-    // The caller is responsible for triggering reactivity.
-
     ctx.lines.splice(lineInsertIdx, 0, newLine);
 
-    // We need to renumber default names. This replaces the array contents but we can do it in place or return?
-    // renumberDefaultPathNames returns a new array.
-    // We should probably update the array content.
     const renumbered = renumberDefaultPathNames(ctx.lines);
     // Copy back to ctx.lines
     ctx.lines.length = 0;

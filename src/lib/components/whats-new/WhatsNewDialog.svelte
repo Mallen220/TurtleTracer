@@ -38,8 +38,6 @@
   let searchQuery = "";
   let contentContainer: HTMLDivElement;
 
-  // Log features at component init so we can see what the dialog receives at runtime
-  // eslint-disable-next-line no-console
   console.info(
     "[whats-new] dialog sees features:",
     features.length,
@@ -299,7 +297,6 @@
           "[whats-new] no features available to show for page",
           page.id,
         );
-        // Keep on the grid; we could also open the changelog instead.
       }
       return;
     }
@@ -314,7 +311,6 @@
   function handleFeatureClick(feature: FeatureHighlight) {
     activeFeatureId = feature.id;
     activePage = null;
-    // If we are in the release list view, record that so we can go back
     if (currentView === "release-list") {
       previousView = "release-list";
     } else {
@@ -343,8 +339,6 @@
       return;
     }
 
-    // If searching, we just clear the content view (if any) but keep search query active
-    // This effectively returns to the search results list
     if (searchQuery && currentView === "content") {
       currentView = "grid"; // 'grid' + searchQuery = search results view
       activePage = null;
@@ -375,7 +369,6 @@
   }
 
   // Render markdown content
-  // We only render the active content now
   $: activeContentHtml = (() => {
     if (activeTab === "changelog") {
       return md.render(changelogContent);
@@ -504,7 +497,6 @@
       scrollToHeader(href.substring(1));
     } else if (href.startsWith("http")) {
       // External link - allow default (will open in new window if target=_blank)
-      // or we can force it here for electron
       anchor.target = "_blank";
     }
   }

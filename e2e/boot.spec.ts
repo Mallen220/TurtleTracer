@@ -110,7 +110,7 @@ test("app boots and displays main interface", async () => {
   } else if (platform === "linux") {
     // Linux
     // Look for unpacked directory
-    // We expect electron-builder to be run with --dir
+    // expect electron-builder to be run with --dir
     // Default dir name is usually 'linux-unpacked'
     const possibleDirs = ["linux-unpacked"];
     let binaryPath = "";
@@ -123,7 +123,7 @@ test("app boots and displays main interface", async () => {
         // "name": "pedro-pathing-visualizer"
         // electron-builder usually uses "pedro-pathing-visualizer" (from name) or "Pedro Pathing Visualizer"?
         // It uses the `executableName` property if set, else `name`.
-        // Let's check for likely candidates.
+        // Check for likely candidates.
         const candidates = [
           // Prefer kebab-case new name, then fallback to legacy names if necessary
           "pedro-pathing-plus-visualizer",

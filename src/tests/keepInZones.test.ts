@@ -171,10 +171,6 @@ describe("PathOptimizer Keep-In Zones", () => {
   });
 
   it("should prioritize checking against multiple keep-in zones (union behavior check)", () => {
-    // If we have two disjoint zones, can the robot jump between them? No.
-    // Can the robot be in one OR the other? Yes.
-    // Test: Robot starts in Zone A, ends in Zone B.
-    // Path crosses the gap. Should fail in the gap.
 
     lines[0].endPoint.x = 80;
     // Gap between x=40 and x=60.

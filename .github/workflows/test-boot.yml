@@ -53,20 +53,18 @@ jobs:
 
       - name: Build Application (Linux)
         if: runner.os == 'Linux'
-        # We use --dir to get the unpacked executable for easier testing
         run: npx electron-builder --linux --x64 --dir
 
       - name: Build Application (Windows)
         if: runner.os == 'Windows'
-        # We use --dir to get the unpacked executable
         run: npx electron-builder --win --x64 --dir
 
       - name: Build Application (macOS x64)
         if: runner.os == 'macOS' && matrix.arch == 'x64'
-        # We build for x64.
+        # build for x64.
         # Note: --mac implies default target (dmg + zip + mas potentially), but we just need the .app
         # electron-builder defaults to universal or current arch?
-        # We specify --x64 explicitly.
+        # specify --x64 explicitly.
         run: npx electron-builder --mac --x64 --dir --publish=never
 
       - name: Build Application (macOS arm64)

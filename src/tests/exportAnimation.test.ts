@@ -41,7 +41,7 @@ vi.mock("upng-js", () => {
 });
 
 // Mock global Image
-// We use a property descriptor or a class with a backing field to avoid recursion
+// use a property descriptor or a class with a backing field to avoid recursion
 const OriginalImage = global.Image;
 class MockImage {
   _src = "";
@@ -165,7 +165,7 @@ describe("exportAnimation", () => {
 
     it("should handle background images", async () => {
       await exportPathToGif({ ...options, backgroundImageSrc: "test.png" });
-      // We expect drawImage to be called for background + svg frame
+      // expect drawImage to be called for background + svg frame
       expect(mockCtx.drawImage).toHaveBeenCalled();
     });
 

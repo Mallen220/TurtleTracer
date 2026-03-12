@@ -464,16 +464,10 @@ export function calculateRotationTime(
   const diffRad = angleDiffDegrees * (Math.PI / 180);
   const maxVel = Math.max(settings.aVelocity, 0.001);
 
-  // If maxAngularAcceleration is provided (and > 0), use that directly.
-  // Otherwise, use the derived logic from linear acceleration + robot width.
-  // If maxAngularAcceleration is 0 (auto), we fall back to derived.
   let maxAngAccel = settings.maxAngularAcceleration;
 
   if (!maxAngAccel || maxAngAccel <= 0) {
-    // Estimate max angular acceleration from linear acceleration and robot width
-    // alpha = a_linear / r
-    // Assuming rotation around center, wheels are at width/2
-    // We use width/2 as the lever arm for conservative estimate
+
     const leverArm = Math.max(settings.rWidth / 2, 1); // Avoid division by zero
     const maxAccel = settings.maxAcceleration || 30;
     maxAngAccel = maxAccel / leverArm;
@@ -625,7 +619,7 @@ export function calculatePathTime(
   let isFirstPathItem = true;
 
   // Initialize heading based on start point settings
-  // Note: We don't have a previous reference, so we take the raw value.
+
   if (startPoint.heading === "linear") currentHeading = startPoint.startDeg;
   else if (startPoint.heading === "constant")
     currentHeading = startPoint.degrees;
@@ -680,7 +674,6 @@ export function calculatePathTime(
         currentTime += res.duration;
         if (res.endHeading !== undefined) {
           currentHeading = res.endHeading;
-          // If the action explicitly sets the heading, we shouldn't snap the next path start
           isFirstPathItem = false;
         }
         if (res.endPoint) lastPoint = res.endPoint;
@@ -730,7 +723,6 @@ export function calculatePathTime(
       if (!Number.isFinite(requiredStartHeading))
         requiredStartHeading = currentHeading;
 
-      // If this is the very first path segment of the entire routine, we snap heading
       if (isFirstPathItem) {
         currentHeading = requiredStartHeading;
         isFirstPathItem = false;
@@ -791,16 +783,8 @@ export function calculatePathTime(
         } else if (line.endPoint.heading === "facingPoint") {
           const targetX = (line.endPoint as any).targetX || 0;
           const targetY = (line.endPoint as any).targetY || 0;
-          // headingProfile for facingPoint: at each step, face the target
-          // This is simply a constant heading pointing from robot position to target
-          // We pre-compute once per segment samples
           headingProfile = [currentHeading];
           for (const step of analysis.steps) {
-            // The robot's position at this step isn't in PathStep, but we can use
-            // a constant facing direction (target point angle from segment midpoints)
-            // Since Pedro computes per-step positions, we approximate here as constant.
-            // A proper implementation would track position per step, but for now
-            // the end heading drives the profile.
             headingProfile.push(step.heading);
           }
         }

@@ -16,7 +16,7 @@ async function generate() {
     let content = fs.readFileSync(typesPath, "utf-8");
 
     // Remove imports/exports to make types global
-    // 1. Remove import statements (assuming they are at the top)
+    // 1. Remove import statements (they should be at the top)
     content = content.replace(/^import .*$/gm, "");
 
     // 2. Remove 'export' keyword from declarations

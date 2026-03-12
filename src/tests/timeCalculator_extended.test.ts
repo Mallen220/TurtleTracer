@@ -151,70 +151,12 @@ describe("Time Calculator Extended", () => {
         sequence,
       );
 
-      // Analyze expected timeline
-      // 1. Travel L1 (0,0)->(10,0). Dist 10.
-      //    Accel=5, Vel=10. AccelDist = 100/10 = 10.
-      //    Wait, AccelDist = v^2 / 2a.
-      //    If we reach max vel 10, we need 0.5 * 100 / 5 = 10 distance.
-      //    So we exactly hit max vel at end of accel?
-      //    Let's check calculateMotionProfileDetailed logic.
-      //    Actually, simple triangle profile check:
-      //    If dist < 2 * (0.5 * v_max^2 / a), we don't reach max vel?
-      //    Dist = 10.
-      //    Accel needed to reach 10: 10 = 0.5 * 5 * t^2 -> t = 2.
-      //    v = 5 * 2 = 10.
-      //    So we reach 10m/s exactly at 10m mark? No, we need to decel.
-      //    Triangle profile: Halfway is 5m.
-      //    5 = 0.5 * 5 * t_accel^2 -> t_accel = sqrt(2) = 1.414s.
-      //    Total time = 2 * 1.414 = 2.828s.
 
-      // 2. Wait 1s.
-
-      // 3. Rotate 0 -> 45. Diff 45 deg = 0.785 rad.
-      //    aVel = 90 deg/s = 1.57 rad/s.
-      //    But wait, calculateRotationTime uses angular acceleration derived from linear accel and robot width if not specified.
-      //    defaultSettings: maxAccel=5, rWidth=18.
-      //    maxAngAccel = 5 / (18/2) = 5/9 = 0.555 rad/s^2.
-      //    Dist = 0.785 rad.
-      //    Triangle profile check: dist_accel = 0.5 * v^2 / a.
-      //    Need to check if we reach max angular velocity (1.57).
-      //    0.5 * 1.57^2 / 0.555 = 1.23 / 0.555 = 2.21 rad.
-      //    Since 0.785 < 2.21 + 2.21, we use triangle profile.
-      //    Time = 2 * sqrt(dist / a) = 2 * sqrt(0.785 / 0.555) = 2 * sqrt(1.414) = 2 * 1.189 = 2.378s.
-
-      // 4. Travel L2 (10,0)->(20,10). Dist = sqrt(100+100) = 14.14.
-      //    Triangle profile to midpoint 7.07.
-      //    7.07 = 0.5 * 5 * t^2 -> t = sqrt(2.828) = 1.68s.
-      //    Total = 3.36s.
-
-      // Expected Total = 2.828 + 1.0 + 2.378 + 3.36 = 9.566s approximately.
-
-      // Let's rely on checking that we have 4 main events in timeline corresponding to our sequence
-      // (plus potentially auto-rotations)
 
       // Check timeline event types
       const types = result.timeline.map((e) => e.type);
       // Expect: travel, wait (explicit), wait (rotate), wait (auto-rotate before L2?), travel.
 
-      // Before L2: Current heading is 45 (from rotate).
-      // L2 Start Heading:
-      // L2 goes (10,0) to (20,10). Heading constant 90 at end.
-      // But what is the REQUIRED start heading?
-      // getLineStartHeading for "constant" returns end degrees?
-      // No, verify getLineStartHeading logic.
-      // If L2 endpoint is constant 90.
-      // getLineStartHeading returns 0?
-      // Math.ts: if (line.endPoint.heading === "constant") return line.endPoint.degrees;
-      // So L2 requires 90 degrees start heading.
-      // We are at 45. Difference 45.
-      // So we need another rotation 45->90.
-
-      // So timeline:
-      // 1. Travel L1.
-      // 2. Wait 1s.
-      // 3. Rotate 45 deg.
-      // 4. Rotate 45->90 deg (auto-inserted).
-      // 5. Travel L2.
 
       expect(types).toContain("travel");
       expect(types).toContain("wait");

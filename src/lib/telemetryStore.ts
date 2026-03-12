@@ -74,7 +74,7 @@ export function processTelemetryMessage(raw: string) {
 
     // Normalize Data
     // Case 1: PedroPathingLiveView (flat format: { x, y, heading })
-    // It doesn't have a timestamp, so we synthesize it.
+    // It doesn't have a timestamp, so synthesize it.
     if (
       typeof parsed.x === "number" &&
       typeof parsed.y === "number" &&

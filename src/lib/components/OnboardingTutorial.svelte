@@ -136,10 +136,6 @@
   $: if ($startTutorial) {
     if (!driverObj.isActive()) {
       driverObj.drive();
-      // Mark as seen immediately when started, or should we wait for completion?
-      // Usually marking as seen on start is safer to avoid loops if they crash or exit early
-      // but 'hasSeenOnboarding' implies we don't need to force it again.
-      // We update the settings store.
       settingsStore.update((s) => ({ ...s, hasSeenOnboarding: true }));
     }
   }
@@ -158,12 +154,6 @@
         if (!hasSeen && !$startTutorial) {
           // Small delay to ensure UI is ready
           setTimeout(() => {
-            // Check again inside timeout, using the store value
-            // We need to re-fetch or use logic that accesses current store state
-            // But this block is reactive to $settingsStore via 'hasSeen' above.
-            // If hasSeen becomes true, this block re-runs but the condition !hasSeen fails.
-            // So we are good.
-            // Double check store value here just in case of race condition during timeout
             let currentSeen = false;
             const unsubscribe = settingsStore.subscribe(
               (s) => (currentSeen = !!s.hasSeenOnboarding),

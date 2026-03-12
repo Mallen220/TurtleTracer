@@ -57,9 +57,6 @@ describe("ExportCodeDialog file reading", () => {
     });
 
     // Check if the content is displayed
-    // The content is stringified JSON
-    // The dialog displays it in Highlight component.
-    // We can check if "mocked" text is present.
     await waitFor(() => expect(getByText(/"mocked"/)).toBeTruthy());
     await waitFor(() =>
       expect(getByText(/"json content from file"/)).toBeTruthy(),

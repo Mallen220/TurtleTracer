@@ -311,8 +311,6 @@ export function reversePathData(data: {
   }
 
   // 2. Reverse Lines
-  // We iterate backwards to reconstruct the path in reverse geometric order.
-  // The target end points for the new lines are: [P_{n-1}, P_{n-2}, ..., P_0]
   const points = [r.startPoint, ...originalLines.map((l) => l.endPoint)];
 
   const newLines: Line[] = [];

@@ -127,7 +127,6 @@ describe("pathTransform", () => {
         ],
       };
       const mirrored = mirrorPathData(data);
-      // shapes is optional on PathData, but we know we provided it above
       const shape = mirrored.shapes![0];
 
       expect(shape.vertices[0].x).toBe(134); // 144 - 10

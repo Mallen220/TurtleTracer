@@ -250,7 +250,6 @@
     botHeading: number,
   ): WheelSpeeds {
     // Rotate the movement direction counter to the bot's rotation
-    // Pedro Pathing uses radians but mathematically we might need to adjust
     const rotStrafe =
       strafe * Math.cos(-botHeading) - forward * Math.sin(-botHeading);
     const rotForward =
@@ -293,7 +292,6 @@
     const futureSeconds = currentSeconds + dt;
     const futurePercent = (futureSeconds / totalDuration) * 100;
 
-    // Use a neutral scale for calculation so we get real field inches
     const scale = d3.scaleLinear().domain([0, 1]).range([0, 1]);
 
     const state1 = calculateRobotState(
@@ -323,15 +321,12 @@
     // However, if Y goes down in screen coordinates (which calculateRobotState might output without negative depending on setup),
     // you may need to invert vy for it to represent mathematical +Y forward.
     // The user clarified: "0º is facing right (+X)".
-    // So when heading is 0, moving +X is forward, and moving +Y is left (which is negative strafe in standard right-hand rule, but could be positive in left-hand).
-    // Let's map it so that:
-    // When facing 0º (+X): forward = vx, strafe = -vy (assuming +Y is left and left is -strafe).
-    // When facing 90º (+Y): forward = vy, strafe = vx (moving +X is right, which is +strafe).
+    // Map velocities based on robot heading to forward/strafe components.
     const forwardVel = vx;
     const strafeVel = vy;
 
     // Angular velocity
-    // shortestRotation is a utility. Let's just use simple diff for now:
+    // shortestRotation is a utility; use simple diff for now:
     let dHeading = state2.heading - state1.heading;
     // Normalize dHeading to [-180, 180]
     dHeading = (((dHeading % 360) + 540) % 360) - 180;
@@ -389,18 +384,10 @@
   function zoomTo(newZoom: number, focus?: { x: number; y: number }) {
     const fx = focus?.x ?? width / 2;
     const fy = focus?.y ?? height / 2;
-    // Compute field coordinates at the focus point using current scales
+    // Compute field coordinates at the focus point using current scales.
     const fieldX = x.invert(fx);
     const fieldY = y.invert(fy);
-    // Use baseSize (min dimension) for consistent zoom calculation logic if assumed square field mapping
-    // But computePanForZoom expects width/height of viewport?
-    // Let's stick to using the actual viewport dimensions for zoomTo focus point calculations.
-    // However, the field scaling is driven by baseSize.
-    // We need to check computePanForZoom implementation. Assuming it works with current x/y scales inversions.
-    // Actually, computePanForZoom needs to know the "fieldDrawSize" effectively.
-    // But if we use x.invert / y.invert correctly, we get field coords.
-    // The pan calculation might need adjustment if it assumes width==height==fieldSize.
-    // Let's rely on x/y inversion which accounts for baseSize.
+    // Adjust pan so the focus point remains at (fx,fy) after zoom.
 
     // Re-implement simplified pan calculation here since computePanForZoom might be rigid.
     // Target: at newZoom, (fieldX, fieldY) should be at (fx, fy).
@@ -410,7 +397,7 @@
     // current: x(fieldX) = width/2 + offset_x + pan.x = fx
     // target:  x_new(fieldX) = width/2 + offset_x_new + newPanX = fx
     // offset_x = (fieldX mapped to centered 0-based scaled coord)
-    // Let's trust the existing helper if it is generic enough, or recalculate manually.
+    // Trust existing helper if it is generic enough, or recalculate manually.
 
     // Manual calculation to be safe with non-square viewport:
     // fx = width/2 + (fieldX/FIELD_SIZE - 0.5) * baseSize * newZoom + newPanX
@@ -860,7 +847,6 @@
 
             // Calculate the proportional index in the velocity profile
             const profileIndex = Math.floor(t * (vProfile.length - 1));
-            // Ensure we don't go out of bounds (though Math.floor guarantees <= length-1)
             const safeIndex = Math.min(
               vProfile.length - 1,
               Math.max(0, profileIndex),
@@ -937,7 +923,6 @@
         }
       }
 
-      // If we generated heatmap segments, add them and skip standard line
       if (heatmapSegments.length > 0) {
         heatmapSegments.forEach((seg) => _path.push(seg));
         return;
@@ -1050,15 +1035,8 @@
     let renderLines: Line[] = [];
     let lineStartPoints = new Map<string, Point>(); // lineId -> startPoint
 
-    // Start with standard lines
-    // This handles the basic "lines" array
-    // But we want to include macro lines.
-    // The issue with generatePathElements is it iterates an array and assumes continuity (prev.endPoint).
-    // For timeline-based lines, we might have disjoint segments or bridge lines.
-    // Let's manually construct the array for generatePathElements or call it multiple times?
-    // generatePathElements expects a contiguous list.
-
-    // Instead, let's iterate the timeline events directly if available.
+    // Start with standard lines for the basic "lines" array.
+    // To include macro/bridge lines, iterate timeline travel events directly when available.
     if (timePrediction && timePrediction.timeline) {
       const paths: any[] = [];
 
@@ -1079,14 +1057,13 @@
           : uiLength(LINE_WIDTH);
 
         // Generate single path element
-        // We pass a single-item array to reuse generatePathElements logic
         const elems = generatePathElements(
           [line],
           start,
           (l) => l.color || "#60a5fa",
           (l) => width,
           `timeline-path-${idx}`, // unique prefix
-          isMainLine, // only heatmap for main lines? or all? Let's say all for now if possible
+          isMainLine, // allow heatmap for all lines
         );
         paths.push(...elems);
       });
@@ -1185,13 +1162,8 @@
       dataSequence.forEach((s) => {
         if (s.kind === "wait" || s.kind === "rotate") {
           const parentName = s.name || (s.kind === "wait" ? "Wait" : "Rotate");
-          // Finding position for sequence events is harder without simulation (TimePrediction)
-          // But usually they are attached to the end of a line.
-          // For now, let's skip sequence events in diff view on field unless we have position data.
-          // Or we can rely on `TimePrediction` but that matches `lines`.
-          // For `oldData`, we don't have a `TimePrediction` computed.
-          // We could compute it, but that's expensive.
-          // Let's stick to Path Events for field visualization for now as they are spatial.
+          // Sequence events usually attach to the end of a line.
+          // Skip them in diff view when position data is unavailable and fall back to Path Events.
         }
       });
 
@@ -1891,8 +1863,6 @@
 
       // Cursor and Dragging Logic
       // Optimization: Don't use elementFromPoint here. It forces a reflow.
-      // If we are dragging, we already know what we are dragging (currentElem).
-      // If we are not dragging, we can use evt.target which is O(1).
 
       if (isDown && currentElem) {
         // Dragging Logic
@@ -1979,7 +1949,7 @@
         let minY = -Infinity;
         let maxY = Infinity;
 
-        // Apply field restrictions if enabled or if snapped (snap implies grid which is usually in field, but let's stick to explicit restriction)
+        // Apply field restrictions if enabled or if snapped (snap implies grid which is usually in field, but use explicit restriction)
         if (settings.restrictDraggingToField !== false) {
           minX = 0;
           maxX = FIELD_SIZE;
@@ -2461,8 +2431,7 @@
       ]);
 
       selectedLineId.set(newLine.id!);
-      // We can't know the index easily without recounting, but we can assume it's last
-      // lines is reactive, so we can just wait or calc index
+      // assume new line is appended at end in lines store
       const newIdx = $linesStore.length - 1;
       selectedPointId.set(`point-${newIdx + 1}-0`);
 
@@ -2784,13 +2753,6 @@
     }
 
     // Get items from registry (Empty Space or Append)
-    // If we clicked an element, we might still want to show global actions?
-    // Probably not, context specific is better.
-    // But plugins might want to add actions to specific elements?
-    // For now, let's keep registry items for empty space or if we decide to merge.
-
-    // If we have items from the element, use them.
-    // If not (empty space), use registry.
     if (menuItems.length === 0) {
       const registryItems = get(fieldContextMenuRegistry);
       if (registryItems && registryItems.length > 0) {
@@ -2979,9 +2941,6 @@
                   stroke-linejoin="round"
                   style={`transform: rotate(${rot}deg); transition: transform 0.1s;`}
                 >
-                  <!-- Arrow now points forward when the wheel should drive
-                       in the robot's +X direction (original SVG is still an
-                       up‑arrow, but we pre‑rotate it here) -->
                   <line x1="12" y1="19" x2="12" y2="5"></line>
                   <polyline points="5 12 12 5 19 12"></polyline>
                 </svg>

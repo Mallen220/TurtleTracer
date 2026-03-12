@@ -86,7 +86,7 @@ function transformHeading(degrees: number, t: Transformation): number {
     }
   }
   // Normalize to -180 to 180 or 0-360? Usually just keep it wrapped or raw.
-  // Let's normalize to 0-360 for cleanliness, but standardizing later is fine.
+  // Normalize to 0-360 for cleanliness, but standardizing later is fine.
   return d;
 }
 
@@ -149,7 +149,7 @@ function transformMacroData(
         t,
       );
     }
-    // Tangential reverse logic?
+    // Tangential reverse logic
     if (
       newData.startPoint.heading === "tangential" &&
       t.type === "flip" &&
@@ -180,9 +180,6 @@ function transformMacroData(
           seqItem.degrees = transformHeading(seqItem.degrees, t);
         }
         // Wait items don't have spatial properties
-        // Macro items: we don't transform them here, we pass the transformation down via resolvedTransforms
-        // because we haven't loaded their data yet (or we have, but we recurse later).
-        // However, if we flip the coordinate system, the nested macro will be flipped by applying resolvedTransforms later.
       });
     }
 

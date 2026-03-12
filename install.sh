@@ -260,7 +260,7 @@ patch_deb_desktop_file() {
             # Since we know the install path is likely "/opt/Pedro Pathing Plus Visualizer/pedro-pathing-plus-visualizer" or the legacy '/opt/Pedro Pathing Plus Visualizer/pedro-pathing-visualizer'
             # We can try to construct a safe Exec string.
             
-            # Let's rely on finding the 'pedro-pathing-plus-visualizer' or legacy 'pedro-pathing-visualizer' binary path.
+            # Rely on finding the 'pedro-pathing-plus-visualizer' or legacy 'pedro-pathing-visualizer' binary path.
             # If the current line is: /opt/Pedro Pathing Plus Visualizer/pedro-pathing-visualizer %U
             # We want: "/opt/Pedro Pathing Plus Visualizer/pedro-pathing-visualizer" --no-sandbox %U
             

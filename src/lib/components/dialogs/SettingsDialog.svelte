@@ -48,7 +48,6 @@
 
   // Reset tab when closed so it's fresh on next open
   $: if (!isOpen) {
-    // We don't reset the store here to avoid loops, but we reset local state if needed
     searchQuery = "";
   }
 
@@ -135,7 +134,6 @@
             page++;
           }
         } else {
-          // Non-OK response (rate-limited or network issue). Abort and mark incomplete so we don't display a partial value.
           completed = false;
           hasMore = false;
           break;
@@ -2643,8 +2641,6 @@
   }
 
   /* Search mode: Hide sections that don't have visible settings */
-  /* Note: :has() is supported in Electron/Chromium */
-  /* We use :global because SettingsItem is a child component, but the class is visible-setting */
   .is-searching .section-container:not(:has(.visible-setting)) {
     display: none;
   }

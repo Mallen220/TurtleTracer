@@ -16,7 +16,6 @@ export async function scanEventsInDirectory(directory: string) {
 
     const eventNames = new Set<string>();
 
-    // We process files in parallel for speed, but catch errors per file
     await Promise.all(
       ppFiles.map(async (file: any) => {
         try {

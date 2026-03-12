@@ -165,7 +165,6 @@ class AppUpdater {
 
   openTerminalLinux(command) {
     // Try to find a terminal emulator and run the command
-    // We try them in order of preference
     const terminals = [
       {
         cmd: "gnome-terminal",

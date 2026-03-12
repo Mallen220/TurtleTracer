@@ -65,8 +65,6 @@
   }
 
   async function fetchReleaseNotes(version: string, fallbackNotes: string) {
-    // If we already have HTML for this version, skip
-    // (Simple check, in a real app we might cache by version more robustly)
     if (releaseNotesHtml && releaseNotesHtml.length > 0) return;
 
     isLoadingNotes = true;

@@ -33,9 +33,6 @@ export default defineConfig({
         chunkFileNames: `assets/[name].js`,
         assetFileNames: `assets/[name].[ext]`,
       },
-      // Suppress noisy Rollup warning about modules both dynamically and statically imported
-      // See: dynamic import will not move module into another chunk.
-      // We selectively ignore only that specific message to avoid hiding other warnings.
       onwarn(warning, warn) {
         try {
           const message = warning && (warning.message || String(warning));

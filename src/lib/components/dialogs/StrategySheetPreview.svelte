@@ -47,8 +47,6 @@
     fieldContainer.innerHTML = "";
 
     // Clone the SVG (or canvas) from the main renderer
-    // We expect twoInstance.renderer.domElement to be the <svg> element for Two.js SVG renderer,
-    // but some environments or plugins may wrap or change the output, so we'll inspect and handle multiple types.
     const originalEl = twoInstance.renderer?.domElement;
 
     // Debug: collect info about the renderer element to diagnose missing field map
@@ -168,12 +166,6 @@
     svg.style.zIndex = "2";
     svg.style.overflow = "visible"; // Ensure everything is visible
 
-    // Optional: We could traverse the SVG to hide specific groups if needed
-    // e.g. hiding the robot image if it's an overlay in the SVG (but robot is usually an <img> overlay in FieldRenderer, not part of Two.js scene except for onion skins)
-    // The FieldRenderer uses <img> for the robot, so it WON'T be in the SVG clone.
-    // That's actually good for a strategy sheet (we usually just want the path).
-    // If we want the robot start position, we might need to add it manually or rely on the start point marker which IS in the Two.js scene.
-
     // Apply rotation if needed
     if (settings.fieldRotation) {
       svg.style.transform = `rotate(${settings.fieldRotation}deg)`;
@@ -199,7 +191,6 @@
           : "/fields/decode.webp";
     }
 
-    // If we have an SVG, embed the background image into the svg so it uses the same coordinate system
     if (svg && bgSrc) {
       try {
         const svgViewBox = svg.getAttribute("viewBox");
@@ -304,7 +295,6 @@
       }
     }
 
-    // When we have content, prefer rasterizing the source SVG to an image and overlaying it
     try {
       const serializer = new XMLSerializer();
       const sourceSvg =
@@ -408,7 +398,6 @@
   }
 
   // Combine Path, Waits, and Rotations into a linear list for the table
-  // We can try to reconstruct the order from the sequence
   $: combinedSequence = (() => {
     const items: Array<{
       type: "path" | "wait" | "macro" | "rotate";
@@ -437,7 +426,7 @@
             name: line.name || `Path ${lines.indexOf(line) + 1}`,
             details: `-> (${line.endPoint.x.toFixed(1)}, ${line.endPoint.y.toFixed(1)})`,
             events,
-            duration: undefined, // Could get from timePrediction if we map it
+            duration: undefined,
           });
         }
       } else if (seqItem.kind === "wait") {

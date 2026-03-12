@@ -31,7 +31,7 @@ if (fastCheckInstalled) {
 import type { Point, Line, BasePoint, ControlPoint } from "../types";
 
 // Generate a valid finite number within a reasonable range to avoid extreme float precision issues
-// FTC field is 144 inches. We test up to 100,000 to cover zooms/pans/edge cases without hitting e+30.
+
 export const validNumber = fc.float
   ? fc.float({
       min: -100000,

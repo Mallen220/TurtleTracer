@@ -138,7 +138,7 @@ export type SequenceMacroItem = {
   name: string;
   locked?: boolean;
   hidden?: boolean;
-  eventMarkers?: EventMarker[]; // Maybe macros can have markers too?
+  eventMarkers?: EventMarker[]; // Macros can have markers too
   sequence?: SequenceItem[]; // The expanded sequence for this macro instance
   transformations?: Transformation[];
 };
@@ -615,9 +615,7 @@ export interface FieldRenderContext {
   y: (val: number) => number;
   uiLength: (inches: number) => number;
   settings: any;
-  // Determine hover/select state inside the renderer based on item ID, or pass global state?
-  // Ideally, the renderer logic checks if this item is hovered.
-  // We can pass the hovered ID and selected ID.
+
   hoveredId: string | null;
   selectedId: string | null;
   selectedPointId: string | null;

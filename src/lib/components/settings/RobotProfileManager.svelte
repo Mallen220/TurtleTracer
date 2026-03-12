@@ -66,8 +66,7 @@
     const profile = profiles.find((p) => p.id === selectedProfileId);
     if (!profile) return;
 
-    // Keep confirm for Apply as it overwrites current settings and is a major action
-    // We could make this inline too, but it's the primary action button.
+
     if (
       !confirm(
         `Apply settings from "${profile.name}"? This will overwrite your current robot configuration.`,

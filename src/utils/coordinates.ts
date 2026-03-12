@@ -47,7 +47,7 @@ export function toFieldHeading(
   return userHeading;
 }
 
-// Deprecated single-value functions (wrappers for compatibility if needed temporarily, but we should migrate)
+
 export function toUserCoordinate(
   val: number,
   system: CoordinateSystem,

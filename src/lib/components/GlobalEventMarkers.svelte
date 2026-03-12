@@ -141,9 +141,6 @@
     const sorted = markers.sort((a, b) => a.globalPosition - b.globalPosition);
 
     if (draggingId) {
-      // If dragging, we want to maintain the list order from before the drag started,
-      // but update the values of the dragging marker.
-      // We use cachedSortedMarkers as the base order.
       if (cachedSortedMarkers.length === 0) return sorted; // Fallback
 
       // Map cached ID order to current marker data
@@ -169,17 +166,9 @@
   }
 
   function addMarker() {
-    // Default to adding to the first item, or the last added one?
-    // Let's add to the first item for now, or the currently selected one if possible.
-    // If we have a selection, try to add there.
     let targetIndex = 0;
 
     // Check selection
-    /*
-        If needed, we can try to infer from selection:
-        $selectedLineId -> find index in sequence
-        $selectedPointId -> could be wait id
-    */
 
     const { map, count } = getSequenceMapping(sequence);
     if (count === 0) return;
@@ -346,17 +335,6 @@
     }
 
     // Update marker position immediately (switching parents if needed)
-    // but without clamping to allow smooth dragging?
-    // Actually, updateMarkerPosition handles parent switching.
-    // If we switch parents, newLocalPos will be within 0-1 (by math definition: newVal - floor(newVal)).
-    // So we can always clampLocal=true?
-    // Wait, updateMarkerPosition logic:
-    // newLocalPos = newVal - newIndex.
-    // This is always [0, 1) unless newVal == max.
-    // So "clamping" is implicit in the parent switch logic.
-    // The only case where we might want non-clamped is if we stayed on same parent but went < 0 or > 1.
-    // But here we switch parents aggressively.
-
     updateMarkerPosition(marker, newVal, false);
   }
 

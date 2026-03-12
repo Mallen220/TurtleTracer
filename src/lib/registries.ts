@@ -157,11 +157,7 @@ export interface DialogDefinition {
   id: string;
   component: any;
   props?: any;
-  // A dialog can be 'active' by default if registered, or we might need a way to open it.
-  // We'll assume all registered dialogs are rendered by DialogHost, but they might handle their own visibility (isOpen prop).
-  // Or, more likely, plugins register dialogs, and then they can be "opened" by ID?
-  // Let's assume DialogHost renders all registered dialogs, and they start closed or are controlled by store.
-  // Actually, to make it easy for plugins, let's just render them. The plugin can use a store to control visibility inside the component.
+
 }
 
 const createDialogRegistry = () => {

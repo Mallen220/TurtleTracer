@@ -241,7 +241,7 @@ describe("codeExporter", () => {
       ];
       const code = await generateJavaCode(startPoint, lines, false);
 
-      // Check that we have unique variables
+      // Check unique variables
       expect(code).toMatch(/public PathChain Score;/);
       expect(code).toMatch(/public PathChain Score_1;/);
       expect(code).toMatch(/public PathChain Park;/);

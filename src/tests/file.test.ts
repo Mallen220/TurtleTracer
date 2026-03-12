@@ -137,10 +137,6 @@ describe("File Utils", () => {
 
       loadTrajectoryFromFile(event, onSuccess, onError);
 
-      // Note: In a real environment FileReader is async.
-      // In this test setup, assuming FileReader mock (if implicit) or jsdom handles it.
-      // If it fails, we might need to await something.
-      // But the previous run passed, so it should be fine.
     });
   });
 });

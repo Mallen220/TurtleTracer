@@ -9,7 +9,7 @@
     label: string;
     action?: string;
     onClick?: () => void;
-    icon?: any; // Component or string if needed, but for now we assume icon slot or internal icon logic
+    icon?: any;
     separator?: boolean;
     danger?: boolean;
     disabled?: boolean;

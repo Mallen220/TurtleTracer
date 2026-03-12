@@ -32,7 +32,6 @@
 
   function handleBlur() {
     // If focus is lost, reset state
-    // We delay slightly so clicking "Confirm" doesn't trigger blur before click logic runs
     setTimeout(() => {
       confirming = false;
       clearTimeout(timeout);

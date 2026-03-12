@@ -23,8 +23,6 @@ export function highlightAndSplit(
 
   const highlighted = hljs.highlight(code, { language }).value;
 
-  // We need to parse the HTML and split by newlines
-  // We can't just split('\n') because we need to track open tags.
 
   const lines: string[] = [];
   const openTags: string[] = [];

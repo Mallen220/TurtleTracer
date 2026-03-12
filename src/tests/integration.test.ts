@@ -42,9 +42,6 @@ describe("Field Logic and Visibility Integration", () => {
       value: 500,
     });
 
-    // Mock Two.js behavior if strictly necessary, but ideally we use the real one if it works in jsdom
-    // Two.js checks for `document.createElement('svg')` which works in jsdom.
-
     // Reset stores
     startPointStore.set({ x: 0, y: 0, heading: "constant", degrees: 0 });
     linesStore.set([]);
@@ -83,14 +80,10 @@ describe("Field Logic and Visibility Integration", () => {
     const svg = container.querySelector("svg");
 
     // If null, it means Two.js didn't append it.
-    // In that case, we can assume the component rendered but Two.js failed to init in test env.
-    // However, the test "field is visible" implies we should verify it.
 
     if (svg) {
       expect(svg).toBeInTheDocument();
     } else {
-      // Fallback: Check if the container wrapper is there (which we did)
-      // And maybe mock Two.js if we can't make it work
       console.warn(
         "Two.js SVG not found. Environment might lack necessary canvas/svg support despite jsdom/canvas package.",
       );
@@ -131,10 +124,6 @@ describe("Field Logic and Visibility Integration", () => {
     expect(get(startPointStore).x).toBe(20);
     expect(get(linesStore)).toHaveLength(1);
     expect(get(shapesStore)).toHaveLength(1);
-
-    // Since we verified store updates, "field logic" is effectively working from data perspective.
-    // If Two.js rendering fails in test env, we can at least verify stores.
-    // But we should try to verify visual update if possible.
   });
 
   it("should handle file import simulation properly", async () => {

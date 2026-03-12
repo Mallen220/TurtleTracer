@@ -112,14 +112,12 @@ describe("Time Calculator", () => {
   });
 
   it("calculates rotation time", () => {
-    // We need to trigger the rotation logic:
     // if (diff > 0.1) ...
     // diff = abs(getAngularDifference(currentHeading, requiredStartHeading))
 
     // Line 1: Ends at (10,0) with heading 0.
     // Line 2: Starts at (10,0) and goes to (10,10).
     // Tangent is 90 deg.
-    // We set Line 2 endPoint heading to 'tangential'.
 
     const lines: Line[] = [
       {
@@ -169,7 +167,6 @@ describe("Time Calculator", () => {
     // maxAccel = 5, rWidth = 18 => maxAngAccel = 5 / 9 = 0.555 rad/s^2
     // Angle = 90 deg = 1.57 rad.
     // Triangle profile: t = 2 * sqrt(dist / a) = 2 * sqrt(1.57 / 0.555) = 2 * 1.68 = 3.36s.
-    // NOTE: This confirms we are back to physics-based logic (acceleration limited).
     expect(rotationEvents[0].duration).toBeCloseTo(3.36, 1);
   });
 
@@ -194,8 +191,6 @@ describe("Time Calculator", () => {
     // t_const = 1.324 / 1.57 = 0.843s.
     // Total = 0.157 + 0.157 + 0.843 = 1.157s.
 
-    // Let's create a fake timeline test or call calculateRotationTime directly if exported?
-    // It's not exported. So we use calculatePathTime with a rotate sequence.
 
     const lines: Line[] = [
       {

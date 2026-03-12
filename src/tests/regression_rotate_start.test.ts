@@ -77,14 +77,6 @@ describe("Rotation Issue Reproduction", () => {
 
     const result = calculatePathTime(startPoint, lines, settings, sequence);
 
-    // Timeline events should show:
-    // 1. Wait event (Rotate 90) - startHeading: 0, targetHeading: 90
-    // 2. Wait event (implicit rotation for path) OR Travel event.
-
-    // If the path starts with heading 0 (constant), and we rotated to 90.
-    // The path requires heading 0. So we should see a rotation back to 0.
-    // IF the bug exists, we might see the rotation from the first action ignored, or snapped.
-
     const events = result.timeline;
     console.log(
       "Events:",
@@ -100,17 +92,6 @@ describe("Rotation Issue Reproduction", () => {
     );
     expect(rotateEvent).toBeDefined();
     expect(rotateEvent?.targetHeading).toBe(90);
-
-    // The next event should be a wait to rotate back to 0, because the path requires 0 (constant).
-    // If the bug exists (snapping), we might not see a wait event to rotate back to 0, or we might see weird behavior.
-
-    // BUT wait, if the path requires 0, and we are at 90. We should rotate back to 0.
-    // If `isFirstPathItem` is true, calculatePathTime says:
-    // currentHeading = requiredStartHeading; (which is 0)
-    // So currentHeading becomes 0 instantly.
-    // The diff is abs(0 - 0) = 0. So NO rotation wait is added.
-
-    // So if we don't see a wait event to rotate back to 0, it confirms the bug.
 
     // Let's check for a second wait event.
     const rotationBackEvent = events.find(

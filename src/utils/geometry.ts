@@ -129,17 +129,6 @@ export function getRobotCorners(
   const cos = Math.cos(headingRad);
   const sin = Math.sin(headingRad);
 
-  // Corner offsets relative to center (before rotation)
-  // Define corners in local robot frame:
-  // - width extends perpendicular to heading direction (left/right) -> X local
-  // - length extends along heading direction (forward/backward) -> Y local
-
-  // Previously: dx: -hw (Old Length/2), dy: -hh (Old Width/2)
-  // New: hl = Length/2, hw = Width/2
-  // We want to preserve alignment:
-  // dx corresponds to Length (hl).
-  // dy corresponds to Width (hw).
-
   const corners = [
     { dx: -hl, dy: -hw }, // front-left
     { dx: hl, dy: -hw }, // front-right

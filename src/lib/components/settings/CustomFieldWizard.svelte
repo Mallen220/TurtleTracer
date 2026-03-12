@@ -35,8 +35,7 @@
     if (currentConfig) {
       imageData = currentConfig.imageData;
       mapName = currentConfig.name || "My Custom Field";
-      // We could try to reverse-calculate the box from currentConfig, but for simplicity
-      // we'll just let them re-calibrate or leave it as defaults if they edit.
+
     } else {
       imageData = null;
       mapName = "My Custom Field";

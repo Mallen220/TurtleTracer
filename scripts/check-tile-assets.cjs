@@ -41,13 +41,8 @@ async function main() {
       continue;
     }
 
-    // For ico, dimensions can be multiple, but we check if we can read it.
-    // If it's ico, sharp might return the largest one.
+    // For ico, dimensions can be multiple
     if (r.name.endsWith(".ico")) {
-      // Just check existence for now, or use sharp metadata if it supports ico fully
-      // sharp supports ico via libvips? often limited.
-      // The original script skipped ico check.
-      // We'll skip size check for ico to be safe unless we are sure.
       continue;
     }
 

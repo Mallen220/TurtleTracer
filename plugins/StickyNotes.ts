@@ -357,7 +357,7 @@ interface StickyNote {
     textarea.value = note.text;
 
     textarea.addEventListener("input", (e) => {
-      // Debounce could be good here, but for now simple update
+      // Note input updates are immediate; debounce may be added later
     });
     textarea.addEventListener("change", (e) => {
       updateNote(note.id, { text: (e.target as HTMLTextAreaElement).value });
@@ -429,7 +429,7 @@ interface StickyNote {
     const rect = el.getBoundingClientRect();
     const parentRect = el.parentElement!.getBoundingClientRect();
 
-    // We work in pixels relative to parent
+    // pixels relative to parent
     const startLeft = rect.left - parentRect.left;
     const startTop = rect.top - parentRect.top;
 

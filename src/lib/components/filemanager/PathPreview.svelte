@@ -20,7 +20,6 @@
   $: offsetY = Math.max(0, Math.round((height - iconSize) / 2));
 
   $: _scale = d3.scaleLinear().domain([0, FIELD_SIZE]).range([0, iconSize]);
-  // scaleX and scaleY are functions so we can add the offsets and invert Y.
   $: scaleX = (v: number) => _scale(v) + offsetX;
   $: scaleY = (v: number) => offsetY + (iconSize - _scale(v));
 

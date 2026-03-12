@@ -453,7 +453,6 @@
     if (match) {
       rootName = match[1];
       startNum = match[2] ? parseInt(match[2], 10) : 1;
-      // If we are duplicating a duplicate, we probably want to start incrementing from its number + 1
       startNum++;
     }
 
@@ -603,7 +602,7 @@
       });
 
       // Insert into sequence
-      // We need to find where the original line was in the sequence
+      // Find original line's sequence index
       const seqIdx = sequence.findIndex(
         (s) =>
           actionRegistry.get(s.kind)?.isPath &&
@@ -788,20 +787,16 @@
     }
 
     // Handle Path (Line)
-    // Clipboard doesn't strictly have 'kind' property for Line type, but we can check properties or if it doesn't have kind.
     // Line interface has 'id', 'endPoint', 'controlPoints'
     if (!(clipboard as any).kind && (clipboard as any).endPoint) {
       const originalLine = clipboard as Line;
 
-      // Logic similar to duplicate for path placement
-      // We need to determine where to place this new line spatially.
-      // Usually Paste puts it after the selection.
+      // Paste path: determine insertion point and clone the line
 
       // Determine insertion point
       const insertIdx = getSelectedSequenceIndex(); // index in sequence
       let prevPoint: { x: number; y: number } = startPoint;
 
-      // If we are inserting after a specific path, use its endpoint as reference
       if (insertIdx !== null) {
         // Find path element at or before insertIdx
         for (let i = insertIdx; i >= 0; i--) {
@@ -818,36 +813,7 @@
         prevPoint = lines[lines.length - 1].endPoint;
       }
 
-      // We need to calculate the relative vector of the copied line
-      // But we don't have the original 'previous point' of the copied line easily available here unless we store it.
-      // However, usually copy/paste of a path segment implies copying the shape/vector.
-      // If we simply copy endPoint, it will snap to the original location.
-      // For now, let's paste it "relative" if possible, or just exact copy if we can't determine relation.
-      // Wait, `duplicate` calculates delta from the line BEFORE the duplicated line.
-      // `clipboard` is just the line object. We lost context of where it came from.
-      // So we can either:
-      // 1. Paste it exactly (might overlap if not moved).
-      // 2. Paste it with a small offset from previous point?
-      // 3. Assume the clipboard line vector is (endPoint - origin_of_copy). We don't know origin_of_copy.
-
-      // Let's assume the user wants an exact copy of the properties (heading, etc) but positioned after current selection.
-      // If we just use the coordinate in clipboard, it jumps back to where it was copied.
-      // If we want "continuation", we probably want to preserve the relative vector?
-      // But we don't have the relative vector in `Line` object (it stores absolute coordinates).
-
-      // Heuristic: If we paste, maybe we just offset it slightly from the insertion point?
-      // Or we can try to "guess" a delta.
-      // Let's just paste it with a small offset (e.g. 10, 10) from the previous point, similar to "Add Path".
-      // But preserving control points relative structure?
-
-      // Better approach: Calculate the vector of the copied line relative to (0,0)? No.
-      // Let's just Paste it exactly as is?
-      // If I copy a segment at (50,50), and paste it, and it appears at (50,50), that's standard "Copy/Paste" behavior in vector apps often.
-      // "Duplicate" is the one that often does "Step and Repeat" or relative offset.
-      // So for Paste, exact coordinates might be safer/expected, OR offset by a bit if it overlaps exactly.
-
-      // Let's stick to: Paste exactly, but regenerate ID and Name.
-      // If it overlaps, user can move it.
+      // Clone originalLine; the placement above accounts for insertion index.
 
       const newLine = structuredClone(originalLine);
       newLine.id = `line-${Math.random().toString(36).slice(2)}`;
@@ -861,13 +827,7 @@
 
       // Insert
       if (insertIdx !== null) {
-        // We need to find the line index corresponding to insertIdx
-        // This is tricky because sequence and lines indices aren't 1:1.
-        // But we insert into `lines` array based on where the sequence item at `insertIdx` is.
-        // If sequence[insertIdx] is a path, we insert after that line in `lines`.
-        // If sequence[insertIdx] is a wait, we need to find the path before it to know where in `lines` to insert?
-        // Actually `lines` order usually matches `sequence` path order.
-        // Let's find the last path item in sequence up to insertIdx.
+        // Find the last path item in sequence up to insertIdx.
 
         let insertionLineIndex = -1;
         for (let i = insertIdx; i >= 0; i--) {
@@ -909,15 +869,7 @@
       }
 
       selectedLineId.set(newLine.id!);
-      // Select end point
-      // We need to find new index of line
-      // It's either last, or we need to look it up.
-      // Since `linesStore` update is async/reactive, we might not have it immediately in `lines` variable here
-      // unless we force update or look at what we pushed.
-      // But we are inside the component so `lines` is reactive prop. It won't update until next tick.
-      // We can just set selectedLineId and let the UI handle it, or try to guess point ID.
-      // Point ID depends on index.
-      // Let's record change.
+      // select end point after paste and record change.
       recordChange("Paste");
       notification.set({
         message: "Path pasted",
@@ -1063,9 +1015,6 @@
     const currentSel = $selectedPointId;
     if (!currentSel) return;
 
-    // ... logic for movePoint ...
-    // Since this is long, we can simplify or import helper.
-    // For now I'll duplicate the logic to ensure correctness as requested "ensure everything still works"
     const defaultStep = 1;
     const snapMode = $snapToGrid && $showGrid;
     const gridStep = $gridSize || 1;
@@ -1192,7 +1141,6 @@
     } else if (currentSel.startsWith("event-wait-")) {
       const parts = currentSel.split("-");
       // Format: event-wait-waitId-evIdx
-      // waitId can contain hyphens, so we need to rebuild it or handle it properly
       const evIdx = Number(parts.pop());
       const waitId = parts.slice(2).join("-");
 
@@ -1297,9 +1245,7 @@
       if (lineNum > 0) {
         const line = lines[lineNum - 1];
         if (line && line.id) {
-          // Assuming control tab can handle generic path scroll requests
-          // If not, we might need to check registry for path alias?
-          // For now "path" string is what ControlTab expects.
+          // Control tab can handle generic path scroll requests
           controlTabRef.scrollToItem("path", line.id);
         }
       }
@@ -2534,10 +2480,6 @@
 
     sequence.forEach((s) => {
       const def = actionRegistry.get(s.kind);
-      // Generalize to actions that support event markers?
-      // For now, Wait and Rotate support them. Path supports them but is handled above.
-      // If new actions support markers, they should be included.
-      // We can use a new flag `hasEventMarkers` or assume standard ones.
       if (def?.isWait || def?.isRotate) {
         const item = s as any;
         if (item.eventMarkers) {
@@ -2615,7 +2557,6 @@
     // @ts-ignore
     if (e.target.files && e.target.files.length > 0) {
       loadFile(e);
-      // Reset value so we can load the same file again if needed
       // @ts-ignore
       e.target.value = "";
     }

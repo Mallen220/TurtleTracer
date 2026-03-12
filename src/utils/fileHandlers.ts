@@ -209,7 +209,6 @@ async function performSave(
     // Process groups
     nameGroups.forEach((group, name) => {
       if (group.length > 1) {
-        // We have duplicates. Assign unique names and store original in metadata.
         group.forEach((item, index) => {
           item._linkedName = name;
           item.name = `${name} (${index + 1})`;
@@ -218,7 +217,7 @@ async function performSave(
     });
 
     // --- DETERMINE SAVE PATH EARLY ---
-    // Always try to get the path first so we can relativize macros
+
     if (!targetPath && electronAPI) {
       if (electronAPI.showSaveDialog) {
         const filePath = await electronAPI.showSaveDialog({
@@ -234,7 +233,7 @@ async function performSave(
     }
 
     // --- RELATIVIZE MACRO PATHS ---
-    // Now that we have a target path, convert macro paths to be relative
+
     if (targetPath && electronAPI && electronAPI.makeRelativePath) {
       for (const item of sequenceToSave) {
         if (item.kind === "macro") {
@@ -378,13 +377,13 @@ export async function saveProject(
   options: { quiet?: boolean } = {},
 ) {
   // If called with just one argument that happens to be options (common if optional args are skipped)
-  // This signature is getting messy. Let's fix usage in calls instead or detect it.
+  // This signature is getting messy; fix usage in calls instead or detect it.
   // Actually, standard usage in App.svelte is saveProject().
   // If I change signature, I must be careful.
-  // Let's support an overload-like approach or just named args in future.
-  // For now, let's assume if the first arg is an object with 'quiet', it's options.
+  // Support an overload-like approach or just named args in future.
+  // For now, assume if the first arg is an object with 'quiet', it's options.
   // BUT the first arg is Point.
-  // To avoid breaking changes, let's append options at the end.
+  // To avoid breaking changes, append options at the end.
 
   const electronAPI = getElectronAPI();
   // If arguments are missing, grab from stores (UI behavior)
@@ -438,9 +437,6 @@ export async function exportAsPP() {
   const defaultName = `${filename}.pp`;
 
   if (electronAPI) {
-    // Prefer the exported convenience method if available
-    // BUT we skip it now because we need to relativize paths, which requires knowing the target path first.
-    // The main process exportPP helper doesn't support that logic injection.
 
     // Use save dialog + writeFile
     if (electronAPI.showSaveDialog && electronAPI.writeFile) {
@@ -557,7 +553,7 @@ export async function handleExternalFileOpen(filePath: string) {
     const content = await electronAPI.readFile(filePath);
     const data = JSON.parse(content);
 
-    // 2. Check if we have a working directory
+    // 2. Check if a working directory
     const savedDir = await electronAPI.getSavedDirectory?.();
     const fileName = filePath.split(/[\\/]/).pop() || "unknown.pp";
 
@@ -852,30 +848,11 @@ export async function handleAutoExport(
     }
 
     // Determine filename
-    // If Java/Sequential, we might want to match class name if possible, but baseName is safe default
-    // generateJavaCode/Sequential uses internal logic for class name based on filename usually.
-    // If we use baseName + extension, it matches.
 
     const filename = `${baseName}.${extension}`;
 
     // Resolve final file path. resolvePath resolves base (file) + relative (path).
-    // So we need to construct relative path from targetPath's dir.
-    // We already have exportDir as absolute path (likely).
-    // If resolvePath returned absolute path for exportDir, we can't use it as base for resolvePath if resolvePath expects a FILE base.
-    // Wait, electronAPI.resolvePath(base, relative) -> path.resolve(dirname(base), relative).
-    // If exportDir is absolute, we can just join it with filename.
-    // But we don't have path.join.
-    // We can assume exportDir has no trailing slash usually?
-    // Let's use resolvePath again?
-    // resolvePath(exportDir, filename) -> path.resolve(dirname(exportDir), filename) -> SIBLING of exportDir?
-    // NO. If exportDir is a directory, dirname(exportDir) is its parent.
-    // So resolvePath(exportDir, filename) puts it outside GeneratedCode!
-    // We need to append filename to exportDir.
-    // Since we don't have path.join, and separators vary...
-    // We can rely on a relative path from the original .pp file.
-    // relativePath = exportDirName + separator + filename.
-    // separator: / works on Windows for path.resolve usually?
-    // or just use "/"
+    
     const relativePath = `${exportDirName}/${filename}`;
     const finalPath = await electronAPI.resolvePath(targetPath, relativePath);
 
@@ -890,7 +867,7 @@ export async function handleAutoExport(
     console.error("Auto Export Failed:", err);
     notification.set({
       message: `Auto Export Failed: ${err.message}`,
-      type: "warning", // Warning so we don't think save failed
+      type: "warning", // Warning so they don't think save failed
       timeout: 5000,
     });
   }

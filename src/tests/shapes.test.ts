@@ -71,8 +71,6 @@ describe("Shape Utilities", () => {
 
     it("should calculate vertices correctly using radius 15 around (45, 45)", () => {
       const shape = createNGon(4, 0);
-      // Square rotated by 0 rads (aligned with axes if we consider starting at 0)
-      // Actually starting at 0 rads (right), then PI/2 (bottom), PI (left), 3PI/2 (top)
       // 0: (60, 45)
       // 1: (45, 60)
       // 2: (30, 45)

@@ -130,8 +130,6 @@
   let _lastToggleCollapse = $toggleCollapseAllTrigger;
   $: if ($toggleCollapseAllTrigger !== _lastToggleCollapse) {
     _lastToggleCollapse = $toggleCollapseAllTrigger;
-    // Only toggle if this tab is active or we want global hotkey to work regardless?
-    // ControlTab logic implies global trigger.
     toggleCollapseAll();
   }
 
@@ -753,9 +751,6 @@
         collapsedSections.lines[lineIdx] = !collapsedSections.lines[lineIdx];
       }
     } else if (parts.length >= 2) {
-      // "wait-ID", "rotate-ID", etc.
-      // We need to extract ID which might contain dashes? IDs from makeId don't have dashes usually.
-      // But format is kind-ID.
       const id = sel.substring(parts[0].length + 1);
       collapsedSections.items[id] = !collapsedSections.items[id];
     }

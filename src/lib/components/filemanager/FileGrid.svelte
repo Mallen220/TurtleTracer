@@ -120,7 +120,6 @@
   function schedulePreviewRetry(filePath: string) {
     previewRetryCount[filePath] = (previewRetryCount[filePath] || 0) + 1;
     if (previewRetryCount[filePath] <= MAX_PREVIEW_RETRIES) {
-      // Temporary mark so we don't keep re-queueing immediately
       previews[filePath] = { startPoint: null, lines: [] } as any;
       const delay = 1000 * Math.min(4, previewRetryCount[filePath]);
       setTimeout(() => {
@@ -324,7 +323,6 @@
       if (f.isDirectory) return;
       const d = new Date(f.modified);
       if (isToday(d)) {
-        // If we haven't loaded or queued a preview for this file yet, do so
         if (previews[f.path] === undefined) {
           loadPreview(f.path);
         }

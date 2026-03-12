@@ -42,18 +42,12 @@ export function createHistory(maxSize = 200) {
     canUndoStore.set(undoStack.length > 1);
     canRedoStore.set(redoStack.length > 0);
 
-    // Undo description: The action that resulted in the current state (top of undo stack)
-    // When we click Undo, we are undoing the change that BROUGHT us here.
-    // So the description should be the description of the TOP item in undoStack.
-    // However, usually "Undo X" means "Revert X". The top item in undoStack IS the state after X.
-    // So yes, undoStack[last].description.
     if (undoStack.length > 1) {
       undoDescriptionStore.set(undoStack[undoStack.length - 1].description);
     } else {
       undoDescriptionStore.set(null);
     }
 
-    // Redo description: The action we are about to re-apply.
     // Top of redoStack.
     if (redoStack.length > 0) {
       redoDescriptionStore.set(redoStack[redoStack.length - 1].description);
@@ -143,9 +137,6 @@ export function createHistory(maxSize = 200) {
     // Check if id is in undoStack (current or past)
     const undoIndex = undoStack.findIndex((item) => item.id === id);
     if (undoIndex !== -1) {
-      // It's in the past (or current).
-      // We want to undo until we are at this index.
-      // Currently at length-1.
       while (undoStack.length - 1 > undoIndex) {
         undo();
       }
@@ -155,11 +146,11 @@ export function createHistory(maxSize = 200) {
     // Check if id is in redoStack (future)
     const redoIndex = redoStack.findIndex((item) => item.id === id);
     if (redoIndex !== -1) {
-      // Redo until we reach it
+
       let safety = redoStack.length + 1;
       while (safety-- > 0 && canRedo()) {
         redo();
-        // Check if we reached the desired state (it is now at top of undoStack)
+
         if (undoStack[undoStack.length - 1].id === id) break;
       }
       return peek();

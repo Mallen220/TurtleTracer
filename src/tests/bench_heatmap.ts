@@ -75,7 +75,6 @@ function runOptimized() {
 
     if (color !== currentColor) {
       // Color changed.
-      // If we have an active path, flush it.
       if (currentPoints.length > 0) {
         objectCount++;
       }

@@ -43,15 +43,6 @@
         ctx.arc(cx, cy, rx, 0, 2 * Math.PI);
         if (op.stroke !== false) ctx.stroke(); // Default stroke?
         // The interface says `stroke?: boolean`. If true, stroke.
-        // But usually we fill circles unless stroke is true?
-        // Or maybe `stroke` implies ONLY stroke?
-        // Let's assume standard draw: fill is default for shapes?
-        // Wait, Packet has `stroke?: boolean` for circle.
-        // Assuming if stroke is true, we stroke.
-        // What about fill? No fill prop for circle in my type def.
-        // Wait, let's check type def again.
-        // | { type: 'circle'; x: number; y: number; r: number; color: string; stroke?: boolean; }
-        // So color applies to stroke or fill depending on `stroke` flag?
         if (op.stroke) {
           ctx.stroke();
         } else {

@@ -79,7 +79,7 @@ export async function generateJavaCode(
       ? line.name.replace(/[^a-zA-Z0-9]/g, "")
       : `line${idx + 1}`;
 
-    // Ensure we preserve the base name but add suffix if needed
+
     if (usedPathNames.has(baseName)) {
       const count = usedPathNames.get(baseName)!;
       usedPathNames.set(baseName, count + 1);
@@ -112,10 +112,6 @@ export async function generateJavaCode(
               h: number = 0,
             ) => {
               const u = toUser(pt, "FTC");
-              // We pass 0 for heading if it doesn't matter (like start/CPs in curve constructor usually ignore heading except start?)
-              // Actually BezierCurve constructor uses Points. Pose has heading.
-              // If we use buildPose, it returns a Pose.
-              // The conversion helper should convert heading too.
               const uh = toUserHeading(h, "FTC");
               const px =
                 codeUnits === "metric"
@@ -129,9 +125,7 @@ export async function generateJavaCode(
             };
 
             const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
-            // For start point of path, heading matters if it's the very first point or if we need tangent?
-            // BezierCurve takes Points. Pose is a Point.
-            // We pass 0 heading for geometric points usually, but for start point it might use heading.
+
             startCode = formatPose(startPt, 0);
 
             controlPointsCode =
@@ -350,13 +344,7 @@ export async function generateJavaCode(
     // Check Registry
     const action = actionRegistry.get(item.kind);
     if (action && action.toJavaCode) {
-      // Registry Action (e.g. Wait)
-      // Note: we don't emit 'case stateStep:' here because toJavaCode is expected to generate it or return code block.
-      // But my WaitAction implementation generates `case stateStep: ... case stateStep+1: ...`
-      // So I should NOT emit `case stateStep:` before calling it if it handles it.
-      // My implementation of WaitAction.ts DOES generate "case ${stateStep}:".
-      // But the loop here previously emitted `stateMachineCode += ... case ...`.
-      // I should remove the pre-emission for registry items.
+
 
       const res = action.toJavaCode(item, { stateStep });
       stateMachineCode += res.code;
@@ -853,7 +841,7 @@ export async function generateSequentialCommandCode(
     : "ParallelRaceGroup";
   const WaitCmdClass = isNextFTC ? "Delay" : "WaitCommand";
   const InstantCmdClass = "InstantCommand";
-  const WaitUntilCmdClass = isNextFTC ? "WaitUntil" : "WaitUntilCommand"; // Assuming NextFTC has similar or user maps it
+  const WaitUntilCmdClass = isNextFTC ? "WaitUntil" : "WaitUntilCommand"; // NextFTC has similar or user maps it
   const FollowPathCmdClass = isNextFTC ? "FollowPath" : "FollowPathCommand";
 
   // Generate addCommands calls with event handling; iterate sequence if provided
@@ -972,10 +960,7 @@ export async function generateSequentialCommandCode(
             ? lines[idx - 1]!.name!.replace(/[^a-zA-Z0-9]/g, "")
             : `point${idx}`; // Uses 'pointN' which maps to endPointName in poseVariableNames?
 
-      // Correctly resolve the variable name for start pose
-      // In the loop above, we mapped `point${lineIdx+1}` -> `endPointName`
-      // So `point${idx}` refers to the end point of the previous line (which is start of this one)
-      // Special case: `point0` is not set, we use "startPoint" directly.
+
 
       const startPoseVar =
         idx === 0 ? "startPoint" : poseVariableNames.get(`point${idx}`);
@@ -986,8 +971,7 @@ export async function generateSequentialCommandCode(
         ? line.name.replace(/[^a-zA-Z0-9]/g, "")
         : `point${idx + 1}`;
 
-      // We already know the unique end pose variable name is just the cleaned name
-      // Because we declared it as such in the set/addPose
+
       const endPoseVar = endPoseName;
 
       const pathName = pathChainVariables[idx];

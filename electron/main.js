@@ -157,9 +157,6 @@ if (!gotTheLock) {
     ensureDefaultPlugins();
 
     // Check for updates (only once)
-    // We pass the first window for dialogs if needed, or handle it inside AppUpdater
-    // Since AppUpdater takes a window in constructor, let's defer it or pick the first one.
-    // For now, let's attach it to the first window created.
     setTimeout(() => {
       if (windows.size > 0) {
         // Use the first available window
@@ -179,14 +176,9 @@ if (!gotTheLock) {
 function handleOpenedFile(filePath) {
   if (!filePath) return;
 
-  // If we have windows, send to the focused one or the first one
+  // If windows, send to the focused one or the first one
   const win = BrowserWindow.getFocusedWindow() || windows.values().next().value;
   if (win) {
-    // If window exists, send immediately (or check if it's ready? The renderer will just ignore if not hooked up yet,
-    // but usually if window is open, it's loaded. To be safe, we can try sending.)
-    // However, if the app is just starting, the renderer might not be ready.
-    // The robust way is to store it and let the renderer ask for it, OR send it if we know it's ready.
-    // For simplicity, we'll store it in pendingFilePath and also try to send it if a window exists.
     pendingFilePath = filePath;
     win.webContents.send("open-file-path", filePath);
 
@@ -225,11 +217,11 @@ const startServer = async () => {
     // Using process.resourcesPath + "app.asar" works but can be brittle if asar name changes.
     // However, the issue might be that express.static expects a directory.
     // Electron's patched fs allows treating app.asar/dist as a directory.
-    // But let's check if the path is correct.
+    // But check if the path is correct.
     // If __dirname is /.../resources/app.asar/electron
     // Then ../dist is /.../resources/app.asar/dist.
 
-    // Let's use the relative path approach as it's more standard for ASAR.
+    // Use the relative path approach as it's more standard for ASAR.
     distPath = path.join(__dirname, "../dist");
   } else {
     // In development
@@ -395,7 +387,7 @@ const createWindow = async () => {
 
   // Intercept close event to handle unsaved changes
   newWindow.on("close", (e) => {
-    // If we have already approved the close, let it proceed
+    // If approved the close, let it proceed
     if (newWindow.isCloseApproved) {
       return;
     }
@@ -404,7 +396,7 @@ const createWindow = async () => {
     e.preventDefault();
 
     // Ask the renderer if it's okay to close (check for unsaved changes)
-    // We send this to the specific window trying to close
+    // send this to the specific window trying to close
     newWindow.webContents.send("app-close-requested");
   });
 
@@ -452,7 +444,7 @@ const sendToFocusedWindow = (channel, ...args) => {
     // Fallback: if only one window, send to it?
     // Or if no window is focused (rare when clicking menu), send to most recently created?
     // Usually Menu click focuses the app, so a window should be focused or last active.
-    // Let's try to find the last active one if getFocusedWindow is null.
+    // Try to find the last active one if getFocusedWindow is null.
     if (windows.size === 1) {
       const first = windows.values().next().value;
       if (first) first.webContents.send(channel, ...args);
@@ -814,9 +806,6 @@ async function ensureDefaultPlugins() {
 ipcMain.handle("file:copy", async (event, srcPath, destPath) => {
   try {
     // Check if new path already exists
-    // (Using fs.copyFile triggers overwrite by default, so we might want to check existence if we want to prompt,
-    // but the prompt logic is likely in the renderer. The renderer asks user, then calls this.)
-
     await fs.copyFile(srcPath, destPath);
     return true;
   } catch (error) {
@@ -830,7 +819,7 @@ ipcMain.handle("file:get-directory", async () => {
   // Load saved directory settings
   const settings = await loadDirectorySettings();
 
-  // If we have a saved directory, use it
+  // If saved directory, use it
   if (
     settings.autoPathsDirectory &&
     settings.autoPathsDirectory.trim() !== ""
@@ -1115,7 +1104,7 @@ ipcMain.handle("file:list", async (event, directory) => {
       ppFilesAndDirs.map(async (dirent) => {
         const filePath = path.join(directory, dirent.name);
         const stats = await fs.stat(filePath);
-        // On Windows, paths might differ in normalization, so we resolve to be safe
+        // On Windows, paths might differ in normalization, resolve to be safe
         const resolvedPath = path.resolve(filePath);
         return {
           name: dirent.name,
@@ -1314,7 +1303,7 @@ ipcMain.handle(
       console.log(`Attempting to connect to telemetry (TCP) at ${ip}:${port}`);
       try {
         telemetrySocket = new net.Socket();
-        telemetrySocket.setEncoding("utf8"); // Ensure we get strings
+        telemetrySocket.setEncoding("utf8"); // Ensure strings
         let buffer = "";
 
         telemetrySocket.connect(port, ip, () => {

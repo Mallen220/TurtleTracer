@@ -108,7 +108,7 @@ export function splitPathAtPercent(
   };
 
   // Create Line 2 (The second half)
-  // We reuse the original ID to minimize sequence disruption, but we must update the properties
+
   const line2: Line = {
     ...originalLine,
     // Keep ID
@@ -200,7 +200,7 @@ export function splitPathAtPercent(
         lineId: line1.id!,
       };
       newSequence.splice(i, 0, newItem);
-      i++; // Skip the item we just pushed
+      i++; // Skip the item just pushed
     }
   }
 

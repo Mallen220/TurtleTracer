@@ -24,8 +24,6 @@ describe("PathOptimizer", () => {
     actionRegistry.reset();
     registerCoreUI();
 
-    // Offset from boundary so validation does not flag the starting safety margin
-    // as a boundary collision while we check macro sequencing behavior.
     startPoint = {
       x: 0,
       y: 20,

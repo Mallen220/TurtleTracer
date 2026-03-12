@@ -41,11 +41,7 @@ describe("WhatsNew Search Utils", () => {
     });
 
     it("should escape HTML characters", () => {
-      // Here we test that if we search for 'div', it highlights 'div' correctly
-      // and escapes the < >.
-      // Input: <div>
-      // Query: div
-      // Expected: &lt;<span ...>div</span>&gt;
+
       expect(highlightSnippet("<div>", "div")).toContain("&lt;<span");
       expect(highlightSnippet("<div>", "div")).toContain("div</span>&gt;");
     });
@@ -69,7 +65,7 @@ describe("WhatsNew Search Utils", () => {
       // Query: lt
       // Text: 5 &lt; 10
       // "lt" is in "&lt;"
-      // But since we search in original text "5 < 10", "lt" is NOT found.
+      // But since search in original text "5 < 10", "lt" is NOT found.
       // So result should be "5 &lt; 10" without highlighting.
       expect(highlightSnippet("5 < 10", "lt")).toBe("5 &lt; 10");
     });
@@ -77,7 +73,7 @@ describe("WhatsNew Search Utils", () => {
     it("should highlight match even if it looks like an entity part", () => {
       // Input: result
       // Query: lt
-      // Text: resu&lt; (if we manually escaped)
+      // Text: resu&lt; (if manually escaped)
       // Original: result
       // Match found at index 4 ("lt")
       // Result: resu<span>lt</span>

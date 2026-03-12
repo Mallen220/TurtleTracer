@@ -21,7 +21,7 @@ export function getClosestTarget(
   let closest: HTMLElement | null = null;
   let closestDist = Infinity;
 
-  // We only care about vertical distance
+
   const mouseY = e.clientY;
 
   elements.forEach((el) => {
@@ -50,14 +50,9 @@ export function reorderSequence<T>(
   position: DragPosition,
 ): T[] {
   // Target index logic:
-  // If 'top', we want to insert at toIndex.
-  // If 'bottom', we want to insert at toIndex + 1.
   let targetInsertionIndex = position === "top" ? toIndex : toIndex + 1;
 
-  // If we are moving the item 'down' (from < target), the target index
-  // will shift down by 1 when we remove the item.
-  // Note: We use < because if fromIndex == targetInsertionIndex, it's a no-op
-  // (inserting right back where it was).
+
   if (fromIndex < targetInsertionIndex) {
     targetInsertionIndex--;
   }

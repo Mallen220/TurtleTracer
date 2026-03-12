@@ -257,11 +257,6 @@
     const file = contextMenu.file;
     contextMenu = null;
 
-    // Dispatch the action to the parent component via a generic event or specific ones
-    // We will re-emit appropriately
-    // The parent (FileManager) can handle the specific logic
-
-    // We will bubble this up as specific events for clarity in usage
     const eventMap: Record<string, any> = {
       open: "open",
       rename: "rename-start",
@@ -271,12 +266,7 @@
       "save-to": "save-to",
     };
 
-    // We need to dispatch a custom event that the parent listens to
-    // But since `dispatch` is strictly typed above, let's just emit a generic "action" event
-    // or we can add it to the dispatcher types.
-    // Let's modify the dispatcher types in the parent component instead or here.
-
-    // Actually, easier to dispatch a unified event for menu actions
+   
     if (action === "rename") {
       dispatch("rename-start", file);
     } else {

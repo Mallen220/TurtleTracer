@@ -79,7 +79,7 @@ export class PluginManager {
             description = meta?.description;
           }
 
-          // "loaded" means we successfully discovered and (if enabled) executed the plugin
+          // "loaded" means successfully discovered and (if enabled) executed the plugin
           // Disabled plugins should still appear as loaded to avoid showing a false error state in the UI
           plugins.push({
             name: file,
@@ -468,7 +468,7 @@ export class PluginManager {
 
     // Execute safely-ish
     try {
-      // We pass 'pedro' as the argument name
+      // pass 'pedro' as the argument name
       const fn = new Function("pedro", codeToExecute);
       fn(pedroAPI);
     } catch (e) {

@@ -127,7 +127,6 @@
     const timeline = timePred.timeline || [];
 
     // Filter to travel and wait events
-    // Actually we iterate sequence items and find matching events.
 
     // Index cursor for timeline
     let timelineIndex = 0;
@@ -249,10 +248,6 @@
           addDataPoint(endTime, 0, 0, 0, 0);
         }
       } else if (ev.type === "travel") {
-        // This is handled by the main path logic usually, but if called separately:
-        // We would need the full profile extraction logic here.
-        // Since we inline it for the main path item, we won't use this helper for 'travel'
-        // events linked to a sequence item unless we refactor fully.
       }
     };
 
@@ -296,16 +291,12 @@
         }
       }
 
-      // If we found the target event, process everything before it as intermediate
       if (targetEventIndex !== -1) {
         for (let i = timelineIndex; i < targetEventIndex; i++) {
           processEventForGraph(timeline[i]);
         }
         timelineIndex = targetEventIndex; // Move cursor to target
       }
-
-      // Now process the sequence item itself (which corresponds to timeline[timelineIndex] if found)
-      // If not found (e.g. 0 duration wait dropped from timeline?), we handle graceful fallback in blocks below.
 
       // Handle Wait Item
       if (item.kind === "wait") {
@@ -456,12 +447,7 @@
           let accLin = 0;
           let accCent = 0;
           if (dt > 1e-6) {
-            // Forward difference with next point's velocity would be better if available
-            // But we iterate i.
-            // Let's look at i+1 if possible, or use current dt from previous
-            // profile[i+1] is t_next
-            // v[i+1] is v_next
-            // a = (v[i+1] - v[i]) / dt
+
             let vNext = 0;
             if (velocityProfile && velocityProfile.length > i + 1) {
               vNext = velocityProfile[i + 1];
@@ -472,7 +458,6 @@
           }
 
           // Centripetal Acceleration: v^2 / r
-          // We need radius at this step
           if (analysis.steps[i] && analysis.steps[i].radius > 0.001) {
             accCent = (vLin * vLin) / analysis.steps[i].radius;
           }

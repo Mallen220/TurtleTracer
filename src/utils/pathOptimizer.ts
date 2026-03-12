@@ -194,7 +194,6 @@ export class PathOptimizer {
     timeline: TimelineEvent[] | null = null,
     lines: Line[] | null = null,
   ): CollisionMarker[] {
-    // If we have no shapes and boundary validation is disabled, we can skip
     if (
       this.activeShapes.length === 0 &&
       this.settings.validateFieldBoundaries === false
@@ -530,7 +529,6 @@ export class PathOptimizer {
     if (collisionCount > 0) {
       // Return a large penalty plus the collision count to prioritize fewer collisions
       // Base penalty 10,000 ensures it's much larger than any realistic path time
-      // We assume max path time < 100s usually.
       return 10000 + collisionCount;
     }
 

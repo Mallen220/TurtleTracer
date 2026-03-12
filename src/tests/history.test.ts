@@ -94,7 +94,6 @@ describe("createHistory", () => {
 
     expect(history.canUndo()).toBe(true);
     history.undo();
-    // If duplicate was ignored, we should be back at state1
     expect(history.peek()).toEqual(state1);
   });
 

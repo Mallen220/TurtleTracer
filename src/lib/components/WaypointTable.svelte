@@ -780,12 +780,7 @@
     items.push({
       label: "Duplicate",
       onClick: () => duplicateItem(seqIndex),
-      disabled: isLocked && item.kind === "path", // can duplicate wait if locked? usually duplicating a locked item is fine, but maybe not if we can't insert?
-      // Actually duplication creates a new item, so it shouldn't be blocked by lock of the source,
-      // unless we want to prevent copying locked stuff. Usually "Duplicate" is "Copy & Paste".
-      // But the memory says: "Duplicating a 'Wait' command creates a deep copy..."
-      // The code in ControlTab checks "isLocked" for moving, but duplicating creates new.
-      // Let's allow duplication.
+      disabled: isLocked && item.kind === "path",
     });
 
     items.push({ separator: true });
@@ -926,33 +921,9 @@
         newLine.name = "";
       }
 
-      // Offset the new line slightly or keep it same?
-      // Usually duplicate implies same properties.
-      // But for path, maybe we want it to start where the previous one ended?
-      // Wait, "Duplicate" usually means copy the configuration.
-      // If we duplicate a path segment, we probably want a new segment that continues from the current end point,
-      // with the same relative vector?
-      // Memory says: "Duplicating a path segment creates a new line inserted after the original, calculating the new end point and control points by applying the original segment's vector delta (end - start) to the previous endpoint..."
-
-      // "previous endpoint" is the end point of the line being duplicated (since we insert after it).
-      // So: New.Start = Old.End.
-      // New.End = New.Start + (Old.End - Old.Start).
-      // Old.Start is ... well, the end point of the line *before* the old line.
-
-      // Let's look at `ControlTab` logic if it exists. It doesn't seem to have "Duplicate Path" explicitly, only "Insert Line After" (random) and "Duplicate Wait".
-      // Wait, memory says: "The 'Duplicate' feature is triggered by Shift+D... Duplicating a path segment creates a new line inserted after the original..."
-      // So I should implement that logic.
-
-      // Find previous point for the original line to calculate delta.
-      // The start point of `line` is the end point of the line before it in sequence, or `startPoint` if it's first.
-
       let prevPoint = startPoint;
       if (seqIndex > 0) {
-        // Find the previous PATH item to get its end point.
-        // Actually we just need the point before `line` in the linked list of paths.
-        // `sequence` order matters.
-        // Find path item index in sequence
-        // Go backwards to find a path item.
+
         for (let i = seqIndex - 1; i >= 0; i--) {
           if (sequence[i].kind === "path") {
             const pl = lines.find((l) => l.id === (sequence[i] as any).lineId);
@@ -1937,7 +1908,6 @@
             title={`Add ${def.label} command${getShortcutFromSettings(settings, def.kind === "wait" ? "add-wait" : def.kind === "rotate" ? "add-rotate" : "")}`}
           >
             <!-- Render Icon based on kind for now as SVG string is not easily injectable here without raw HTML -->
-            <!-- We can use @html def.icon if available but we need to size it -->
             {#if def.kind === "wait"}
               <svg
                 xmlns="http://www.w3.org/2000/svg"

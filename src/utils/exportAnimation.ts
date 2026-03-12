@@ -418,12 +418,9 @@ export async function exportPathToGif(
   }
 
   const calculatedFrames = Math.ceil(durationSec * fps);
-  // Use requested frame count (Est. Time * fps). Avoid a small hard cap so we don't silently drop FPS.
-  // We still ensure at least 2 frames.
   const frames = Math.max(2, calculatedFrames);
 
   // For GIFs, delays are stored in centiseconds (10ms) granularity; to maintain
-  // overall accuracy we distribute the total centiseconds across frames.
   const totalCentis = Math.round(durationSec * 100); // total 1/100s
   const baseCs = Math.floor(totalCentis / frames);
   const remainder = totalCentis - baseCs * frames;
@@ -600,12 +597,10 @@ export async function exportPathToApng(
   const { backgroundImage, robotImage } = await prepareResources(options);
 
   const calculatedFrames = Math.ceil(durationSec * fps);
-  // Use requested frame count (Est. Time * fps). Avoid a small hard cap so we don't silently drop FPS.
-  // We still ensure at least 2 frames.
+
   const frames = Math.max(2, calculatedFrames);
 
   // Precise timing calculation:
-  // We want sum(delays) == durationSec * 1000
   // Distribute error accumulation
   const targetTotalMs = durationSec * 1000;
   const delays: number[] = [];
@@ -646,7 +641,6 @@ export async function exportPathToApng(
       buffers.push(imageData.data.buffer);
 
       if (onProgress) {
-        // Encoding is fast/sync, so we count mostly frame capture
         onProgress(((i + 1) / frames) * 0.9);
       }
     }

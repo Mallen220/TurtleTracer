@@ -40,10 +40,6 @@ describe("highlightAndSplit", () => {
   });
 
   it("should handle nested spans if any (though hljs is mostly flat)", () => {
-    // Manually construct a case if we can't force hljs to nest.
-    // Assuming the logic works for nesting due to stack.
-    // Java annotations might be nested?
-    // Let's rely on the multiline comment test as the primary complexity check.
   });
 
   it("should handle empty input", () => {
