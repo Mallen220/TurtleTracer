@@ -121,11 +121,25 @@ export function calculateRobotState(
             activeEvent.headingProfile[activeEvent.headingProfile.length - 1];
         }
       } else {
-        // Find the segment in the profile
+        // Find the segment in the profile using binary search
         // Ensure i stops at length - 2 so i+1 is valid
+        let left = 0;
+        let right = profile.length - 2;
         let i = 0;
-        while (i < profile.length - 2 && relativeTime > profile[i + 1]) {
-          i++;
+
+        while (left <= right) {
+          const mid = (left + right) >> 1;
+          if (relativeTime > profile[mid + 1]) {
+            left = mid + 1;
+            i = left;
+          } else {
+            right = mid - 1;
+            i = mid;
+          }
+        }
+
+        if (i > profile.length - 2) {
+          i = profile.length - 2;
         }
 
         // Interpolate t

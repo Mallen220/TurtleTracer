@@ -1,0 +1,3 @@
+## 2024-05-14 - Animation Profile Search Optimization
+**Learning:** In the animation timeline, computing the active path segment for a specific relative time can be a bottleneck. `calculateRobotState` in `src/utils/animation.ts` is called frequently (e.g., 60fps) and previously used a linear search to scan motion profiles that can contain hundreds or thousands of points.
+**Action:** Replace linear searches over large, ordered timeline/profile arrays with binary search to improve performance from O(N) to O(log N). This reduces loop iterations per frame (e.g., from ~500 down to ~9 for a 1000-point profile) and significantly improves playback smoothness without changing architectural behavior.
