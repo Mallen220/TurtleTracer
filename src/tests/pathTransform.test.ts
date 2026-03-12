@@ -7,6 +7,7 @@ import {
   translatePathData,
   rotatePathData,
   flipPathData,
+  scalePathData,
 } from "../utils/pathTransform";
 import type { Point, Line, Shape, SequenceItem } from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
@@ -529,6 +530,91 @@ describe("pathTransform", () => {
       expect(markers[0].position).toBeCloseTo(0.2);
       expect(markers[1].id).toBe("e1");
       expect(markers[1].position).toBeCloseTo(0.75);
+    });
+  });
+
+  describe("scalePathData", () => {
+    it("scales a basic path with uniform scaling from origin", () => {
+      const data: PathData = {
+        startPoint: { x: 10, y: 10, heading: "constant", degrees: 90 },
+        lines: [
+          {
+            endPoint: {
+              x: 20,
+              y: 20,
+              heading: "tangential",
+              reverse: false,
+              targetX: 30,
+              targetY: 30,
+            },
+            controlPoints: [{ x: 15, y: 15 }],
+            color: "#000",
+            eventMarkers: [],
+          },
+        ],
+        shapes: [
+          {
+            id: "s1",
+            color: "#000",
+            fillColor: "#000",
+            vertices: [
+              { x: 5, y: 5 },
+              { x: 10, y: 10 },
+            ],
+          },
+        ],
+      };
+
+      const scaled = scalePathData(data, 2, 2, 0, 0);
+
+      expect(scaled.startPoint.x).toBeCloseTo(20, 4);
+      expect(scaled.startPoint.y).toBeCloseTo(20, 4);
+      expect((scaled.startPoint as any).degrees).toBe(90);
+
+      expect(scaled.lines[0].endPoint.x).toBeCloseTo(40, 4);
+      expect(scaled.lines[0].endPoint.y).toBeCloseTo(40, 4);
+      expect((scaled.lines[0].endPoint as any).targetX).toBeCloseTo(60, 4);
+      expect((scaled.lines[0].endPoint as any).targetY).toBeCloseTo(60, 4);
+
+      expect(scaled.lines[0].controlPoints[0].x).toBeCloseTo(30, 4);
+      expect(scaled.lines[0].controlPoints[0].y).toBeCloseTo(30, 4);
+
+      expect(scaled.shapes![0].vertices[0].x).toBeCloseTo(10, 4);
+      expect(scaled.shapes![0].vertices[0].y).toBeCloseTo(10, 4);
+      expect(scaled.shapes![0].vertices[1].x).toBeCloseTo(20, 4);
+      expect(scaled.shapes![0].vertices[1].y).toBeCloseTo(20, 4);
+    });
+
+    it("scales a basic path with non-uniform scaling from a custom pivot", () => {
+      const data: PathData = {
+        startPoint: { x: 10, y: 10, heading: "constant", degrees: 90 },
+        lines: [
+          {
+            endPoint: {
+              x: 20,
+              y: 20,
+              heading: "tangential",
+              reverse: false,
+            },
+            controlPoints: [],
+            color: "#000",
+            eventMarkers: [],
+          },
+        ],
+      };
+
+      // Pivot at (15, 15), scaleX=2, scaleY=0.5
+      const scaled = scalePathData(data, 2, 0.5, 15, 15);
+
+      // startPoint X: 15 + (10 - 15) * 2 = 5
+      // startPoint Y: 15 + (10 - 15) * 0.5 = 12.5
+      expect(scaled.startPoint.x).toBeCloseTo(5, 4);
+      expect(scaled.startPoint.y).toBeCloseTo(12.5, 4);
+
+      // endPoint X: 15 + (20 - 15) * 2 = 25
+      // endPoint Y: 15 + (20 - 15) * 0.5 = 17.5
+      expect(scaled.lines[0].endPoint.x).toBeCloseTo(25, 4);
+      expect(scaled.lines[0].endPoint.y).toBeCloseTo(17.5, 4);
     });
   });
 });

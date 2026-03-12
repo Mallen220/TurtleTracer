@@ -14,12 +14,14 @@
     rotatePathData,
     flipPathData,
     reversePathData,
+    scalePathData,
   } from "../../../utils/pathTransform";
   import { sequenceStore } from "../../../lib/projectStore";
 
   export let isOpen = false;
 
-  let activeTab: "translate" | "rotate" | "flip" | "reverse" = "translate";
+  let activeTab: "translate" | "rotate" | "flip" | "scale" | "reverse" =
+    "translate";
 
   // Translate State
   let translateX = 0;
@@ -36,6 +38,11 @@
   // Flip State
   let flipHorizontal = false;
   let flipVertical = false;
+
+  // Scale State
+  let scaleFactor = 1.0;
+  let uniformScale = true;
+  let scaleFactorY = 1.0;
 
   $: effectivePivotX =
     pivotMode === "center" ? 72 : pivotMode === "origin" ? 0 : customPivotX;
@@ -98,6 +105,22 @@
           type: "success",
           timeout: 2000,
         });
+      } else if (activeTab === "scale") {
+        const finalScaleX = scaleFactor;
+        const finalScaleY = uniformScale ? scaleFactor : scaleFactorY;
+        if (finalScaleX === 1.0 && finalScaleY === 1.0) return;
+        transformedData = scalePathData(
+          data,
+          finalScaleX,
+          finalScaleY,
+          effectivePivotX,
+          effectivePivotY,
+        );
+        notification.set({
+          message: `Path scaled by ${finalScaleX}x, ${finalScaleY}x`,
+          type: "success",
+          timeout: 2000,
+        });
       } else if (activeTab === "reverse") {
         transformedData = reversePathData(data);
         notification.set({
@@ -127,6 +150,9 @@
       rotateDegrees = 0;
       flipHorizontal = false;
       flipVertical = false;
+      scaleFactor = 1.0;
+      scaleFactorY = 1.0;
+      uniformScale = true;
     } catch (e: any) {
       notification.set({
         message: `Transformation failed: ${e.message}`,
@@ -213,6 +239,15 @@
           Flip
         </button>
         <button
+          on:click={() => (activeTab = "scale")}
+          class="flex-1 py-3 text-sm font-medium border-b-2 transition-colors {activeTab ===
+          'scale'
+            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+            : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200'}"
+        >
+          Scale
+        </button>
+        <button
           on:click={() => (activeTab = "reverse")}
           class="flex-1 py-3 text-sm font-medium border-b-2 transition-colors {activeTab ===
           'reverse'
@@ -272,7 +307,9 @@
             <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
               {activeTab === "rotate"
                 ? "Rotate the entire path around a pivot point."
-                : "Flip the entire path across an axis."}
+                : activeTab === "scale"
+                  ? "Scale the entire path from a pivot point."
+                  : "Flip the entire path across an axis."}
             </p>
 
             <div class="space-y-4">
@@ -290,6 +327,54 @@
                     bind:value={rotateDegrees}
                     class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                </div>
+              {:else if activeTab === "scale"}
+                <div class="space-y-3">
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      bind:checked={uniformScale}
+                      class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800"
+                    />
+                    <span
+                      class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+                      >Uniform Scaling</span
+                    >
+                  </label>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        for="scale-factor"
+                        class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                      >
+                        {uniformScale ? "Scale Multiplier" : "X Multiplier"}
+                      </label>
+                      <input
+                        id="scale-factor"
+                        type="number"
+                        step="0.1"
+                        bind:value={scaleFactor}
+                        class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    {#if !uniformScale}
+                      <div>
+                        <label
+                          for="scale-factor-y"
+                          class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                        >
+                          Y Multiplier
+                        </label>
+                        <input
+                          id="scale-factor-y"
+                          type="number"
+                          step="0.1"
+                          bind:value={scaleFactorY}
+                          class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    {/if}
+                  </div>
                 </div>
               {:else}
                 <div class="flex gap-6 pt-2 pb-2">

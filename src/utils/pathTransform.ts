@@ -286,6 +286,70 @@ export function flipPathData(
   return f;
 }
 
+// Scale path data by a given factor around a pivot point
+export function scalePathData(
+  data: PathData,
+  scaleX: number,
+  scaleY: number,
+  pivotX: number,
+  pivotY: number,
+): PathData {
+  const s = structuredClone(data);
+
+  const scalePoint = (x: number, y: number) => {
+    return {
+      x: pivotX + (x - pivotX) * scaleX,
+      y: pivotY + (y - pivotY) * scaleY,
+    };
+  };
+
+  if (s.startPoint) {
+    const newPt = scalePoint(s.startPoint.x, s.startPoint.y);
+    s.startPoint.x = newPt.x;
+    s.startPoint.y = newPt.y;
+  }
+
+  if (s.lines) {
+    s.lines.forEach((line: Line) => {
+      if (line.endPoint) {
+        const newPt = scalePoint(line.endPoint.x, line.endPoint.y);
+        line.endPoint.x = newPt.x;
+        line.endPoint.y = newPt.y;
+        if (
+          line.endPoint.targetX !== undefined &&
+          line.endPoint.targetY !== undefined
+        ) {
+          const newTarget = scalePoint(
+            line.endPoint.targetX,
+            line.endPoint.targetY,
+          );
+          line.endPoint.targetX = newTarget.x;
+          line.endPoint.targetY = newTarget.y;
+        }
+      }
+      if (line.controlPoints) {
+        line.controlPoints.forEach((cp: ControlPoint) => {
+          const newPt = scalePoint(cp.x, cp.y);
+          cp.x = newPt.x;
+          cp.y = newPt.y;
+        });
+      }
+    });
+  }
+
+  if (s.shapes) {
+    s.shapes.forEach((shape: Shape) =>
+      shape.vertices?.forEach((v: any) => {
+        const newPt = scalePoint(v.x, v.y);
+        v.x = newPt.x;
+        v.y = newPt.y;
+      }),
+    );
+  }
+
+  return s;
+}
+
 // Reverse path direction
 export function reversePathData(data: {
   startPoint: Point;
