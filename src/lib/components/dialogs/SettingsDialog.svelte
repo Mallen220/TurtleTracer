@@ -1842,6 +1842,29 @@
                 </SettingsItem>
 
                 <SettingsItem
+                  label="Visualizer Units"
+                  isModified={settings.visualizerUnits !==
+                    DEFAULT_SETTINGS.visualizerUnits}
+                  onReset={() => {
+                    settings.visualizerUnits =
+                      DEFAULT_SETTINGS.visualizerUnits;
+                    settings = { ...settings };
+                  }}
+                  description="Choose between Imperial (Inches) and Metric (cm) for the user interface"
+                  {searchQuery}
+                  forId="visualizer-units-select"
+                >
+                  <select
+                    id="visualizer-units-select"
+                    bind:value={settings.visualizerUnits}
+                    class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="imperial">Imperial (Inches)</option>
+                    <option value="metric">Metric (cm)</option>
+                  </select>
+                </SettingsItem>
+
+                <SettingsItem
                   label="Smart Object Snapping"
                   isModified={settings.smartSnapping !==
                     DEFAULT_SETTINGS.smartSnapping}
@@ -2050,6 +2073,50 @@
                         <option value="points">Points Array</option>
                         <option value="json">JSON Project Data</option>
                       </select>
+                    </SettingsItem>
+
+                    <SettingsItem
+                      label="Code Units"
+                      isModified={settings.codeUnits !==
+                        DEFAULT_SETTINGS.codeUnits}
+                      onReset={() => {
+                        settings.codeUnits =
+                          DEFAULT_SETTINGS.codeUnits;
+                        settings = { ...settings };
+                      }}
+                      description="Unit system generated in code"
+                      {searchQuery}
+                      layout="col"
+                    >
+                      <select
+                        bind:value={settings.codeUnits}
+                        class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="imperial">Imperial (Inches)</option>
+                        <option value="metric">Metric (cm)</option>
+                      </select>
+                      {#if settings.codeUnits === "metric" && !settings.autoExportEmbedPoseData && settings.autoExportFormat === "sequential"}
+                        <div
+                          class="mt-2 flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-lg border border-yellow-200 dark:border-yellow-800/50"
+                          role="alert"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="size-4 shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                          </svg>
+                          <span>Metric code generation requires embedding poses. Please enable 'Embed Pose Data' below.</span>
+                        </div>
+                      {/if}
                     </SettingsItem>
 
                     {#if settings.autoExportFormat === "java"}

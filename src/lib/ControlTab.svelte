@@ -555,7 +555,7 @@
       </div>
     </div>
     <div class="flex-1 w-full overflow-y-auto overflow-x-hidden relative">
-      <DiffTab />
+      <DiffTab {settings} />
     </div>
   {:else}
     <!-- Tab Switcher -->

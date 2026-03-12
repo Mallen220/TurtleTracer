@@ -30,6 +30,7 @@ export async function generateJavaCode(
   packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
   telemetryImpl: "Standard" | "Dashboard" | "Panels" | "None" = "Panels",
   coordinateSystem: CoordinateSystem = "Pedro",
+  codeUnits: "imperial" | "metric" = "imperial",
 ): Promise<string> {
   const headingTypeToFunctionName = {
     constant: "setConstantHeadingInterpolation",
@@ -116,7 +117,9 @@ export async function generateJavaCode(
               // If we use buildPose, it returns a Pose.
               // The conversion helper should convert heading too.
               const uh = toUserHeading(h, "FTC");
-              return `buildPose(${u.x.toFixed(3)}, ${u.y.toFixed(3)}, Math.toRadians(${uh.toFixed(3)}))`;
+              const px = codeUnits === "metric" ? `cmToInches(${(u.x * 2.54).toFixed(3)})` : u.x.toFixed(3);
+              const py = codeUnits === "metric" ? `cmToInches(${(u.y * 2.54).toFixed(3)})` : u.y.toFixed(3);
+              return `buildPose(${px}, ${py}, Math.toRadians(${uh.toFixed(3)}))`;
             };
 
             const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
@@ -157,19 +160,29 @@ export async function generateJavaCode(
           } else {
             // Standard Pedro (0-144)
             const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
-            startCode = `new Pose(${startPt.x.toFixed(3)}, ${startPt.y.toFixed(3)})`;
+            const sx = codeUnits === "metric" ? `cmToInches(${(startPt.x * 2.54).toFixed(3)})` : startPt.x.toFixed(3);
+            const sy = codeUnits === "metric" ? `cmToInches(${(startPt.y * 2.54).toFixed(3)})` : startPt.y.toFixed(3);
+            startCode = `new Pose(${sx}, ${sy})`;
 
             controlPointsCode =
               line.controlPoints.length > 0
                 ? `${line.controlPoints
                     .map(
-                      (point) =>
-                        `new Pose(${point.x.toFixed(3)}, ${point.y.toFixed(3)})`,
+                      (point) => {
+                        const px = codeUnits === "metric" ? `cmToInches(${(point.x * 2.54).toFixed(3)})` : point.x.toFixed(3);
+                        const py = codeUnits === "metric" ? `cmToInches(${(point.y * 2.54).toFixed(3)})` : point.y.toFixed(3);
+                        return `new Pose(${px}, ${py})`;
+                      }
                     )
                     .join(",\n")},`
                 : "";
 
-            endCode = `new Pose(${line.endPoint.x.toFixed(3)}, ${line.endPoint.y.toFixed(3)})`;
+            const ex = codeUnits === "metric" ? `cmToInches(${(line.endPoint.x * 2.54).toFixed(3)})` : line.endPoint.x.toFixed(3);
+            const ey = codeUnits === "metric" ? `cmToInches(${(line.endPoint.y * 2.54).toFixed(3)})` : line.endPoint.y.toFixed(3);
+            endCode = `new Pose(${ex}, ${ey})`;
+
+            let hx = line.endPoint.targetX ? (codeUnits === "metric" ? `cmToInches(${(line.endPoint.targetX * 2.54).toFixed(3)})` : line.endPoint.targetX.toFixed(3)) : "0";
+            let hy = line.endPoint.targetY ? (codeUnits === "metric" ? `cmToInches(${(line.endPoint.targetY * 2.54).toFixed(3)})` : line.endPoint.targetY.toFixed(3)) : "0";
 
             headingConfig =
               line.endPoint.heading === "constant"
@@ -177,7 +190,7 @@ export async function generateJavaCode(
                 : line.endPoint.heading === "linear"
                   ? `Math.toRadians(${line.endPoint.startDeg}), Math.toRadians(${line.endPoint.endDeg})`
                   : line.endPoint.heading === "facingPoint"
-                    ? `new Pose(${(line.endPoint.targetX || 0).toFixed(3)}, ${(line.endPoint.targetY || 0).toFixed(3)})`
+                    ? `new Pose(${hx}, ${hy})`
                     : "";
           }
 
@@ -250,6 +263,15 @@ export async function generateJavaCode(
         ).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
     }
     `
+        : ""
+    }
+    ${
+      codeUnits === "metric"
+        ? `
+    private double cmToInches(double cm) {
+        return cm / 2.54;
+    }
+`
         : ""
     }
   }
@@ -492,9 +514,15 @@ export async function generateJavaCode(
             ? (() => {
                 const uStart = toUser(startPoint, "FTC");
                 const uHead = toUserHeading(startDegForExport, "FTC");
-                return `follower.setStartingPose(new Paths(follower).buildPose(${uStart.x.toFixed(3)}, ${uStart.y.toFixed(3)}, Math.toRadians(${uHead.toFixed(3)})));`;
+                const px = codeUnits === "metric" ? `cmToInches(${(uStart.x * 2.54).toFixed(3)})` : uStart.x.toFixed(3);
+                const py = codeUnits === "metric" ? `cmToInches(${(uStart.y * 2.54).toFixed(3)})` : uStart.y.toFixed(3);
+                return `follower.setStartingPose(new Paths(follower).buildPose(${px}, ${py}, Math.toRadians(${uHead.toFixed(3)})));`;
               })()
-            : `follower.setStartingPose(new Pose(${startPoint.x.toFixed(3)}, ${startPoint.y.toFixed(3)}, Math.toRadians(${startDegForExport.toFixed(3)})));`
+            : (() => {
+                const px = codeUnits === "metric" ? `cmToInches(${(startPoint.x * 2.54).toFixed(3)})` : startPoint.x.toFixed(3);
+                const py = codeUnits === "metric" ? `cmToInches(${(startPoint.y * 2.54).toFixed(3)})` : startPoint.y.toFixed(3);
+                return `follower.setStartingPose(new Pose(${px}, ${py}, Math.toRadians(${startDegForExport.toFixed(3)})));`;
+              })()
         }
 
         pathTimer = new ElapsedTime();
@@ -543,7 +571,11 @@ export async function generateJavaCode(
 /**
  * Generate an array of waypoints (not sampled points) along the path
  */
-export function generatePointsArray(startPoint: Point, lines: Line[]): string {
+export function generatePointsArray(
+  startPoint: Point,
+  lines: Line[],
+  codeUnits: "imperial" | "metric" = "imperial"
+): string {
   const points: BasePoint[] = [];
 
   // Add start point
@@ -563,12 +595,18 @@ export function generatePointsArray(startPoint: Point, lines: Line[]): string {
   // Format as string array, removing decimal places for whole numbers
   const pointsString = points
     .map((point) => {
-      const x = Number.isInteger(point.x)
-        ? point.x.toFixed(1)
-        : point.x.toFixed(3);
-      const y = Number.isInteger(point.y)
-        ? point.y.toFixed(1)
-        : point.y.toFixed(3);
+      let xVal = point.x;
+      let yVal = point.y;
+      if (codeUnits === "metric") {
+        xVal *= 2.54;
+        yVal *= 2.54;
+      }
+      const x = Number.isInteger(xVal)
+        ? xVal.toFixed(1)
+        : xVal.toFixed(3);
+      const y = Number.isInteger(yVal)
+        ? yVal.toFixed(1)
+        : yVal.toFixed(3);
       return `(${x}, ${y})`;
     })
     .join(", ");
@@ -588,6 +626,7 @@ export async function generateSequentialCommandCode(
   packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
   hardcodeValues: boolean = false,
   coordinateSystem: CoordinateSystem = "Pedro",
+  codeUnits: "imperial" | "metric" = "imperial",
 ): Promise<string> {
   // Determine class name from file name or use default
   let className = "AutoPath";
@@ -628,12 +667,16 @@ export async function generateSequentialCommandCode(
         if (coordinateSystem === "FTC") {
           const userPt = toUser(point, "FTC");
           const userHead = toUserHeading(degrees, "FTC");
+          const px = codeUnits === "metric" ? `cmToInches(${(userPt.x * 2.54).toFixed(3)})` : userPt.x.toFixed(3);
+          const py = codeUnits === "metric" ? `cmToInches(${(userPt.y * 2.54).toFixed(3)})` : userPt.y.toFixed(3);
           allPoseInitializations.push(
-            `        ${variableName} = buildPose(${userPt.x.toFixed(3)}, ${userPt.y.toFixed(3)}, Math.toRadians(${userHead.toFixed(3)}));`,
+            `        ${variableName} = buildPose(${px}, ${py}, Math.toRadians(${userHead.toFixed(3)}));`,
           );
         } else {
+          const px = codeUnits === "metric" ? `cmToInches(${(point.x * 2.54).toFixed(3)})` : point.x.toFixed(3);
+          const py = codeUnits === "metric" ? `cmToInches(${(point.y * 2.54).toFixed(3)})` : point.y.toFixed(3);
           allPoseInitializations.push(
-            `        ${variableName} = new Pose(${point.x.toFixed(3)}, ${point.y.toFixed(3)}, Math.toRadians(${degrees}));`,
+            `        ${variableName} = new Pose(${px}, ${py}, Math.toRadians(${degrees}));`,
           );
         }
       } else {
@@ -1115,6 +1158,15 @@ ${commands.join(",\n")}
         ).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
     }
     `
+        : ""
+    }
+    ${
+      codeUnits === "metric"
+        ? `
+    private double cmToInches(double cm) {
+        return cm / 2.54;
+    }
+`
         : ""
     }
 }

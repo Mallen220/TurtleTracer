@@ -227,7 +227,8 @@ export interface Settings {
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
   followRobot?: boolean;
   coordinateSystem?: "Pedro" | "FTC";
-  // UI control: show or hide the telemetry tab in the control panel
+  visualizerUnits?: "imperial" | "metric";
+  codeUnits?: "imperial" | "metric";
   showTelemetryTab?: boolean;
 }
 

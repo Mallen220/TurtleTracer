@@ -16,7 +16,7 @@
     isLineLinked,
   } from "../../../utils/pointLinking";
   import { settingsStore } from "../../projectStore";
-  import { toUser, toField } from "../../../utils/coordinates";
+  import { toUser, toField, formatDisplayCoordinate, cmToInch } from "../../../utils/coordinates";
   import { tooltipPortal } from "../../actions/portal";
   import { onMount, onDestroy } from "svelte";
   import { actionRegistry } from "../../actionRegistry";
@@ -411,10 +411,13 @@
                 type="number"
                 min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
                 max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
-                value={userPoint.x}
-                on:input={(e) => {
-                  const val = parseFloat(e.currentTarget.value);
+                value={formatDisplayCoordinate(userPoint.x, $settingsStore)}
+                on:change={(e) => {
+                  let val = parseFloat(e.currentTarget.value);
                   if (!isNaN(val)) {
+                    if ($settingsStore.visualizerUnits === "metric") {
+                      val = cmToInch(val);
+                    }
                     const newPt = toField(
                       { x: val, y: userPoint.y },
                       $settingsStore.coordinateSystem || "Pedro",
@@ -441,10 +444,13 @@
                 min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
                 max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
                 type="number"
-                value={userPoint.y}
-                on:input={(e) => {
-                  const val = parseFloat(e.currentTarget.value);
+                value={formatDisplayCoordinate(userPoint.y, $settingsStore)}
+                on:change={(e) => {
+                  let val = parseFloat(e.currentTarget.value);
                   if (!isNaN(val)) {
+                    if ($settingsStore.visualizerUnits === "metric") {
+                      val = cmToInch(val);
+                    }
                     const newPt = toField(
                       { x: userPoint.x, y: val },
                       $settingsStore.coordinateSystem || "Pedro",

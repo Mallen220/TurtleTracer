@@ -236,6 +236,8 @@ interface Settings {
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
   followRobot?: boolean;
   coordinateSystem?: "Pedro" | "FTC";
+  visualizerUnits?: "imperial" | "metric";
+  codeUnits?: "imperial" | "metric";
   // UI control: show or hide the telemetry tab in the control panel
   showTelemetryTab?: boolean;
 }
