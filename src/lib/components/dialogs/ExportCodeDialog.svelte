@@ -777,7 +777,10 @@
                   <line x1="12" y1="9" x2="12" y2="13"></line>
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
                 </svg>
-                <span>Metric code generation requires embedding poses. Please enable 'Embed Pose Data'.</span>
+                <span
+                  >Metric code generation requires embedding poses. Please
+                  enable 'Embed Pose Data'.</span
+                >
               </div>
             {/if}
           {/if}
@@ -802,11 +805,15 @@
 
           {#if exportFormat === "java" || exportFormat === "sequential" || exportFormat === "points"}
             <div class="flex flex-col gap-1.5 mt-2">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+              <span
+                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+              >
                 Code Units
               </span>
               <div class="flex gap-2" role="radiogroup">
-                <label class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer">
+                <label
+                  class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer"
+                >
                   <input
                     type="radio"
                     name="codeUnits"
@@ -817,7 +824,9 @@
                   />
                   <span>Imperial (Inches)</span>
                 </label>
-                <label class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer">
+                <label
+                  class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 cursor-pointer"
+                >
                   <input
                     type="radio"
                     name="codeUnits"
