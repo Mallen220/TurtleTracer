@@ -151,12 +151,9 @@ describe("Time Calculator Extended", () => {
         sequence,
       );
 
-
-
       // Check timeline event types
       const types = result.timeline.map((e) => e.type);
       // Expect: travel, wait (explicit), wait (rotate), wait (auto-rotate before L2?), travel.
-
 
       expect(types).toContain("travel");
       expect(types).toContain("wait");

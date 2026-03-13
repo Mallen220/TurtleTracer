@@ -81,7 +81,6 @@ export function calculateRobotState(
       clampedProgress,
     );
 
-
     return {
       x: xScale(point.x),
       y: yScale(point.y),
@@ -111,7 +110,6 @@ export function calculateRobotState(
       const profileEndTime = profile[profile.length - 1];
 
       if (relativeTime >= profileEndTime) {
-
         linePercent = 1;
         if (
           activeEvent.headingProfile &&
@@ -140,7 +138,6 @@ export function calculateRobotState(
         }
 
         linePercent = tStart + localProgress * (tEnd - tStart);
-
 
         if (
           activeEvent.headingProfile &&
@@ -288,7 +285,6 @@ export function createAnimationController(
   }
 
   function animate(timestamp: number) {
-
     if (!state.playing) {
       state.lastTimestamp = null;
       absoluteStartTime = null;
@@ -387,7 +383,6 @@ export function createAnimationController(
       updatePercentFromAccumulated();
       if (!isExternalChange) onPercentChange(state.percent);
     } else if (state.totalDuration > 0 && state.loopRangeActive) {
-
       if (
         state.accumulatedSeconds < startSec ||
         state.accumulatedSeconds >= endSec

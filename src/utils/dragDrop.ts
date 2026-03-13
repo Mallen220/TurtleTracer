@@ -21,7 +21,6 @@ export function getClosestTarget(
   let closest: HTMLElement | null = null;
   let closestDist = Infinity;
 
-
   const mouseY = e.clientY;
 
   elements.forEach((el) => {
@@ -51,7 +50,6 @@ export function reorderSequence<T>(
 ): T[] {
   // Target index logic:
   let targetInsertionIndex = position === "top" ? toIndex : toIndex + 1;
-
 
   if (fromIndex < targetInsertionIndex) {
     targetInsertionIndex--;

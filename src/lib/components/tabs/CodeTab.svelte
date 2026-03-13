@@ -123,7 +123,6 @@
           const partLinesRaw = part.value.replace(/\n$/, "").split("\n");
           const count = partLinesRaw.length;
 
-
           if (part.added) {
             // Take lines from newLinesHL
             for (let i = 0; i < count; i++) {
@@ -159,8 +158,6 @@
             newLineIndex += count;
           }
         });
-
-        
 
         for (let i = 0; i < newDisplayLines.length - 1; i++) {
           if (

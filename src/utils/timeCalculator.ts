@@ -467,7 +467,6 @@ export function calculateRotationTime(
   let maxAngAccel = settings.maxAngularAcceleration;
 
   if (!maxAngAccel || maxAngAccel <= 0) {
-
     const leverArm = Math.max(settings.rWidth / 2, 1); // Avoid division by zero
     const maxAccel = settings.maxAcceleration || 30;
     maxAngAccel = maxAccel / leverArm;

@@ -47,7 +47,6 @@ export function toFieldHeading(
   return userHeading;
 }
 
-
 export function toUserCoordinate(
   val: number,
   system: CoordinateSystem,

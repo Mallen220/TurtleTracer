@@ -95,7 +95,6 @@ describe("pathTransform fuzz tests", () => {
   it("reversePathData should be an involution (f(f(x)) = x) for path geometry", () => {
     fc.assert(
       fc.property(pathDataGenerator, (data: any) => {
-
         if (!data.lines || data.lines.length === 0) return true;
 
         const r1 = reversePathData(data);
@@ -104,7 +103,6 @@ describe("pathTransform fuzz tests", () => {
         const normalize = (o: any) => structuredClone(o);
         const original = normalize(data);
         const doubleReversed = normalize(r2);
-
 
         expect(doubleReversed.startPoint.x).toBeCloseTo(original.startPoint.x);
 

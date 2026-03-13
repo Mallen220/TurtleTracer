@@ -266,7 +266,6 @@
       "save-to": "save-to",
     };
 
-   
     if (action === "rename") {
       dispatch("rename-start", file);
     } else {

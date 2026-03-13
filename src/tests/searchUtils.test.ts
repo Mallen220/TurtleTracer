@@ -41,7 +41,6 @@ describe("WhatsNew Search Utils", () => {
     });
 
     it("should escape HTML characters", () => {
-
       expect(highlightSnippet("<div>", "div")).toContain("&lt;<span");
       expect(highlightSnippet("<div>", "div")).toContain("div</span>&gt;");
     });

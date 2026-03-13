@@ -166,7 +166,6 @@ export function getCurvePoint(
       const nx = p0.x + (p1.x - p0.x) * t;
       const ny = p0.y + (p1.y - p0.y) * t;
 
-
       if (n === len) {
         work[i] = { x: nx, y: ny };
       } else {
@@ -190,8 +189,6 @@ export function splitBezier(
   const left: { x: number; y: number }[] = [];
   const right: { x: number; y: number }[] = [];
   const n = points.length - 1;
-
-
 
   let currentPoints = points.slice();
 

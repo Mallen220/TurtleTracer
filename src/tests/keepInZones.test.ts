@@ -171,7 +171,6 @@ describe("PathOptimizer Keep-In Zones", () => {
   });
 
   it("should prioritize checking against multiple keep-in zones (union behavior check)", () => {
-
     lines[0].endPoint.x = 80;
     // Gap between x=40 and x=60.
     shapes = [

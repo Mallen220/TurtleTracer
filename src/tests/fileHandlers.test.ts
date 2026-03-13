@@ -302,7 +302,6 @@ describe("fileHandlers", () => {
     });
 
     it("should NOT save settings in the .pp file", async () => {
-
       linesStore.set([{ id: "1", name: "Line 1" } as any]);
       // Set a specific setting to verify
       settingsStore.update((s) => ({ ...s, fieldMap: "ShouldNotBeSaved" }));
@@ -345,7 +344,6 @@ describe("fileHandlers", () => {
       // Should check if it copies to /my/projects/file.pp
       // Depending on separator logic in implementation
       expect(mockElectronAPI.copyFile).toHaveBeenCalled();
-
     });
 
     it("should just load if in saved directory", async () => {

@@ -476,7 +476,6 @@
               "You have unsaved changes. Press OK to save them before opening. Press Cancel to proceed without saving.",
             )
           ) {
-
             const currentPath = get(currentFilePath);
             let success = false;
 

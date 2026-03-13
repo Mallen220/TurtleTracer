@@ -83,5 +83,4 @@ test("EmptyState appears when all items are deleted", async () => {
 
   const deleteButton = screen.queryByTitle("Delete Path");
   expect(deleteButton).toBeInTheDocument();
-
 });

@@ -23,7 +23,6 @@ export function highlightAndSplit(
 
   const highlighted = hljs.highlight(code, { language }).value;
 
-
   const lines: string[] = [];
   const openTags: string[] = [];
   let currentLine = "";

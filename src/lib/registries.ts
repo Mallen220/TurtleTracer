@@ -157,7 +157,6 @@ export interface DialogDefinition {
   id: string;
   component: any;
   props?: any;
-
 }
 
 const createDialogRegistry = () => {

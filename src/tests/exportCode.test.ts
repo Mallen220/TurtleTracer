@@ -3,7 +3,6 @@ import { render, fireEvent, waitFor } from "@testing-library/svelte";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import ExportCodeDialog from "../lib/components/dialogs/ExportCodeDialog.svelte";
 
-
 vi.mock("../utils", () => {
   return {
     getRandomColor: vi.fn(() => "#ffffff"),

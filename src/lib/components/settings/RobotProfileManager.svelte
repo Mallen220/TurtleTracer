@@ -66,7 +66,6 @@
     const profile = profiles.find((p) => p.id === selectedProfileId);
     if (!profile) return;
 
-
     if (
       !confirm(
         `Apply settings from "${profile.name}"? This will overwrite your current robot configuration.`,
