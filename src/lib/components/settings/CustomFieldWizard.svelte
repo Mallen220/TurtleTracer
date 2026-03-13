@@ -35,7 +35,6 @@
     if (currentConfig) {
       imageData = currentConfig.imageData;
       mapName = currentConfig.name || "My Custom Field";
-
     } else {
       imageData = null;
       mapName = "My Custom Field";

@@ -73,7 +73,6 @@
   function handleWindowDragOver(e: DragEvent) {
     if (draggingIndex === null) return;
 
-
     if (!containerRef) return;
 
     e.preventDefault();

@@ -447,7 +447,6 @@
           let accLin = 0;
           let accCent = 0;
           if (dt > 1e-6) {
-
             let vNext = 0;
             if (velocityProfile && velocityProfile.length > i + 1) {
               vNext = velocityProfile[i + 1];

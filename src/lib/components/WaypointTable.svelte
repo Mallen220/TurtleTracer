@@ -923,7 +923,6 @@
 
       let prevPoint = startPoint;
       if (seqIndex > 0) {
-
         for (let i = seqIndex - 1; i >= 0; i--) {
           if (sequence[i].kind === "path") {
             const pl = lines.find((l) => l.id === (sequence[i] as any).lineId);

@@ -79,7 +79,6 @@ export async function generateJavaCode(
       ? line.name.replace(/[^a-zA-Z0-9]/g, "")
       : `line${idx + 1}`;
 
-
     if (usedPathNames.has(baseName)) {
       const count = usedPathNames.get(baseName)!;
       usedPathNames.set(baseName, count + 1);
@@ -344,8 +343,6 @@ export async function generateJavaCode(
     // Check Registry
     const action = actionRegistry.get(item.kind);
     if (action && action.toJavaCode) {
-
-
       const res = action.toJavaCode(item, { stateStep });
       stateMachineCode += res.code;
       stateStep += res.stepsUsed;
@@ -960,8 +957,6 @@ export async function generateSequentialCommandCode(
             ? lines[idx - 1]!.name!.replace(/[^a-zA-Z0-9]/g, "")
             : `point${idx}`; // Uses 'pointN' which maps to endPointName in poseVariableNames?
 
-
-
       const startPoseVar =
         idx === 0 ? "startPoint" : poseVariableNames.get(`point${idx}`);
       // Fallback if something is wrong, though logic aligns with declaration loop
@@ -970,7 +965,6 @@ export async function generateSequentialCommandCode(
       const endPoseName = line.name
         ? line.name.replace(/[^a-zA-Z0-9]/g, "")
         : `point${idx + 1}`;
-
 
       const endPoseVar = endPoseName;
 

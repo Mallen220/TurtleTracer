@@ -146,7 +146,6 @@ export function createHistory(maxSize = 200) {
     // Check if id is in redoStack (future)
     const redoIndex = redoStack.findIndex((item) => item.id === id);
     if (redoIndex !== -1) {
-
       let safety = redoStack.length + 1;
       while (safety-- > 0 && canRedo()) {
         redo();

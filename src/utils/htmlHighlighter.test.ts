@@ -39,8 +39,7 @@ describe("highlightAndSplit", () => {
     expect(lines[1]).toBe(""); // Or just empty tags if context persists, but here no context
   });
 
-  it("should handle nested spans if any (though hljs is mostly flat)", () => {
-  });
+  it("should handle nested spans if any (though hljs is mostly flat)", () => {});
 
   it("should handle empty input", () => {
     const lines = highlightAndSplit("");

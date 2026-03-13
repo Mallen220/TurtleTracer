@@ -12,7 +12,6 @@ import type {
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 
-
 describe("PathStatisticsDialog", () => {
   let defaultStartPoint: Point;
   let defaultLines: Line[];

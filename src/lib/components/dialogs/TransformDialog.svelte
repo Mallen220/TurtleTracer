@@ -14,12 +14,14 @@
     rotatePathData,
     flipPathData,
     reversePathData,
+    scalePathData,
   } from "../../../utils/pathTransform";
   import { sequenceStore } from "../../../lib/projectStore";
 
   export let isOpen = false;
 
-  let activeTab: "translate" | "rotate" | "flip" | "reverse" = "translate";
+  let activeTab: "translate" | "rotate" | "flip" | "reverse" | "scale" =
+    "translate";
 
   // Translate State
   let translateX = 0;
@@ -36,6 +38,15 @@
   // Flip State
   let flipHorizontal = false;
   let flipVertical = false;
+
+  // Scale State
+  let scaleXPercent = 100;
+  let scaleYPercent = 100;
+  let uniformScale = true;
+
+  $: if (uniformScale) {
+    scaleYPercent = scaleXPercent;
+  }
 
   $: effectivePivotX =
     pivotMode === "center" ? 72 : pivotMode === "origin" ? 0 : customPivotX;
@@ -104,6 +115,20 @@
           type: "success",
           timeout: 2000,
         });
+      } else if (activeTab === "scale") {
+        if (scaleXPercent === 100 && scaleYPercent === 100) return;
+        transformedData = scalePathData(
+          data,
+          scaleXPercent / 100,
+          scaleYPercent / 100,
+          effectivePivotX,
+          effectivePivotY,
+        );
+        notification.set({
+          message: `Path scaled by ${scaleXPercent}% X, ${scaleYPercent}% Y`,
+          type: "success",
+          timeout: 2000,
+        });
       }
 
       if (transformedData) {
@@ -126,6 +151,9 @@
       rotateDegrees = 0;
       flipHorizontal = false;
       flipVertical = false;
+      scaleXPercent = 100;
+      scaleYPercent = 100;
+      uniformScale = true;
     } catch (e: any) {
       notification.set({
         message: `Transformation failed: ${e.message}`,
@@ -220,6 +248,15 @@
         >
           Reverse
         </button>
+        <button
+          on:click={() => (activeTab = "scale")}
+          class="flex-1 py-3 text-sm font-medium border-b-2 transition-colors {activeTab ===
+          'scale'
+            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+            : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200'}"
+        >
+          Scale
+        </button>
       </div>
 
       <div class="p-6 bg-white dark:bg-neutral-900 space-y-6">
@@ -264,6 +301,137 @@
                   class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+            </div>
+          </div>
+        {:else if activeTab === "scale"}
+          <div>
+            <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+              Scale the entire path relative to a pivot point.
+            </p>
+
+            <div class="mb-4">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  bind:checked={uniformScale}
+                  class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800"
+                />
+                <span
+                  class="text-sm font-medium text-neutral-700 dark:text-neutral-300"
+                  >Uniform Scale</span
+                >
+              </label>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  for="scale-x"
+                  class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                >
+                  Scale X (%)
+                </label>
+                <input
+                  id="scale-x"
+                  type="number"
+                  bind:value={scaleXPercent}
+                  class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label
+                  for="scale-y"
+                  class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                >
+                  Scale Y (%)
+                </label>
+                <input
+                  id="scale-y"
+                  type="number"
+                  bind:value={scaleYPercent}
+                  disabled={uniformScale}
+                  class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            <div
+              class="mt-4 p-4 border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-50 dark:bg-neutral-800/50"
+            >
+              <label
+                for="pivot-mode"
+                class="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-2"
+              >
+                Pivot Point
+              </label>
+              <div class="flex gap-2 mb-3">
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer text-sm text-neutral-700 dark:text-neutral-300"
+                >
+                  <input
+                    type="radio"
+                    bind:group={pivotMode}
+                    value="center"
+                    name="pivot-mode-scale"
+                    class="text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600"
+                  /> Center (72, 72)
+                </label>
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer text-sm text-neutral-700 dark:text-neutral-300 ml-4"
+                >
+                  <input
+                    type="radio"
+                    bind:group={pivotMode}
+                    value="origin"
+                    name="pivot-mode-scale"
+                    class="text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600"
+                  /> Origin (0, 0)
+                </label>
+                <label
+                  class="flex items-center gap-1.5 cursor-pointer text-sm text-neutral-700 dark:text-neutral-300 ml-4"
+                >
+                  <input
+                    type="radio"
+                    bind:group={pivotMode}
+                    value="custom"
+                    name="pivot-mode-scale"
+                    class="text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600"
+                  /> Custom
+                </label>
+              </div>
+
+              {#if pivotMode === "custom"}
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      for="pivot-x-scale"
+                      class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                    >
+                      Pivot X
+                    </label>
+                    <input
+                      id="pivot-x-scale"
+                      type="number"
+                      bind:value={customPivotX}
+                      class="w-full px-3 py-2 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      for="pivot-y-scale"
+                      class="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1"
+                    >
+                      Pivot Y
+                    </label>
+                    <input
+                      id="pivot-y-scale"
+                      type="number"
+                      bind:value={customPivotY}
+                      class="w-full px-3 py-2 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              {/if}
             </div>
           </div>
         {:else}

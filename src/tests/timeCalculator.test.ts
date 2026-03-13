@@ -191,7 +191,6 @@ describe("Time Calculator", () => {
     // t_const = 1.324 / 1.57 = 0.843s.
     // Total = 0.157 + 0.157 + 0.843 = 1.157s.
 
-
     const lines: Line[] = [
       {
         id: "line1",

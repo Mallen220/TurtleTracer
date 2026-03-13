@@ -147,7 +147,6 @@ describe("animation", () => {
       controller.pause();
       expect(controller.isPlaying()).toBe(false);
     });
-
   });
 
   describe("generateOnionLayers", () => {

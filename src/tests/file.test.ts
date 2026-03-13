@@ -136,7 +136,6 @@ describe("File Utils", () => {
       const onError = vi.fn();
 
       loadTrajectoryFromFile(event, onSuccess, onError);
-
     });
   });
 });

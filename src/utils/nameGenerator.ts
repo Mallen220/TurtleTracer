@@ -30,7 +30,6 @@ export function generateName(
   const normalize = (n: string) => n.trim().toLowerCase();
   const existingSet = new Set(existingNames.map(normalize));
 
-
   if (!existingSet.has(normalize(baseName))) {
     return baseName;
   }
@@ -54,13 +53,9 @@ export function generateName(
     }
   }
 
-
   let candidate = "";
 
-
-
   if (match) {
-
     let i = currentNum + 1;
     while (true) {
       candidate = `${coreName} duplicate ${i}`;

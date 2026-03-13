@@ -437,7 +437,6 @@ export async function exportAsPP() {
   const defaultName = `${filename}.pp`;
 
   if (electronAPI) {
-
     // Use save dialog + writeFile
     if (electronAPI.showSaveDialog && electronAPI.writeFile) {
       const filePath = await electronAPI.showSaveDialog({
@@ -852,7 +851,7 @@ export async function handleAutoExport(
     const filename = `${baseName}.${extension}`;
 
     // Resolve final file path. resolvePath resolves base (file) + relative (path).
-    
+
     const relativePath = `${exportDirName}/${filename}`;
     const finalPath = await electronAPI.resolvePath(targetPath, relativePath);
 
