@@ -254,6 +254,16 @@
         class="font-bold text-lg leading-tight tracking-tight text-neutral-900 dark:text-neutral-100"
         >Pedro Pathing Plus Visualizer</span
       >
+      <div
+        class="mt-1 rounded-md border border-amber-300/80 bg-amber-100/80 dark:bg-amber-900/30 px-2 py-1 text-[11px] leading-snug text-amber-900 dark:text-amber-100 shadow-sm"
+      >
+        <span class="font-extrabold uppercase tracking-wide"
+          >Renaming Notice:</span
+        >
+        <span class="font-semibold">
+          This program is getting renamed to <span class="font-extrabold">Turtle Tracer</span>.
+        </span>
+      </div>
       {#if $currentFilePath}
         <div
           class="flex items-center text-xs text-neutral-500 dark:text-neutral-400"
