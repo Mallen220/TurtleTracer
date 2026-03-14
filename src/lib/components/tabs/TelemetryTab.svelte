@@ -101,7 +101,7 @@
           class="text-purple-600 focus:ring-purple-500"
         />
         <span class="text-neutral-700 dark:text-neutral-300"
-          >TCP (PedroPathing)</span
+          >TCP (TurtleTracerLib)</span
         >
       </label>
       <label class="flex items-center gap-2 cursor-pointer">

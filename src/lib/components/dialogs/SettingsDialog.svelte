@@ -220,7 +220,10 @@
       const url = URL.createObjectURL(blob);
       const downloadAnchorNode = document.createElement("a");
       downloadAnchorNode.setAttribute("href", url);
-      downloadAnchorNode.setAttribute("download", "pedro-settings.json");
+      downloadAnchorNode.setAttribute(
+        "download",
+        "turtle-tracer-settings.json",
+      );
       document.body.appendChild(downloadAnchorNode);
       downloadAnchorNode.click();
       notification.set({
@@ -2484,7 +2487,7 @@
                     <p
                       class="text-xs text-neutral-500 dark:text-neutral-400 mb-2"
                     >
-                      Formerly Pedro Pathing Plus Visualizer (originally Pedro Pathing Visualizer)
+                      Formerly Pedro Pathing Plus Visualizer
                     </p>
                     <p
                       class="text-sm text-neutral-500 dark:text-neutral-400 mb-6"

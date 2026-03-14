@@ -4,6 +4,10 @@ import type { Settings } from "../types";
 
 // Versioning for settings schema
 const SETTINGS_VERSION = "1.0.0";
+const SETTINGS_FILE_NAME = "turtle-tracer-settings.json";
+const LEGACY_SETTINGS_FILE_NAME = "pedro-settings.json";
+const SETTINGS_STORAGE_KEY = "turtle-tracer-settings";
+const LEGACY_SETTINGS_STORAGE_KEY = "pedro-settings";
 
 interface StoredSettings {
   version: string;
@@ -24,19 +28,25 @@ function getElectronAPI() {
 }
 
 // Get the settings file path
-async function getSettingsFilePath(): Promise<string> {
+async function getSettingsPaths(): Promise<{
+  current: string;
+  legacy: string;
+}> {
   const api = getElectronAPI();
   if (!api) {
     console.warn("Electron API not available, using default settings");
-    return "";
+    return { current: "", legacy: "" };
   }
 
   try {
     const appDataPath = await api.getAppDataPath();
-    return `${appDataPath}/pedro-settings.json`;
+    return {
+      current: `${appDataPath}/${SETTINGS_FILE_NAME}`,
+      legacy: `${appDataPath}/${LEGACY_SETTINGS_FILE_NAME}`,
+    };
   } catch (error) {
     console.error("Error getting app data path:", error);
-    return "";
+    return { current: "", legacy: "" };
   }
 }
 
@@ -131,7 +141,15 @@ export async function loadSettings(): Promise<Settings> {
   if (!api) {
     // Try localStorage if Electron API is not available (browser mode)
     try {
-      const local = localStorage.getItem("pedro-settings");
+      let local = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (!local) {
+        const legacyLocal = localStorage.getItem(LEGACY_SETTINGS_STORAGE_KEY);
+        if (legacyLocal) {
+          local = legacyLocal;
+          localStorage.setItem(SETTINGS_STORAGE_KEY, legacyLocal);
+          localStorage.removeItem(LEGACY_SETTINGS_STORAGE_KEY);
+        }
+      }
       if (local) {
         const stored: StoredSettings = JSON.parse(local);
         return migrateSettings(stored);
@@ -144,9 +162,29 @@ export async function loadSettings(): Promise<Settings> {
   }
 
   try {
-    const filePath = await getSettingsFilePath();
+    const paths = await getSettingsPaths();
+    const filePath = paths.current;
 
-    if (!filePath || !(await api.fileExists(filePath))) {
+    if (!filePath) {
+      console.log("Settings file path unavailable, using defaults");
+      return { ...DEFAULT_SETTINGS };
+    }
+
+    const hasCurrent = await api.fileExists(filePath);
+    if (!hasCurrent) {
+      const legacyPath = paths.legacy;
+      if (legacyPath && (await api.fileExists(legacyPath))) {
+        const legacyContent = await api.readFile(legacyPath);
+        const legacyStored: StoredSettings = JSON.parse(legacyContent);
+        const migrated = migrateSettings(legacyStored);
+        const stored: StoredSettings = {
+          version: SETTINGS_VERSION,
+          settings: { ...migrated },
+          lastUpdated: new Date().toISOString(),
+        };
+        await api.writeFile(filePath, JSON.stringify(stored, null, 2));
+        return migrated;
+      }
       console.log("Settings file does not exist, using defaults");
       return { ...DEFAULT_SETTINGS };
     }
@@ -179,7 +217,8 @@ export async function saveSettings(settings: Settings): Promise<boolean> {
         settings: { ...settings },
         lastUpdated: new Date().toISOString(),
       };
-      localStorage.setItem("pedro-settings", JSON.stringify(stored));
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(stored));
+      localStorage.removeItem(LEGACY_SETTINGS_STORAGE_KEY);
       return true;
     } catch (e) {
       console.error("Error saving settings to localStorage:", e);
@@ -189,7 +228,8 @@ export async function saveSettings(settings: Settings): Promise<boolean> {
   }
 
   try {
-    const filePath = await getSettingsFilePath();
+    const paths = await getSettingsPaths();
+    const filePath = paths.current;
 
     if (!filePath) {
       console.error("Cannot get settings file path");
@@ -223,8 +263,9 @@ export async function settingsFileExists(): Promise<boolean> {
   if (!api) return false;
 
   try {
-    const filePath = await getSettingsFilePath();
-    return filePath ? await api.fileExists(filePath) : false;
+    const paths = await getSettingsPaths();
+    if (paths.current && (await api.fileExists(paths.current))) return true;
+    return paths.legacy ? await api.fileExists(paths.legacy) : false;
   } catch (error) {
     console.error("Error checking settings file:", error);
     return false;

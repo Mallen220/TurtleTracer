@@ -38,7 +38,7 @@ interface StickyNote {
       mountContainer();
 
       // 2. Register Hook for subsequent mounts (e.g. if FieldRenderer re-mounts)
-      pedro.registries.hooks.register(
+      turtle.registries.hooks.register(
         "fieldOverlayInit",
         (container: HTMLElement) => {
           console.log("[StickyNotes] Hook: fieldOverlayInit");
@@ -47,7 +47,7 @@ interface StickyNote {
       );
 
       // 3. Register Context Menu
-      pedro.registries.contextMenuItems.register({
+      turtle.registries.contextMenuItems.register({
         id: "add-sticky-note",
         label: "Add Sticky Note",
         icon: `<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>`,
@@ -57,7 +57,7 @@ interface StickyNote {
       });
 
       // 4. Register Navbar Action
-      pedro.registries.navbarActions.register({
+      turtle.registries.navbarActions.register({
         id: "sticky-notes-add",
         title: "Add Sticky Note (Alt+N)",
         icon: `<svg class="size-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>`,
@@ -85,17 +85,17 @@ interface StickyNote {
       });
 
       // 6. Subscribe to stores
-      if (pedro.stores.project.extraDataStore) {
-        const { extraDataStore } = pedro.stores.project;
-        const { fieldViewStore } = pedro.stores.app;
+      if (turtle.stores.project.extraDataStore) {
+        const { extraDataStore } = turtle.stores.project;
+        const { fieldViewStore } = turtle.stores.app;
 
         unsubscribeData = extraDataStore.subscribe((data: any) => {
-          const view = pedro.stores.get(fieldViewStore);
+          const view = turtle.stores.get(fieldViewStore);
           render(data.stickyNotes || [], view);
         });
 
         unsubscribeView = fieldViewStore.subscribe((view: any) => {
-          const data = pedro.stores.get(extraDataStore);
+          const data = turtle.stores.get(extraDataStore);
           render(data.stickyNotes || [], view);
         });
       } else {
@@ -158,11 +158,11 @@ interface StickyNote {
       target.appendChild(container);
 
       // Force initial render
-      const { extraDataStore } = pedro.stores.project;
-      const { fieldViewStore } = pedro.stores.app;
+      const { extraDataStore } = turtle.stores.project;
+      const { fieldViewStore } = turtle.stores.app;
       if (extraDataStore && fieldViewStore) {
-        const data = pedro.stores.get(extraDataStore);
-        const view = pedro.stores.get(fieldViewStore);
+        const data = turtle.stores.get(extraDataStore);
+        const view = turtle.stores.get(fieldViewStore);
         render(data?.stickyNotes || [], view);
       }
     } catch (e) {
@@ -171,10 +171,10 @@ interface StickyNote {
   }
 
   function addNote(x: number, y: number) {
-    const { extraDataStore } = pedro.stores.project;
+    const { extraDataStore } = turtle.stores.project;
     if (!extraDataStore) return;
 
-    pedro.stores.project.extraDataStore.update((data: any) => {
+    turtle.stores.project.extraDataStore.update((data: any) => {
       const notes = data.stickyNotes || [];
       const newNote: StickyNote = {
         id: crypto.randomUUID(),
@@ -190,8 +190,8 @@ interface StickyNote {
   }
 
   function addNoteAtCenter() {
-    const { fieldViewStore } = pedro.stores.app;
-    const view = pedro.stores.get(fieldViewStore);
+    const { fieldViewStore } = turtle.stores.app;
+    const view = turtle.stores.get(fieldViewStore);
     if (!view || !view.xScale || !view.yScale) return;
 
     // Center of viewport
@@ -208,7 +208,7 @@ interface StickyNote {
   }
 
   function updateNote(id: string, updates: Partial<StickyNote>) {
-    pedro.stores.project.extraDataStore.update((data: any) => {
+    turtle.stores.project.extraDataStore.update((data: any) => {
       const notes: StickyNote[] = data.stickyNotes || [];
       return {
         ...data,
@@ -219,7 +219,7 @@ interface StickyNote {
   }
 
   function deleteNote(id: string) {
-    pedro.stores.project.extraDataStore.update((data: any) => {
+    turtle.stores.project.extraDataStore.update((data: any) => {
       const notes: StickyNote[] = data.stickyNotes || [];
       return {
         ...data,
@@ -230,8 +230,8 @@ interface StickyNote {
   }
 
   function markUnsaved() {
-    if (pedro.stores.app.isUnsaved) {
-      pedro.stores.app.isUnsaved.set(true);
+    if (turtle.stores.app.isUnsaved) {
+      turtle.stores.app.isUnsaved.set(true);
     }
   }
 
@@ -316,7 +316,7 @@ interface StickyNote {
       : `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`;
     collapseBtn.onclick = (e) => {
       e.stopPropagation();
-      const currentData = pedro.stores.get(pedro.stores.project.extraDataStore);
+      const currentData = turtle.stores.get(turtle.stores.project.extraDataStore);
       const currentNote = currentData.stickyNotes?.find(
         (n: StickyNote) => n.id === note.id,
       );
@@ -457,8 +457,8 @@ interface StickyNote {
       el.style.cursor = "grab";
 
       // Calculate final field coordinates
-      const { fieldViewStore } = pedro.stores.app;
-      const fieldView = pedro.stores.get(fieldViewStore);
+      const { fieldViewStore } = turtle.stores.app;
+      const fieldView = turtle.stores.get(fieldViewStore);
 
       // Parse px values from style
       const finalPxX = parseFloat(el.style.left);
@@ -476,7 +476,7 @@ interface StickyNote {
 
   // Helpers
   function cycleColor(id: string) {
-    const currentData = pedro.stores.get(pedro.stores.project.extraDataStore);
+    const currentData = turtle.stores.get(turtle.stores.project.extraDataStore);
     const currentNote = currentData.stickyNotes?.find(
       (n: StickyNote) => n.id === id,
     );

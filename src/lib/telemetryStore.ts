@@ -73,7 +73,7 @@ export function processTelemetryMessage(raw: string) {
     let packet: TelemetryPacket;
 
     // Normalize Data
-    // Case 1: PedroPathingLiveView (flat format: { x, y, heading })
+    // Case 1: TurtleTracerLiveView (flat format: { x, y, heading })
     // It doesn't have a timestamp, so synthesize it.
     if (
       typeof parsed.x === "number" &&
@@ -86,7 +86,7 @@ export function processTelemetryMessage(raw: string) {
         robotPose: {
           x: parsed.x,
           y: parsed.y,
-          heading: parsed.heading, // Assumed Radians from PedroPathing logic
+          heading: parsed.heading, // Assumed Radians from TurtleTracer logic
         },
         data: { ...parsed },
       };

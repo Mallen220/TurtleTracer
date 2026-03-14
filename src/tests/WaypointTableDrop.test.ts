@@ -44,9 +44,9 @@ describe("WaypointTable Drop Handling", () => {
     const dropEvent = new Event("drop", { bubbles: true, cancelable: true });
     Object.defineProperty(dropEvent, "dataTransfer", {
       value: {
-        types: ["application/x-pedro-macro"],
+        types: ["application/x-turtle-tracer-macro"],
         getData: (type: string) =>
-          type === "application/x-pedro-macro" ? "test.pp" : "",
+          type === "application/x-turtle-tracer-macro" ? "test.pp" : "",
         effectAllowed: "move",
       },
     });
@@ -68,9 +68,9 @@ describe("WaypointTable Drop Handling", () => {
     const dropEvent = new Event("drop", { bubbles: true, cancelable: true });
     Object.defineProperty(dropEvent, "dataTransfer", {
       value: {
-        types: ["application/x-pedro-macro"],
+        types: ["application/x-turtle-tracer-macro"],
         getData: (type: string) =>
-          type === "application/x-pedro-macro" ? "test.pp" : "",
+          type === "application/x-turtle-tracer-macro" ? "test.pp" : "",
         effectAllowed: "move",
       },
     });
@@ -92,9 +92,9 @@ describe("WaypointTable Drop Handling", () => {
     const dropEvent = new Event("drop", { bubbles: true, cancelable: true });
     Object.defineProperty(dropEvent, "dataTransfer", {
       value: {
-        types: ["application/x-pedro-macro"],
+        types: ["application/x-turtle-tracer-macro"],
         getData: (type: string) =>
-          type === "application/x-pedro-macro" ? "test.pp" : "",
+          type === "application/x-turtle-tracer-macro" ? "test.pp" : "",
         effectAllowed: "move",
       },
     });

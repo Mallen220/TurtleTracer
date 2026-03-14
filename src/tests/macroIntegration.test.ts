@@ -6,7 +6,7 @@ import type {
   Line,
   Point,
   SequenceItem,
-  PedroData,
+  TurtleData,
   SequenceMacroItem,
   SequencePathItem,
 } from "../types";
@@ -52,7 +52,7 @@ describe("Macro Integration", () => {
     name: "Macro Line 1",
   };
 
-  const macroData: PedroData = {
+  const macroData: TurtleData = {
     startPoint: { x: 15, y: 15, heading: "tangential", reverse: false },
     lines: [macroLine],
     shapes: [],
@@ -69,7 +69,7 @@ describe("Macro Integration", () => {
   };
 
   it("expandMacro should generate bridge and expand lines", () => {
-    const macrosMap = new Map<string, PedroData>();
+    const macrosMap = new Map<string, TurtleData>();
     const result = expandMacro(
       macroItem,
       prevPoint,
@@ -126,7 +126,7 @@ describe("Macro Integration", () => {
       macroItem,
     ];
 
-    const macrosMap = new Map<string, PedroData>();
+    const macrosMap = new Map<string, TurtleData>();
     macrosMap.set("macro.pp", macroData);
 
     const result = regenerateProjectMacros(

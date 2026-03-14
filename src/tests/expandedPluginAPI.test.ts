@@ -39,17 +39,17 @@ describe("Expanded Plugin API", () => {
     });
   });
 
-  it("should expose registries in pedro API", async () => {
+  it("should expose registries in turtle API", async () => {
     const mockListPlugins = vi.fn().mockResolvedValue(["expanded-plugin.js"]);
     const mockReadPlugin = vi.fn().mockResolvedValue(`
       // Verify registries exist
-      if (!pedro.registries) throw new Error("registries missing");
-      if (!pedro.registries.components) throw new Error("components registry missing");
-      if (!pedro.registries.tabs) throw new Error("tabs registry missing");
-      if (!pedro.registries.navbarActions) throw new Error("navbarActions registry missing");
+      if (!turtle.registries) throw new Error("registries missing");
+      if (!turtle.registries.components) throw new Error("components registry missing");
+      if (!turtle.registries.tabs) throw new Error("tabs registry missing");
+      if (!turtle.registries.navbarActions) throw new Error("navbarActions registry missing");
 
       // Register a tab
-      pedro.registries.tabs.register({
+      turtle.registries.tabs.register({
         id: "plugin-tab",
         label: "Plugin Tab",
         component: {}, // Mock component
@@ -57,7 +57,7 @@ describe("Expanded Plugin API", () => {
       });
 
       // Register a navbar action
-      pedro.registries.navbarActions.register({
+      turtle.registries.navbarActions.register({
         id: "plugin-action",
         icon: "<svg></svg>",
         onClick: () => {}
@@ -87,9 +87,9 @@ describe("Expanded Plugin API", () => {
   it("should expose action registry and allow registering new action types", async () => {
     const mockListPlugins = vi.fn().mockResolvedValue(["action-plugin.js"]);
     const mockReadPlugin = vi.fn().mockResolvedValue(`
-      if (!pedro.registries.actions) throw new Error("actions registry missing");
+      if (!turtle.registries.actions) throw new Error("actions registry missing");
 
-      pedro.registries.actions.register({
+      turtle.registries.actions.register({
         kind: "custom-action",
         label: "Custom Action",
         component: {},

@@ -371,6 +371,7 @@
 
   function handleDragStart(e: DragEvent, file: FileInfo) {
     if (!e.dataTransfer) return;
+    e.dataTransfer.setData("application/x-turtle-tracer-macro", file.path);
     e.dataTransfer.setData("application/x-pedro-macro", file.path);
     e.dataTransfer.setData("text/plain", file.path);
     e.dataTransfer.setData("application/json", JSON.stringify(file));

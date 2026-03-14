@@ -18,6 +18,8 @@
   let selectedIndex = 0;
   let inputElement: HTMLInputElement;
   let recentCommandIds: string[] = [];
+  const RECENTS_KEY = "turtle-tracer-recent-commands";
+  const LEGACY_RECENTS_KEY = "pedro-pathing-recent-commands";
 
   function getDisplayShortcut(shortcut: string): string {
     if (!shortcut) return "";
@@ -41,7 +43,15 @@
 
   onMount(() => {
     try {
-      const stored = localStorage.getItem("pedro-pathing-recent-commands");
+      let stored = localStorage.getItem(RECENTS_KEY);
+      if (!stored) {
+        const legacy = localStorage.getItem(LEGACY_RECENTS_KEY);
+        if (legacy) {
+          stored = legacy;
+          localStorage.setItem(RECENTS_KEY, legacy);
+          localStorage.removeItem(LEGACY_RECENTS_KEY);
+        }
+      }
       if (stored) {
         recentCommandIds = JSON.parse(stored);
       }
@@ -113,7 +123,7 @@
           ...recentCommandIds.filter((id) => id !== command.id),
         ].slice(0, 10);
         localStorage.setItem(
-          "pedro-pathing-recent-commands",
+          RECENTS_KEY,
           JSON.stringify(recentCommandIds),
         );
       }

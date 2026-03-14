@@ -73,7 +73,7 @@ describe("Settings Persistence", () => {
     expect(result).toBe(true);
     expect(mockElectronAPI.writeFile).toHaveBeenCalled();
     const callArgs = mockElectronAPI.writeFile.mock.calls[0];
-    expect(callArgs[0]).toContain("pedro-settings.json");
+    expect(callArgs[0]).toContain("turtle-tracer-settings.json");
     expect(JSON.parse(callArgs[1]).settings).toEqual(DEFAULT_SETTINGS);
   });
 

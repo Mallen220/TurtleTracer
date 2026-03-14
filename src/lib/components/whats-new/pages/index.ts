@@ -25,7 +25,7 @@ import eventMarkersContent from "./event-markers.md?raw";
 // @ts-ignore
 import optimizationContent from "./optimization.md?raw";
 // @ts-ignore
-import pedroPathingPlusContent from "./pedro-pathing-plus.md?raw";
+import turtleTracerLibContent from "./turtle-tracer-lib.md?raw";
 // @ts-ignore
 import pluginsContent from "./plugins.md?raw";
 
@@ -60,12 +60,12 @@ export const pages: Page[] = [
     icon: "clock",
   },
   {
-    id: "pedro-pathing-plus",
+    id: "turtle-tracer-lib",
     title: "TurtleTracerLib",
     description:
       "Unlock direct path execution and advanced command-based features.",
     type: "page",
-    content: pedroPathingPlusContent,
+    content: turtleTracerLibContent,
     icon: "sparkles",
   },
   {

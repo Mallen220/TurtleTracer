@@ -1,11 +1,11 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-/// <reference path="./pedro.d.ts" />
+/// <reference path="./turtle.d.ts" />
 
-pedro.registerMetadata({
+turtle.registerMetadata({
   description: "A vibrant pink dark mode theme for the visualizer.",
 });
 
-pedro.registerTheme(
+turtle.registerTheme(
   "Pink Plugin Theme",
   `
 /* Global Backgrounds */

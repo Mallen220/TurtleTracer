@@ -509,11 +509,11 @@ export async function generateJavaCode(
     import com.pedropathing.paths.HeadingInterpolator;
     ${eventMarkerNames.size > 0 ? "import com.pedropathing.NamedCommands;" : ""}
     
-    @Autonomous(name = "Pedro Pathing Autonomous", group = "Autonomous")
+    @Autonomous(name = "Turtle Tracer Autonomous", group = "Autonomous")
     ${classAnnotations}
-    public class PedroAutonomous extends OpMode {
+    public class TurtleTracerAutonomous extends OpMode {
       ${telemetryField}
-      public Follower follower; // Pedro Pathing follower instance
+      public Follower follower; // Pathing follower instance
       private int pathState; // Current autonomous path state (state machine)
       private ElapsedTime pathTimer; // Timer for path state machine
       private Paths paths; // Paths defined in the Paths class
@@ -558,7 +558,7 @@ export async function generateJavaCode(
       
       @Override
       public void loop() {
-        follower.update(); // Update Pedro Pathing
+        follower.update(); // Update follower
         pathState = autonomousPathUpdate(); // Update autonomous state machine
 
         ${telemetryLoop}
@@ -1040,7 +1040,7 @@ import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
 
   const ppReaderImport = hardcodeValues
     ? ""
-    : "import com.pedropathingplus.PedroPathReader;";
+    : "import com.turtletracerlib.PedroPathReader;";
   const ppReaderInit = hardcodeValues
     ? ""
     : `PedroPathReader pp = new PedroPathReader("${fileName ? fileName.split(/[\\/]/).pop() + ".pp" || "AutoPath.pp" : "AutoPath.pp"}", hw.appContext);`;
@@ -1133,8 +1133,8 @@ import com.pedropathing.ftc.PoseConverter;
 ${imports}
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 ${ppReaderImport}
-import com.pedropathingplus.pathing.ProgressTracker;
-import com.pedropathingplus.pathing.NamedCommands;
+import com.turtletracerlib.pathing.ProgressTracker;
+import com.turtletracerlib.pathing.NamedCommands;
 import java.io.IOException;
 import ${packageName.split(".").slice(0, 4).join(".")}.Subsystems.Drivetrain;
 

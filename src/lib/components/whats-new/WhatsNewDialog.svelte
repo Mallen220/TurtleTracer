@@ -873,7 +873,7 @@
                 class="text-purple-600 dark:text-purple-400 font-bold hover:underline text-sm flex items-center gap-1"
                 on:click={() => {
                   const ppPage = pages.find(
-                    (p) => p.id === "pedro-pathing-plus",
+                    (p) => p.id === "turtle-tracer-lib",
                   );
                   if (ppPage) handlePageClick(ppPage);
                 }}

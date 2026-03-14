@@ -223,7 +223,7 @@ async function performSave(
         const filePath = await electronAPI.showSaveDialog({
           title: "Save Project",
           defaultPath: "trajectory.pp",
-          filters: [{ name: "Pedro Path", extensions: ["pp"] }],
+          filters: [{ name: "Turtle Tracer Path", extensions: ["pp"] }],
         });
         if (!filePath) return false;
         targetPath = filePath;
@@ -442,7 +442,7 @@ export async function exportAsPP() {
       const filePath = await electronAPI.showSaveDialog({
         title: "Export .pp File",
         defaultPath: defaultName,
-        filters: [{ name: "Pedro Path", extensions: ["pp"] }],
+        filters: [{ name: "Turtle Tracer Path", extensions: ["pp"] }],
       });
       if (!filePath) return;
 

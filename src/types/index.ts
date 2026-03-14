@@ -341,7 +341,7 @@ export interface Notification {
 // Plugin System Interfaces
 // ------------------------------------------------------------------
 
-export interface PedroData {
+export interface TurtleData {
   startPoint: Point;
   lines: Line[];
   shapes: Shape[];
@@ -484,13 +484,13 @@ export interface PluginFeature {
   render?: (ctx: PluginGraphicsContext) => void;
 }
 
-export interface PedroAPI {
+export interface TurtleAPI {
   /**
    * Register a custom code exporter.
    * @param name The display name of the exporter.
    * @param handler A function that takes the current project data and returns a string (code).
    */
-  registerExporter(name: string, handler: (data: PedroData) => string): void;
+  registerExporter(name: string, handler: (data: TurtleData) => string): void;
 
   /**
    * Register a custom theme.
@@ -508,7 +508,7 @@ export interface PedroAPI {
   /**
    * Get the current snapshot of the project data.
    */
-  getData(): PedroData;
+  getData(): TurtleData;
 
   /**
    * Access internal registries to extend the UI.

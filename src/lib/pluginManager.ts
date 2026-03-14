@@ -170,8 +170,8 @@ export class PluginManager {
     const proxyAPI = new Proxy(() => {}, handler);
 
     try {
-      const fn = new Function("pedro", code);
-      fn(proxyAPI);
+      const fn = new Function("turtle", "pedro", code);
+      fn(proxyAPI, proxyAPI);
     } catch (e) {
       // Ignore errors during metadata extraction
     }
@@ -187,7 +187,7 @@ export class PluginManager {
     let metadata: PluginMetadata | undefined;
 
     // Restricted API exposed to plugins
-    const pedroAPI = {
+    const turtleAPI = {
       registerMetadata: (meta: PluginMetadata) => {
         metadata = meta;
       },
@@ -468,9 +468,9 @@ export class PluginManager {
 
     // Execute safely-ish
     try {
-      // pass 'pedro' as the argument name
-      const fn = new Function("pedro", codeToExecute);
-      fn(pedroAPI);
+      // pass 'turtle' (and legacy 'pedro') as the argument name
+      const fn = new Function("turtle", "pedro", codeToExecute);
+      fn(turtleAPI, turtleAPI);
     } catch (e) {
       throw new Error(`Execution failed: ${e}`);
     }

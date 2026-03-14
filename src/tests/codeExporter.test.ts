@@ -188,7 +188,7 @@ describe("codeExporter", () => {
       expect(code).toContain(
         "package org.firstinspires.ftc.teamcode.Commands.AutoCommands;",
       );
-      expect(code).toContain("public class PedroAutonomous extends OpMode");
+      expect(code).toContain("public class TurtleTracerAutonomous extends OpMode");
       expect(code).toContain("paths = new Paths(follower);");
     });
 
@@ -380,7 +380,7 @@ describe("codeExporter", () => {
       // Verify no ProgressTracker or Telemetry
       expect(code).not.toContain("ProgressTracker progressTracker");
       expect(code).not.toContain(
-        "import com.pedropathingplus.pathing.ProgressTracker;",
+        "import com.turtletracerlib.pathing.ProgressTracker;",
       );
       expect(code).not.toContain(
         "public TestPath(final Drivetrain drive, HardwareMap hw, Telemetry telemetry)",
@@ -574,7 +574,7 @@ describe("codeExporter", () => {
       );
 
       expect(code).not.toContain(
-        "import com.pedropathingplus.PedroPathReader;",
+        "import com.turtletracerlib.PedroPathReader;",
       );
       expect(code).not.toContain("new PedroPathReader");
       expect(code).toContain("new Pose(10.000, 10.000, Math.toRadians(0))"); // startPoint

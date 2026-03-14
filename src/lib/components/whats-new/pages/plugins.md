@@ -13,7 +13,7 @@ Turtle Tracer supports a powerful plugin system that allows you to extend its fu
 
 ## designing Plugins
 
-Plugins are standard JavaScript files that run within the application. The visualizer provides a global `pedro` object that serves as your API to interact with the system.
+Plugins are standard JavaScript files that run within the application. The visualizer provides a global `turtle` object that serves as your API to interact with the system.
 
 ### Basic Structure
 
@@ -21,12 +21,12 @@ Create a `.js` file (e.g., `my-plugin.js`) with the following structure:
 
 ```javascript
 // Register a custom exporter
-pedro.registerExporter("My Custom Format", (data) => {
+turtle.registerExporter("My Custom Format", (data) => {
   return "Path length: " + data.lines.length;
 });
 
 // Register a custom theme
-pedro.registerTheme(
+turtle.registerTheme(
   "Midnight Blue",
   `
   :root {
@@ -37,9 +37,9 @@ pedro.registerTheme(
 );
 ```
 
-### The `pedro` API
+### The `turtle` API
 
-The `pedro` object provides several methods and properties to interact with the visualizer:
+The `turtle` object provides several methods and properties to interact with the visualizer:
 
 #### Core Methods
 
@@ -56,13 +56,13 @@ The `pedro` object provides several methods and properties to interact with the 
 
 For more complex plugins, you can access internal registries and stores:
 
-- **`pedro.registries`**:
+- **`turtle.registries`**:
   - `components`: Register custom Svelte components.
   - `tabs`: Add new tabs to the side control panel.
   - `navbarActions`: Add buttons to the top navigation bar.
   - `hooks`: Listen for events like `onSave`, `onLoad`, etc.
 
-- **`pedro.stores`**:
+- **`turtle.stores`**:
   - `project`: Access reactive stores for path data (`startPointStore`, `linesStore`, etc.).
   - `app`: Access application-level state.
   - `get`: The Svelte `get` function to read current store values.
@@ -72,12 +72,12 @@ For more complex plugins, you can access internal registries and stores:
 Here is a simple example that adds a button to the top navigation bar:
 
 ```javascript
-pedro.registries.navbarActions.register({
+turtle.registries.navbarActions.register({
   id: "hello-world-btn",
   icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
   title: "Say Hello",
   onClick: () => {
-    alert("Hello from Pedro Pathing Plugin!");
+    alert("Hello from Turtle Tracer Plugin!");
   },
 });
 ```

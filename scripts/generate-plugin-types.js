@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const typesPath = path.join(__dirname, "../src/types/index.ts");
-const outputPath = path.join(__dirname, "../plugins/pedro.d.ts");
+const outputPath = path.join(__dirname, "../plugins/turtle.d.ts");
 
 async function generate() {
   console.log("Generating plugin types...");
@@ -38,7 +38,7 @@ export {};
 
 // Global variable exposed to plugins
 declare global {
-  const pedro: PedroAPI;
+  const turtle: TurtleAPI;
 }
 `;
 

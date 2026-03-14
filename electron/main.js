@@ -1181,7 +1181,7 @@ ipcMain.handle(
           defaultName && defaultName.endsWith(".pp")
             ? defaultName
             : `${defaultName}.pp`,
-        filters: [{ name: "Pedro Path", extensions: ["pp"] }],
+        filters: [{ name: "Turtle Tracer Path", extensions: ["pp"] }],
       };
       const result = await dialog.showSaveDialog(win, options);
       if (result.canceled || !result.filePath) return null;
@@ -1383,7 +1383,7 @@ ipcMain.handle("plugins:list", async () => {
     const files = await fs.readdir(pluginsDir);
     return files.filter(
       (f) =>
-        (f.endsWith(".js") || f.endsWith(".ts")) && !f.endsWith("pedro.d.ts"),
+        (f.endsWith(".js") || f.endsWith(".ts")) && !f.endsWith("turtle.d.ts"),
     );
   } catch (error) {
     console.error("Error listing plugins:", error);

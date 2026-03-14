@@ -38,7 +38,7 @@ describe("PluginManager", () => {
   it("should load plugins from electronAPI", async () => {
     const mockListPlugins = vi.fn().mockResolvedValue(["test-plugin.js"]);
     const mockReadPlugin = vi.fn().mockResolvedValue(`
-      pedro.registerExporter("Test CSV", (data) => {
+      turtle.registerExporter("Test CSV", (data) => {
         return "csv,data";
       });
     `);
@@ -100,7 +100,7 @@ describe("PluginManager", () => {
       .fn()
       .mockResolvedValue(["Example-pink-theme.js"]);
     const mockReadPlugin = vi.fn().mockResolvedValue(`
-      pedro.registerTheme("Pink Plugin Theme", ".bg-blue { color: pink; }");
+      turtle.registerTheme("Pink Plugin Theme", ".bg-blue { color: pink; }");
     `);
 
     (window as any).electronAPI = {
@@ -124,7 +124,7 @@ describe("PluginManager", () => {
       const handler = (data: any): string => {
         return "ts-result";
       };
-      pedro.registerExporter("TS Exporter", handler);
+      turtle.registerExporter("TS Exporter", handler);
     `);
 
     (window as any).electronAPI = {
@@ -135,7 +135,7 @@ describe("PluginManager", () => {
       const handler = (data) => {
         return "ts-result";
       };
-      pedro.registerExporter("TS Exporter", handler);
+      turtle.registerExporter("TS Exporter", handler);
       `),
     };
 

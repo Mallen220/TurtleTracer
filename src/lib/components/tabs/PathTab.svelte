@@ -181,7 +181,11 @@
     if (!isActive) return;
     const isInternalReorder = draggingIndex !== null;
     const isMacroDrop =
-      e.dataTransfer?.types.includes("application/x-pedro-macro") ?? false;
+      e.dataTransfer?.types
+        ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
+            (t) => e.dataTransfer?.types.includes(t),
+          )
+        : false;
 
     if (!isInternalReorder && !isMacroDrop) return;
     e.preventDefault();
@@ -204,7 +208,11 @@
 
     const isInternalReorder = draggingIndex !== null;
     const isMacroDrop =
-      e.dataTransfer?.types.includes("application/x-pedro-macro") ?? false;
+      e.dataTransfer?.types
+        ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
+            (t) => e.dataTransfer?.types.includes(t),
+          )
+        : false;
 
     if (!isInternalReorder && !isMacroDrop) return;
 
@@ -230,7 +238,9 @@
       syncLinesToSequence(newSequence);
       recordChange?.("Reorder Sequence");
     } else if (isMacroDrop) {
-      const filePath = e.dataTransfer?.getData("application/x-pedro-macro");
+      const filePath =
+        e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
+        e.dataTransfer?.getData("application/x-pedro-macro");
       if (filePath) {
         // Calculate insertion index
         let insertIndex = dragOverIndex;

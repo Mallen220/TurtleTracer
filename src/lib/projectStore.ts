@@ -7,7 +7,7 @@ import type {
   Shape,
   Settings,
   SequencePathItem,
-  PedroData,
+  TurtleData,
   RobotProfile,
 } from "../types/index";
 import {
@@ -101,7 +101,7 @@ export const sequenceStore = writable<SequenceItem[]>(
 );
 export const settingsStore = writable<Settings>({ ...DEFAULT_SETTINGS });
 export const extraDataStore = writable<Record<string, any>>({});
-export const macrosStore = writable<Map<string, PedroData>>(new Map());
+export const macrosStore = writable<Map<string, TurtleData>>(new Map());
 
 // Track currently loading macros to prevent infinite recursion
 const loadingMacros = new Set<string>();
@@ -120,11 +120,20 @@ export const robotHeadingStore = writable(0);
 export const followRobotStore = writable(false);
 
 // Robot Profiles Store
-const STORAGE_KEY_PROFILES = "pedro_robot_profiles";
+const STORAGE_KEY_PROFILES = "turtle_tracer_robot_profiles";
+const LEGACY_STORAGE_KEY_PROFILES = "pedro_robot_profiles";
 let initialProfiles: RobotProfile[] = [];
 try {
   if (typeof localStorage !== "undefined") {
-    const stored = localStorage.getItem(STORAGE_KEY_PROFILES);
+    let stored = localStorage.getItem(STORAGE_KEY_PROFILES);
+    if (!stored) {
+      const legacyStored = localStorage.getItem(LEGACY_STORAGE_KEY_PROFILES);
+      if (legacyStored) {
+        stored = legacyStored;
+        localStorage.setItem(STORAGE_KEY_PROFILES, legacyStored);
+        localStorage.removeItem(LEGACY_STORAGE_KEY_PROFILES);
+      }
+    }
     if (stored) {
       initialProfiles = JSON.parse(stored);
     }
@@ -161,7 +170,7 @@ export function resetProject() {
   macrosStore.set(new Map());
 }
 
-export function updateMacroContent(filePath: string, data: PedroData) {
+export function updateMacroContent(filePath: string, data: TurtleData) {
   macrosStore.update((map) => {
     const newMap = new Map(map);
     // Normalize before storing

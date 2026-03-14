@@ -7,7 +7,7 @@ import type {
   SequencePathItem,
   SequenceWaitItem,
   SequenceRotateItem,
-  PedroData,
+  TurtleData,
   Transformation,
 } from "../types";
 import {
@@ -90,7 +90,7 @@ function transformHeading(degrees: number, t: Transformation): number {
   return d;
 }
 
-function calculateMacroCenter(data: PedroData): { x: number; y: number } {
+function calculateMacroCenter(data: TurtleData): { x: number; y: number } {
   let minX = data.startPoint.x;
   let minY = data.startPoint.y;
   let maxX = data.startPoint.x;
@@ -109,15 +109,15 @@ function calculateMacroCenter(data: PedroData): { x: number; y: number } {
 }
 
 function transformMacroData(
-  data: PedroData,
+  data: TurtleData,
   transforms: Transformation[],
-): { data: PedroData; resolvedTransforms: Transformation[] } {
+): { data: TurtleData; resolvedTransforms: Transformation[] } {
   if (!transforms || transforms.length === 0) {
     return { data, resolvedTransforms: [] };
   }
 
   // Clone data deeply
-  const newData: PedroData = structuredClone(data);
+  const newData: TurtleData = structuredClone(data);
   const resolvedTransforms: Transformation[] = [];
 
   transforms.forEach((t) => {
@@ -203,8 +203,8 @@ export function expandMacro(
   macroItem: SequenceMacroItem,
   prevPoint: Point,
   prevHeading: number,
-  macroData: PedroData,
-  macrosMap: Map<string, PedroData>,
+  macroData: TurtleData,
+  macrosMap: Map<string, TurtleData>,
   visitedPaths: Set<string>,
 ): {
   lines: Line[];
@@ -461,7 +461,7 @@ export function regenerateProjectMacros(
   startPoint: Point,
   lines: Line[],
   sequence: SequenceItem[],
-  macrosMap: Map<string, PedroData>,
+  macrosMap: Map<string, TurtleData>,
 ): { lines: Line[]; sequence: SequenceItem[] } {
   const newLines: Line[] = [];
   // Separate user lines from macro lines to keep user edits

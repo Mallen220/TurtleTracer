@@ -5,7 +5,7 @@ import type {
   Line,
   Point,
   SequenceItem,
-  PedroData,
+  TurtleData,
   SequenceMacroItem,
   SequencePathItem,
 } from "../types";
@@ -46,7 +46,7 @@ describe("Nested Macros and Recursion", () => {
     name: "Macro1 Line",
   };
 
-  const macroData1: PedroData = {
+  const macroData1: TurtleData = {
     startPoint: { x: 15, y: 15, heading: "tangential", reverse: false },
     lines: [macroLine1],
     shapes: [],
@@ -62,7 +62,7 @@ describe("Nested Macros and Recursion", () => {
     locked: false,
   };
 
-  const macroData2: PedroData = {
+  const macroData2: TurtleData = {
     startPoint: { x: 25, y: 25, heading: "tangential", reverse: false },
     lines: [],
     shapes: [],
@@ -79,7 +79,7 @@ describe("Nested Macros and Recursion", () => {
   };
 
   it("should expand nested macros", () => {
-    const macrosMap = new Map<string, PedroData>();
+    const macrosMap = new Map<string, TurtleData>();
     macrosMap.set("macro1.pp", macroData1);
     macrosMap.set("macro2.pp", macroData2);
 
@@ -112,10 +112,10 @@ describe("Nested Macros and Recursion", () => {
   });
 
   it("should detect recursion loops", () => {
-    const macrosMap = new Map<string, PedroData>();
+    const macrosMap = new Map<string, TurtleData>();
 
     // Macro A includes Macro B
-    const macroDataA: PedroData = {
+    const macroDataA: TurtleData = {
       startPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
       lines: [],
       shapes: [],
@@ -126,7 +126,7 @@ describe("Nested Macros and Recursion", () => {
     };
 
     // Macro B includes Macro A
-    const macroDataB: PedroData = {
+    const macroDataB: TurtleData = {
       startPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
       lines: [],
       shapes: [],

@@ -591,7 +591,7 @@ export function calculatePathTime(
   lines: Line[],
   settings: Settings,
   sequence?: SequenceItem[],
-  macros?: Map<string, import("../types").PedroData>,
+  macros?: Map<string, import("../types").TurtleData>,
 ): TimePrediction {
   const msToSeconds = (value?: number | string) => {
     const numeric = Number(value);
