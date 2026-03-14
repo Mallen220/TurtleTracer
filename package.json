@@ -6,7 +6,7 @@
   "author": "Matthew Allen <allenmc220@gmail.com>",
   "email": "allenmc220@gmail.com",
   "license": "Modified Apache 2.0",
-  "description": "A better alternative to the Turtle Tracer",
+  "description": "A better alternative to the Pedro Pathing Visualizer",
   "type": "module",
   "scripts": {
     "fix:notice": "node scripts/generate-file-notice.js",
