@@ -2,6 +2,7 @@
 
 ## **Features:**
 
+- **Metric / Imperial Units:** You can now toggle the user interface and code generation between imperial (inches) and metric (cm) units via the Settings menu.
 - **Item Visibility Toggles:** You can now quickly hide or show individual paths and sequence items on the field. Just click the new eye icon in the Sequence list to declutter your view.
 - **Telemetry Integration:** A new Telemetry tab allows you to connect and monitor your robot live on the field. You can show or hide this tab from the settings menu. Ensure code is updated with PedroPathingPlus to use this feature.
 - **Path Transformation:** Modify entire paths using the new Transform tool. You can easily translate, rotate, flip horizontally or vertically, and reverse your path direction. Right click the field to use.
