@@ -90,7 +90,7 @@
         popover: {
           title: "Save Project",
           description:
-            "Save your work to a .pp file on your computer. You can also 'Save As' to create a copy.",
+            "Save your work to a .turt file on your computer. Legacy .pp files are still supported.",
           side: "bottom",
           align: "end",
         },

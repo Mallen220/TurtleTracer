@@ -460,7 +460,7 @@
   })();
 
   $: projectName = $currentFilePath
-    ? $currentFilePath.split(/[\\/]/).pop()?.replace(".pp", "")
+    ? $currentFilePath.split(/[\\/]/).pop()?.replace(/\.(pp|turt)$/i, "")
     : "Untitled Project";
 </script>
 
@@ -707,7 +707,7 @@
               Feature: Digital Strategy Notes
               Why: Replaces the previous static printed lines with a digital text area,
                    allowing users to type out and persist their strategy notes directly in the app.
-              Impact: Eliminates manual writing post-print, ensures notes stay attached to the .pp file via extraDataStore.
+              Impact: Eliminates manual writing post-print, ensures notes stay attached to the project file via extraDataStore.
             -->
             <div
               class="border-t border-gray-300 flex-1 min-h-[150px] flex relative"

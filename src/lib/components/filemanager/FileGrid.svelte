@@ -47,7 +47,7 @@
   let lastRenamingPath: string | null = null;
   $: if (renamingFile) {
     if (renamingFile.path !== lastRenamingPath) {
-      renameInput = renamingFile.name.replace(/\.pp$/, "");
+      renameInput = renamingFile.name.replace(/\.(pp|turt)$/i, "");
       lastRenamingPath = renamingFile.path;
     }
   } else {
@@ -649,7 +649,7 @@
                 class="text-xs font-medium text-neutral-900 dark:text-neutral-100 truncate w-full px-1"
                 title={file.name}
               >
-                {file.name.replace(/\.pp$/, "")}
+                {file.name.replace(/\.(pp|turt)$/i, "")}
               </div>
               {#if file.error}
                 <div class="text-[10px] text-red-500 truncate">

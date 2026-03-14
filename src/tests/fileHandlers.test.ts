@@ -203,10 +203,10 @@ describe("fileHandlers", () => {
 
   describe("saveProject", () => {
     it("uses saveFile API when available", async () => {
-      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.pp");
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.turt");
       mockElectronAPI.saveFile.mockResolvedValue({
         success: true,
-        filepath: "/saved/file.pp",
+        filepath: "/saved/file.turt",
       });
 
       linesStore.set([{ id: "1", name: "Line 1" } as any]);
@@ -214,12 +214,28 @@ describe("fileHandlers", () => {
       await fileHandlers.saveProject();
 
       expect(mockElectronAPI.saveFile).toHaveBeenCalled();
-      expect(get(currentFilePath)).toBe("/saved/file.pp");
+      expect(get(currentFilePath)).toBe("/saved/file.turt");
       expect(get(isUnsaved)).toBe(false);
     });
 
-    it("handles save failures", async () => {
+    it("converts legacy .pp paths to .turt on save", async () => {
       mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.pp");
+      mockElectronAPI.saveFile.mockResolvedValue({
+        success: true,
+        filepath: "/saved/file.turt",
+      });
+
+      linesStore.set([{ id: "1", name: "Line 1" } as any]);
+
+      await fileHandlers.saveProject();
+
+      const callArgs = mockElectronAPI.saveFile.mock.calls[0];
+      expect(callArgs[1]).toBe("/saved/file.turt");
+      expect(get(currentFilePath)).toBe("/saved/file.turt");
+    });
+
+    it("handles save failures", async () => {
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.turt");
       mockElectronAPI.saveFile.mockResolvedValue({
         success: false,
         error: "Permission denied",
@@ -241,7 +257,7 @@ describe("fileHandlers", () => {
         return "relative/" + target.split("/").pop();
       });
 
-      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/project.pp");
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/project.turt");
 
       // Setup data with macro
       linesStore.set([]);
@@ -250,7 +266,7 @@ describe("fileHandlers", () => {
           kind: macroKind(),
           id: "m1",
           name: "Macro",
-          filePath: "/absolute/path/to/macro.pp",
+          filePath: "/absolute/path/to/macro.turt",
         } as any,
       ]);
 
@@ -258,8 +274,8 @@ describe("fileHandlers", () => {
 
       expect(mockElectronAPI.showSaveDialog).toHaveBeenCalled();
       expect(mockElectronAPI.makeRelativePath).toHaveBeenCalledWith(
-        "/saved/project.pp",
-        "/absolute/path/to/macro.pp",
+        "/saved/project.turt",
+        "/absolute/path/to/macro.turt",
       );
       expect(mockElectronAPI.writeFile).toHaveBeenCalled();
 
@@ -267,7 +283,7 @@ describe("fileHandlers", () => {
       const writtenContent = JSON.parse(
         mockElectronAPI.writeFile.mock.calls[0][1],
       );
-      expect(writtenContent.sequence[0].filePath).toBe("relative/macro.pp");
+      expect(writtenContent.sequence[0].filePath).toBe("relative/macro.turt");
 
       // Restore saveFile
       mockElectronAPI.saveFile = originalSaveFile;
@@ -277,9 +293,9 @@ describe("fileHandlers", () => {
       // Mock saveFile to return success
       mockElectronAPI.saveFile.mockResolvedValue({
         success: true,
-        filepath: "/saved/file.pp",
+        filepath: "/saved/file.turt",
       });
-      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.pp");
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.turt");
 
       linesStore.set([{ id: "1", name: "Line 1" } as any]);
 
@@ -301,7 +317,7 @@ describe("fileHandlers", () => {
       );
     });
 
-    it("should NOT save settings in the .pp file", async () => {
+    it("should NOT save settings in the project file", async () => {
       linesStore.set([{ id: "1", name: "Line 1" } as any]);
       // Set a specific setting to verify
       settingsStore.update((s) => ({ ...s, fieldMap: "ShouldNotBeSaved" }));
@@ -309,9 +325,9 @@ describe("fileHandlers", () => {
       // Mock saveFile to return success
       mockElectronAPI.saveFile.mockResolvedValue({
         success: true,
-        filepath: "/saved/file.pp",
+        filepath: "/saved/file.turt",
       });
-      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.pp");
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.turt");
 
       await fileHandlers.saveProject();
 
@@ -413,7 +429,7 @@ describe("fileHandlers", () => {
         autoExportFormat: "json",
         autoExportPath: "GeneratedCode",
       });
-      currentFilePath.set("/project/dir/auto.pp");
+      currentFilePath.set("/project/dir/auto.turt");
 
       // prepare mocks
       mockElectronAPI.resolvePath.mockResolvedValue(
@@ -447,7 +463,7 @@ describe("fileHandlers", () => {
         currentSettings,
         currentShapes,
         {},
-        "/project/dir/auto.pp",
+        "/project/dir/auto.turt",
       );
 
       // verify auto-export occurred
@@ -455,18 +471,18 @@ describe("fileHandlers", () => {
     });
   });
 
-  describe("exportAsPP", () => {
+  describe("exportAsProjectFile", () => {
     it("includes header information in exported file", async () => {
-      mockElectronAPI.showSaveDialog.mockResolvedValue("/exported/file.pp");
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/exported/file.turt");
       mockElectronAPI.writeFile.mockResolvedValue(true);
 
-      await fileHandlers.exportAsPP();
+      await fileHandlers.exportAsProjectFile();
 
       expect(mockElectronAPI.writeFile).toHaveBeenCalled();
       // writeFile called with (path, content)
       // find the call that matches the path
       const callArgs = mockElectronAPI.writeFile.mock.calls.find(
-        (args) => args[0] === "/exported/file.pp",
+        (args) => args[0] === "/exported/file.turt",
       );
       expect(callArgs).toBeDefined();
 
@@ -483,7 +499,7 @@ describe("fileHandlers", () => {
     });
 
     it("updates startPoint headings based on path geometry", async () => {
-      mockElectronAPI.showSaveDialog.mockResolvedValue("/exported/file.pp");
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/exported/file.turt");
       mockElectronAPI.writeFile.mockResolvedValue(true);
 
       // Setup stores
@@ -512,11 +528,11 @@ describe("fileHandlers", () => {
         } as any,
       ]);
 
-      await fileHandlers.exportAsPP();
+      await fileHandlers.exportAsProjectFile();
 
       expect(mockElectronAPI.writeFile).toHaveBeenCalled();
       const callArgs = mockElectronAPI.writeFile.mock.calls.find(
-        (args) => args[0] === "/exported/file.pp",
+        (args) => args[0] === "/exported/file.turt",
       );
       const content = JSON.parse(callArgs![1] as string);
 

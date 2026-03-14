@@ -44,7 +44,7 @@ dependencies {
 
 We are working hard to bring you:
 
-- **Direct `.pp` Execution:** Run autonomous routines defined in `.pp` files without writing boilerplate Java code.
+- **Direct `.turt` Execution:** Run autonomous routines defined in `.turt` files without writing boilerplate Java code (legacy `.pp` supported).
 - **Enhanced Command Integration:** Tighter integration with the command-based paradigm.
 - **Improved Documentation:** Comprehensive guides and examples.
 

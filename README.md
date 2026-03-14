@@ -41,7 +41,7 @@ Turtle Tracer isn't just a port of the web tool—it's a complete reimagining of
 ### 🚀 **Next-Level Performance & Workflow**
 
 - **Native Desktop Experience**: Built with Electron for blazing fast performance. Works offline, supports multiple windows, and integrates with your OS.
-- **Local File System**: Open and save `.pp` files directly on your computer. No more uploading/downloading or losing work to browser cache clears.
+- **Local File System**: Open and save `.turt` files directly on your computer (legacy `.pp` supported). No more uploading/downloading or losing work to browser cache clears.
 - **Git Integration**: See your file status (Modified, Staged, Untracked) instantly. Version control your paths alongside your robot code.
 - **Auto-Save & History**: Never lose progress with robust Auto-Save, full Undo/Redo support, and a dedicated History Panel to jump back to any point.
 
@@ -54,7 +54,7 @@ Turtle Tracer isn't just a port of the web tool—it's a complete reimagining of
 
 ### 🛠️ **Powerful Planning Tools**
 
-- **File Macros**: Reuse successful path sequences! Drag and drop other `.pp` files to use them as sub-routines (macros) with support for transformations (mirror/reverse).
+- **File Macros**: Reuse successful path sequences! Drag and drop `.turt` or legacy `.pp` files to use them as sub-routines (macros) with support for transformations (mirror/reverse).
 - **Smart Validators**:
   - **Collision Detection**: Real-time feedback on Obstacles and Keep-In Zones.
   - **Continuous Validation**: Option to check your path's safety in real-time as you edit.
@@ -172,7 +172,7 @@ chmod +x TurtleTracer*.AppImage
 
 One of the critical advantages of Turtle Tracer over web-based tools is its **Local File Management system**.
 
-- **Security & Persistence**: Your paths are saved as actual files (`.pp`) on your hard drive, not in a temporary browser cache that can be accidentally cleared.
+- **Security & Persistence**: Your paths are saved as actual files (`.turt`) on your hard drive, not in a temporary browser cache that can be accidentally cleared.
 - **Version Control**: You can easily commit your path files to Git alongside your robot code, ensuring your team always has the latest versions.
 - **Organization**: Use the built-in file browser to organize paths into folders, duplicate successful routines, and manage backups without leaving the app.
 

@@ -536,7 +536,7 @@
   function getBasePath(): string | null {
     if ($currentFilePath) return $currentFilePath;
     if ($currentDirectoryStore)
-      return $currentDirectoryStore + "/placeholder.pp";
+      return $currentDirectoryStore + "/placeholder.turt";
     return null;
   }
 
@@ -2204,7 +2204,7 @@
                               DEFAULT_SETTINGS.autoExportEmbedPoseData;
                             settings = { ...settings };
                           }}
-                          description="Embed pose data directly in the code (no .pp file)"
+                          description="Embed pose data directly in the code (no .turt file)"
                           {searchQuery}
                           layout="row"
                         >

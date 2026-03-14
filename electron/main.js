@@ -103,6 +103,13 @@ if (process.windowsStore) {
 
 const gotTheLock = app.requestSingleInstanceLock();
 
+const PROJECT_EXTENSIONS = [".turt", ".pp"];
+function isProjectFilePath(filePath) {
+  if (!filePath || typeof filePath !== "string") return false;
+  const lower = filePath.toLowerCase();
+  return PROJECT_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
 if (!gotTheLock) {
   app.quit();
 } else {
@@ -130,7 +137,7 @@ if (!gotTheLock) {
       // Check for file arguments in the second instance command line
       // Windows/Linux: The file path is usually the last argument or specifically passed
       const lastArg = commandLine[commandLine.length - 1];
-      if (lastArg && lastArg.endsWith(".pp")) {
+      if (isProjectFilePath(lastArg)) {
         handleOpenedFile(lastArg);
       }
     } catch (err) {
@@ -144,7 +151,7 @@ if (!gotTheLock) {
     // Check for file arguments on initial launch (Windows/Linux)
     if (process.platform !== "darwin" && process.argv.length >= 2) {
       const lastArg = process.argv[process.argv.length - 1];
-      if (lastArg && lastArg.endsWith(".pp")) {
+      if (isProjectFilePath(lastArg)) {
         pendingFilePath = lastArg;
       }
     }
@@ -523,7 +530,7 @@ const createMenu = () => {
                 sendToFocusedWindow("menu-action", "export-sequential"),
             },
             {
-              label: "Export as .pp File...",
+              label: "Export as .turt File...",
               click: () => sendToFocusedWindow("menu-action", "export-pp"),
             },
             { type: "separator" },
@@ -949,12 +956,12 @@ ipcMain.handle("file:get-directory-stats", async (event, dirPath) => {
 
   try {
     const files = await fs.readdir(dirPath);
-    const ppFiles = files.filter((file) => file.endsWith(".pp"));
+    const projectFiles = files.filter((file) => isProjectFilePath(file));
 
     let totalSize = 0;
     let latestModified = new Date(0);
 
-    for (const file of ppFiles) {
+    for (const file of projectFiles) {
       const filePath = path.join(dirPath, file);
       const stats = await fs.stat(filePath);
       totalSize += stats.size;
@@ -964,7 +971,7 @@ ipcMain.handle("file:get-directory-stats", async (event, dirPath) => {
     }
 
     return {
-      totalFiles: ppFiles.length,
+      totalFiles: projectFiles.length,
       totalSize,
       lastModified: latestModified,
     };
@@ -1067,8 +1074,8 @@ ipcMain.handle("file:list", async (event, directory) => {
 
   try {
     const dirents = await fs.readdir(directory, { withFileTypes: true });
-    const ppFilesAndDirs = dirents.filter(
-      (dirent) => dirent.isDirectory() || dirent.name.endsWith(".pp"),
+    const projectFilesAndDirs = dirents.filter(
+      (dirent) => dirent.isDirectory() || isProjectFilePath(dirent.name),
     );
 
     // Check git status
@@ -1101,7 +1108,7 @@ ipcMain.handle("file:list", async (event, directory) => {
     }
 
     const fileDetails = await Promise.all(
-      ppFilesAndDirs.map(async (dirent) => {
+      projectFilesAndDirs.map(async (dirent) => {
         const filePath = path.join(directory, dirent.name);
         const stats = await fs.stat(filePath);
         // On Windows, paths might differ in normalization, resolve to be safe
@@ -1169,14 +1176,14 @@ ipcMain.handle("file:write-base64", async (event, filePath, base64Content) => {
   }
 });
 
-// Export a .pp file using native save dialog and write via main process
+// Export a legacy .pp file using native save dialog and write via main process
 ipcMain.handle(
   "export:pp",
   async (event, { content, defaultName = "trajectory.pp" } = {}) => {
     try {
       const win = BrowserWindow.fromWebContents(event.sender);
       const options = {
-        title: "Export .pp File",
+        title: "Export .pp File (Legacy)",
         defaultPath:
           defaultName && defaultName.endsWith(".pp")
             ? defaultName
@@ -1188,7 +1195,7 @@ ipcMain.handle(
       await fs.writeFile(result.filePath, content, "utf-8");
       return result.filePath;
     } catch (error) {
-      console.error("Error exporting .pp file:", error);
+      console.error("Error exporting legacy .pp file:", error);
       throw error;
     }
   },

@@ -2,6 +2,7 @@
 import { get } from "svelte/store";
 import { diskEventNamesStore } from "../stores";
 import type { Line, SequenceItem } from "../types";
+import { isSupportedProjectFileName } from "./fileExtensions";
 
 export async function scanEventsInDirectory(directory: string) {
   const electronAPI = (window as any).electronAPI;
@@ -9,15 +10,15 @@ export async function scanEventsInDirectory(directory: string) {
 
   try {
     const files = await electronAPI.listFiles(directory);
-    // Filter for .pp files
-    const ppFiles = files.filter((f: any) =>
-      f.name.toLowerCase().endsWith(".pp"),
+    // Filter for project files
+    const projectFiles = files.filter((f: any) =>
+      isSupportedProjectFileName(f.name),
     );
 
     const eventNames = new Set<string>();
 
     await Promise.all(
-      ppFiles.map(async (file: any) => {
+      projectFiles.map(async (file: any) => {
         try {
           const content = await electronAPI.readFile(file.path);
           const data = JSON.parse(content);

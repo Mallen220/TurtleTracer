@@ -28,6 +28,14 @@ import {
 import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
 import { makeId } from "./nameGenerator";
 import { getLineStartHeading, getLineEndHeading } from "./math";
+import {
+  DEFAULT_PROJECT_EXTENSION,
+  LEGACY_PROJECT_EXTENSION,
+  ensureDefaultProjectExtension,
+  isLegacyProjectFileName,
+  isSupportedProjectFileName,
+  stripProjectExtension,
+} from "./fileExtensions";
 import pkg from "../../package.json";
 
 export { loadProjectData };
@@ -222,14 +230,25 @@ async function performSave(
       if (electronAPI.showSaveDialog) {
         const filePath = await electronAPI.showSaveDialog({
           title: "Save Project",
-          defaultPath: "trajectory.pp",
-          filters: [{ name: "Turtle Tracer Path", extensions: ["pp"] }],
+          defaultPath: `trajectory${DEFAULT_PROJECT_EXTENSION}`,
+          filters: [
+            {
+              name: "Turtle Tracer Project",
+              extensions: ["turt"],
+            },
+          ],
         });
         if (!filePath) return false;
         targetPath = filePath;
       } else {
         return false;
       }
+    }
+
+    let convertedFromLegacy = false;
+    if (targetPath) {
+      convertedFromLegacy = isLegacyProjectFileName(targetPath);
+      targetPath = ensureDefaultProjectExtension(targetPath);
     }
 
     // --- RELATIVIZE MACRO PATHS ---
@@ -245,7 +264,7 @@ async function performSave(
       }
     }
 
-    // Calculate correct headings for startPoint to ensure .pp file reflects the path geometry
+    // Calculate correct headings for startPoint to ensure the file reflects the path geometry
     const updatedStartPoint = calculateStartPointHeadings(
       startPoint,
       linesToSave,
@@ -281,11 +300,20 @@ async function performSave(
         addToRecentFiles(result.filepath, settings);
         isUnsaved.set(false);
         if (!options.quiet) {
-          notification.set({
-            message: `Project saved to ${result.filepath}`,
-            type: "success",
-            timeout: 3000,
-          });
+          if (convertedFromLegacy) {
+            notification.set({
+              message:
+                "Legacy .pp file detected. Saved as .turt. Use the .turt file going forward.",
+              type: "warning",
+              timeout: 6000,
+            });
+          } else {
+            notification.set({
+              message: `Project saved to ${result.filepath}`,
+              type: "success",
+              timeout: 3000,
+            });
+          }
         }
 
         // Update macro cache if this file is being used as a macro in the current project
@@ -326,11 +354,20 @@ async function performSave(
       addToRecentFiles(targetPath, settings);
       isUnsaved.set(false);
       if (!options.quiet) {
-        notification.set({
-          message: `Project saved to ${targetPath}`,
-          type: "success",
-          timeout: 3000,
-        });
+        if (convertedFromLegacy) {
+          notification.set({
+            message:
+              "Legacy .pp file detected. Saved as .turt. Use the .turt file going forward.",
+            type: "warning",
+            timeout: 6000,
+          });
+        } else {
+          notification.set({
+            message: `Project saved to ${targetPath}`,
+            type: "success",
+            timeout: 3000,
+          });
+        }
       }
 
       // Update macro cache if this file is being used as a macro
@@ -408,11 +445,20 @@ export async function saveProject(
 
 export function saveFileAs() {
   const filePath = get(currentFilePath);
-  // Extract just the filename without the path and .pp extension
+  // Extract just the filename without the path and extension
   let filename = "trajectory";
   if (filePath) {
     const baseName = filePath.split(/[\\/]/).pop() || "";
-    filename = baseName.replace(".pp", "");
+    filename = stripProjectExtension(baseName);
+  }
+
+  if (filePath && isLegacyProjectFileName(filePath)) {
+    notification.set({
+      message:
+        "Legacy .pp file detected. Save As will create a .turt file. Use the .turt file going forward.",
+      type: "warning",
+      timeout: 6000,
+    });
   }
 
   downloadTrajectory(
@@ -421,30 +467,40 @@ export function saveFileAs() {
     get(shapesStore),
     get(sequenceStore),
     get(extraDataStore),
-    `${filename}.pp`,
+    `${filename}${DEFAULT_PROJECT_EXTENSION}`,
   );
 }
 
-export async function exportAsPP() {
+async function exportProjectFileWithExtension(
+  extension: string,
+  title: string,
+  filterName: string,
+  filterExtensions: string[],
+) {
   const electronAPI = getElectronAPI();
   const filePath = get(currentFilePath);
-  // Extract just the filename without the path and .pp extension
+  // Extract just the filename without the path and extension
   let filename = "trajectory";
   if (filePath) {
     const baseName = filePath.split(/[\\\/]/).pop() || "";
-    filename = baseName.replace(".pp", "");
+    filename = stripProjectExtension(baseName);
   }
-  const defaultName = `${filename}.pp`;
+  const defaultName = `${filename}${extension}`;
 
   if (electronAPI) {
     // Use save dialog + writeFile
     if (electronAPI.showSaveDialog && electronAPI.writeFile) {
       const filePath = await electronAPI.showSaveDialog({
-        title: "Export .pp File",
+        title,
         defaultPath: defaultName,
-        filters: [{ name: "Turtle Tracer Path", extensions: ["pp"] }],
+        filters: [{ name: filterName, extensions: filterExtensions }],
       });
       if (!filePath) return;
+
+      const resolvedPath =
+        extension === DEFAULT_PROJECT_EXTENSION
+          ? ensureDefaultProjectExtension(filePath)
+          : filePath;
 
       // Relativize paths
       const sequence = structuredClone(get(sequenceStore));
@@ -452,7 +508,7 @@ export async function exportAsPP() {
         for (const item of sequence) {
           if (item.kind === "macro") {
             item.filePath = await electronAPI.makeRelativePath(
-              filePath,
+              resolvedPath,
               item.filePath,
             );
           }
@@ -483,8 +539,8 @@ export async function exportAsPP() {
         2,
       );
 
-      await electronAPI.writeFile(filePath, jsonString);
-      console.log("Exported to", filePath);
+      await electronAPI.writeFile(resolvedPath, jsonString);
+      console.log("Exported to", resolvedPath);
       return;
     }
   }
@@ -524,6 +580,24 @@ export async function exportAsPP() {
   );
 }
 
+export async function exportAsProjectFile() {
+  return exportProjectFileWithExtension(
+    DEFAULT_PROJECT_EXTENSION,
+    "Export .turt File",
+    "Turtle Tracer Project",
+    ["turt"],
+  );
+}
+
+export async function exportAsPP() {
+  return exportProjectFileWithExtension(
+    LEGACY_PROJECT_EXTENSION,
+    "Export .pp File (Legacy)",
+    "Turtle Tracer Project (Legacy)",
+    ["pp"],
+  );
+}
+
 export async function handleExternalFileOpen(filePath: string) {
   // Autosave on Close Logic
   const settings = get(settingsStore);
@@ -554,7 +628,8 @@ export async function handleExternalFileOpen(filePath: string) {
 
     // 2. Check if a working directory
     const savedDir = await electronAPI.getSavedDirectory?.();
-    const fileName = filePath.split(/[\\/]/).pop() || "unknown.pp";
+    const fileName =
+      filePath.split(/[\\/]/).pop() || `unknown${DEFAULT_PROJECT_EXTENSION}`;
 
     // If no directory saved, just load it
     if (!savedDir) {
@@ -563,7 +638,7 @@ export async function handleExternalFileOpen(filePath: string) {
       addToRecentFiles(filePath);
 
       // If auto-export is enabled, regenerate exported code for the newly loaded file
-      // (this covers external editors / file-watchers changing the .pp file on disk).
+      // (this covers external editors / file-watchers changing the project file on disk).
       await handleAutoExport(
         get(startPointStore),
         get(linesStore),
@@ -714,8 +789,8 @@ export async function loadFile(evt: Event) {
   const file = elem.files?.[0];
   if (!file) return;
 
-  if (!file.name.endsWith(".pp")) {
-    alert("Please select a .pp file");
+  if (!isSupportedProjectFileName(file.name)) {
+    alert("Please select a .turt or .pp file");
     elem.value = "";
     return;
   }
@@ -794,7 +869,7 @@ export async function handleAutoExport(
 
   try {
     const exportDirName = settings.autoExportPath || "GeneratedCode";
-    // Resolve export directory relative to the target .pp file
+    // Resolve export directory relative to the target project file
     const exportDir = await electronAPI.resolvePath(targetPath, exportDirName);
 
     // Create directory
@@ -806,7 +881,8 @@ export async function handleAutoExport(
     let content = "";
     let extension = "txt";
     const baseName =
-      targetPath.split(/[\\/]/).pop()?.replace(".pp", "") || "AutoPath";
+      stripProjectExtension(targetPath.split(/[\\/]/).pop() || "") ||
+      "AutoPath";
 
     switch (settings.autoExportFormat) {
       case "java":

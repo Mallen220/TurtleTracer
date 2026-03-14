@@ -1,5 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Point, Line, Shape, SequenceItem, Settings } from "../types";
+import {
+  DEFAULT_PROJECT_EXTENSION,
+  LEGACY_PROJECT_EXTENSION,
+  isSupportedProjectFileName,
+} from "./fileExtensions";
 
 /**
  * File save/load utilities for the visualizer
@@ -15,7 +20,7 @@ export interface SaveData {
 }
 
 /**
- * Download trajectory data as a .pp file
+ * Download trajectory data as a .turt file
  */
 export function downloadTrajectory(
   startPoint: Point,
@@ -23,7 +28,7 @@ export function downloadTrajectory(
   shapes: Shape[],
   sequence?: SequenceItem[],
   extraData?: Record<string, any>,
-  filename: string = "trajectory.pp",
+  filename: string = `trajectory${DEFAULT_PROJECT_EXTENSION}`,
 ): void {
   const jsonString = JSON.stringify(
     { startPoint, lines, shapes, sequence, extraData },
@@ -35,7 +40,12 @@ export function downloadTrajectory(
   const url = URL.createObjectURL(blob);
 
   linkObj.href = url;
-  linkObj.download = filename.endsWith(".pp") ? filename : `${filename}.pp`;
+  const lowerName = filename.toLowerCase();
+  linkObj.download =
+    lowerName.endsWith(DEFAULT_PROJECT_EXTENSION) ||
+    lowerName.endsWith(LEGACY_PROJECT_EXTENSION)
+      ? filename
+      : `${filename}${DEFAULT_PROJECT_EXTENSION}`;
 
   document.body.appendChild(linkObj);
   linkObj.click();
@@ -86,8 +96,8 @@ export function loadTrajectoryFromFile(
   if (!file) return;
 
   // Check file extension
-  if (!file.name.toLowerCase().endsWith(".pp")) {
-    const error = new Error("Please select a .pp file");
+  if (!isSupportedProjectFileName(file.name)) {
+    const error = new Error("Please select a .turt or .pp file");
     if (onError) onError(error);
     alert(error.message);
     return;

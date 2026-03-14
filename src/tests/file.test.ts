@@ -95,11 +95,11 @@ describe("File Utils", () => {
   });
 
   describe("downloadTrajectory", () => {
-    it("should create a .pp file download with correct parameters", () => {
+    it("should create a .turt file download with correct parameters", () => {
       downloadTrajectory(mockStartPoint, mockLines, mockShapes, mockSequence);
 
       expect(createElementSpy).toHaveBeenCalledWith("a");
-      expect(linkMock.download).toBe("trajectory.pp");
+      expect(linkMock.download).toBe("trajectory.turt");
       expect(linkMock.href).toBe("blob:url");
       expect(appendChildSpy).toHaveBeenCalledWith(linkMock);
       expect(linkMock.click).toHaveBeenCalled();
@@ -113,7 +113,7 @@ describe("File Utils", () => {
   });
 
   describe("loadTrajectoryFromFile", () => {
-    it("should parse a valid .pp file correctly", () => {
+    it("should parse a valid .turt file correctly", () => {
       const fileContent = JSON.stringify({
         startPoint: mockStartPoint,
         lines: mockLines,
@@ -122,13 +122,13 @@ describe("File Utils", () => {
         settings: mockSettings,
       });
 
-      const file = new File([fileContent], "test.pp", {
+      const file = new File([fileContent], "test.turt", {
         type: "application/json",
       });
       const event = {
         target: {
           files: [file],
-          value: "C:\\fakepath\\test.pp",
+          value: "C:\\fakepath\\test.turt",
         },
       } as unknown as Event;
 

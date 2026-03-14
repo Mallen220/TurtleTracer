@@ -1100,7 +1100,7 @@
     // Extract name from path
     const parts = filePath.split(/[/\\]/);
     const fileName = parts.pop() || filePath;
-    const baseName = fileName.replace(/\.pp$/, "");
+    const baseName = fileName.replace(/\.(pp|turt)$/i, "");
 
     const newMacro: SequenceMacroItem = {
       kind: "macro",

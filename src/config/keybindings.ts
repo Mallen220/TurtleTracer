@@ -621,7 +621,7 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
   {
     id: "export-pp",
     key: "cmd+shift+x, ctrl+shift+x",
-    description: "Export .pp (JSON)",
+    description: "Export .turt (JSON)",
     action: "exportPP",
     category: "Export",
   },

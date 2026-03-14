@@ -45,7 +45,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   writeFileBase64: (filePath, base64Content) =>
     ipcRenderer.invoke("file:write-base64", filePath, base64Content),
 
-  // Export .pp convenience wrapper
+  // Export legacy .pp convenience wrapper
   exportPP: (content, defaultName) =>
     ipcRenderer.invoke("export:pp", { content, defaultName }),
 

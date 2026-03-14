@@ -1,6 +1,6 @@
 # File Management
 
-The visualizer uses a local file system to store projects as `.pp` files, giving you full control over your data.
+The visualizer uses a local file system to store projects as `.turt` files, giving you full control over your data. Legacy `.pp` files are still supported.
 
 ## File Browser
 
@@ -11,7 +11,7 @@ The file manager appears in the sidebar when you click **Files** in the top-left
 - **Search**: Filter files by name.
 - **Sort**: Toggle between **Name** and **Date** sorting.
 - **View**: Switch between **List** (details) and **Grid** (visual previews) modes.
-- **Import**: Load an external `.pp` file into the current directory.
+- **Import**: Load an external `.turt` or legacy `.pp` file into the current directory.
 - **New File**: Create a blank project.
 - **Refresh**: Reload the file list.
 - **Change Directory**: Open a system dialog to select a new working folder.
@@ -41,4 +41,4 @@ Right-click a file (or click the **⋮** menu in Grid view) to access actions:
 ## Saving & Exporting
 
 - **Save Project**: Press `Ctrl+S` (or `Cmd+S`) to save changes to the current file.
-- **Export**: To generate Java code or .PP, use the **Export** button in the main navbar. See [Exporting Code] for details.
+- **Export**: To generate Java code or a `.turt` project file, use the **Export** button in the main navbar. See [Exporting Code] for details.

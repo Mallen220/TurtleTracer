@@ -322,7 +322,7 @@ describe("codeExporter", () => {
       const code = await generateSequentialCommandCode(
         startPoint,
         lines,
-        "TestPath.pp",
+        "TestPath.turt",
       );
 
       expect(code).toContain(
@@ -338,7 +338,7 @@ describe("codeExporter", () => {
       const code = await generateSequentialCommandCode(
         startPoint,
         lines,
-        "TestPath.pp",
+        "TestPath.turt",
         undefined,
         "NextFTC",
       );
@@ -399,7 +399,7 @@ describe("codeExporter", () => {
       const code = await generateSequentialCommandCode(
         startPoint,
         lines,
-        "TestPath.pp",
+        "TestPath.turt",
         sequence,
       );
 
@@ -415,7 +415,7 @@ describe("codeExporter", () => {
       const code = await generateSequentialCommandCode(
         startPoint,
         lines,
-        "TestPath.pp",
+        "TestPath.turt",
         sequence,
         "NextFTC",
       );
@@ -430,7 +430,7 @@ describe("codeExporter", () => {
       const code = await generateSequentialCommandCode(
         startPoint,
         lines,
-        "TestPath.pp",
+        "TestPath.turt",
       );
 
       expect(code).toContain("private Pose point1;");
@@ -451,7 +451,7 @@ describe("codeExporter", () => {
       const code = await generateSequentialCommandCode(
         startPoint,
         [],
-        "TestPath.pp",
+        "TestPath.turt",
         sequence,
       );
 
@@ -489,7 +489,7 @@ describe("codeExporter", () => {
       const code = await generateSequentialCommandCode(
         startPoint,
         linkedLines,
-        "TestPath.pp",
+        "TestPath.turt",
       );
 
       // 1. Shared Pose Declarations
@@ -553,7 +553,7 @@ describe("codeExporter", () => {
       const loopCode = await generateSequentialCommandCode(
         startPoint,
         loopLines,
-        "TestPath.pp",
+        "TestPath.turt",
       );
       expect(loopCode).toMatch(/private PathChain ATOB;/);
       expect(loopCode).toMatch(/private PathChain ATOB_1;/);
@@ -566,7 +566,7 @@ describe("codeExporter", () => {
       const code = await generateSequentialCommandCode(
         startPoint,
         lines,
-        "TestPath.pp",
+        "TestPath.turt",
         undefined,
         "SolversLib",
         "org.firstinspires.ftc.teamcode.Commands.AutoCommands",

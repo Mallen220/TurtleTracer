@@ -6,6 +6,11 @@ import { getCurvePoint, getLineStartHeading } from "./math";
 import pkg from "../../package.json";
 import { actionRegistry } from "../lib/actionRegistry";
 import { toUser, toUserHeading, type CoordinateSystem } from "./coordinates";
+import {
+  DEFAULT_PROJECT_EXTENSION,
+  getProjectExtensionFromPath,
+  stripProjectExtension,
+} from "./fileExtensions";
 
 /**
  * Generate Java code from path data
@@ -655,7 +660,7 @@ export async function generateSequentialCommandCode(
   let className = "AutoPath";
   if (fileName) {
     const baseName = fileName.split(/[\\/]/).pop() || "";
-    className = baseName.replace(".pp", "").replace(/[^a-zA-Z0-9]/g, "_");
+    className = stripProjectExtension(baseName).replace(/[^a-zA-Z0-9]/g, "_");
     if (!className) className = "AutoPath";
   }
 
@@ -1043,7 +1048,12 @@ import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
     : "import com.turtletracerlib.PedroPathReader;";
   const ppReaderInit = hardcodeValues
     ? ""
-    : `PedroPathReader pp = new PedroPathReader("${fileName ? fileName.split(/[\\/]/).pop() + ".pp" || "AutoPath.pp" : "AutoPath.pp"}", hw.appContext);`;
+    : (() => {
+        const rawName = fileName ? fileName.split(/[\\/]/).pop() || "" : "";
+        const baseName = stripProjectExtension(rawName || "AutoPath") || "AutoPath";
+        const ext = getProjectExtensionFromPath(rawName) || DEFAULT_PROJECT_EXTENSION;
+        return `PedroPathReader pp = new PedroPathReader("${baseName}${ext}", hw.appContext);`;
+      })();
 
   let sequentialCommandCode = "";
 

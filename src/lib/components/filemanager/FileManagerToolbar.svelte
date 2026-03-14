@@ -185,7 +185,7 @@
     <input
       bind:this={fileInput}
       type="file"
-      accept=".pp"
+      accept=".turt,.pp"
       class="hidden"
       on:change={handleImport}
       tabindex="-1"
@@ -193,8 +193,8 @@
     <button
       on:click={() => fileInput?.click()}
       class="p-1.5 text-neutral-500 hover:text-purple-600 dark:text-neutral-400 dark:hover:text-purple-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
-      title="Import .pp File"
-      aria-label="Import .pp File"
+      title="Import .turt or .pp File"
+      aria-label="Import .turt or .pp File"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

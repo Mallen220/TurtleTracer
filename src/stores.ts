@@ -97,7 +97,7 @@ export const focusRequest = writable<{
 // Store for the current working directory path
 export const currentDirectoryStore = writable<string | null>(null);
 
-// Store for event names found in .pp files on disk
+// Store for event names found in project files on disk
 export const diskEventNamesStore = writable<string[]>([]);
 
 // Git status map for files (filepath -> status)

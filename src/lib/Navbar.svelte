@@ -1190,8 +1190,8 @@
             <button
               on:click={() => handleExport("json")}
               class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
-              title={`Export .pp${getShortcutFromSettings(settings, "export-pp")}`}
-              >.pp File</button
+              title={`Export .turt${getShortcutFromSettings(settings, "export-pp")}`}
+              >.turt File</button
             >
 
             <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>

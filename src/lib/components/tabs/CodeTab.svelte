@@ -229,12 +229,12 @@
   async function handleDownloadJava() {
     if (!code) return;
 
-    // Prefer the project's .pp filename if available, else try class name, else fallback
+    // Prefer the project's file name if available, else try class name, else fallback
     const currentPath = get(currentFilePath);
     let defaultName = "AutoPath.java";
     if (currentPath) {
       const baseName = currentPath.split(/[\\\/]/).pop() || "";
-      const short = baseName.replace(/\.pp$/i, "") || "trajectory";
+      const short = baseName.replace(/\.(pp|turt)$/i, "") || "trajectory";
       defaultName = `${short}.java`;
     } else {
       const match = code.match(/class\s+(\w+)/);

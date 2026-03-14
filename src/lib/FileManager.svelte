@@ -56,6 +56,14 @@
   import { hookRegistry } from "./registries";
   import { mirrorPathData, reversePathData } from "../utils/pathTransform";
   import { scanEventsInDirectory } from "../utils/eventScanner";
+  import {
+    DEFAULT_PROJECT_EXTENSION,
+    SUPPORTED_PROJECT_EXTENSIONS,
+    ensureDefaultProjectExtension,
+    getProjectExtensionFromPath,
+    isSupportedProjectFileName,
+    stripProjectExtension,
+  } from "../utils/fileExtensions";
 
   import FileManagerToolbar from "./components/filemanager/FileManagerToolbar.svelte";
   import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
@@ -98,7 +106,7 @@
   let creatingNewFolder = false;
   let newFolderName = "";
 
-  const supportedFileTypes = [".pp"];
+  const supportedFileTypes = [...SUPPORTED_PROJECT_EXTENSIONS];
   const electronAPI = window.electronAPI;
 
   function getErrorMessage(error: unknown): string {
@@ -457,8 +465,8 @@
     const file = e.detail;
     if (!file) return;
 
-    if (!file.name.endsWith(".pp")) {
-      showToast("Please select a .pp file", "error");
+    if (!isSupportedProjectFileName(file.name)) {
+      showToast("Please select a .turt or .pp file", "error");
       return;
     }
 
@@ -493,7 +501,7 @@
         // Validate JSON
         const data = JSON.parse(content);
         if (!data.startPoint || !data.lines) {
-          throw new Error("Invalid .pp file format");
+          throw new Error("Invalid project file format");
         }
 
         // Determine destination path
@@ -628,7 +636,12 @@
 
     let fileName = cleanName;
     if (!file.isDirectory) {
-      fileName = cleanName.endsWith(".pp") ? cleanName : cleanName + ".pp";
+      if (isSupportedProjectFileName(cleanName)) {
+        fileName = cleanName;
+      } else {
+        const extension = getProjectExtensionFromPath(file.name);
+        fileName = `${cleanName}${extension}`;
+      }
     }
 
     if (fileName === file.name) return;
@@ -767,7 +780,7 @@
   async function createNewFile(name: string) {
     if (!name.trim()) return;
 
-    const fileName = name.endsWith(".pp") ? name : name + ".pp";
+    const fileName = ensureDefaultProjectExtension(name);
     const filePath = path.join(currentDirectory, fileName);
 
     // Autosave on Close Logic
@@ -859,14 +872,14 @@
         suffix = "_reversed";
       }
 
-      const baseName = file.name.replace(/\.pp$/, "");
-      let newName = `${baseName}${suffix}.pp`;
+      const baseName = stripProjectExtension(file.name);
+      let newName = `${baseName}${suffix}${DEFAULT_PROJECT_EXTENSION}`;
       let counter = 1;
 
       while (
         await electronAPI.fileExists(path.join(currentDirectory, newName))
       ) {
-        newName = `${baseName}${suffix}${counter}.pp`;
+        newName = `${baseName}${suffix}${counter}${DEFAULT_PROJECT_EXTENSION}`;
         counter++;
       }
 
@@ -1146,7 +1159,7 @@
           bind:value={newFileName}
           bind:this={newFileInput}
           class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
-          placeholder="path_name.pp"
+          placeholder="path_name.turt"
           on:keydown={(e) => {
             if (e.key === "Enter") createNewFile(newFileName);
             if (e.key === "Escape") creatingNewFile = false;

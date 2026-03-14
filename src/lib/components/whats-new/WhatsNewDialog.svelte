@@ -867,7 +867,8 @@
               </h3>
               <p class="text-neutral-600 dark:text-neutral-300 text-sm mb-3">
                 Install <strong>TurtleTracerLib</strong> to run
-                <code>.pp</code> files directly and enable advanced commands.
+                <code>.turt</code> files directly (legacy <code>.pp</code>
+                supported) and enable advanced commands.
               </p>
               <button
                 class="text-purple-600 dark:text-purple-400 font-bold hover:underline text-sm flex items-center gap-1"
