@@ -113,7 +113,7 @@ export function mergeSettings(source: any): Settings {
           }
         }
 
-        migrated[key] = sourceVal;
+        (migrated as any)[key] = sourceVal;
       }
     }
   });
