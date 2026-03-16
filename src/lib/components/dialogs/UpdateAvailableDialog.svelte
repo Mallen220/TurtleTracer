@@ -37,7 +37,7 @@
   let isLoadingNotes = false;
   // Current installed app version (populated from preload in Electron)
   let currentVersion: string | null = null;
-  
+
   // Dev override for testing Store UI on non-Windows platforms.
   // Set to true/false to force Store state, or null to use real detection.
   const debugStoreOverride: boolean | null = null;
@@ -242,11 +242,11 @@
           class="rounded-2xl border-2 border-amber-400/80 bg-amber-50/90 dark:bg-amber-900/30 px-4 py-3 text-amber-900 dark:text-amber-100 shadow-sm"
         >
           <div class="flex items-start gap-3">
-          <div
-            class="mt-0.5 size-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-[13px] leading-none shadow-sm flex-shrink-0"
-          >
-            !
-          </div>
+            <div
+              class="mt-0.5 size-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-[13px] leading-none shadow-sm flex-shrink-0"
+            >
+              !
+            </div>
             <div class="text-sm">
               <div
                 class="text-[11px] font-extrabold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300"
@@ -258,7 +258,8 @@
                 <span class="font-extrabold">Turtle Tracer</span>!
               </p>
               <p class="mt-1 text-xs leading-relaxed">
-                With new changes always underway we thank you for being part of the journey!
+                With new changes always underway we thank you for being part of
+                the journey!
               </p>
             </div>
           </div>

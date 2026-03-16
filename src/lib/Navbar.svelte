@@ -261,7 +261,9 @@
           >Renaming Notice:</span
         >
         <span class="font-semibold">
-          This program is getting renamed to <span class="font-extrabold">Turtle Tracer</span>.
+          This program is getting renamed to <span class="font-extrabold"
+            >Turtle Tracer</span
+          >.
         </span>
       </div>
       {#if $currentFilePath}

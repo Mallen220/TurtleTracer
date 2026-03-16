@@ -326,8 +326,8 @@
 
     <button
       on:click={handleDownloadJava}
-      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("purple")}`}
-      title="Download as .java"
+      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus-visible:ring-2 ${getButtonFilledClass("purple")} ${!code ? "opacity-50 cursor-not-allowed" : ""}`}
+      title={!code ? "No code available to download" : "Download as .java"}
       aria-label="Download generated Java file"
       disabled={!code}
       aria-disabled={!code}
@@ -351,8 +351,14 @@
 
     <button
       on:click={handleCopy}
-      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("blue")} ${isGenerating || !code ? "opacity-50 cursor-not-allowed" : ""}`}
-      title={copyButtonText === "Copied!" ? "Copied!" : "Copy Code"}
+      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus-visible:ring-2 ${getButtonFilledClass("blue")} ${isGenerating || !code ? "opacity-50 cursor-not-allowed" : ""}`}
+      title={isGenerating
+        ? "Generating code..."
+        : !code
+          ? "No code available to copy"
+          : copyButtonText === "Copied!"
+            ? "Copied!"
+            : "Copy Code"}
       disabled={isGenerating || !code}
       aria-disabled={isGenerating || !code}
       aria-label="Copy generated code"
