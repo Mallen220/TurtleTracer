@@ -1,6 +1,7 @@
 <div align="center">
   <img src="public/icon.png" alt="Turtle Tracer Logo" width="120" height="120">
   <h1 align="center">Turtle Tracer</h1>
+  <h2 align="center">(Previously Pedro Pathing Plus Visualizer)</h2>
   <p align="center">
     <strong>The modern, intuitive path planner for FIRST Robotics Competition.</strong>
   </p>
