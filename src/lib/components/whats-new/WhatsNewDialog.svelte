@@ -708,12 +708,14 @@
               </div>
               <p class="mt-1 font-semibold leading-snug">
                 This program is getting renamed in the next version to
-                <span class="font-extrabold">Turtle Tracer</span>. Please stay tuned for updates!
+                <span class="font-extrabold">Turtle Tracer</span>. Please stay
+                tuned for updates!
               </p>
               <p class="mt-1 text-xs leading-relaxed">
                 It will continue to function exactly as it does now. The change
                 reflects a level of separation from the Pedro Pathing developers
-                and plans to make it even better. Users should migrate to the TurtleTracerLib library immediately.
+                and plans to make it even better. Users should migrate to the
+                TurtleTracerLib library immediately.
               </p>
             </div>
           </div>

@@ -782,12 +782,16 @@
                 </div>
                 <p class="mt-1 font-semibold leading-snug">
                   This program is getting renamed in the next version to
-                  <span class="font-extrabold">Turtle Tracer</span>. Please stay tuned for updates!
+                  <span class="font-extrabold">Turtle Tracer</span>. Please stay
+                  tuned for updates!
                 </p>
                 <p class="mt-1 text-xs leading-relaxed">
                   It will continue to function exactly as it does now. The
                   change reflects a level of separation from the Pedro Pathing
-                  developers and plans to make it even better. Code should be updated to use the TurtleTracerLib package rather than PedroPathingPlus. With questions please email FTCTurtleTracer@gmail.com
+                  developers and plans to make it even better. Code should be
+                  updated to use the TurtleTracerLib package rather than
+                  PedroPathingPlus. With questions please email
+                  FTCTurtleTracer@gmail.com
                 </p>
               </div>
             </div>
@@ -1924,6 +1928,26 @@
                     type="checkbox"
                     bind:checked={settings.showVelocityHeatmap}
                     class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                  />
+                </SettingsItem>
+
+                <SettingsItem
+                  label="Show Path Direction"
+                  isModified={settings.showPathDirection !==
+                    DEFAULT_SETTINGS.showPathDirection}
+                  onReset={() => {
+                    settings.showPathDirection =
+                      DEFAULT_SETTINGS.showPathDirection;
+                    settings = { ...settings };
+                  }}
+                  description="Show directional arrows along paths to indicate flow"
+                  {searchQuery}
+                  layout="row"
+                >
+                  <input
+                    type="checkbox"
+                    bind:checked={settings.showPathDirection}
+                    class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   />
                 </SettingsItem>
 

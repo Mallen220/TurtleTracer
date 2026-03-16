@@ -1022,6 +1022,25 @@
     return _path;
   }
 
+  // Arrow Polygon Helper
+  function createDirectionArrow(
+    xPos: number,
+    yPos: number,
+    angle: number,
+    color: string,
+    id: string,
+    size: number = 2,
+  ) {
+    const arrowSize = uiLength(size);
+    // Pointing along the tangent
+    const arrow = new Two.Polygon(xPos, yPos, arrowSize, 3);
+    arrow.id = id;
+    arrow.fill = color;
+    arrow.noStroke();
+    arrow.rotation = angle;
+    return arrow;
+  }
+
   // Paths (Lines) - Standard
   $: path = (() => {
     x;
@@ -1066,13 +1085,55 @@
           isMainLine, // allow heatmap for all lines
         );
         paths.push(...elems);
+
+        // Generate Direction Arrows
+        if (
+          settings.showPathDirection !== false &&
+          isMainLine &&
+          !line.hidden
+        ) {
+          const cps = [start, ...line.controlPoints, line.endPoint];
+          // Determine how many arrows to draw based on distance
+          const dist = Math.hypot(
+            line.endPoint.x - start.x,
+            line.endPoint.y - start.y,
+          );
+          let numArrows = Math.max(1, Math.floor(dist / 24)); // roughly 1 per 2ft
+          if (line.controlPoints.length > 0)
+            numArrows = Math.max(1, Math.floor(dist / 18)); // slightly denser for curves
+
+          for (let i = 1; i <= numArrows; i++) {
+            const t = i / (numArrows + 1);
+            const pt = getCurvePoint(t, cps);
+            const dt = 0.01;
+            const t2 = t + dt > 1 ? t - dt : t + dt;
+            const pt2 = getCurvePoint(t2, cps);
+
+            let angle = Math.atan2(y(pt2.y) - y(pt.y), x(pt2.x) - x(pt.x));
+            if (t + dt > 1) angle += Math.PI; // reverse angle if looking backwards
+            if (line.endPoint.reverse) angle += Math.PI;
+
+            const isDimmed = line.id && dimmedIds.includes(line.id);
+            const arrowColor = isDimmed ? "#9ca3af" : line.color || "#60a5fa";
+
+            const arrow = createDirectionArrow(
+              x(pt.x),
+              y(pt.y),
+              angle,
+              arrowColor,
+              `timeline-path-${idx}-arrow-${i}`,
+            );
+            if (isDimmed) arrow.opacity = 0.3;
+            paths.push(arrow);
+          }
+        }
       });
 
       return paths;
     }
 
     // Fallback if no simulation (e.g. initial load or error)
-    return generatePathElements(
+    const fallbackPaths = generatePathElements(
       lines,
       startPoint,
       (l) => l.color,
@@ -1083,6 +1144,50 @@
       "",
       true,
     );
+
+    if (settings.showPathDirection !== false) {
+      lines.forEach((line, idx) => {
+        if (!line || !line.endPoint || line.hidden) return;
+        const _startPoint = idx === 0 ? startPoint : lines[idx - 1]?.endPoint;
+        if (!_startPoint) return;
+
+        const cps = [_startPoint, ...line.controlPoints, line.endPoint];
+        const dist = Math.hypot(
+          line.endPoint.x - _startPoint.x,
+          line.endPoint.y - _startPoint.y,
+        );
+        let numArrows = Math.max(1, Math.floor(dist / 24));
+        if (line.controlPoints.length > 0)
+          numArrows = Math.max(1, Math.floor(dist / 18));
+
+        for (let i = 1; i <= numArrows; i++) {
+          const t = i / (numArrows + 1);
+          const pt = getCurvePoint(t, cps);
+          const dt = 0.01;
+          const t2 = t + dt > 1 ? t - dt : t + dt;
+          const pt2 = getCurvePoint(t2, cps);
+
+          let angle = Math.atan2(y(pt2.y) - y(pt.y), x(pt2.x) - x(pt.x));
+          if (t + dt > 1) angle += Math.PI;
+          if (line.endPoint.reverse) angle += Math.PI;
+
+          const isDimmed = line.id && dimmedIds.includes(line.id);
+          const arrowColor = isDimmed ? "#9ca3af" : line.color || "#60a5fa";
+
+          const arrow = createDirectionArrow(
+            x(pt.x),
+            y(pt.y),
+            angle,
+            arrowColor,
+            `fallback-path-${idx}-arrow-${i}`,
+          );
+          if (isDimmed) arrow.opacity = 0.3;
+          fallbackPaths.push(arrow);
+        }
+      });
+    }
+
+    return fallbackPaths;
   })();
 
   // Diff Paths

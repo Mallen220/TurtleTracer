@@ -192,6 +192,7 @@ export interface Settings {
   autosaveMode?: "time" | "change" | "close" | "never";
   autosaveInterval?: number; // minutes
   showVelocityHeatmap?: boolean; // Show velocity heatmap overlay
+  showPathDirection?: boolean; // Show directional arrows along paths
   showOnionLayers?: boolean; // Show robot body at intervals along the path
   onionSkinCurrentPathOnly?: boolean; // Show onion layers only on the current path
   onionLayerSpacing?: number; // Distance in inches between onion layers

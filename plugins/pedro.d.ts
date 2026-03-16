@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-
 /**
  * Type definitions for Pedro Pathing Plus Visualizer Plugins.
  * These types are automatically available in your .ts plugins.
@@ -201,6 +200,7 @@ interface Settings {
   autosaveMode?: "time" | "change" | "close" | "never";
   autosaveInterval?: number; // minutes
   showVelocityHeatmap?: boolean; // Show velocity heatmap overlay
+  showPathDirection?: boolean; // Show directional arrows along paths
   showOnionLayers?: boolean; // Show robot body at intervals along the path
   onionSkinCurrentPathOnly?: boolean; // Show onion layers only on the current path
   onionLayerSpacing?: number; // Distance in inches between onion layers
