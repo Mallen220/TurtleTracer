@@ -143,7 +143,12 @@ jobs:
       - name: Build (Mac)
         run: |
           echo "Building macOS packages..."
-          npx electron-builder --mac --x64 --arm64 --publish never -c.mac.identity=null
+          rm -rf release/mac*
+
+          # Build each architecture separately to avoid electron-builder hardlink collision
+          npx electron-builder --mac --x64 --publish never -c.mac.identity=null --config.directories.output=release/mac-x64
+          npx electron-builder --mac --arm64 --publish never -c.mac.identity=null --config.directories.output=release/mac-arm64
+
           echo "Build complete. Checking release directory..."
           ls -la release/ || echo "release directory not found"
           find release -name "*.dmg" | head -10
