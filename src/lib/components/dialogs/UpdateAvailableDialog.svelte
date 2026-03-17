@@ -37,18 +37,8 @@
   let isLoadingNotes = false;
   // Current installed app version (populated from preload in Electron)
   let currentVersion: string | null = null;
-  
-  // Dev override for testing Store UI on non-Windows platforms.
-  // Set to true/false to force Store state, or null to use real detection.
-  const debugStoreOverride: boolean | null = null;
 
   onMount(async () => {
-    if (debugStoreOverride !== null) {
-      isWindows = true;
-      isStore = debugStoreOverride;
-      return;
-    }
-
     const api = (window as any).electronAPI;
     if (api) {
       // Check platform
@@ -176,7 +166,7 @@
     transition:fade={{ duration: 200 }}
   >
     <div
-      class="relative bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl w-full max-w-[520px] max-h-[85vh] overflow-hidden border border-neutral-100 dark:border-neutral-800"
+      class="relative bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl w-full max-w-[520px] overflow-hidden border border-neutral-100 dark:border-neutral-800"
       transition:scale={{
         start: 0.95,
         duration: 300,
@@ -194,9 +184,7 @@
         class="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"
       ></div>
 
-      <div
-        class="relative p-8 flex flex-col gap-6 max-h-[85vh] overflow-y-auto custom-scrollbar"
-      >
+      <div class="relative p-8 flex flex-col gap-6">
         <!-- Top Section -->
         <div class="text-center space-y-2">
           <div
@@ -264,7 +252,7 @@
           </div>
         </div>
 
-        <!-- MS Store Guidance -->
+        <!-- MS Store Recommendation (Friendly Card) -->
         {#if isWindows && !isStore}
           <div
             class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-1 rounded-2xl"
@@ -306,62 +294,6 @@
                   class="mt-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 transition-colors group"
                 >
                   Get it for free
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-3 w-3 transition-transform group-hover:translate-x-0.5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        {:else if isWindows && isStore}
-          <div
-            class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 p-1 rounded-2xl"
-          >
-            <div
-              class="bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-emerald-100 dark:border-emerald-900/50 rounded-xl p-4 flex items-start gap-4"
-            >
-              <div
-                class="bg-emerald-100 dark:bg-emerald-900/50 p-2 rounded-lg text-emerald-700 dark:text-emerald-400 shrink-0"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  class="w-6 h-6"
-                  aria-hidden="true"
-                  focusable="false"
-                >
-                  <path
-                    d="M12 2a1 1 0 0 1 1 1v1.07a8.001 8.001 0 0 1 6.93 6.93H21a1 1 0 1 1 0 2h-1.07a8.001 8.001 0 0 1-6.93 6.93V21a1 1 0 1 1-2 0v-1.07a8.001 8.001 0 0 1-6.93-6.93H3a1 1 0 1 1 0-2h1.07a8.001 8.001 0 0 1 6.93-6.93V3a1 1 0 0 1 1-1Zm0 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"
-                  />
-                </svg>
-              </div>
-              <div class="flex-1">
-                <h3
-                  class="font-semibold text-sm text-neutral-900 dark:text-white"
-                >
-                  Microsoft Store install detected
-                </h3>
-                <p
-                  class="text-xs text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed"
-                >
-                  For the next Store page, open the GitHub release and follow
-                  the link there.
-                </p>
-                <button
-                  on:click={handleOpenReleases}
-                  class="mt-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 inline-flex items-center gap-1 transition-colors group"
-                >
-                  Open GitHub Release
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     class="h-3 w-3 transition-transform group-hover:translate-x-0.5"
