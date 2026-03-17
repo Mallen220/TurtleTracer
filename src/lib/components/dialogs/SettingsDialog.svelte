@@ -765,33 +765,6 @@
             class="flex-1 overflow-y-auto p-6 scroll-smooth"
             class:is-searching={!!searchQuery}
           >
-            <!-- Renaming Notice -->
-            <div
-              class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-400/80 rounded-lg flex gap-3 shadow-sm"
-            >
-              <div
-                class="size-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-[13px] leading-none shadow-sm flex-shrink-0"
-              >
-                !
-              </div>
-              <div class="text-sm text-amber-900 dark:text-amber-100">
-                <div
-                  class="text-[11px] font-extrabold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300"
-                >
-                  Renaming Notice
-                </div>
-                <p class="mt-1 font-semibold leading-snug">
-                  This program is getting renamed in the next version to
-                  <span class="font-extrabold">Turtle Tracer</span>. Please stay tuned for updates!
-                </p>
-                <p class="mt-1 text-xs leading-relaxed">
-                  It will continue to function exactly as it does now. The
-                  change reflects a level of separation from the Pedro Pathing
-                  developers and plans to make it even better. Code should be updated to use the TurtleTracerLib package rather than PedroPathingPlus. With questions please email FTCTurtleTracer@gmail.com
-                </p>
-              </div>
-            </div>
-
             <!-- Warning Banner -->
             <div
               class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg flex gap-3"

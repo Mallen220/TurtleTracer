@@ -1,7 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { onMount } from "svelte";
-  import { get } from "svelte/store";
   import { fade, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   // alias the store import so that the variable name used throughout the
@@ -11,7 +10,6 @@
     showUpdateAvailableDialog as _showUpdateAvailableDialog,
     updateDataStore,
   } from "../../../stores";
-  import { settingsStore } from "../../projectStore";
   const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import MarkdownIt from "markdown-it";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
@@ -112,24 +110,6 @@
     close();
   }
 
-  function handleDownloadSettings() {
-    try {
-      const settings = get(settingsStore);
-      const dataStr = JSON.stringify(settings, null, 2);
-      const blob = new Blob([dataStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const downloadAnchorNode = document.createElement("a");
-      downloadAnchorNode.setAttribute("href", url);
-      downloadAnchorNode.setAttribute("download", "pedro-settings.json");
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error("Failed to download settings:", e);
-    }
-  }
-
   function handleSkip() {
     const api = (window as any).electronAPI;
     if (api && updateData && api.skipUpdate) {
@@ -184,6 +164,28 @@
         class="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"
       ></div>
 
+      <!-- Close Button -->
+      <button
+        on:click={close}
+        class="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all z-10"
+        aria-label="Close"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="w-5 h-5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M6 18 18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
+
       <div class="relative p-8 flex flex-col gap-6">
         <!-- Top Section -->
         <div class="text-center space-y-2">
@@ -223,33 +225,6 @@
               >{updateData.version}</span
             > is ready for you.
           </p>
-        </div>
-
-        <!-- Renaming Notice -->
-        <div
-          class="rounded-2xl border-2 border-amber-400/80 bg-amber-50/90 dark:bg-amber-900/30 px-4 py-3 text-amber-900 dark:text-amber-100 shadow-sm"
-        >
-          <div class="flex items-start gap-3">
-          <div
-            class="mt-0.5 size-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-[13px] leading-none shadow-sm flex-shrink-0"
-          >
-            !
-          </div>
-            <div class="text-sm">
-              <div
-                class="text-[11px] font-extrabold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300"
-              >
-                Renaming Notice
-              </div>
-              <p class="mt-1 font-semibold leading-snug">
-                This program is getting renamed in the next version to
-                <span class="font-extrabold">Turtle Tracer</span>!
-              </p>
-              <p class="mt-1 text-xs leading-relaxed">
-                With new changes always underway we thank you for being part of the journey!
-              </p>
-            </div>
-          </div>
         </div>
 
         <!-- MS Store Recommendation (Friendly Card) -->
@@ -349,27 +324,6 @@
         <!-- Actions -->
         <div class="flex flex-col gap-3 pt-2">
           <button
-            on:click={handleDownloadSettings}
-            class="w-full py-2.5 px-4 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-900 dark:text-amber-100 font-semibold rounded-xl transition-all transform active:scale-[0.98] shadow-sm border border-amber-200 dark:border-amber-800/50 flex justify-center items-center gap-2"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="w-5 h-5"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 10.5 12 15m0 0 4.5-4.5M12 15V3"
-              />
-            </svg>
-            Download Settings (Recommended)
-          </button>
-
-          <button
             on:click={handleDownload}
             class="w-full py-3 px-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-semibold rounded-xl transition-all transform active:scale-[0.98] shadow-lg shadow-neutral-500/20 dark:shadow-none flex justify-center items-center gap-2"
           >
@@ -392,6 +346,14 @@
 
           <div class="flex justify-between items-center gap-3 px-1">
             <div class="flex items-center gap-2">
+              <button
+                on:click={handleSkip}
+                aria-label="Skip this version"
+                class="px-3 py-1.5 text-sm font-medium rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/20"
+              >
+                Skip this version
+              </button>
+
               <button
                 on:click={handleOpenReleases}
                 aria-label="Open releases page"
