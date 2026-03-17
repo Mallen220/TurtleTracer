@@ -192,9 +192,9 @@ get_download_urls() {
     local api_url
     
     if [ -n "$SELECTED_VERSION" ]; then
-        api_url="https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases/tags/v${SELECTED_VERSION}"
+        api_url="https://api.github.com/repos/Mallen220/TurtleTracer/releases/tags/v${SELECTED_VERSION}"
     else
-        api_url="https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases/latest"
+        api_url="https://api.github.com/repos/Mallen220/TurtleTracer/releases/latest"
     fi
     
     curl -s "$api_url" | \
@@ -205,14 +205,14 @@ get_download_urls() {
 
 # Return the latest release version (tag_name) without leading 'v'
 get_latest_version() {
-    curl -s "https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases/latest" | \
+    curl -s "https://api.github.com/repos/Mallen220/TurtleTracer/releases/latest" | \
     grep -o '"tag_name": "[^"]*"' | \
     head -1 | cut -d'"' -f4 | sed 's/^v//' || true
 }
 
 # Return the latest pre-release version if one exists, empty string otherwise
 get_prerelease_version() {
-    curl -s "https://api.github.com/repos/Mallen220/PedroPathingPlusVisualizer/releases" | \
+    curl -s "https://api.github.com/repos/Mallen220/TurtleTracer/releases" | \
     grep -B 5 '"prerelease": true' | \
     grep '"tag_name"' | \
     head -1 | cut -d'"' -f4 | sed 's/^v//' || true
@@ -372,7 +372,7 @@ install_icon() {
     ICON_PATH="$ICON_DIR/turtle-tracer.png"
     
     # URL to the icon in the repo
-    ICON_URL="https://raw.githubusercontent.com/Mallen220/PedroPathingPlusVisualizer/main/build/icon.png"
+    ICON_URL="https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/build/icon.png"
     
     print_info "Downloading icon..."
     if curl -L -s -o "$ICON_PATH" "$ICON_URL"; then
@@ -774,7 +774,7 @@ case "$CHOICE" in
         echo "This script cannot install the Windows .exe directly."
         echo "Please download the latest 'Turtle-Tracer-Setup.exe' from:"
         echo ""
-        echo "   https://github.com/Mallen220/PedroPathingPlusVisualizer/releases/latest"
+        echo "   https://github.com/Mallen220/TurtleTracer/releases/latest"
         echo ""
         ;;
     *)
