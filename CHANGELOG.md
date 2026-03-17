@@ -1,3 +1,7 @@
+## 2.0.0 (2026-03-17)
+
+- Changed the name to Turtle Tracer to better distinguish this program as non-affiliated with the Pedro Pathing Developers. Updates will continue here! Be sure to update code to now use the new TurtleTracerLib instead of PedroPathingPlus.
+
 ## 1.8.1 (2026-03-14)
 
 - Preparing for name change to "Turtle Tracer". Officially added the Telemetry tab! Watch robot movements as they happen! See the PedroPathingPlus Documentation to implement correctly. Add contextual path segment statistics in WaypointTable. Security Updates. Fix Onion Skinning and Facing Point header not appearing. Add showRobotArrows setting separate from Holonomic/Swerve. Robots NavBar dropdown cycles between Robot+Arrows, Robot, Old Robot Image. Ratings waits 10 hours not 5. Add github helpful links to settings about section & Lonely Discord. Add individual reset buttons for settings. Optimize timeline lookup with binary search. Add drag and drop to file manager folders. Redo Custom Field Map Wizard to use bounding box for field calibration. Overhauled show Debug Sequence with logs. Remove extra 0° label from protractor SVG. Add Hide/Show visibility toggle for paths and sequence items. Added Experimental Metric support.
