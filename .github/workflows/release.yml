@@ -141,6 +141,8 @@ jobs:
         run: npm run build
 
       - name: Build (Mac)
+        env:
+          USE_HARD_LINKS: "false"
         run: |
           echo "Building macOS packages..."
           rm -rf release/mac*
