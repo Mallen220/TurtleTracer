@@ -1829,7 +1829,7 @@
     <!-- Resizer Handle (Desktop) -->
     {#if isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
       <button
-        class="w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
+        class="group w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
         on:mousedown={() => startResize("horizontal")}
         on:keydown={(e) => handleResizeKeyDown(e, "horizontal")}
         on:dblclick={() => {
@@ -1839,7 +1839,7 @@
         title="Drag to resize. Double-click to reset. Use Arrow keys to adjust width."
       >
         <div
-          class="w-1 h-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+          class="w-1 h-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
         ></div>
       </button>
     {/if}
@@ -1847,7 +1847,7 @@
     <!-- Resizer Handle (Mobile) -->
     {#if !isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
       <button
-        class="h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
+        class="group h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
         on:mousedown={() => startResize("vertical")}
         on:keydown={(e) => handleResizeKeyDown(e, "vertical")}
         on:touchstart={(e) => {
@@ -1861,7 +1861,7 @@
         title="Drag to resize. Double-click to reset. Use Arrow keys to adjust height."
       >
         <div
-          class="h-1 w-8 bg-neutral-400 dark:bg-neutral-600 rounded-full"
+          class="h-1 w-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
         ></div>
       </button>
     {/if}
