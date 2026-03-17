@@ -33,3 +33,5 @@ test-results
 /build/win
 /build
 playwright-report/index.html
+.jules
+
