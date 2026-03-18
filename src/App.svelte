@@ -14,6 +14,7 @@
   // Components
   import ControlTab from "./lib/ControlTab.svelte";
   import Navbar from "./lib/Navbar.svelte";
+  import LeftSidebar from "./lib/components/LeftSidebar.svelte";
   import FieldRenderer from "./lib/components/FieldRenderer.svelte";
   import KeyboardShortcuts from "./lib/components/KeyboardShortcuts.svelte";
   import ExportGifDialog from "./lib/components/dialogs/ExportGifDialog.svelte";
@@ -139,6 +140,7 @@
   import pkg from "../package.json";
 
   let sessionStartTime = Date.now();
+  const appStartTime = sessionStartTime;
 
   // Electron API
   interface ElectronAPI {
@@ -276,6 +278,13 @@
     }
 
     const now = Date.now();
+
+    // Don't show the rating dialog within the first 5 minutes of app startup.
+    const fiveMinutesMs = 5 * 60 * 1000;
+    if (now - appStartTime < fiveMinutesMs) {
+      return;
+    }
+
     const currentSessionUsage = now - sessionStartTime;
     const totalUsageMs = (settings.totalUsageTime || 0) + currentSessionUsage;
 
@@ -1795,130 +1804,147 @@
   {/if}
 
   <div
-    class="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch lg:overflow-hidden relative gap-0"
-    bind:clientHeight={mainContentHeight}
-    bind:clientWidth={mainContentWidth}
-    bind:this={mainContentDiv}
+    class="flex-1 min-h-0 flex flex-row items-stretch overflow-hidden relative gap-0 w-full"
   >
-    <!-- Field Container -->
+    {#if !$isPresentationMode}
+      <LeftSidebar
+        {undoAction}
+        {redoAction}
+        {canUndo}
+        {canRedo}
+        {history}
+        resetProject={handleResetProject}
+        settings={$settingsStore}
+        bind:showSidebar
+      />
+    {/if}
+
     <div
-      id="field-container"
-      class="flex-none flex justify-center items-center relative transition-all duration-300 ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
-      style={`
+      class="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch lg:overflow-hidden relative gap-0"
+      bind:clientHeight={mainContentHeight}
+      bind:clientWidth={mainContentWidth}
+      bind:this={mainContentDiv}
+    >
+      <!-- Field Container -->
+      <div
+        id="field-container"
+        class="flex-none flex justify-center items-center relative transition-all duration-300 ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
+        style={`
         width: ${isLargeScreen && effectiveShowSidebar ? leftPaneWidth + "px" : "100%"};
         height: ${isLargeScreen ? "100%" : fieldContainerTargetHeight};
         min-height: ${!isLargeScreen ? (userFieldHeightLimit ? "0" : "60vh") : "0"};
       `}
-    >
-      <div
-        class="relative shadow-inner w-full h-full flex justify-center items-center"
       >
-        <svelte:component
-          this={$componentRegistry.FieldRenderer || FieldRenderer}
-          bind:this={fieldRenderer}
-          width={fieldRenderWidth}
-          height={fieldRenderHeight}
-          {timePrediction}
-          {committedRobotState}
-          {previewOptimizedLines}
-          {onRecordChange}
-        />
+        <div
+          class="relative shadow-inner w-full h-full flex justify-center items-center"
+        >
+          <svelte:component
+            this={$componentRegistry.FieldRenderer || FieldRenderer}
+            bind:this={fieldRenderer}
+            width={fieldRenderWidth}
+            height={fieldRenderHeight}
+            {timePrediction}
+            {committedRobotState}
+            {previewOptimizedLines}
+            {onRecordChange}
+          />
+        </div>
       </div>
-    </div>
 
-    <!-- Resizer Handle (Desktop) -->
-    {#if isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
-      <button
-        class="group w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
-        on:mousedown={() => startResize("horizontal")}
-        on:keydown={(e) => handleResizeKeyDown(e, "horizontal")}
-        on:dblclick={() => {
-          userFieldLimit = null;
-        }}
-        aria-label="Resize Sidebar"
-        title="Drag to resize. Double-click to reset. Use Arrow keys to adjust width."
-      >
-        <div
-          class="w-1 h-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
-        ></div>
-      </button>
-    {/if}
-
-    <!-- Resizer Handle (Mobile) -->
-    {#if !isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
-      <button
-        class="group h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
-        on:mousedown={() => startResize("vertical")}
-        on:keydown={(e) => handleResizeKeyDown(e, "vertical")}
-        on:touchstart={(e) => {
-          e.preventDefault();
-          startResize("vertical");
-        }}
-        on:dblclick={() => {
-          userFieldHeightLimit = null;
-        }}
-        aria-label="Resize Tab"
-        title="Drag to resize. Double-click to reset. Use Arrow keys to adjust height."
-      >
-        <div
-          class="h-1 w-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
-        ></div>
-      </button>
-    {/if}
-
-    <!-- Control Tab -->
-    <div
-      bind:this={controlTabContainer}
-      class="relative flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-transform duration-300 ease-in-out transform bg-neutral-50 dark:bg-neutral-900"
-      class:translate-x-full={!effectiveShowSidebar && isLargeScreen}
-      class:translate-y-full={!effectiveShowSidebar && !isLargeScreen}
-      class:overflow-hidden={!effectiveShowSidebar}
-      class:hidden={controlTabHidden}
-      class:controlTabBlurred={statsOpen}
-    >
-      {#if statsOpen}
-        <div
-          class="control-tab-overlay absolute inset-0 z-40"
-          role="button"
-          aria-label="Dismiss statistics"
-          tabindex="0"
-          on:click={() => (statsOpen = false)}
-          on:keydown={(e) => {
-            if (e.key === "Enter" || e.key === " " || e.key === "Spacebar")
-              statsOpen = false;
+      <!-- Resizer Handle (Desktop) -->
+      {#if isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
+        <button
+          class="group w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
+          on:mousedown={() => startResize("horizontal")}
+          on:keydown={(e) => handleResizeKeyDown(e, "horizontal")}
+          on:dblclick={() => {
+            userFieldLimit = null;
           }}
-        ></div>
+          aria-label="Resize Sidebar"
+          title="Drag to resize. Double-click to reset. Use Arrow keys to adjust width."
+        >
+          <div
+            class="w-1 h-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
+          ></div>
+        </button>
       {/if}
 
-      <svelte:component
-        this={$componentRegistry.ControlTab || ControlTab}
-        bind:this={controlTabRef}
-        bind:playing={$playingStore}
-        {play}
-        {pause}
-        bind:startPoint={$startPointStore}
-        bind:lines={$linesStore}
-        bind:sequence={$sequenceStore}
-        bind:robotLength
-        bind:robotWidth
-        bind:settings={$settingsStore}
-        bind:percent={$percentStore}
-        bind:robotXY={$robotXYStore}
-        bind:robotHeading={$robotHeadingStore}
-        bind:shapes={$shapesStore}
-        {handleSeek}
-        bind:loopAnimation={$loopAnimationStore}
-        {resetAnimation}
-        {recordChange}
-        playbackSpeed={$playbackSpeedStore}
-        {resetPlaybackSpeed}
-        {setPlaybackSpeed}
-        bind:statsOpen
-        bind:activeTab={activeControlTab}
-        onPreviewChange={handlePreviewChange}
-        totalSeconds={effectiveDuration * 1000}
-        splitPath={handleSplitPath}
-      />
+      <!-- Resizer Handle (Mobile) -->
+      {#if !isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
+        <button
+          class="group h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
+          on:mousedown={() => startResize("vertical")}
+          on:keydown={(e) => handleResizeKeyDown(e, "vertical")}
+          on:touchstart={(e) => {
+            e.preventDefault();
+            startResize("vertical");
+          }}
+          on:dblclick={() => {
+            userFieldHeightLimit = null;
+          }}
+          aria-label="Resize Tab"
+          title="Drag to resize. Double-click to reset. Use Arrow keys to adjust height."
+        >
+          <div
+            class="h-1 w-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
+          ></div>
+        </button>
+      {/if}
+
+      <!-- Control Tab -->
+      <div
+        bind:this={controlTabContainer}
+        class="relative flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-transform duration-300 ease-in-out transform bg-neutral-50 dark:bg-neutral-900"
+        class:translate-x-full={!effectiveShowSidebar && isLargeScreen}
+        class:translate-y-full={!effectiveShowSidebar && !isLargeScreen}
+        class:overflow-hidden={!effectiveShowSidebar}
+        class:hidden={controlTabHidden}
+        class:controlTabBlurred={statsOpen}
+      >
+        {#if statsOpen}
+          <div
+            class="control-tab-overlay absolute inset-0 z-40"
+            role="button"
+            aria-label="Dismiss statistics"
+            tabindex="0"
+            on:click={() => (statsOpen = false)}
+            on:keydown={(e) => {
+              if (e.key === "Enter" || e.key === " " || e.key === "Spacebar")
+                statsOpen = false;
+            }}
+          ></div>
+        {/if}
+
+        <svelte:component
+          this={$componentRegistry.ControlTab || ControlTab}
+          bind:this={controlTabRef}
+          bind:playing={$playingStore}
+          {play}
+          {pause}
+          bind:startPoint={$startPointStore}
+          bind:lines={$linesStore}
+          bind:sequence={$sequenceStore}
+          bind:robotLength
+          bind:robotWidth
+          bind:settings={$settingsStore}
+          bind:percent={$percentStore}
+          bind:robotXY={$robotXYStore}
+          bind:robotHeading={$robotHeadingStore}
+          bind:shapes={$shapesStore}
+          {handleSeek}
+          bind:loopAnimation={$loopAnimationStore}
+          {resetAnimation}
+          {recordChange}
+          playbackSpeed={$playbackSpeedStore}
+          {resetPlaybackSpeed}
+          {setPlaybackSpeed}
+          bind:statsOpen
+          bind:activeTab={activeControlTab}
+          onPreviewChange={handlePreviewChange}
+          totalSeconds={effectiveDuration * 1000}
+          splitPath={handleSplitPath}
+        />
+      </div>
     </div>
   </div>
 </div>
