@@ -209,6 +209,7 @@ export const DEFAULT_SETTINGS: Settings = {
     "feedback",
     "github",
   ],
+  customSidebarItems: [],
 };
 
 /**

@@ -29,8 +29,24 @@
   import { SIDEBAR_ITEMS } from "../../../config/sidebarItems";
   import { availableCommands } from "../../../stores";
   import {
-    ListIcon, ArrowRightIcon, SparklesIcon, CodeIcon, TerminalIcon,
-    StarIcon, BoltIcon, WrenchIcon, PlayIcon, PlusIcon, FolderIcon, SaveIcon, TrashIcon
+    ListIcon,
+    ArrowRightIcon,
+    SparklesIcon,
+    CodeIcon,
+    TerminalIcon,
+    StarIcon,
+    BoltIcon,
+    WrenchIcon,
+    PlayIcon,
+    PlusIcon,
+    FolderIcon,
+    SaveIcon,
+    TrashIcon,
+    EyeIcon,
+    ZapIcon,
+    BoxIcon,
+    CompassIcon,
+    MapIcon,
   } from "../icons";
 
   export let isOpen = false;
@@ -737,7 +753,7 @@
   let customActionSelection = "";
   let customActionLabel = "";
   let commandSearchQuery = "";
-  
+
   // Map of icon name -> Svelte component, used both for the picker and for rendering persisted custom items
   const ICON_COMPONENT_MAP: Record<string, any> = {
     List: ListIcon,
@@ -776,6 +792,8 @@
     }
     commandSearchQuery = ""; // Clear search after selection
   }
+
+  $: selectedCommand = $availableCommands.find(c => c.id === customActionSelection);
 
   let customActionIconKey = CUSTOM_ICONS[0].name;
 
@@ -2262,51 +2280,130 @@
                           Create Custom Sidebar Tool
                         </button>
                       {:else}
-                        <div class="p-4 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg mt-2">
-                          <h6 class="text-sm font-semibold mb-3 text-neutral-800 dark:text-neutral-200">New Custom Tool</h6>
+                        <div class="p-5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl mt-3 shadow-sm transition-all">
+                          <div class="flex items-center justify-between mb-5 border-b border-neutral-200 dark:border-neutral-700 pb-3">
+                            <h6 class="text-sm font-bold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
+                              <!-- <span class="flex items-center justify-center size-5 bg-blue-600 text-white rounded-full text-[10px]">NEW</span> -->
+                              Create Custom Tool
+                            </h6>
+                            <button on:click={() => showCustomSidebarForm = false} class="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                          </div>
                           
-                          <div class="space-y-4">
-                            <div>
-                              <label for="customActionSelection" class="block text-xs font-medium text-neutral-500 mb-1">Action to Execute</label>
-                              <select id="customActionSelection" bind:value={customActionSelection} class="w-full px-3 py-2 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500">
-                                <option value="" disabled selected>Select from Command Palette...</option>
-                                {#each $availableCommands as cmd}
-                                  <option value={cmd.id}>{cmd.label} {cmd.shortcut ? `(${cmd.shortcut})` : ""}</option>
-                                {/each}
-                              </select>
+                          <div class="space-y-6">
+                            <!-- Step 1: Action -->
+                            <div class="space-y-3">
+                              <label class="block text-xs font-bold text-neutral-500 uppercase tracking-widest">1. Choose Action</label>
+                              
+                              {#if customActionSelection && selectedCommand}
+                                <div class="flex items-center justify-between p-3 bg-white dark:bg-neutral-900 border border-blue-200 dark:border-blue-900/50 rounded-lg group">
+                                  <div class="flex flex-col">
+                                    <span class="text-sm font-semibold text-neutral-900 dark:text-white">{selectedCommand.label}</span>
+                                    <span class="text-[10px] text-neutral-400 font-mono uppercase tracking-tighter">{selectedCommand.id}</span>
+                                  </div>
+                                  <button 
+                                    on:click={() => { customActionSelection = ""; commandSearchQuery = ""; }}
+                                    class="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline px-2 py-1"
+                                  >
+                                    Change
+                                  </button>
+                                </div>
+                              {:else}
+                                <div class="relative">
+                                  <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+                                  </div>
+                                  <input 
+                                    type="text" 
+                                    bind:value={commandSearchQuery} 
+                                    placeholder="Search command palette..." 
+                                    class="w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                  />
+                                </div>
+                                <div class="max-h-48 overflow-y-auto border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 divide-y divide-neutral-100 dark:divide-neutral-800 empty:hidden">
+                                  {#each filteredSidebarCommands.slice(0, 10) as cmd}
+                                    <button 
+                                      on:click={() => selectSidebarCommand(cmd)}
+                                      class="w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-between group"
+                                    >
+                                      <span class="font-medium text-neutral-700 dark:text-neutral-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cmd.label}</span>
+                                      {#if cmd.shortcut}
+                                        <kbd class="text-[10px] bg-neutral-100 dark:bg-neutral-700 px-1.5 py-0.5 rounded text-neutral-400">{cmd.shortcut}</kbd>
+                                      {/if}
+                                    </button>
+                                  {/each}
+                                  {#if filteredSidebarCommands.length === 0}
+                                    <div class="px-4 py-3 text-xs text-neutral-500 italic">No matching commands found.</div>
+                                  {/if}
+                                </div>
+                              {/if}
                             </div>
 
-                            <div>
-                              <label for="customActionLabel" class="block text-xs font-medium text-neutral-500 mb-1">Display Label</label>
-                              <input id="customActionLabel" bind:value={customActionLabel} type="text" placeholder="e.g. Center Camera" class="w-full px-3 py-2 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500" />
+                            <!-- Step 2: Appearance -->
+                            <div class="space-y-4 pt-2">
+                              <label class="block text-xs font-bold text-neutral-500 uppercase tracking-widest">2. Customize Appearance</label>
+                              
+                              <div class="grid grid-cols-2 gap-4">
+                                <!-- Label -->
+                                <div class="space-y-1.5">
+                                  <label for="customActionLabel" class="block text-xs font-medium text-neutral-500 ml-1">Button text</label>
+                                  <input id="customActionLabel" bind:value={customActionLabel} type="text" placeholder="e.g. My Tool" class="w-full px-3 py-2 text-sm rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none" />
+                                </div>
+                                
+                                <!-- Icon Selection -->
+                                <div class="space-y-1.5">
+                                  <label class="block text-xs font-medium text-neutral-500 ml-1">Icon</label>
+                                  <div class="relative group">
+                                    <button class="w-full flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm transition-all focus:ring-2 focus:ring-blue-500 outline-none">
+                                      <svelte:component this={ICON_COMPONENT_MAP[customActionIconKey]} className="size-5 text-blue-500" />
+                                      <span class="text-neutral-700 dark:text-neutral-300">{customActionIconKey}</span>
+                                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-3 ml-auto text-neutral-400 group-hover:translate-y-0.5 transition-transform"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                                    </button>
+                                    <div class="absolute z-10 top-full left-0 right-0 mt-2 p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                                      <div class="grid grid-cols-5 gap-2">
+                                        {#each CUSTOM_ICONS as iconDef}
+                                          <button
+                                            class="aspect-square flex items-center justify-center rounded-lg border transition-all {iconDef.name === customActionIconKey ? 'bg-blue-50 border-blue-400 text-blue-600' : 'bg-transparent border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500'}"
+                                            on:click={() => customActionIconKey = iconDef.name}
+                                            title={iconDef.name}
+                                          >
+                                            <svelte:component this={iconDef.component} className="size-5" />
+                                          </button>
+                                        {/each}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <!-- Live Preview Card -->
+                              <div class="p-4 bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-xl flex items-center gap-5">
+                                <div class="flex flex-col items-center gap-1">
+                                  <span class="text-[10px] text-neutral-400 uppercase font-bold tracking-tighter">Preview</span>
+                                  <div class="size-12 flex flex-col items-center justify-center bg-neutral-100 dark:bg-neutral-800 rounded-lg shadow-inner text-blue-600 dark:text-blue-400 border border-white dark:border-neutral-700">
+                                    <svelte:component this={ICON_COMPONENT_MAP[customActionIconKey]} className="size-6" />
+                                  </div>
+                                </div>
+                                <div class="flex-1 space-y-1">
+                                  <div class="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate">{customActionLabel || "Tool Label"}</div>
+                                  <div class="text-[10px] text-neutral-400 line-clamp-1">Executes: <span class="text-blue-500 font-medium italic">{selectedCommand?.label || "None"}</span></div>
+                                </div>
+                              </div>
                             </div>
 
-                            <fieldset>
-                              <legend class="block text-xs font-medium text-neutral-500 mb-2">Display Icon</legend>
-                              <div class="flex flex-wrap gap-2">
-                                 {#each CUSTOM_ICONS as iconDef}
-                                   <button
-                                     class="w-10 h-10 flex flex-col items-center justify-center rounded-md border {iconDef.name === customActionIconKey ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white border-neutral-200 hover:bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700'} transition-colors"
-                                     on:click={() => customActionIconKey = iconDef.name}
-                                     title={iconDef.name}
-                                   >
-                                     <svelte:component this={iconDef.component} className="size-5" />
-                                   </button>
-                                 {/each}
-                               </div>
-                            </fieldset>
-
-                            <div class="flex gap-2 mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                            <!-- Actions -->
+                            <div class="flex gap-3 pt-2">
                               <button
                                 on:click={addNewCustomItem}
                                 disabled={!customActionSelection || !customActionLabel}
-                                class="flex-1 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                class="flex-1 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 active:scale-95 disabled:opacity-30 disabled:scale-100 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20"
                               >
-                                Save Tool
+                                Create Tool
                               </button>
                               <button
                                 on:click={() => showCustomSidebarForm = false}
-                                class="flex-1 py-1.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 text-sm font-medium rounded-md hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors"
+                                class="px-4 py-2.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 text-sm font-bold rounded-lg hover:bg-neutral-300 dark:hover:bg-neutral-600 active:scale-95 transition-all"
                               >
                                 Cancel
                               </button>
