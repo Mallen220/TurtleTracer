@@ -7,3 +7,5 @@ export { default as TrashIcon } from "./TrashIcon.svelte";
 export { default as PlayIcon } from "./PlayIcon.svelte";
 export { default as PauseIcon } from "./PauseIcon.svelte";
 export { default as SaveIcon } from "./SaveIcon.svelte";
+export { default as MagnetIcon } from "./MagnetIcon.svelte";
+export { default as FolderIcon } from "./FolderIcon.svelte";
