@@ -176,6 +176,13 @@ interface CustomFieldConfig {
   height: number;
 }
 
+interface CustomSidebarItem {
+  id: string;
+  label: string;
+  commandId: string;
+  iconSvg: string;
+}
+
 interface Settings {
   xVelocity: number;
   yVelocity: number;
@@ -239,6 +246,8 @@ interface Settings {
   visualizerUnits?: "imperial" | "metric";
   codeUnits?: "imperial" | "metric";
   showTelemetryTab?: boolean;
+  sidebarItems?: string[];
+  customSidebarItems?: CustomSidebarItem[];
 }
 
 interface RobotProfile {

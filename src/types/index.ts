@@ -167,6 +167,13 @@ export interface CustomFieldConfig {
   height: number;
 }
 
+export interface CustomSidebarItem {
+  id: string;
+  label: string;
+  commandId: string;
+  iconSvg: string;
+}
+
 export interface Settings {
   xVelocity: number;
   yVelocity: number;
@@ -230,6 +237,8 @@ export interface Settings {
   visualizerUnits?: "imperial" | "metric";
   codeUnits?: "imperial" | "metric";
   showTelemetryTab?: boolean;
+  sidebarItems?: string[];
+  customSidebarItems?: CustomSidebarItem[];
 }
 
 export interface RobotProfile {

@@ -27,6 +27,8 @@
     notification,
   } from "../../../stores";
   import { followRobotStore } from "../../projectStore";
+  import { SIDEBAR_ITEMS } from "../../../config/sidebarItems";
+  import { availableCommands } from "../../../stores";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -37,6 +39,7 @@
     | "motion"
     | "interface"
     | "code-export"
+    | "sidebar"
     | "advanced"
     | "about";
   let activeTab: TabId = "general";
@@ -92,6 +95,11 @@
       id: "code-export",
       label: "Code Export",
       icon: "M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5",
+    },
+    {
+      id: "sidebar",
+      label: "Sidebar",
+      icon: "M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v12a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18V6ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18V6Z",
     },
     {
       id: "advanced",
@@ -599,6 +607,115 @@
       label: m.name || "Custom Field",
     })),
   ];
+
+  function toggleSidebarItem(id: string) {
+    if (!settings.sidebarItems) {
+      settings.sidebarItems = SIDEBAR_ITEMS.map((i) => i.id);
+    }
+    const index = settings.sidebarItems.indexOf(id);
+    if (index >= 0) {
+      settings.sidebarItems.splice(index, 1);
+    } else {
+      settings.sidebarItems.push(id);
+    }
+    settings.sidebarItems = [...settings.sidebarItems];
+    settings = { ...settings };
+  }
+
+  // ==== Sidebar Settings State ====
+
+  $: activeSidebarList = (() => {
+    const ids = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
+    return ids.map((id) => {
+      let item: any = SIDEBAR_ITEMS.find((i) => i.id === id);
+      if (!item && settings.customSidebarItems) {
+        item = settings.customSidebarItems.find((i) => i.id === id);
+      }
+      return { id, label: item?.label ?? id, iconSvg: item?.iconSvg ?? "" };
+    });
+  })();
+
+  function moveSidebarItemUp(index: number) {
+    if (!settings.sidebarItems) settings.sidebarItems = SIDEBAR_ITEMS.map((i) => i.id);
+    if (index === 0) return;
+    const arr = [...settings.sidebarItems];
+    [arr[index - 1], arr[index]] = [arr[index], arr[index - 1]];
+    settings.sidebarItems = arr;
+    settings = { ...settings };
+  }
+
+  function moveSidebarItemDown(index: number) {
+    if (!settings.sidebarItems) settings.sidebarItems = SIDEBAR_ITEMS.map((i) => i.id);
+    if (index >= settings.sidebarItems.length - 1) return;
+    const arr = [...settings.sidebarItems];
+    [arr[index], arr[index + 1]] = [arr[index + 1], arr[index]];
+    settings.sidebarItems = arr;
+    settings = { ...settings };
+  }
+
+  function removeSidebarItem(index: number) {
+    if (!settings.sidebarItems) return;
+    const arr = [...settings.sidebarItems];
+    arr.splice(index, 1);
+    settings.sidebarItems = arr;
+    settings = { ...settings };
+  }
+
+  function addSidebarItem(id: string) {
+    if (!settings.sidebarItems) settings.sidebarItems = SIDEBAR_ITEMS.map((i) => i.id);
+    settings.sidebarItems = [...settings.sidebarItems, id];
+    settings = { ...settings };
+  }
+
+  $: unusedAvailableTools = (() => {
+    const active = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
+    const builtIn = SIDEBAR_ITEMS.filter((i) => i.type !== "separator" && i.type !== "spacer" && !active.includes(i.id));
+    const custom = (settings.customSidebarItems || []).filter((i) => !active.includes(i.id));
+    return [...builtIn, ...custom];
+  })();
+
+  function deleteCustomItem(id: string) {
+    if (!settings.customSidebarItems) return;
+    settings.customSidebarItems = settings.customSidebarItems.filter(i => i.id !== id);
+    if (settings.sidebarItems) {
+      settings.sidebarItems = settings.sidebarItems.filter(i => i !== id);
+    }
+    settings = { ...settings };
+  }
+
+  // Custom Item Form State
+  let showCustomSidebarForm = false;
+  let customActionSelection = "";
+  let customActionLabel = "";
+  const CUSTOM_ICONS = [
+    { name: "List", svg: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>` },
+    { name: "Play", svg: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" /></svg>` },
+    { name: "Arrow", svg: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>` },
+    { name: "Sparkles", svg: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg>` },
+    { name: "Code", svg: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" /></svg>` },
+    { name: "Terminal", svg: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" /></svg>` }
+  ];
+  let customActionIconSvg = CUSTOM_ICONS[0].svg;
+
+  function addNewCustomItem() {
+    if (!customActionSelection || !customActionLabel) return;
+    const newId = `custom_${Date.now()}`;
+    const newItem = {
+      id: newId,
+      label: customActionLabel,
+      commandId: customActionSelection,
+      iconSvg: customActionIconSvg,
+    };
+    if (!settings.customSidebarItems) settings.customSidebarItems = [];
+    settings.customSidebarItems.push(newItem);
+    if (!settings.sidebarItems) settings.sidebarItems = SIDEBAR_ITEMS.map((i) => i.id);
+    settings.sidebarItems.push(newId);
+    
+    settings = { ...settings };
+    showCustomSidebarForm = false;
+    customActionSelection = "";
+    customActionLabel = "";
+  }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -1925,6 +2042,169 @@
                       followRobotStore.set(!!settings.followRobot)}
                     class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   />
+                </SettingsItem>
+
+              </div>
+            {/if}
+
+            <!-- Sidebar Tab -->
+            {#if activeTab === "sidebar" || searchQuery}
+              <div class="section-container mb-8">
+                {#if searchQuery}
+                  <h4 class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1">
+                    Sidebar
+                  </h4>
+                {/if}
+
+                <SettingsItem
+                  label="Active Sidebar Layout"
+                  isModified={false}
+                  onReset={() => {
+                    settings.sidebarItems = SIDEBAR_ITEMS.map((i) => i.id);
+                    settings = { ...settings };
+                  }}
+                  description="Use the arrows to reorder, or click × to remove an item from the sidebar."
+                  {searchQuery}
+                >
+                  <div class="mt-2 flex flex-col gap-1.5">
+                    {#each activeSidebarList as item, idx}
+                      <div class="flex items-center gap-2 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 p-2 rounded-lg transition-colors shadow-sm">
+                        <div class="flex-none w-5 h-5 flex items-center justify-center text-neutral-500">
+                          {#if item.iconSvg}
+                            {@html item.iconSvg}
+                          {:else if item.id === "separator"}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15" /></svg>
+                          {:else if item.id === "spacer"}
+                            <div class="h-4 w-4 border-2 border-dashed border-neutral-300 rounded-full"></div>
+                          {:else}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                          {/if}
+                        </div>
+                        <div class="flex-grow text-sm font-medium text-neutral-700 dark:text-neutral-300">{item.label}</div>
+                        <div class="flex items-center gap-0.5">
+                          <button
+                            on:click={() => moveSidebarItemUp(idx)}
+                            disabled={idx === 0}
+                            class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Move up"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
+                          </button>
+                          <button
+                            on:click={() => moveSidebarItemDown(idx)}
+                            disabled={idx === activeSidebarList.length - 1}
+                            class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Move down"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                          </button>
+                          <button
+                            on:click={() => removeSidebarItem(idx)}
+                            class="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
+                            title="Remove from sidebar"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
+
+                  <div class="mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-700">
+                    <h5 class="text-sm font-semibold mb-3 text-neutral-800 dark:text-neutral-200">Available Built-in Tools</h5>
+                    <div class="flex flex-wrap gap-2">
+                       {#each unusedAvailableTools as available}
+                         <div class="flex items-center gap-0 border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 rounded-md shadow-sm group">
+                           <button
+                             on:click={() => addSidebarItem(available.id)}
+                             class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-white dark:hover:bg-neutral-700 transition-colors rounded-l-md"
+                           >
+                             <span class="w-3 h-3">{@html available.iconSvg || ""}</span>
+                             {available.label}
+                             <span class="text-neutral-400 ml-1">+</span>
+                           </button>
+                           {#if available.id && available.id.startsWith('custom_')}
+                             <button
+                               on:click={() => deleteCustomItem(available.id)}
+                               class="px-2 py-1.5 text-neutral-400 hover:text-red-500 border-l border-neutral-200 dark:border-neutral-700 hover:bg-red-50 dark:hover:bg-red-900/40 transition-colors rounded-r-md"
+                               title="Permanently Delete Custom Item"
+                             >
+                               ×
+                             </button>
+                           {/if}
+                         </div>
+                       {/each}
+                       {#if unusedAvailableTools.length === 0}
+                         <div class="text-xs text-neutral-500 italic py-1">All built-in tools are already in the sidebar.</div>
+                       {/if}
+                    </div>
+
+                    <div class="mt-6">
+                      {#if !showCustomSidebarForm}
+                        <button
+                          on:click={() => showCustomSidebarForm = true}
+                          class="w-full flex items-center justify-center gap-2 py-2 px-4 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:border-blue-300 transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                          Create Custom Sidebar Tool
+                        </button>
+                      {:else}
+                        <div class="p-4 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg mt-2">
+                          <h6 class="text-sm font-semibold mb-3 text-neutral-800 dark:text-neutral-200">New Custom Tool</h6>
+                          
+                          <div class="space-y-4">
+                            <div>
+                              <label for="customActionSelection" class="block text-xs font-medium text-neutral-500 mb-1">Action to Execute</label>
+                              <select id="customActionSelection" bind:value={customActionSelection} class="w-full px-3 py-2 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500">
+                                <option value="" disabled selected>Select from Command Palette...</option>
+                                {#each $availableCommands as cmd}
+                                  <option value={cmd.id}>{cmd.label} {cmd.shortcut ? `(${cmd.shortcut})` : ""}</option>
+                                {/each}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label for="customActionLabel" class="block text-xs font-medium text-neutral-500 mb-1">Display Label</label>
+                              <input id="customActionLabel" bind:value={customActionLabel} type="text" placeholder="e.g. Center Camera" class="w-full px-3 py-2 text-sm rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500" />
+                            </div>
+
+                            <fieldset>
+                              <legend class="block text-xs font-medium text-neutral-500 mb-2">Display Icon</legend>
+                              <div class="flex gap-2">
+                                {#each CUSTOM_ICONS as iconDef}
+                                  <button
+                                    class="w-10 h-10 flex flex-col items-center justify-center rounded-md border {iconDef.svg === customActionIconSvg ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white border-neutral-200 hover:bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700'} transition-colors"
+                                    on:click={() => customActionIconSvg = iconDef.svg}
+                                    title={iconDef.name}
+                                  >
+                                    <div class="w-5 h-5 flex items-center justify-center">
+                                      {@html iconDef.svg}
+                                    </div>
+                                  </button>
+                                {/each}
+                              </div>
+                            </fieldset>
+
+                            <div class="flex gap-2 mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+                              <button
+                                on:click={addNewCustomItem}
+                                disabled={!customActionSelection || !customActionLabel}
+                                class="flex-1 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              >
+                                Save Tool
+                              </button>
+                              <button
+                                on:click={() => showCustomSidebarForm = false}
+                                class="flex-1 py-1.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 text-sm font-medium rounded-md hover:bg-neutral-300 dark:hover:bg-neutral-600 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      {/if}
+                    </div>
+                  </div>
                 </SettingsItem>
               </div>
             {/if}

@@ -36,6 +36,8 @@
     showUpdateAvailableDialog as _showUpdateAvailableDialog,
     showFeedbackDialog,
     showRatingDialog,
+    executeCommandBus,
+    availableCommands,
   } from "../../stores";
   // keep a local binding for the update-available store
   const showUpdateAvailableDialog = _showUpdateAvailableDialog;
@@ -2519,6 +2521,17 @@
     ...rotateCommands,
     ...eventCommands,
   ];
+
+  $: availableCommands.set(paletteCommands);
+
+  $: if ($executeCommandBus) {
+    const cmdId = $executeCommandBus;
+    executeCommandBus.set(null);
+    const cmd = paletteCommands.find((c) => c.id === cmdId);
+    if (cmd && cmd.action) {
+      cmd.action();
+    }
+  }
 
   $: if (settings && settings.keyBindings) {
     hotkeys.unbind();

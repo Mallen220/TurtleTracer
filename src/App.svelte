@@ -1501,6 +1501,10 @@
     );
   }
 
+  // --- Apply Custom Theme Class ---
+  // Keep track of the previously-applied custom theme class so it can be removed when switching themes.
+  let currentCustomThemeClass: string | null = null;
+
   // --- Apply Theme ---
   $: {
     // Depend on themesStore so re-run when plugins load
@@ -1525,6 +1529,12 @@
         // Potato mode works best with light mode base (colors are overridden anyway)
         document.documentElement.classList.remove("dark");
         document.documentElement.classList.add("potato-mode");
+
+        // Ensure we clear any earlier custom theme classes
+        if (currentCustomThemeClass) {
+          document.documentElement.classList.remove(currentCustomThemeClass);
+          currentCustomThemeClass = null;
+        }
       } else {
         document.documentElement.classList.remove("potato-mode");
 
@@ -1539,9 +1549,25 @@
           style.textContent = customTheme.css;
           document.head.appendChild(style);
 
-          // Default to dark base for custom themes
+          // Add a theme-specific class so we can scope CSS for multiple custom themes
+          const themeClass = `theme-${t
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")}`;
+          if (currentCustomThemeClass && currentCustomThemeClass !== themeClass) {
+            document.documentElement.classList.remove(currentCustomThemeClass);
+          }
+          document.documentElement.classList.add(themeClass);
+          currentCustomThemeClass = themeClass;
+
+          // Custom themes should start from the dark mode base to avoid Tailwind's
+          // default light mode styling applying to the app.
           document.documentElement.classList.add("dark");
         } else {
+          if (currentCustomThemeClass) {
+            document.documentElement.classList.remove(currentCustomThemeClass);
+            currentCustomThemeClass = null;
+          }
+
           if (t === "auto") {
             t = window.matchMedia("(prefers-color-scheme: dark)").matches
               ? "dark"
@@ -1815,7 +1841,6 @@
         {history}
         resetProject={handleResetProject}
         settings={$settingsStore}
-        bind:showSidebar
       />
     {/if}
 

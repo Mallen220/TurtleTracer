@@ -39,6 +39,10 @@ export const exportDialogState = writable<{
   exporterName?: string;
 }>({ isOpen: false, format: "java" });
 
+// Global command execution bus
+export const executeCommandBus = writable<string | null>(null);
+export const availableCommands = writable<any[]>([]);
+
 // Update Notification Store
 export const showUpdateAvailableDialog = writable(false);
 export const updateDataStore = writable<UpdateData | null>(null);

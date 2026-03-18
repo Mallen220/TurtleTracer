@@ -189,6 +189,26 @@ export const DEFAULT_SETTINGS: Settings = {
   visualizerUnits: "imperial",
   codeUnits: "imperial",
   showTelemetryTab: false,
+  sidebarItems: [
+    "fileManager",
+    "separator",
+    "undo",
+    "history",
+    "redo",
+    "separator",
+    "ruler",
+    "protractor",
+    "grid",
+    "onionSkin",
+    "velocityHeatmap",
+    "separator",
+    "newPath",
+    "spacer",
+    "separator",
+    "settings",
+    "feedback",
+    "github",
+  ],
 };
 
 /**
