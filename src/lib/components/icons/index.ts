@@ -20,7 +20,6 @@ export { default as EyeIcon } from "./EyeIcon.svelte";
 export { default as ZapIcon } from "./ZapIcon.svelte";
 export { default as BoxIcon } from "./BoxIcon.svelte";
 export { default as CompassIcon } from "./CompassIcon.svelte";
-export { default as MapIcon } from "./MapIcon.svelte";
 export { default as ShowRobotIcon } from "./ShowRobotIcon.svelte";
 export { default as ShowRobotArrowsIcon } from "./ShowRobotArrowsIcon.svelte";
 export { default as ShowFakeHeadingArrowIcon } from "./ShowFakeHeadingArrowIcon.svelte";

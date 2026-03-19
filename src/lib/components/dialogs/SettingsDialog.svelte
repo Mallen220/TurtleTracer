@@ -28,25 +28,7 @@
   import { followRobotStore } from "../../projectStore";
   import { SIDEBAR_ITEMS } from "../../../config/sidebarItems";
   import { availableCommands } from "../../../stores";
-  import {
-    ListIcon,
-    ArrowRightIcon,
-    CodeIcon,
-    TerminalIcon,
-    StarIcon,
-    BoltIcon,
-    WrenchIcon,
-    PlayIcon,
-    PlusIcon,
-    FolderIcon,
-    SaveIcon,
-    TrashIcon,
-    EyeIcon,
-    ZapIcon,
-    BoxIcon,
-    CompassIcon,
-    MapIcon,
-  } from "../icons";
+  import * as ICONS from "../icons";
 
   export let isOpen = false;
   export let settings: Settings = { ...DEFAULT_SETTINGS };
@@ -755,24 +737,15 @@
   let commandSearchQuery = "";
 
   // Map of icon name -> Svelte component, used both for the picker and for rendering persisted custom items
+  // This includes all icons exported from the icons folder, plus a few friendly aliases.
   const ICON_COMPONENT_MAP: Record<string, any> = {
-    List: ListIcon,
-    Play: PlayIcon,
-    Arrow: ArrowRightIcon,
-    Code: CodeIcon,
-    Terminal: TerminalIcon,
-    Star: StarIcon,
-    Bolt: BoltIcon,
-    Wrench: WrenchIcon,
-    Plus: PlusIcon,
-    Folder: FolderIcon,
-    Save: SaveIcon,
-    Trash: TrashIcon,
-    Eye: EyeIcon,
-    Zap: ZapIcon,
-    Box: BoxIcon,
-    Compass: CompassIcon,
-    Map: MapIcon,
+    ...ICONS,
+    Arrow: ICONS.ArrowRightIcon,
+    Plus: ICONS.PlusIcon,
+    Save: ICONS.SaveIcon,
+    Trash: ICONS.TrashIcon,
+    Folder: ICONS.FolderIcon,
+    Wrench: ICONS.WrenchIcon,
   };
 
   const CUSTOM_ICONS = Object.entries(ICON_COMPONENT_MAP).map(([name, component]) => ({ name, component }));
@@ -794,7 +767,7 @@
 
   $: selectedCommand = $availableCommands.find(c => c.id === customActionSelection);
 
-  let customActionIconKey = CUSTOM_ICONS[0].name;
+  let customActionIconKey = CUSTOM_ICONS.length ? CUSTOM_ICONS[0].name : "";
 
   function addNewCustomItem() {
     if (!customActionSelection || !customActionLabel) return;
@@ -2515,7 +2488,7 @@
                           title="Browse Directory"
                         >
                           <!-- Folder Icon -->
-                          <FolderIcon className="size-5" />
+                          <svelte:component this={ICONS.FolderIcon} className="size-5" />
 
                         </button>
                       </div>

@@ -27,14 +27,14 @@
   import { menuNavigation } from "../actions/menuNavigation";
   import { MagnetIcon, FolderIcon, ListIcon, ArrowRightIcon, CodeIcon,
     TerminalIcon, StarIcon, BoltIcon, WrenchIcon, PlayIcon, PlusIcon, SaveIcon, TrashIcon,
-    EyeIcon, ZapIcon, BoxIcon, CompassIcon, MapIcon } from "./icons";
+    EyeIcon, ZapIcon, BoxIcon, CompassIcon } from "./icons";
   import { SIDEBAR_ITEMS } from "../../config/sidebarItems";
 
   const ICON_COMPONENT_MAP: Record<string, any> = {
     List: ListIcon, Play: PlayIcon, Arrow: ArrowRightIcon,
     Code: CodeIcon, Terminal: TerminalIcon, Star: StarIcon, Bolt: BoltIcon,
     Wrench: WrenchIcon, Plus: PlusIcon, Folder: FolderIcon, Save: SaveIcon, Trash: TrashIcon,
-    Eye: EyeIcon, Zap: ZapIcon, Box: BoxIcon, Compass: CompassIcon, Map: MapIcon
+    Eye: EyeIcon, Zap: ZapIcon, Box: BoxIcon, Compass: CompassIcon
   };
 
   export let undoAction: () => any;
