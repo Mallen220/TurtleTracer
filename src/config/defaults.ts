@@ -212,6 +212,7 @@ export const DEFAULT_SETTINGS: Settings = {
   customSidebarItems: [],
   sidebarExpanded: false,
   sidebarWidth: 240,
+  sidebarIconSize: 20,
 };
 
 /**

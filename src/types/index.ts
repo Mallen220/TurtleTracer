@@ -242,6 +242,7 @@ export interface Settings {
   customSidebarItems?: CustomSidebarItem[];
   sidebarExpanded?: boolean;
   sidebarWidth?: number;
+  sidebarIconSize?: number;
 }
 
 export interface RobotProfile {

@@ -2190,6 +2190,42 @@
                 {/if}
 
                 <SettingsItem
+                  label="Sidebar Icon Size"
+                  description="Adjust the size of the icons in the sidebar (16px - 32px)."
+                  isModified={settings.sidebarIconSize !==
+                    DEFAULT_SETTINGS.sidebarIconSize}
+                  onReset={() => {
+                    settings.sidebarIconSize = DEFAULT_SETTINGS.sidebarIconSize;
+                    settings = { ...settings };
+                  }}
+                  layout="row"
+                  {searchQuery}
+                >
+                  <div class="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="16"
+                      max="32"
+                      step="1"
+                      value={settings.sidebarIconSize || 20}
+                      on:input={(e) =>
+                        handleNumberInput(
+                          e.currentTarget.value,
+                          "sidebarIconSize",
+                          16,
+                          32,
+                        )}
+                      class="w-32 accent-blue-500"
+                    />
+                    <span
+                      class="text-xs font-mono text-neutral-500 dark:text-neutral-400 w-8 text-right"
+                    >
+                      {settings.sidebarIconSize || 20}px
+                    </span>
+                  </div>
+                </SettingsItem>
+
+                <SettingsItem
                   label="Active Sidebar Layout"
                   isModified={isSidebarLayoutModified}
                   onReset={() => {
