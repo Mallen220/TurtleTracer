@@ -690,6 +690,7 @@
   });
 
   let statsOpen = false;
+  $: if (!effectiveShowSidebar && statsOpen) statsOpen = false;
   let mainContentHeight = 0;
   let mainContentWidth = 0;
   let mainContentDiv: HTMLDivElement;
@@ -1637,9 +1638,19 @@
   splitPath={handleSplitPath}
   bind:controlTabRef
   bind:activeControlTab
-  toggleStats={() => (statsOpen = !statsOpen)}
+  toggleStats={() => {
+    if (showSidebar) {
+      statsOpen = !statsOpen;
+    }
+  }}
+  toggleControlTab={() => (showSidebar = !showSidebar)}
   openWhatsNew={() => showWhatsNew.set(true)}
-  toggleSidebar={() => (showSidebar = !showSidebar)}
+  toggleSidebar={() => {
+    settingsStore.update((s) => ({
+      ...s,
+      sidebarExpanded: !s.sidebarExpanded,
+    }));
+  }}
   {fieldRenderer}
 />
 
@@ -1709,10 +1720,7 @@
   />
 {/if}
 
-<WhatsNewDialog
-  bind:show={$showWhatsNew}
-  on:close={closeWhatsNew}
-/>
+<WhatsNewDialog bind:show={$showWhatsNew} on:close={closeWhatsNew} />
 <SetupDialog bind:show={setupMode} />
 <NotificationToast />
 <OnboardingTutorial

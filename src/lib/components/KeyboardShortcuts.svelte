@@ -96,6 +96,7 @@
   export let activeControlTab: "path" | "field" | "table" | "code" = "path";
   export let toggleStats: () => void = () => {};
   export let toggleSidebar: () => void = () => {};
+  export let toggleControlTab: () => void = () => {};
   export let fieldRenderer: any = null;
 
   // Optional callback provided by App.svelte to open the What's New dialog
@@ -2004,6 +2005,9 @@
     toggleSidebar: () => {
       if (toggleSidebar) toggleSidebar();
     },
+    toggleControlTab: () => {
+      if (toggleControlTab) toggleControlTab();
+    },
     togglePresentationMode: () => isPresentationMode.update((v) => !v),
     toggleVelocityHeatmap: () =>
       settingsStore.update((s) => ({
@@ -2236,7 +2240,15 @@
         settingsStore.update((s) => ({ ...s, autosaveMode: "close" }));
     },
     openDocs: () => {
-      if (openWhatsNew) openWhatsNew();
+      const url =
+        "https://www.turtletracer.com/turtle-tracer-lib/installation/";
+      // @ts-ignore
+      if (window.electronAPI && window.electronAPI.openExternal) {
+        // @ts-ignore
+        window.electronAPI.openExternal(url);
+      } else {
+        window.open(url, "_blank");
+      }
     },
     reportIssue: () => {
       const url = "https://github.com/Mallen220/TurtleTracer/issues";
@@ -2311,6 +2323,11 @@
     toggleOnionCurrentPath: () => toggleOnionCurrentPath(),
     cyclePathColor: () => cyclePathColor(),
     toggleRobotVisibility: () => toggleRobotVisibility(),
+    toggleRobotArrows: () =>
+      settingsStore.update((s) => ({
+        ...s,
+        showRobotArrows: !s.showRobotArrows,
+      })),
     copyCode: () => {
       if (controlTabRef && controlTabRef.copyCode) {
         controlTabRef.copyCode();

@@ -30,8 +30,6 @@
   let runtimeFeatures: FeatureHighlight[] = [];
   $: displayedFeatures = features.length ? getAllFeatures() : runtimeFeatures;
 
-
-
   onMount(async () => {
     // Dynamic import fallback (kept from original implementation)
     if (
@@ -171,123 +169,27 @@
     <div
       class="bg-white dark:bg-neutral-800 md:rounded-xl shadow-2xl w-full h-full md:h-auto md:w-full md:max-w-5xl md:max-h-[70vh] flex overflow-hidden border-0 md:border border-neutral-200 dark:border-neutral-700 transition-all duration-200"
     >
-        <!-- Adobe Style Split View -->
-        <!-- Left Sidebar / Menu -->
+      <!-- Adobe Style Split View -->
+      <!-- Left Sidebar / Menu -->
+      <div
+        class="w-full md:w-80 border-r border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 flex flex-col overflow-hidden shrink-0 {viewMode ===
+        'features'
+          ? 'flex md:flex'
+          : 'hidden md:flex'}"
+      >
         <div
-          class="w-full md:w-80 border-r border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 flex flex-col overflow-hidden shrink-0 {viewMode ===
-          'features'
-            ? 'flex md:flex'
-            : 'hidden md:flex'}"
+          class="h-[73px] p-4 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center bg-white dark:bg-neutral-800 shrink-0"
         >
-          <div
-            class="h-[73px] p-4 border-b border-neutral-200 dark:border-neutral-700 flex justify-between items-center bg-white dark:bg-neutral-800 shrink-0"
-          >
-            <div class="flex items-center gap-2">
-              {#if viewMode === "releases"}
-                <button
-                  on:click={() => (viewMode = "features")}
-                  class="p-1 -ml-1 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700"
-                  aria-label="Back"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                </button>
-              {/if}
-              <h2
-                class="font-bold text-lg text-neutral-900 dark:text-white"
-                id="whats-new-title"
-              >
-                {viewMode === "features" ? "What's New" : "All Releases"}
-              </h2>
-            </div>
-            <!-- Mobile Close -->
-            <button
-              on:click={close}
-              class="md:hidden p-2 -mr-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                /></svg
-              >
-            </button>
-          </div>
-
-          <div class="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
-            {#if viewMode === "features"}
-              <div
-                class="mb-3 px-2 text-xs font-bold text-neutral-500 uppercase tracking-wider"
-              >
-                Version {currentRelease?.id.replace(/^v/, "")}
-              </div>
-              {#each parsedFeatures as feature}
-                <button
-                  class="w-full text-left px-3 py-2.5 rounded-lg text-base transition-all border {activeFeatureId ===
-                  feature.id
-                    ? 'bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 shadow-sm text-purple-600 dark:text-purple-400 font-bold'
-                    : 'border-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50'}"
-                  on:click={() => (activeFeatureId = feature.id)}
-                >
-                  {feature.title}
-                </button>
-              {/each}
-            {:else}
-              {#each allReleases as release}
-                <button
-                  class="w-full text-left px-3 py-2.5 rounded-lg text-base transition-all border {activeReleaseId ===
-                  release.id
-                    ? 'bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 shadow-sm text-purple-600 dark:text-purple-400 font-bold'
-                    : 'border-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50'}"
-                  on:click={() => (activeReleaseId = release.id)}
-                >
-                  {release.title}
-                </button>
-              {/each}
-            {/if}
-          </div>
-
-          <!-- Footer Toggle -->
-          <div
-            class="p-3 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
-          >
-            {#if viewMode === "features"}
+          <div class="flex items-center gap-2">
+            {#if viewMode === "releases"}
               <button
-                class="w-full py-2 px-3 flex items-center justify-between text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-                on:click={() => {
-                  viewMode = "releases";
-                  activeReleaseId = currentRelease?.id || allReleases[0]?.id;
-                }}
-              >
-                <span>View Previous Releases</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  ><path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5l7 7-7 7"
-                  /></svg
-                >
-              </button>
-            {:else}
-              <button
-                class="w-full py-2 px-3 flex items-center justify-between text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
                 on:click={() => (viewMode = "features")}
+                class="p-1 -ml-1 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                aria-label="Back"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
+                  class="h-5 w-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -298,26 +200,100 @@
                     d="M15 19l-7-7 7-7"
                   /></svg
                 >
-                <span>Back to What's New</span>
               </button>
             {/if}
+            <h2
+              class="font-bold text-lg text-neutral-900 dark:text-white"
+              id="whats-new-title"
+            >
+              {viewMode === "features" ? "What's New" : "All Releases"}
+            </h2>
           </div>
+          <!-- Mobile Close -->
+          <button
+            on:click={close}
+            class="md:hidden p-2 -mr-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              ><path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              /></svg
+            >
+          </button>
         </div>
 
-        <!-- Right Content Pane -->
+        <div class="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
+          {#if viewMode === "features"}
+            <div
+              class="mb-3 px-2 text-xs font-bold text-neutral-500 uppercase tracking-wider"
+            >
+              Version {currentRelease?.id.replace(/^v/, "")}
+            </div>
+            {#each parsedFeatures as feature}
+              <button
+                class="w-full text-left px-3 py-2.5 rounded-lg text-base transition-all border {activeFeatureId ===
+                feature.id
+                  ? 'bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 shadow-sm text-purple-600 dark:text-purple-400 font-bold'
+                  : 'border-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50'}"
+                on:click={() => (activeFeatureId = feature.id)}
+              >
+                {feature.title}
+              </button>
+            {/each}
+          {:else}
+            {#each allReleases as release}
+              <button
+                class="w-full text-left px-3 py-2.5 rounded-lg text-base transition-all border {activeReleaseId ===
+                release.id
+                  ? 'bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 shadow-sm text-purple-600 dark:text-purple-400 font-bold'
+                  : 'border-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50'}"
+                on:click={() => (activeReleaseId = release.id)}
+              >
+                {release.title}
+              </button>
+            {/each}
+          {/if}
+        </div>
+
+        <!-- Footer Toggle -->
         <div
-          class="flex-1 flex flex-col bg-white dark:bg-neutral-900 min-w-0 {viewMode ===
-          'releases'
-            ? 'block'
-            : 'hidden md:flex'}"
+          class="p-3 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
         >
-          <div
-            class="h-[73px] flex md:justify-end items-center p-4 border-b border-neutral-200 dark:border-neutral-700 shrink-0"
-          >
-            <!-- Mobile Back Button (only when in releases view on small screens) -->
+          {#if viewMode === "features"}
             <button
+              class="w-full py-2 px-3 flex items-center justify-between text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+              on:click={() => {
+                viewMode = "releases";
+                activeReleaseId = currentRelease?.id || allReleases[0]?.id;
+              }}
+            >
+              <span>View Previous Releases</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                ><path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                /></svg
+              >
+            </button>
+          {:else}
+            <button
+              class="w-full py-2 px-3 flex items-center justify-between text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
               on:click={() => (viewMode = "features")}
-              class="md:hidden flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -332,85 +308,144 @@
                   d="M15 19l-7-7 7-7"
                 /></svg
               >
-              Back
+              <span>Back to What's New</span>
             </button>
+          {/if}
+        </div>
+      </div>
 
-            <div class="flex-1"></div>
-
-            <!-- Desktop Close -->
-            <button
-              on:click={close}
-              class="hidden md:block p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                /></svg
-              >
-            </button>
-          </div>
-
-          <div
-            class="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar animate-fade-in relative"
+      <!-- Right Content Pane -->
+      <div
+        class="flex-1 flex flex-col bg-white dark:bg-neutral-900 min-w-0 {viewMode ===
+        'releases'
+          ? 'block'
+          : 'hidden md:flex'}"
+      >
+        <div
+          class="h-[73px] flex md:justify-end items-center p-4 border-b border-neutral-200 dark:border-neutral-700 shrink-0"
+        >
+          <!-- Mobile Back Button (only when in releases view on small screens) -->
+          <button
+            on:click={() => (viewMode = "features")}
+            class="md:hidden flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
           >
-            {#if viewMode === "features"}
-              <div class="grid max-w-3xl w-full">
-                {#each parsedFeatures as feature, i (feature.id)}
-                  <div
-                    class="col-start-1 row-start-1 flex flex-col transition-opacity duration-200"
-                    style="visibility: {feature.id === activeFeatureId ? 'visible' : 'hidden'}; opacity: {feature.id === activeFeatureId ? '1' : '0'}; pointer-events: {feature.id === activeFeatureId ? 'auto' : 'none'}; z-index: {feature.id === activeFeatureId ? '10' : '0'};"
-                  >
-                    <div>
-                      <h2
-                        class="text-3xl font-extrabold text-neutral-900 dark:text-white mb-6"
-                      >
-                        {feature.title}
-                      </h2>
-                      <div
-                        class="prose dark:prose-invert max-w-none text-neutral-600 dark:text-neutral-300 prose-purple prose-headings:text-neutral-900 dark:prose-headings:text-white prose-a:text-purple-600 dark:prose-a:text-purple-400 text-lg md:text-xl leading-relaxed"
-                      >
-                        {@html md.render(feature.content)}
-                      </div>
-                    </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              ><path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 19l-7-7 7-7"
+              /></svg
+            >
+            Back
+          </button>
 
-                    <div class="mt-12 pt-6 border-t border-neutral-200 dark:border-neutral-700 flex justify-end pb-4">
-                      {#if i < parsedFeatures.length - 1}
-                        <button
-                          class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md transition-all flex items-center gap-2"
-                          on:click={() => activeFeatureId = parsedFeatures[i + 1].id}
-                        >
-                          Next
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                        </button>
-                      {:else}
-                        <button
-                          class="px-6 py-2.5 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-800 dark:text-white font-bold rounded-lg transition-all"
-                          on:click={close}
-                        >
-                          Done
-                        </button>
-                      {/if}
+          <div class="flex-1"></div>
+
+          <!-- Desktop Close -->
+          <button
+            on:click={close}
+            class="hidden md:block p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              ><path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              /></svg
+            >
+          </button>
+        </div>
+
+        <div
+          class="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar animate-fade-in relative"
+        >
+          {#if viewMode === "features"}
+            <div class="grid max-w-3xl w-full">
+              {#each parsedFeatures as feature, i (feature.id)}
+                <div
+                  class="col-start-1 row-start-1 flex flex-col transition-opacity duration-200"
+                  style="visibility: {feature.id === activeFeatureId
+                    ? 'visible'
+                    : 'hidden'}; opacity: {feature.id === activeFeatureId
+                    ? '1'
+                    : '0'}; pointer-events: {feature.id === activeFeatureId
+                    ? 'auto'
+                    : 'none'}; z-index: {feature.id === activeFeatureId
+                    ? '10'
+                    : '0'};"
+                >
+                  <div>
+                    <h2
+                      class="text-3xl font-extrabold text-neutral-900 dark:text-white mb-6"
+                    >
+                      {feature.title}
+                    </h2>
+                    <div
+                      class="prose dark:prose-invert max-w-none text-neutral-600 dark:text-neutral-300 prose-purple prose-headings:text-neutral-900 dark:prose-headings:text-white prose-a:text-purple-600 dark:prose-a:text-purple-400 text-lg md:text-xl leading-relaxed"
+                    >
+                      {@html md.render(feature.content)}
                     </div>
                   </div>
-                {/each}
-              </div>
-            {:else}
-              <div class="max-w-4xl mx-auto">
-                <div class="prose dark:prose-invert max-w-none prose-purple text-lg md:text-xl leading-relaxed text-neutral-600 dark:text-neutral-300">
-                  {@html activeContentHtml}
+
+                  <div
+                    class="mt-12 pt-6 border-t border-neutral-200 dark:border-neutral-700 flex justify-end pb-4"
+                  >
+                    {#if i < parsedFeatures.length - 1}
+                      <button
+                        class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md transition-all flex items-center gap-2"
+                        on:click={() =>
+                          (activeFeatureId = parsedFeatures[i + 1].id)}
+                      >
+                        Next
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          ><path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 5l7 7-7 7"
+                          /></svg
+                        >
+                      </button>
+                    {:else}
+                      <button
+                        class="px-6 py-2.5 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-800 dark:text-white font-bold rounded-lg transition-all"
+                        on:click={close}
+                      >
+                        Done
+                      </button>
+                    {/if}
+                  </div>
                 </div>
+              {/each}
+            </div>
+          {:else}
+            <div class="max-w-4xl mx-auto">
+              <div
+                class="prose dark:prose-invert max-w-none prose-purple text-lg md:text-xl leading-relaxed text-neutral-600 dark:text-neutral-300"
+              >
+                {@html activeContentHtml}
               </div>
-            {/if}
-          </div>
+            </div>
+          {/if}
         </div>
+      </div>
     </div>
   </div>
 {/if}

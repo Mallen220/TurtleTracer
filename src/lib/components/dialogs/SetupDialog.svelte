@@ -26,7 +26,6 @@
       } catch (err) {}
     }
   }
-
 </script>
 
 {#if show}
@@ -44,18 +43,23 @@
       >
         {@html icons["folder"]}
       </div>
-      <h2 id="setup-title" class="text-3xl font-extrabold text-neutral-900 dark:text-white mb-4">
+      <h2
+        id="setup-title"
+        class="text-3xl font-extrabold text-neutral-900 dark:text-white mb-4"
+      >
         Select Your AutoPaths Directory
       </h2>
       <p
         class="text-neutral-600 dark:text-neutral-300 mb-8 text-lg leading-relaxed"
       >
-        Welcome to Turtle Tracer! We're happy you're here. Before we get started, please select where paths should be saved. 
+        Welcome to Turtle Tracer! We're happy you're here. Before we get
+        started, please select where paths should be saved.
         <br /><br />
         For most FTC projects, the best place is:<br />
         <code
           class="bg-neutral-100 dark:bg-neutral-900/50 px-3 py-1.5 rounded-lg text-green-700 dark:text-green-300 font-mono text-sm mt-3 inline-block"
-        >TeamCode/src/main/assets/AutoPaths/</code>
+          >TeamCode/src/main/assets/AutoPaths/</code
+        >
       </p>
       <div
         class="bg-green-50 dark:bg-green-900/20 p-5 rounded-2xl mb-8 w-full max-w-lg text-left border border-green-100 dark:border-green-800/50"
@@ -65,10 +69,18 @@
         >
           {@html icons["sparkles"]} Install TurtleTracerLib
         </h3>
-        <p class="text-neutral-600 dark:text-neutral-300 text-sm leading-relaxed">
+        <p
+          class="text-neutral-600 dark:text-neutral-300 text-sm leading-relaxed"
+        >
           Install <strong>TurtleTracerLib</strong> to run <code>.turt</code>
           files directly (legacy <code>.pp</code> supported) and enable advanced
-          commands. For documentation on setting it up with your project checkout the <a href="https://www.turtletracer.com/turtle-tracer-lib/installation/" class="text-green-700 dark:text-green-400 hover:underline font-semibold">documentation</a>.
+          commands. For documentation on setting it up with your project
+          checkout the
+          <a
+            href="https://www.turtletracer.com/turtle-tracer-lib/installation/"
+            class="text-green-700 dark:text-green-400 hover:underline font-semibold"
+            >documentation</a
+          >.
         </p>
       </div>
       <button

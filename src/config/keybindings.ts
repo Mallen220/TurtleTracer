@@ -370,9 +370,16 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "View",
   },
   {
-    id: "toggle-sidebar",
+    id: "toggle-control-tab",
     key: "b",
-    description: "Toggle sidebar / control tab",
+    description: "Toggle Control Tab",
+    action: "toggleControlTab",
+    category: "View",
+  },
+  {
+    id: "toggle-sidebar",
+    key: "cmd+b, ctrl+b",
+    description: "Toggle Left Sidebar",
     action: "toggleSidebar",
     category: "View",
   },
@@ -395,6 +402,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     key: "alt+i",
     description: "Toggle Robot Visibility",
     action: "toggleRobotVisibility",
+    category: "View",
+  },
+  {
+    id: "toggle-robot-arrows",
+    key: "ctrl+alt+r",
+    description: "Toggle Robot Arrows Visibility",
+    action: "toggleRobotArrows",
     category: "View",
   },
   {
@@ -979,7 +993,8 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
   {
     id: "docs",
     key: "f1",
-    description: "Open Documentation",
+    description:
+      "Open Online Documentation (https://www.turtletracer.com/turtle-tracer-lib/installation/)",
     action: "openDocs",
     category: "Help",
   },
