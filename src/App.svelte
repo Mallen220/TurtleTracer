@@ -23,6 +23,7 @@
   import NotificationToast from "./lib/components/NotificationToast.svelte";
   import OnboardingTutorial from "./lib/components/OnboardingTutorial.svelte";
   import WhatsNewDialog from "./lib/components/whats-new/WhatsNewDialog.svelte";
+  import SetupDialog from "./lib/components/dialogs/SetupDialog.svelte";
   import SaveNameDialog from "./lib/components/dialogs/SaveNameDialog.svelte";
   import UnsavedChangesDialog from "./lib/components/dialogs/UnsavedChangesDialog.svelte";
   import FileManager from "./lib/FileManager.svelte";
@@ -999,7 +1000,6 @@
 
       if (needsSetup || TEST_SETUP_DIALOG) {
         setupMode = true;
-        showWhatsNew.set(true);
       } else {
         // Check for What's New
         const currentVersion = pkg.version;
@@ -1027,7 +1027,6 @@
     // Expose debug trigger for testing setup dialog
     (window as any).triggerSetupDialog = () => {
       setupMode = true;
-      showWhatsNew.set(true);
     };
 
     // Electron Menu Action Listener
@@ -1712,9 +1711,9 @@
 
 <WhatsNewDialog
   bind:show={$showWhatsNew}
-  bind:setupMode
   on:close={closeWhatsNew}
 />
+<SetupDialog bind:show={setupMode} />
 <NotificationToast />
 <OnboardingTutorial
   whatsNewOpen={$showWhatsNew}

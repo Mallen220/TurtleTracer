@@ -316,3 +316,4 @@ src/lib/components/icons/SmartSnappingIcon.svelte
 src/lib/components/icons/UndoIcon.svelte
 src/utils/fileExtensions.ts
 vite.config.ts.timestamp-1773892163949-650acec89494e8.mjs
+src/lib/components/whats-new/pages/turtle-tracer-lib.md
