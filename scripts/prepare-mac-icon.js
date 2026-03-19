@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /**
  * Generate a macOS-friendly app icon from the source PNG.
  *

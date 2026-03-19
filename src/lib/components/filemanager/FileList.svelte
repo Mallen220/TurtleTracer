@@ -426,7 +426,6 @@
                 class="w-12 h-12 flex items-center justify-center text-blue-500 dark:text-blue-400"
               >
                 <FolderIcon className="size-5" />
-
               </div>
             {:else if previews[file.path]?.startPoint}
               <PathPreview

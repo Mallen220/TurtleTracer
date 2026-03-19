@@ -460,7 +460,10 @@
   })();
 
   $: projectName = $currentFilePath
-    ? $currentFilePath.split(/[\\/]/).pop()?.replace(/\.(pp|turt)$/i, "")
+    ? $currentFilePath
+        .split(/[\\/]/)
+        .pop()
+        ?.replace(/\.(pp|turt)$/i, "")
     : "Untitled Project";
 </script>
 

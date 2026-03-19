@@ -180,12 +180,11 @@
   function handleWindowDragOver(e: DragEvent) {
     if (!isActive) return;
     const isInternalReorder = draggingIndex !== null;
-    const isMacroDrop =
-      e.dataTransfer?.types
-        ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
-            (t) => e.dataTransfer?.types.includes(t),
-          )
-        : false;
+    const isMacroDrop = e.dataTransfer?.types
+      ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
+          (t) => e.dataTransfer?.types.includes(t),
+        )
+      : false;
 
     if (!isInternalReorder && !isMacroDrop) return;
     e.preventDefault();
@@ -207,12 +206,11 @@
     if (!isActive) return;
 
     const isInternalReorder = draggingIndex !== null;
-    const isMacroDrop =
-      e.dataTransfer?.types
-        ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
-            (t) => e.dataTransfer?.types.includes(t),
-          )
-        : false;
+    const isMacroDrop = e.dataTransfer?.types
+      ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
+          (t) => e.dataTransfer?.types.includes(t),
+        )
+      : false;
 
     if (!isInternalReorder && !isMacroDrop) return;
 

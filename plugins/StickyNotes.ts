@@ -316,7 +316,9 @@ interface StickyNote {
       : `<svg width="12" height="12" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>`;
     collapseBtn.onclick = (e) => {
       e.stopPropagation();
-      const currentData = turtle.stores.get(turtle.stores.project.extraDataStore);
+      const currentData = turtle.stores.get(
+        turtle.stores.project.extraDataStore,
+      );
       const currentNote = currentData.stickyNotes?.find(
         (n: StickyNote) => n.id === note.id,
       );

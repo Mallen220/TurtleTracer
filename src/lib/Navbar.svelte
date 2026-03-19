@@ -35,7 +35,6 @@
   export let saveFileAs: () => any;
   export let exportGif: () => any;
 
-
   let exportMenuOpen = false;
   let saveDropdownOpen = false;
   let saveDropdownSide: "left" | "right" = "left";
@@ -140,7 +139,9 @@
   <!-- Left: Brand & File -->
   <div class="flex items-center gap-4">
     <!-- Save (Moved to the leftmost position) -->
-    <div class="relative inline-flex items-center divide-x divide-neutral-200 dark:divide-neutral-700 rounded-md border border-neutral-200 dark:border-neutral-700">
+    <div
+      class="relative inline-flex items-center divide-x divide-neutral-200 dark:divide-neutral-700 rounded-md border border-neutral-200 dark:border-neutral-700"
+    >
       <button
         id="save-project-btn"
         bind:this={saveButtonRef}
@@ -185,7 +186,10 @@
           bind:this={saveDropdownRef}
           use:menuNavigation
           on:close={() => (saveDropdownOpen = false)}
-          class="absolute top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)] {saveDropdownSide === 'left' ? 'right-full' : 'left-full'}"
+          class="absolute top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)] {saveDropdownSide ===
+          'left'
+            ? 'right-full'
+            : 'left-full'}"
         >
           <button
             on:click={() => {

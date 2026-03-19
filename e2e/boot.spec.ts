@@ -57,10 +57,7 @@ test("app boots and displays main interface", async () => {
     // Playwright needs the executable inside the bundle
     // Try the updated display name first, then fall back to the legacy name if packaging hasn't been updated
     {
-      const macCandidates = [
-        "Turtle Tracer",
-        "Turtle Tracer",
-      ];
+      const macCandidates = ["Turtle Tracer", "Turtle Tracer"];
       let foundBinary: string | null = null;
       for (const name of macCandidates) {
         const p = path.join(appPath, "Contents", "MacOS", name);
@@ -86,10 +83,7 @@ test("app boots and displays main interface", async () => {
       const fullDir = path.join(releaseDir, dir);
       if (fs.existsSync(fullDir)) {
         // Prefer the new product name executable, but accept the legacy name as fallback
-        const winCandidates = [
-          "Turtle Tracer.exe",
-          "Turtle Tracer.exe",
-        ];
+        const winCandidates = ["Turtle Tracer.exe", "Turtle Tracer.exe"];
         for (const cand of winCandidates) {
           const p = path.join(fullDir, cand);
           if (fs.existsSync(p)) {

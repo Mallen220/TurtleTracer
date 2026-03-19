@@ -1553,7 +1553,10 @@
           const themeClass = `theme-${t
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-")}`;
-          if (currentCustomThemeClass && currentCustomThemeClass !== themeClass) {
+          if (
+            currentCustomThemeClass &&
+            currentCustomThemeClass !== themeClass
+          ) {
             document.documentElement.classList.remove(currentCustomThemeClass);
           }
           document.documentElement.classList.add(themeClass);
@@ -1716,7 +1719,7 @@
 <OnboardingTutorial
   whatsNewOpen={$showWhatsNew}
   {isLoaded}
-  on:tutorialComplete={() => (showWhatsNew.set(true))}
+  on:tutorialComplete={() => showWhatsNew.set(true)}
 />
 
 <SaveNameDialog

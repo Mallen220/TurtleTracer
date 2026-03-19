@@ -1,6 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-
-export type SidebarItemType = 'system' | 'setting' | 'separator' | 'spacer';
+export type SidebarItemType = "system" | "setting" | "separator" | "spacer";
 
 import {
   StarIcon,
@@ -48,55 +47,91 @@ export interface SidebarItemConfig {
 export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
   // System items (rendered with custom logic in LeftSidebar)
   {
-    id: "fileManager", label: "File Manager", type: "system", shortcutKey: "toggle-file-manager",
+    id: "fileManager",
+    label: "File Manager",
+    type: "system",
+    shortcutKey: "toggle-file-manager",
     iconComponent: FolderIcon,
   },
   {
-    id: "undo", label: "Undo", type: "system", shortcutKey: "undo",
+    id: "undo",
+    label: "Undo",
+    type: "system",
+    shortcutKey: "undo",
     iconComponent: UndoIcon,
   },
   {
-    id: "history", label: "History", type: "system", shortcutKey: "toggle-history",
+    id: "history",
+    label: "History",
+    type: "system",
+    shortcutKey: "toggle-history",
     iconComponent: HistoryIcon,
   },
   {
-    id: "redo", label: "Redo", type: "system", shortcutKey: "redo",
+    id: "redo",
+    label: "Redo",
+    type: "system",
+    shortcutKey: "redo",
     iconComponent: RedoIcon,
   },
   {
-    id: "ruler", label: "Ruler", type: "system", shortcutKey: "toggle-ruler",
+    id: "ruler",
+    label: "Ruler",
+    type: "system",
+    shortcutKey: "toggle-ruler",
     iconComponent: RulerIcon,
   },
   {
-    id: "protractor", label: "Protractor", type: "system", shortcutKey: "toggle-protractor",
+    id: "protractor",
+    label: "Protractor",
+    type: "system",
+    shortcutKey: "toggle-protractor",
     iconComponent: ProtractorIcon,
   },
   {
-    id: "grid", label: "Grid & Snap", type: "system", shortcutKey: "toggle-grid",
+    id: "grid",
+    label: "Grid & Snap",
+    type: "system",
+    shortcutKey: "toggle-grid",
     iconComponent: GridIcon,
   },
   {
-    id: "onionSkin", label: "Onion Skin", type: "system", shortcutKey: "toggle-onion",
+    id: "onionSkin",
+    label: "Onion Skin",
+    type: "system",
+    shortcutKey: "toggle-onion",
     iconComponent: OnionSkinIcon,
   },
   {
-    id: "velocityHeatmap", label: "Velocity Heatmap", type: "system",
+    id: "velocityHeatmap",
+    label: "Velocity Heatmap",
+    type: "system",
     iconComponent: VelocityHeatmapIcon,
   },
   {
-    id: "newPath", label: "New Path", type: "system", shortcutKey: "new-file",
+    id: "newPath",
+    label: "New Path",
+    type: "system",
+    shortcutKey: "new-file",
     iconComponent: PlusIcon,
   },
   {
-    id: "settings", label: "Settings Menu", type: "system", shortcutKey: "open-settings",
+    id: "settings",
+    label: "Settings Menu",
+    type: "system",
+    shortcutKey: "open-settings",
     iconComponent: WrenchIcon,
   },
   {
-    id: "feedback", label: "Feedback", type: "system",
+    id: "feedback",
+    label: "Feedback",
+    type: "system",
     iconComponent: FeedbackIcon,
   },
   {
-    id: "github", label: "GitHub Repo", type: "system",
+    id: "github",
+    label: "GitHub Repo",
+    type: "system",
     iconComponent: GithubIcon,
   },
 
@@ -217,5 +252,5 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     label: "Export as GIF",
     type: "system",
     iconComponent: ExportGifIcon,
-  }
+  },
 ];

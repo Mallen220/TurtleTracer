@@ -122,10 +122,7 @@
           command.id,
           ...recentCommandIds.filter((id) => id !== command.id),
         ].slice(0, 10);
-        localStorage.setItem(
-          RECENTS_KEY,
-          JSON.stringify(recentCommandIds),
-        );
+        localStorage.setItem(RECENTS_KEY, JSON.stringify(recentCommandIds));
       }
 
       if (inputElement) inputElement.blur();

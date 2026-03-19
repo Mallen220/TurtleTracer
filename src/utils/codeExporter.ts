@@ -1050,8 +1050,10 @@ import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
     ? ""
     : (() => {
         const rawName = fileName ? fileName.split(/[\\/]/).pop() || "" : "";
-        const baseName = stripProjectExtension(rawName || "AutoPath") || "AutoPath";
-        const ext = getProjectExtensionFromPath(rawName) || DEFAULT_PROJECT_EXTENSION;
+        const baseName =
+          stripProjectExtension(rawName || "AutoPath") || "AutoPath";
+        const ext =
+          getProjectExtensionFromPath(rawName) || DEFAULT_PROJECT_EXTENSION;
         return `PedroPathReader pp = new PedroPathReader("${baseName}${ext}", hw.appContext);`;
       })();
 

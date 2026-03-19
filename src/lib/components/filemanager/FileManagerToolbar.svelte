@@ -294,7 +294,6 @@
       aria-label="Change Directory"
     >
       <FolderIcon className="size-5" />
-
     </button>
   </div>
 </div>

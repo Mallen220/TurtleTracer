@@ -188,7 +188,9 @@ describe("codeExporter", () => {
       expect(code).toContain(
         "package org.firstinspires.ftc.teamcode.Commands.AutoCommands;",
       );
-      expect(code).toContain("public class TurtleTracerAutonomous extends OpMode");
+      expect(code).toContain(
+        "public class TurtleTracerAutonomous extends OpMode",
+      );
       expect(code).toContain("paths = new Paths(follower);");
     });
 
@@ -573,9 +575,7 @@ describe("codeExporter", () => {
         true, // hardcodeValues
       );
 
-      expect(code).not.toContain(
-        "import com.turtletracerlib.PedroPathReader;",
-      );
+      expect(code).not.toContain("import com.turtletracerlib.PedroPathReader;");
       expect(code).not.toContain("new PedroPathReader");
       expect(code).toContain("new Pose(10.000, 10.000, Math.toRadians(0))"); // startPoint
       // Check line1 (constant 90)

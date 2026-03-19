@@ -2239,8 +2239,7 @@
       if (openWhatsNew) openWhatsNew();
     },
     reportIssue: () => {
-      const url =
-        "https://github.com/Mallen220/TurtleTracer/issues";
+      const url = "https://github.com/Mallen220/TurtleTracer/issues";
       // @ts-ignore
       if (window.electronAPI && window.electronAPI.openExternal) {
         // @ts-ignore
@@ -2256,8 +2255,7 @@
           .checkForUpdates()
           .catch((err: any) => console.warn("Manual update check failed", err));
       } else {
-        const url =
-          "https://github.com/Mallen220/TurtleTracer/releases";
+        const url = "https://github.com/Mallen220/TurtleTracer/releases";
         if (api && api.openExternal) api.openExternal(url);
         else window.open(url, "_blank");
       }

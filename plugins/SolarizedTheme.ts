@@ -165,7 +165,6 @@ html.theme-solarized-dark ::selection {
 }
 `;
 
-
 turtle.registerMetadata({
   description: "Provides Solarized Light and Solarized Dark themes.",
 });

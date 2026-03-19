@@ -308,9 +308,7 @@ describe("fileHandlers", () => {
       expect(content.version).toBe(pkg.version);
       expect(content.version).toBe(pkg.version);
       expect(content.header).toBeDefined();
-      expect(content.header.info).toBe(
-        "Created with Turtle Tracer",
-      );
+      expect(content.header.info).toBe("Created with Turtle Tracer");
       expect(content.header.copyright).toContain("Copyright");
       expect(content.header.link).toBe(
         "https://github.com/Mallen220/TurtleTracer",
@@ -489,9 +487,7 @@ describe("fileHandlers", () => {
       const content = JSON.parse(callArgs![1] as string);
 
       expect(content.header).toBeDefined();
-      expect(content.header.info).toBe(
-        "Created with Turtle Tracer",
-      );
+      expect(content.header.info).toBe("Created with Turtle Tracer");
       expect(content.header.copyright).toContain("Copyright");
       expect(content.header.link).toBe(
         "https://github.com/Mallen220/TurtleTracer",
