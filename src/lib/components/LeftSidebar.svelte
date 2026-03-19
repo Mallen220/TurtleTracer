@@ -239,7 +239,9 @@
   class="h-full flex-none bg-neutral-50 dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 flex flex-col items-center z-40 relative {isResizing
     ? ''
     : 'transition-[width] duration-300'}"
-  style="width: {sidebarExpanded ? sidebarWidth + 'px' : '3.5rem'}"
+  style="width: {sidebarExpanded
+    ? sidebarWidth + 'px'
+    : '3.5rem'}; --sidebar-icon-size: {settings.sidebarIconSize || 20}px;"
 >
   <div
     class="flex-grow w-full flex flex-col items-center py-2 gap-1.5 overflow-y-auto no-scrollbar"
@@ -298,11 +300,13 @@
               ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
               : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
           >
-            <div class="size-5 flex-none flex items-center justify-center">
+            <div
+              class="sidebar-icon flex-none flex items-center justify-center"
+            >
               {#if item.iconComponent}
                 <svelte:component
                   this={item.iconComponent}
-                  className="size-5 flex-none"
+                  className="sidebar-icon flex-none"
                 />
               {:else}
                 {@html item.iconSvg}
@@ -336,21 +340,23 @@
               ? 'w-[calc(100%-1.1rem)] px-3'
               : 'justify-center'} text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800"
           >
-            <div class="size-5 flex-none flex items-center justify-center">
+            <div
+              class="sidebar-icon flex-none flex items-center justify-center"
+            >
               {#if item.iconComponent}
                 <svelte:component
                   this={item.iconComponent}
-                  className="size-5 flex-none"
+                  className="sidebar-icon flex-none"
                 />
               {:else if item.iconSvg && ICON_COMPONENT_MAP[item.iconSvg]}
                 <svelte:component
                   this={ICON_COMPONENT_MAP[item.iconSvg]}
-                  className="size-5 flex-none"
+                  className="sidebar-icon flex-none"
                 />
               {:else}
                 <svelte:component
                   this={StarIcon}
-                  className="size-5 flex-none"
+                  className="sidebar-icon flex-none"
                 />
               {/if}
             </div>
@@ -385,14 +391,16 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 {#if item.iconComponent}
                   <svelte:component
                     this={item.iconComponent}
-                    className="size-5 flex-none"
+                    className="sidebar-icon flex-none"
                   />
                 {:else}
-                  <FolderIcon className="size-5 flex-none" />
+                  <FolderIcon className="sidebar-icon flex-none" />
                 {/if}
               </div>
               {#if sidebarExpanded}
@@ -426,11 +434,13 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 {#if item.iconComponent}
                   <svelte:component
                     this={item.iconComponent}
-                    className="size-4 flex-none"
+                    className="sidebar-icon-small flex-none"
                   />
                 {:else}
                   <svg
@@ -439,7 +449,7 @@
                     viewBox="0 0 24 24"
                     stroke-width="2"
                     stroke="currentColor"
-                    class="size-4 flex-none"
+                    class="sidebar-icon-small flex-none"
                   >
                     <path
                       stroke-linecap="round"
@@ -483,11 +493,13 @@
                   ? 'bg-neutral-200 dark:bg-neutral-800'
                   : ''}"
               >
-                <div class="size-5 flex-none flex items-center justify-center">
+                <div
+                  class="sidebar-icon flex-none flex items-center justify-center"
+                >
                   {#if item.iconComponent}
                     <svelte:component
                       this={item.iconComponent}
-                      className="size-4 flex-none"
+                      className="sidebar-icon-small flex-none"
                     />
                   {:else}
                     <svg
@@ -496,7 +508,7 @@
                       viewBox="0 0 24 24"
                       stroke-width="2"
                       stroke="currentColor"
-                      class="size-4 flex-none"
+                      class="sidebar-icon-small flex-none"
                     >
                       <path
                         stroke-linecap="round"
@@ -588,14 +600,16 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke-width="2"
                   stroke="currentColor"
-                  class="size-4 flex-none"
+                  class="sidebar-icon-small flex-none"
                 >
                   <path
                     stroke-linecap="round"
@@ -637,18 +651,18 @@
                 ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="flex-none"
+                  class="sidebar-icon-small flex-none"
                 >
                   <path
                     d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0z"
@@ -691,18 +705,18 @@
                 ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="flex-none"
+                  class="sidebar-icon-small flex-none"
                 >
                   <path d="M12 21a9 9 0 1 1 0-18c2.52 0 4.93 1 6.74 2.74L21 8"
                   ></path>
@@ -731,19 +745,19 @@
                   ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
                   : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
               >
-                <div class="size-5 flex-none flex items-center justify-center">
+                <div
+                  class="sidebar-icon flex-none flex items-center justify-center"
+                >
                   {#if $protractorLockToRobot}
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
                       stroke-width="2"
                       stroke-linecap="round"
                       stroke-linejoin="round"
-                      class="flex-none"
+                      class="sidebar-icon-small flex-none"
                     >
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"
                       ></rect>
@@ -752,15 +766,13 @@
                   {:else}
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
                       stroke-width="2"
                       stroke-linecap="round"
                       stroke-linejoin="round"
-                      class="flex-none"
+                      class="sidebar-icon-small flex-none"
                     >
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"
                       ></rect>
@@ -799,18 +811,18 @@
                 ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="flex-none"
+                  class="sidebar-icon-small flex-none"
                 >
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                   <line x1="3" y1="9" x2="21" y2="9"></line>
@@ -837,8 +849,10 @@
                   ? 'text-green-500 bg-green-50 dark:bg-green-900/20'
                   : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
               >
-                <div class="size-5 flex-none flex items-center justify-center">
-                  <MagnetIcon className="size-4 flex-none" />
+                <div
+                  class="sidebar-icon flex-none flex items-center justify-center"
+                >
+                  <MagnetIcon className="sidebar-icon-small flex-none" />
                 </div>
                 {#if sidebarExpanded}
                   <span class="ml-3 text-xs truncate">Snap to Grid</span>
@@ -849,7 +863,9 @@
                   ? 'w-[calc(100%-1.1rem)] px-3'
                   : 'justify-center'}"
               >
-                <div class="size-5 flex-none flex items-center justify-center">
+                <div
+                  class="sidebar-icon flex-none flex items-center justify-center"
+                >
                   <select
                     class="w-10 text-xs bg-transparent text-center text-neutral-600 dark:text-neutral-300 focus:outline-none cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors appearance-none"
                     bind:value={$gridSize}
@@ -902,18 +918,18 @@
                 ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="flex-none"
+                  class="sidebar-icon-small flex-none"
                 >
                   <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                   <polyline points="2 12 12 17 22 12"></polyline>
@@ -947,18 +963,18 @@
                   ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
                   : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
               >
-                <div class="size-5 flex-none flex items-center justify-center">
+                <div
+                  class="sidebar-icon flex-none flex items-center justify-center"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    class="flex-none"
+                    class="sidebar-icon-small flex-none"
                   >
                     {#if settings.onionSkinCurrentPathOnly}
                       <!-- Show a single highlighted layer -->
@@ -1057,18 +1073,18 @@
                 ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="flex-none"
+                  class="sidebar-icon-small flex-none"
                 >
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
                 </svg>
@@ -1104,14 +1120,16 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke-width="2"
                   stroke="currentColor"
-                  class="size-5 flex-none"
+                  class="sidebar-icon flex-none"
                 >
                   <path
                     stroke-linecap="round"
@@ -1151,14 +1169,16 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke-width="2"
                   stroke="currentColor"
-                  class="size-4 flex-none"
+                  class="sidebar-icon-small flex-none"
                 >
                   <path
                     stroke-linecap="round"
@@ -1203,14 +1223,16 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke-width="2"
                   stroke="currentColor"
-                  class="size-4 flex-none text-purple-600 dark:text-purple-400"
+                  class="sidebar-icon-small flex-none text-purple-600 dark:text-purple-400"
                 >
                   <path
                     stroke-linecap="round"
@@ -1251,11 +1273,13 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 30 30"
-                  class="size-4 flex-none dark:fill-white"
+                  class="sidebar-icon-small flex-none dark:fill-white"
                 >
                   <path
                     d="M15,3C8.373,3,3,8.373,3,15c0,5.623,3.872,10.328,9.092,11.63C12.036,26.468,12,26.28,12,26.047v-2.051 c-0.487,0-1.303,0-1.508,0c-0.821,0-1.551-0.353-1.905-1.009c-0.393-0.729-0.461-1.844-1.435-2.526 c-0.289-0.227-0.069-0.486,0.264-0.451c0.615,0.174,1.125,0.596,1.605,1.222c0.478,0.627,0.703,0.769,1.596,0.769 c0.433,0,1.081-0.025,1.691-0.121c0.328-0.833,0.895-1.6,1.588-1.962c-3.996-0.411-5.903-2.399-5.903-5.098 c0-1.162,0.495-2.286,1.336-3.233C9.053,10.647,8.706,8.73,9.435,8c1.798,0,2.885,1.166,3.146,1.481C13.477,9.174,14.461,9,15.495,9 c1.036,0,2.024,0.174,2.922,0.483C18.675,9.17,19.763,8,21.565,8c0.732,0.731,0.381,2.656,0.102,3.594 c0.836,0.945,1.328,2.066,1.328,3.226c0,2.697-1.904,4.684-5.894,5.097C18.199,20.49,19,22.1,19,23.313v2.734 c0,0.104-0.023,0.179-0.035,0.268C23.641,24.676,27,20.236,27,15C27,8.373,21.627,3,15,3z"
@@ -1294,11 +1318,13 @@
                 ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 {#if item.iconComponent}
                   <svelte:component
                     this={item.iconComponent}
-                    className="size-4 flex-none"
+                    className="sidebar-icon-small flex-none"
                   />
                 {:else}
                   <svg
@@ -1309,7 +1335,7 @@
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    class="size-4 flex-none"
+                    class="sidebar-icon-small flex-none"
                     ><path d="M2 3h20" /><path
                       d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"
                     /><path d="m7 21 5-5 5 5" /></svg
@@ -1346,11 +1372,13 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'} text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 {#if item.iconComponent}
                   <svelte:component
                     this={item.iconComponent}
-                    className="size-4 flex-none"
+                    className="sidebar-icon-small flex-none"
                   />
                 {:else}
                   <svg
@@ -1361,7 +1389,7 @@
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    class="size-4 flex-none"
+                    class="sidebar-icon-small flex-none"
                     ><path d="M12 2L2 7l10 5 10-5-10-5Z" /><path
                       d="m2 17 10 5 10-5"
                     /><path d="m2 12 10 5 10-5" /></svg
@@ -1398,11 +1426,13 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'} text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 {#if item.iconComponent}
                   <svelte:component
                     this={item.iconComponent}
-                    className="size-4 flex-none"
+                    className="sidebar-icon-small flex-none"
                   />
                 {:else}
                   <svg
@@ -1413,7 +1443,7 @@
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    class="size-4 flex-none"
+                    class="sidebar-icon-small flex-none"
                     ><path
                       d="M12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"
                     /></svg
@@ -1450,7 +1480,9 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'} text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -1459,7 +1491,7 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="size-4 flex-none"
+                  class="sidebar-icon-small flex-none"
                   ><circle cx="12" cy="12" r="10" /><path
                     d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"
                   /><line x1="12" y1="17" x2="12.01" y2="17" /></svg
@@ -1495,7 +1527,9 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -1504,7 +1538,7 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="size-4 flex-none"
+                  class="sidebar-icon-small flex-none"
                   ><rect
                     width="18"
                     height="18"
@@ -1547,7 +1581,9 @@
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
             >
-              <div class="size-5 flex-none flex items-center justify-center">
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -1556,7 +1592,7 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="size-4 flex-none"
+                  class="sidebar-icon-small flex-none"
                 >
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 6.5v11" />
@@ -1588,9 +1624,9 @@
           ? 'w-[calc(100%-1.1rem)] px-3'
           : 'justify-center'} text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800"
       >
-        <div class="size-5 flex-none flex items-center justify-center">
+        <div class="sidebar-icon flex-none flex items-center justify-center">
           <div
-            class="size-5 flex items-center justify-center transition-transform duration-300 {sidebarExpanded
+            class="sidebar-icon flex items-center justify-center transition-transform duration-300 {sidebarExpanded
               ? 'rotate-180'
               : ''}"
           >
@@ -1600,7 +1636,7 @@
               viewBox="0 0 24 24"
               stroke-width="2"
               stroke="currentColor"
-              class="size-5"
+              class="sidebar-icon"
             >
               <path
                 stroke-linecap="round"
@@ -1645,3 +1681,14 @@
     </button>
   {/if}
 </div>
+
+<style>
+  .sidebar-icon {
+    width: var(--sidebar-icon-size, 1.25rem);
+    height: var(--sidebar-icon-size, 1.25rem);
+  }
+  .sidebar-icon-small {
+    width: calc(var(--sidebar-icon-size, 20px) * 0.8);
+    height: calc(var(--sidebar-icon-size, 20px) * 0.8);
+  }
+</style>
