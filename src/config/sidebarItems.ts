@@ -2,12 +2,15 @@
 
 export type SidebarItemType = 'system' | 'setting' | 'separator' | 'spacer';
 
+import { StarIcon } from "../lib/components/icons";
+
 export interface SidebarItemConfig {
   id: string;
   label: string;
   type: SidebarItemType;
   settingKey?: string; // e.g. "showRobotArrows"
-  iconSvg?: string; // For auto-rendered 'setting' types
+  iconSvg?: string; // For auto-rendered 'setting' types (SVG markup)
+  iconComponent?: any; // Svelte component constructor for imported icons
   shortcutKey?: string; // to look up in keybindings
 }
 
@@ -140,5 +143,48 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     type: "setting",
     settingKey: "showTelemetryTab",
     iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>`
+  },
+  {
+    id: "showRobot",
+    label: "Toggle Robot Visibility",
+    type: "setting",
+    settingKey: "showRobot",
+    iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>`
+  },
+  {
+    id: "presentationMode",
+    label: "Presentation Mode",
+    type: "system",
+    iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/><path d="m7 21 5-5 5 5"/></svg>`
+  },
+  {
+    id: "pluginManager",
+    label: "Plugin Manager",
+    type: "system",
+    iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M12 2L2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>`
+  },
+  {
+    id: "whatsNew",
+    label: "What's New & Docs",
+    type: "system",
+    iconComponent: StarIcon,
+  },
+  {
+    id: "onboarding",
+    label: "Restart Tutorial",
+    type: "system",
+    iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+  },
+  {
+    id: "exportImage",
+    label: "Export as Image",
+    type: "system",
+    iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`
+  },
+  {
+    id: "exportGif",
+    label: "Export as GIF",
+    type: "system",
+    iconSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><circle cx="12" cy="12" r="10"/><path d="M12 6.5v11"/><path d="M6.5 12h11"/></svg>`
   }
 ];

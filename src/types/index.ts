@@ -172,6 +172,7 @@ export interface CustomSidebarItem {
   label: string;
   commandId: string;
   iconSvg: string;
+  iconComponent?: any;
 }
 
 export interface Settings {

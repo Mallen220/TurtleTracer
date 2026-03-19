@@ -13,19 +13,25 @@
     protractorLockToRobot,
     gridSize,
     executeCommandBus,
+    showPluginManager,
+    isPresentationMode,
+    showWhatsNew,
+    startTutorial,
+    showExportImage,
+    showExportGif,
   } from "../../stores";
   import { settingsStore } from "../projectStore";
   import { getShortcutFromSettings } from "../../utils";
   import type { Settings } from "../../types";
   import type { createHistory } from "../../utils/history";
   import { menuNavigation } from "../actions/menuNavigation";
-  import { MagnetIcon, FolderIcon, ListIcon, ArrowRightIcon, SparklesIcon, CodeIcon,
+  import { MagnetIcon, FolderIcon, ListIcon, ArrowRightIcon, CodeIcon,
     TerminalIcon, StarIcon, BoltIcon, WrenchIcon, PlayIcon, PlusIcon, SaveIcon, TrashIcon,
     EyeIcon, ZapIcon, BoxIcon, CompassIcon, MapIcon } from "./icons";
   import { SIDEBAR_ITEMS } from "../../config/sidebarItems";
 
   const ICON_COMPONENT_MAP: Record<string, any> = {
-    List: ListIcon, Play: PlayIcon, Arrow: ArrowRightIcon, Sparkles: SparklesIcon,
+    List: ListIcon, Play: PlayIcon, Arrow: ArrowRightIcon,
     Code: CodeIcon, Terminal: TerminalIcon, Star: StarIcon, Bolt: BoltIcon,
     Wrench: WrenchIcon, Plus: PlusIcon, Folder: FolderIcon, Save: SaveIcon, Trash: TrashIcon,
     Eye: EyeIcon, Zap: ZapIcon, Box: BoxIcon, Compass: CompassIcon, Map: MapIcon
@@ -134,7 +140,11 @@
           ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
           : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
       >
-        {@html item.iconSvg}
+        {#if item.iconComponent}
+          <svelte:component this={item.iconComponent} className="size-5" />
+        {:else}
+          {@html item.iconSvg}
+        {/if}
       </button>
     {:else if item.commandId}
       <button
@@ -143,7 +153,9 @@
         on:click={() => executeCommandBus.set(item.commandId)}
         class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800"
       >
-        {#if item.iconSvg && ICON_COMPONENT_MAP[item.iconSvg]}
+        {#if item.iconComponent}
+          <svelte:component this={item.iconComponent} className="size-5" />
+        {:else if item.iconSvg && ICON_COMPONENT_MAP[item.iconSvg]}
           <svelte:component this={ICON_COMPONENT_MAP[item.iconSvg]} className="size-5" />
         {:else}
           <svelte:component this={StarIcon} className="size-5" />
@@ -159,7 +171,11 @@
     on:click={() => showFileManager.set(true)}
     class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-purple-600 dark:hover:text-purple-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
   >
-    <FolderIcon className="size-5" />
+    {#if item.iconComponent}
+      <svelte:component this={item.iconComponent} className="size-5" />
+    {:else}
+      <FolderIcon className="size-5" />
+    {/if}
   </button>
       {:else if item.id === "undo"}
         <!-- Undo -->
@@ -170,20 +186,24 @@
     disabled={!canUndo}
     class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
   >
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width="2"
-        stroke="currentColor"
-        class="size-4"
-    >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 1 1 0 12h-3"
-        />
-    </svg>
+    {#if item.iconComponent}
+      <svelte:component this={item.iconComponent} className="size-4" />
+    {:else}
+      <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-4"
+      >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 1 1 0 12h-3"
+          />
+      </svg>
+    {/if}
   </button>
       {:else if item.id === "history"}
         <!-- History Dropdown -->
@@ -198,20 +218,24 @@
                   ? 'bg-neutral-200 dark:bg-neutral-800'
                   : ''}"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="2"
-                  stroke="currentColor"
-                  class="size-4"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                  />
-                </svg>
+                {#if item.iconComponent}
+                  <svelte:component this={item.iconComponent} className="size-4" />
+                {:else}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="2"
+                    stroke="currentColor"
+                    class="size-4"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                    />
+                  </svg>
+                {/if}
               </button>
         
               {#if $showHistory && $historyStore}
@@ -649,6 +673,80 @@
         ></path>
     </svg>
   </a>
+      {:else if item.id === "presentationMode"}
+        <!-- Presentation Mode -->
+  <button
+    title="Presentation Mode"
+    aria-label="Presentation Mode"
+    on:click={() => isPresentationMode.set(!$isPresentationMode)}
+    class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {$isPresentationMode
+        ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
+        : 'text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
+  >
+    {#if item.iconComponent}
+      <svelte:component this={item.iconComponent} className="size-4" />
+    {:else}
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/><path d="m7 21 5-5 5 5"/></svg>
+    {/if}
+  </button>
+      {:else if item.id === "pluginManager"}
+        <!-- Plugin Manager -->
+  <button
+    title="Plugin Manager"
+    aria-label="Plugin Manager"
+    on:click={() => showPluginManager.set(true)}
+    class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+  >
+    {#if item.iconComponent}
+      <svelte:component this={item.iconComponent} className="size-4" />
+    {:else}
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M12 2L2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+    {/if}
+  </button>
+      {:else if item.id === "whatsNew"}
+        <!-- What's New & Docs -->
+  <button
+    title="What's New & Docs"
+    aria-label="What's New & Docs"
+    on:click={() => showWhatsNew.set(true)}
+    class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+  >
+    {#if item.iconComponent}
+      <svelte:component this={item.iconComponent} className="size-4" />
+    {:else}
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><path d="M12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+    {/if}
+  </button>
+      {:else if item.id === "onboarding"}
+        <!-- Restart Tutorial -->
+  <button
+    title="Restart Tutorial"
+    aria-label="Restart Tutorial"
+    on:click={() => startTutorial.set(true)}
+    class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  </button>
+      {:else if item.id === "exportImage"}
+        <!-- Export Image -->
+  <button
+    title="Export as Image"
+    aria-label="Export as Image"
+    on:click={() => showExportImage.set(true)}
+    class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+  </button>
+      {:else if item.id === "exportGif"}
+        <!-- Export GIF -->
+  <button
+    title="Export as GIF"
+    aria-label="Export as GIF"
+    on:click={() => showExportGif.set(true)}
+    class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4"><circle cx="12" cy="12" r="10"/><path d="M12 6.5v11"/><path d="M6.5 12h11"/></svg>
+  </button>
       {/if}
     {/if}
   {/each}

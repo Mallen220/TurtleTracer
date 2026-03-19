@@ -309,15 +309,12 @@
         .map((file) => ({
           ...file,
           error:
-            file.isDirectory ||
-            supportedFileTypes.includes(path.extname(file.name).toLowerCase())
+            file.isDirectory || isSupportedProjectFileName(file.name)
               ? undefined
               : `Unsupported type`,
         }))
         .filter(
-          (file) =>
-            file.isDirectory ||
-            supportedFileTypes.includes(path.extname(file.name).toLowerCase()),
+          (file) => file.isDirectory || isSupportedProjectFileName(file.name),
         );
 
       if (currentDirectory !== baseDirectory) {

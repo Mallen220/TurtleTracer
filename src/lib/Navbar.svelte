@@ -35,15 +35,6 @@
   export let saveFileAs: () => any;
   export let exportGif: () => any;
 
-  // These are still declared as props since App.svelte may still pass them to the Navbar component slot,
-  // but they are now mainly utilized by LeftSidebar. However, we keep them so the interface of Navbar doesn't crash App.svelte.
-  export let resetProject: () => any;
-  export let undoAction: () => any;
-  export let redoAction: () => any;
-  export const recordChange: (action?: string) => any = () => {};
-  export let canUndo: boolean;
-  export let canRedo: boolean;
-  export let history: any;
 
   let exportMenuOpen = false;
   let saveDropdownOpen = false;

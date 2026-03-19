@@ -11,7 +11,6 @@ export { default as MagnetIcon } from "./MagnetIcon.svelte";
 export { default as FolderIcon } from "./FolderIcon.svelte";
 export { default as ListIcon } from "./ListIcon.svelte";
 export { default as ArrowRightIcon } from "./ArrowRightIcon.svelte";
-export { default as SparklesIcon } from "./SparklesIcon.svelte";
 export { default as CodeIcon } from "./CodeIcon.svelte";
 export { default as TerminalIcon } from "./TerminalIcon.svelte";
 export { default as StarIcon } from "./StarIcon.svelte";

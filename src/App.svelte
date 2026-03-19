@@ -44,6 +44,7 @@
     isUnsaved,
     showSettings,
     isPresentationMode,
+    showWhatsNew,
     showExportGif,
     showExportImage,
     showStrategySheet,
@@ -638,7 +639,6 @@
   $: effectiveShowSidebar = $isPresentationMode ? false : showSidebar;
 
   // DEBUG: force open Whats New during development to validate feature loading
-  let showWhatsNew = false;
   let setupMode = false;
   // Set this to true to force the setup dialog for testing
   const TEST_SETUP_DIALOG = false;
@@ -947,7 +947,7 @@
   }
 
   function closeWhatsNew() {
-    showWhatsNew = false;
+    showWhatsNew.set(false);
     // Update settings with new version
     const currentVersion = pkg.version;
     const s = get(settingsStore);
@@ -999,7 +999,7 @@
 
       if (needsSetup || TEST_SETUP_DIALOG) {
         setupMode = true;
-        showWhatsNew = true;
+        showWhatsNew.set(true);
       } else {
         // Check for What's New
         const currentVersion = pkg.version;
@@ -1009,7 +1009,7 @@
 
         // If version mismatch or never seen, show dialog
         if (lastSeen !== currentVersion && hasSeenTutorial) {
-          showWhatsNew = true;
+          showWhatsNew.set(true);
         }
       }
 
@@ -1027,7 +1027,7 @@
     // Expose debug trigger for testing setup dialog
     (window as any).triggerSetupDialog = () => {
       setupMode = true;
-      showWhatsNew = true;
+      showWhatsNew.set(true);
     };
 
     // Electron Menu Action Listener
@@ -1636,7 +1636,7 @@
   bind:controlTabRef
   bind:activeControlTab
   toggleStats={() => (statsOpen = !statsOpen)}
-  openWhatsNew={() => (showWhatsNew = true)}
+  openWhatsNew={() => showWhatsNew.set(true)}
   toggleSidebar={() => (showSidebar = !showSidebar)}
   {fieldRenderer}
 />
@@ -1708,15 +1708,15 @@
 {/if}
 
 <WhatsNewDialog
-  bind:show={showWhatsNew}
+  bind:show={$showWhatsNew}
   bind:setupMode
   on:close={closeWhatsNew}
 />
 <NotificationToast />
 <OnboardingTutorial
-  whatsNewOpen={showWhatsNew}
+  whatsNewOpen={$showWhatsNew}
   {isLoaded}
-  on:tutorialComplete={() => (showWhatsNew = true)}
+  on:tutorialComplete={() => (showWhatsNew.set(true))}
 />
 
 <SaveNameDialog

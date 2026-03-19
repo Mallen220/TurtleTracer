@@ -417,7 +417,7 @@
     if (
       e.dataTransfer &&
       ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
-        (t) => e.dataTransfer.types.includes(t),
+        (t) => e.dataTransfer?.types?.includes(t),
       )
     ) {
       e.preventDefault();

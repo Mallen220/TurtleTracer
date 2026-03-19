@@ -31,7 +31,6 @@
   import {
     ListIcon,
     ArrowRightIcon,
-    SparklesIcon,
     CodeIcon,
     TerminalIcon,
     StarIcon,
@@ -651,11 +650,12 @@
       if (isCustom && settings.customSidebarItems) {
         item = settings.customSidebarItems.find((i) => i.id === id);
       }
-      return { 
-        id, 
-        label: item?.label ?? id, 
+      return {
+        id,
+        label: item?.label ?? id,
         icon: item?.iconSvg ?? "",
-        isCustom: !!isCustom 
+        iconComponent: item?.iconComponent,
+        isCustom: !!isCustom,
       };
     });
   })();
@@ -759,7 +759,6 @@
     List: ListIcon,
     Play: PlayIcon,
     Arrow: ArrowRightIcon,
-    Sparkles: SparklesIcon,
     Code: CodeIcon,
     Terminal: TerminalIcon,
     Star: StarIcon,
@@ -2185,7 +2184,9 @@
                         </div>
                         <!-- Icon -->
                         <div class="flex-none w-5 h-5 flex items-center justify-center text-neutral-500">
-                          {#if item.icon}
+                          {#if item.iconComponent}
+                            <svelte:component this={item.iconComponent} className="size-5" />
+                          {:else if item.icon}
                             {#if ICON_COMPONENT_MAP[item.icon]}
                               <svelte:component this={ICON_COMPONENT_MAP[item.icon]} className="size-5" />
                             {:else}
@@ -2200,7 +2201,7 @@
                           {/if}
                         </div>
                         <!-- Label -->
-                        <div class="flex-grow text-sm font-medium text-neutral-700 dark:text-neutral-300">{item.label}</div>
+                        <div class="flex-grow text-sm font-medium text-neutral-700 dark:text-neutral-300 truncate" title={item.label}>{item.label}</div>
                         <!-- Controls -->
                         <div class="flex items-center gap-0.5">
                           <button
@@ -2238,10 +2239,12 @@
                          <div class="flex items-center border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 rounded-md shadow-sm group overflow-hidden">
                            <button
                              on:click={() => addSidebarItem(available.id)}
-                             class="flex-grow flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-white dark:hover:bg-neutral-700 transition-colors"
+                             class="flex-grow flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-white dark:hover:bg-neutral-700 transition-colors min-w-0"
                            >
                              <span class="w-5 h-5 flex-none flex items-center justify-center text-neutral-500">
-                               {#if available.iconSvg}
+                               {#if available.iconComponent}
+                                 <svelte:component this={available.iconComponent} className="size-4" />
+                               {:else if available.iconSvg}
                                  {#if ICON_COMPONENT_MAP[available.iconSvg]}
                                    <svelte:component this={ICON_COMPONENT_MAP[available.iconSvg]} className="size-4" />
                                  {:else}
@@ -2251,8 +2254,8 @@
                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                                {/if}
                              </span>
-                             <span class="truncate">{available.label}</span>
-                             <span class="text-blue-500 font-bold ml-auto opacity-0 group-hover:opacity-100 transition-opacity">+</span>
+                             <span class="truncate" title={available.label}>{available.label}</span>
+                             <span class="text-blue-500 font-bold ml-auto opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 pl-1">+</span>
                            </button>
                            {#if available.id && available.id.startsWith('custom_')}
                              <button
@@ -2294,7 +2297,7 @@
                           <div class="space-y-6">
                             <!-- Step 1: Action -->
                             <div class="space-y-3">
-                              <label class="block text-xs font-bold text-neutral-500 uppercase tracking-widest">1. Choose Action</label>
+                              <div class="block text-xs font-bold text-neutral-500 uppercase tracking-widest">1. Choose Action</div>
                               
                               {#if customActionSelection && selectedCommand}
                                 <div class="flex items-center justify-between p-3 bg-white dark:bg-neutral-900 border border-blue-200 dark:border-blue-900/50 rounded-lg group">
@@ -2342,7 +2345,7 @@
 
                             <!-- Step 2: Appearance -->
                             <div class="space-y-4 pt-2">
-                              <label class="block text-xs font-bold text-neutral-500 uppercase tracking-widest">2. Customize Appearance</label>
+                              <div class="block text-xs font-bold text-neutral-500 uppercase tracking-widest">2. Customize Appearance</div>
                               
                               <div class="grid grid-cols-2 gap-4">
                                 <!-- Label -->
@@ -2353,7 +2356,7 @@
                                 
                                 <!-- Icon Selection -->
                                 <div class="space-y-1.5">
-                                  <label class="block text-xs font-medium text-neutral-500 ml-1">Icon</label>
+                                  <div class="block text-xs font-medium text-neutral-500 ml-1">Icon</div>
                                   <div class="relative group">
                                     <button class="w-full flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm transition-all focus:ring-2 focus:ring-blue-500 outline-none">
                                       <svelte:component this={ICON_COMPONENT_MAP[customActionIconKey]} className="size-5 text-blue-500" />

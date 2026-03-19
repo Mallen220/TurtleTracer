@@ -25,6 +25,7 @@ export const settingsActiveTab = writable("general");
 export const showPluginManager = writable(false);
 export const showTelemetryDialog = writable(false);
 export const isPresentationMode = writable(false);
+export const showWhatsNew = writable(false);
 export const showExportGif = writable(false);
 export const showExportImage = writable(false);
 export const showStrategySheet = writable(false);
