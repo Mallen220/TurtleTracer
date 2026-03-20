@@ -32,18 +32,18 @@
           title: "Welcome to Turtle Tracer!",
           description:
             "This is your main workspace. Here you can visualize your robot's path and field obstacles. Double-click to add points.",
-          side: "left",
-          align: "start",
+          side: "bottom",
+          align: "center",
         },
       },
       {
-        element: "#file-manager-btn",
+        element: "#sidebar-file-manager-btn",
         popover: {
           title: "File Manager",
           description:
             "Open the File Manager to browse, organize, and open your saved projects.",
-          side: "bottom",
-          align: "start",
+          side: "right",
+          align: "center",
         },
       },
       {
@@ -52,7 +52,7 @@
           title: "Edit Modes",
           description:
             "Switch between <b>Paths</b> (editing curves), <b>Field</b> (adding obstacles), and <b>Table</b> (data view).",
-          side: "bottom",
+          side: "left",
           align: "start",
         },
       },
@@ -77,13 +77,13 @@
         },
       },
       {
-        element: "#new-project-btn",
+        element: "#sidebar-new-path-btn",
         popover: {
           title: "New Project",
           description:
             "Click here to start a fresh project. This will clear the current path.",
-          side: "bottom",
-          align: "end",
+          side: "right",
+          align: "center",
         },
       },
       {
@@ -107,13 +107,13 @@
         },
       },
       {
-        element: "#settings-btn",
+        element: "#sidebar-settings-btn",
         popover: {
           title: "Settings",
           description:
             "Configure robot dimensions, field background, theme, and other preferences.",
-          side: "bottom",
-          align: "end",
+          side: "right",
+          align: "center",
         },
       },
     ],
