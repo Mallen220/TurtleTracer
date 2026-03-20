@@ -19,9 +19,16 @@
     <img src="https://img.shields.io/badge/platform-macOS%20|%20Windows%20|%20Linux-lightgrey.svg?style=flat-square" alt="Platform">
     <br/>
     <br/>
-    <a href="https://get.microsoft.com/installer/download/9nk0b4fdj3zw?referrer=appbadge" target="_self" >
-    <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
-    </a>
+    <script type="module" src="https://get.microsoft.com/badge/ms-store-badge.bundled.js"></script>
+      <ms-store-badge
+        productid="9nk0b4fdj3zw"
+        productname="Turtle Tracer"
+        window-mode="direct"
+        theme="auto"
+        size="large"
+        language="en-us"
+        animation="on">
+      </ms-store-badge>
   </p>
 </div>
 
@@ -131,9 +138,15 @@ _Enter your password when prompted to complete installation._
 
 **Microsoft Store (Recommended):**
 
-<<a href="https://get.microsoft.com/installer/download/9nk0b4fdj3zw?referrer=appbadge" target="_self" >
-  <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
-  </a>
+<script type="module" src="https://get.microsoft.com/badge/ms-store-badge.bundled.js"></script>
+<ms-store-badge
+	productid="9nk0b4fdj3zw"
+	window-mode="full"
+	theme="dark"
+	size="large"
+	language="en-us"
+	animation="on">
+</ms-store-badge>
 
 Download from the Microsoft Store to receive auto-updates for stable releases.
 
