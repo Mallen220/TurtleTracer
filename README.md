@@ -42,15 +42,15 @@
 
 ## Table of Contents
 
-- [Overview](#-overview)
-- [Unmatched Features](#-unmatched-features)
-- [Installation](#-installation)
-- [Workflow & File Management](#-workflow--file-management)
-- [Exporting Your Paths](#-exporting-your-paths)
-- [Tech Stack](#-tech-stack)
-- [Troubleshooting](#-troubleshooting)
-- [Contributing](#-contributing)
-- [License & Acknowledgments](#-license)
+- [Overview](#overview)
+- [Unmatched Features](#unmatched-features)
+- [Installation](#installation)
+- [Workflow & File Management](#workflow--file-management)
+- [Exporting Your Paths](#exporting-your-paths)
+- [Tech Stack](#tech-stack)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License & Acknowledgments](#license)
 
 ---
 
