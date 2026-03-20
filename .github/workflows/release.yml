@@ -54,8 +54,8 @@ jobs:
           ```
 
           #### **Windows**
-          <a href="https://get.microsoft.com/installer/download/9nk0b4fdj3zw?referrer=appbadge" target="_self" >
-          <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
+          <a href="https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full" target="_blank"  rel="noopener noreferrer">
+            <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
           </a>
 
           Windows Users can download from the Microsoft Store to receive auto-updates for stable releases. A .exe file is also provided below. 
