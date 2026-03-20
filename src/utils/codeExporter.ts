@@ -18,7 +18,7 @@ import {
 
 const AUTO_GENERATED_FILE_WARNING_MESSAGE: string = `
 /* ============================================================= *
- *        Turtle Tracer — Auto-Generated         *
+ *                 Turtle Tracer — Auto-Generated                *
  *                                                               *
  *  Version: ${pkg.version}.                                              *
  *  Copyright (c) ${new Date().getFullYear()} Matthew Allen                             *

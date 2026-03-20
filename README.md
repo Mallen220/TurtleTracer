@@ -1,303 +1,224 @@
 <div align="center">
-  <img src="public/icon.png" alt="Turtle Tracer Logo" width="120" height="120">
-  <h1 align="center">Turtle Tracer</h1>
-  <h2 align="center">(Previously Pedro Pathing Plus Visualizer)</h2>
-  <p align="center">
-    <strong>The modern, intuitive path planner for FIRST Tech Challenge.</strong>
+  <img src="public/icon.png" alt="Turtle Tracer Logo" width="150" height="150">
+  
+  <h1>Turtle Tracer</h1>
+  <p><em>(Previously Pedro Pathing Plus Visualizer)</em></p>
+  
+  <p>
+    <b>The modern, intuitive, and native path planner for FIRST Tech Challenge.</b>
   </p>
-  <p align="center">
+  
+  <p>
     Visualize • Plan • Simulate • Export
   </p>
 
-  <p align="center">
+  <p>
     <a href="https://github.com/Mallen220/TurtleTracer/releases">
-      <img src="https://img.shields.io/github/v/release/Mallen220/TurtleTracer?style=flat-square&color=blue" alt="Latest Release">
+      <img src="https://img.shields.io/github/v/release/Mallen220/TurtleTracer?style=for-the-badge&color=007AFF" alt="Latest Release">
     </a>
     <a href="LICENSE">
-      <img src="https://img.shields.io/badge/license-Apache%202.0-green.svg?style=flat-square" alt="License">
+      <img src="https://img.shields.io/badge/License-Apache_2.0-00C853.svg?style=for-the-badge" alt="License">
     </a>
-    <img src="https://img.shields.io/badge/platform-macOS%20|%20Windows%20|%20Linux-lightgrey.svg?style=flat-square" alt="Platform">
-    <br/>
-    <br/>
-    <a href="https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full" target="_blank"  rel="noopener noreferrer">
-      <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
-    </a>
+    <img src="https://img.shields.io/badge/Platform-macOS%20|%20Windows%20|%20Linux-424242.svg?style=for-the-badge" alt="Platform">
   </p>
+
+  <a href="https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full" target="_blank" rel="noopener noreferrer">
+    <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="180" alt="Get it from Microsoft">
+  </a>
 </div>
 
-Windows Users can download from the Microsoft Store to receive auto-updates for stable releases. Manual installs and pre-releases can be found [here](https://github.com/Mallen220/TurtleTracer/releases).
+<br/>
 
-> ## This project is currently undergoing rapid updates. Please check back regularly for bug fixes and new features. If you find an error, please report it and revert to a previous version.
+> **⚠️ Rapid Development Notice**
+> This project is currently undergoing rapid updates. Please check back regularly for bug fixes and new features. If you find an error, please report it via the [Issues tab](https://github.com/Mallen220/TurtleTracer/issues) and revert to a previous version.
 
 ---
 
-## 🚀 Overview
+<div align="center">
+  <img src="README_Content/Hero.gif" alt="Hero GIF: Demo of Turtle Tracer in Action" />
+</div>
 
-**Turtle Tracer** is a powerful desktop application built with Electron and Svelte, designed to revolutionize how FIRST Tech Challenge teams plan their autonomous routines. Unlike web-based alternatives, this tool runs natively on your machine, offering superior performance, local file management, and deep integration with your development workflow.
+---
 
-## 🌟 Unmatched Features
+## Table of Contents
 
-Turtle Tracer isn't just a port of the web tool—it's a complete reimagining of what path planning should be. Here's why you should make the switch:
+- [Overview](#-overview)
+- [Unmatched Features](#-unmatched-features)
+- [Installation](#-installation)
+- [Workflow & File Management](#-workflow--file-management)
+- [Exporting Your Paths](#-exporting-your-paths)
+- [Tech Stack](#-tech-stack)
+- [Troubleshooting](#-troubleshooting)
+- [Contributing](#-contributing)
+- [License & Acknowledgments](#-license)
 
-### 🚀 **Next-Level Performance & Workflow**
+---
 
-- **Native Desktop Experience**: Built with Electron for blazing fast performance. Works offline, supports multiple windows, and integrates with your OS.
-- **Local File System**: Open and save `.turt` files directly on your computer (legacy `.pp` supported). No more uploading/downloading or losing work to browser cache clears.
-- **Git Integration**: See your file status (Modified, Staged, Untracked) instantly. Version control your paths alongside your robot code.
-- **Auto-Save & History**: Never lose progress with robust Auto-Save, full Undo/Redo support, and a dedicated History Panel to jump back to any point.
+## Overview
 
-### 📊 **Professional Analysis & Simulation**
+**Turtle Tracer** is a powerful desktop application built with Electron and Svelte, designed to revolutionize how FIRST Tech Challenge teams plan their autonomous routines. 
 
-- **Telemetry Overlay**: Import real robot log data to see exactly how your path performed on the field compared to the plan.
-- **Advanced Statistics**: View Velocity Graphs, Acceleration profiles, and Timing breakdowns.
-- **Heatmaps**: Visualize robot velocity along the path with color-coded gradients to spot bottlenecks.
-- **Physics-Based Simulation**: Real-time kinematics simulation with accurate velocity constraints and acceleration profiles.
+Unlike web-based alternatives, Turtle Tracer runs **natively on your machine**. This means superior performance, actual local file management, offline capabilities, and deep integration with your team's Git workflow. 
 
-### 🛠️ **Powerful Planning Tools**
+---
 
-- **File Macros**: Reuse successful path sequences! Drag and drop `.turt` or legacy `.pp` files to use them as sub-routines (macros) with support for transformations (mirror/reverse).
-- **Smart Validators**:
-  - **Collision Detection**: Real-time feedback on Obstacles and Keep-In Zones.
-  - **Continuous Validation**: Option to check your path's safety in real-time as you edit.
-  - **Diff View**: Visually compare your current changes against the saved version.
-  - **Onion Skinning**: See previous path states to make precise adjustments.
-- **Path Optimizer**: Single-click optimization to refine your paths for maximum speed while respecting field boundaries and obstacles.
-- **Custom Field Maps**: Import any field image with the built-in Calibration Wizard.
-- **Smart Object Snapping**: Intelligent snapping for field waypoints and markers to ensure precise alignment.
-- **Sticky Notes**: Annotate your paths directly on the field with customizable sticky notes.
+## Unmatched Features
 
-### ⚡ **Efficiency Boosters**
+Turtle Tracer isn't just a port of the web tool—it's a complete reimagining of what path planning should be. 
 
-- **Interactive Onboarding**: New to the app? The built-in interactive tutorial will guide you through your first path.
-- **Robot Profile Manager**: Manage multiple robot configurations with unique dimensions and constraints, and switch between them instantly.
-- **Command Palette**: Press `Cmd+K` (or `Ctrl+K`) to instantly search for paths, settings, or commands.
-- **Plugin System**: Extend functionality with community plugins or build your own to add custom tabs and tools.
-- **Presentation Mode**: One-click cleaner interface for demonstrating paths to judges or teammates.
-- **Export Power**:
-  - **Java Code**: Generates `TurtleTracerLib` compliant code.
-  - **Live Code Preview**: See your generated code update in real-time as you edit.
-  - **Strategy Sheet**: Export a printable summary of your routine for strategizing with alliance partners.
-  - **Visuals**: Export high-quality **APNG**, **GIF**, and **Static Images** of your paths.
+### Next-Level Performance & Workflow
+* **Native Desktop Experience:** Blazing fast performance that works offline and integrates smoothly with your OS.
+* **Robust History:** Never lose progress with Auto-Save, full Undo/Redo support, and a dedicated History Panel.
+* **Git Integration:** See file status (Modified, Staged, Untracked) instantly. Version control your paths alongside your robot code.
 
-### ✨ **Stunning UI & UX Overhaul**
+  <img src="README_Content/SomeFeatures.gif" alt="GIF of some great features!" />
 
-We've polished every pixel to make path planning a joy.
 
-- **Modern Clean Interface**: A complete visual refresh with standardized color-coding (Green for Paths, Amber for Waits, Pink for Rotates) makes complex routines easy to read at a glance.
-- **Responsive Design**: Whether you're on a laptop or a massive monitor, the UI scales perfectly. Mobile-friendly resizing means it even works on smaller screens if you need to check a path on the go.
-- **Intuitive Dialogs**: Redesigned settings and file managers that are easier to navigate and nicer to look at.
+### Professional Analysis & Simulation
+* **Telemetry Overlay:** Import real robot log data to see exactly how your path performed on the field compared to the plan.
+* **Physics-Based Simulation:** Real-time kinematics simulation with accurate velocity constraints and acceleration profiles.
+* **Heatmaps & Stats:** Visualize robot velocity along the path with color-coded gradients, Velocity Graphs, and Timing breakdowns.
 
-### ⚙️ **Under-the-Hood Engineering**
+### Powerful Planning Tools
+* **File Macros:** Reuse successful path sequences! Drag and drop `.turt` or legacy `.pp` files to use them as sub-routines (macros).
+* **Smart Validators:** Get real-time feedback on Obstacles, Keep-In Zones, and continuous path safety validation. 
+* **Path Optimizer:** Single-click optimization to refine paths for maximum speed while respecting field boundaries.
 
-It's not just about looks—the engine is brand new.
+  <img src="README_Content/CommandPallete.png" alt="Screenshot showing the Command Palette (Cmd+K)" />
 
-- **Performance**: Major backend refactoring and optimized field rendering logic mean the app runs smoother, even with complex paths and heavy telemetry data.
-- **Readability**: The codebase has been cleaned up and modernized, making it easier for contributors to add features (and for the app to run without hiccups).
-- **Stability**: Automated testing and continuous validation ensure that the app is reliable when you need it most—at the competition.
 
-### 🎨 **Fully Customizable**
+### UI & Efficiency Boosters
+* **Command Palette:** Press `Cmd+K` (or `Ctrl+K`) to instantly search for paths, settings, or commands.
+* **Custom Field Maps:** Import any field image with the built-in Calibration Wizard.
+* **Robot Profile Manager:** Manage multiple robot configurations with unique dimensions and constraints.
 
-- **Theming**: Light Mode, Dark Mode, and custom theme plugins.
-- **Keybindings**: Every action is remappable. Custom profiles supported.
-- **Font Sizing**: Adjustable font sizes to suit your preference and screen resolution.
-- **Settings Management**: Import and export your configuration to share with teammates or move between devices.
+---
 
-Oh, and so so many little improvements not even included yet! Check back often for a growing list of upgrades!
+## Installation
 
-## 📥 Installation
-
-### **macOS**
-
+### macOS
 **One-Line Installer (Recommended):**
-Open Terminal and run:
+```bash
+curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash
+```
+*(Enter your password when prompted to complete installation)*
 
+<details>
+<summary><b>Manual Installation</b></summary>
+1. Download the latest `.dmg` from <a href="https://github.com/Mallen220/TurtleTracer/releases">Releases</a>.<br>
+2. Mount the DMG and drag the app to your Applications folder.<br>
+3. <b>Important:</b> Run the following command in Terminal to clear the quarantine attribute:<br>
+   <code>sudo xattr -rd com.apple.quarantine "/Applications/Turtle Tracer.app"</code>
+</details>
+
+### Windows
+**Microsoft Store (Recommended):** Download from the [Microsoft Store](https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full) to receive seamless auto-updates for stable releases.
+
+<details>
+<summary><b>Manual Installation (.exe)</b></summary>
+1. Download the latest `.exe` from <a href="https://github.com/Mallen220/TurtleTracer/releases">Releases</a>.<br>
+2. Run the installer.<br>
+3. <i>Note: If SmartScreen appears, click "More info" > "Run anyway".</i>
+</details>
+
+### Linux
+**One-Line Installer (Recommended):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash
 ```
 
-_Enter your password when prompted to complete installation._
+<details>
+<summary><b>AppImage / Manual Installation</b></summary>
+1. Download the `.deb` or `.AppImage` from <a href="https://github.com/Mallen220/TurtleTracer/releases">Releases</a>.<br>
+2. For AppImage, grant execution permissions:<br>
+   <code>chmod +x TurtleTracer*.AppImage</code><br>
+   <code>./TurtleTracer*.AppImage</code><br>
+3. Ensure you have <code>libfuse2</code> and <code>zlib1g</code> installed via your package manager.
+</details>
 
-**Manual Installation:**
+---
 
-1.  Download the latest `.dmg` from [Releases](https://github.com/Mallen220/TurtleTracer/releases).
-2.  Mount the DMG and drag the app to your Applications folder.
-3.  **Important**: Run the following command in Terminal to clear the quarantine attribute (prevents "App is damaged" errors):
-    ```bash
-    sudo xattr -rd com.apple.quarantine "/Applications/Turtle Tracer.app"
-    ```
-4.  Launch the application.
-
-### **Windows**
-
-**Microsoft Store (Recommended):**
-
-<a href="https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full" target="_blank"  rel="noopener noreferrer">
-	<img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
-</a>
-
-Download from the Microsoft Store to receive auto-updates for stable releases.
-
-**Manual Installation (.exe):**
-
-1.  Download the latest `.exe` from [Releases](https://github.com/Mallen220/TurtleTracer/releases).
-2.  Run the installer.
-3.  _Note: If SmartScreen appears, click "More info" > "Run anyway"._
-
-### **Linux**
-
-**One-Line Installer (Recommended):**
-Open Terminal and run:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash
-```
-
-_Enter your password when prompted to complete installation._
-
-**Manual Installation:**
-
-1.  Download the `.deb` (Debian/Ubuntu) or `.AppImage` from [Releases](https://github.com/Mallen220/TurtleTracer/releases).
-2.  Fix permissions for Sandboxing by installing and adding "--no-sandboxing" to the .desktop icons.
-3.  Install using your package manager of choice `libfuse2` and `zlib1g` as well as any sub-dependencies.
-4.  **Important**: Other various errors are likely to occur including depending on your Distro of choice. Testing is varied by Ubuntu is most closely watched. If you would like to become a tester please reach out.
-5.  Launch the application.
-
-**AppImage:**
-
-```bash
-chmod +x TurtleTracer*.AppImage
-./TurtleTracer*.AppImage
-```
-
-## 🗂️ File Management
+## Workflow & File Management
 
 One of the critical advantages of Turtle Tracer over web-based tools is its **Local File Management system**.
 
-- **Security & Persistence**: Your paths are saved as actual files (`.turt`) on your hard drive, not in a temporary browser cache that can be accidentally cleared.
-- **Version Control**: You can easily commit your path files to Git alongside your robot code, ensuring your team always has the latest versions.
-- **Organization**: Use the built-in file browser to organize paths into folders, duplicate successful routines, and manage backups without leaving the app.
+* **Security & Persistence:** Paths are saved as actual `.turt` files on your hard drive—not in a fragile browser cache.
+* **Version Control Friendly:** Easily commit `.turt` files to Git alongside your robot's Java code.
+* **Built-in Organizer:** Use the native file browser to organize folders, duplicate routines, and manage backups without leaving the app.
 
-## 🛠️ Tool Overview
+---
 
-### **Canvas Tools**
+## Exporting Your Paths
 
-- **Grid & Snap**: Toggle customizable grids (1" - 24") and enable snapping for perfect alignment.
-- **Ruler**: Measure distances instantly between any two points on the field.
-- **Protractor**: Measure relative angles, with options to lock to the robot's heading.
+  <img src="README_Content/LiveCodePreview.gif" alt="GIF of the Live Code Preview panel" />
 
-### **Path Editing**
 
-- **Control Points**: Fine-tune Bezier curves by manipulating control handles.
-- **Heading Modes**: Choose between Tangential, Constant, or Linear heading interpolation for precise robot orientation.
-- **Event Markers**: Place named triggers along the path to fire actions (e.g., "Open Claw") at exact path percentages.
+The visualizer provides flexible export capabilities for any team's workflow:
 
-### **Animation Controller**
+1. **Java Class:** Generates a complete, ready-to-run Java file for your FTC robot controller (`TurtleTracerLib` compliant).
+2. **Sequential Commands:** Exports code formatted for command-based frameworks.
+3. **Strategy Sheet:** Export a printable summary of your routine for strategizing with alliance partners.
+4. **Visual Media:** Export high-quality **APNG**, **GIF**, and **Static Images** of your paths for engineering notebooks.
 
-- **Timeline**: Scrub through your autonomous routine to verify timing and sequence order.
-- **Real-time Feedback**: See exact robot coordinates and heading at any point in time.
+---
 
-## 📤 Export Options
+## Tech Stack
 
-The visualizer provides flexible export capabilities to suit your team's workflow:
+Turtle Tracer is built with modern web technologies packaged for the desktop:
 
-1.  **Java Class**: Generates a complete, ready-to-run Java file for your FTC robot controller.
-2.  **Sequential Commands**: Exports code formatted for command-based frameworks, integrating paths with your subsystems.
-3.  **JSON / Text**: Raw data export for custom parsers or debugging.
+<p>
+  <img src="https://img.shields.io/badge/Electron-191924?style=for-the-badge&logo=electron&logoColor=white" alt="Electron">
+  <img src="https://img.shields.io/badge/Svelte-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" alt="Svelte">
+  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node">
+</p>
 
-## 🔧 Troubleshooting
+---
 
-### **macOS**
+## Troubleshooting
 
-- **"App is damaged" / Can't Open**:
-  Run the quarantine fix command:
-  ```bash
-  sudo xattr -rd com.apple.quarantine "/Applications/Turtle Tracer.app"
-  ```
-- **Gatekeeper**: If the app is blocked, go to _System Settings > Privacy & Security_ and click "Open Anyway".
+* **macOS "App is damaged" error:** macOS requires you to un-quarantine manually installed apps. Run: `sudo xattr -rd com.apple.quarantine "/Applications/Turtle Tracer.app"`
+* **Windows SmartScreen warning:** Click "More Info" and then "Run Anyway". The code is fully open-source and safe.
+* **Linux AppImage won't run:** Ensure `libfuse2` is installed and the file has execution permissions (`chmod +x`).
 
-### **Windows**
+---
 
-- **SmartScreen Warning**: This is common for new software. Click "More Info" and "Run Anyway".
-- **Antivirus**: If the file is flagged, adds an exception. The code is open source and safe.
+## Contributing
 
-### **Linux**
-
-- **AppImage not running**: Ensure you have `libfuse2` installed and have given the file execution permissions (`chmod +x`).
-
-## 🧩 Development
-
-Want to contribute or build from source?
-
-### **Prerequisites**
-
-- Node.js 18+
-- Git
-
-### **Setup**
+Contributions are heavily encouraged! To get started developing locally:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Mallen220/TurtleTracer.git
+git clone [https://github.com/Mallen220/TurtleTracer.git](https://github.com/Mallen220/TurtleTracer.git)
 cd TurtleTracer
 
-# Install dependencies
+# Install dependencies and start the dev server
 npm install
-
-# Start development server
 npm run dev
-```
 
-### **Building**
-
-```bash
 # Build for your current platform
 npm run dist
 ```
 
-## 🤝 Contributing
+See our [Contribution Guidelines](CONTRIBUTING.md) (if applicable) for more details. 
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+> **AI Assistance Policy:** We use AI tools to prototype and speed up development. However, **no code is merged without human review and testing**. We believe AI should augment human effort, not replace it.
 
-1.  Fork the repository.
-2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4.  Push to the branch (`git push origin feature/AmazingFeature`).
-5.  Open a Pull Request.
+---
 
-## AI Assistance
+## License
 
-Artificial intelligence plays a supporting role in the development of Turtle Tracer. We use AI tools to help prototype features, write boilerplate, and speed up the rate at which improvements can be explored. However, **no code or documentation from AI is merged without
-thorough human review and testing**. Every Pull Request is validated by real developers and undergoes the same security and
-validity checks as any other change. This policy reflects our stance that AI should augment human effort, never replace it. It also
-acknowledges the broader conversation about AI in the workplace—contributors are welcomed regardless of their tools, and no one is
-prohibited from participating in this project.
+This project is open-source and released under a [Modified Apache 2.0 License](LICENSE). 
 
-## 📄 License
-
-This project is open for everyone! We believe in the power of open source and community collaboration. You are free to use, modify, and distribute this software as you see fit. All we ask is that you give credit to the original developers and any contributors who have helped shape this tool. If you make improvements, please consider sharing them back with the community!
-
-See the [LICENSE](LICENSE) file for the full Apache 2.0 legal text.
-
-## 🔒 Privacy
-
-Your privacy is important to us. The Turtle Tracer is designed to run locally on your machine and does not collect personal data.
-
-For more details, please review our full [Privacy Policy](PRIVACY.md).
+Your privacy is important to us. Turtle Tracer runs locally and does not collect personal data. Review our full [Privacy Policy](PRIVACY.md).
 
 ## 🙏 Acknowledgments
 
-- **#16166 Watt's Up**: For the initial concept, development, and inspiration.
-- **Pedro Pathing Developers**: For the underlying library this visualizer supports.
-- **FIRST Community**: For the continuous feedback and testing.
-- **Contributors**: All the developers who have helped improve this tool.
+* **#16166 Watt's Up**: For the initial concept, development, and inspiration.
+* **Pedro Pathing Developers**: For the underlying library this visualizer supports.
+* **The FIRST Community**: For continuous feedback, testing, and making this tool better for everyone.
 
-## 🔗 Links
-
-- [GitHub Repository](https://github.com/Mallen220/TurtleTracer)
-- [Releases](https://github.com/Mallen220/TurtleTracer/releases)
-- [Issues & Bug Reports](https://github.com/Mallen220/TurtleTracer/issues)
-
----
+<br>
 
 <div align="center">
   <sub>Built by <a href="https://github.com/Mallen220">Matthew Allen</a> & Contributors</sub>
