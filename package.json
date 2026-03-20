@@ -142,7 +142,7 @@
       "identityName": "PedroPathingPlus.12978EBCCDE63",
       "publisher": "CN=D17DA008-76B7-4978-BFAA-9ED056EE08B9",
       "publisherDisplayName": "Turtle Tracer",
-      "applicationId": "PedroPathingPlus.12978EBCCDE63"
+      "applicationId": "TurtleTracer"
     },
     "nsis": {
       "oneClick": false,
