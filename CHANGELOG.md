@@ -1,6 +1,6 @@
 ## 2.0.0 (2026-03-17)
 
-- Changed the name to Turtle Tracer to better distinguish this program as non-affiliated with the Pedro Pathing Developers. Updates will continue here! Be sure to update code to now use the new TurtleTracerLib instead of PedroPathingPlus.
+- Changed the name to Turtle Tracer to better distinguish this program as non-affiliated with the Pedro Pathing Developers. Updates will continue here! Be sure to update code to now use the new TurtleTracerLib instead of PedroPathingPlus. Added Left Sidebar which is scalable, and fully customizable. Minimized Navbar. Edits to save icon. Better scalability on smaller devices. Rating dialog will not open for at least five minutes after application starts. Removed built in docs in favor of web docs. Updated What's new menu. New Icons! Refresh setup dialog.
 
 ## 1.8.1 (2026-03-14)
 
