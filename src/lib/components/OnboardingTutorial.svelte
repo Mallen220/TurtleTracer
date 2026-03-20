@@ -7,6 +7,7 @@
   import { settingsStore } from "../projectStore";
 
   export let whatsNewOpen = false;
+  export let setupDialogOpen = false;
   export let isLoaded = false;
 
   const dispatch = createEventDispatcher();
@@ -149,7 +150,7 @@
           isFirstRun = true;
           startTutorial.set(true);
         }, 500);
-      } else if (!whatsNewOpen) {
+      } else if (!whatsNewOpen && !setupDialogOpen) {
         const hasSeen = $settingsStore.hasSeenOnboarding;
         if (!hasSeen && !$startTutorial) {
           // Small delay to ensure UI is ready
@@ -159,8 +160,8 @@
               (s) => (currentSeen = !!s.hasSeenOnboarding),
             );
             unsubscribe();
-
-            if (!currentSeen && !whatsNewOpen) {
+ 
+            if (!currentSeen && !whatsNewOpen && !setupDialogOpen) {
               isFirstRun = true;
               startTutorial.set(true);
             }
