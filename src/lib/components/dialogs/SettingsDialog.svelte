@@ -2960,7 +2960,7 @@
                         <option value="java">Java Class</option>
                         <option value="sequential">Sequential Command</option>
                         <option value="points">Points Array</option>
-                        <option value="json">JSON Project Data</option>
+                        <option value="json">.Turt Project Data</option>
                       </select>
                     </SettingsItem>
 

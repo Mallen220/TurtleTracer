@@ -5,10 +5,12 @@
     Line,
     SequenceItem,
     Settings,
+    Shape,
   } from "../../../types/index";
   import {
     generateJavaCode,
     generateSequentialCommandCode,
+    generatePointsArray,
   } from "../../../utils/codeExporter";
   import {
     notification,
@@ -24,31 +26,60 @@
   import { diffLines } from "diff";
   import hljs from "highlight.js/lib/core";
   import java from "highlight.js/lib/languages/java";
+  import json from "highlight.js/lib/languages/json";
+  import plaintext from "highlight.js/lib/languages/plaintext";
   import { fade, slide } from "svelte/transition";
   import { highlightAndSplit } from "../../../utils/htmlHighlighter";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
+  import pkg from "../../../../package.json";
+  import { customExportersStore } from "../../pluginsStore";
 
   // Register languages for core highlight.js
   hljs.registerLanguage("java", java);
+  hljs.registerLanguage("json", json);
+  hljs.registerLanguage("plaintext", plaintext);
 
   export let startPoint: Point;
   export let lines: Line[];
   export let sequence: SequenceItem[];
+  export let shapes: Shape[] = [];
   export let settings: Settings;
   export let isActive: boolean = false;
 
   const electronAPI = (window as any).electronAPI;
 
+  async function relativizeSequenceForPreview(seq: SequenceItem[]) {
+    const cloned = structuredClone(seq);
+
+    const base = get(currentFilePath);
+    if (!electronAPI?.makeRelativePath || !base) return cloned;
+
+    for (const item of cloned) {
+      if (item.kind === "macro" && item.filePath) {
+        try {
+          item.filePath = await electronAPI.makeRelativePath(
+            base,
+            item.filePath,
+          );
+        } catch (err) {
+          console.warn("Failed to relativize macro path for preview", err);
+        }
+      }
+    }
+
+    return cloned;
+  }
+
   let code = "";
   let previousCode = "";
   let isGenerating = false;
-  let format: "java" | "sequential" = "java";
+  let format: "java" | "sequential" | "points" | "json" | "custom" = "java";
   let targetLibrary: "SolversLib" | "NextFTC" = "SolversLib";
 
   // Sync state with settings
   $: if (settings) {
-    if (settings.autoExportFormat === "sequential") {
-      format = "sequential";
+    if (settings.autoExportFormat) {
+      format = settings.autoExportFormat;
     } else {
       format = "java";
     }
@@ -82,7 +113,7 @@
           settings.coordinateSystem,
           settings.codeUnits,
         );
-      } else {
+      } else if (format === "sequential") {
         newCode = await generateSequentialCommandCode(
           startPoint,
           lines,
@@ -94,13 +125,46 @@
           settings.coordinateSystem,
           settings.codeUnits,
         );
+      } else if (format === "points") {
+        newCode = generatePointsArray(startPoint, lines, settings.codeUnits);
+      } else if (format === "json") {
+        const relativeSequence = await relativizeSequenceForPreview(sequence);
+        newCode = JSON.stringify(
+          {
+            version: pkg.version,
+            header: {
+              info: "Created with Turtle Tracer",
+              copyright:
+                "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
+              link: "https://github.com/Mallen220/TurtleTracer",
+            },
+            startPoint,
+            lines,
+            shapes,
+            sequence: relativeSequence,
+          },
+          null,
+          2,
+        );
+      } else if (format === "custom") {
+        const exporters = get(customExportersStore);
+        if (exporters.length > 0) {
+          newCode = "// Select a custom exporter in Auto Export settings to preview its code.";
+        } else {
+          newCode = "// No custom exporters available.";
+        }
       }
+
+      let codeLanguage = "java";
+      if (format === "points") codeLanguage = "plaintext";
+      if (format === "json") codeLanguage = "json";
+      if (format === "custom") codeLanguage = "plaintext";
 
       // If first run, just set it
       if (!code) {
         code = newCode;
         previousCode = newCode;
-        const hlLines = highlightAndSplit(newCode, "java");
+        const hlLines = highlightAndSplit(newCode, codeLanguage);
         displayLines = hlLines.map((content, i) => ({
           content,
           type: "unchanged",
@@ -108,8 +172,8 @@
         }));
       } else {
         // Highlight old and new code using context-aware highlighter
-        const oldLinesHL = highlightAndSplit(previousCode, "java");
-        const newLinesHL = highlightAndSplit(newCode, "java");
+        const oldLinesHL = highlightAndSplit(previousCode, codeLanguage);
+        const newLinesHL = highlightAndSplit(newCode, codeLanguage);
 
         // Diff against previous state
         const diffs = diffLines(previousCode, newCode);
@@ -231,27 +295,39 @@
 
     // Prefer the project's file name if available, else try class name, else fallback
     const currentPath = get(currentFilePath);
-    let defaultName = "AutoPath.java";
+
+    let ext = "java";
+    if (format === "points") ext = "txt";
+    if (format === "json") ext = "turt";
+    if (format === "custom") ext = "txt";
+
+    let defaultName = `AutoPath.${ext}`;
     if (currentPath) {
       const baseName = currentPath.split(/[\\\/]/).pop() || "";
       const short = baseName.replace(/\.(pp|turt)$/i, "") || "trajectory";
-      defaultName = `${short}.java`;
-    } else {
+      defaultName = `${short}.${ext}`;
+    } else if (format === "java" || format === "sequential") {
       const match = code.match(/class\s+(\w+)/);
       if (match) defaultName = `${match[1]}.java`;
     }
 
+    let dialogTitle = "Save File";
+    let filterName = "Text File";
+    if (ext === "java") { dialogTitle = "Save Generated Java"; filterName = "Java File"; }
+    else if (ext === "txt") { dialogTitle = "Save Points Array"; filterName = "Text File"; }
+    else if (ext === "turt") { dialogTitle = "Save Project Data"; filterName = "Turtle Tracer File"; }
+
     try {
       if (electronAPI && electronAPI.showSaveDialog && electronAPI.writeFile) {
         const filePath = await electronAPI.showSaveDialog({
-          title: "Save Generated Java",
+          title: dialogTitle,
           defaultPath: defaultName,
-          filters: [{ name: "Java File", extensions: ["java"] }],
+          filters: [{ name: filterName, extensions: [ext] }],
         });
 
         if (filePath) {
           await electronAPI.writeFile(filePath, code);
-          notification.set({ message: "Saved Java file.", type: "success" });
+          notification.set({ message: "Saved file.", type: "success" });
         }
       } else {
         // Web fallback: Blob download
@@ -264,11 +340,11 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        notification.set({ message: "Downloaded Java file.", type: "success" });
+        notification.set({ message: "Downloaded file.", type: "success" });
       }
     } catch (err) {
-      console.error("Error saving Java file:", err);
-      notification.set({ message: "Failed to save Java file.", type: "error" });
+      console.error("Error saving file:", err);
+      notification.set({ message: "Failed to save file.", type: "error" });
     }
   }
 </script>
@@ -284,7 +360,13 @@
       <div class="text-sm font-medium text-neutral-900 dark:text-white">
         Previewing: {format === "java"
           ? "Java Class (Standard)"
-          : `Sequential (${targetLibrary})`}
+          : format === "sequential"
+          ? `Sequential (${targetLibrary})`
+          : format === "points"
+          ? "Points Array"
+          : format === "json"
+          ? "Project Data (.turt)"
+          : "Custom Exporter"}
       </div>
       <div class="text-xs text-neutral-500 dark:text-neutral-400">
         Output format is controlled by Auto Export settings.
@@ -327,8 +409,8 @@
     <button
       on:click={handleDownloadJava}
       class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("purple")}`}
-      title="Download as .java"
-      aria-label="Download generated Java file"
+      title={`Download as ${format === 'points' || format === 'custom' ? '.txt' : format === 'json' ? '.turt' : '.java'}`}
+      aria-label="Download generated file"
       disabled={!code}
       aria-disabled={!code}
     >
@@ -346,7 +428,7 @@
           d="M12 3v12m0 0l4-4m-4 4-4-4M21 21H3"
         />
       </svg>
-      Download .java
+      Download {format === 'points' || format === 'custom' ? '.txt' : format === 'json' ? '.turt' : '.java'}
     </button>
 
     <button
