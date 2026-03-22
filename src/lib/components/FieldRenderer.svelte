@@ -2226,6 +2226,12 @@
         }
       }
 
+      if (!clickedElem && !evt.shiftKey && !evt.ctrlKey && !evt.metaKey) {
+        selectedPointId.set(null);
+        selectedLineId.set(null);
+        multiSelectedPointIds.set([]);
+      }
+
       if (clickedElem) {
         isDown = true;
         currentElem = clickedElem;
