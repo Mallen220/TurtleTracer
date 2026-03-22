@@ -559,6 +559,48 @@
     }
   }
 
+  function unlinkMacro(macroItem: SequenceMacroItem, seqIndex: number) {
+    if (macroItem.locked) return;
+
+    // 1. Remove macro tracking from lines
+    lines = lines.map((line) => {
+      if (line.macroId === macroItem.id) {
+        return {
+          ...line,
+          isMacroElement: false,
+          macroId: undefined,
+          locked: false,
+          endPoint: {
+            ...line.endPoint,
+            isMacroElement: false,
+            macroId: undefined,
+            locked: false,
+          },
+          controlPoints: line.controlPoints.map((cp) => ({
+            ...cp,
+            isMacroElement: false,
+            macroId: undefined,
+            locked: false,
+          })),
+        };
+      }
+      return line;
+    });
+
+    // 2. Extract nested sequence and unlock it
+    const nestedSequence = (macroItem.sequence || []).map((item) => ({
+      ...item,
+      locked: false,
+    }));
+
+    // 3. Update main sequence
+    const newSeq = [...sequence];
+    newSeq.splice(seqIndex, 1, ...nestedSequence);
+    sequence = newSeq;
+
+    if (recordChange) recordChange();
+  }
+
   function deleteSequenceItem(index: number) {
     const item = sequence[index];
     if (!item) return;
@@ -1815,6 +1857,11 @@
               onUpdate={handleUpdateFromComponent.bind(null, seqIndex)}
               onLock={() => toggleWaitLock(seqIndex)}
               onDelete={() => deleteSequenceItem(seqIndex)}
+              onUnlink={() => {
+                if (item.kind === "macro") {
+                  unlinkMacro(item, seqIndex);
+                }
+              }}
               onDragStart={onDragStartFor.bind(null, seqIndex)}
               onDragEnd={handleDragEnd}
               onContextMenu={handleContextMenuFor.bind(null, seqIndex)}

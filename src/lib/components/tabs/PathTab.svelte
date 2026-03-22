@@ -374,6 +374,48 @@
     collapsedEventMarkers = [...collapsedEventMarkers];
   }
 
+  function unlinkMacro(macroItem: SequenceMacroItem, seqIndex: number) {
+    if (macroItem.locked) return;
+
+    // 1. Remove macro tracking from lines
+    lines = lines.map((line) => {
+      if (line.macroId === macroItem.id) {
+        return {
+          ...line,
+          isMacroElement: false,
+          macroId: undefined,
+          locked: false,
+          endPoint: {
+            ...line.endPoint,
+            isMacroElement: false,
+            macroId: undefined,
+            locked: false,
+          },
+          controlPoints: line.controlPoints.map((cp) => ({
+            ...cp,
+            isMacroElement: false,
+            macroId: undefined,
+            locked: false,
+          })),
+        };
+      }
+      return line;
+    });
+
+    // 2. Extract nested sequence and unlock it
+    const nestedSequence = (macroItem.sequence || []).map((item) => ({
+      ...item,
+      locked: false,
+    }));
+
+    // 3. Update main sequence
+    const newSeq = [...sequence];
+    newSeq.splice(seqIndex, 1, ...nestedSequence);
+    sequence = newSeq;
+
+    recordChange?.("Unlink Macro");
+  }
+
   function removeLine(idx: number) {
     if (lines[idx]?.locked) return;
 
@@ -927,6 +969,11 @@
           onAddRotateAfter={() =>
             handleAddActionAfter(sIdx, $actionRegistry["rotate"])}
           onAddAction={addActionAfterFor.bind(null, sIdx)}
+          onUnlink={() => {
+            if (item.kind === "macro") {
+              unlinkMacro(item, sIdx);
+            }
+          }}
           onMoveUp={() => moveSequenceItem(sIdx, -1)}
           onMoveDown={() => moveSequenceItem(sIdx, 1)}
           canMoveUp={sIdx !== 0}
