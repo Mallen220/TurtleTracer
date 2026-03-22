@@ -235,7 +235,8 @@
   }
 </script>
 
-<div
+<aside
+  aria-label="Main Sidebar"
   class="h-full flex-none bg-neutral-50 dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 flex flex-col items-center z-40 relative {isResizing
     ? ''
     : 'transition-[width] duration-300'}"
@@ -244,6 +245,9 @@
     : '3.5rem'}; --sidebar-icon-size: {settings.sidebarIconSize || 20}px;"
 >
   <div
+    id="sidebar-toolbar"
+    role="list"
+    aria-label="Sidebar Actions"
     class="flex-grow w-full flex flex-col items-center py-2 gap-1.5 overflow-y-auto no-scrollbar"
   >
     {#each activeSidebarItems as item, idx}
@@ -255,7 +259,8 @@
           on:dragleave={() => handleDragLeave(idx)}
           on:drop={(e) => handleDrop(e, idx)}
           on:dragend={handleDragEnd}
-          role="listitem"
+          role="presentation"
+          aria-hidden="true"
           class="w-8 h-px bg-neutral-200 dark:bg-neutral-700 my-1 transition-all {dragOverIndex ===
             idx && dragSourceIndex !== idx
             ? 'scale-x-150 bg-blue-400 dark:bg-blue-500'
@@ -269,7 +274,8 @@
           on:dragleave={() => handleDragLeave(idx)}
           on:drop={(e) => handleDrop(e, idx)}
           on:dragend={handleDragEnd}
-          role="listitem"
+          role="presentation"
+          aria-hidden="true"
           class="flex-grow w-full transition-all {dragOverIndex === idx &&
           dragSourceIndex !== idx
             ? 'bg-blue-50/50 dark:bg-blue-900/10'
@@ -293,6 +299,7 @@
           <button
             title={`${item.label}${item.shortcutKey ? getShortcutFromSettings(settings, item.shortcutKey) : ""}`}
             aria-label={item.label}
+            aria-pressed={isActive}
             on:click={() => item.settingKey && toggleSetting(item.settingKey)}
             class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
               ? 'w-[calc(100%-1.1rem)] px-3'
@@ -427,7 +434,7 @@
           >
             <button
               title={undoTooltip}
-              aria-label="Undo"
+              aria-label={undoTooltip}
               on:click={undoAction}
               disabled={!canUndo}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
@@ -486,6 +493,9 @@
                 bind:this={historyButtonRef}
                 title={`History Panel${getShortcutFromSettings(settings, "toggle-history")}`}
                 aria-label="History Panel"
+                aria-haspopup="menu"
+                aria-expanded={$showHistory}
+                aria-controls="history-menu"
                 on:click={() => showHistory.set(!$showHistory)}
                 class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                   ? 'w-[calc(100%-1.1rem)] px-3'
@@ -527,6 +537,9 @@
 
               {#if $showHistory && $historyStore}
                 <div
+                  id="history-menu"
+                  role="menu"
+                  aria-label="History Menu"
                   bind:this={historyDropdownRef}
                   use:menuNavigation
                   on:close={() => showHistory.set(false)}
@@ -546,6 +559,7 @@
                   {:else}
                     {#each $historyStore as entry, i}
                       <button
+                        role="menuitem"
                         on:click={() => {
                           history.restore(entry.item.id);
                           showHistory.set(false);
@@ -593,7 +607,7 @@
           >
             <button
               title={redoTooltip}
-              aria-label="Redo"
+              aria-label={redoTooltip}
               on:click={redoAction}
               disabled={!canRedo}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
@@ -870,6 +884,7 @@
                     class="w-10 text-xs bg-transparent text-center text-neutral-600 dark:text-neutral-300 focus:outline-none cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors appearance-none"
                     bind:value={$gridSize}
                     title="Grid Size"
+                    aria-label="Grid Size"
                   >
                     <option value={1}>1"</option>
                     <option value={3}>3"</option>
@@ -1619,6 +1634,8 @@
       <button
         title={sidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
         aria-label={sidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+        aria-expanded={sidebarExpanded}
+        aria-controls="sidebar-toolbar"
         on:click={toggleSidebar}
         class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
           ? 'w-[calc(100%-1.1rem)] px-3'
@@ -1662,6 +1679,7 @@
       aria-valuenow={sidebarWidth}
       aria-valuemin={160}
       aria-valuemax={450}
+      aria-valuetext="{sidebarWidth} pixels"
       aria-orientation="vertical"
       class="absolute right-0 top-0 w-1.5 h-full cursor-col-resize hover:bg-purple-500/20 transition-colors z-[60] group focus:outline-none focus:bg-purple-500/30 appearance-none border-none bg-transparent"
       on:mousedown={startResizing}
@@ -1680,7 +1698,7 @@
       ></div>
     </button>
   {/if}
-</div>
+</aside>
 
 <style>
   .sidebar-icon {
