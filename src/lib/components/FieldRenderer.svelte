@@ -11,6 +11,7 @@
     showGrid,
     isPresentationMode,
     selectedPointId,
+    multiSelectedPointIds,
     selectedLineId,
     showRuler,
     showProtractor,
@@ -142,6 +143,7 @@
   let currentElem: string | null = null;
   let isDown = false;
   let isPanning = false;
+  let multiDragOffsets = new Map<string, {x: number, y: number}>();
   let startPan = { x: 0, y: 0 };
 
   // D3 Scales
@@ -629,7 +631,7 @@
       uiLength(POINT_RADIUS),
     );
     startPointElem.id = `point-0-0`;
-    startPointElem.fill = lines[0]?.color || "#000000"; // Fallback color if lines empty
+    startPointElem.fill = $multiSelectedPointIds.includes("point-0-0") ? "#4ade80" : (lines[0]?.color || "#000000"); // Fallback color if lines empty
     startPointElem.noStroke();
     _points.push(startPointElem);
 
@@ -645,7 +647,7 @@
             uiLength(POINT_RADIUS),
           );
           pointElem.id = `point-${idx + 1}-${idx1}-background`;
-          pointElem.fill = line.color;
+          pointElem.fill = $multiSelectedPointIds.includes(pointElem.id) ? "#4ade80" : line.color;
           pointElem.noStroke();
           let pointText = new Two.Text(
             `${idx1}`,
@@ -669,7 +671,7 @@
             uiLength(POINT_RADIUS),
           );
           pointElem.id = `point-${idx + 1}-${idx1}`;
-          pointElem.fill = line.color;
+          pointElem.fill = $multiSelectedPointIds.includes(pointElem.id) ? "#4ade80" : line.color;
           pointElem.noStroke();
           _points.push(pointElem);
         }
@@ -1511,7 +1513,7 @@
       if (!line.eventMarkers || line.eventMarkers.length === 0) return;
 
       line.eventMarkers.forEach((ev, evIdx) => {
-        const isHovered = $hoveredMarkerId === ev.id;
+        const isHovered = $hoveredMarkerId === ev.id || $multiSelectedPointIds.includes(`event-${idx}-${evIdx}`);
         const radius = isHovered ? 1.8 : 0.9;
         const color = isHovered ? "#a78bfa" : "#c4b5fd";
 
@@ -1866,18 +1868,28 @@
 
       if (isDown && currentElem) {
         // Dragging Logic
-        const line = Number(currentElem.split("-")[1]) - 1;
-        if (line >= 0 && lines[line]?.locked) return;
 
-        let rawInchX = x.invert(xPos) + dragOffset.x;
-        let rawInchY = y.invert(yPos) + dragOffset.y;
-        let inchX = rawInchX;
-        let inchY = rawInchY;
+        let linesChanged = false;
+        let shapesChanged = false;
+        let startPointChanged = false;
 
-        if ($snapToGrid && $showGrid && $gridSize > 0) {
-          inchX = Math.round(rawInchX / $gridSize) * $gridSize;
-          inchY = Math.round(rawInchY / $gridSize) * $gridSize;
-        }
+        $multiSelectedPointIds.forEach(id => {
+          // If the element is a line point, verify it is not locked
+          if (id.startsWith("point-")) {
+            const line = Number(id.split("-")[1]) - 1;
+            if (line >= 0 && lines[line]?.locked) return; // skip locked points
+          }
+
+          const offset = multiDragOffsets.get(id) || { x: 0, y: 0 };
+          let rawInchX = x.invert(xPos) + offset.x;
+          let rawInchY = y.invert(yPos) + offset.y;
+          let inchX = rawInchX;
+          let inchY = rawInchY;
+
+          if ($snapToGrid && $showGrid && $gridSize > 0) {
+            inchX = Math.round(rawInchX / $gridSize) * $gridSize;
+            inchY = Math.round(rawInchY / $gridSize) * $gridSize;
+          }
 
         // Smart Object Snapping
         const SNAP_THRESHOLD = 1.0; // inches
@@ -1885,13 +1897,13 @@
         const shouldSnap = evt.altKey ? !isSnappingEnabled : isSnappingEnabled;
         let newGuides: InstanceType<typeof Two.Line>[] = [];
 
-        if (shouldSnap && currentElem.startsWith("point-")) {
+        if (shouldSnap && id.startsWith("point-")) {
           const targets: Point[] = [startPoint];
           lines.forEach((l) => {
             if (l.endPoint) targets.push(l.endPoint);
           });
 
-          const parts = currentElem.split("-");
+          const parts = id.split("-");
           const lineNum = Number(parts[1]);
           const pointIdx = Number(parts[2]);
 
@@ -1956,8 +1968,8 @@
           minY = 0;
           maxY = FIELD_SIZE;
 
-          if (currentElem.startsWith("point-")) {
-            const parts = currentElem.split("-");
+          if (id.startsWith("point-")) {
+            const parts = id.split("-");
             const lineNum = Number(parts[1]);
             const pointIdx = Number(parts[2]);
 
@@ -1991,30 +2003,30 @@
         inchX = Math.max(minX, Math.min(maxX, inchX));
         inchY = Math.max(minY, Math.min(maxY, inchY));
 
-        if (currentElem.startsWith("obstacle-")) {
-          const parts = currentElem.split("-");
+        if (id.startsWith("obstacle-")) {
+          const parts = id.split("-");
           const shapeIdx = Number(parts[1]);
           if (shapes[shapeIdx]?.locked) return;
           const vertexIdx = Number(parts[2]);
           shapes[shapeIdx].vertices[vertexIdx].x = inchX;
           shapes[shapeIdx].vertices[vertexIdx].y = inchY;
-          shapesStore.set(shapes);
-        } else if (currentElem.startsWith("targetpoint-")) {
-          const line = Number(currentElem.split("-")[1]) - 1;
+          shapesChanged = true;
+        } else if (id.startsWith("targetpoint-")) {
+          const line = Number(id.split("-")[1]) - 1;
           if (lines[line] && lines[line].endPoint) {
             lines[line].endPoint.targetX = inchX;
             lines[line].endPoint.targetY = inchY;
-            linesStore.set(lines);
+            linesChanged = true;
           }
         } else {
-          const line = Number(currentElem.split("-")[1]) - 1;
-          const point = Number(currentElem.split("-")[2]);
+          const line = Number(id.split("-")[1]) - 1;
+          const point = Number(id.split("-")[2]);
 
           if (line === -1) {
             if (!startPoint.locked) {
               startPoint.x = inchX;
               startPoint.y = inchY;
-              startPointStore.set(startPoint);
+              startPointChanged = true;
             }
           } else if (lines[line]) {
             if (point === 0 && lines[line].endPoint) {
@@ -2036,9 +2048,15 @@
                 lines[line].controlPoints[point - 1].y = inchY;
               }
             }
-            linesStore.set(lines);
+            linesChanged = true;
           }
         }
+
+        }); // End of multiSelectedPointIds.forEach
+
+        if (linesChanged) linesStore.set(lines);
+        if (shapesChanged) shapesStore.set(shapes);
+        if (startPointChanged) startPointStore.set(startPoint);
       } else if (isPanning) {
         // Panning Logic
         followRobotStore.set(false);
@@ -2212,6 +2230,24 @@
         isDown = true;
         currentElem = clickedElem;
 
+        // --- Multi-select Logic ---
+        if (evt.shiftKey || evt.ctrlKey || evt.metaKey) {
+          multiSelectedPointIds.update(ids => {
+            if (ids.includes(clickedElem!)) {
+              return ids.filter(id => id !== clickedElem);
+            } else {
+              return [...ids, clickedElem!];
+            }
+          });
+        } else {
+          // If clicked element is not in current multi-selection, clear and select only it
+          const currentIds = $multiSelectedPointIds;
+          if (!currentIds.includes(clickedElem)) {
+            multiSelectedPointIds.set([clickedElem]);
+          }
+        }
+
+        // Single selection fallback updates for UI properties
         if (currentElem.startsWith("point-")) {
           const parts = currentElem.split("-");
           const lineNum = Number(parts[1]);
@@ -2304,7 +2340,44 @@
             }
           }
         }
-        dragOffset = { x: objectX - mouseX, y: objectY - mouseY };
+        multiDragOffsets.clear();
+        const currentIds = $multiSelectedPointIds;
+
+        currentIds.forEach(id => {
+          let ox = 0, oy = 0;
+          if (id.startsWith("obstacle-")) {
+            const parts = id.split("-");
+            const shapeIdx = Number(parts[1]);
+            const vertexIdx = Number(parts[2]);
+            if (shapes[shapeIdx]?.vertices[vertexIdx]) {
+              ox = shapes[shapeIdx].vertices[vertexIdx].x;
+              oy = shapes[shapeIdx].vertices[vertexIdx].y;
+            }
+          } else if (id.startsWith("targetpoint-")) {
+            const line = Number(id.split("-")[1]) - 1;
+            if (lines[line] && lines[line].endPoint) {
+              ox = lines[line].endPoint.targetX || 0;
+              oy = lines[line].endPoint.targetY || 0;
+            }
+          } else if (id.startsWith("point-")) {
+            const line = Number(id.split("-")[1]) - 1;
+            const point = Number(id.split("-")[2]);
+            if (line === -1) {
+              ox = startPoint.x;
+              oy = startPoint.y;
+            } else if (lines[line]) {
+              if (point === 0 && lines[line].endPoint) {
+                ox = lines[line].endPoint.x;
+                oy = lines[line].endPoint.y;
+              } else if (lines[line].controlPoints[point - 1]) {
+                ox = lines[line].controlPoints[point - 1].x;
+                oy = lines[line].controlPoints[point - 1].y;
+              }
+            }
+          }
+          multiDragOffsets.set(id, { x: ox - mouseX, y: oy - mouseY });
+        });
+
       } else {
         // Start Panning
         isPanning = true;
@@ -2341,7 +2414,7 @@
       }
       isDown = false;
       isPanning = false;
-      dragOffset = { x: 0, y: 0 };
+      multiDragOffsets.clear();
       two.renderer.domElement.style.cursor = "grab";
     });
 

@@ -24,6 +24,7 @@
     gridSize,
     selectedLineId,
     selectedPointId,
+    multiSelectedPointIds,
     focusRequest,
     notification,
   } from "../../stores";
@@ -118,7 +119,26 @@
     pathStatsMap = pathStatsMap; // trigger reactivity
   }
 
-  // Focus Handling Action
+
+  function handleRowClick(e: MouseEvent, pointId: string, lineId: string | null) {
+    if (lineId) selectedLineId.set(lineId);
+    else selectedLineId.set(null);
+
+    selectedPointId.set(pointId);
+
+    if (e.shiftKey || e.ctrlKey || e.metaKey) {
+      multiSelectedPointIds.update(ids => {
+        if (ids.includes(pointId)) {
+          return ids.filter(id => id !== pointId);
+        } else {
+          return [...ids, pointId];
+        }
+      });
+    } else {
+      multiSelectedPointIds.set([pointId]);
+    }
+  }
+// Focus Handling Action
   function focusOnRequest(
     node: HTMLElement,
     params: { id: string; field: string },
@@ -1321,11 +1341,8 @@
         <tr
           data-seq-index="-1"
           class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors duration-150"
-          class:selected={$selectedPointId === "point-0-0"}
-          on:click={() => {
-            selectedLineId.set(null);
-            selectedPointId.set("point-0-0");
-          }}
+          class:selected={$selectedPointId === "point-0-0" || $multiSelectedPointIds.includes("point-0-0")}
+          on:click={(e) => handleRowClick(e, "point-0-0", null)}
           on:contextmenu={(e) => handleContextMenu(e, -1)}
           class:border-b-2={dragOverIndex === -1 && dragPosition === "bottom"}
           class:border-blue-500={dragOverIndex === -1}
@@ -1415,7 +1432,7 @@
                 on:dragstart={(e) => handleDragStart(e, seqIndex)}
                 on:dragend={handleDragEnd}
                 on:contextmenu={(e) => handleContextMenu(e, seqIndex)}
-                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
+                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === endPointId || $multiSelectedPointIds.includes(endPointId) ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
                 class:border-t-2={dragOverIndex === seqIndex &&
                   dragPosition === "top"}
                 class:border-b-2={dragOverIndex === seqIndex &&
@@ -1423,10 +1440,7 @@
                 class:border-blue-500={dragOverIndex === seqIndex}
                 class:dark:border-blue-400={dragOverIndex === seqIndex}
                 class:opacity-50={draggingIndex === seqIndex}
-                on:click={() => {
-                  if (line.id) selectedLineId.set(line.id);
-                  selectedPointId.set(endPointId);
-                }}
+                on:click={(e) => handleRowClick(e, endPointId, line.id || null)}
               >
                 <td
                   class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
@@ -1720,11 +1734,8 @@
                 ].findIndex((p) => p === cp)}
                 {@const pointId = `point-${lineIdx + 1}-${cpIndex}`}
                 <tr
-                  class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === pointId ? "bg-green-100 dark:bg-green-800/40" : ""}`}
-                  on:click={() => {
-                    if (line.id) selectedLineId.set(line.id);
-                    selectedPointId.set(pointId);
-                  }}
+                  class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$selectedPointId === pointId || $multiSelectedPointIds.includes(pointId) ? "bg-green-100 dark:bg-green-800/40" : ""}`}
+                  on:click={(e) => handleRowClick(e, pointId, line.id || null)}
                 >
                   <td class="w-8 px-2 py-2">
                     <!-- No drag handle for control points, but they are drop targets for the parent seqIdx -->
