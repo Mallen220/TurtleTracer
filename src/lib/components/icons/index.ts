@@ -46,3 +46,4 @@ export { default as OnionSkinIcon } from "./OnionSkinIcon.svelte";
 export { default as VelocityHeatmapIcon } from "./VelocityHeatmapIcon.svelte";
 export { default as FeedbackIcon } from "./FeedbackIcon.svelte";
 export { default as GithubIcon } from "./GithubIcon.svelte";
+export { default as PenIcon } from "./PenIcon.svelte";

@@ -4,6 +4,7 @@ export type SidebarItemType = "system" | "setting" | "separator" | "spacer";
 import {
   StarIcon,
   FolderIcon,
+  PenIcon,
   PlusIcon,
   WrenchIcon,
   UndoIcon,
@@ -73,6 +74,13 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     type: "system",
     shortcutKey: "redo",
     iconComponent: RedoIcon,
+  },
+  {
+    id: "drawPath",
+    label: "Draw Path",
+    type: "system",
+    shortcutKey: "toggle-draw",
+    iconComponent: PenIcon,
   },
   {
     id: "ruler",

@@ -5,6 +5,7 @@
     showFeedbackDialog,
     showSettings,
     showHistory,
+    isDrawingMode,
     showRuler,
     showProtractor,
     showGrid,
@@ -634,6 +635,44 @@
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"
+                  >{item.label}</span
+                >
+              {/if}
+            </button>
+          </div>
+        {:else if item.id === "drawPath"}
+          <!-- Drawing toggle -->
+          <div
+            draggable={sidebarExpanded}
+            on:dragstart={(e) => handleDragStart(e, idx)}
+            on:dragover={(e) => handleDragOver(e, idx)}
+            on:drop={(e) => handleDrop(e, idx)}
+            on:dragend={handleDragEnd}
+            role="listitem"
+            class="w-full flex justify-center transition-all {dragOverIndex ===
+              idx && dragSourceIndex !== idx
+              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
+              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
+          >
+            <button
+              title={`Draw Path${getShortcutFromSettings(settings, "toggle-draw")}`}
+              aria-label="Draw Path"
+              aria-pressed={$isDrawingMode}
+              on:click={() => isDrawingMode.update((v) => !v)}
+              class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
+                ? 'w-[calc(100%-1.1rem)] px-3'
+                : 'justify-center'} {$isDrawingMode
+                ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
+            >
+              <div
+                class="sidebar-icon flex-none flex items-center justify-center"
+              >
+                <svelte:component this={item.iconComponent} />
+              </div>
+              {#if sidebarExpanded}
+                <span
+                  class="ml-3 text-sm font-medium whitespace-nowrap overflow-hidden"
                   >{item.label}</span
                 >
               {/if}

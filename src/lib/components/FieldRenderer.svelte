@@ -25,6 +25,7 @@
     pluginRedrawTrigger,
     notification,
     showRobot,
+    isDrawingMode,
   } from "../../stores";
   import {
     hookRegistry,
@@ -158,6 +159,9 @@
   let currentElem: string | null = null;
   let isDown = false;
   let isPanning = false;
+  let isDrawing = false;
+  let drawPoints: { x: number; y: number }[] = [];
+  let drawPathElement: InstanceType<typeof Two.Path> | null = null;
   let multiDragOffsets = new Map<string, { x: number; y: number }>();
   let startPan = { x: 0, y: 0 };
 
@@ -780,6 +784,41 @@
         isObstructingHUD = visualX < w * 0.35 && visualY > h * 0.8;
       }
 
+      if ($isDrawingMode && isDrawing && drawPathElement) {
+        // Collect points
+        const lastPoint = drawPoints[drawPoints.length - 1];
+
+        let inchX = currentMouseX;
+        let inchY = currentMouseY;
+
+        if ($snapToGrid && $showGrid && $gridSize > 0) {
+          inchX = Math.round(inchX / $gridSize) * $gridSize;
+          inchY = Math.round(inchY / $gridSize) * $gridSize;
+        }
+
+        const dx = inchX - lastPoint.x;
+        const dy = inchY - lastPoint.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Add a new point if it moved at least 2 inches
+        if (dist >= 2.0) {
+          drawPoints.push({ x: inchX, y: inchY });
+
+          // Re-render path preview
+          if (drawPathElement) drawPathElement.remove();
+
+          const pointsForMakePath: number[] = [];
+          drawPoints.forEach((p) => {
+            pointsForMakePath.push(x(p.x), y(p.y));
+          });
+          drawPathElement = two.makePath(...pointsForMakePath);
+          drawPathElement.stroke = "#a855f7"; // purple-500
+          drawPathElement.linewidth = uiLength(LINE_WIDTH);
+          drawPathElement.fill = "transparent";
+        }
+        return;
+      }
+
       // Cursor and Dragging Logic
       // Optimization: Don't use elementFromPoint here. It forces a reflow.
 
@@ -1124,6 +1163,48 @@
 
     two.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
       updateRects(); // Ensure fresh rects on start of interaction
+
+      if ($isDrawingMode) {
+        isDrawing = true;
+        drawPoints = [];
+
+        // Setup initial point
+        const rectForMouse = two.renderer.domElement.getBoundingClientRect();
+        const transformedForMouse = getTransformedCoordinates(
+          evt.clientX,
+          evt.clientY,
+          rectForMouse,
+          settings.fieldRotation || 0,
+        );
+        let inchX = x.invert(transformedForMouse.x);
+        let inchY = y.invert(transformedForMouse.y);
+
+        if ($snapToGrid && $showGrid && $gridSize > 0) {
+          inchX = Math.round(inchX / $gridSize) * $gridSize;
+          inchY = Math.round(inchY / $gridSize) * $gridSize;
+        }
+
+        drawPoints.push({ x: inchX, y: inchY });
+
+        // Create initial temporary path
+        if (drawPathElement) {
+          drawPathElement.remove();
+        }
+
+        // We'll update the actual visual path in mousemove
+        drawPathElement = two.makePath(
+          x(inchX),
+          y(inchY),
+          x(inchX),
+          y(inchY),
+          false as any,
+        );
+        drawPathElement.stroke = "#a855f7"; // purple-500
+        drawPathElement.linewidth = uiLength(LINE_WIDTH);
+        drawPathElement.fill = "transparent";
+        return; // Don't process other click events
+      }
+
       // Re-determine currentElem if needed
       let clickedElem = null;
       // Optimization: use evt.target
@@ -1335,6 +1416,34 @@
 
     two.renderer.domElement.addEventListener("mouseup", () => {
       snapGuides = [];
+      if ($isDrawingMode && isDrawing) {
+        isDrawing = false;
+        if (drawPathElement) {
+          drawPathElement.remove();
+          drawPathElement = null;
+        }
+
+        if (drawPoints.length > 1) {
+          import("../../utils/pathEditing").then(
+            ({ generateLinesFromDrawing }) => {
+              const result = generateLinesFromDrawing(
+                drawPoints,
+                startPoint,
+                lines,
+                sequence,
+              );
+              if (result) {
+                startPointStore.set(result.startPoint);
+                linesStore.set(result.lines);
+                sequenceStore.set(result.sequence);
+                onRecordChange("Draw Path");
+              }
+            },
+          );
+        }
+        drawPoints = [];
+        return;
+      }
       if (isDown) {
         // Infer action description based on currentElem
         let action = "Move Object";

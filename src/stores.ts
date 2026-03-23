@@ -10,6 +10,7 @@ import type {
 // Math tools stores
 export const showRuler = writable(false);
 export const showProtractor = writable(false);
+export const isDrawingMode = writable(false);
 export const showRobot = writable(true);
 export const showGrid = writable(false);
 export const protractorLockToRobot = writable(true);

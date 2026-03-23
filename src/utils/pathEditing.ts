@@ -4,8 +4,14 @@ import type {
   SequenceItem,
   TimePrediction,
   SequencePathItem,
+  Point,
 } from "../types";
-import { splitBezier, easeInOutQuad, shortestRotation } from "./math";
+import {
+  splitBezier,
+  easeInOutQuad,
+  shortestRotation,
+  getDistance,
+} from "./math";
 import { makeId } from "./nameGenerator";
 
 export interface PathSplitResult {
@@ -208,5 +214,100 @@ export function splitPathAtPercent(
     lines: newLines,
     sequence: newSequence,
     splitIndex: lineIndex,
+  };
+}
+
+/**
+ * Generates path lines from an array of raw drawn points.
+ */
+export function generateLinesFromDrawing(
+  drawnPoints: { x: number; y: number }[],
+  startPoint: Point,
+  lines: Line[],
+  sequence: SequenceItem[],
+): { startPoint: Point; lines: Line[]; sequence: SequenceItem[] } | null {
+  if (drawnPoints.length < 2) return null;
+
+  // 1. Simplify points
+  // A simple distance-based decimation + Douglas-Peucker could be used, but for now we'll
+  // do a basic greedy decimation to ensure we don't have too many lines.
+  const minLineLength = 10; // min 10 inches between waypoints
+  const simplified: { x: number; y: number }[] = [drawnPoints[0]];
+  let lastAdded = drawnPoints[0];
+
+  for (let i = 1; i < drawnPoints.length - 1; i++) {
+    if (getDistance(lastAdded, drawnPoints[i]) >= minLineLength) {
+      simplified.push(drawnPoints[i]);
+      lastAdded = drawnPoints[i];
+    }
+  }
+  // Always include the last point
+  if (getDistance(lastAdded, drawnPoints[drawnPoints.length - 1]) > 2) {
+    simplified.push(drawnPoints[drawnPoints.length - 1]);
+  }
+
+  if (simplified.length < 2) return null;
+
+  let currentLines = [...lines];
+  let currentSequence = [...sequence];
+  let currentStartPoint = { ...startPoint };
+
+  // If no lines exist, move start point to the first drawn point
+  let isFirstLine = currentLines.length === 0;
+  let startIndex = 0;
+
+  if (isFirstLine) {
+    currentStartPoint = {
+      ...currentStartPoint,
+      x: simplified[0].x,
+      y: simplified[0].y,
+    };
+    startIndex = 1;
+  }
+
+  // Generate lines
+  for (let i = startIndex; i < simplified.length; i++) {
+    const pt = simplified[i];
+    const prevPt = i === 0 ? currentStartPoint : simplified[i - 1];
+
+    // Calculate a simple control point halfway to make it a bezier line.
+    // To make it actually smooth, we'd need a more complex fit, but a straight-ish line is fine for rough drawing.
+    // Let's just use 0 control points to make them straight lines for now,
+    // or 2 control points on the straight line for users to adjust later.
+
+    // Calculate control points exactly on the line (1/3 and 2/3 distance)
+    const dx = pt.x - prevPt.x;
+    const dy = pt.y - prevPt.y;
+
+    const cp1 = { x: prevPt.x + dx * 0.33, y: prevPt.y + dy * 0.33 };
+    const cp2 = { x: prevPt.x + dx * 0.66, y: prevPt.y + dy * 0.66 };
+
+    const newLine: Line = {
+      id: makeId(),
+      name: "",
+      endPoint: {
+        x: pt.x,
+        y: pt.y,
+        heading: "tangential",
+        reverse: false,
+      },
+      controlPoints: [cp1, cp2],
+      color: "#60a5fa", // Default blue, or use getRandomColor() if we want
+      locked: false,
+      eventMarkers: [],
+      waitBeforeMs: 0,
+      waitAfterMs: 0,
+      waitBeforeName: "",
+      waitAfterName: "",
+    };
+
+    currentLines.push(newLine);
+    currentSequence.push({ kind: "path", lineId: newLine.id! });
+  }
+
+  return {
+    startPoint: currentStartPoint,
+    lines: currentLines,
+    sequence: currentSequence,
   };
 }
