@@ -1,0 +1,201 @@
+if (clickedElem) {
+        isDown = true;
+        currentElem = clickedElem;
+
+        // --- Multi-select Logic ---
+        if (evt.shiftKey || evt.ctrlKey || evt.metaKey) {
+          multiSelectedPointIds.update(ids => {
+            if (ids.includes(clickedElem!)) {
+              return ids.filter(id => id !== clickedElem);
+            } else {
+              return [...ids, clickedElem!];
+            }
+          });
+        } else {
+          // If clicked element is not in current multi-selection, clear and select only it
+          const currentIds = $multiSelectedPointIds;
+          if (!currentIds.includes(clickedElem)) {
+            multiSelectedPointIds.set([clickedElem]);
+          }
+        }
+
+        // Single selection fallback updates for UI properties
+        if (currentElem.startsWith("point-")) {
+          const parts = currentElem.split("-");
+          const lineNum = Number(parts[1]);
+          const pointIdx = Number(parts[2]);
+          let lId = null;
+          if (!isNaN(lineNum) && lineNum > 0) {
+            const lineIndex = lineNum - 1;
+            const line = lines[lineIndex];
+            if (line && line.id) {
+              lId = line.id;
+              selectedLineId.set(line.id);
+              selectedPointId.set(currentElem);
+            }
+          } else {
+            if (currentElem === "point-0-0") {
+              selectedLineId.set(null);
+              selectedPointId.set(currentElem);
+            } else {
+              selectedLineId.set(null);
+              selectedPointId.set(null);
+            }
+          }
+          if (lId) {
+            if (evt.shiftKey || evt.ctrlKey || evt.metaKey) {
+              multiSelectedLineIds.update(ids => ids.includes(lId) ? ids : [...ids, lId]);
+            } else {
+              multiSelectedLineIds.set([lId]);
+            }
+          }
+        }
+        } else if (currentElem.startsWith("targetpoint-")) {
+          const parts = currentElem.split("-");
+          const lineIdx = Number(parts[1]) - 1;
+          if (!isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            selectedLineId.set(lines[lineIdx].id as string);
+            selectedPointId.set(currentElem);
+          }
+        } else if (currentElem.startsWith("event-")) {
+          const parts = currentElem.split("-");
+          const lineIdx = Number(parts[1]);
+          if (!isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            selectedLineId.set(lines[lineIdx].id as string);
+            selectedPointId.set(currentElem);
+          }
+        } else if (currentElem.startsWith("wait-event-")) {
+          const parts = currentElem.split("-");
+          const waitId = parts[2];
+          if (waitId) {
+            selectedPointId.set(`wait-${waitId}`);
+            selectedLineId.set(null);
+          }
+        }
+
+        // Calculate drag offset
+        let objectX = 0;
+        let objectY = 0;
+        const rectForMouse = two.renderer.domElement.getBoundingClientRect();
+        const transformedForMouse = getTransformedCoordinates(
+          evt.clientX,
+          evt.clientY,
+          rectForMouse,
+          settings.fieldRotation || 0,
+        );
+        const mouseX = x.invert(transformedForMouse.x);
+        const mouseY = y.invert(transformedForMouse.y);
+
+        if (currentElem.startsWith("obstacle-")) {
+          const parts = currentElem.split("-");
+          const shapeIdx = Number(parts[1]);
+          if (shapes[shapeIdx]?.locked) {
+            // Prevent dragging locked obstacle vertices
+            isDown = false;
+            currentElem = null;
+            return;
+          }
+          const vertexIdx = Number(parts[2]);
+          if (shapes[shapeIdx]?.vertices[vertexIdx]) {
+            objectX = shapes[shapeIdx].vertices[vertexIdx].x;
+            objectY = shapes[shapeIdx].vertices[vertexIdx].y;
+          }
+        } else if (currentElem.startsWith("targetpoint-")) {
+          const line = Number(currentElem.split("-")[1]) - 1;
+          if (lines[line] && lines[line].endPoint) {
+            objectX = lines[line].endPoint.targetX || 0;
+            objectY = lines[line].endPoint.targetY || 0;
+          }
+        } else if (currentElem.startsWith("point-")) {
+          const line = Number(currentElem.split("-")[1]) - 1;
+          const point = Number(currentElem.split("-")[2]);
+          if (line === -1) {
+            objectX = startPoint.x;
+            objectY = startPoint.y;
+          } else if (lines[line]) {
+            if (point === 0 && lines[line].endPoint) {
+              objectX = lines[line].endPoint.x;
+              objectY = lines[line].endPoint.y;
+            } else if (lines[line].controlPoints[point - 1]) {
+              objectX = lines[line].controlPoints[point - 1].x;
+              objectY = lines[line].controlPoints[point - 1].y;
+            }
+          }
+        }
+        multiDragOffsets.clear();
+        const currentIds = $multiSelectedPointIds;
+
+        currentIds.forEach(id => {
+          let ox = 0, oy = 0;
+          if (id.startsWith("obstacle-")) {
+            const parts = id.split("-");
+            const shapeIdx = Number(parts[1]);
+            const vertexIdx = Number(parts[2]);
+            if (shapes[shapeIdx]?.vertices[vertexIdx]) {
+              ox = shapes[shapeIdx].vertices[vertexIdx].x;
+              oy = shapes[shapeIdx].vertices[vertexIdx].y;
+            }
+          } else if (id.startsWith("targetpoint-")) {
+            const line = Number(id.split("-")[1]) - 1;
+            if (lines[line] && lines[line].endPoint) {
+              ox = lines[line].endPoint.targetX || 0;
+              oy = lines[line].endPoint.targetY || 0;
+            }
+          } else if (id.startsWith("point-")) {
+            const line = Number(id.split("-")[1]) - 1;
+            const point = Number(id.split("-")[2]);
+            if (line === -1) {
+              ox = startPoint.x;
+              oy = startPoint.y;
+            } else if (lines[line]) {
+              if (point === 0 && lines[line].endPoint) {
+                ox = lines[line].endPoint.x;
+                oy = lines[line].endPoint.y;
+              } else if (lines[line].controlPoints[point - 1]) {
+                ox = lines[line].controlPoints[point - 1].x;
+                oy = lines[line].controlPoints[point - 1].y;
+              }
+            }
+          }
+          multiDragOffsets.set(id, { x: ox - mouseX, y: oy - mouseY });
+        });
+
+      } else {
+        // Start Panning
+        isPanning = true;
+        startPan = { x: evt.clientX, y: evt.clientY };
+        two.renderer.domElement.style.cursor = "grabbing";
+      }
+    });
+
+    two.renderer.domElement.addEventListener("mouseup", () => {
+      snapGuides = [];
+      if (isDown) {
+        // Infer action description based on currentElem
+        let action = "Move Object";
+        if (currentElem?.startsWith("point-0-0")) {
+          action = "Move Start Point";
+        } else if (currentElem?.startsWith("point-")) {
+          const parts = currentElem.split("-");
+          const ptIdx = Number(parts[2]);
+          if (ptIdx === 0) action = "Move Endpoint";
+          else action = "Move Control Point";
+        } else if (currentElem?.startsWith("targetpoint-")) {
+          action = "Move Facing Target";
+        } else if (currentElem?.startsWith("obstacle-")) {
+          action = "Edit Obstacle";
+        } else if (
+          currentElem?.includes("event-") ||
+          currentElem?.includes("wait-event") ||
+          currentElem?.includes("rotate-event")
+        ) {
+          action = "Move Event Marker";
+        }
+
+        onRecordChange(action); // Notify parent of change
+      }
+      isDown = false;
+      isPanning = false;
+      multiDragOffsets.clear();
+      two.renderer.domElement.style.cursor = "grab";
+    });

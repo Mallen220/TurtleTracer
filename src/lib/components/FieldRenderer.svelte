@@ -13,6 +13,7 @@
     selectedPointId,
     multiSelectedPointIds,
     selectedLineId,
+    multiSelectedLineIds,
     showRuler,
     showProtractor,
     protractorLockToRobot,
@@ -2230,6 +2231,7 @@
         selectedPointId.set(null);
         selectedLineId.set(null);
         multiSelectedPointIds.set([]);
+        multiSelectedLineIds.set([]);
       }
 
       if (clickedElem) {
@@ -2258,10 +2260,12 @@
           const parts = currentElem.split("-");
           const lineNum = Number(parts[1]);
           const pointIdx = Number(parts[2]);
+          let lId = null;
           if (!isNaN(lineNum) && lineNum > 0) {
             const lineIndex = lineNum - 1;
             const line = lines[lineIndex];
             if (line && line.id) {
+              lId = line.id;
               selectedLineId.set(line.id);
               selectedPointId.set(currentElem);
             }
@@ -2272,6 +2276,13 @@
             } else {
               selectedLineId.set(null);
               selectedPointId.set(null);
+            }
+          }
+          if (lId) {
+            if (evt.shiftKey || evt.ctrlKey || evt.metaKey) {
+              multiSelectedLineIds.update(ids => ids.includes(lId) ? ids : [...ids, lId]);
+            } else {
+              multiSelectedLineIds.set([lId]);
             }
           }
         } else if (currentElem.startsWith("targetpoint-")) {
