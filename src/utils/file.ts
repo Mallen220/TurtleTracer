@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Point, Line, Shape, SequenceItem, Settings } from "../types";
+import type { Point, Line, Shape, SequenceItem } from "../types";
 import {
   DEFAULT_PROJECT_EXTENSION,
   LEGACY_PROJECT_EXTENSION,
@@ -19,6 +19,20 @@ export interface SaveData {
   extraData?: Record<string, any>;
 }
 
+function triggerDownload(content: string, type: string, filename: string): void {
+  const blob = new Blob([content], { type });
+  const linkObj = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+
+  linkObj.href = url;
+  linkObj.download = filename;
+
+  document.body.appendChild(linkObj);
+  linkObj.click();
+  document.body.removeChild(linkObj);
+  URL.revokeObjectURL(url);
+}
+
 /**
  * Download trajectory data as a .turt file
  */
@@ -35,22 +49,15 @@ export function downloadTrajectory(
     null,
     2,
   );
-  const blob = new Blob([jsonString], { type: "application/json" });
-  const linkObj = document.createElement("a");
-  const url = URL.createObjectURL(blob);
 
-  linkObj.href = url;
   const lowerName = filename.toLowerCase();
-  linkObj.download =
+  const finalFilename =
     lowerName.endsWith(DEFAULT_PROJECT_EXTENSION) ||
     lowerName.endsWith(LEGACY_PROJECT_EXTENSION)
       ? filename
       : `${filename}${DEFAULT_PROJECT_EXTENSION}`;
 
-  document.body.appendChild(linkObj);
-  linkObj.click();
-  document.body.removeChild(linkObj);
-  URL.revokeObjectURL(url);
+  triggerDownload(jsonString, "application/json", finalFilename);
 }
 
 /**
@@ -69,17 +76,8 @@ export function downloadTrajectoryAsText(
     null,
     2,
   );
-  const blob = new Blob([jsonString], { type: "text/plain" });
-  const linkObj = document.createElement("a");
-  const url = URL.createObjectURL(blob);
 
-  linkObj.href = url;
-  linkObj.download = filename;
-
-  document.body.appendChild(linkObj);
-  linkObj.click();
-  document.body.removeChild(linkObj);
-  URL.revokeObjectURL(url);
+  triggerDownload(jsonString, "text/plain", filename);
 }
 
 /**
@@ -95,7 +93,6 @@ export function loadTrajectoryFromFile(
 
   if (!file) return;
 
-  // Check file extension
   if (!isSupportedProjectFileName(file.name)) {
     const error = new Error("Please select a .turt or .pp file");
     if (onError) onError(error);
@@ -103,21 +100,19 @@ export function loadTrajectoryFromFile(
     return;
   }
 
-  if (file) {
-    const reader = new FileReader();
+  const reader = new FileReader();
 
-    reader.onload = function (e: ProgressEvent<FileReader>) {
-      try {
-        const result = e.target?.result as string;
-        const jsonObj = JSON.parse(result) as SaveData;
-        onSuccess(jsonObj);
-      } catch (err) {
-        if (onError) onError(err as Error);
-      }
-    };
+  reader.onload = function (e: ProgressEvent<FileReader>) {
+    try {
+      const result = e.target?.result as string;
+      const jsonObj = JSON.parse(result) as SaveData;
+      onSuccess(jsonObj);
+    } catch (err) {
+      if (onError) onError(err as Error);
+    }
+  };
 
-    reader.readAsText(file);
-  }
+  reader.readAsText(file);
 }
 
 /**
@@ -160,16 +155,12 @@ export async function loadRobotImage(
   onError?: (error: Error) => void,
 ): Promise<string | null> {
   try {
-    // Check file type
     if (!file.type.match(/^image\/(png|jpeg|jpg|gif)$/)) {
       throw new Error("Please upload a PNG, JPEG, or GIF image.");
     }
 
-    // Convert to base64
     const base64Data = await imageToBase64(file);
-
-    // Compress if needed (optional)
-    const compressedData = await compressImage(base64Data, 100, 100); // Max 100x100
+    const compressedData = await compressImage(base64Data, 100, 100);
 
     if (onSuccess) {
       onSuccess(compressedData);
@@ -177,7 +168,6 @@ export async function loadRobotImage(
 
     return compressedData;
   } catch (error) {
-    console.error("Error loading robot image:", error);
     if (onError) {
       onError(error as Error);
     }
@@ -200,7 +190,6 @@ async function compressImage(
       let width = img.width;
       let height = img.height;
 
-      // Calculate new dimensions
       if (width > maxWidth || height > maxHeight) {
         const ratio = Math.min(maxWidth / width, maxHeight / height);
         width = Math.floor(width * ratio);
@@ -212,7 +201,7 @@ async function compressImage(
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/png", 0.8)); // 80% quality
+        resolve(canvas.toDataURL("image/png", 0.8));
       } else {
         resolve(base64Data);
       }
