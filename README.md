@@ -56,52 +56,57 @@
 
 ## Overview
 
-**Turtle Tracer** is a powerful desktop application built with Electron and Svelte, designed to revolutionize how FIRST Tech Challenge teams plan their autonomous routines. 
+**Turtle Tracer** is a powerful desktop application built with Electron and Svelte, designed to revolutionize how FIRST Tech Challenge teams plan their autonomous routines.
 
-Unlike web-based alternatives, Turtle Tracer runs **natively on your machine**. This means superior performance, actual local file management, offline capabilities, and deep integration with your team's Git workflow. 
+Unlike web-based alternatives, Turtle Tracer runs **natively on your machine**. This means superior performance, actual local file management, offline capabilities, and deep integration with your team's Git workflow.
 
 ---
 
 ## Unmatched Features
 
-Turtle Tracer isn't just a port of the web tool—it's a complete reimagining of what path planning should be. 
+Turtle Tracer isn't just a port of the web tool—it's a complete reimagining of what path planning should be.
 
 ### Next-Level Performance & Workflow
-* **Native Desktop Experience:** Blazing fast performance that works offline and integrates smoothly with your OS.
-* **Robust History:** Never lose progress with Auto-Save, full Undo/Redo support, and a dedicated History Panel.
-* **Git Integration:** See file status (Modified, Staged, Untracked) instantly. Version control your paths alongside your robot code.
+
+- **Native Desktop Experience:** Blazing fast performance that works offline and integrates smoothly with your OS.
+- **Robust History:** Never lose progress with Auto-Save, full Undo/Redo support, and a dedicated History Panel.
+- **Git Integration:** See file status (Modified, Staged, Untracked) instantly. Version control your paths alongside your robot code.
 
   <img src="README_Content/SomeFeatures.gif" alt="GIF of some great features!" />
 
-
 ### Professional Analysis & Simulation
-* **Telemetry Overlay:** Import real robot log data to see exactly how your path performed on the field compared to the plan.
-* **Physics-Based Simulation:** Real-time kinematics simulation with accurate velocity constraints and acceleration profiles.
-* **Heatmaps & Stats:** Visualize robot velocity along the path with color-coded gradients, Velocity Graphs, and Timing breakdowns.
+
+- **Telemetry Overlay:** Import real robot log data to see exactly how your path performed on the field compared to the plan.
+- **Physics-Based Simulation:** Real-time kinematics simulation with accurate velocity constraints and acceleration profiles.
+- **Heatmaps & Stats:** Visualize robot velocity along the path with color-coded gradients, Velocity Graphs, and Timing breakdowns.
 
 ### Powerful Planning Tools
-* **File Macros:** Reuse successful path sequences! Drag and drop `.turt` or legacy `.pp` files to use them as sub-routines (macros).
-* **Smart Validators:** Get real-time feedback on Obstacles, Keep-In Zones, and continuous path safety validation. 
-* **Path Optimizer:** Single-click optimization to refine paths for maximum speed while respecting field boundaries.
+
+- **File Macros:** Reuse successful path sequences! Drag and drop `.turt` or legacy `.pp` files to use them as sub-routines (macros).
+- **Smart Validators:** Get real-time feedback on Obstacles, Keep-In Zones, and continuous path safety validation.
+- **Path Optimizer:** Single-click optimization to refine paths for maximum speed while respecting field boundaries.
 
   <img src="README_Content/CommandPallete.png" alt="Screenshot showing the Command Palette (Cmd+K)" />
 
-
 ### UI & Efficiency Boosters
-* **Command Palette:** Press `Cmd+K` (or `Ctrl+K`) to instantly search for paths, settings, or commands.
-* **Custom Field Maps:** Import any field image with the built-in Calibration Wizard.
-* **Robot Profile Manager:** Manage multiple robot configurations with unique dimensions and constraints.
+
+- **Command Palette:** Press `Cmd+K` (or `Ctrl+K`) to instantly search for paths, settings, or commands.
+- **Custom Field Maps:** Import any field image with the built-in Calibration Wizard.
+- **Robot Profile Manager:** Manage multiple robot configurations with unique dimensions and constraints.
 
 ---
 
 ## Installation
 
 ### macOS
+
 **One-Line Installer (Recommended):**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash
 ```
-*(Enter your password when prompted to complete installation)*
+
+_(Enter your password when prompted to complete installation)_
 
 <details>
 <summary><b>Manual Installation</b></summary>
@@ -112,6 +117,7 @@ curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install
 </details>
 
 ### Windows
+
 **Microsoft Store (Recommended):** Download from the [Microsoft Store](https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full) to receive seamless auto-updates for stable releases.
 
 <details>
@@ -122,7 +128,9 @@ curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install
 </details>
 
 ### Linux
+
 **One-Line Installer (Recommended):**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash
 ```
@@ -142,16 +150,15 @@ curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install
 
 One of the critical advantages of Turtle Tracer over web-based tools is its **Local File Management system**.
 
-* **Security & Persistence:** Paths are saved as actual `.turt` files on your hard drive—not in a fragile browser cache.
-* **Version Control Friendly:** Easily commit `.turt` files to Git alongside your robot's Java code.
-* **Built-in Organizer:** Use the native file browser to organize folders, duplicate routines, and manage backups without leaving the app.
+- **Security & Persistence:** Paths are saved as actual `.turt` files on your hard drive—not in a fragile browser cache.
+- **Version Control Friendly:** Easily commit `.turt` files to Git alongside your robot's Java code.
+- **Built-in Organizer:** Use the native file browser to organize folders, duplicate routines, and manage backups without leaving the app.
 
 ---
 
 ## Exporting Your Paths
 
   <img src="README_Content/LiveCodePreview.gif" alt="GIF of the Live Code Preview panel" />
-
 
 The visualizer provides flexible export capabilities for any team's workflow:
 
@@ -177,9 +184,9 @@ Turtle Tracer is built with modern web technologies packaged for the desktop:
 
 ## Troubleshooting
 
-* **macOS "App is damaged" error:** macOS requires you to un-quarantine manually installed apps. Run: `sudo xattr -rd com.apple.quarantine "/Applications/Turtle Tracer.app"`
-* **Windows SmartScreen warning:** Click "More Info" and then "Run Anyway". The code is fully open-source and safe.
-* **Linux AppImage won't run:** Ensure `libfuse2` is installed and the file has execution permissions (`chmod +x`).
+- **macOS "App is damaged" error:** macOS requires you to un-quarantine manually installed apps. Run: `sudo xattr -rd com.apple.quarantine "/Applications/Turtle Tracer.app"`
+- **Windows SmartScreen warning:** Click "More Info" and then "Run Anyway". The code is fully open-source and safe.
+- **Linux AppImage won't run:** Ensure `libfuse2` is installed and the file has execution permissions (`chmod +x`).
 
 ---
 
@@ -200,7 +207,7 @@ npm run dev
 npm run dist
 ```
 
-See our [Contribution Guidelines](CONTRIBUTING.md) (if applicable) for more details. 
+See our [Contribution Guidelines](CONTRIBUTING.md) (if applicable) for more details.
 
 > **AI Assistance Policy:** We use AI tools to prototype and speed up development. However, **no code is merged without human review and testing**. We believe AI should augment human effort, not replace it.
 
@@ -208,15 +215,15 @@ See our [Contribution Guidelines](CONTRIBUTING.md) (if applicable) for more deta
 
 ## License
 
-This project is open-source and released under a [Modified Apache 2.0 License](LICENSE). 
+This project is open-source and released under a [Modified Apache 2.0 License](LICENSE).
 
 Your privacy is important to us. Turtle Tracer runs locally and does not collect personal data. Review our full [Privacy Policy](PRIVACY.md).
 
 ## 🙏 Acknowledgments
 
-* **#16166 Watt's Up**: For the initial concept, development, and inspiration.
-* **Pedro Pathing Developers**: For the underlying library this visualizer supports.
-* **The FIRST Community**: For continuous feedback, testing, and making this tool better for everyone.
+- **#16166 Watt's Up**: For the initial concept, development, and inspiration.
+- **Pedro Pathing Developers**: For the underlying library this visualizer supports.
+- **The FIRST Community**: For continuous feedback, testing, and making this tool better for everyone.
 
 <br>
 

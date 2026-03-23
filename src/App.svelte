@@ -1724,11 +1724,11 @@
 <SetupDialog bind:show={setupMode} />
 <NotificationToast />
 <OnboardingTutorial
-   whatsNewOpen={$showWhatsNew}
-   setupDialogOpen={setupMode}
-   {isLoaded}
-   on:tutorialComplete={() => showWhatsNew.set(true)}
- />
+  whatsNewOpen={$showWhatsNew}
+  setupDialogOpen={setupMode}
+  {isLoaded}
+  on:tutorialComplete={() => showWhatsNew.set(true)}
+/>
 
 <SaveNameDialog
   bind:show={showSaveNameDialog}
