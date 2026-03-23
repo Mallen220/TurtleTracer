@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { ipcMain } from "electron";
 import path from "path";
 import simpleGit from "simple-git";
