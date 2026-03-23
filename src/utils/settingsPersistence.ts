@@ -189,8 +189,6 @@ export async function loadSettings(): Promise<Settings> {
     const fileContent = await api.readFile(filePath);
     const stored: StoredSettings = JSON.parse(fileContent);
 
-    // Migrate if version differs
-
     return migrateSettings(stored);
   } catch (error) {
     console.error("Error loading settings:", error);

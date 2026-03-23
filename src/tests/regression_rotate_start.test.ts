@@ -78,14 +78,6 @@ describe("Rotation Issue Reproduction", () => {
     const result = calculatePathTime(startPoint, lines, settings, sequence);
 
     const events = result.timeline;
-    console.log(
-      "Events:",
-      events.map((e) => ({
-        type: e.type,
-        startHeading: e.startHeading,
-        targetHeading: e.targetHeading,
-      })),
-    );
 
     const rotateEvent = events.find(
       (e) => e.type === "wait" && e.name === "Rotate 90",

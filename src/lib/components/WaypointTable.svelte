@@ -392,19 +392,6 @@
     (id) => id && !debugLinesIds.includes(id),
   ) as string[];
 
-  $: {
-    // Optional console logs for development convenience
-    try {
-      console.info("[WaypointTable] debugLinesIds", debugLinesIds);
-      console.info("[WaypointTable] debugSequenceIds", debugSequenceIds);
-      console.info("[WaypointTable] debugDisplayIds", debugDisplayIds);
-      console.info("[WaypointTable] missing", debugMissing);
-      console.info("[WaypointTable] invalidRefs", debugInvalidRefs);
-    } catch (err) {
-      /* no-op */
-    }
-  }
-
   // Drag and drop state
   let draggingIndex: number | null = null;
   let dragOverIndex: number | null = null;
