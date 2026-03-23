@@ -120,23 +120,26 @@
     pathStatsMap = pathStatsMap; // trigger reactivity
   }
 
-
-  function handleRowClick(e: MouseEvent, pointId: string, lineId: string | null) {
+  function handleRowClick(
+    e: MouseEvent,
+    pointId: string,
+    lineId: string | null,
+  ) {
     if (lineId) selectedLineId.set(lineId);
     else selectedLineId.set(null);
 
     selectedPointId.set(pointId);
 
     if (e.shiftKey || e.ctrlKey || e.metaKey) {
-      multiSelectedPointIds.update(ids => {
+      multiSelectedPointIds.update((ids) => {
         if (ids.includes(pointId)) {
-          return ids.filter(id => id !== pointId);
+          return ids.filter((id) => id !== pointId);
         } else {
           return [...ids, pointId];
         }
       });
       if (lineId) {
-        multiSelectedLineIds.update(ids => {
+        multiSelectedLineIds.update((ids) => {
           if (!ids.includes(lineId)) return [...ids, lineId];
           return ids;
         });
@@ -147,7 +150,7 @@
       else multiSelectedLineIds.set([]);
     }
   }
-// Focus Handling Action
+  // Focus Handling Action
   function focusOnRequest(
     node: HTMLElement,
     params: { id: string; field: string },
@@ -1392,7 +1395,8 @@
         <tr
           data-seq-index="-1"
           class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors duration-150"
-          class:selected={$selectedPointId === "point-0-0" || $multiSelectedPointIds.includes("point-0-0")}
+          class:selected={$selectedPointId === "point-0-0" ||
+            $multiSelectedPointIds.includes("point-0-0")}
           on:click={(e) => handleRowClick(e, "point-0-0", null)}
           on:contextmenu={(e) => handleContextMenu(e, -1)}
           class:border-b-2={dragOverIndex === -1 && dragPosition === "bottom"}
