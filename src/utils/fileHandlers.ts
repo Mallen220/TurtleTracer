@@ -540,7 +540,6 @@ async function exportProjectFileWithExtension(
       );
 
       await electronAPI.writeFile(resolvedPath, jsonString);
-      console.log("Exported to", resolvedPath);
       return;
     }
   }

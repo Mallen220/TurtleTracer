@@ -180,7 +180,6 @@
             );
             if (response.ok) {
               localStorage.setItem("msStoreTracked", "true");
-              console.log("Microsoft Store tracking successful");
             } else {
               console.warn(
                 "Microsoft Store tracking failed: Asset not found or network error",
@@ -563,7 +562,6 @@
           quiet: true,
         },
       );
-      console.log("Autosaved project (time-based)");
     }
   }
 
@@ -814,7 +812,6 @@
           undefined,
           { quiet: true },
         );
-        console.log("Autosaved project (on change)");
       }
     }
 
