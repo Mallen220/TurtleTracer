@@ -149,7 +149,8 @@
       } else if (format === "custom") {
         const exporters = get(customExportersStore);
         if (exporters.length > 0) {
-          newCode = "// Select a custom exporter in Auto Export settings to preview its code.";
+          newCode =
+            "// Select a custom exporter in Auto Export settings to preview its code.";
         } else {
           newCode = "// No custom exporters available.";
         }
@@ -313,9 +314,16 @@
 
     let dialogTitle = "Save File";
     let filterName = "Text File";
-    if (ext === "java") { dialogTitle = "Save Generated Java"; filterName = "Java File"; }
-    else if (ext === "txt") { dialogTitle = "Save Points Array"; filterName = "Text File"; }
-    else if (ext === "turt") { dialogTitle = "Save Project Data"; filterName = "Turtle Tracer File"; }
+    if (ext === "java") {
+      dialogTitle = "Save Generated Java";
+      filterName = "Java File";
+    } else if (ext === "txt") {
+      dialogTitle = "Save Points Array";
+      filterName = "Text File";
+    } else if (ext === "turt") {
+      dialogTitle = "Save Project Data";
+      filterName = "Turtle Tracer File";
+    }
 
     try {
       if (electronAPI && electronAPI.showSaveDialog && electronAPI.writeFile) {
@@ -361,12 +369,12 @@
         Previewing: {format === "java"
           ? "Java Class (Standard)"
           : format === "sequential"
-          ? `Sequential (${targetLibrary})`
-          : format === "points"
-          ? "Points Array"
-          : format === "json"
-          ? "Project Data (.turt)"
-          : "Custom Exporter"}
+            ? `Sequential (${targetLibrary})`
+            : format === "points"
+              ? "Points Array"
+              : format === "json"
+                ? "Project Data (.turt)"
+                : "Custom Exporter"}
       </div>
       <div class="text-xs text-neutral-500 dark:text-neutral-400">
         Output format is controlled by Auto Export settings.
@@ -381,7 +389,7 @@
         showSettings.set(true);
       }}
       aria-label="Open auto export settings"
-      class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500"
+      class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
       title="Open Settings"
     >
       <svg
@@ -408,8 +416,8 @@
 
     <button
       on:click={handleDownloadJava}
-      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("purple")}`}
-      title={`Download as ${format === 'points' || format === 'custom' ? '.txt' : format === 'json' ? '.turt' : '.java'}`}
+      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus-visible:ring-2 ${getButtonFilledClass("purple")}`}
+      title={`Download as ${format === "points" || format === "custom" ? ".txt" : format === "json" ? ".turt" : ".java"}`}
       aria-label="Download generated file"
       disabled={!code}
       aria-disabled={!code}
@@ -428,12 +436,16 @@
           d="M12 3v12m0 0l4-4m-4 4-4-4M21 21H3"
         />
       </svg>
-      Download {format === 'points' || format === 'custom' ? '.txt' : format === 'json' ? '.turt' : '.java'}
+      Download {format === "points" || format === "custom"
+        ? ".txt"
+        : format === "json"
+          ? ".turt"
+          : ".java"}
     </button>
 
     <button
       on:click={handleCopy}
-      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonFilledClass("blue")} ${isGenerating || !code ? "opacity-50 cursor-not-allowed" : ""}`}
+      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus-visible:ring-2 ${getButtonFilledClass("blue")} ${isGenerating || !code ? "opacity-50 cursor-not-allowed" : ""}`}
       title={copyButtonText === "Copied!" ? "Copied!" : "Copy Code"}
       disabled={isGenerating || !code}
       aria-disabled={isGenerating || !code}

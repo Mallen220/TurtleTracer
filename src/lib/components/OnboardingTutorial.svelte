@@ -160,7 +160,7 @@
               (s) => (currentSeen = !!s.hasSeenOnboarding),
             );
             unsubscribe();
- 
+
             if (!currentSeen && !whatsNewOpen && !setupDialogOpen) {
               isFirstRun = true;
               startTutorial.set(true);
