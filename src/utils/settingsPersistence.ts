@@ -61,7 +61,6 @@ export function mergeSettings(source: any): Settings {
   // If stored settings has rHeight (Old Width) and rWidth (Old Length)
   const sourceSettings = { ...source } as any;
   if ("rHeight" in sourceSettings && !("rLength" in sourceSettings)) {
-    console.log("Migrating rWidth/rHeight to rLength/rWidth");
     sourceSettings.rLength = sourceSettings.rWidth; // Old rWidth was Length
     sourceSettings.rWidth = sourceSettings.rHeight; // Old rHeight was Width
     delete sourceSettings.rHeight;
@@ -166,7 +165,6 @@ export async function loadSettings(): Promise<Settings> {
     const filePath = paths.current;
 
     if (!filePath) {
-      console.log("Settings file path unavailable, using defaults");
       return { ...DEFAULT_SETTINGS };
     }
 
@@ -185,19 +183,11 @@ export async function loadSettings(): Promise<Settings> {
         await api.writeFile(filePath, JSON.stringify(stored, null, 2));
         return migrated;
       }
-      console.log("Settings file does not exist, using defaults");
       return { ...DEFAULT_SETTINGS };
     }
 
     const fileContent = await api.readFile(filePath);
     const stored: StoredSettings = JSON.parse(fileContent);
-
-    // Migrate if version differs
-    if (stored.version !== SETTINGS_VERSION) {
-      console.log(
-        `Migrating settings from version ${stored.version} to ${SETTINGS_VERSION}`,
-      );
-    }
 
     return migrateSettings(stored);
   } catch (error) {
