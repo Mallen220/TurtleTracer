@@ -815,6 +815,10 @@
           drawPathElement.stroke = "#a855f7"; // purple-500
           drawPathElement.linewidth = uiLength(LINE_WIDTH);
           drawPathElement.fill = "transparent";
+          drawPathElement.noFill(); // important for two.js paths not to auto fill black
+          drawPathElement.closed = false; // important for open paths
+          two.add(drawPathElement);
+          two.update(); // We need to immediately update two.js manually here since this is an event listener outside of standard svelte reactivity loop
         }
         return;
       }
@@ -1202,6 +1206,10 @@
         drawPathElement.stroke = "#a855f7"; // purple-500
         drawPathElement.linewidth = uiLength(LINE_WIDTH);
         drawPathElement.fill = "transparent";
+        drawPathElement.noFill();
+        drawPathElement.closed = false;
+        two.add(drawPathElement);
+        two.update(); // We need to immediately update two.js manually here
         return; // Don't process other click events
       }
 
