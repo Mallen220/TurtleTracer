@@ -15,7 +15,7 @@ import {
   getDefaultLines,
   getDefaultShapes,
   DEFAULT_SETTINGS,
-} from "../config";
+} from "../config/defaults";
 import { getRandomColor } from "../utils";
 import { regenerateProjectMacros } from "./macroUtils";
 import { notification } from "../stores";

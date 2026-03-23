@@ -88,6 +88,20 @@
     getLineStartHeading,
   } from "../../utils";
   import { toUser } from "../../utils/coordinates";
+  import {
+    type WheelSpeeds,
+    calculateDrivetrainSpeeds,
+  } from "../../utils/drivetrain";
+  import { generatePathElements } from "./renderer/PathGenerator";
+  import { generateEventMarkerElements } from "./renderer/EventMarkerGenerator";
+  import { generateShapeElements } from "./renderer/ShapeGenerator";
+  import { generatePreviewPathElements } from "./renderer/PreviewPathGenerator";
+  import { generatePointElements } from "./renderer/PointGenerator";
+  import { generateDiffEventMarkerElements } from "./renderer/DiffEventMarkerGenerator";
+  import { generateCollisionElements } from "./renderer/CollisionMarkerGenerator";
+  import { generateOnionLayerElements } from "./renderer/OnionLayerGenerator";
+  import { generateFacingLineElements } from "./renderer/FacingLineGenerator";
+
   import { updateLinkedWaypoints } from "../../utils/pointLinking";
   import type {
     Line,
@@ -171,72 +185,6 @@
     fieldViewStore.set({ xScale: x, yScale: y, width, height });
   }
 
-  // Mecanum Drivetrain Wheel Directions Calculation
-  interface WheelSpeeds {
-    frontLeft: number;
-    backLeft: number;
-    frontRight: number;
-    backRight: number;
-  }
-
-  export function calculateSwerveDriveAngles(
-    forward: number,
-    strafe: number,
-    rotate: number,
-    botHeading: number,
-    rWidth: number,
-    rLength: number,
-  ): WheelSpeeds {
-    // Rotate the movement direction counter to the bot's rotation
-    const rotStrafe =
-      strafe * Math.cos(-botHeading) - forward * Math.sin(-botHeading);
-    const rotForward =
-      strafe * Math.sin(-botHeading) + forward * Math.cos(-botHeading);
-
-    // Wheel coordinates relative to center
-    // X is right (+), Y is forward (+)
-    const rxFL = -rWidth / 2;
-    const ryFL = rLength / 2;
-
-    const rxFR = rWidth / 2;
-    const ryFR = rLength / 2;
-
-    const rxBL = -rWidth / 2;
-    const ryBL = -rLength / 2;
-
-    const rxBR = rWidth / 2;
-    const ryBR = -rLength / 2;
-
-    // Wheel velocity = V + (omega x r)
-    // Vx = V_strafe - omega * r_y
-    // Vy = V_forward + omega * r_x
-    const vxFL = rotStrafe + rotate * ryFL;
-    const vyFL = rotForward - rotate * rxFL;
-
-    const vxFR = rotStrafe - rotate * ryFR;
-    const vyFR = rotForward + rotate * rxFR;
-
-    const vxBL = rotStrafe - rotate * ryBL;
-    const vyBL = rotForward + rotate * rxBL;
-
-    const vxBR = rotStrafe + rotate * ryBR;
-    const vyBR = rotForward - rotate * rxBR;
-
-    // Special case for not moving or turning
-    if (Math.hypot(rotForward, rotStrafe) < 0.05 && Math.abs(rotate) <= 0.05) {
-      return { frontLeft: 0, backLeft: 0, frontRight: 0, backRight: 0 };
-    }
-
-    const radToDeg = 180 / Math.PI;
-
-    return {
-      frontLeft: Math.atan2(vyFL, vxFL) * radToDeg,
-      backLeft: Math.atan2(vyBL, vxBL) * radToDeg,
-      frontRight: Math.atan2(vyFR, vxFR) * radToDeg,
-      backRight: Math.atan2(vyBR, vxBR) * radToDeg,
-    };
-  }
-
   // helper to safely index WheelSpeeds from a string value. We
   // occasionally iterate over a hardcoded list of wheel names in
   // markup; this keeps the TypeScript happy and avoids `any` casts
@@ -246,124 +194,14 @@
     return speeds[wheel as keyof WheelSpeeds];
   }
 
-  export function calculateFieldCentricMecanum(
-    forward: number,
-    strafe: number,
-    rotate: number,
-    botHeading: number,
-  ): WheelSpeeds {
-    // Rotate the movement direction counter to the bot's rotation
-    const rotStrafe =
-      strafe * Math.cos(-botHeading) - forward * Math.sin(-botHeading);
-    const rotForward =
-      strafe * Math.sin(-botHeading) + forward * Math.cos(-botHeading);
-
-    // Counteract imperfect strafing on the rotated vector
-    const adjustedRotStrafe = rotStrafe * 1.1;
-
-    // Normalize speeds
-    const denominator = Math.max(
-      Math.abs(rotForward) + Math.abs(adjustedRotStrafe) + Math.abs(rotate),
-      1.0,
-    );
-
-    return {
-      frontLeft: (rotForward + adjustedRotStrafe + rotate) / denominator,
-      backLeft: (rotForward - adjustedRotStrafe - rotate) / denominator,
-      frontRight: (rotForward - adjustedRotStrafe + rotate) / denominator,
-      backRight: (rotForward + adjustedRotStrafe - rotate) / denominator,
-    };
-  }
-
-  $: mecanumSpeeds = (() => {
-    if (!$showRobot || settings.robotImage !== "none") return null;
-
-    if (
-      !timePrediction ||
-      !timePrediction.timeline ||
-      timePrediction.timeline.length === 0
-    ) {
-      return { frontLeft: 0, backLeft: 0, frontRight: 0, backRight: 0 };
-    }
-
-    const totalDuration =
-      timePrediction.timeline[timePrediction.timeline.length - 1].endTime;
-    const currentSeconds = ($percentStore / 100) * totalDuration;
-
-    // Time delta for velocity calc
-    const dt = 0.05;
-    const futureSeconds = currentSeconds + dt;
-    const futurePercent = (futureSeconds / totalDuration) * 100;
-
-    const scale = d3.scaleLinear().domain([0, 1]).range([0, 1]);
-
-    const state1 = calculateRobotState(
-      $percentStore,
-      timePrediction.timeline,
-      lines,
-      startPoint,
-      scale,
-      scale,
-    );
-    const state2 = calculateRobotState(
-      futurePercent,
-      timePrediction.timeline,
-      lines,
-      startPoint,
-      scale,
-      scale,
-    );
-
-    // Calculate velocity in inches per second
-    const vx = (state2.x - state1.x) / dt;
-    const vy = (state2.y - state1.y) / dt;
-
-    // Field coordinates: Right is +X, Forward is +Y.
-    // Note: Due to standard Y-down screen coordinates vs Y-up math coordinates,
-    // if Y goes up in your field space (e.g. standard FTC field), vy might already be correct.
-    // However, if Y goes down in screen coordinates (which calculateRobotState might output without negative depending on setup),
-    // you may need to invert vy for it to represent mathematical +Y forward.
-    // The user clarified: "0º is facing right (+X)".
-    // Map velocities based on robot heading to forward/strafe components.
-    const forwardVel = vx;
-    const strafeVel = vy;
-
-    // Angular velocity
-    // shortestRotation is a utility; use simple diff for now:
-    let dHeading = state2.heading - state1.heading;
-    // Normalize dHeading to [-180, 180]
-    dHeading = (((dHeading % 360) + 540) % 360) - 180;
-    const omega = (dHeading * Math.PI) / 180 / dt; // radians per sec
-
-    // Convert heading to radians
-    const headingRad = (state1.heading * Math.PI) / 180;
-
-    // Calculate normalized magnitudes based on typical robot speeds (e.g. 60 in/s and 3 rad/s)
-    const maxV = 60;
-    const maxOmega = 3;
-
-    const normalizedForward = forwardVel / maxV;
-    const normalizedStrafe = strafeVel / maxV;
-    const normalizedRotate = omega / maxOmega;
-
-    if (settings.robotDriveType === "swerve") {
-      return calculateSwerveDriveAngles(
-        normalizedForward,
-        normalizedStrafe,
-        normalizedRotate,
-        headingRad,
-        settings.rWidth || DEFAULT_ROBOT_WIDTH,
-        settings.rLength || DEFAULT_ROBOT_LENGTH,
-      );
-    } else {
-      return calculateFieldCentricMecanum(
-        normalizedForward,
-        normalizedStrafe,
-        normalizedRotate,
-        headingRad,
-      );
-    }
-  })();
+  $: mecanumSpeeds = calculateDrivetrainSpeeds(
+    $percentStore,
+    timePrediction,
+    lines,
+    startPoint,
+    settings,
+    $showRobot,
+  );
 
   // Follow Robot Logic (Reactive for scrubbing/stepping)
   $: if ($followRobotStore && robotXY && !$playingStore) {
@@ -624,416 +462,23 @@
   // --- Two.js Object Creation Logic (moved from App.svelte) ---
 
   // Points (Start, Control, End, Obstacle Vertices)
-  $: points = (() => {
-    let _points = [];
-    let startPointElem = new Two.Circle(
-      x(startPoint.x),
-      y(startPoint.y),
-      uiLength(POINT_RADIUS),
-    );
-    startPointElem.id = `point-0-0`;
-    startPointElem.fill = $multiSelectedPointIds.includes("point-0-0")
-      ? "#4ade80"
-      : lines[0]?.color || "#000000"; // Fallback color if lines empty
-    startPointElem.noStroke();
-    _points.push(startPointElem);
-
-    lines.forEach((line, idx) => {
-      if (!line || !line.endPoint || line.hidden) return;
-      [line.endPoint, ...line.controlPoints].forEach((point, idx1) => {
-        if (idx1 > 0) {
-          let pointGroup = new Two.Group();
-          pointGroup.id = `point-${idx + 1}-${idx1}`;
-          let pointElem = new Two.Circle(
-            x(point.x),
-            y(point.y),
-            uiLength(POINT_RADIUS),
-          );
-          pointElem.id = `point-${idx + 1}-${idx1}-background`;
-          pointElem.fill =
-            $multiSelectedPointIds.length > 1 &&
-            $multiSelectedPointIds.includes(pointElem.id)
-              ? "#4ade80"
-              : line.color;
-          pointElem.noStroke();
-          let pointText = new Two.Text(
-            `${idx1}`,
-            x(point.x),
-            y(point.y) - uiLength(0.15),
-          );
-          pointText.id = `point-${idx + 1}-${idx1}-text`;
-          pointText.size = uiLength(1.55);
-          pointText.leading = 1;
-          pointText.family = "ui-sans-serif, system-ui, sans-serif";
-          pointText.alignment = "center";
-          pointText.baseline = "middle";
-          pointText.fill = "white";
-          pointText.noStroke();
-          pointGroup.add(pointElem, pointText);
-          _points.push(pointGroup);
-        } else {
-          let pointElem = new Two.Circle(
-            x(point.x),
-            y(point.y),
-            uiLength(POINT_RADIUS),
-          );
-          pointElem.id = `point-${idx + 1}-${idx1}`;
-          pointElem.fill =
-            $multiSelectedPointIds.length > 1 &&
-            $multiSelectedPointIds.includes(pointElem.id)
-              ? "#4ade80"
-              : line.color;
-          pointElem.noStroke();
-          _points.push(pointElem);
-        }
-      });
-
-      if (line.endPoint.heading === "facingPoint") {
-        const pathColor = line.color || "#60a5fa";
-        let pointGroup = new Two.Group();
-        pointGroup.id = `targetpoint-${idx + 1}`;
-        let pointElem = new Two.Circle(
-          x(line.endPoint.targetX || 72),
-          y(line.endPoint.targetY || 72),
-          uiLength(POINT_RADIUS * 0.85),
-        );
-        pointElem.id = `targetpoint-${idx + 1}-background`;
-        pointElem.fill = pathColor;
-        pointElem.noStroke();
-        let pointText = new Two.Text(
-          "T",
-          x(line.endPoint.targetX || 72),
-          y(line.endPoint.targetY || 72) - uiLength(0.05),
-        );
-        pointText.id = `targetpoint-${idx + 1}-text`;
-        pointText.size = uiLength(1.4);
-        pointText.family = "ui-sans-serif, system-ui, sans-serif";
-        pointText.alignment = "center";
-        pointText.baseline = "middle";
-        pointText.fill = "white";
-        pointText.weight = 700;
-        pointGroup.add(pointElem, pointText);
-        _points.push(pointGroup);
-      }
-    });
-
-    shapes.forEach((shape, shapeIdx) => {
-      shape.vertices.forEach((vertex, vertexIdx) => {
-        let pointGroup = new Two.Group();
-        pointGroup.id = `obstacle-${shapeIdx}-${vertexIdx}`;
-        let pointElem = new Two.Circle(
-          x(vertex.x),
-          y(vertex.y),
-          uiLength(POINT_RADIUS),
-        );
-        pointElem.id = `obstacle-${shapeIdx}-${vertexIdx}-background`;
-        pointElem.fill = shape.color;
-        pointElem.noStroke();
-        let pointText = new Two.Text(
-          `${vertexIdx + 1}`,
-          x(vertex.x),
-          y(vertex.y) - uiLength(0.15),
-        );
-        pointText.id = `obstacle-${shapeIdx}-${vertexIdx}-text`;
-        pointText.size = uiLength(1.55);
-        pointText.leading = 1;
-        pointText.family = "ui-sans-serif, system-ui, sans-serif";
-        pointText.alignment = "center";
-        pointText.baseline = "middle";
-        pointText.fill = "white";
-        pointText.noStroke();
-        pointGroup.add(pointElem, pointText);
-        _points.push(pointGroup);
-      });
-    });
-    return _points;
-  })();
+  $: points = generatePointElements(startPoint, lines, shapes, {
+    x,
+    y,
+    uiLength,
+    multiSelectedPointIds: $multiSelectedPointIds,
+  });
 
   // Animated facing-point line: drawn from current robot position to the facing target.
   // Only shown when the robot is actively driving on that facingPoint segment.
   // Rendered as SVG overlay to avoid clearing Two.js scene.
-  $: facingLineElements = (() => {
-    if (!robotXY || !timePrediction?.timeline?.length) return [];
-
-    // Determine the currently active travel event
-    const totalDuration =
-      timePrediction.timeline[timePrediction.timeline.length - 1].endTime;
-    const currentSeconds = ($percentStore / 100) * totalDuration;
-    const activeEvent =
-      timePrediction.timeline.find(
-        (e: any) =>
-          currentSeconds >= e.startTime && currentSeconds <= e.endTime,
-      ) ?? timePrediction.timeline[timePrediction.timeline.length - 1];
-
-    // Only render if it's a travel event on a facingPoint segment
-    if (activeEvent.type !== "travel") return [];
-    const activeLine: Line | undefined =
-      activeEvent.line ?? lines[activeEvent.lineIndex];
-    if (!activeLine || activeLine.endPoint.heading !== "facingPoint") return [];
-
-    const targetX = (activeLine.endPoint as any).targetX ?? 72;
-    const targetY = (activeLine.endPoint as any).targetY ?? 72;
-    const pathColor = activeLine.color || "#60a5fa";
-    return [
-      {
-        x1: x(robotXY.x),
-        y1: y(robotXY.y),
-        x2: x(targetX),
-        y2: y(targetY),
-        color: pathColor,
-      },
-    ];
-  })();
-
-  // Reusable path generation function
-  function generatePathElements(
-    targetLines: Line[],
-    targetStartPoint: Point,
-    getColor: (line: Line) => string,
-    getWidth: (line: Line) => number,
-    idPrefix: string,
-    isHeatmapEnabled: boolean = false,
-  ) {
-    let _path: (Path | PathLine)[] = [];
-
-    targetLines.forEach((line, idx) => {
-      if (!line || !line.endPoint || line.hidden) return;
-      let _startPoint =
-        idx === 0 ? targetStartPoint : targetLines[idx - 1]?.endPoint || null;
-      if (!_startPoint) return;
-
-      // Check for Velocity Heatmap Mode (only for main path)
-      const showHeatmap =
-        isHeatmapEnabled && settings.showVelocityHeatmap && timePrediction;
-      let heatmapSegments: (PathLine | Path)[] = [];
-
-      if (showHeatmap) {
-        // Try to find corresponding timeline event for velocity data
-        // lineIndex matches the index in 'lines' array
-        const event = timePrediction.timeline.find(
-          (e: any) => e.type === "travel" && e.lineIndex === idx,
-        );
-
-        if (
-          event &&
-          event.velocityProfile &&
-          event.velocityProfile.length > 0
-        ) {
-          const vProfile = event.velocityProfile as number[];
-          const maxVel = Math.max(1, settings.maxVelocity);
-
-          // Re-sample geometry to match profile (100 samples)
-          const samples = 100;
-          let cps = [_startPoint, ...line.controlPoints, line.endPoint];
-          let prevPt = getCurvePoint(0, cps);
-
-          let currentAnchors: any[] = [];
-          let currentColor: string | null = null;
-          let segmentCounter = 0;
-
-          const createHeatmapSegment = (
-            anchors: any[],
-            color: string,
-            segIdx: number,
-          ) => {
-            const path = new Two.Path(anchors, false, false);
-            path.noFill();
-            path.linewidth = getWidth(line);
-            path.id = `${idPrefix}-line-${idx + 1}-heatmap-${segIdx}`;
-
-            const isDimmed = line.id && dimmedIds.includes(line.id);
-            path.stroke = isDimmed ? "#9ca3af" : color;
-
-            if (line.locked) {
-              path.dashes = [uiLength(2), uiLength(2)];
-              path.opacity = 0.7;
-            } else if (isDimmed) {
-              path.dashes = [uiLength(1), uiLength(1)];
-              path.opacity = 0.3;
-            }
-            return path;
-          };
-
-          for (let i = 1; i <= samples; i++) {
-            const t = i / samples;
-            const currPt = getCurvePoint(t, cps);
-
-            // Calculate the proportional index in the velocity profile
-            const profileIndex = Math.floor(t * (vProfile.length - 1));
-            const safeIndex = Math.min(
-              vProfile.length - 1,
-              Math.max(0, profileIndex),
-            );
-
-            const vAvg = vProfile[safeIndex] || 0;
-            const ratio = Math.min(1, Math.max(0, vAvg / maxVel));
-
-            // Green (120) -> Red (0)
-            const hue = 120 - ratio * 120;
-            const color = `hsl(${hue}, 100%, 40%)`;
-
-            if (color !== currentColor) {
-              if (currentAnchors.length > 0) {
-                heatmapSegments.push(
-                  createHeatmapSegment(
-                    currentAnchors,
-                    currentColor!,
-                    segmentCounter++,
-                  ),
-                );
-              }
-
-              // Start new path with previous point
-              currentAnchors = [
-                new Two.Anchor(
-                  x(prevPt.x),
-                  y(prevPt.y),
-                  0,
-                  0,
-                  0,
-                  0,
-                  Two.Commands.move,
-                ),
-                new Two.Anchor(
-                  x(currPt.x),
-                  y(currPt.y),
-                  0,
-                  0,
-                  0,
-                  0,
-                  Two.Commands.line,
-                ),
-              ];
-              currentColor = color;
-            } else {
-              // Extend current path
-              currentAnchors.push(
-                new Two.Anchor(
-                  x(currPt.x),
-                  y(currPt.y),
-                  0,
-                  0,
-                  0,
-                  0,
-                  Two.Commands.line,
-                ),
-              );
-            }
-
-            prevPt = currPt;
-          }
-
-          // Flush last segment
-          if (currentAnchors.length > 0 && currentColor) {
-            heatmapSegments.push(
-              createHeatmapSegment(
-                currentAnchors,
-                currentColor,
-                segmentCounter++,
-              ),
-            );
-          }
-        }
-      }
-
-      if (heatmapSegments.length > 0) {
-        heatmapSegments.forEach((seg) => _path.push(seg));
-        return;
-      }
-
-      // Fallback: Standard Line Rendering
-      let lineElem: Path | PathLine;
-      if (line.controlPoints.length > 2) {
-        const samples = 100;
-        const cps = [_startPoint, ...line.controlPoints, line.endPoint];
-        let points = [
-          new Two.Anchor(
-            x(_startPoint.x),
-            y(_startPoint.y),
-            0,
-            0,
-            0,
-            0,
-            Two.Commands.move,
-          ),
-        ];
-        for (let i = 1; i <= samples; ++i) {
-          const point = getCurvePoint(i / samples, cps);
-          points.push(
-            new Two.Anchor(
-              x(point.x),
-              y(point.y),
-              0,
-              0,
-              0,
-              0,
-              Two.Commands.line,
-            ),
-          );
-        }
-        points.forEach((point) => (point.relative = false));
-        lineElem = new Two.Path(points);
-        lineElem.automatic = false;
-      } else if (line.controlPoints.length > 0) {
-        let cp1 = line.controlPoints[1]
-          ? line.controlPoints[0]
-          : quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
-              .Q1;
-        let cp2 =
-          line.controlPoints[1] ??
-          quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
-            .Q2;
-        let points = [
-          new Two.Anchor(
-            x(_startPoint.x),
-            y(_startPoint.y),
-            x(_startPoint.x),
-            y(_startPoint.y),
-            x(cp1.x),
-            y(cp1.y),
-            Two.Commands.move,
-          ),
-          new Two.Anchor(
-            x(line.endPoint.x),
-            y(line.endPoint.y),
-            x(cp2.x),
-            y(cp2.y),
-            x(line.endPoint.x),
-            y(line.endPoint.y),
-            Two.Commands.curve,
-          ),
-        ];
-        points.forEach((point) => (point.relative = false));
-        lineElem = new Two.Path(points);
-        lineElem.automatic = false;
-      } else {
-        lineElem = new Two.Line(
-          x(_startPoint.x),
-          y(_startPoint.y),
-          x(line.endPoint.x),
-          y(line.endPoint.y),
-        );
-      }
-      lineElem.id = `${idPrefix}-line-${idx + 1}`;
-
-      const isDimmed = line.id && dimmedIds.includes(line.id);
-
-      lineElem.stroke = isDimmed ? "#9ca3af" : getColor(line);
-      lineElem.linewidth = getWidth(line);
-      lineElem.noFill();
-      if (line.locked) {
-        lineElem.dashes = [uiLength(2), uiLength(2)];
-        lineElem.opacity = 0.7;
-      } else if (isDimmed) {
-        lineElem.dashes = [uiLength(1), uiLength(1)];
-      } else {
-        lineElem.dashes = [];
-        lineElem.opacity = 1;
-      }
-      _path.push(lineElem);
-    });
-    return _path;
-  }
+  $: facingLineElements = generateFacingLineElements(lines, {
+    x,
+    y,
+    robotXY,
+    timePrediction,
+    percentStore: $percentStore,
+  });
 
   // Paths (Lines) - Standard
   $: path = (() => {
@@ -1075,8 +520,9 @@
           start,
           (l) => l.color || "#60a5fa",
           (l) => width,
-          `timeline-path-${idx}`, // unique prefix
-          isMainLine, // allow heatmap for all lines
+          `timeline-path-${idx}`,
+          { x, y, uiLength, settings, timePrediction, dimmedIds },
+          isMainLine,
         );
         paths.push(...elems);
       });
@@ -1094,6 +540,7 @@
           ? uiLength(LINE_WIDTH * 2.5)
           : uiLength(LINE_WIDTH),
       "",
+      { x, y, uiLength, settings, timePrediction, dimmedIds },
       true,
     );
   })();
@@ -1112,6 +559,7 @@
           () => "#ef4444", // Red
           () => uiLength(LINE_WIDTH),
           "diff-old",
+          { x, y, uiLength, settings, timePrediction, dimmedIds },
           false,
         )
       : [];
@@ -1128,6 +576,7 @@
       },
       (l) => uiLength(LINE_WIDTH), // No selection highlight in diff mode? Or maybe yes.
       "diff-new",
+      { x, y, uiLength, settings, timePrediction, dimmedIds },
       false,
     );
 
@@ -1135,612 +584,67 @@
   })();
 
   // Diff Event Markers
-  $: diffEventMarkerElements = (() => {
-    if (!isDiffMode || !diffData) return [];
-
-    const elems: InstanceType<typeof Two.Group>[] = [];
-
-    // Helper to extract marker positions from a dataset
-    const getMarkerMap = (
-      dataLines: Line[],
-      dataStart: Point,
-      dataSequence: SequenceItem[],
-    ) => {
-      const map = new Map<string, { x: number; y: number }>();
-
-      // Lines
-      dataLines.forEach((l, idx) => {
-        const parentName = l.name || `Path ${idx + 1}`;
-        const start = idx === 0 ? dataStart : dataLines[idx - 1].endPoint;
-        if (!start) return;
-
-        l.eventMarkers?.forEach((m) => {
-          const id = m.id || `${parentName}-${m.name}-${m.position}`;
-          const t = Math.max(0, Math.min(1, m.position ?? 0.5));
-          let pos = { x: 0, y: 0 };
-          if (l.controlPoints.length > 0) {
-            const cps = [start, ...l.controlPoints, l.endPoint];
-            const pt = getCurvePoint(t, cps);
-            pos.x = pt.x;
-            pos.y = pt.y;
-          } else {
-            pos.x = start.x + (l.endPoint.x - start.x) * t;
-            pos.y = start.y + (l.endPoint.y - start.y) * t;
-          }
-          map.set(id, pos);
-        });
-      });
-
-      // Sequence
-      dataSequence.forEach((s) => {
-        if (s.kind === "wait" || s.kind === "rotate") {
-          const parentName = s.name || (s.kind === "wait" ? "Wait" : "Rotate");
-          // Sequence events usually attach to the end of a line.
-          // Skip them in diff view when position data is unavailable and fall back to Path Events.
-        }
-      });
-
-      return map;
-    };
-
-    const currentMap = getMarkerMap(lines, startPoint, sequence);
-    const oldMap = oldData
-      ? getMarkerMap(oldData.lines, oldData.startPoint, oldData.sequence)
-      : new Map();
-
-    diffData.eventDiff.forEach((change) => {
-      // Helper to create marker
-      const createMarker = (
-        pos: { x: number; y: number },
-        color: string,
-        label: string,
-        idSuffix: string,
-      ) => {
-        const grp = new Two.Group();
-        // ID format for hover: diff-event-{id}-{suffix}
-        // suffix: old or new
-        grp.id = `diff-event-${change.id}-${idSuffix}`;
-
-        const isHovered = $hoveredMarkerId === change.id; // Match base ID
-        const radius = isHovered ? 2.5 : 1.5;
-
-        const circle = new Two.Circle(x(pos.x), y(pos.y), uiLength(radius));
-        circle.fill = color;
-        circle.noStroke();
-        grp.add(circle);
-
-        if (isHovered) {
-          const text = new Two.Text(label, x(pos.x), y(pos.y) - uiLength(3));
-          text.fill = "white"; // Dark mode friendly? or switch based on theme
-
-          // Background for text
-          const textMetrics = { width: label.length * 8, height: 14 }; // Approx
-          const bg = new Two.Rectangle(
-            x(pos.x),
-            y(pos.y) - uiLength(3),
-            uiLength(textMetrics.width / ppI),
-            uiLength(1),
-          );
-          // Two.Text is easier.
-          text.weight = 700;
-          text.size = uiLength(1.5);
-          text.stroke = "black";
-          text.linewidth = 2;
-          grp.add(text);
-        }
-
-        return grp;
-      };
-
-      if (change.changeType === "added") {
-        const pos = currentMap.get(change.id);
-        if (pos) {
-          elems.push(createMarker(pos, "#22c55e", change.name, "new")); // Green
-        }
-      } else if (change.changeType === "removed") {
-        const pos = oldMap.get(change.id);
-        if (pos) {
-          elems.push(createMarker(pos, "#ef4444", change.name, "old")); // Red
-        }
-      } else if (change.changeType === "changed") {
-        const oldPos = oldMap.get(change.id);
-        const newPos = currentMap.get(change.id);
-        if (oldPos)
-          elems.push(
-            createMarker(oldPos, "#ef4444", change.name + " (Old)", "old"),
-          );
-        if (newPos)
-          elems.push(
-            createMarker(newPos, "#22c55e", change.name + " (New)", "new"),
-          );
-
-        // Optional: Draw arrow connecting them
-        if (oldPos && newPos) {
-          const arrowGroup = new Two.Group();
-          arrowGroup.id = `diff-event-arrow-${change.id}`;
-          const arrow = new Two.Line(
-            x(oldPos.x),
-            y(oldPos.y),
-            x(newPos.x),
-            y(newPos.y),
-          );
-          arrow.stroke = "#fbbf24"; // Amber
-          arrow.linewidth = uiLength(0.5);
-          arrow.dashes = [uiLength(1), uiLength(1)];
-          arrowGroup.add(arrow);
-          elems.push(arrowGroup);
-        }
-      }
-    });
-
-    return elems;
-  })();
+  $: diffEventMarkerElements = generateDiffEventMarkerElements(
+    isDiffMode,
+    diffData,
+    oldData,
+    lines,
+    startPoint,
+    sequence,
+    {
+      x,
+      y,
+      uiLength,
+      hoveredMarkerId: $hoveredMarkerId,
+      ppI,
+    },
+  );
 
   // Shapes (Obstacles)
-  $: shapeElements = (() => {
-    let _shapes: Path[] = [];
-    shapes.forEach((shape, idx) => {
-      if (shape.visible === false) return; // Skip hidden shapes
-
-      if (shape.vertices.length >= 3) {
-        let vertices = [];
-        vertices.push(
-          new Two.Anchor(
-            x(shape.vertices[0].x),
-            y(shape.vertices[0].y),
-            0,
-            0,
-            0,
-            0,
-            Two.Commands.move,
-          ),
-        );
-        for (let i = 1; i < shape.vertices.length; i++) {
-          vertices.push(
-            new Two.Anchor(
-              x(shape.vertices[i].x),
-              y(shape.vertices[i].y),
-              0,
-              0,
-              0,
-              0,
-              Two.Commands.line,
-            ),
-          );
-        }
-        vertices.push(
-          new Two.Anchor(
-            x(shape.vertices[0].x),
-            y(shape.vertices[0].y),
-            0,
-            0,
-            0,
-            0,
-            Two.Commands.close,
-          ),
-        );
-        vertices.forEach((point) => (point.relative = false));
-        let shapeElement = new Two.Path(vertices);
-        shapeElement.id = `shape-${idx}`;
-
-        // Styling based on type
-        if (shape.type === "keep-in") {
-          shapeElement.stroke = shape.color;
-          shapeElement.fill = shape.color;
-          shapeElement.opacity = 0.1; // Low occupancy fill 10%
-          shapeElement.linewidth = uiLength(1.0);
-          shapeElement.dashes = [uiLength(4), uiLength(4)]; // Dashed lines
-        } else {
-          // Standard Obstacle
-          shapeElement.stroke = shape.color;
-          shapeElement.fill = shape.color;
-          shapeElement.opacity = 0.4;
-          shapeElement.linewidth = uiLength(0.8);
-          shapeElement.dashes = [];
-        }
-
-        shapeElement.automatic = false;
-        _shapes.push(shapeElement);
-      }
-    });
-    return _shapes;
-  })();
+  $: shapeElements = generateShapeElements(shapes, { x, y, uiLength });
 
   // Onion Layers
   // Rendered as SVG overlay to avoid clearing Two.js scene.
-  $: onionLayerElements = (() => {
-    if (settings.showOnionLayers && lines.length > 0) {
-      const spacing = settings.onionLayerSpacing || 6;
-
-      let targetLines = lines;
-      let targetStartPoint = startPoint;
-
-      // If "Current Path Only" is enabled, filter the lines based on animation time
-      if (settings.onionSkinCurrentPathOnly) {
-        if (timePrediction && timePrediction.timeline) {
-          const totalDuration =
-            timePrediction.timeline[timePrediction.timeline.length - 1]
-              ?.endTime || 0;
-          const currentSeconds = ($percentStore / 100) * totalDuration;
-          const activeEvent =
-            timePrediction.timeline.find(
-              (e: any) =>
-                currentSeconds >= e.startTime && currentSeconds <= e.endTime,
-            ) || timePrediction.timeline[timePrediction.timeline.length - 1];
-
-          if (
-            activeEvent &&
-            activeEvent.type === "travel" &&
-            typeof activeEvent.lineIndex === "number"
-          ) {
-            const idx = activeEvent.lineIndex;
-            if (lines[idx]) {
-              targetLines = [lines[idx]];
-              targetStartPoint =
-                idx === 0 ? startPoint : lines[idx - 1].endPoint;
-            }
-          } else {
-            // Not traveling (e.g. waiting), show nothing
-            targetLines = [];
-          }
-        }
-      }
-
-      return generateOnionLayers(
-        targetStartPoint,
-        targetLines,
-        settings.rLength,
-        settings.rWidth,
-        spacing,
-      );
-    }
-    return [];
-  })();
+  $: onionLayerElements = generateOnionLayerElements(lines, startPoint, {
+    settings,
+    timePrediction,
+    percentStore: $percentStore,
+  });
 
   // Preview Paths
-  $: previewPathElements = (() => {
-    let _previewPaths: Path[] = [];
-    if (previewOptimizedLines && previewOptimizedLines.length > 0) {
-      previewOptimizedLines.forEach((line, idx) => {
-        if (!line || !line.endPoint) return;
-        let _startPoint =
-          idx === 0
-            ? startPoint
-            : previewOptimizedLines[idx - 1]?.endPoint || null;
-        if (!_startPoint) return;
-
-        let lineElem: Path | PathLine;
-        if (line.controlPoints.length > 2) {
-          const samples = 100;
-          const cps = [_startPoint, ...line.controlPoints, line.endPoint];
-          let points = [
-            new Two.Anchor(
-              x(_startPoint.x),
-              y(_startPoint.y),
-              0,
-              0,
-              0,
-              0,
-              Two.Commands.move,
-            ),
-          ];
-          for (let i = 1; i <= samples; ++i) {
-            const point = getCurvePoint(i / samples, cps);
-            points.push(
-              new Two.Anchor(
-                x(point.x),
-                y(point.y),
-                0,
-                0,
-                0,
-                0,
-                Two.Commands.line,
-              ),
-            );
-          }
-          points.forEach((point) => (point.relative = false));
-          lineElem = new Two.Path(points);
-          lineElem.automatic = false;
-        } else if (line.controlPoints.length > 0) {
-          let cp1 = line.controlPoints[1]
-            ? line.controlPoints[0]
-            : quadraticToCubic(
-                _startPoint,
-                line.controlPoints[0],
-                line.endPoint,
-              ).Q1;
-          let cp2 =
-            line.controlPoints[1] ??
-            quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
-              .Q2;
-          let points = [
-            new Two.Anchor(
-              x(_startPoint.x),
-              y(_startPoint.y),
-              x(_startPoint.x),
-              y(_startPoint.y),
-              x(cp1.x),
-              y(cp1.y),
-              Two.Commands.move,
-            ),
-            new Two.Anchor(
-              x(line.endPoint.x),
-              y(line.endPoint.y),
-              x(cp2.x),
-              y(cp2.y),
-              x(line.endPoint.x),
-              y(line.endPoint.y),
-              Two.Commands.curve,
-            ),
-          ];
-          points.forEach((point) => (point.relative = false));
-          lineElem = new Two.Path(points);
-          lineElem.automatic = false;
-        } else {
-          lineElem = new Two.Line(
-            x(_startPoint.x),
-            y(_startPoint.y),
-            x(line.endPoint.x),
-            y(line.endPoint.y),
-          );
-        }
-        lineElem.id = `preview-line-${idx + 1}`;
-        lineElem.stroke = "#60a5fa";
-        lineElem.linewidth = uiLength(LINE_WIDTH);
-        lineElem.noFill();
-        lineElem.dashes = [uiLength(4), uiLength(4)];
-        lineElem.opacity = 0.7;
-        _previewPaths.push(lineElem);
-      });
-    }
-    return _previewPaths;
-  })();
+  $: previewPathElements = generatePreviewPathElements(
+    previewOptimizedLines,
+    startPoint,
+    { x, y, uiLength },
+  );
 
   // Event Markers
-  $: eventMarkerElements = (() => {
-    let twoMarkers: InstanceType<typeof Two.Group>[] = [];
-
-    // Build a map of lineId -> startPoint from timePrediction if available
-    // This handles cases where lines are out of order in the array (e.g. mixed with macros)
-    const startPointMap = new Map<string, Point>();
-    if (timePrediction && timePrediction.timeline) {
-      timePrediction.timeline.forEach((ev: any) => {
-        if (ev.type === "travel" && ev.line && ev.prevPoint) {
-          startPointMap.set(ev.line.id, ev.prevPoint);
-        }
-      });
-    }
-
-    lines.forEach((line, idx) => {
-      if (!line || !line.endPoint || line.hidden) return;
-
-      let _startPoint = startPointMap.get(line.id!);
-      if (!_startPoint) {
-        // Fallback for lines not in timeline or if timeline missing
-        _startPoint = idx === 0 ? startPoint : lines[idx - 1]?.endPoint || null;
-      }
-
-      if (!_startPoint) return;
-      if (!line.eventMarkers || line.eventMarkers.length === 0) return;
-
-      line.eventMarkers.forEach((ev, evIdx) => {
-        const isHovered =
-          $hoveredMarkerId === ev.id ||
-          $multiSelectedPointIds.includes(`event-${idx}-${evIdx}`);
-        const radius = isHovered ? 1.8 : 0.9;
-        const color = isHovered ? "#a78bfa" : "#c4b5fd";
-
-        const t = Math.max(0, Math.min(1, ev.position ?? 0.5));
-        let pos = { x: 0, y: 0 };
-        if (line.controlPoints.length > 0) {
-          const cps = [_startPoint, ...line.controlPoints, line.endPoint];
-          const pt = getCurvePoint(t, cps);
-          pos.x = pt.x;
-          pos.y = pt.y;
-        } else {
-          pos.x = _startPoint.x + (line.endPoint.x - _startPoint.x) * t;
-          pos.y = _startPoint.y + (line.endPoint.y - _startPoint.y) * t;
-        }
-        const px = x(pos.x);
-        const py = y(pos.y);
-        let grp = new Two.Group();
-        grp.id = `event-${idx}-${evIdx}`;
-        let circle = new Two.Circle(px, py, uiLength(radius));
-        circle.id = `event-circle-${idx}-${evIdx}`;
-        circle.fill = color;
-        circle.noStroke();
-        grp.add(circle);
-        twoMarkers.push(grp);
-      });
-    });
-
-    if (
-      timePrediction &&
-      timePrediction.timeline &&
-      sequence &&
-      sequence.length > 0
-    ) {
-      // Use Registry for registered actions (e.g. Wait)
-      sequence.forEach((item) => {
-        if ((item as any).hidden) return;
-        const action = actionRegistry.get(item.kind);
-        if (action && action.renderField) {
-          const elems = action.renderField(item, {
-            x,
-            y,
-            uiLength,
-            settings,
-            hoveredId: $hoveredMarkerId,
-            selectedId: $selectedLineId,
-            selectedPointId: $selectedPointId,
-            timePrediction,
-          });
-          if (elems) {
-            elems.forEach((el) => twoMarkers.push(el));
-          }
-        }
-      });
-    }
-    return twoMarkers;
-  })();
+  $: eventMarkerElements = generateEventMarkerElements(
+    lines,
+    startPoint,
+    sequence,
+    {
+      x,
+      y,
+      uiLength,
+      hoveredMarkerId: $hoveredMarkerId,
+      multiSelectedPointIds: $multiSelectedPointIds,
+      settings,
+      timePrediction,
+      selectedLineId: $selectedLineId,
+      selectedPointId: $selectedPointId,
+      actionRegistry,
+    },
+  );
 
   // Collision Markers
-  $: collisionElements = (() => {
-    let elems: InstanceType<typeof Two.Group>[] = [];
-    if (markers && markers.length > 0) {
-      markers.forEach((marker, idx) => {
-        const group = new Two.Group();
-        const isBoundary = marker.type === "boundary";
-        const isZeroLength = marker.type === "zero-length";
-        const isKeepIn = marker.type === "keep-in";
-
-        let fillColor = "rgba(239, 68, 68, 0.5)"; // Red-500
-        let strokeColor = "#ef4444";
-        let glowFill = "rgba(239, 68, 68, 0.3)";
-        let glowStroke = "rgba(239, 68, 68, 0.5)";
-
-        if (isBoundary) {
-          fillColor = "rgba(249, 115, 22, 0.5)"; // Orange-500
-          strokeColor = "#f97316";
-          glowFill = "rgba(249, 115, 22, 0.3)";
-          glowStroke = "rgba(249, 115, 22, 0.5)";
-        } else if (isZeroLength) {
-          fillColor = "rgba(217, 70, 239, 0.5)"; // Fuchsia-500
-          strokeColor = "#d946ef";
-          glowFill = "rgba(217, 70, 239, 0.3)";
-          glowStroke = "rgba(217, 70, 239, 0.5)";
-        } else if (isKeepIn) {
-          fillColor = "rgba(59, 130, 246, 0.5)"; // Blue-500
-          strokeColor = "#3b82f6";
-          glowFill = "rgba(59, 130, 246, 0.3)";
-          glowStroke = "rgba(59, 130, 246, 0.5)";
-        }
-
-        // Check for range
-        if (
-          marker.endTime !== undefined &&
-          marker.endTime > marker.time &&
-          timePrediction &&
-          timePrediction.timeline
-        ) {
-          // Range Rendering
-          const start = marker.time;
-          const end = marker.endTime;
-
-          const events = timePrediction.timeline.filter(
-            (e: any) => e.endTime >= start && e.startTime <= end,
-          );
-
-          events.forEach((ev: any) => {
-            const segStart = Math.max(start, ev.startTime);
-            const segEnd = Math.min(end, ev.endTime);
-
-            if (ev.type === "wait") {
-              // Render point if wait is involved
-              if (ev.atPoint) {
-                const circle = new Two.Circle(
-                  x(ev.atPoint.x),
-                  y(ev.atPoint.y),
-                  uiLength(2),
-                );
-                circle.fill = fillColor;
-                circle.stroke = strokeColor;
-                circle.linewidth = uiLength(0.5);
-                group.add(circle);
-              }
-            } else if (ev.type === "travel") {
-              const lineIdx = ev.lineIndex;
-              const line = lines[lineIdx];
-              if (line) {
-                // Use the exact prevPoint captured in the timeline to anchor
-                // segment start; this stays correct across macro expansions and
-                // translated macros where array order may not match execution.
-                const lineStartPoint =
-                  ev.prevPoint ||
-                  (lineIdx === 0 ? startPoint : lines[lineIdx - 1].endPoint);
-                let t1 = 0;
-                let t2 = 1;
-
-                if (ev.duration > 0) {
-                  t1 = Math.max(0, (segStart - ev.startTime) / ev.duration);
-                  t2 = Math.min(1, (segEnd - ev.startTime) / ev.duration);
-                }
-
-                // Generate segment points
-                const samples = 30;
-                const points = [];
-                const cps = [
-                  lineStartPoint,
-                  ...line.controlPoints,
-                  line.endPoint,
-                ];
-
-                for (let i = 0; i <= samples; i++) {
-                  const t = t1 + (t2 - t1) * (i / samples);
-                  // Apply easing to match robot path movement
-                  const spatialT = easeInOutQuad(t);
-                  const pt = getCurvePoint(spatialT, cps);
-                  points.push(new Two.Anchor(x(pt.x), y(pt.y)));
-                }
-
-                const path = new Two.Path(points, false, false);
-                path.noFill();
-                path.stroke = strokeColor;
-                path.linewidth = uiLength(2.0);
-                path.cap = "round";
-                path.join = "round";
-                group.add(path);
-
-                // Add glow
-                const glowPath = new Two.Path(points, false, false);
-                glowPath.noFill();
-                glowPath.stroke = glowStroke;
-                glowPath.linewidth = uiLength(6.0);
-                glowPath.opacity = 0.5;
-                glowPath.cap = "round";
-                glowPath.join = "round";
-                group.add(glowPath);
-              }
-            }
-          });
-        } else {
-          // Point Rendering
-          const circle = new Two.Circle(x(marker.x), y(marker.y), uiLength(2));
-          circle.fill = fillColor;
-          circle.stroke = strokeColor;
-          circle.linewidth = uiLength(0.5);
-
-          const crossLength = uiLength(1.5);
-          const l1 = new Two.Line(
-            x(marker.x) - crossLength,
-            y(marker.y) - crossLength,
-            x(marker.x) + crossLength,
-            y(marker.y) + crossLength,
-          );
-          l1.stroke = "#ffffff";
-          l1.linewidth = uiLength(0.5);
-
-          const l2 = new Two.Line(
-            x(marker.x) + crossLength,
-            y(marker.y) - crossLength,
-            x(marker.x) - crossLength,
-            y(marker.y) + crossLength,
-          );
-          l2.stroke = "#ffffff";
-          l2.linewidth = uiLength(0.5);
-
-          const glow = new Two.Circle(x(marker.x), y(marker.y), uiLength(6));
-          glow.fill = glowFill;
-          glow.stroke = glowStroke;
-          glow.linewidth = uiLength(0.5);
-
-          group.add(glow, circle, l1, l2);
-        }
-        elems.push(group);
-      });
-    }
-    return elems;
-  })();
+  $: collisionElements = generateCollisionElements(
+    markers,
+    lines,
+    startPoint,
+    timePrediction,
+    { x, y, uiLength },
+  );
 
   // Render Loop
   $: if (two) {
