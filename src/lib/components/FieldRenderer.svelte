@@ -144,7 +144,7 @@
   let currentElem: string | null = null;
   let isDown = false;
   let isPanning = false;
-  let multiDragOffsets = new Map<string, { x: number; y: number }>();
+  let multiDragOffsets = new Map<string, {x: number, y: number}>();
   let startPan = { x: 0, y: 0 };
 
   // D3 Scales
@@ -632,9 +632,7 @@
       uiLength(POINT_RADIUS),
     );
     startPointElem.id = `point-0-0`;
-    startPointElem.fill = $multiSelectedPointIds.includes("point-0-0")
-      ? "#4ade80"
-      : lines[0]?.color || "#000000"; // Fallback color if lines empty
+    startPointElem.fill = $multiSelectedPointIds.includes("point-0-0") ? "#4ade80" : (lines[0]?.color || "#000000"); // Fallback color if lines empty
     startPointElem.noStroke();
     _points.push(startPointElem);
 
@@ -1524,9 +1522,7 @@
       if (!line.eventMarkers || line.eventMarkers.length === 0) return;
 
       line.eventMarkers.forEach((ev, evIdx) => {
-        const isHovered =
-          $hoveredMarkerId === ev.id ||
-          $multiSelectedPointIds.includes(`event-${idx}-${evIdx}`);
+        const isHovered = $hoveredMarkerId === ev.id || $multiSelectedPointIds.includes(`event-${idx}-${evIdx}`);
         const radius = isHovered ? 1.8 : 0.9;
         const color = isHovered ? "#a78bfa" : "#c4b5fd";
 
@@ -1886,7 +1882,7 @@
         let shapesChanged = false;
         let startPointChanged = false;
 
-        $multiSelectedPointIds.forEach((id) => {
+        $multiSelectedPointIds.forEach(id => {
           // If the element is a line point, verify it is not locked
           if (id.startsWith("point-")) {
             const line = Number(id.split("-")[1]) - 1;
@@ -1904,179 +1900,167 @@
             inchY = Math.round(rawInchY / $gridSize) * $gridSize;
           }
 
-          // Smart Object Snapping
-          const SNAP_THRESHOLD = 1.0; // inches
-          const isSnappingEnabled = settings.smartSnapping !== false; // Enabled by default
-          const shouldSnap = evt.altKey
-            ? !isSnappingEnabled
-            : isSnappingEnabled;
-          let newGuides: InstanceType<typeof Two.Line>[] = [];
+        // Smart Object Snapping
+        const SNAP_THRESHOLD = 1.0; // inches
+        const isSnappingEnabled = settings.smartSnapping !== false; // Enabled by default
+        const shouldSnap = evt.altKey ? !isSnappingEnabled : isSnappingEnabled;
+        let newGuides: InstanceType<typeof Two.Line>[] = [];
 
-          if (shouldSnap && id.startsWith("point-")) {
-            const targets: Point[] = [startPoint];
-            lines.forEach((l) => {
-              if (l.endPoint) targets.push(l.endPoint);
-            });
+        if (shouldSnap && id.startsWith("point-")) {
+          const targets: Point[] = [startPoint];
+          lines.forEach((l) => {
+            if (l.endPoint) targets.push(l.endPoint);
+          });
 
+          const parts = id.split("-");
+          const lineNum = Number(parts[1]);
+          const pointIdx = Number(parts[2]);
+
+          // Determine which target corresponds to the point being dragged (to exclude it)
+          // Targets array structure: [StartPoint, Line1_End, Line2_End, ...]
+          let excludeIndex = -999;
+          if (lineNum === 0 && pointIdx === 0)
+            excludeIndex = 0; // Start Point
+          else if (lineNum > 0 && pointIdx === 0) excludeIndex = lineNum; // Line N endpoint
+
+          let bestX = null;
+          let bestY = null;
+          let minDistX = SNAP_THRESHOLD;
+          let minDistY = SNAP_THRESHOLD;
+
+          targets.forEach((target, idx) => {
+            if (idx === excludeIndex) return;
+
+            const dx = Math.abs(target.x - inchX);
+            const dy = Math.abs(target.y - inchY);
+
+            if (dx < minDistX) {
+              minDistX = dx;
+              bestX = target.x;
+            }
+            if (dy < minDistY) {
+              minDistY = dy;
+              bestY = target.y;
+            }
+          });
+
+          if (bestX !== null) {
+            inchX = bestX;
+            const guide = new Two.Line(x(inchX), y(0), x(inchX), y(FIELD_SIZE));
+            guide.stroke = "#f59e0b"; // Amber
+            guide.linewidth = uiLength(0.5);
+            guide.dashes = [uiLength(4), uiLength(4)];
+            newGuides.push(guide);
+          }
+
+          if (bestY !== null) {
+            inchY = bestY;
+            const guide = new Two.Line(x(0), y(inchY), x(FIELD_SIZE), y(inchY));
+            guide.stroke = "#f59e0b"; // Amber
+            guide.linewidth = uiLength(0.5);
+            guide.dashes = [uiLength(4), uiLength(4)];
+            newGuides.push(guide);
+          }
+        }
+        snapGuides = newGuides;
+
+        // Determine clamping range
+        let minX = -Infinity;
+        let maxX = Infinity;
+        let minY = -Infinity;
+        let maxY = Infinity;
+
+        // Apply field restrictions if enabled or if snapped (snap implies grid which is usually in field, but use explicit restriction)
+        if (settings.restrictDraggingToField !== false) {
+          minX = 0;
+          maxX = FIELD_SIZE;
+          minY = 0;
+          maxY = FIELD_SIZE;
+
+          if (id.startsWith("point-")) {
             const parts = id.split("-");
             const lineNum = Number(parts[1]);
             const pointIdx = Number(parts[2]);
 
-            // Determine which target corresponds to the point being dragged (to exclude it)
-            // Targets array structure: [StartPoint, Line1_End, Line2_End, ...]
-            let excludeIndex = -999;
-            if (lineNum === 0 && pointIdx === 0)
-              excludeIndex = 0; // Start Point
-            else if (lineNum > 0 && pointIdx === 0) excludeIndex = lineNum; // Line N endpoint
+            // Calculate base robot margin (half of smallest dimension)
+            const robotMargin = Math.min(settings.rLength, settings.rWidth) / 2;
+            const safety = settings.safetyMargin || 0;
 
-            let bestX = null;
-            let bestY = null;
-            let minDistX = SNAP_THRESHOLD;
-            let minDistY = SNAP_THRESHOLD;
+            let margin = 0;
 
-            targets.forEach((target, idx) => {
-              if (idx === excludeIndex) return;
-
-              const dx = Math.abs(target.x - inchX);
-              const dy = Math.abs(target.y - inchY);
-
-              if (dx < minDistX) {
-                minDistX = dx;
-                bestX = target.x;
-              }
-              if (dy < minDistY) {
-                minDistY = dy;
-                bestY = target.y;
-              }
-            });
-
-            if (bestX !== null) {
-              inchX = bestX;
-              const guide = new Two.Line(
-                x(inchX),
-                y(0),
-                x(inchX),
-                y(FIELD_SIZE),
-              );
-              guide.stroke = "#f59e0b"; // Amber
-              guide.linewidth = uiLength(0.5);
-              guide.dashes = [uiLength(4), uiLength(4)];
-              newGuides.push(guide);
+            // Start Point (point-0-0)
+            if (lineNum === 0 && pointIdx === 0) {
+              margin = robotMargin;
+            }
+            // Other Anchor Points (Endpoints of lines: point-N-0 where N > 0)
+            else if (lineNum > 0 && pointIdx === 0) {
+              margin = robotMargin + safety;
+            }
+            // Control Points (point-N-M where M > 0) -> No extra margin, just field bounds
+            else {
+              margin = 0;
             }
 
-            if (bestY !== null) {
-              inchY = bestY;
-              const guide = new Two.Line(
-                x(0),
-                y(inchY),
-                x(FIELD_SIZE),
-                y(inchY),
-              );
-              guide.stroke = "#f59e0b"; // Amber
-              guide.linewidth = uiLength(0.5);
-              guide.dashes = [uiLength(4), uiLength(4)];
-              newGuides.push(guide);
-            }
+            minX = margin;
+            maxX = FIELD_SIZE - margin;
+            minY = margin;
+            maxY = FIELD_SIZE - margin;
           }
-          snapGuides = newGuides;
+        }
 
-          // Determine clamping range
-          let minX = -Infinity;
-          let maxX = Infinity;
-          let minY = -Infinity;
-          let maxY = Infinity;
+        // Apply clamping
+        inchX = Math.max(minX, Math.min(maxX, inchX));
+        inchY = Math.max(minY, Math.min(maxY, inchY));
 
-          // Apply field restrictions if enabled or if snapped (snap implies grid which is usually in field, but use explicit restriction)
-          if (settings.restrictDraggingToField !== false) {
-            minX = 0;
-            maxX = FIELD_SIZE;
-            minY = 0;
-            maxY = FIELD_SIZE;
-
-            if (id.startsWith("point-")) {
-              const parts = id.split("-");
-              const lineNum = Number(parts[1]);
-              const pointIdx = Number(parts[2]);
-
-              // Calculate base robot margin (half of smallest dimension)
-              const robotMargin =
-                Math.min(settings.rLength, settings.rWidth) / 2;
-              const safety = settings.safetyMargin || 0;
-
-              let margin = 0;
-
-              // Start Point (point-0-0)
-              if (lineNum === 0 && pointIdx === 0) {
-                margin = robotMargin;
-              }
-              // Other Anchor Points (Endpoints of lines: point-N-0 where N > 0)
-              else if (lineNum > 0 && pointIdx === 0) {
-                margin = robotMargin + safety;
-              }
-              // Control Points (point-N-M where M > 0) -> No extra margin, just field bounds
-              else {
-                margin = 0;
-              }
-
-              minX = margin;
-              maxX = FIELD_SIZE - margin;
-              minY = margin;
-              maxY = FIELD_SIZE - margin;
-            }
+        if (id.startsWith("obstacle-")) {
+          const parts = id.split("-");
+          const shapeIdx = Number(parts[1]);
+          if (shapes[shapeIdx]?.locked) return;
+          const vertexIdx = Number(parts[2]);
+          shapes[shapeIdx].vertices[vertexIdx].x = inchX;
+          shapes[shapeIdx].vertices[vertexIdx].y = inchY;
+          shapesChanged = true;
+        } else if (id.startsWith("targetpoint-")) {
+          const line = Number(id.split("-")[1]) - 1;
+          if (lines[line] && lines[line].endPoint) {
+            lines[line].endPoint.targetX = inchX;
+            lines[line].endPoint.targetY = inchY;
+            linesChanged = true;
           }
+        } else {
+          const line = Number(id.split("-")[1]) - 1;
+          const point = Number(id.split("-")[2]);
 
-          // Apply clamping
-          inchX = Math.max(minX, Math.min(maxX, inchX));
-          inchY = Math.max(minY, Math.min(maxY, inchY));
-
-          if (id.startsWith("obstacle-")) {
-            const parts = id.split("-");
-            const shapeIdx = Number(parts[1]);
-            if (shapes[shapeIdx]?.locked) return;
-            const vertexIdx = Number(parts[2]);
-            shapes[shapeIdx].vertices[vertexIdx].x = inchX;
-            shapes[shapeIdx].vertices[vertexIdx].y = inchY;
-            shapesChanged = true;
-          } else if (id.startsWith("targetpoint-")) {
-            const line = Number(id.split("-")[1]) - 1;
-            if (lines[line] && lines[line].endPoint) {
-              lines[line].endPoint.targetX = inchX;
-              lines[line].endPoint.targetY = inchY;
-              linesChanged = true;
+          if (line === -1) {
+            if (!startPoint.locked) {
+              startPoint.x = inchX;
+              startPoint.y = inchY;
+              startPointChanged = true;
             }
-          } else {
-            const line = Number(id.split("-")[1]) - 1;
-            const point = Number(id.split("-")[2]);
-
-            if (line === -1) {
-              if (!startPoint.locked) {
-                startPoint.x = inchX;
-                startPoint.y = inchY;
-                startPointChanged = true;
-              }
-            } else if (lines[line]) {
-              if (point === 0 && lines[line].endPoint) {
-                lines[line].endPoint.x = inchX;
-                lines[line].endPoint.y = inchY;
-                if (lines[line].id) {
-                  const updated = updateLinkedWaypoints(
-                    lines,
-                    lines[line].id as string,
-                  );
-                  // Only update if changes occurred to avoid unnecessary store updates
-                  if (updated !== lines) {
-                    lines = updated;
-                  }
-                }
-              } else {
-                if (!lines[line]?.locked) {
-                  lines[line].controlPoints[point - 1].x = inchX;
-                  lines[line].controlPoints[point - 1].y = inchY;
+          } else if (lines[line]) {
+            if (point === 0 && lines[line].endPoint) {
+              lines[line].endPoint.x = inchX;
+              lines[line].endPoint.y = inchY;
+              if (lines[line].id) {
+                const updated = updateLinkedWaypoints(
+                  lines,
+                  lines[line].id as string,
+                );
+                // Only update if changes occurred to avoid unnecessary store updates
+                if (updated !== lines) {
+                  lines = updated;
                 }
               }
-              linesChanged = true;
+            } else {
+              if (!lines[line]?.locked) {
+                lines[line].controlPoints[point - 1].x = inchX;
+                lines[line].controlPoints[point - 1].y = inchY;
+              }
             }
+            linesChanged = true;
           }
+        }
+
         }); // End of multiSelectedPointIds.forEach
 
         if (linesChanged) linesStore.set(lines);
@@ -2264,9 +2248,9 @@
 
         // --- Multi-select Logic ---
         if (evt.shiftKey || evt.ctrlKey || evt.metaKey) {
-          multiSelectedPointIds.update((ids) => {
+          multiSelectedPointIds.update(ids => {
             if (ids.includes(clickedElem!)) {
-              return ids.filter((id) => id !== clickedElem);
+              return ids.filter(id => id !== clickedElem);
             } else {
               return [...ids, clickedElem!];
             }
@@ -2304,9 +2288,7 @@
           }
           if (lId) {
             if (evt.shiftKey || evt.ctrlKey || evt.metaKey) {
-              multiSelectedLineIds.update((ids) =>
-                ids.includes(lId) ? ids : [...ids, lId],
-              );
+              multiSelectedLineIds.update(ids => ids.includes(lId) ? ids : [...ids, lId]);
             } else {
               multiSelectedLineIds.set([lId]);
             }
@@ -2386,9 +2368,8 @@
         multiDragOffsets.clear();
         const currentIds = $multiSelectedPointIds;
 
-        currentIds.forEach((id) => {
-          let ox = 0,
-            oy = 0;
+        currentIds.forEach(id => {
+          let ox = 0, oy = 0;
           if (id.startsWith("obstacle-")) {
             const parts = id.split("-");
             const shapeIdx = Number(parts[1]);
@@ -2421,6 +2402,7 @@
           }
           multiDragOffsets.set(id, { x: ox - mouseX, y: oy - mouseY });
         });
+
       } else {
         // Start Panning
         isPanning = true;
