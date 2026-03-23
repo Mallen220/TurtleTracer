@@ -23,6 +23,7 @@
     showGrid,
     gridSize,
     selectedLineId,
+    multiSelectedLineIds,
     selectedPointId,
     multiSelectedPointIds,
     focusRequest,
@@ -134,8 +135,16 @@
           return [...ids, pointId];
         }
       });
+      if (lineId) {
+        multiSelectedLineIds.update(ids => {
+          if (!ids.includes(lineId)) return [...ids, lineId];
+          return ids;
+        });
+      }
     } else {
       multiSelectedPointIds.set([pointId]);
+      if (lineId) multiSelectedLineIds.set([lineId]);
+      else multiSelectedLineIds.set([]);
     }
   }
 // Focus Handling Action

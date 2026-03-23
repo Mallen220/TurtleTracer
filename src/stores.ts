@@ -60,6 +60,7 @@ export const fileManagerNewFileMode = writable(false);
 
 // Currently selected line id (used to add control points to selected path)
 export const selectedLineId = writable<string | null>(null);
+export const multiSelectedLineIds = writable<string[]>([]);
 
 // Trigger counter for toggling collapse/expand all (increment to trigger)
 export const toggleCollapseAllTrigger = writable(0);

@@ -16,6 +16,7 @@
     selectedPointId,
     multiSelectedPointIds,
     selectedLineId,
+    multiSelectedLineIds,
     toggleCollapseAllTrigger,
     fieldZoom,
     fieldPan,
@@ -1010,6 +1011,8 @@
 
     selectedPointId.set(null);
     multiSelectedPointIds.set([]);
+    selectedLineId.set(null);
+    multiSelectedLineIds.set([]);
     recordChange("Delete Selection");
   }
 
@@ -2254,6 +2257,7 @@
       selectedPointId.set(null);
       multiSelectedPointIds.set([]);
       selectedLineId.set(null);
+      multiSelectedLineIds.set([]);
       // Blur any active input
       if (
         document.activeElement &&
