@@ -3374,11 +3374,6 @@
                       Turtle Tracer
                     </h3>
                     <p
-                      class="text-xs text-neutral-500 dark:text-neutral-400 mb-2"
-                    >
-                      Formerly Pedro Pathing Plus Visualizer
-                    </p>
-                    <p
                       class="text-sm text-neutral-500 dark:text-neutral-400 mb-6"
                     >
                       Version {appVersion}
