@@ -231,7 +231,7 @@ export function generateLinesFromDrawing(
   // 1. Simplify points
   // A simple distance-based decimation + Douglas-Peucker could be used, but for now we'll
   // do a basic greedy decimation to ensure we don't have too many lines.
-  const minLineLength = 10; // min 10 inches between waypoints
+  const minLineLength = 4; // min 4 inches between waypoints
   const simplified: { x: number; y: number }[] = [drawnPoints[0]];
   let lastAdded = drawnPoints[0];
 
@@ -241,20 +241,25 @@ export function generateLinesFromDrawing(
       lastAdded = drawnPoints[i];
     }
   }
-  // Always include the last point
-  if (getDistance(lastAdded, drawnPoints[drawnPoints.length - 1]) > 2) {
+  // Always include the last point, but only if it's not super close to the last added point
+  if (getDistance(lastAdded, drawnPoints[drawnPoints.length - 1]) > 1) {
     simplified.push(drawnPoints[drawnPoints.length - 1]);
   }
 
-  if (simplified.length < 2) return null;
+  // We need at least one point to draw to.
+  // If simplified has only 1 point, it means the user just clicked without dragging far.
+  if (simplified.length < 1) return null;
 
   let currentLines = [...lines];
   let currentSequence = [...sequence];
   let currentStartPoint = { ...startPoint };
 
-  // If no lines exist, move start point to the first drawn point
+  // Determine starting context
   let isFirstLine = currentLines.length === 0;
-  let startIndex = 0;
+
+  let currentConnectionPt = isFirstLine
+    ? { x: simplified[0].x, y: simplified[0].y }
+    : currentLines[currentLines.length - 1].endPoint;
 
   if (isFirstLine) {
     currentStartPoint = {
@@ -262,13 +267,30 @@ export function generateLinesFromDrawing(
       x: simplified[0].x,
       y: simplified[0].y,
     };
+    // The first drawn point becomes the start point, so we start drawing lines to the 2nd point.
+    // If they only drew one point (clicked), we just update the start point and return.
+    if (simplified.length === 1) {
+       return {
+         startPoint: currentStartPoint,
+         lines: currentLines,
+         sequence: currentSequence,
+       };
+    }
+  }
+
+  // If there are existing lines, we must draw a line from the existing endPoint to the first drawn point,
+  // unless the first drawn point is extremely close to the existing endPoint.
+  let startIndex = isFirstLine ? 1 : 0;
+
+  if (!isFirstLine && getDistance(currentConnectionPt, simplified[0]) < 2) {
+    // They started drawing right at the end of the existing path, skip connecting to the first point.
     startIndex = 1;
   }
 
   // Generate lines
   for (let i = startIndex; i < simplified.length; i++) {
     const pt = simplified[i];
-    const prevPt = i === 0 ? currentStartPoint : simplified[i - 1];
+    const prevPt = currentConnectionPt;
 
     // Calculate a simple control point halfway to make it a bezier line.
     // To make it actually smooth, we'd need a more complex fit, but a straight-ish line is fine for rough drawing.
@@ -303,6 +325,9 @@ export function generateLinesFromDrawing(
 
     currentLines.push(newLine);
     currentSequence.push({ kind: "path", lineId: newLine.id! });
+
+    // Update connection point for next iteration
+    currentConnectionPt = pt;
   }
 
   return {
