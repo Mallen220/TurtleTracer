@@ -3,13 +3,13 @@ import {
   linesStore,
   settingsStore,
   shapesStore,
-  startPointStore
+  startPointStore,
 } from "../../projectStore";
 import {
   selectedLineId,
   selectedPointId,
   showRobot,
-  notification
+  notification,
 } from "../../../stores";
 import { AVAILABLE_FIELD_MAPS } from "../../../config";
 import { getRandomColor } from "../../../utils";

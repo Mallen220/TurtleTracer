@@ -30,7 +30,10 @@ export function isButtonFocused(): boolean {
   return tag === "BUTTON" || el.getAttribute("role") === "button";
 }
 
-export function shouldBlockShortcut(e: KeyboardEvent, actionId?: string): boolean {
+export function shouldBlockShortcut(
+  e: KeyboardEvent,
+  actionId?: string,
+): boolean {
   // Whitelist specific actions that should work even when input is focused
   if (
     actionId === "toggle-command-palette" ||

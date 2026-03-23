@@ -2,12 +2,9 @@ import { get } from "svelte/store";
 import {
   linesStore,
   sequenceStore,
-  renumberDefaultPathNames
+  renumberDefaultPathNames,
 } from "../../projectStore";
-import {
-  selectedLineId,
-  selectedPointId
-} from "../../../stores";
+import { selectedLineId, selectedPointId } from "../../../stores";
 import { actionRegistry } from "../../actionRegistry";
 import type { Line, SequenceItem } from "../../../types/index";
 import _ from "lodash";
@@ -32,10 +29,7 @@ export function addNewLine(recordChange: (action?: string) => void) {
   const insertIdx = getSelectedSequenceIndex();
   if (insertIdx === null) {
     linesStore.update((l) => renumberDefaultPathNames([...l, newLine]));
-    sequenceStore.update((s) => [
-      ...s,
-      { kind: "path", lineId: newLine.id! },
-    ]);
+    sequenceStore.update((s) => [...s, { kind: "path", lineId: newLine.id! }]);
     selectedLineId.set(newLine.id!);
     const newIndex = get(linesStore).length - 1;
     selectedPointId.set(`point-${newIndex + 1}-0`);
@@ -134,8 +128,7 @@ export function addEventMarker(recordChange: (action?: string) => void) {
   if (selPoint && selPoint.startsWith("rotate-")) {
     const rotateId = selPoint.substring(7);
     const rotateItem = sequence.find(
-      (s) =>
-        actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
     ) as any;
 
     if (rotateItem) {
@@ -157,7 +150,8 @@ export function addEventMarker(recordChange: (action?: string) => void) {
 
   const lines = get(linesStore);
   const selLine = get(selectedLineId);
-  const targetId = selLine || (lines.length > 0 ? lines[lines.length - 1].id : null);
+  const targetId =
+    selLine || (lines.length > 0 ? lines[lines.length - 1].id : null);
   const targetLine = targetId ? lines.find((l) => l.id === targetId) : null;
 
   if (targetLine) {
@@ -183,7 +177,8 @@ export function addControlPoint(recordChange: (action?: string) => void) {
   const lines = get(linesStore);
   if (lines.length === 0) return;
   const targetId = get(selectedLineId) || lines[lines.length - 1].id;
-  const targetLine = lines.find((l) => l.id === targetId) || lines[lines.length - 1];
+  const targetLine =
+    lines.find((l) => l.id === targetId) || lines[lines.length - 1];
   if (!targetLine) return;
   if (targetLine.locked) return; // Don't allow adding control points to locked lines
 
@@ -203,7 +198,8 @@ export function removeControlPoint(recordChange: (action?: string) => void) {
   const lines = get(linesStore);
   if (lines.length > 0) {
     const targetId = get(selectedLineId) || lines[lines.length - 1].id;
-    const targetLine = lines.find((l) => l.id === targetId) || lines[lines.length - 1];
+    const targetLine =
+      lines.find((l) => l.id === targetId) || lines[lines.length - 1];
     if (targetLine && targetLine.controlPoints.length > 0) {
       if (targetLine.locked) return; // Don't allow removing control points from locked lines
       targetLine.controlPoints.pop();

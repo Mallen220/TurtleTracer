@@ -1,14 +1,11 @@
 import { get } from "svelte/store";
-import {
-  startPointStore,
-  linesStore
-} from "../../projectStore";
+import { startPointStore, linesStore } from "../../projectStore";
 import {
   gridSize,
   fieldZoom,
   fieldPan,
   selectedPointId,
-  selectedLineId
+  selectedLineId,
 } from "../../../stores";
 import { computeZoomStep } from "../../zoomHelpers";
 import { getDefaultStartPoint } from "../../../config";

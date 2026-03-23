@@ -1,19 +1,18 @@
 import { get } from "svelte/store";
-import {
-  linesStore,
-  sequenceStore,
-  startPointStore
-} from "../../projectStore";
-import {
-  selectedLineId,
-  selectedPointId
-} from "../../../stores";
+import { linesStore, sequenceStore, startPointStore } from "../../projectStore";
+import { selectedLineId, selectedPointId } from "../../../stores";
 import { actionRegistry } from "../../actionRegistry";
-import { updateLinkedWaits, updateLinkedRotations } from "../../../utils/pointLinking";
+import {
+  updateLinkedWaits,
+  updateLinkedRotations,
+} from "../../../utils/pointLinking";
 import type { Point } from "../../../types/index";
 import { isUIElementFocused } from "./utils";
 
-export function modifyValue(delta: number, recordChange: (action?: string) => void) {
+export function modifyValue(
+  delta: number,
+  recordChange: (action?: string) => void,
+) {
   if (isUIElementFocused()) return;
   const current = get(selectedPointId);
   const sequence = get(sequenceStore);
@@ -37,8 +36,7 @@ export function modifyValue(delta: number, recordChange: (action?: string) => vo
   if (current.startsWith("rotate-")) {
     const rotateId = current.substring(7);
     const item = sequence.find(
-      (s) =>
-        actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
     ) as any;
     if (item) {
       if (item.locked) return; // Don't modify locked rotates
@@ -74,8 +72,7 @@ export function modifyValue(delta: number, recordChange: (action?: string) => vo
     const rotateId = parts.slice(2).join("-");
 
     const item = sequence.find(
-      (s) =>
-        actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
     ) as any;
     if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
       if (item.locked) return; // Don't modify event markers on locked rotates
