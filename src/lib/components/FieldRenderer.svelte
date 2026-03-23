@@ -77,6 +77,7 @@
     DEFAULT_ROBOT_WIDTH,
   } from "../../config";
   import { calculateRobotState } from "../../utils/animation";
+  import { generateLinesFromDrawing } from "../../utils/pathEditing";
   import {
     getCurvePoint,
     quadraticToCubic,
@@ -1432,22 +1433,18 @@
         }
 
         if (drawPoints.length > 1) {
-          import("../../utils/pathEditing").then(
-            ({ generateLinesFromDrawing }) => {
-              const result = generateLinesFromDrawing(
-                drawPoints,
-                startPoint,
-                lines,
-                sequence,
-              );
-              if (result) {
-                startPointStore.set(result.startPoint);
-                linesStore.set(result.lines);
-                sequenceStore.set(result.sequence);
-                onRecordChange("Draw Path");
-              }
-            },
+          const result = generateLinesFromDrawing(
+            drawPoints,
+            startPoint,
+            lines,
+            sequence,
           );
+          if (result) {
+            startPointStore.set(result.startPoint);
+            linesStore.set(result.lines);
+            sequenceStore.set(result.sequence);
+            onRecordChange("Draw Path");
+          }
         }
         drawPoints = [];
         return;
