@@ -60,12 +60,16 @@ export const fileManagerNewFileMode = writable(false);
 
 // Currently selected line id (used to add control points to selected path)
 export const selectedLineId = writable<string | null>(null);
+export const multiSelectedLineIds = writable<string[]>([]);
 
 // Trigger counter for toggling collapse/expand all (increment to trigger)
 export const toggleCollapseAllTrigger = writable(0);
 
 // Currently selected point id in field rendering, format: 'point-<line+1>-<idx>' or 'point-0-0' for start
 export const selectedPointId = writable<string | null>(null);
+
+// Currently selected multiple point ids (for batch actions like dragging and deleting)
+export const multiSelectedPointIds = writable<string[]>([]);
 
 // Collision markers for validation
 export const collisionMarkers = writable<CollisionMarker[]>([]);
