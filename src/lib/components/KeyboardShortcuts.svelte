@@ -879,5 +879,3 @@
     }
   }}
 />
-
-<!-- No UI for shortcuts themselves, just listeners -->
