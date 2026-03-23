@@ -96,7 +96,7 @@ describe("ExportGifDialog", () => {
       () => {
         expect(queryByText("Export Animation")).toBeNull();
       },
-      { timeout: 3000 },
+      { timeout: 2000 },
     );
 
     // The exporter should have been called and aborted
