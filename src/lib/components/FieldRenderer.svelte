@@ -648,7 +648,11 @@
             uiLength(POINT_RADIUS),
           );
           pointElem.id = `point-${idx + 1}-${idx1}-background`;
-          pointElem.fill = $multiSelectedPointIds.includes(pointElem.id) ? "#4ade80" : line.color;
+          pointElem.fill =
+            $multiSelectedPointIds.length > 1 &&
+            $multiSelectedPointIds.includes(pointElem.id)
+              ? "#4ade80"
+              : line.color;
           pointElem.noStroke();
           let pointText = new Two.Text(
             `${idx1}`,
@@ -672,7 +676,11 @@
             uiLength(POINT_RADIUS),
           );
           pointElem.id = `point-${idx + 1}-${idx1}`;
-          pointElem.fill = $multiSelectedPointIds.includes(pointElem.id) ? "#4ade80" : line.color;
+          pointElem.fill =
+            $multiSelectedPointIds.length > 1 &&
+            $multiSelectedPointIds.includes(pointElem.id)
+              ? "#4ade80"
+              : line.color;
           pointElem.noStroke();
           _points.push(pointElem);
         }
