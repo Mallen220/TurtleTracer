@@ -14,6 +14,11 @@ describe("Draw Utils", () => {
       expect(color).toMatch(/^#[0-9A-F]{6}$/);
     });
 
+    it("returns a string that is exactly 7 characters long", () => {
+      const color = getRandomColor();
+      expect(color.length).toBe(7);
+    });
+
     it("returns different colors on subsequent calls", () => {
       const color1 = getRandomColor();
       const color2 = getRandomColor();
