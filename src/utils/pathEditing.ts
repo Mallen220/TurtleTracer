@@ -228,18 +228,16 @@ function perpendicularDistance(
   const dx = lineEnd.x - lineStart.x;
   const dy = lineEnd.y - lineStart.y;
 
-  const mag = Math.sqrt(dx * dx + dy * dy);
-  if (mag > 0.0) {
-    const area = Math.abs(
-      0.5 *
-        (lineStart.x * lineEnd.y +
-          lineEnd.x * pt.y +
-          pt.x * lineStart.y -
-          lineEnd.x * lineStart.y -
-          pt.x * lineEnd.y -
-          lineStart.x * pt.y),
+  const magSq = dx * dx + dy * dy;
+  if (magSq > 0.0) {
+    // Numerator is the absolute value of the cross product of the vector from lineStart to lineEnd
+    // and the vector from lineStart to pt. This gives the area of the parallelogram formed by the two vectors.
+    // Dividing by the magnitude of the line segment gives the height of the parallelogram,
+    // which is the perpendicular distance.
+    const numerator = Math.abs(
+      dx * (lineStart.y - pt.y) - (lineStart.x - pt.x) * dy,
     );
-    return (area / mag) * 2;
+    return numerator / Math.sqrt(magSq);
   } else {
     return getDistance(pt, lineStart);
   }
