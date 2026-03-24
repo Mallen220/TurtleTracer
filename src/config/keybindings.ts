@@ -73,7 +73,7 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
   },
   {
     id: "remove-control-point",
-    key: "d",
+    key: "shift+a",
     description: "Remove control point",
     action: "removeControlPoint",
     category: "Editing",
@@ -374,6 +374,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     key: "b",
     description: "Toggle Control Tab",
     action: "toggleControlTab",
+    category: "View",
+  },
+  {
+    id: "toggle-draw",
+    key: "d",
+    description: "Toggle Draw Mode",
+    action: "toggleDraw",
     category: "View",
   },
   {
