@@ -451,47 +451,6 @@
 {/if}
 
 <style lang="postcss">
-  /* Global styles for rendered markdown */
-  :global(.prose h1) {
-    @apply text-2xl font-bold mb-4 mt-8 first:mt-0;
-  }
-  :global(.prose h2) {
-    @apply text-xl font-bold mb-3 mt-6;
-  }
-  :global(.prose h3) {
-    @apply text-lg font-bold mb-2 mt-4;
-  }
-  :global(.prose p) {
-    @apply mb-4 leading-relaxed;
-  }
-  :global(.prose ul) {
-    @apply list-disc list-outside ml-5 mb-4;
-  }
-  :global(.prose ol) {
-    @apply list-decimal list-outside ml-5 mb-4;
-  }
-  :global(.prose li) {
-    @apply mb-1;
-  }
-  :global(.prose strong) {
-    @apply font-bold text-neutral-900 dark:text-neutral-100;
-  }
-  :global(.prose a) {
-    @apply text-purple-600 dark:text-purple-400 hover:underline;
-  }
-  :global(.prose code) {
-    @apply bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono text-purple-700 dark:text-purple-300;
-  }
-  :global(.prose pre) {
-    @apply bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto mb-4 text-sm font-mono;
-  }
-  :global(.prose blockquote) {
-    @apply border-l-4 border-purple-200 dark:border-purple-900 pl-4 italic my-4;
-  }
-  :global(.prose img) {
-    @apply rounded-lg shadow-md max-w-full my-4 border border-neutral-200 dark:border-neutral-700;
-  }
-
   .animate-fade-in {
     animation: fadeIn 0.2s ease-out;
   }
@@ -504,20 +463,5 @@
       opacity: 1;
       transform: translateY(0);
     }
-  }
-
-  /* Custom scrollbar to match the new UI (subtle) */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-neutral-200 dark:bg-neutral-700 rounded-full;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    @apply bg-neutral-300 dark:bg-neutral-600;
   }
 </style>

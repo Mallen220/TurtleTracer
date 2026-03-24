@@ -389,20 +389,6 @@
 {/if}
 
 <style lang="postcss">
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(156, 163, 175, 0.3);
-    border-radius: 20px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(156, 163, 175, 0.5);
-  }
-
   /* Prose Overrides for Compact View */
   :global(.prose h1) {
     @apply text-lg font-bold mb-2 mt-4 first:mt-0;

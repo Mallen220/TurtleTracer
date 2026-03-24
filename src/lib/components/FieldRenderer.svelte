@@ -874,10 +874,10 @@
             targets.push({ x: FIELD_SIZE, y: FIELD_SIZE } as Point);
 
             // Add shape vertices
-            shapes.forEach(shape => {
+            shapes.forEach((shape) => {
               if (shape.visible !== false) {
-                shape.vertices.forEach(v => {
-                   targets.push({ x: v.x, y: v.y } as Point);
+                shape.vertices.forEach((v) => {
+                  targets.push({ x: v.x, y: v.y } as Point);
                 });
               }
             });

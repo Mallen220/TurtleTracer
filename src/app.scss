@@ -68,3 +68,59 @@ img[alt="Robot"] {
   user-drag: none !important;
   -webkit-user-drag: none !important;
 }
+
+/* Global styles for rendered markdown */
+.prose h1 {
+  @apply text-2xl font-bold mb-4 mt-8 first:mt-0;
+}
+.prose h2 {
+  @apply text-xl font-bold mb-3 mt-6;
+}
+.prose h3 {
+  @apply text-lg font-bold mb-2 mt-4;
+}
+.prose p {
+  @apply mb-4 leading-relaxed;
+}
+.prose ul {
+  @apply list-disc list-outside ml-5 mb-4;
+}
+.prose ol {
+  @apply list-decimal list-outside ml-5 mb-4;
+}
+.prose li {
+  @apply mb-1;
+}
+.prose strong {
+  @apply font-bold text-neutral-900 dark:text-neutral-100;
+}
+.prose a {
+  @apply text-purple-600 dark:text-purple-400 hover:underline;
+}
+.prose code {
+  @apply bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono text-purple-700 dark:text-purple-300;
+}
+.prose pre {
+  @apply bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto mb-4 text-sm font-mono;
+}
+.prose blockquote {
+  @apply border-l-4 border-purple-200 dark:border-purple-900 pl-4 italic my-4;
+}
+.prose img {
+  @apply rounded-lg shadow-md max-w-full my-4 border border-neutral-200 dark:border-neutral-700;
+}
+
+/* Custom scrollbar to match the new UI (subtle) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-neutral-200 dark:bg-neutral-700 rounded-full;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-neutral-300 dark:bg-neutral-600;
+}
