@@ -927,6 +927,7 @@
   accept=".turt,.pp"
   class="hidden"
   style="display:none;"
+  tabindex="-1"
   on:change={(e) => {
     // @ts-ignore
     if (e.target.files && e.target.files.length > 0) {
