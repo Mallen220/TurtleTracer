@@ -254,7 +254,6 @@ export async function loadMacro(filePath: string, force = false) {
           newMap.set(filePath, data);
           return newMap;
         });
-        console.log(`[projectStore] Loaded macro: ${filePath}`);
 
         // Recursively load any macros nested within this macro
         const promises: Promise<void>[] = [];

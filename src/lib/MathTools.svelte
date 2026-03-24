@@ -9,7 +9,12 @@
     isPresentationMode,
     snapToGrid,
   } from "../stores";
-  import { settingsStore, linesStore, startPointStore, shapesStore } from "./projectStore";
+  import {
+    settingsStore,
+    linesStore,
+    startPointStore,
+    shapesStore,
+  } from "./projectStore";
   import { toUser } from "../utils/coordinates";
   import { FIELD_SIZE } from "../config/defaults";
   import type * as d3 from "d3";
@@ -100,10 +105,10 @@
         targets.push({ x: 0, y: FIELD_SIZE } as Point);
         targets.push({ x: FIELD_SIZE, y: FIELD_SIZE } as Point);
 
-        $shapesStore.forEach(shape => {
+        $shapesStore.forEach((shape) => {
           if (shape.visible !== false) {
-            shape.vertices.forEach(v => {
-               targets.push({ x: v.x, y: v.y } as Point);
+            shape.vertices.forEach((v) => {
+              targets.push({ x: v.x, y: v.y } as Point);
             });
           }
         });

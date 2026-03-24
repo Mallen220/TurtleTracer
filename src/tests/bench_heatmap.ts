@@ -98,12 +98,5 @@ function runOptimized() {
   return objectCount;
 }
 
-console.log("Running Heatmap Generation Benchmark...");
 const baseline = runBaseline();
 const optimized = runOptimized();
-
-console.log(`Baseline Objects: ${baseline}`);
-console.log(`Optimized Objects: ${optimized}`);
-console.log(
-  `Reduction: ${(((baseline - optimized) / baseline) * 100).toFixed(1)}%`,
-);
