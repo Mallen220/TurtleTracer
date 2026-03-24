@@ -12,6 +12,7 @@ import {
   shortestRotation,
   getDistance,
 } from "./math";
+import { getRandomColor } from "./draw";
 import { makeId } from "./nameGenerator";
 
 export interface PathSplitResult {
@@ -289,7 +290,7 @@ export function generateLinesFromDrawing(
 
   // Force simplification to be at most 4 points to aggressively prevent excessive paths being generated
   // This ensures U-shapes and sweeping curves map to ~3 segments maximum.
-  while (simplified.length > 4 && epsilon < 60) {
+  while (simplified.length > 12 && epsilon < 60) {
     epsilon += 5;
     simplified = douglasPeucker(drawnPoints, epsilon);
   }
@@ -481,7 +482,7 @@ export function generateLinesFromDrawing(
         reverse: false,
       },
       controlPoints,
-      color: "#60a5fa", // Default blue
+      color: getRandomColor(),
       locked: false,
       eventMarkers: [],
       waitBeforeMs: 0,
