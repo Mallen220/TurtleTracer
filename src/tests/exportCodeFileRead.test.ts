@@ -44,6 +44,7 @@ describe("ExportCodeDialog file reading", () => {
       lines: [],
       sequence: [],
       shapes: [],
+      settings: {} as any,
     });
 
     // Open with JSON format
@@ -78,6 +79,7 @@ describe("ExportCodeDialog file reading", () => {
       lines: [],
       sequence: [],
       shapes: [],
+      settings: {} as any,
     });
 
     await component.openWithFormat("json");
@@ -101,6 +103,7 @@ describe("ExportCodeDialog file reading", () => {
       lines: [],
       sequence: [],
       shapes: [],
+      settings: {} as any,
     });
 
     await component.openWithFormat("json");

@@ -35,7 +35,7 @@
   export let lines: Line[];
   export let sequence: SequenceItem[];
   export let shapes: Shape[] = [];
-  export const settings: Settings | undefined = undefined;
+  export let settings: Settings;
 
   let exportFullCode = false;
   let exportFormat: "java" | "points" | "sequential" | "json" | "custom" =
@@ -104,40 +104,52 @@
     }
   }
 
-  // Load settings on mount
-  onMount(async () => {
-    const settings = await loadSettings();
-    if (settings.javaPackageName) {
-      packageName = settings.javaPackageName;
-    } else {
-      packageName = DEFAULT_PACKAGE;
+  // Sync state with settings
+  $: if (settings) {
+    if (settings.javaPackageName !== undefined) {
+      packageName = settings.javaPackageName || DEFAULT_PACKAGE;
     }
-    if (settings.telemetryImplementation) {
+    if (settings.telemetryImplementation !== undefined) {
       telemetryImplementation = settings.telemetryImplementation;
     }
-    if (settings.codeUnits) {
+    if (settings.codeUnits !== undefined) {
       codeUnits = settings.codeUnits;
     }
     if (settings.autoExportEmbedPoseData !== undefined) {
       embedPoseData = settings.autoExportEmbedPoseData;
     }
-  });
+    if (settings.autoExportTargetLibrary !== undefined) {
+      targetLibrary = settings.autoExportTargetLibrary;
+    }
+    if (settings.autoExportFullClass !== undefined) {
+      exportFullCode = settings.autoExportFullClass;
+    }
+  }
+
+  function updateSettings() {
+    if (settings) {
+      settings.javaPackageName = packageName;
+      settings.telemetryImplementation = telemetryImplementation;
+      settings.codeUnits = codeUnits;
+      settings.autoExportEmbedPoseData = embedPoseData;
+      settings.autoExportTargetLibrary = targetLibrary;
+      settings.autoExportFullClass = exportFullCode;
+    }
+  }
 
   async function handlePackageKeydown(event: KeyboardEvent) {
     if (event.key !== "Enter") return;
 
     if (!packageName.trim()) {
       packageName = DEFAULT_PACKAGE;
+      updateSettings();
       await refreshCode();
-      await savePackageName();
     }
   }
 
   // Save package name to settings
   async function savePackageName() {
-    const settings = await loadSettings();
-    settings.javaPackageName = packageName;
-    await saveSettings(settings);
+    updateSettings();
   }
 
   async function refreshCode() {
@@ -668,6 +680,7 @@
                     : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
                   on:click={() => {
                     targetLibrary = "SolversLib";
+                    updateSettings();
                     refreshCode();
                   }}
                 >
@@ -682,6 +695,7 @@
                     : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
                   on:click={() => {
                     targetLibrary = "NextFTC";
+                    updateSettings();
                     refreshCode();
                   }}
                 >
@@ -723,7 +737,10 @@
                   <input
                     type="checkbox"
                     bind:checked={embedPoseData}
-                    on:change={refreshCode}
+                    on:change={() => {
+                      updateSettings();
+                      refreshCode();
+                    }}
                     class="peer h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-700 dark:ring-offset-neutral-800"
                   />
                 </div>
@@ -795,7 +812,10 @@
                 <input
                   type="checkbox"
                   bind:checked={exportFullCode}
-                  on:change={refreshCode}
+                  on:change={() => {
+                    updateSettings();
+                    refreshCode();
+                  }}
                   class="peer h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-700 dark:ring-offset-neutral-800"
                 />
               </div>
@@ -819,7 +839,10 @@
                     name="codeUnits"
                     value="imperial"
                     bind:group={codeUnits}
-                    on:change={refreshCode}
+                    on:change={() => {
+                      updateSettings();
+                      refreshCode();
+                    }}
                     class="h-4 w-4 text-blue-600"
                   />
                   <span>Imperial (Inches)</span>
@@ -832,7 +855,10 @@
                     name="codeUnits"
                     value="metric"
                     bind:group={codeUnits}
-                    on:change={refreshCode}
+                    on:change={() => {
+                      updateSettings();
+                      refreshCode();
+                    }}
                     class="h-4 w-4 text-blue-600"
                   />
                   <span>Metric (cm)</span>

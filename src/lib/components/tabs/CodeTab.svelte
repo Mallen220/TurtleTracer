@@ -106,7 +106,7 @@
         newCode = await generateJavaCode(
           startPoint,
           lines,
-          true,
+          settings.autoExportFullClass ?? true,
           sequence,
           settings.javaPackageName,
           settings.telemetryImplementation,
