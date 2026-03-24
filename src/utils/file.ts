@@ -19,7 +19,11 @@ export interface SaveData {
   extraData?: Record<string, any>;
 }
 
-function triggerDownload(content: string, type: string, filename: string): void {
+function triggerDownload(
+  content: string,
+  type: string,
+  filename: string,
+): void {
   const blob = new Blob([content], { type });
   const linkObj = document.createElement("a");
   const url = URL.createObjectURL(blob);
