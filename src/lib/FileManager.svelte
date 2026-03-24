@@ -722,6 +722,76 @@
     }
   }
 
+  async function handleImportJava(e: CustomEvent<File>) {
+    const file = e.detail;
+    if (!file) return;
+
+    if (!file.name.endsWith(".java")) {
+      showToast("Please select a .java file", "error");
+      return;
+    }
+
+    if (get(isUnsaved)) {
+      if (
+        !confirm(
+          "You have unsaved changes that will be lost. Are you sure you want to import a new Java file?",
+        )
+      ) {
+        return;
+      }
+    }
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const decoder = new TextDecoder("utf-8");
+      const javaContent = decoder.decode(arrayBuffer);
+
+      const { importJavaProject } = await import("../utils/javaImporter");
+      const loadedData = importJavaProject(javaContent);
+
+      startPoint = loadedData.startPoint;
+      lines = loadedData.lines;
+      shapes = loadedData.shapes || [];
+      sequence = loadedData.sequence;
+      if (loadedData.extraData?.settings) {
+        settings = loadedData.extraData.settings;
+      }
+
+      // Optionally save it as a new .turt file right away if in desktop mode
+      if (electronAPI && currentDirectory) {
+        const newFileName = file.name.replace(".java", ".turt");
+        const destPath = path.join(currentDirectory, newFileName);
+
+        const savedDataStr = JSON.stringify(
+          {
+            startPoint,
+            lines,
+            shapes,
+            sequence,
+            extraData: { settings },
+          },
+          null,
+          2,
+        );
+
+        await electronAPI.writeFile(destPath, savedDataStr);
+        await refreshDirectory();
+
+        currentFilePath.set(destPath);
+        isUnsaved.set(false);
+      } else {
+        currentFilePath.set(file.name.replace(".java", ".turt"));
+        isUnsaved.set(false);
+      }
+
+      showToast(`Successfully imported ${file.name}`, "success");
+      isOpen = false;
+    } catch (err: any) {
+      console.error("Error importing Java file:", err);
+      showToast(`Error importing Java file: ${err.message}`, "error");
+    }
+  }
+
   async function saveCurrentToFile(targetFile: FileInfo) {
     try {
       const data = {
@@ -1077,6 +1147,7 @@
       on:new-file={() => (creatingNewFile = true)}
       on:new-folder={() => (creatingNewFolder = true)}
       on:import-file={handleImportFile}
+      on:import-java={handleImportJava}
       on:import-telemetry={() => {
         isOpen = false;
         showTelemetryDialog.set(true);

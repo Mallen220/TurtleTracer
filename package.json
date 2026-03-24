@@ -78,6 +78,8 @@
     "get-port": "^7.1.0",
     "gif.js": "^0.2.0",
     "html2pdf.js": "^0.14.0",
+    "java-ast": "^0.4.1",
+    "java-parser": "^3.0.1",
     "lodash": "^4.17.23",
     "markdown-it": "^14.1.1",
     "prettier-plugin-java": "^2.8.1",
