@@ -22,7 +22,6 @@ describe("ExportCodeDialog search behavior", () => {
         lines: [],
         sequence: [],
         shapes: [],
-        settings: {} as any,
       });
 
     // Open the dialog with points format which uses the mocked generatePointsArray
