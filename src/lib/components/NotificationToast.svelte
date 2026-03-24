@@ -109,14 +109,14 @@
               notification.set(null);
             }
           }}
-          class="shrink-0 ml-3 px-3 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-sm font-medium hover:opacity-90 transition-opacity"
+          class="shrink-0 ml-3 px-3 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-sm font-medium hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
         >
           {currentNotification.actionLabel}
         </button>
       {/if}
       <button
         on:click={close}
-        class="shrink-0 ml-3 p-1 rounded-md hover:bg-black/10 transition-colors"
+        class="shrink-0 ml-3 p-1 rounded-md hover:bg-black/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
         aria-label="Close notification"
       >
         <svg
