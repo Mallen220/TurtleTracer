@@ -202,6 +202,7 @@ export const DEFAULT_SETTINGS: Settings = {
     "onionSkin",
     "velocityHeatmap",
     "separator",
+    "drawPath",
     "newPath",
     "spacer",
     "separator",
