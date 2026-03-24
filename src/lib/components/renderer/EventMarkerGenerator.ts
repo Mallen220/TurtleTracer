@@ -35,6 +35,7 @@ export function generateEventMarkerElements(
     selectedPointId,
     actionRegistry,
   } = ctx;
+  const multiSelectedSet = new Set(multiSelectedPointIds);
 
   // Build a map of lineId -> startPoint from timePrediction if available
   // This handles cases where lines are out of order in the array (e.g. mixed with macros)
@@ -62,7 +63,7 @@ export function generateEventMarkerElements(
     line.eventMarkers.forEach((ev, evIdx) => {
       const isHovered =
         hoveredMarkerId === ev.id ||
-        multiSelectedPointIds.includes(`event-${idx}-${evIdx}`);
+        multiSelectedSet.has(`event-${idx}-${evIdx}`);
       const radius = isHovered ? 1.8 : 0.9;
       const color = isHovered ? "#a78bfa" : "#c4b5fd";
 

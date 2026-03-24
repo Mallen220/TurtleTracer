@@ -21,6 +21,7 @@ export function generatePointElements(
     | InstanceType<typeof Two.Group>
   )[] = [];
   const { x, y, uiLength, multiSelectedPointIds } = ctx;
+  const multiSelectedSet = new Set(multiSelectedPointIds);
 
   let startPointElem = new Two.Circle(
     x(startPoint.x),
@@ -28,7 +29,7 @@ export function generatePointElements(
     uiLength(POINT_RADIUS),
   );
   startPointElem.id = `point-0-0`;
-  startPointElem.fill = multiSelectedPointIds.includes("point-0-0")
+  startPointElem.fill = multiSelectedSet.has("point-0-0")
     ? "#4ade80"
     : lines[0]?.color || "#000000"; // Fallback color if lines empty
   startPointElem.noStroke();
@@ -47,8 +48,7 @@ export function generatePointElements(
         );
         pointElem.id = `point-${idx + 1}-${idx1}-background`;
         pointElem.fill =
-          multiSelectedPointIds.length > 1 &&
-          multiSelectedPointIds.includes(pointElem.id)
+          multiSelectedSet.size > 1 && multiSelectedSet.has(pointElem.id)
             ? "#4ade80"
             : line.color;
         pointElem.noStroke();
@@ -75,8 +75,7 @@ export function generatePointElements(
         );
         pointElem.id = `point-${idx + 1}-${idx1}`;
         pointElem.fill =
-          multiSelectedPointIds.length > 1 &&
-          multiSelectedPointIds.includes(pointElem.id)
+          multiSelectedSet.size > 1 && multiSelectedSet.has(pointElem.id)
             ? "#4ade80"
             : line.color;
         pointElem.noStroke();
