@@ -40,6 +40,7 @@
     showRatingDialog,
     executeCommandBus,
     availableCommands,
+    isDrawingMode,
   } from "../../stores";
   // keep a local binding for the update-available store
   const showUpdateAvailableDialog = _showUpdateAvailableDialog;
@@ -350,6 +351,9 @@
     },
     toggleControlTab: () => {
       if (toggleControlTab) toggleControlTab();
+    },
+    toggleDraw: () => {
+      isDrawingMode.update((v) => !v);
     },
     togglePresentationMode: () => isPresentationMode.update((v) => !v),
     toggleVelocityHeatmap: () =>
