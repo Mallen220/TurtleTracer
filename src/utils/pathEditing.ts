@@ -220,6 +220,89 @@ export function splitPathAtPercent(
 /**
  * Generates path lines from an array of raw drawn points.
  */
+function perpendicularDistance(
+  pt: { x: number; y: number },
+  lineStart: { x: number; y: number },
+  lineEnd: { x: number; y: number }
+): number {
+  const dx = lineEnd.x - lineStart.x;
+  const dy = lineEnd.y - lineStart.y;
+
+  const mag = Math.sqrt(dx * dx + dy * dy);
+  if (mag > 0.0) {
+    const area = Math.abs(
+      0.5 *
+        (lineStart.x * lineEnd.y +
+          lineEnd.x * pt.y +
+          pt.x * lineStart.y -
+          lineEnd.x * lineStart.y -
+          pt.x * lineEnd.y -
+          lineStart.x * pt.y)
+    );
+    return (area / mag) * 2;
+  } else {
+    return getDistance(pt, lineStart);
+  }
+}
+
+function douglasPeucker(
+  points: { x: number; y: number }[],
+  epsilon: number
+): { x: number; y: number }[] {
+  if (points.length <= 2) return points;
+
+  let dmax = 0;
+  let index = 0;
+  const end = points.length - 1;
+
+  for (let i = 1; i < end; i++) {
+    const d = perpendicularDistance(points[i], points[0], points[end]);
+    if (d > dmax) {
+      index = i;
+      dmax = d;
+    }
+  }
+
+  if (dmax > epsilon) {
+    const recResults1 = douglasPeucker(points.slice(0, index + 1), epsilon);
+    const recResults2 = douglasPeucker(points.slice(index), epsilon);
+
+    return recResults1.slice(0, recResults1.length - 1).concat(recResults2);
+  } else {
+    return [points[0], points[end]];
+  }
+}
+
+function subdivideLongSegments(
+  points: { x: number; y: number }[],
+  maxLength: number
+): { x: number; y: number }[] {
+  if (points.length < 2) return points;
+  const result: { x: number; y: number }[] = [points[0]];
+
+  for (let i = 1; i < points.length; i++) {
+    const prev = result[result.length - 1];
+    const curr = points[i];
+    const dist = getDistance(prev, curr);
+
+    if (dist > maxLength) {
+      const numSubdivisions = Math.ceil(dist / maxLength);
+      for (let j = 1; j <= numSubdivisions; j++) {
+        result.push({
+          x: prev.x + (curr.x - prev.x) * (j / numSubdivisions),
+          y: prev.y + (curr.y - prev.y) * (j / numSubdivisions),
+        });
+      }
+    } else {
+      result.push(curr);
+    }
+  }
+  return result;
+}
+
+/**
+ * Generates path lines from an array of raw drawn points.
+ */
 export function generateLinesFromDrawing(
   drawnPoints: { x: number; y: number }[],
   startPoint: Point,
@@ -228,23 +311,11 @@ export function generateLinesFromDrawing(
 ): { startPoint: Point; lines: Line[]; sequence: SequenceItem[] } | null {
   if (drawnPoints.length < 2) return null;
 
-  // 1. Simplify points
-  // A simple distance-based decimation + Douglas-Peucker could be used, but for now we'll
-  // do a basic greedy decimation to ensure we don't have too many lines.
-  const minLineLength = 4; // min 4 inches between waypoints
-  const simplified: { x: number; y: number }[] = [drawnPoints[0]];
-  let lastAdded = drawnPoints[0];
+  // 1. Simplify points using Douglas-Peucker
+  let simplified = douglasPeucker(drawnPoints, 2.5); // 2.5 inch tolerance for deviation
 
-  for (let i = 1; i < drawnPoints.length - 1; i++) {
-    if (getDistance(lastAdded, drawnPoints[i]) >= minLineLength) {
-      simplified.push(drawnPoints[i]);
-      lastAdded = drawnPoints[i];
-    }
-  }
-  // Always include the last point, but only if it's not super close to the last added point
-  if (getDistance(lastAdded, drawnPoints[drawnPoints.length - 1]) > 1) {
-    simplified.push(drawnPoints[drawnPoints.length - 1]);
-  }
+  // 2. Prevent excessively long straight segments by subdividing
+  simplified = subdivideLongSegments(simplified, 30); // Max 30 inch straight line
 
   // We need at least one point to draw to.
   // If simplified has only 1 point, it means the user just clicked without dragging far.
@@ -287,22 +358,83 @@ export function generateLinesFromDrawing(
     startIndex = 1;
   }
 
+  // Determine if we should maintain tangency from a previous line
+  let initialTangent: { dx: number; dy: number } | null = null;
+  if (!isFirstLine) {
+    const lastLine = currentLines[currentLines.length - 1];
+    if (lastLine.controlPoints.length > 0) {
+      const lastCp = lastLine.controlPoints[lastLine.controlPoints.length - 1];
+      initialTangent = {
+        dx: lastLine.endPoint.x - lastCp.x,
+        dy: lastLine.endPoint.y - lastCp.y,
+      };
+    } else {
+      const pPrev =
+        currentLines.length > 1
+          ? currentLines[currentLines.length - 2].endPoint
+          : currentStartPoint;
+      initialTangent = {
+        dx: lastLine.endPoint.x - pPrev.x,
+        dy: lastLine.endPoint.y - pPrev.y,
+      };
+    }
+  }
+
+  // Pre-calculate points to include the "connection" point if we are starting from an existing line
+  const ptsForTangents = [];
+  if (startIndex === 0 && !isFirstLine) {
+     ptsForTangents.push(currentConnectionPt);
+  }
+  for (let i = startIndex; i < simplified.length; i++) {
+     ptsForTangents.push(simplified[i]);
+  }
+
   // Generate lines
   for (let i = startIndex; i < simplified.length; i++) {
     const pt = simplified[i];
     const prevPt = currentConnectionPt;
+    const dist = getDistance(prevPt, pt);
 
-    // Calculate a simple control point halfway to make it a bezier line.
-    // To make it actually smooth, we'd need a more complex fit, but a straight-ish line is fine for rough drawing.
-    // Let's just use 0 control points to make them straight lines for now,
-    // or 2 control points on the straight line for users to adjust later.
+    // Default tension factor for control points
+    const tension = 0.33;
 
-    // Calculate control points exactly on the line (1/3 and 2/3 distance)
-    const dx = pt.x - prevPt.x;
-    const dy = pt.y - prevPt.y;
+    // Calculate tangent at the starting point of this segment
+    let startTangent = { dx: pt.x - prevPt.x, dy: pt.y - prevPt.y };
+    if (i === startIndex && initialTangent) {
+       startTangent = { ...initialTangent };
+    } else if (i > startIndex) {
+       // For internal points, tangent is vector from previous-previous point to current point
+       const ppPt = i - 1 === startIndex ? (isFirstLine ? currentStartPoint : currentConnectionPt) : simplified[i - 2];
+       startTangent = { dx: pt.x - ppPt.x, dy: pt.y - ppPt.y };
+    }
 
-    const cp1 = { x: prevPt.x + dx * 0.33, y: prevPt.y + dy * 0.33 };
-    const cp2 = { x: prevPt.x + dx * 0.66, y: prevPt.y + dy * 0.66 };
+    // Normalize start tangent
+    let stMag = Math.sqrt(startTangent.dx * startTangent.dx + startTangent.dy * startTangent.dy) || 1;
+    startTangent.dx /= stMag;
+    startTangent.dy /= stMag;
+
+    // Calculate tangent at the ending point of this segment
+    let endTangent = { dx: pt.x - prevPt.x, dy: pt.y - prevPt.y };
+    if (i < simplified.length - 1) {
+       const nextPt = simplified[i + 1];
+       endTangent = { dx: nextPt.x - prevPt.x, dy: nextPt.y - prevPt.y };
+    }
+
+    // Normalize end tangent
+    let etMag = Math.sqrt(endTangent.dx * endTangent.dx + endTangent.dy * endTangent.dy) || 1;
+    endTangent.dx /= etMag;
+    endTangent.dy /= etMag;
+
+    // Place control points
+    const cp1 = {
+      x: prevPt.x + startTangent.dx * dist * tension,
+      y: prevPt.y + startTangent.dy * dist * tension
+    };
+
+    const cp2 = {
+      x: pt.x - endTangent.dx * dist * tension,
+      y: pt.y - endTangent.dy * dist * tension
+    };
 
     const newLine: Line = {
       id: makeId(),
@@ -314,7 +446,7 @@ export function generateLinesFromDrawing(
         reverse: false,
       },
       controlPoints: [cp1, cp2],
-      color: "#60a5fa", // Default blue, or use getRandomColor() if we want
+      color: "#60a5fa", // Default blue
       locked: false,
       eventMarkers: [],
       waitBeforeMs: 0,
@@ -328,6 +460,7 @@ export function generateLinesFromDrawing(
 
     // Update connection point for next iteration
     currentConnectionPt = pt;
+    initialTangent = endTangent;
   }
 
   return {
