@@ -7,9 +7,6 @@
   export let robotXY: BasePoint;
   export let robotHeading: number;
   export let settings: Settings;
-  // x and y scales are no longer needed as robotXY is now in inches
-  // export let x: d3.ScaleLinear<number, number, number>;
-  // export let y: d3.ScaleLinear<number, number, number>;
   export let onToggleOptimization: (() => void) | null = null;
   export let onValidate: (() => void) | null = null;
 </script>
