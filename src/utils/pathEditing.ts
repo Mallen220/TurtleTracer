@@ -287,10 +287,10 @@ export function generateLinesFromDrawing(
   let epsilon = 5;
   let simplified = douglasPeucker(drawnPoints, epsilon);
 
-  // Force simplification to be at most 8 points to prevent excessive paths being generated
-  // while still allowing enough points to capture complex shapes like S-curves or loops.
-  while (simplified.length > 8 && epsilon < 60) {
-    epsilon += 2;
+  // Force simplification to be at most 4 points to aggressively prevent excessive paths being generated
+  // This ensures U-shapes and sweeping curves map to ~3 segments maximum.
+  while (simplified.length > 4 && epsilon < 60) {
+    epsilon += 5;
     simplified = douglasPeucker(drawnPoints, epsilon);
   }
 
