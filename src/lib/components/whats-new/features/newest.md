@@ -29,10 +29,13 @@ Several quality-of-life updates to the core field and tools.
 
 - **Snap to Object:** The ruler tool now features "Snap to Object" functionality, making it easier to take precise measurements relative to your field elements.
 - **Quick Deselect:** Clicking on any empty area of the field now conveniently deselects all active points.
+- **Draw Path Mode:** New Draw Path function lets users sketch a path with a pencil tool and automatically generate a rough path from the drawing.
+- **Keybind Enhancements:** Updated keybinds to allow deleting control points via `shift+d` and added `d` as a toggle for Draw tool mode.
 
-## **Maintenance & Brand**
+## **Security & Maintenance**
 
 Essential work under the hood to prepare for future releases.
 
+- **Security Updates:** Applied security hardening patches and dependency updates.
 - **TurtleTracer Branding:** All remaining references to the former project name have been removed in preparation for upcoming releases.
 - **Backend Cleanup:** Extensive refactoring and cleanup of the backend codebase to improve performance and stability.
