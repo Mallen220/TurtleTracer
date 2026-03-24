@@ -104,10 +104,12 @@
     }
   }
 
-  // Sync state with settings
-  $: if (settings) {
+  // Sync state with settings on open
+  $: if (isOpen && settings) {
     if (settings.javaPackageName !== undefined) {
       packageName = settings.javaPackageName || DEFAULT_PACKAGE;
+    } else {
+      packageName = DEFAULT_PACKAGE;
     }
     if (settings.telemetryImplementation !== undefined) {
       telemetryImplementation = settings.telemetryImplementation;

@@ -316,7 +316,8 @@
               Upload a custom field map image
             </p>
             <button
-              on:click={() => document.getElementById('wizard-image-input')?.click()}
+              on:click={() =>
+                document.getElementById("wizard-image-input")?.click()}
               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               Select Image
