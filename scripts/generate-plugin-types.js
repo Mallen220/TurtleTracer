@@ -24,7 +24,6 @@ async function generate() {
     content = content.replace(/^export /gm, "");
 
     const finalContent = `// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-
 /**
  * Type definitions for Turtle Tracer Plugins.
  * These types are automatically available in your .ts plugins.
