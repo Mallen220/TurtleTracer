@@ -342,3 +342,5 @@ src/lib/components/shortcuts/utils.ts
 src/lib/components/shortcuts/view.ts
 src/utils/drivetrain/mecanum.ts
 src/lib/components/icons/PenIcon.svelte
+TurtleTracer.ai
+src/tests/fileExtensions.test.ts

@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
 import {
   isSupportedProjectFileName,
@@ -62,19 +63,29 @@ describe("fileExtensions utilities", () => {
 
   describe("ensureDefaultProjectExtension", () => {
     it("should return the same path if it already has .turt extension", () => {
-      expect(ensureDefaultProjectExtension("project.turt")).toBe("project.turt");
-      expect(ensureDefaultProjectExtension("path/to/project.turt")).toBe("path/to/project.turt");
+      expect(ensureDefaultProjectExtension("project.turt")).toBe(
+        "project.turt",
+      );
+      expect(ensureDefaultProjectExtension("path/to/project.turt")).toBe(
+        "path/to/project.turt",
+      );
     });
 
     it("should replace .pp with .turt", () => {
       expect(ensureDefaultProjectExtension("legacy.pp")).toBe("legacy.turt");
-      expect(ensureDefaultProjectExtension("path/to/legacy.pp")).toBe("path/to/legacy.turt");
+      expect(ensureDefaultProjectExtension("path/to/legacy.pp")).toBe(
+        "path/to/legacy.turt",
+      );
     });
 
     it("should append .turt if no project extension is present", () => {
       expect(ensureDefaultProjectExtension("project")).toBe("project.turt");
-      expect(ensureDefaultProjectExtension("project.txt")).toBe("project.txt.turt");
-      expect(ensureDefaultProjectExtension("path/to/project")).toBe("path/to/project.turt");
+      expect(ensureDefaultProjectExtension("project.txt")).toBe(
+        "project.txt.turt",
+      );
+      expect(ensureDefaultProjectExtension("path/to/project")).toBe(
+        "path/to/project.turt",
+      );
     });
   });
 
