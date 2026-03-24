@@ -365,6 +365,7 @@
           type="file"
           accept="image/*"
           class="hidden"
+          tabindex="-1"
           on:change={handleImageUpload}
         />
         <button

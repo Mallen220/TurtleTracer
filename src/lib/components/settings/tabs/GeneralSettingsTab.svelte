@@ -313,6 +313,7 @@
         type="file"
         id="settings-import-input"
         class="hidden"
+        tabindex="-1"
         accept=".json"
         on:change={handleImport}
       />
