@@ -259,7 +259,7 @@
         <button
           on:click={handleApplyProfile}
           disabled={!selectedProfileId}
-          class="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+          class="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           title="Load settings from selected profile"
         >
           Load
@@ -276,7 +276,7 @@
             <button
               on:click={handleUpdateClick}
               on:blur={handleUpdateBlur}
-              class={`ml-1 p-1.5 rounded-md transition-all duration-200 flex items-center justify-center ${
+              class={`ml-1 p-1.5 rounded-md transition-all duration-200 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 updateConfirming
                   ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/50 w-20"
                   : "hover:bg-blue-50 dark:hover:bg-blue-900/20 text-neutral-400 hover:text-blue-500 w-8"

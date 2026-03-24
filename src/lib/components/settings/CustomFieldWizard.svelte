@@ -243,7 +243,7 @@
         </h2>
         <button
           on:click={handleClose}
-          class="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+          class="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -315,20 +315,23 @@
             <p class="text-neutral-600 dark:text-neutral-400 mb-4">
               Upload a custom field map image
             </p>
-            <label
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer transition-colors"
+            <button
+              on:click={() => document.getElementById('wizard-image-input')?.click()}
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               Select Image
-              <input
-                type="file"
-                accept="image/*"
-                class="hidden"
-                on:change={handleImageUpload}
-              />
-            </label>
+            </button>
+            <input
+              id="wizard-image-input"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              tabindex="-1"
+              on:change={handleImageUpload}
+            />
             {#if imageData}
               <button
-                class="mt-4 text-blue-600 dark:text-blue-400 hover:underline"
+                class="mt-4 text-blue-600 dark:text-blue-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
                 on:click={() => (step = 2)}
               >
                 Use currently loaded image
@@ -530,19 +533,19 @@
                 <button
                   on:click={prevStep}
                   disabled={step === 1}
-                  class="px-4 py-2 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded disabled:opacity-50"
+                  class="px-4 py-2 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   >Back</button
                 >
                 {#if step < 3}
                   <button
                     on:click={nextStep}
-                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >Next</button
                   >
                 {:else}
                   <button
                     on:click={handleSave}
-                    class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                    class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
                     >Save & Apply</button
                   >
                 {/if}
