@@ -43,15 +43,39 @@
     }
   }
 
+  import { onMount, onDestroy } from "svelte";
+  import { menuNavigation } from "../../actions/menuNavigation";
+
   let fileInput: HTMLInputElement;
   let javaInput: HTMLInputElement;
+
+  let showAddMenu = false;
+  let addMenuRef: HTMLElement;
+
+  function handleDocumentClick(event: MouseEvent) {
+    if (
+      showAddMenu &&
+      addMenuRef &&
+      !addMenuRef.contains(event.target as Node)
+    ) {
+      showAddMenu = false;
+    }
+  }
+
+  onMount(() => {
+    document.addEventListener("click", handleDocumentClick);
+  });
+
+  onDestroy(() => {
+    document.removeEventListener("click", handleDocumentClick);
+  });
 </script>
 
 <div
-  class="flex flex-col gap-2 p-2 border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shrink-0 z-10"
+  class="flex items-center gap-2 p-2 px-4 border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shrink-0 z-10"
 >
-  <!-- Row 1: Search (Full Width) -->
-  <div class="relative w-full">
+  <!-- Search -->
+  <div class="relative flex-1">
     <div
       class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-neutral-400"
     >
@@ -79,99 +103,21 @@
     />
   </div>
 
-  <!-- Row 2: Controls -->
-  <div class="flex items-center gap-1 w-full overflow-x-auto no-scrollbar">
-    <!-- Sort Toggle -->
-    <button
-      on:click={() =>
-        dispatch("sort-change", sortMode === "name" ? "date" : "name")}
-      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-      title={`Sort by ${sortMode === "name" ? "Date" : "Name"}`}
-      aria-label={`Sort by ${sortMode === "name" ? "Date" : "Name"}`}
-    >
-      {#if sortMode === "name"}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25"
-          />
-        </svg>
-      {:else}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-          />
-        </svg>
-      {/if}
-    </button>
+  <div
+    class="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1 shrink-0"
+    role="presentation"
+    aria-hidden="true"
+  ></div>
 
-    <!-- View Toggle -->
-    <button
-      on:click={() =>
-        dispatch("view-change", viewMode === "list" ? "grid" : "list")}
-      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-      title={`Switch to ${viewMode === "list" ? "Grid" : "List"} View`}
-      aria-label={`Switch to ${viewMode === "list" ? "Grid" : "List"} View`}
-    >
-      {#if viewMode === "list"}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
-          />
-        </svg>
-      {:else}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-          />
-        </svg>
-      {/if}
-    </button>
-
-    <div class="flex-1"></div>
-
-    <!-- Import Telemetry -->
-    <button
-      on:click={() => dispatch("import-telemetry")}
-      class="p-1.5 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-      title="Import Telemetry Data"
-      aria-label="Import Telemetry Data"
-    >
+  <!-- Sort Toggle -->
+  <button
+    on:click={() =>
+      dispatch("sort-change", sortMode === "name" ? "date" : "name")}
+    class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+    title={`Sort by ${sortMode === "name" ? "Date" : "Name"}`}
+    aria-label={`Sort by ${sortMode === "name" ? "Date" : "Name"}`}
+  >
+    {#if sortMode === "name"}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
@@ -183,26 +129,10 @@
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
-          d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z"
+          d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25"
         />
       </svg>
-    </button>
-
-    <!-- Import Java -->
-    <input
-      bind:this={javaInput}
-      type="file"
-      accept=".java"
-      class="hidden"
-      on:change={handleImportJava}
-      tabindex="-1"
-    />
-    <button
-      on:click={() => javaInput?.click()}
-      class="p-1.5 text-neutral-500 hover:text-orange-600 dark:text-neutral-400 dark:hover:text-orange-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
-      title="Import Java File"
-      aria-label="Import Java File"
-    >
+    {:else}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
@@ -214,30 +144,21 @@
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
-          d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z"
+          d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
         />
       </svg>
-    </button>
+    {/if}
+  </button>
 
-    <div
-      class="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1 shrink-0" role="presentation" aria-hidden="true"
-    ></div>
-
-    <!-- Import -->
-    <input
-      bind:this={fileInput}
-      type="file"
-      accept=".turt,.pp"
-      class="hidden"
-      on:change={handleImport}
-      tabindex="-1"
-    />
-    <button
-      on:click={() => fileInput?.click()}
-      class="p-1.5 text-neutral-500 hover:text-purple-600 dark:text-neutral-400 dark:hover:text-purple-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
-      title="Import .turt or .pp File"
-      aria-label="Import .turt or .pp File"
-    >
+  <!-- View Toggle -->
+  <button
+    on:click={() =>
+      dispatch("view-change", viewMode === "list" ? "grid" : "list")}
+    class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+    title={`Switch to ${viewMode === "list" ? "Grid" : "List"} View`}
+    aria-label={`Switch to ${viewMode === "list" ? "Grid" : "List"} View`}
+  >
+    {#if viewMode === "list"}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
@@ -249,18 +170,10 @@
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
-          d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+          d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
         />
       </svg>
-    </button>
-
-    <!-- New Folder -->
-    <button
-      on:click={() => dispatch("new-folder")}
-      class="p-1.5 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-      title="New Folder"
-      aria-label="New Folder"
-    >
+    {:else}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
@@ -272,17 +185,70 @@
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
-          d="M12 10.5v6m3-3H9m4.06-7.19-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
+          d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
         />
       </svg>
-    </button>
+    {/if}
+  </button>
 
-    <!-- New File -->
+  <div
+    class="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1 shrink-0"
+    role="presentation"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Refresh -->
+  <button
+    on:click={() => dispatch("refresh")}
+    class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+    title="Refresh"
+    aria-label="Refresh"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="2"
+      stroke="currentColor"
+      class="size-5"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+      />
+    </svg>
+  </button>
+
+  <!-- Change Dir -->
+  <button
+    on:click={() => dispatch("change-dir")}
+    class="p-1.5 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+    title="Change Directory"
+    aria-label="Change Directory"
+  >
+    <FolderIcon className="size-5" />
+  </button>
+
+  <div
+    class="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1 shrink-0"
+    role="presentation"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Add Menu Dropdown -->
+  <div class="relative" bind:this={addMenuRef}>
     <button
-      on:click={() => dispatch("new-file")}
-      class="p-1.5 text-neutral-500 hover:text-green-600 dark:text-neutral-400 dark:hover:text-green-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
-      title="New File"
-      aria-label="New File"
+      id="add-import-menu-btn"
+      on:click={(e) => {
+        e.stopPropagation();
+        showAddMenu = !showAddMenu;
+      }}
+      class="flex items-center justify-center p-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 shadow-sm"
+      title="Add or Import"
+      aria-label="Add or Import Menu"
+      aria-expanded={showAddMenu}
+      aria-haspopup="true"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -300,41 +266,149 @@
       </svg>
     </button>
 
-    <div
-      class="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1 shrink-0" role="presentation" aria-hidden="true"
-    ></div>
-
-    <!-- Refresh -->
-    <button
-      on:click={() => dispatch("refresh")}
-      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-      title="Refresh"
-      aria-label="Refresh"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width="2"
-        stroke="currentColor"
-        class="size-5"
+    {#if showAddMenu}
+      <div
+        class="absolute right-0 mt-2 w-56 bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-neutral-200 dark:border-neutral-700 z-50 py-1"
+        use:menuNavigation
+        on:close={() => (showAddMenu = false)}
       >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-        />
-      </svg>
-    </button>
+        <button
+          class="w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:bg-neutral-100 dark:focus:bg-neutral-700 focus:outline-none flex items-center gap-2"
+          on:click={() => {
+            dispatch("new-file");
+            showAddMenu = false;
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-4 text-green-500"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+            />
+          </svg>
+          New File
+        </button>
+        <button
+          class="w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:bg-neutral-100 dark:focus:bg-neutral-700 focus:outline-none flex items-center gap-2"
+          on:click={() => {
+            dispatch("new-folder");
+            showAddMenu = false;
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-4 text-blue-500"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 10.5v6m3-3H9m4.06-7.19-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
+            />
+          </svg>
+          New Folder
+        </button>
 
-    <!-- Change Dir -->
-    <button
-      on:click={() => dispatch("change-dir")}
-      class="p-1.5 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-      title="Change Directory"
-      aria-label="Change Directory"
-    >
-      <FolderIcon className="size-5" />
-    </button>
+        <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1 mx-2"></div>
+
+        <input
+          bind:this={fileInput}
+          type="file"
+          accept=".turt,.pp"
+          class="hidden"
+          on:change={handleImport}
+          tabindex="-1"
+        />
+        <button
+          class="w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:bg-neutral-100 dark:focus:bg-neutral-700 focus:outline-none flex items-center gap-2"
+          on:click={() => {
+            fileInput?.click();
+            showAddMenu = false;
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-4 text-purple-500"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+            />
+          </svg>
+          Import .turt or .pp File
+        </button>
+
+        <input
+          bind:this={javaInput}
+          type="file"
+          accept=".java"
+          class="hidden"
+          on:change={handleImportJava}
+          tabindex="-1"
+        />
+        <button
+          class="w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:bg-neutral-100 dark:focus:bg-neutral-700 focus:outline-none flex items-center gap-2"
+          on:click={() => {
+            javaInput?.click();
+            showAddMenu = false;
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-4 text-orange-500"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z"
+            />
+          </svg>
+          Import Java File
+        </button>
+
+        <button
+          class="w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 focus:bg-neutral-100 dark:focus:bg-neutral-700 focus:outline-none flex items-center gap-2"
+          on:click={() => {
+            dispatch("import-telemetry");
+            showAddMenu = false;
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-4 text-blue-400"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z"
+            />
+          </svg>
+          Import Telemetry Data
+        </button>
+      </div>
+    {/if}
   </div>
 </div>

@@ -317,6 +317,7 @@
   // --- Drag and Drop Logic ---
   let isDraggingFile = false;
   let dragCounter = 0;
+  let isDraggingInternalMacro = false;
 
   // Custom Prompt State
   let showSaveNameDialog = false;
@@ -423,11 +424,18 @@
 
   function handleDragEnter(e: DragEvent) {
     e.preventDefault();
-    // Check if dragging files
-    if (
+    // Only trigger drop to open if NOT dragging from our file manager
+    const isInternalDrag =
+      e.dataTransfer?.types.includes("application/x-turtle-tracer-macro") ||
+      e.dataTransfer?.types.includes("application/x-pedro-macro");
+
+    if (isInternalDrag) {
+      isDraggingInternalMacro = true;
+    } else if (
       e.dataTransfer &&
       e.dataTransfer.types &&
-      e.dataTransfer.types.includes("Files")
+      e.dataTransfer.types.includes("Files") &&
+      !isInternalDrag
     ) {
       dragCounter++;
       isDraggingFile = true;
@@ -436,6 +444,15 @@
 
   function handleDragLeave(e: DragEvent) {
     e.preventDefault();
+    if (isDraggingInternalMacro) {
+      // Very basic way to check if we're leaving the window/document entirely
+      if (e.clientX === 0 && e.clientY === 0) {
+        isDraggingInternalMacro = false;
+      }
+    }
+
+    if (!isDraggingFile) return;
+
     dragCounter--;
     if (dragCounter <= 0) {
       dragCounter = 0;
@@ -445,15 +462,32 @@
 
   function handleDragOver(e: DragEvent) {
     e.preventDefault();
+    const isInternalDrag =
+      e.dataTransfer?.types.includes("application/x-turtle-tracer-macro") ||
+      e.dataTransfer?.types.includes("application/x-pedro-macro");
+    if (isInternalDrag && !isDraggingInternalMacro) {
+      isDraggingInternalMacro = true;
+    }
   }
 
   async function handleDrop(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
     dragCounter = 0;
-    isDraggingFile = false;
 
-    if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+    const wasDraggingFile = isDraggingFile;
+    isDraggingFile = false;
+    isDraggingInternalMacro = false;
+
+    // Handle dropping internal macros (handled mostly in ControlTab/Timeline, but we catch it here to reset state)
+    const isInternalDrag =
+      e.dataTransfer?.types.includes("application/x-turtle-tracer-macro") ||
+      e.dataTransfer?.types.includes("application/x-pedro-macro");
+    if (isInternalDrag) {
+      return;
+    }
+
+    if (wasDraggingFile && e.dataTransfer && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
       // Refresh electronAPI reference from window to ensure it's available
       const api = (window as any).electronAPI;
@@ -1616,6 +1650,11 @@
       handleResize(t.clientX, t.clientY);
     }
   }}
+  on:dragend={() => {
+    isDraggingFile = false;
+    isDraggingInternalMacro = false;
+    dragCounter = 0;
+  }}
 />
 
 <KeyboardShortcuts
@@ -1774,10 +1813,10 @@
 <FeedbackDialog />
 <RatingDialog />
 
-<!-- Drag Overlay -->
+<!-- Drag Overlay for opening files -->
 {#if isDraggingFile}
   <div
-    class="fixed inset-0 z-[100] bg-purple-500/20 backdrop-blur-sm border-4 border-purple-500 flex items-center justify-center pointer-events-none"
+    class="fixed inset-0 z-[1200] bg-purple-500/20 backdrop-blur-sm border-4 border-purple-500 flex items-center justify-center pointer-events-none"
   >
     <div
       class="bg-white dark:bg-neutral-800 p-8 rounded-xl shadow-2xl flex flex-col items-center animate-bounce-slight"
@@ -1799,6 +1838,42 @@
       <h2 class="text-2xl font-bold mb-2 dark:text-white">Drop to Open</h2>
       <p class="text-neutral-500 dark:text-neutral-400">
         Release the file to open project
+      </p>
+    </div>
+  </div>
+{/if}
+
+<!-- Drag Overlay for adding internal macros -->
+{#if isDraggingInternalMacro && $showFileManager}
+  <div
+    class="fixed inset-0 z-[1000] bg-blue-500/10 border-4 border-dashed border-blue-500 flex flex-col items-center justify-start pt-[10vh] pointer-events-none transition-all duration-300"
+  >
+    <div
+      class="bg-white/90 dark:bg-neutral-800/90 backdrop-blur px-8 py-6 rounded-2xl shadow-2xl flex flex-col items-center animate-bounce-slight"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+        stroke="currentColor"
+        class="w-16 h-16 text-blue-500 dark:text-blue-400 mb-4"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15M9 12l3 3m0 0 3-3m-3 3V2.25"
+        />
+      </svg>
+
+      <h2 class="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
+        Drop to Add Macro
+      </h2>
+      <p
+        class="text-neutral-500 dark:text-neutral-400 text-center max-w-[300px]"
+      >
+        Release anywhere outside the file manager to add this file as a macro to
+        your timeline.
       </p>
     </div>
   </div>

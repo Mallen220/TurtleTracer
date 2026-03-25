@@ -329,7 +329,11 @@
           >{formatTime(timePrediction.totalTime)}</span
         >
       </div>
-      <div class="w-px h-6 bg-neutral-200 dark:bg-neutral-700" role="presentation" aria-hidden="true"></div>
+      <div
+        class="w-px h-6 bg-neutral-200 dark:bg-neutral-700"
+        role="presentation"
+        aria-hidden="true"
+      ></div>
       <div class="flex flex-col items-center">
         <span
           class="text-xs text-neutral-400 font-medium uppercase tracking-wider"

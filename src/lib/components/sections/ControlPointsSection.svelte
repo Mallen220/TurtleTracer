@@ -281,7 +281,11 @@
                     />
                   </svg>
                 </button>
-                <div class="w-px h-3 bg-neutral-200 dark:bg-neutral-700" role="presentation" aria-hidden="true"></div>
+                <div
+                  class="w-px h-3 bg-neutral-200 dark:bg-neutral-700"
+                  role="presentation"
+                  aria-hidden="true"
+                ></div>
                 <button
                   title={line.locked ? "Locked" : "Move down"}
                   aria-label="Move control point down"

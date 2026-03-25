@@ -123,9 +123,15 @@
     sortModeInitialized = true;
   });
 
-  // Resizing state
-  let sidebarWidth = 384; // default max-w-sm is roughly 384px (24rem)
-  let isResizing = false;
+  let isDraggingFromModal = false;
+
+  function handleModalDragStart() {
+    isDraggingFromModal = true;
+  }
+
+  function handleModalDragEnd() {
+    isDraggingFromModal = false;
+  }
 
   // New file input reference for programmatic focus
   import { tick } from "svelte";
@@ -148,26 +154,6 @@
 
   $: if (currentDirectory) {
     currentDirectoryStore.set(currentDirectory);
-  }
-
-  function startResize(e: MouseEvent) {
-    isResizing = true;
-    window.addEventListener("mousemove", handleResize);
-    window.addEventListener("mouseup", stopResize);
-  }
-
-  function handleResize(e: MouseEvent) {
-    if (isResizing) {
-      // Constrain width
-      const newWidth = Math.max(250, Math.min(e.clientX, 800));
-      sidebarWidth = newWidth;
-    }
-  }
-
-  function stopResize() {
-    isResizing = false;
-    window.removeEventListener("mousemove", handleResize);
-    window.removeEventListener("mouseup", stopResize);
   }
 
   // Persist session state when changed
@@ -259,8 +245,15 @@
   async function loadDirectory() {
     loading = true;
     errorMessage = "";
+    if (!electronAPI) {
+      loading = false;
+      return;
+    }
     try {
-      const savedDir = await electronAPI.getSavedDirectory();
+      let savedDir = "";
+      if (electronAPI.getSavedDirectory) {
+        savedDir = await electronAPI.getSavedDirectory();
+      }
       if (savedDir && savedDir.trim() !== "") {
         currentDirectory = savedDir;
         baseDirectory = savedDir;
@@ -280,6 +273,7 @@
 
   async function refreshDirectory() {
     if (!currentDirectory || currentDirectory.trim() === "") return;
+    if (!electronAPI) return;
 
     try {
       const allFiles = await electronAPI.listFiles(currentDirectory);
@@ -364,6 +358,7 @@
 
   // Handle directory change (dialog)
   async function changeDirectoryDialog() {
+    if (!electronAPI) return;
     try {
       const newDir = await electronAPI.setDirectory();
       if (newDir) {
@@ -403,6 +398,7 @@
   }
 
   async function goUpDirectory() {
+    if (!electronAPI) return;
     if (currentDirectory === baseDirectory) {
       return; // Cannot go up beyond the base directory
     }
@@ -569,6 +565,7 @@
   async function handleMoveFile(
     e: CustomEvent<{ sourceFile: FileInfo; targetDir: FileInfo }>,
   ) {
+    if (!electronAPI) return;
     const { sourceFile, targetDir } = e.detail;
     if (!targetDir.isDirectory) return;
     if (sourceFile.path === targetDir.path) return;
@@ -628,6 +625,7 @@
   }
 
   async function renameFile(file: FileInfo, newName: string) {
+    if (!electronAPI) return;
     renamingFile = null;
     const cleanName = newName.trim();
     if (!cleanName) return;
@@ -680,6 +678,7 @@
   }
 
   async function loadFile(file: FileInfo) {
+    if (!electronAPI) return;
     if (file.error) return;
 
     // Autosave on Close Logic
@@ -793,6 +792,7 @@
   }
 
   async function saveCurrentToFile(targetFile: FileInfo) {
+    if (!electronAPI) return;
     try {
       const data = {
         startPoint,
@@ -825,6 +825,7 @@
   }
 
   async function createNewFolder(name: string) {
+    if (!electronAPI) return;
     if (!name.trim()) return;
 
     const dirPath = path.join(currentDirectory, name.trim());
@@ -845,6 +846,7 @@
   }
 
   async function createNewFile(name: string) {
+    if (!electronAPI) return;
     if (!name.trim()) return;
 
     const fileName = ensureDefaultProjectExtension(name);
@@ -907,6 +909,7 @@
   }
 
   async function deleteFile(file: FileInfo) {
+    if (!electronAPI) return;
     if (!confirm(`Are you sure you want to delete "${file.name}"?`)) return;
     try {
       await electronAPI.deleteFile(file.path);
@@ -925,6 +928,7 @@
     file: FileInfo,
     mode: "copy" | "mirror" | "reverse" = "copy",
   ) {
+    if (!electronAPI) return;
     try {
       const content = await electronAPI.readFile(file.path);
       let data = JSON.parse(content);
@@ -1052,12 +1056,16 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="fixed inset-0 z-[1010] flex" class:pointer-events-none={!isOpen}>
+<div
+  class="fixed inset-0 z-[1010] flex items-center justify-center p-4 pointer-events-none"
+>
   <!-- Backdrop -->
   {#if isOpen}
     <div
       transition:fade={{ duration: 200 }}
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm"
+      class="fixed inset-0 transition-all duration-300 pointer-events-auto {isDraggingFromModal
+        ? 'bg-black/10 backdrop-blur-none'
+        : 'bg-black/50 backdrop-blur-sm'}"
       on:click={() => (isOpen = false)}
       role="button"
       tabindex="0"
@@ -1068,258 +1076,258 @@
     />
   {/if}
 
-  <!-- Sidebar -->
-  <div
-    class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800"
-    style="width: {isOpen ? sidebarWidth : 384}px"
-    class:translate-x-0={isOpen}
-    class:-translate-x-full={!isOpen}
-  >
-    <!-- Resizer Handle -->
-    <button
-      type="button"
-      class="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 z-50 transition-colors appearance-none bg-transparent"
-      on:mousedown={startResize}
-      aria-label="Resize sidebar"
-    ></button>
-
-    <!-- Header -->
+  <!-- Modal -->
+  {#if isOpen}
     <div
-      class="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 z-20"
+      transition:fade={{ duration: 200 }}
+      class="relative flex flex-col bg-white dark:bg-neutral-900 shadow-2xl rounded-xl border border-neutral-200 dark:border-neutral-800 w-full max-w-4xl h-full max-h-[85vh] overflow-hidden pointer-events-auto transition-opacity duration-300 {isDraggingFromModal
+        ? 'opacity-20 pointer-events-none'
+        : 'opacity-100'}"
+      role="presentation"
+      on:dragstart={handleModalDragStart}
+      on:dragend={handleModalDragEnd}
     >
-      <h2
-        class="text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2"
+      <!-- Header -->
+      <div
+        class="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 z-20 shrink-0"
       >
-        <FolderIcon className="size-5" />
-        Files
-      </h2>
-      <button
-        on:click={() => (isOpen = false)}
-        class="p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-        aria-label="Close"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5"
+        <div class="flex items-center gap-4">
+          <h2
+            class="text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2"
+          >
+            <FolderIcon className="size-5" />
+            Files
+          </h2>
+        </div>
+        <button
+          on:click={() => (isOpen = false)}
+          class="p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          aria-label="Close"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M6 18 18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
-    </div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="size-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 18 18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
 
-    <!-- Toolbar -->
-    <FileManagerToolbar
-      {searchQuery}
-      {sortMode}
-      {viewMode}
-      on:search={(e) => (searchQuery = e.detail)}
-      on:sort-change={(e) => (sortMode = e.detail)}
-      on:view-change={(e) => {
-        viewMode = e.detail;
-        // If switching to list/grid view, retry any previously failed previews so icons repopulate reliably
-        if (viewMode === "list") {
-          if (fileList && typeof fileList.refreshAllFailed === "function") {
-            fileList.refreshAllFailed();
-          } else if (fileList && typeof fileList.refreshAll === "function") {
-            // fallback: refresh everything
-            fileList.refreshAll();
+      <!-- Toolbar -->
+      <FileManagerToolbar
+        {searchQuery}
+        {sortMode}
+        {viewMode}
+        on:search={(e) => (searchQuery = e.detail)}
+        on:sort-change={(e) => (sortMode = e.detail)}
+        on:view-change={(e) => {
+          viewMode = e.detail;
+          // If switching to list/grid view, retry any previously failed previews so icons repopulate reliably
+          if (viewMode === "list") {
+            if (fileList && typeof fileList.refreshAllFailed === "function") {
+              fileList.refreshAllFailed();
+            } else if (fileList && typeof fileList.refreshAll === "function") {
+              // fallback: refresh everything
+              fileList.refreshAll();
+            }
+          } else if (viewMode === "grid") {
+            if (fileGrid && typeof fileGrid.refreshAllFailed === "function") {
+              fileGrid.refreshAllFailed();
+            } else if (fileGrid && typeof fileGrid.refreshAll === "function") {
+              fileGrid.refreshAll();
+            }
           }
-        } else if (viewMode === "grid") {
-          if (fileGrid && typeof fileGrid.refreshAllFailed === "function") {
-            fileGrid.refreshAllFailed();
-          } else if (fileGrid && typeof fileGrid.refreshAll === "function") {
-            fileGrid.refreshAll();
-          }
-        }
-      }}
-      on:refresh={handleRefresh}
-      on:change-dir={changeDirectoryDialog}
-      on:new-file={() => (creatingNewFile = true)}
-      on:new-folder={() => (creatingNewFolder = true)}
-      on:import-file={handleImportFile}
-      on:import-java={handleImportJava}
-      on:import-telemetry={() => {
-        isOpen = false;
-        showTelemetryDialog.set(true);
-      }}
-    />
+        }}
+        on:refresh={handleRefresh}
+        on:change-dir={changeDirectoryDialog}
+        on:new-file={() => (creatingNewFile = true)}
+        on:new-folder={() => (creatingNewFolder = true)}
+        on:import-file={handleImportFile}
+        on:import-java={handleImportJava}
+        on:import-telemetry={() => {
+          isOpen = false;
+          showTelemetryDialog.set(true);
+        }}
+      />
 
-    <!-- Breadcrumbs -->
-    <FileManagerBreadcrumbs
-      currentPath={currentDirectory}
-      isAtBase={currentDirectory === baseDirectory}
-      on:change-dir={changeDirectoryManual}
-      on:go-up={goUpDirectory}
-    />
+      <!-- Breadcrumbs -->
+      <FileManagerBreadcrumbs
+        currentPath={currentDirectory}
+        isAtBase={currentDirectory === baseDirectory}
+        on:change-dir={changeDirectoryManual}
+        on:go-up={goUpDirectory}
+      />
 
-    <!-- Error Display -->
-    {#if errorMessage}
-      <div
-        class="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-xs text-red-600 dark:text-red-400 border-b border-red-100 dark:border-red-900/30"
-      >
-        {errorMessage}
-      </div>
-    {/if}
-
-    <!-- New Folder Input -->
-    {#if creatingNewFolder}
-      <div
-        class="p-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700"
-      >
-        <div class="text-xs font-medium text-neutral-500 mb-1">
-          New Folder Name
-        </div>
-        <input
-          bind:value={newFolderName}
-          bind:this={newFolderInput}
-          class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
-          placeholder="New Folder"
-          on:keydown={(e) => {
-            if (e.key === "Enter") createNewFolder(newFolderName);
-            if (e.key === "Escape") creatingNewFolder = false;
-          }}
-        />
-
-        <div class="flex gap-2">
-          <button
-            class="flex-1 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-            on:click={() => createNewFolder(newFolderName)}>Create</button
-          >
-          <button
-            class="flex-1 py-1 text-xs bg-neutral-400 text-white rounded hover:bg-neutral-500"
-            on:click={() => (creatingNewFolder = false)}>Cancel</button
-          >
-        </div>
-      </div>
-    {/if}
-
-    <!-- New File Input -->
-    {#if creatingNewFile}
-      <div
-        class="p-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700"
-      >
-        <div class="text-xs font-medium text-neutral-500 mb-1">
-          New File Name
-        </div>
-        <input
-          bind:value={newFileName}
-          bind:this={newFileInput}
-          class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
-          placeholder="path_name.turt"
-          on:keydown={(e) => {
-            if (e.key === "Enter") createNewFile(newFileName);
-            if (e.key === "Escape") creatingNewFile = false;
-          }}
-        />
-
-        <div class="flex gap-2">
-          <button
-            class="flex-1 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
-            on:click={() => createNewFile(newFileName)}>Create</button
-          >
-          <button
-            class="flex-1 py-1 text-xs bg-neutral-400 text-white rounded hover:bg-neutral-500"
-            on:click={() => (creatingNewFile = false)}>Cancel</button
-          >
-        </div>
-      </div>
-    {/if}
-
-    <!-- File List / Grid -->
-    {#if loading}
-      <div
-        class="flex-1 flex items-center justify-center text-neutral-400 text-sm"
-      >
-        <LoadingSpinner />
-      </div>
-    {:else if filteredFiles.length === 0}
-      <div
-        class="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1"
-          stroke="currentColor"
-          class="size-12 mb-2 opacity-30"
+      <!-- Error Display -->
+      {#if errorMessage}
+        <div
+          class="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-xs text-red-600 dark:text-red-400 border-b border-red-100 dark:border-red-900/30"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+          {errorMessage}
+        </div>
+      {/if}
+
+      <!-- New Folder Input -->
+      {#if creatingNewFolder}
+        <div
+          class="p-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700"
+        >
+          <div class="text-xs font-medium text-neutral-500 mb-1">
+            New Folder Name
+          </div>
+          <input
+            bind:value={newFolderName}
+            bind:this={newFolderInput}
+            class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
+            placeholder="New Folder"
+            on:keydown={(e) => {
+              if (e.key === "Enter") createNewFolder(newFolderName);
+              if (e.key === "Escape") creatingNewFolder = false;
+            }}
           />
-        </svg>
-        <p class="text-sm">No files found</p>
-        {#if searchQuery}
-          <button
-            class="text-xs text-blue-500 mt-2 hover:underline"
-            on:click={() => (searchQuery = "")}>Clear search</button
+
+          <div class="flex gap-2">
+            <button
+              class="flex-1 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+              on:click={() => createNewFolder(newFolderName)}>Create</button
+            >
+            <button
+              class="flex-1 py-1 text-xs bg-neutral-400 text-white rounded hover:bg-neutral-500"
+              on:click={() => (creatingNewFolder = false)}>Cancel</button
+            >
+          </div>
+        </div>
+      {/if}
+
+      <!-- New File Input -->
+      {#if creatingNewFile}
+        <div
+          class="p-3 bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700"
+        >
+          <div class="text-xs font-medium text-neutral-500 mb-1">
+            New File Name
+          </div>
+          <input
+            bind:value={newFileName}
+            bind:this={newFileInput}
+            class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
+            placeholder="path_name.turt"
+            on:keydown={(e) => {
+              if (e.key === "Enter") createNewFile(newFileName);
+              if (e.key === "Escape") creatingNewFile = false;
+            }}
+          />
+
+          <div class="flex gap-2">
+            <button
+              class="flex-1 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+              on:click={() => createNewFile(newFileName)}>Create</button
+            >
+            <button
+              class="flex-1 py-1 text-xs bg-neutral-400 text-white rounded hover:bg-neutral-500"
+              on:click={() => (creatingNewFile = false)}>Cancel</button
+            >
+          </div>
+        </div>
+      {/if}
+
+      <!-- File List / Grid -->
+      {#if loading}
+        <div
+          class="flex-1 flex items-center justify-center text-neutral-400 text-sm"
+        >
+          <LoadingSpinner />
+        </div>
+      {:else if filteredFiles.length === 0}
+        <div
+          class="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1"
+            stroke="currentColor"
+            class="size-12 mb-2 opacity-30"
           >
-        {:else}
-          <button
-            class="text-xs text-blue-500 mt-2 hover:underline"
-            on:click={() => (creatingNewFile = true)}>Create a new file</button
-          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+            />
+          </svg>
+          <p class="text-sm">No files found</p>
+          {#if searchQuery}
+            <button
+              class="text-xs text-blue-500 mt-2 hover:underline"
+              on:click={() => (searchQuery = "")}>Clear search</button
+            >
+          {:else}
+            <button
+              class="text-xs text-blue-500 mt-2 hover:underline"
+              on:click={() => (creatingNewFile = true)}
+              >Create a new file</button
+            >
+          {/if}
+        </div>
+      {:else if viewMode === "list"}
+        <FileList
+          bind:this={fileList}
+          files={filteredFiles}
+          selectedFilePath={selectedFile?.path ?? null}
+          {sortMode}
+          fieldImage={settings.fieldMap}
+          {renamingFile}
+          on:select={(e) => (selectedFile = e.detail)}
+          on:open={(e) => handleOpen(e.detail)}
+          on:rename-start={(e) => (renamingFile = e.detail)}
+          on:rename-save={(e) =>
+            renamingFile && renameFile(renamingFile, e.detail)}
+          on:rename-cancel={() => (renamingFile = null)}
+          on:menu-action={handleMenuAction}
+          on:move-file={handleMoveFile}
+        />
+      {:else}
+        <FileGrid
+          bind:this={fileGrid}
+          files={filteredFiles}
+          selectedFilePath={selectedFile?.path ?? null}
+          {sortMode}
+          fieldImage={settings.fieldMap}
+          showGitStatus={settings.gitIntegration}
+          {renamingFile}
+          on:select={(e) => (selectedFile = e.detail)}
+          on:open={(e) => handleOpen(e.detail)}
+          on:rename-start={(e) => (renamingFile = e.detail)}
+          on:rename-save={(e) =>
+            renamingFile && renameFile(renamingFile, e.detail)}
+          on:rename-cancel={() => (renamingFile = null)}
+          on:menu-action={handleMenuAction}
+          on:move-file={handleMoveFile}
+        />
+      {/if}
+
+      <!-- Footer Status -->
+      <div
+        class="p-2 text-xs text-neutral-400 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex justify-between shrink-0"
+      >
+        <span
+          >{filteredFiles.length} file{filteredFiles.length !== 1
+            ? "s"
+            : ""}</span
+        >
+        {#if selectedFile}
+          <span class="truncate max-w-[300px]">{selectedFile.name}</span>
         {/if}
       </div>
-    {:else if viewMode === "list"}
-      <FileList
-        bind:this={fileList}
-        files={filteredFiles}
-        selectedFilePath={selectedFile?.path ?? null}
-        {sortMode}
-        fieldImage={settings.fieldMap}
-        {renamingFile}
-        on:select={(e) => (selectedFile = e.detail)}
-        on:open={(e) => handleOpen(e.detail)}
-        on:rename-start={(e) => (renamingFile = e.detail)}
-        on:rename-save={(e) =>
-          renamingFile && renameFile(renamingFile, e.detail)}
-        on:rename-cancel={() => (renamingFile = null)}
-        on:menu-action={handleMenuAction}
-        on:move-file={handleMoveFile}
-      />
-    {:else}
-      <FileGrid
-        bind:this={fileGrid}
-        files={filteredFiles}
-        selectedFilePath={selectedFile?.path ?? null}
-        {sortMode}
-        fieldImage={settings.fieldMap}
-        showGitStatus={settings.gitIntegration}
-        {renamingFile}
-        on:select={(e) => (selectedFile = e.detail)}
-        on:open={(e) => handleOpen(e.detail)}
-        on:rename-start={(e) => (renamingFile = e.detail)}
-        on:rename-save={(e) =>
-          renamingFile && renameFile(renamingFile, e.detail)}
-        on:rename-cancel={() => (renamingFile = null)}
-        on:menu-action={handleMenuAction}
-        on:move-file={handleMoveFile}
-      />
-    {/if}
-
-    <!-- Footer Status -->
-    <div
-      class="p-2 text-xs text-neutral-400 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex justify-between"
-    >
-      <span
-        >{filteredFiles.length} file{filteredFiles.length !== 1
-          ? "s"
-          : ""}</span
-      >
-      {#if selectedFile}
-        <span class="truncate max-w-[150px]">{selectedFile.name}</span>
-      {/if}
     </div>
-  </div>
+  {/if}
 </div>
