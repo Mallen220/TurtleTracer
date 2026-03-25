@@ -147,7 +147,10 @@
     dragStart = { x: e.clientX, y: e.clientY };
     boxStart = { ...box };
 
-    e.target.setPointerCapture(e.pointerId);
+    const target = e.currentTarget || e.target;
+    if (target instanceof Element) {
+      target.setPointerCapture(e.pointerId);
+    }
     e.stopPropagation();
     e.preventDefault();
   }
@@ -217,9 +220,9 @@
     isDragging = false;
     dragType = "";
 
-    if (e.target.hasPointerCapture(e.pointerId)) {
-
-      e.target.releasePointerCapture(e.pointerId);
+    const target = e.currentTarget || e.target;
+    if (target instanceof Element && target.hasPointerCapture(e.pointerId)) {
+      target.releasePointerCapture(e.pointerId);
     }
   }
 </script>

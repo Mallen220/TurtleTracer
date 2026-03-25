@@ -151,6 +151,7 @@
           {#if linked}
 
             <div
+              role="presentation"
               class="absolute right-2 top-1/2 -translate-y-1/2 text-pink-500 cursor-help"
               on:mouseenter={(e) => handleRotateHoverEnter(e, rotate.id)}
               on:mouseleave={handleRotateHoverLeave}

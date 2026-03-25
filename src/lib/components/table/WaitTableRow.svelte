@@ -120,6 +120,7 @@
       {#if isWaitLinked(sequence, item.id)}
 
         <div
+          role="presentation"
           class="absolute right-1 top-1/2 -translate-y-1/2 text-amber-500 cursor-help flex items-center justify-center"
           on:mouseenter={(e) => handleWaitHoverEnter(e, item.id)}
           on:mouseleave={handleWaitHoverLeave}

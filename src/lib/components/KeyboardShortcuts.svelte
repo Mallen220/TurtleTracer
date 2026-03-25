@@ -592,9 +592,9 @@
       const url =
         "https://www.turtletracer.com/turtle-tracer-lib/installation/";
 
-      if (window.electronAPI && window.electronAPI.openExternal) {
-
-        window.electronAPI.openExternal(url);
+      const api = (window as any).electronAPI;
+      if (api && api.openExternal) {
+        api.openExternal(url);
       } else {
         window.open(url, "_blank");
       }
@@ -602,9 +602,9 @@
     reportIssue: () => {
       const url = "https://github.com/Mallen220/TurtleTracer/issues";
 
-      if (window.electronAPI && window.electronAPI.openExternal) {
-
-        window.electronAPI.openExternal(url);
+      const api = (window as any).electronAPI;
+      if (api && api.openExternal) {
+        api.openExternal(url);
       } else {
         window.open(url, "_blank");
       }
@@ -932,12 +932,11 @@
   class="hidden"
   style="display:none;"
   tabindex="-1"
-  on:change={(e) => {
-
-    if (e.target.files && e.target.files.length > 0) {
+  on:change={function(e) {
+    const target = e.currentTarget || e.target;
+    if (target instanceof HTMLInputElement && target.files && target.files.length > 0) {
       loadFile(e);
-
-      e.target.value = "";
+      target.value = "";
     }
   }}
 />
