@@ -1768,7 +1768,6 @@
   bind:lines={$linesStore}
   bind:sequence={$sequenceStore}
   bind:shapes={$shapesStore}
-  settings={$settingsStore}
 />
 
 <DialogHost />
