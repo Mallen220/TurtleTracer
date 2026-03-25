@@ -9,6 +9,7 @@
     Settings,
     Shape,
   } from "../../../types/index";
+  import SectionHeader from "../common/SectionHeader.svelte";
   import {
     PathOptimizer,
     type OptimizationResult,
@@ -30,11 +31,11 @@
   export let isRunning = false;
   let progress = 0;
   let currentBestTime = 0;
-  let logs: string[] = [];
   export let optimizedLines: Line[] | null = null;
   let showPreview = true;
   // True if optimizer finished but best candidate still has collision penalty
   export let optimizationFailed = false;
+  export let collapsed = false;
 
   // Selection state for path optimization
   let selectionState: Record<string, boolean> = {};
@@ -95,7 +96,7 @@
   export async function startOptimization() {
     isRunning = true;
     progress = 0;
-    logs = [];
+
     optimizationFailed = false;
     isStopping = false;
 
@@ -117,15 +118,15 @@
         shapes,
       );
     } else {
-      logs = [...logs, "Error: Settings not loaded."];
+      console.log("Error: Settings not loaded.");
       isRunning = false;
       return;
     }
 
-    logs = [...logs, "Initializing population..."];
+    console.log("Initializing population...");
 
     if (!optimizer) {
-      logs = [...logs, "Error: Optimizer initialization failed."];
+      console.log("Error: Optimizer initialization failed.");
       isRunning = false;
       return;
     }
@@ -141,13 +142,12 @@
             result.bestTime > 1000
               ? "Validating..."
               : formatTime(result.bestTime);
-          logs = [
-            ...logs,
+          console.log(
+
             `Gen ${result.generation}: Best Time ${timeDisplay}`,
-          ];
+          );
           // Auto-scroll logs
-          const logContainer = document.getElementById("opt-logs");
-          if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
+
         }
       },
     );
@@ -171,19 +171,19 @@
     const wasStopped = optimizationResult.stopped ?? false;
 
     if (wasStopped) {
-      logs = [...logs, "Optimization stopped by user."];
+      console.log("Optimization stopped by user.");
     }
 
     // If bestTime is still in penalty range (>=10000), treat as failure to find collision-free path
     optimizationFailed = finalBestTime >= 10000;
     if (optimizationFailed) {
-      logs = [
-        ...logs,
+      console.log(
+
         "Warning: No collision-free path was found. You can help the optimizer by creating an initial path that avoids obstacles before running optimization.",
-      ];
+      );
     }
 
-    logs = [...logs, "Optimization Complete!"];
+    console.log("Optimization Complete!");
     isRunning = false;
     isStopping = false;
     optimizer = null;
@@ -203,7 +203,7 @@
       onApply(result);
 
       // Reset optimizer UI state so subsequent opens show 'Start Optimization'
-      logs = [];
+
       progress = 0;
       optimizedLines = null;
       showPreview = false;
@@ -218,7 +218,7 @@
   export function handleClose() {
     if (isRunning) return; // Prevent closing while running
     isOpen = false;
-    logs = [];
+
     progress = 0;
     optimizedLines = null;
     showPreview = false;
@@ -230,26 +230,36 @@
     if (!optimizer) return;
     // Mark that user requested a stop and ask the optimizer to stop at next opportunity
     isStopping = true;
-    logs = [...logs, "Stop requested — finishing current generation..."];
+    console.log("Stop requested — finishing current generation...");
     optimizer.stop();
   }
 
   export function togglePreview() {
     showPreview = !showPreview;
     if (onPreviewChange) {
-      onPreviewChange(showPreview ? optimizedLines : null);
+      onPreviewChange(showPreview && !optimizationFailed ? optimizedLines : null);
     }
+  }
+
+  // Hide preview if optimization failed
+  $: if (optimizationFailed && showPreview) {
+    showPreview = false;
+    if (onPreviewChange) onPreviewChange(null);
   }
 </script>
 
 <!-- Only embedded panel version -->
-<div class="w-full space-y-4">
-  <div class="flex justify-between items-center">
-    <h3 class="text-base font-semibold text-neutral-900 dark:text-white">
-      Path Optimizer
-    </h3>
-  </div>
+<div class="w-full">
+  <SectionHeader
+    title="Path Optimizer"
+    bind:collapsed
+    count={optimizedLines ? 1 : 0}
+  >
 
+  </SectionHeader>
+
+  {#if !collapsed}
+  <div class="flex flex-col gap-4 mt-4 px-1">
   <details class="text-sm text-neutral-600 dark:text-neutral-400 group">
     <summary
       class="cursor-pointer font-medium hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
@@ -345,7 +355,7 @@
     </div>
   {/if}
 
-  {#if !isRunning}
+  {#if !isRunning && !optimizationFailed}
     <div class="flex gap-2 my-2">
       <button
         on:click={togglePreview}
@@ -457,5 +467,7 @@
       </svg>
       Start Optimization
     </button>
+  {/if}
+  </div>
   {/if}
 </div>
