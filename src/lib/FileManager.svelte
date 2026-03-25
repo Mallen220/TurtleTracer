@@ -1093,7 +1093,7 @@
   {#if isOpen}
     <div
       transition:fade={{ duration: 200 }}
-      class="relative flex flex-col bg-white dark:bg-neutral-900 shadow-2xl rounded-xl border border-neutral-200 dark:border-neutral-800 w-full max-w-4xl h-full max-h-[85vh] overflow-hidden pointer-events-auto transition-opacity duration-300 opacity-100"
+      class="relative flex flex-col bg-white dark:bg-neutral-900 shadow-2xl rounded-xl border border-neutral-200 dark:border-neutral-800 w-[calc(100vw-4rem)] max-w-4xl h-[calc(100vh-4rem)] max-h-[85vh] overflow-hidden pointer-events-auto transition-opacity duration-300 opacity-100"
       role="presentation"
       on:dragstart={handleModalDragStart}
       on:dragend={handleModalDragEnd}
