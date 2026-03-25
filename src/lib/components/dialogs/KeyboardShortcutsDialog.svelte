@@ -292,8 +292,6 @@
 <svelte:window on:keydown|capture={handleKeyDown} />
 
 {#if isOpen}
-
-
   <div
     transition:fade={{ duration: 200, easing: cubicInOut }}
     class="fixed inset-0 z-[1006] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"

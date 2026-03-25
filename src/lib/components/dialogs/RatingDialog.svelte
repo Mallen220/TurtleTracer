@@ -24,10 +24,10 @@
     }
   }
 
-  function handleClickOutside(event: MouseEvent) {
+  function handleClickOutside(event?: Event) {
     if (
       dialogContainer &&
-      !dialogContainer.contains(event.target as Node) &&
+      (!event || !dialogContainer.contains(event.target as Node)) &&
       !isSubmitting
     ) {
       closeDialog();
@@ -162,14 +162,20 @@
 </script>
 
 {#if $showRatingDialog && !isAlreadyRated}
-
-
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
   <div
+    role="presentation"
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-    on:click={handleClickOutside}
+    on:click={() => handleClickOutside()}
     transition:fade={{ duration: 150 }}
   >
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
     <div
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
       bind:this={dialogContainer}
       on:click|stopPropagation
       class="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-neutral-200 dark:border-neutral-700"
