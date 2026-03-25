@@ -249,18 +249,26 @@
 <div
   class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden mb-4"
 >
-  <SectionHeader
-    title="Path Optimizer"
-    bind:collapsed
-  />
+  <SectionHeader title="Path Optimizer" bind:collapsed />
 
   {#if !collapsed}
     <div class="flex flex-col gap-4 p-4">
       <details class="text-sm text-neutral-600 dark:text-neutral-400 group">
         <summary
-          class="cursor-pointer font-medium hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
-          >About Path Optimization</summary
+          class="cursor-pointer font-medium hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors list-none appearance-none [&::-webkit-details-marker]:hidden flex items-center gap-1"
         >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            class="size-3 transition-transform group-open:rotate-90 text-neutral-500 dark:text-neutral-400"
+          >
+            <path
+              d="M6.3 2.841A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.269l9.344-5.89a1.5 1.5 0 0 0 0-2.538L6.3 2.84z"
+            />
+          </svg>
+          About Path Optimization
+        </summary>
         <div class="mt-2 text-xs leading-relaxed">
           The optimizer uses a genetic algorithm to adjust control points to
           minimize total travel time. Locking paths and adjusting settings can
@@ -272,33 +280,39 @@
       </details>
 
       {#if !isRunning && optimizedLines === null}
-        <details class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400 group">
-          <summary class="flex justify-between items-center cursor-pointer list-none appearance-none [&::-webkit-details-marker]:hidden">
-            <span
-              class="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
-              >Paths to Optimize</span
-            >
+        <details
+          class="space-y-2 text-sm text-neutral-600 dark:text-neutral-400 group"
+        >
+          <summary
+            class="flex justify-between items-center cursor-pointer list-none appearance-none [&::-webkit-details-marker]:hidden"
+          >
+            <div class="flex items-center gap-1">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="size-3 transition-transform group-open:rotate-90 text-neutral-500 dark:text-neutral-400"
+              >
+                <path
+                  d="M6.3 2.841A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.269l9.344-5.89a1.5 1.5 0 0 0 0-2.538L6.3 2.84z"
+                />
+              </svg>
+              <span
+                class="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+                >Paths to Optimize</span
+              >
+            </div>
             <div class="flex gap-2 items-center">
               <button
-                on:click|preventDefault={selectAll}
+                on:click|preventDefault|stopPropagation={selectAll}
                 class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >All</button
               >
               <button
-                on:click|preventDefault={deselectAll}
+                on:click|preventDefault|stopPropagation={deselectAll}
                 class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >None</button
               >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-4 ml-1 transition-transform group-open:rotate-180"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-              </svg>
             </div>
           </summary>
           <div
