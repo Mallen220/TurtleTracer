@@ -385,11 +385,33 @@
     ) as HTMLElement;
 
     if (iconPreviewElement && e.dataTransfer.setDragImage) {
-      // Calculate center to make the mouse grab it neatly in the middle
-      const rect = iconPreviewElement.getBoundingClientRect();
-      const offsetX = rect.width / 2;
-      const offsetY = rect.height / 2;
-      e.dataTransfer.setDragImage(iconPreviewElement, offsetX, offsetY);
+      // Clone the element to avoid weird scaling or visual glitches in the drag ghost
+      const clone = iconPreviewElement.cloneNode(true) as HTMLElement;
+      clone.style.position = "absolute";
+      clone.style.top = "-9999px";
+      clone.style.left = "-9999px";
+      // Ensure the clone has proper styling independent of its flex parent
+      clone.style.width = "80px";
+      clone.style.height = "80px";
+      // Ensure svgs inside render
+      const originalSvg = iconPreviewElement.querySelector("svg");
+      const cloneSvg = clone.querySelector("svg");
+      if (originalSvg && cloneSvg) {
+        cloneSvg.innerHTML = originalSvg.innerHTML;
+      }
+      document.body.appendChild(clone);
+
+      const offsetX = 40; // half of 80px width
+      const offsetY = 40;
+
+      e.dataTransfer.setDragImage(clone, offsetX, offsetY);
+
+      // Clean up the clone immediately after drag starts
+      setTimeout(() => {
+        if (document.body.contains(clone)) {
+          document.body.removeChild(clone);
+        }
+      }, 0);
     }
   }
 
