@@ -1,7 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  // @ts-ignore
+
   import { saveAutoPathsDirectory } from "../../../utils/directorySettings";
 
   export let show = false;

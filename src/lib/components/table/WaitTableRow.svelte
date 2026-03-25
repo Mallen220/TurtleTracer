@@ -118,7 +118,7 @@
         aria-label="Wait"
       />
       {#if isWaitLinked(sequence, item.id)}
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
+
         <div
           class="absolute right-1 top-1/2 -translate-y-1/2 text-amber-500 cursor-help flex items-center justify-center"
           on:mouseenter={(e) => handleWaitHoverEnter(e, item.id)}

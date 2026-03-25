@@ -2050,7 +2050,6 @@
         style={`top: ${y(FIELD_SIZE)}px; left: ${x(0)}px; width: ${x(FIELD_SIZE) - x(0)}px; height: ${y(0) - y(FIELD_SIZE)}px;`}
         draggable="false"
         on:error={(e) => {
-          // @ts-ignore
           e.target.src = "/fields/decode.webp";
         }}
       />
@@ -2130,7 +2129,7 @@
             class="w-full h-full object-contain"
             draggable="false"
             on:error={(e) => {
-              // @ts-ignore
+
               e.target.src = "/robot.png";
             }}
           />
@@ -2189,7 +2188,7 @@
             class="w-full h-full object-contain grayscale opacity-50"
             draggable="false"
             on:error={(e) => {
-              // @ts-ignore
+
               e.target.src = "/robot.png";
             }}
           />

@@ -146,7 +146,7 @@
     dragType = type;
     dragStart = { x: e.clientX, y: e.clientY };
     boxStart = { ...box };
-    // @ts-ignore
+
     e.target.setPointerCapture(e.pointerId);
     e.stopPropagation();
     e.preventDefault();
@@ -216,9 +216,9 @@
   function handlePointerUp(e: PointerEvent) {
     isDragging = false;
     dragType = "";
-    // @ts-ignore
+
     if (e.target.hasPointerCapture(e.pointerId)) {
-      // @ts-ignore
+
       e.target.releasePointerCapture(e.pointerId);
     }
   }
@@ -349,7 +349,7 @@
                 bind:this={imageContainer}
                 style="max-width: 100%; max-height: 60vh;"
               >
-                <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+
                 <img
                   bind:this={imageElement}
                   src={imageData}

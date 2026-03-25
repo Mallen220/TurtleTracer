@@ -50,8 +50,8 @@
   let showTransforms = false;
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+
+
 <div
   role="button"
   tabindex="0"

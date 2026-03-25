@@ -139,7 +139,7 @@
       id="dropdown-list"
     >
       {#each filteredOptions as option, index}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
+
         <div
           role="option"
           tabindex="-1"

@@ -100,7 +100,7 @@ export function mergeSettings(source: any): Settings {
           if (!defaultBindings.find((d) => d.id === b.id)) merged.push(b);
         });
 
-        // @ts-ignore
+
         migrated.keyBindings = merged;
       } else {
         // General type check

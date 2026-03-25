@@ -127,8 +127,8 @@
   }
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+
+
 <div
   role="button"
   tabindex="0"
@@ -196,7 +196,7 @@
             on:click|stopPropagation
           />
           {#if line.id && isLineLinked(lines, line.id)}
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
+
             <div
               class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500 cursor-help"
               on:mouseenter={(e) => handleLinkHoverEnter(e, line.id || null)}

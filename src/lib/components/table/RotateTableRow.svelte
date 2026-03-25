@@ -120,7 +120,7 @@
         aria-label="Rotate"
       />
       {#if isRotateLinked(sequence, item.id)}
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
+
         <div
           class="absolute right-1 top-1/2 -translate-y-1/2 text-pink-500 cursor-help flex items-center justify-center"
           title="Linked Rotate: Same Name = Shared Degrees"

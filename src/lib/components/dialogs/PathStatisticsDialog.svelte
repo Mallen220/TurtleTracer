@@ -588,7 +588,7 @@
 
 {#if isOpen && pathStats}
   <!-- Non-modal floating panel to allow field to remain visible -->
-  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+
   <div
     class="z-50 flex flex-col overflow-hidden bg-white dark:bg-neutral-800 rounded-xl shadow-xl border border-neutral-200 dark:border-neutral-700"
     style={panelStyle}

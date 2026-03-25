@@ -138,8 +138,8 @@
 <svelte:window on:keydown={handleKeyDown} />
 
 {#if isOpen}
-  <!-- svelte-ignore a11y-click-events-have-key-events -->
-  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+
+
   <div
     transition:fade={{ duration: 150, easing: cubicInOut }}
     class="fixed inset-0 z-[2000] flex items-start justify-center pt-[15vh] bg-black bg-opacity-60 backdrop-blur-sm"

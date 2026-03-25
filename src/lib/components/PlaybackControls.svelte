@@ -383,14 +383,14 @@
       ></div>
 
       <!-- A Handle -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
+
       <div
         class="absolute top-1/2 -translate-y-1/2 w-2 h-4 bg-purple-500 hover:bg-purple-400 cursor-ew-resize z-20 rounded-sm shadow-md"
         style="left: {loopRange[0]}%; transform: translateX(-50%);"
         on:mousedown={(e) => startDragLoopHandle(e, "min")}
       ></div>
       <!-- B Handle -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
+
       <div
         class="absolute top-1/2 -translate-y-1/2 w-2 h-4 bg-purple-500 hover:bg-purple-400 cursor-ew-resize z-20 rounded-sm shadow-md"
         style="left: {loopRange[1]}%; transform: translateX(-50%);"
@@ -417,7 +417,7 @@
     <!-- These need pointer events to be clickable for seeking -->
     {#each timelineItems as item, index}
       {#if item.type === "marker"}
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
+
         <div
           class="absolute z-20 group rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
           role="button"

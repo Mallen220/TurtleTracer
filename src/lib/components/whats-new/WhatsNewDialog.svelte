@@ -4,7 +4,7 @@
   import MarkdownIt from "markdown-it";
   import { features, getAllFeatures, type FeatureHighlight } from "./features";
 
-  // @ts-ignore
+
   import pkg from "../../../../package.json";
   export let show = false;
 

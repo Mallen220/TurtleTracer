@@ -83,7 +83,6 @@ describe("PathOptimizer", () => {
     );
 
     // Sanity check the optimizer captured start point
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((optimizer as any).startPoint.y).toBe(20);
     expect(optimizer).toBeDefined();
   });

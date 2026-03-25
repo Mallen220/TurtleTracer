@@ -591,9 +591,9 @@
     openDocs: () => {
       const url =
         "https://www.turtletracer.com/turtle-tracer-lib/installation/";
-      // @ts-ignore
+
       if (window.electronAPI && window.electronAPI.openExternal) {
-        // @ts-ignore
+
         window.electronAPI.openExternal(url);
       } else {
         window.open(url, "_blank");
@@ -601,9 +601,9 @@
     },
     reportIssue: () => {
       const url = "https://github.com/Mallen220/TurtleTracer/issues";
-      // @ts-ignore
+
       if (window.electronAPI && window.electronAPI.openExternal) {
-        // @ts-ignore
+
         window.electronAPI.openExternal(url);
       } else {
         window.open(url, "_blank");
@@ -933,10 +933,10 @@
   style="display:none;"
   tabindex="-1"
   on:change={(e) => {
-    // @ts-ignore
+
     if (e.target.files && e.target.files.length > 0) {
       loadFile(e);
-      // @ts-ignore
+
       e.target.value = "";
     }
   }}
