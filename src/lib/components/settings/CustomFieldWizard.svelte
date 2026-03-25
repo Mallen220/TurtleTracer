@@ -352,7 +352,6 @@
                 bind:this={imageContainer}
                 style="max-width: 100%; max-height: 60vh;"
               >
-
                 <img
                   bind:this={imageElement}
                   src={imageData}

@@ -138,8 +138,6 @@
 <svelte:window on:keydown={handleKeyDown} />
 
 {#if isOpen}
-
-
   <!-- svelte-ignore a11y-click-events-have-key-events -->
   <!-- svelte-ignore a11y-no-static-element-interactions -->
   <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
@@ -149,7 +147,7 @@
     class="fixed inset-0 z-[2000] flex items-start justify-center pt-[15vh] bg-black bg-opacity-60 backdrop-blur-sm"
     on:click|self={onClose}
     on:keydown={(e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     }}
   >
     <!-- Wrapper for floating elements -->

@@ -423,7 +423,6 @@
     <!-- These need pointer events to be clickable for seeking -->
     {#each timelineItems as item, index}
       {#if item.type === "marker"}
-
         <div
           class="absolute z-20 group rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
           role="button"

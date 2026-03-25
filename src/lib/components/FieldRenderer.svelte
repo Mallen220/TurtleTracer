@@ -2049,7 +2049,7 @@
         class="absolute rounded-lg z-10 max-w-none"
         style={`top: ${y(FIELD_SIZE)}px; left: ${x(0)}px; width: ${x(FIELD_SIZE) - x(0)}px; height: ${y(0) - y(FIELD_SIZE)}px;`}
         draggable="false"
-        on:error={function(e) {
+        on:error={function (e) {
           const target = e.currentTarget || e.target;
           if (target instanceof HTMLImageElement) {
             target.src = "/fields/decode.webp";
@@ -2131,7 +2131,7 @@
             alt="Robot"
             class="w-full h-full object-contain"
             draggable="false"
-            on:error={function(e) {
+            on:error={function (e) {
               const target = e.currentTarget || e.target;
               if (target instanceof HTMLImageElement) {
                 target.src = "/robot.png";
@@ -2192,7 +2192,7 @@
             alt="Ghost Robot"
             class="w-full h-full object-contain grayscale opacity-50"
             draggable="false"
-            on:error={function(e) {
+            on:error={function (e) {
               const target = e.currentTarget || e.target;
               if (target instanceof HTMLImageElement) {
                 target.src = "/robot.png";

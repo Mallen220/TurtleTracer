@@ -262,3 +262,5 @@ src/tests/javaImporterPaths.test.ts
 src/tests/javaImporterReuse.test.ts
 src/utils/javaImporter.ts
 vite.config.d.ts
+src/lib/components/dialogs/KeyboardShortcutsDialog.svelte
+src/utils/settingsPersistence.ts

@@ -1504,7 +1504,7 @@
                   <div class="flex flex-row items-center gap-2">
                     <ColorPicker
                       bind:color={line.color}
-                      on:input={function(e) {
+                      on:input={function (e) {
                         const target = e.currentTarget || e.target;
                         if (target instanceof HTMLInputElement && line.id) {
                           updateLineColor(line.id, target.value);
@@ -1518,7 +1518,7 @@
                         class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs pr-6"
                         class:text-blue-500={hoveredLinkId === line.id}
                         value={line.name}
-                        on:input={function(e) {
+                        on:input={function (e) {
                           const target = e.currentTarget || e.target;
                           if (target instanceof HTMLInputElement) {
                             updateLineName(item.lineId, target.value);
@@ -1533,7 +1533,6 @@
                         aria-label="Path Name"
                       />
                       {#if line.id && pathStatsMap.has(line.id)}
-
                         <div
                           role="presentation"
                           class="absolute right-[22px] top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 cursor-help flex items-center justify-center"
@@ -1582,7 +1581,6 @@
                         </div>
                       {/if}
                       {#if line.id && isLineLinked(lines, line.id)}
-
                         <div
                           role="presentation"
                           class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500 cursor-help flex items-center justify-center"

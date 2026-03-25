@@ -932,9 +932,13 @@
   class="hidden"
   style="display:none;"
   tabindex="-1"
-  on:change={function(e) {
+  on:change={function (e) {
     const target = e.currentTarget || e.target;
-    if (target instanceof HTMLInputElement && target.files && target.files.length > 0) {
+    if (
+      target instanceof HTMLInputElement &&
+      target.files &&
+      target.files.length > 0
+    ) {
       loadFile(e);
       target.value = "";
     }
