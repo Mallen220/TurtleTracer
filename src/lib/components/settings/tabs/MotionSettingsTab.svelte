@@ -228,7 +228,7 @@
             : 'bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}"
           on:click={() => (angularVelocityUnit = "rad")}>π rad/s</button
         >
-        <div class="w-px h-full bg-neutral-300 dark:bg-neutral-600"></div>
+        <div class="w-px h-full bg-neutral-300 dark:bg-neutral-600" role="presentation" aria-hidden="true"></div>
         <button
           class="px-2 py-0.5 {angularVelocityUnit === 'deg'
             ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium'

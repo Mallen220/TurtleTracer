@@ -148,26 +148,32 @@
 
       <div class="p-6 space-y-4">
         <div>
-          <label
-            for="telemetry-file-upload"
+          <span
             class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2"
-            >Upload Log File (CSV or JSON)</label
+            >Upload Log File (CSV or JSON)</span
           >
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              on:click={() => fileInput?.click()}
+              class="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/50 rounded-full text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
+            >
+              Choose File
+            </button>
+            <span class="text-sm text-neutral-500 dark:text-neutral-400 truncate max-w-[200px]">
+              {fileInput?.files?.[0]?.name || "No file chosen"}
+            </span>
+          </div>
           <input
             id="telemetry-file-upload"
             type="file"
             accept=".csv,.json,.txt"
             bind:this={fileInput}
             on:change={handleFileSelect}
-            class="block w-full text-sm text-neutral-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-300
-                "
+            class="hidden"
+            tabindex="-1"
           />
-          <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+          <p class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
             CSV format: time, x, y, heading
           </p>
         </div>

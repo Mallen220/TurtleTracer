@@ -217,7 +217,7 @@
         {/if}
       </button>
 
-      <div class="h-4 w-px bg-neutral-200 dark:bg-neutral-700 mx-1"></div>
+      <div class="h-4 w-px bg-neutral-200 dark:bg-neutral-700 mx-1" role="presentation" aria-hidden="true"></div>
 
       <div
         class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"

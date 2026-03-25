@@ -1733,7 +1733,7 @@
       }}
     >
       <div
-        class="absolute right-0 top-0 w-px h-full bg-neutral-200 dark:border-neutral-800 group-hover:bg-purple-500/50 group-focus:bg-purple-500/50"
+        class="absolute right-0 top-0 w-px h-full bg-neutral-200 dark:border-neutral-800 group-hover:bg-purple-500/50 group-focus:bg-purple-500/50" role="presentation" aria-hidden="true"
       ></div>
     </button>
   {/if}
