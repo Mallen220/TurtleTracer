@@ -30,7 +30,6 @@
     notification,
   } from "../../stores";
   import { slide } from "svelte/transition";
-  import OptimizationDialog from "./dialogs/OptimizationDialog.svelte";
   import { tick } from "svelte";
   import { tooltipPortal } from "../actions/portal";
   import ObstaclesSection from "./sections/ObstaclesSection.svelte";
@@ -1296,21 +1295,6 @@
       displaySequenceLength={(displaySequence || []).length}
     />
   {/if}
-
-  <OptimizationDialog
-    bind:this={optDialogRef}
-    bind:isRunning={optIsRunning}
-    bind:optimizedLines={optOptimizedLines}
-    bind:optimizationFailed={optFailed}
-    isOpen={true}
-    {startPoint}
-    {lines}
-    {settings}
-    {sequence}
-    {shapes}
-    onApply={handleOptimizationApply}
-    {onPreviewChange}
-  />
 </div>
 
 <div
