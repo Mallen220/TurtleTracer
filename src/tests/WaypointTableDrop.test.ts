@@ -28,7 +28,6 @@ describe("WaypointTable Drop Handling", () => {
     collapsedObstacles: [],
     settings: DEFAULT_SETTINGS,
     // Added missing props
-    onToggleOptimization: vi.fn(),
     handleOptimizationApply: vi.fn(),
     onPreviewChange: vi.fn(),
   };

@@ -248,38 +248,22 @@
     <h3 class="text-base font-semibold text-neutral-900 dark:text-white">
       Path Optimizer
     </h3>
-    <button
-      on:click={handleClose}
-      disabled={isRunning}
-      class="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed"
-      title="Close optimization panel"
-      aria-label="Close optimization panel"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width="1.5"
-        stroke="currentColor"
-        class="size-5"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M6 18 18 6M6 6l12 12"
-        />
-      </svg>
-    </button>
   </div>
 
-  <p class="text-sm text-neutral-600 dark:text-neutral-400">
-    The optimizer uses a genetic algorithm to adjust control points to minimize
-    total travel time. Locking paths and adjusting settings can help guide the
-    optimization process. Additionally, obstacles on the field will be
-    considered to avoid collisions. You can help the optimization process by
-    creating an initial path that avoids obstacles. Make sure to review the
-    optimized path before applying it.
-  </p>
+  <details class="text-sm text-neutral-600 dark:text-neutral-400 group">
+    <summary
+      class="cursor-pointer font-medium hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+      >About Path Optimization</summary
+    >
+    <div class="mt-2 text-xs leading-relaxed">
+      The optimizer uses a genetic algorithm to adjust control points to
+      minimize total travel time. Locking paths and adjusting settings can help
+      guide the optimization process. Additionally, obstacles on the field will
+      be considered to avoid collisions. You can help the optimization process
+      by creating an initial path that avoids obstacles. Make sure to review the
+      optimized path before applying it.
+    </div>
+  </details>
 
   {#if !isRunning && optimizedLines === null}
     <div class="space-y-2">
@@ -342,22 +326,24 @@
     </div>
   {/if}
 
-  <div
-    class="flex items-center justify-between bg-neutral-100 dark:bg-neutral-800 p-3 rounded-md"
-  >
-    <span class="text-sm font-medium">Current Best Time:</span>
-    <span class="text-lg font-bold text-blue-600 dark:text-blue-400">
-      {#if optimizationFailed}
-        No valid path
-      {:else}
-        {currentBestTime > 1000
-          ? "Validating..."
-          : currentBestTime > 0
-            ? formatTime(currentBestTime)
-            : "--"}
-      {/if}
-    </span>
-  </div>
+  {#if isRunning || optimizedLines !== null}
+    <div
+      class="flex items-center justify-between bg-neutral-100 dark:bg-neutral-800 p-3 rounded-md text-sm font-mono"
+    >
+      <span class="text-neutral-600 dark:text-neutral-400">Gen {progress}</span>
+      <span class="font-medium text-blue-600 dark:text-blue-400">
+        {#if optimizationFailed}
+          No valid path
+        {:else}
+          {currentBestTime > 1000
+            ? "Validating..."
+            : currentBestTime > 0
+              ? formatTime(currentBestTime)
+              : "--"}
+        {/if}
+      </span>
+    </div>
+  {/if}
 
   {#if !isRunning}
     <div class="flex gap-2 my-2">
@@ -369,15 +355,6 @@
       </button>
     </div>
   {/if}
-
-  <div
-    id="opt-logs"
-    class="bg-neutral-100 dark:bg-neutral-800 rounded-md p-3 h-32 overflow-y-auto font-mono text-xs text-neutral-700 dark:text-neutral-300 space-y-1"
-  >
-    {#each logs as log (log)}
-      <div>{log}</div>
-    {/each}
-  </div>
 
   {#if optimizationFailed}
     <div

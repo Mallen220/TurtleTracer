@@ -160,7 +160,9 @@
             >
               Choose File
             </button>
-            <span class="text-sm text-neutral-500 dark:text-neutral-400 truncate max-w-[200px]">
+            <span
+              class="text-sm text-neutral-500 dark:text-neutral-400 truncate max-w-[200px]"
+            >
               {fileInput?.files?.[0]?.name || "No file chosen"}
             </span>
           </div>
