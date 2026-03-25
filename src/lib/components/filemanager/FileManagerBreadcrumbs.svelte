@@ -2,12 +2,14 @@
 <!-- src/lib/components/filemanager/FileManagerBreadcrumbs.svelte -->
 <script lang="ts">
   import { createEventDispatcher, tick } from "svelte";
+  import FolderIcon from "../icons/FolderIcon.svelte";
 
   export let currentPath: string;
   export let isAtBase: boolean = false;
 
   const dispatch = createEventDispatcher<{
     "change-dir": string;
+    "change-dir-dialog": void;
     "go-up": void;
   }>();
 
@@ -103,7 +105,7 @@
       </button>
     {/if}
     <div
-      class="truncate cursor-text hover:text-neutral-700 dark:hover:text-neutral-200 w-full px-2 py-0.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
+      class="flex-1 min-w-0 truncate cursor-text hover:text-neutral-700 dark:hover:text-neutral-200 px-2 py-0.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
       title="Click to edit path"
       on:click={startEditing}
       role="button"
@@ -112,5 +114,14 @@
     >
       {formatPath(currentPath)}
     </div>
+
+    <button
+      on:click={() => dispatch("change-dir-dialog")}
+      class="p-1 ml-1 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      title="Change Directory"
+      aria-label="Change Directory"
+    >
+      <FolderIcon className="size-4" />
+    </button>
   </div>
 {/if}

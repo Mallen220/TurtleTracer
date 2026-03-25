@@ -11,8 +11,6 @@
   const dispatch = createEventDispatcher<{
     "new-file": void;
     "new-folder": void;
-    "change-dir": void;
-    refresh: void;
     "sort-change": "name" | "date";
     "view-change": "list" | "grid";
     search: string;
@@ -361,39 +359,5 @@
       tabindex="-1"
     />
 
-    <div class="flex-1"></div>
-
-    <!-- Refresh -->
-    <button
-      on:click={() => dispatch("refresh")}
-      class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-      title="Refresh"
-      aria-label="Refresh"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width="2"
-        stroke="currentColor"
-        class="size-5"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-        />
-      </svg>
-    </button>
-
-    <!-- Change Dir -->
-    <button
-      on:click={() => dispatch("change-dir")}
-      class="p-1.5 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-      title="Change Directory"
-      aria-label="Change Directory"
-    >
-      <FolderIcon className="size-5" />
-    </button>
   </div>
 </div>
