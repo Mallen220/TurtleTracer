@@ -13,6 +13,7 @@ import {
 } from "../lib/projectStore";
 import type { SaveData } from "../utils/file";
 import { loadTrajectoryFromFile } from "../utils/file";
+import { getRandomColor } from "../utils/draw";
 import Two from "two.js";
 
 // Mock resize observer for Two.js/FieldRenderer
@@ -101,7 +102,7 @@ describe("Field Logic and Visibility Integration", () => {
           id: "line-1",
           endPoint: { x: 50, y: 50, heading: "constant", degrees: 0 },
           controlPoints: [],
-          color: "#ff0000",
+          color: getRandomColor(),
         },
       ],
       shapes: [

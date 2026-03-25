@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { parse } from "java-parser";
+import { getRandomColor } from "./draw";
 import type {
   TurtleData,
   Point,
@@ -412,7 +413,7 @@ export function importJavaProject(javaCode: string): TurtleData {
               startPoint: startPt,
               endPoint: { ...endPt }, // Clone to allow modifying heading just for this line
               controlPoints: controlPts,
-              color: "#FF0000",
+              color: getRandomColor(),
               eventMarkers: [],
             };
 
