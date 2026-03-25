@@ -17,6 +17,7 @@
     "view-change": "list" | "grid";
     search: string;
     "import-file": File;
+    "import-java": File;
     "import-telemetry": void;
   }>();
 
@@ -34,7 +35,16 @@
     }
   }
 
+  function handleImportJava(e: Event) {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+      dispatch("import-java", target.files[0]);
+      target.value = ""; // Reset
+    }
+  }
+
   let fileInput: HTMLInputElement;
+  let javaInput: HTMLInputElement;
 </script>
 
 <div
@@ -174,6 +184,37 @@
           stroke-linecap="round"
           stroke-linejoin="round"
           d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z"
+        />
+      </svg>
+    </button>
+
+    <!-- Import Java -->
+    <input
+      bind:this={javaInput}
+      type="file"
+      accept=".java"
+      class="hidden"
+      on:change={handleImportJava}
+      tabindex="-1"
+    />
+    <button
+      on:click={() => javaInput?.click()}
+      class="p-1.5 text-neutral-500 hover:text-orange-600 dark:text-neutral-400 dark:hover:text-orange-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+      title="Import Java File"
+      aria-label="Import Java File"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+        stroke="currentColor"
+        class="size-5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z"
         />
       </svg>
     </button>

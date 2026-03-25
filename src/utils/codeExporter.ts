@@ -1004,6 +1004,26 @@ export async function generateSequentialCommandCode(
         } else {
           headingConfig = `setLinearHeadingInterpolation(${actualStartPose}.getHeading(), ${endPoseVar}.getHeading())`;
         }
+      } else if (line.endPoint.heading === "facingPoint") {
+        let hxStr = "0";
+        let hyStr = "0";
+        if (coordinateSystem === "FTC") {
+          const uTarget = toUser(
+            {
+              x: line.endPoint.targetX || 0,
+              y: line.endPoint.targetY || 0,
+            },
+            "FTC"
+          );
+          hxStr = uTarget.x.toFixed(3);
+          hyStr = uTarget.y.toFixed(3);
+        } else {
+          let targetX = line.endPoint.targetX || 0;
+          let targetY = line.endPoint.targetY || 0;
+          hxStr = codeUnits === "metric" ? `cmToInches(${(targetX * 2.54).toFixed(3)})` : targetX.toFixed(3);
+          hyStr = codeUnits === "metric" ? `cmToInches(${(targetY * 2.54).toFixed(3)})` : targetY.toFixed(3);
+        }
+        headingConfig = `setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(${hxStr}, ${hyStr})))`;
       } else {
         headingConfig = `setTangentHeadingInterpolation()`;
       }
@@ -1070,6 +1090,7 @@ import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
+import com.pedropathing.paths.HeadingInterpolator;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 ${imports}
 ${ppReaderImport}
@@ -1138,6 +1159,7 @@ import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
+import com.pedropathing.paths.HeadingInterpolator;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.pedropathing.ftc.InvertedFTCCoordinates;
 import com.pedropathing.geometry.PedroCoordinates;
