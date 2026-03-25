@@ -152,24 +152,20 @@
     </div>
   </div>
 
-  <div
-    class="w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-100 dark:bg-neutral-800 p-4"
-  >
-    <OptimizationDialog
-      bind:this={optDialogRef}
-      bind:isRunning={optIsRunning}
-      bind:optimizedLines={optOptimizedLines}
-      bind:optimizationFailed={optFailed}
-      isOpen={true}
-      {startPoint}
-      {lines}
-      {settings}
-      {sequence}
-      {shapes}
-      onApply={handleOptimizationApply}
-      {onPreviewChange}
-    />
-  </div>
+  <OptimizationDialog
+    bind:this={optDialogRef}
+    bind:isRunning={optIsRunning}
+    bind:optimizedLines={optOptimizedLines}
+    bind:optimizationFailed={optFailed}
+    isOpen={true}
+    {startPoint}
+    {lines}
+    {settings}
+    {sequence}
+    {shapes}
+    onApply={handleOptimizationApply}
+    {onPreviewChange}
+  />
 
   <GlobalEventMarkers
     bind:this={globalMarkersRef}
