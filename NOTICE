@@ -254,3 +254,11 @@ src/utils/drivetrain/mecanum.ts
 src/lib/components/icons/PenIcon.svelte
 TurtleTracer.ai
 src/tests/fileExtensions.test.ts
+src/tests/javaImporterCommands.test.ts
+src/tests/javaImporterFormats.test.ts
+src/tests/javaImporterNewHeadings.test.ts
+src/tests/javaImporterParsePose.test.ts
+src/tests/javaImporterPaths.test.ts
+src/tests/javaImporterReuse.test.ts
+src/utils/javaImporter.ts
+vite.config.d.ts

@@ -154,23 +154,30 @@ function parsePoseCreation(tokens: string[]): Partial<Point> | null {
   }
 
   if (parsedArgs.length === 1 && !parsedArgs[0].isIdentifier) {
-      return { x: parsedArgs[0].isRadians ? parsedArgs[0].value as number : toDegrees(parsedArgs[0].value as number) };
+    return {
+      x: parsedArgs[0].isRadians
+        ? (parsedArgs[0].value as number)
+        : toDegrees(parsedArgs[0].value as number),
+    };
   }
   return null;
 }
 
-export function resolveHeading(val: Partial<Point> | null, pointsMap: Map<string, Point>): number | null {
+export function resolveHeading(
+  val: Partial<Point> | null,
+  pointsMap: Map<string, Point>,
+): number | null {
   if (!val) return null;
   if ((val as any).isHeadingCall && (val as any).identifier) {
-      const ref = pointsMap.get((val as any).identifier);
-      if (ref && (ref as any).degrees !== undefined) {
-          return (ref as any).degrees; // stored in degrees
-      } else if (ref && (ref as any).startDeg !== undefined) {
-          return (ref as any).startDeg;
-      }
-      return 0;
+    const ref = pointsMap.get((val as any).identifier);
+    if (ref && (ref as any).degrees !== undefined) {
+      return (ref as any).degrees; // stored in degrees
+    } else if (ref && (ref as any).startDeg !== undefined) {
+      return (ref as any).startDeg;
+    }
+    return 0;
   } else if (val.x !== undefined && val.y === undefined) {
-      return val.x; // Single parsed numeric value returned as x
+    return val.x; // Single parsed numeric value returned as x
   }
   return null;
 }
@@ -395,14 +402,14 @@ export function importJavaProject(javaCode: string): TurtleData {
             if (args.length > 1) {
               const lastArgToks = args[args.length - 1];
               const pName = lastArgToks.find(
-                  (t) =>
-                    t !== "new" &&
-                    t !== "Pose" &&
-                    t !== "Point" &&
-                    /^[a-zA-Z_]\w*$/.test(t),
-                );
+                (t) =>
+                  t !== "new" &&
+                  t !== "Pose" &&
+                  t !== "Point" &&
+                  /^[a-zA-Z_]\w*$/.test(t),
+              );
               if (pName) {
-                  pointName = pName;
+                pointName = pName;
               }
             }
 
@@ -417,11 +424,15 @@ export function importJavaProject(javaCode: string): TurtleData {
               eventMarkers: [],
             };
 
-            if (tokens.includes("setLinearHeadingInterpolation") || (tokens.includes("HeadingInterpolator") && tokens.includes("linear"))) {
+            if (
+              tokens.includes("setLinearHeadingInterpolation") ||
+              (tokens.includes("HeadingInterpolator") &&
+                tokens.includes("linear"))
+            ) {
               line.endPoint.heading = "linear";
               const hIdx = tokens.includes("setLinearHeadingInterpolation")
-                  ? tokens.indexOf("setLinearHeadingInterpolation")
-                  : tokens.indexOf("HeadingInterpolator");
+                ? tokens.indexOf("setLinearHeadingInterpolation")
+                : tokens.indexOf("HeadingInterpolator");
               const argsTokens = tokens.slice(hIdx);
               const extracted = parsePoseCreation(argsTokens);
 
@@ -432,36 +443,52 @@ export function importJavaProject(javaCode: string): TurtleData {
                 (line.endPoint as any).startDeg = 0;
                 (line.endPoint as any).endDeg = 0;
               }
-            } else if (tokens.includes("setTangentHeadingInterpolation") || (tokens.includes("HeadingInterpolator") && tokens.includes("tangent"))) {
+            } else if (
+              tokens.includes("setTangentHeadingInterpolation") ||
+              (tokens.includes("HeadingInterpolator") &&
+                tokens.includes("tangent"))
+            ) {
               line.endPoint.heading = "tangential";
-            } else if (tokens.includes("setConstantHeadingInterpolation") || (tokens.includes("HeadingInterpolator") && tokens.includes("constant"))) {
+            } else if (
+              tokens.includes("setConstantHeadingInterpolation") ||
+              (tokens.includes("HeadingInterpolator") &&
+                tokens.includes("constant"))
+            ) {
               line.endPoint.heading = "constant";
               const hIdx = tokens.includes("setConstantHeadingInterpolation")
-                  ? tokens.indexOf("setConstantHeadingInterpolation")
-                  : tokens.indexOf("HeadingInterpolator");
+                ? tokens.indexOf("setConstantHeadingInterpolation")
+                : tokens.indexOf("HeadingInterpolator");
 
               const pStart = tokens.indexOf("(", hIdx);
               let pEnd = pStart;
               let overallDepth = 0;
               for (let i = pStart; i < tokens.length; i++) {
-                  if (tokens[i] === "(") overallDepth++;
-                  if (tokens[i] === ")") overallDepth--;
-                  if (overallDepth === 0 && i > pStart) {
-                      pEnd = i;
-                      break;
-                  }
+                if (tokens[i] === "(") overallDepth++;
+                if (tokens[i] === ")") overallDepth--;
+                if (overallDepth === 0 && i > pStart) {
+                  pEnd = i;
+                  break;
+                }
               }
               const argsTokens = tokens.slice(pStart, pEnd + 1);
 
               const extracted = parsePoseCreation(argsTokens);
 
-              if (extracted && (extracted as any).x !== undefined && (extracted as any).y === undefined) {
+              if (
+                extracted &&
+                (extracted as any).x !== undefined &&
+                (extracted as any).y === undefined
+              ) {
                 (line.endPoint as any).degrees = extracted.x;
               } else {
                 const ext = resolveHeading(extracted, points);
                 (line.endPoint as any).degrees = ext !== null ? ext : 0;
               }
-            } else if (tokens.includes("facingPoint") || (tokens.includes("HeadingInterpolator") && tokens.includes("facingPoint"))) {
+            } else if (
+              tokens.includes("facingPoint") ||
+              (tokens.includes("HeadingInterpolator") &&
+                tokens.includes("facingPoint"))
+            ) {
               line.endPoint.heading = "facingPoint";
               const hIdx = tokens.indexOf("facingPoint");
 
@@ -469,18 +496,22 @@ export function importJavaProject(javaCode: string): TurtleData {
               let pEnd = pStart;
               let overallDepth = 0;
               for (let i = pStart; i < tokens.length; i++) {
-                  if (tokens[i] === "(") overallDepth++;
-                  if (tokens[i] === ")") overallDepth--;
-                  if (overallDepth === 0 && i > pStart) {
-                      pEnd = i;
-                      break;
-                  }
+                if (tokens[i] === "(") overallDepth++;
+                if (tokens[i] === ")") overallDepth--;
+                if (overallDepth === 0 && i > pStart) {
+                  pEnd = i;
+                  break;
+                }
               }
               const argsTokens = tokens.slice(pStart, pEnd + 1);
 
               const extracted = parsePoseCreation(argsTokens);
 
-              if (extracted && (extracted as any).x !== undefined && (extracted as any).y !== undefined) {
+              if (
+                extracted &&
+                (extracted as any).x !== undefined &&
+                (extracted as any).y !== undefined
+              ) {
                 (line.endPoint as any).targetX = extracted.x;
                 (line.endPoint as any).targetY = extracted.y;
               } else {
@@ -562,9 +593,9 @@ export function importJavaProject(javaCode: string): TurtleData {
             // WaitCommand is ms.
             // Let's implement robust translation based on numeric size since FTC is often ambiguous.
             // Actually, `.java` from visualizer creates `new Delay(seconds)` and `WaitCommand(ms)`.
-                  if (tokens[1] === "Delay" && time < 100) {
-               // The visualizer generates `new Delay(ms / 1000.0)`
-               time *= 1000;
+            if (tokens[1] === "Delay" && time < 100) {
+              // The visualizer generates `new Delay(ms / 1000.0)`
+              time *= 1000;
             }
 
             tempSequence.push({
@@ -589,14 +620,18 @@ export function importJavaProject(javaCode: string): TurtleData {
           const pt = parsePoseCreation(innerTokens);
           let targetHeading = 0;
 
-          if (pt && (pt as any).x !== undefined && (pt as any).y === undefined) {
-             targetHeading = (pt as any).x; // we know parsePoseCreation converts single Math.toRadians -> degrees inside the x payload
+          if (
+            pt &&
+            (pt as any).x !== undefined &&
+            (pt as any).y === undefined
+          ) {
+            targetHeading = (pt as any).x; // we know parsePoseCreation converts single Math.toRadians -> degrees inside the x payload
           } else if (pt && (pt as any).x !== undefined) {
-             targetHeading = (pt as any).x;
+            targetHeading = (pt as any).x;
           } else if (!isNaN(parseFloat(innerTokens.join("")))) {
-             // For `.turnTo(2.094)`, `innerTokens` is `[ '2.094' ]`. We should treat this as radians if the framework `turnTo` is always rads.
-             // Pedro pathing `follower.turnTo(radians)`.
-             targetHeading = toDegrees(parseFloat(innerTokens.join("")));
+            // For `.turnTo(2.094)`, `innerTokens` is `[ '2.094' ]`. We should treat this as radians if the framework `turnTo` is always rads.
+            // Pedro pathing `follower.turnTo(radians)`.
+            targetHeading = toDegrees(parseFloat(innerTokens.join("")));
           }
 
           tempSequence.push({
@@ -629,12 +664,16 @@ export function importJavaProject(javaCode: string): TurtleData {
           const pt = parsePoseCreation(innerTokens);
           let targetHeading = 0;
 
-          if (pt && (pt as any).x !== undefined && (pt as any).y === undefined) {
-             targetHeading = (pt as any).x;
+          if (
+            pt &&
+            (pt as any).x !== undefined &&
+            (pt as any).y === undefined
+          ) {
+            targetHeading = (pt as any).x;
           } else if (pt && (pt as any).x !== undefined) {
-             targetHeading = (pt as any).x;
+            targetHeading = (pt as any).x;
           } else if (!isNaN(parseFloat(innerTokens.join("")))) {
-             targetHeading = toDegrees(parseFloat(innerTokens.join("")));
+            targetHeading = toDegrees(parseFloat(innerTokens.join("")));
           }
 
           // If the outer InstantCommand just processed this exact rotation, skip it

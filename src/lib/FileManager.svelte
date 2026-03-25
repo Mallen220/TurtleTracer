@@ -768,7 +768,7 @@
             lines,
             shapes,
             sequence,
-          timestamp: new Date().toISOString(),
+            timestamp: new Date().toISOString(),
           },
           null,
           2,

@@ -1013,15 +1013,21 @@ export async function generateSequentialCommandCode(
               x: line.endPoint.targetX || 0,
               y: line.endPoint.targetY || 0,
             },
-            "FTC"
+            "FTC",
           );
           hxStr = uTarget.x.toFixed(3);
           hyStr = uTarget.y.toFixed(3);
         } else {
           let targetX = line.endPoint.targetX || 0;
           let targetY = line.endPoint.targetY || 0;
-          hxStr = codeUnits === "metric" ? `cmToInches(${(targetX * 2.54).toFixed(3)})` : targetX.toFixed(3);
-          hyStr = codeUnits === "metric" ? `cmToInches(${(targetY * 2.54).toFixed(3)})` : targetY.toFixed(3);
+          hxStr =
+            codeUnits === "metric"
+              ? `cmToInches(${(targetX * 2.54).toFixed(3)})`
+              : targetX.toFixed(3);
+          hyStr =
+            codeUnits === "metric"
+              ? `cmToInches(${(targetY * 2.54).toFixed(3)})`
+              : targetY.toFixed(3);
         }
         headingConfig = `setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(${hxStr}, ${hyStr})))`;
       } else {
