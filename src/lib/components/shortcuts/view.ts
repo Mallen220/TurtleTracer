@@ -1,14 +1,12 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { get } from "svelte/store";
-import {
-  startPointStore,
-  linesStore
-} from "../../projectStore";
+import { startPointStore, linesStore } from "../../projectStore";
 import {
   gridSize,
   fieldZoom,
   fieldPan,
   selectedPointId,
-  selectedLineId
+  selectedLineId,
 } from "../../../stores";
 import { computeZoomStep } from "../../zoomHelpers";
 import { getDefaultStartPoint } from "../../../config";

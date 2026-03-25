@@ -1,15 +1,12 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { get } from "svelte/store";
 import {
   linesStore,
   sequenceStore,
   startPointStore,
-  renumberDefaultPathNames
+  renumberDefaultPathNames,
 } from "../../projectStore";
-import {
-  selectedLineId,
-  selectedPointId,
-  notification
-} from "../../../stores";
+import { selectedLineId, selectedPointId, notification } from "../../../stores";
 import { actionRegistry } from "../../actionRegistry";
 import type { Line, SequenceItem } from "../../../types/index";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
@@ -96,8 +93,7 @@ export function duplicate(recordChange: (action?: string) => void) {
   if (sel.startsWith("rotate-")) {
     const rotateId = sel.substring(7);
     const rotateItem = sequence.find(
-      (s) =>
-        actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
     ) as any;
     if (!rotateItem) return;
 
@@ -243,8 +239,7 @@ export function copy(activeControlTab: string, controlTabRef: any) {
   if (sel.startsWith("rotate-")) {
     const rotateId = sel.substring(7);
     const rotateItem = sequence.find(
-      (s) =>
-        actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
+      (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
     ) as any;
     if (rotateItem) {
       clipboard = structuredClone(rotateItem);
@@ -278,7 +273,11 @@ export function copy(activeControlTab: string, controlTabRef: any) {
   }
 }
 
-export function cut(activeControlTab: string, controlTabRef: any, removeSelected: () => void) {
+export function cut(
+  activeControlTab: string,
+  controlTabRef: any,
+  removeSelected: () => void,
+) {
   if (isUIElementFocused()) return;
   copy(activeControlTab, controlTabRef);
   removeSelected();

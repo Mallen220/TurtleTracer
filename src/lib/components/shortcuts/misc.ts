@@ -1,15 +1,16 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { get } from "svelte/store";
 import {
   linesStore,
   settingsStore,
   shapesStore,
-  startPointStore
+  startPointStore,
 } from "../../projectStore";
 import {
   selectedLineId,
   selectedPointId,
   showRobot,
-  notification
+  notification,
 } from "../../../stores";
 import { AVAILABLE_FIELD_MAPS } from "../../../config";
 import { getRandomColor } from "../../../utils";

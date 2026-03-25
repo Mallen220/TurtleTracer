@@ -21,7 +21,9 @@
   import {
     makeId,
     renumberDefaultPathNames,
+    generateName,
   } from "../../../utils/nameGenerator";
+  import ContextMenu from "../tools/ContextMenu.svelte";
   import StartingPointSection from "../sections/StartingPointSection.svelte";
   import EmptyState from "../common/EmptyState.svelte";
   import PathLineSection from "../sections/PathLineSection.svelte";
@@ -137,6 +139,130 @@
   let draggingIndex: number | null = null;
   let dragOverIndex: number | null = null;
   let dragPosition: DragPosition | null = null;
+
+  // Context Menu state
+  let contextMenuOpen = false;
+  let contextMenuX = 0;
+  let contextMenuY = 0;
+  let contextMenuItems: any[] = [];
+
+  async function handleContextMenu(event: MouseEvent, seqIndex: number) {
+    event.preventDefault();
+
+    if (contextMenuOpen) {
+      contextMenuOpen = false;
+      await tick();
+    }
+
+    if (seqIndex === -1) {
+      contextMenuItems = [
+        {
+          label: startPoint.locked ? "Unlock Start Point" : "Lock Start Point",
+          onClick: () => {
+            startPoint.locked = !startPoint.locked;
+            if (recordChange) recordChange();
+          },
+        },
+        { separator: true },
+        {
+          label: "Insert Wait After",
+          onClick: () => insertWaitAfter(-1),
+        },
+        {
+          label: "Insert Rotate After",
+          onClick: () => insertRotateAfter(-1),
+        },
+        {
+          label: "Insert Path After",
+          onClick: () => insertPathAfter(-1),
+        },
+      ];
+      contextMenuX = event.clientX;
+      contextMenuY = event.clientY;
+      contextMenuOpen = true;
+      return;
+    }
+
+    const item = sequence[seqIndex];
+    if (!item) return;
+
+    const line =
+      item.kind === "path" ? lines.find((l) => l.id === item.lineId) : null;
+    const isLocked =
+      item.kind === "path" ? (line?.locked ?? false) : (item.locked ?? false);
+
+    const items = [];
+
+    items.push({
+      label: isLocked ? "Unlock" : "Lock",
+      onClick: () => toggleLock(seqIndex),
+    });
+
+    items.push({ separator: true });
+
+    if (!isLocked) {
+      items.push({
+        label: "Move Up",
+        onClick: () => moveSequenceItem(seqIndex, -1),
+        disabled: seqIndex <= 0,
+      });
+      items.push({
+        label: "Move Down",
+        onClick: () => moveSequenceItem(seqIndex, 1),
+        disabled: seqIndex >= sequence.length - 1,
+      });
+      items.push({ separator: true });
+    }
+
+    items.push({
+      label: "Duplicate",
+      onClick: () => duplicateItem(seqIndex),
+      disabled: isLocked && item.kind === "path",
+    });
+
+    items.push({ separator: true });
+
+    items.push({
+      label: "Insert Wait Before",
+      onClick: () => insertWaitBefore(seqIndex),
+    });
+    items.push({
+      label: "Insert Wait After",
+      onClick: () => insertWaitAfter(seqIndex),
+    });
+    items.push({
+      label: "Insert Rotate Before",
+      onClick: () => insertRotateBefore(seqIndex),
+    });
+    items.push({
+      label: "Insert Rotate After",
+      onClick: () => insertRotateAfter(seqIndex),
+    });
+    items.push({
+      label: "Insert Path Before",
+      onClick: () => insertPathBefore(seqIndex),
+    });
+    items.push({
+      label: "Insert Path After",
+      onClick: () => insertPathAfter(seqIndex),
+    });
+
+    items.push({ separator: true });
+
+    items.push({
+      label: "Delete",
+      onClick: () => deleteSequenceItem(seqIndex),
+      danger: true,
+      disabled:
+        isLocked ||
+        (lines.length <= 1 && !!actionRegistry.get(item.kind)?.isPath),
+    });
+
+    contextMenuItems = items;
+    contextMenuX = event.clientX;
+    contextMenuY = event.clientY;
+    contextMenuOpen = true;
+  }
 
   function handleDragStart(e: DragEvent, index: number) {
     const originElem = document.elementFromPoint(
@@ -599,6 +725,172 @@
     recordChange("Add Path");
   }
 
+  function toggleLock(seqIndex: number) {
+    const item = sequence[seqIndex];
+    if (item.kind === "path") {
+      const line = lines.find((l) => l.id === (item as any).lineId);
+      if (line) {
+        line.locked = !line.locked;
+        lines = [...lines]; // Trigger reactivity
+      }
+    } else {
+      const newSeq = [...sequence];
+      newSeq[seqIndex] = {
+        ...item,
+        locked: !item.locked,
+      };
+      sequence = newSeq;
+    }
+    if (recordChange) recordChange();
+  }
+
+  function deleteSequenceItem(seqIndex: number) {
+    const item = sequence[seqIndex];
+    if (item.kind === "path") {
+      const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
+      if (lineIdx !== -1) {
+        removeLine(lineIdx);
+        return;
+      }
+    }
+    const newSeq = [...sequence];
+    newSeq.splice(seqIndex, 1);
+    sequence = newSeq;
+    recordChange?.("Delete Item");
+  }
+
+  function duplicateItem(seqIndex: number) {
+    const item = sequence[seqIndex];
+    if (!item) return;
+
+    if (item.kind === "wait") {
+      const newItem = structuredClone(item);
+      newItem.id = makeId();
+      newItem.locked = false;
+      if (item.name && item.name.trim() !== "") {
+        newItem.name = generateName(
+          item.name,
+          sequence.map((s) => (s.kind === "wait" ? s.name : "") || ""),
+        );
+      } else {
+        newItem.name = "";
+      }
+
+      const newSeq = [...sequence];
+      newSeq.splice(seqIndex + 1, 0, newItem);
+      sequence = newSeq;
+      recordChange();
+    } else if (item.kind === "rotate") {
+      const newItem = structuredClone(item);
+      newItem.id = makeId();
+      newItem.locked = false;
+      if (item.name && item.name.trim() !== "") {
+        newItem.name = generateName(
+          item.name,
+          sequence.map((s) => (s.kind === "rotate" ? s.name : "") || ""),
+        );
+      } else {
+        newItem.name = "";
+      }
+
+      const newSeq = [...sequence];
+      newSeq.splice(seqIndex + 1, 0, newItem);
+      sequence = newSeq;
+      recordChange();
+    } else if (item.kind === "macro") {
+      const newItem = structuredClone(item);
+      newItem.id = makeId();
+      newItem.locked = false;
+      if (item.name && item.name.trim() !== "") {
+        newItem.name = generateName(
+          item.name,
+          sequence.map((s) => (s.kind === "macro" ? s.name : "") || ""),
+        );
+      } else {
+        newItem.name = "";
+      }
+
+      const newSeq = [...sequence];
+      newSeq.splice(seqIndex + 1, 0, newItem);
+      sequence = newSeq;
+      recordChange();
+    } else if (item.kind === "path") {
+      const line = lines.find((l) => l.id === (item as any).lineId);
+      if (!line) return;
+
+      const newLine = structuredClone(line);
+      newLine.id = makeId();
+      newLine.locked = false;
+      if (line.name && line.name.trim() !== "") {
+        newLine.name = generateName(
+          line.name,
+          lines.map((l) => l.name || ""),
+        );
+      } else {
+        newLine.name = "";
+      }
+
+      let prevPoint = startPoint;
+      if (seqIndex > 0) {
+        for (let i = seqIndex - 1; i >= 0; i--) {
+          if (sequence[i].kind === "path") {
+            const pl = lines.find((l) => l.id === (sequence[i] as any).lineId);
+            if (pl) {
+              prevPoint = pl.endPoint;
+              break;
+            }
+          }
+        }
+      }
+
+      const dx = line.endPoint.x - prevPoint.x;
+      const dy = line.endPoint.y - prevPoint.y;
+
+      newLine.endPoint.x = line.endPoint.x + dx;
+      newLine.endPoint.y = line.endPoint.y + dy;
+
+      newLine.endPoint.x = Math.max(0, Math.min(144, newLine.endPoint.x));
+      newLine.endPoint.y = Math.max(0, Math.min(144, newLine.endPoint.y));
+
+      newLine.controlPoints = line.controlPoints.map((cp) => ({
+        ...cp,
+        x: Math.max(0, Math.min(144, cp.x + dx)),
+        y: Math.max(0, Math.min(144, cp.y + dy)),
+      }));
+
+      const lineIdx = lines.findIndex((l) => l.id === item.lineId);
+      lines.splice(lineIdx + 1, 0, newLine);
+      lines = [...lines]; // trigger reactivity
+
+      const newSeq = [...sequence];
+      newSeq.splice(seqIndex + 1, 0, { kind: "path", lineId: newLine.id! });
+      sequence = newSeq;
+
+      lines = renumberDefaultPathNames(lines);
+
+      // Duplicate collapsed state for new line
+      collapsedSections.lines.splice(lineIdx + 1, 0, false);
+      collapsedSections.controlPoints.splice(lineIdx + 1, 0, true);
+      collapsedEventMarkers.splice(lineIdx + 1, 0, true);
+      collapsedSections = { ...collapsedSections };
+
+      recordChange();
+    }
+  }
+
+  function insertWaitBefore(seqIndex: number) {
+    const newSeq = [...sequence];
+    newSeq.splice(seqIndex, 0, {
+      kind: "wait",
+      id: makeId(),
+      name: "",
+      durationMs: 1000,
+      locked: false,
+    });
+    sequence = newSeq;
+    recordChange("Insert Wait");
+  }
+
   function insertWaitAfter(seqIndex: number) {
     const newSeq = [...sequence];
     newSeq.splice(seqIndex + 1, 0, {
@@ -609,6 +901,20 @@
       locked: false,
     });
     sequence = newSeq;
+    recordChange("Insert Wait");
+  }
+
+  function insertRotateBefore(seqIndex: number) {
+    const newSeq = [...sequence];
+    newSeq.splice(seqIndex, 0, {
+      kind: "rotate",
+      id: makeId(),
+      name: "",
+      degrees: 0,
+      locked: false,
+    });
+    sequence = newSeq;
+    recordChange("Insert Rotate");
   }
 
   function insertRotateAfter(seqIndex: number) {
@@ -621,6 +927,59 @@
       locked: false,
     });
     sequence = newSeq;
+    recordChange("Insert Rotate");
+  }
+
+  function insertPathBefore(seqIndex: number) {
+    let prevEndPoint: Point | null = null;
+    for (let i = seqIndex - 1; i >= 0; i--) {
+      const si = sequence[i];
+      if (si.kind === "path") {
+        const ln = lines.find((l) => l.id === si.lineId);
+        if (ln) {
+          prevEndPoint = ln.endPoint;
+          break;
+        }
+      }
+    }
+
+    const endPoint = prevEndPoint
+      ? makeNewEndPointFrom(prevEndPoint)
+      : makeNewEndPointFrom(startPoint);
+
+    const newLine = {
+      id: makeId(),
+      endPoint: endPoint as Point,
+      controlPoints: [],
+      color: getRandomColor(),
+      name: "",
+    } as Line;
+
+    const seqItem = sequence[seqIndex];
+    let insertLineIdx = 0;
+    if (seqItem && seqItem.kind === "path") {
+      const lineIdx = lines.findIndex((l) => l.id === seqItem.lineId);
+      if (lineIdx !== -1) insertLineIdx = lineIdx;
+    } else {
+      insertLineIdx = lines.length;
+    }
+
+    const newLines = [...lines];
+    newLines.splice(insertLineIdx, 0, newLine);
+    lines = newLines;
+
+    const newSeq = [...sequence];
+    newSeq.splice(seqIndex, 0, { kind: "path", lineId: newLine.id! });
+    sequence = newSeq;
+
+    lines = renumberDefaultPathNames(lines);
+
+    collapsedSections.lines.splice(insertLineIdx, 0, false);
+    collapsedSections.controlPoints.splice(insertLineIdx, 0, true);
+    collapsedEventMarkers.splice(insertLineIdx, 0, true);
+    collapsedSections = { ...collapsedSections };
+
+    recordChange("Insert Path");
   }
 
   function insertPathAfter(seqIndex: number) {
@@ -844,12 +1203,25 @@
   }
 </script>
 
+{#if contextMenuOpen}
+  <ContextMenu
+    x={contextMenuX}
+    y={contextMenuY}
+    items={contextMenuItems}
+    on:close={() => (contextMenuOpen = false)}
+  />
+{/if}
+
 <div
   class="w-full flex flex-col gap-4 p-4 pb-32 outline-none"
   id="path-list-container"
   tabindex="-1"
 >
-  <div class="flex items-center justify-between gap-4 w-full">
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div
+    class="flex items-center justify-between gap-4 w-full"
+    on:contextmenu={(e) => handleContextMenu(e, -1)}
+  >
     <StartingPointSection
       bind:startPoint
       {addPathAtStart}
@@ -908,6 +1280,7 @@
   {#each sequence as item, sIdx (getItemId(item))}
     {@const isLocked = isItemLocked(item, lines)}
     {@const def = $actionRegistry[item.kind]}
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div
       role="listitem"
       data-index={sIdx}
@@ -916,6 +1289,7 @@
       draggable={!isItemLocked(item, lines)}
       on:dragstart={(e) => handleDragStart(e, sIdx)}
       on:dragend={handleDragEnd}
+      on:contextmenu={(e) => handleContextMenu(e, sIdx)}
       class:border-t-4={dragOverIndex === sIdx && dragPosition === "top"}
       class:border-b-4={dragOverIndex === sIdx && dragPosition === "bottom"}
       class:border-blue-500={dragOverIndex === sIdx}

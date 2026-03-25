@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { isProjectFilePath, getPluginsDirectory } from "./utils.js";
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from "electron";

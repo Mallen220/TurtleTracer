@@ -80,14 +80,70 @@
   import _ from "lodash";
 
   // Imports from shortcuts
-  import { isUIElementFocused, isInputFocused, isButtonFocused, shouldBlockShortcut, getSelectedSequenceIndex } from "./shortcuts/utils";
-  import { addNewLine, addWait, addRotate, addEventMarker, addControlPoint, removeControlPoint } from "./shortcuts/elements";
-  import { clipboard, generateName, duplicate, copy, cut, paste } from "./shortcuts/clipboard";
-  import { removeSelected, movePoint, LEGACY_movePoint, getSelectableItems, syncSelectionToUI, cycleSelection, cycleSequenceSelection } from "./shortcuts/selection";
-  import { modifyValue, toggleHeadingMode, toggleReverse, toggleLock } from "./shortcuts/properties";
-  import { cycleGridSize, cycleGridSizeReverse, modifyZoom, resetZoom, snapSelection, resetStartPoint, panToStart, panToEnd, panView } from "./shortcuts/view";
-  import { changePlaybackSpeedBy, resetPlaybackSpeed } from "./shortcuts/playback";
-  import { cyclePathColor, toggleRobotVisibility, selectFirst, selectLast, copyPathJson, cycleFieldMap, rotateField, toggleContinuousValidation, toggleOnionCurrentPath } from "./shortcuts/misc";
+  import {
+    isUIElementFocused,
+    isInputFocused,
+    isButtonFocused,
+    shouldBlockShortcut,
+    getSelectedSequenceIndex,
+  } from "./shortcuts/utils";
+  import {
+    addNewLine,
+    addWait,
+    addRotate,
+    addEventMarker,
+    addControlPoint,
+    removeControlPoint,
+  } from "./shortcuts/elements";
+  import {
+    clipboard,
+    generateName,
+    duplicate,
+    copy,
+    cut,
+    paste,
+  } from "./shortcuts/clipboard";
+  import {
+    removeSelected,
+    movePoint,
+    LEGACY_movePoint,
+    getSelectableItems,
+    syncSelectionToUI,
+    cycleSelection,
+    cycleSequenceSelection,
+  } from "./shortcuts/selection";
+  import {
+    modifyValue,
+    toggleHeadingMode,
+    toggleReverse,
+    toggleLock,
+  } from "./shortcuts/properties";
+  import {
+    cycleGridSize,
+    cycleGridSizeReverse,
+    modifyZoom,
+    resetZoom,
+    snapSelection,
+    resetStartPoint,
+    panToStart,
+    panToEnd,
+    panView,
+  } from "./shortcuts/view";
+  import {
+    changePlaybackSpeedBy,
+    resetPlaybackSpeed,
+  } from "./shortcuts/playback";
+  import {
+    cyclePathColor,
+    toggleRobotVisibility,
+    selectFirst,
+    selectLast,
+    copyPathJson,
+    cycleFieldMap,
+    rotateField,
+    toggleContinuousValidation,
+    toggleOnionCurrentPath,
+  } from "./shortcuts/misc";
 
   // Actions
   export let saveProject: () => void;
@@ -174,7 +230,8 @@
     removeControlPoint: () => removeControlPoint(recordChange),
     duplicate: () => duplicate(recordChange),
     copy: () => copy(activeControlTab, controlTabRef),
-    cut: () => cut(activeControlTab, controlTabRef, () => removeSelected(recordChange)),
+    cut: () =>
+      cut(activeControlTab, controlTabRef, () => removeSelected(recordChange)),
     paste: () => paste(recordChange),
     splitPath: () => splitPath && splitPath(),
     removeSelected: () => removeSelected(recordChange),
