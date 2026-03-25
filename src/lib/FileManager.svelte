@@ -768,7 +768,6 @@
             lines,
             shapes,
             sequence,
-          version: "1.2.1",
           timestamp: new Date().toISOString(),
           },
           null,
@@ -800,7 +799,6 @@
         lines,
         shapes,
         sequence,
-        version: "1.2.1",
         timestamp: new Date().toISOString(),
       };
 
@@ -881,7 +879,6 @@
         lines: normalizeLines(lines),
         shapes,
         sequence,
-        version: "1.2.1",
         timestamp: new Date().toISOString(),
       };
 
