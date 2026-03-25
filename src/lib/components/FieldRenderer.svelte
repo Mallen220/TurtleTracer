@@ -18,6 +18,7 @@
     showProtractor,
     protractorLockToRobot,
     collisionMarkers,
+    forceShowValidation,
     fieldZoom,
     fieldPan,
     hoveredMarkerId,
@@ -295,7 +296,10 @@
   $: robotXY = $robotXYStore;
   $: robotHeading = $robotHeadingStore;
   $: sequence = $sequenceStore; // Needed for wait markers
-  $: markers = $collisionMarkers;
+  $: markers =
+    $settingsStore?.continuousValidation || $forceShowValidation
+      ? $collisionMarkers
+      : [];
 
   // Keep `startPoint.startDeg` in sync with geometry when using linear start-heading.
   // This ensures generated code (and any UI showing `startDeg`) updates as the

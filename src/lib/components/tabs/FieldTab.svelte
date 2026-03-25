@@ -15,7 +15,6 @@
   import OptimizationDialog from "../dialogs/OptimizationDialog.svelte";
   import GlobalEventMarkers from "../GlobalEventMarkers.svelte";
   import ObstaclesSection from "../sections/ObstaclesSection.svelte";
-  import { validatePath } from "../../../utils/validation";
 
   export let robotXY: BasePoint;
   export let robotHeading: number;
@@ -62,10 +61,6 @@
       collapsedSections.globalMarkers = true;
     }
     collapsedSections = { ...collapsedSections };
-  }
-
-  function handleValidate() {
-    validatePath(startPoint, lines, settings, sequence, shapes);
   }
 
   function handleOptimizationApply(newLines: Line[]) {
@@ -149,7 +144,6 @@
       {robotHeading}
       {settings}
       onToggleOptimization={() => (optimizationOpen = !optimizationOpen)}
-      onValidate={handleValidate}
     />
 
     <div class="flex items-center justify-end">

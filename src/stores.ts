@@ -74,6 +74,7 @@ export const multiSelectedPointIds = writable<string[]>([]);
 
 // Collision markers for validation
 export const collisionMarkers = writable<CollisionMarker[]>([]);
+export const forceShowValidation = writable<boolean>(false);
 
 // Notification system
 export const notification = writable<Notification | null>(null);

@@ -220,7 +220,9 @@
     </button>
 
     <div
-      class="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1 shrink-0" role="presentation" aria-hidden="true"
+      class="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1 shrink-0"
+      role="presentation"
+      aria-hidden="true"
     ></div>
 
     <!-- Import -->
@@ -301,7 +303,9 @@
     </button>
 
     <div
-      class="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1 shrink-0" role="presentation" aria-hidden="true"
+      class="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1 shrink-0"
+      role="presentation"
+      aria-hidden="true"
     ></div>
 
     <!-- Refresh -->

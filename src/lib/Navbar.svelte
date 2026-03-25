@@ -20,6 +20,7 @@
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
   import { menuNavigation } from "./actions/menuNavigation";
+  import ValidationButton from "./components/tools/ValidationButton.svelte";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -329,7 +330,11 @@
           >{formatTime(timePrediction.totalTime)}</span
         >
       </div>
-      <div class="w-px h-6 bg-neutral-200 dark:bg-neutral-700" role="presentation" aria-hidden="true"></div>
+      <div
+        class="w-px h-6 bg-neutral-200 dark:bg-neutral-700"
+        role="presentation"
+        aria-hidden="true"
+      ></div>
       <div class="flex flex-col items-center">
         <span
           class="text-xs text-neutral-400 font-medium uppercase tracking-wider"
@@ -372,6 +377,9 @@
 
   <!-- Right: Export + Sidebar Toggle -->
   <div class="flex items-center gap-2 md:gap-3">
+    <!-- Validation Button -->
+    <ValidationButton />
+
     <!-- Export -->
     <div class="relative">
       <button

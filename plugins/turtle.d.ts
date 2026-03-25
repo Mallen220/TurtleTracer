@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-
 /**
  * Type definitions for Turtle Tracer Plugins.
  * These types are automatically available in your .ts plugins.
@@ -216,6 +215,7 @@ interface Settings {
   optimizationPopulationSize?: number; // Population size for optimizer
   optimizationMutationRate?: number; // Mutation rate for optimizer
   optimizationMutationStrength?: number; // Mutation strength for optimizer
+  validationDisabled?: boolean; // Completely disable all path validation
   validateFieldBoundaries?: boolean; // Check if robot goes out of bounds
   continuousValidation?: boolean; // Run validation continuously
   restrictDraggingToField?: boolean; // Restrict dragging to field bounds
