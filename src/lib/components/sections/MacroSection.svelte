@@ -50,8 +50,6 @@
   let showTransforms = false;
 </script>
 
-
-
 <div
   role="button"
   tabindex="0"

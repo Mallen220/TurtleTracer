@@ -17,7 +17,7 @@ import {
 } from "../lib/projectStore";
 // recordChange lives in App.svelte and will trigger auto-export when called
 
-import App, { recordChange } from "../App.svelte";
+import App from "../App.svelte";
 import { DEFAULT_SETTINGS } from "../config/defaults";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";

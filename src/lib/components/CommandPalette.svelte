@@ -138,18 +138,23 @@
 <svelte:window on:keydown={handleKeyDown} />
 
 {#if isOpen}
-
-
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
   <div
+    role="presentation"
     transition:fade={{ duration: 150, easing: cubicInOut }}
     class="fixed inset-0 z-[2000] flex items-start justify-center pt-[15vh] bg-black bg-opacity-60 backdrop-blur-sm"
     on:click|self={onClose}
-    role="dialog"
-    aria-modal="true"
-    aria-label="Command Palette"
+    on:keydown={(e) => {
+      if (e.key === "Escape") onClose();
+    }}
   >
     <!-- Wrapper for floating elements -->
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command Palette"
       transition:fly={{ duration: 200, y: -20, easing: cubicInOut }}
       class="w-full max-w-2xl flex flex-col gap-4 px-4"
     >

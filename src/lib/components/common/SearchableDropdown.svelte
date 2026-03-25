@@ -139,7 +139,6 @@
       id="dropdown-list"
     >
       {#each filteredOptions as option, index}
-
         <div
           role="option"
           tabindex="-1"
