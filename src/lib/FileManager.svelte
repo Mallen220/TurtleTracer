@@ -1154,41 +1154,43 @@
     </div>
 
     <!-- Toolbar -->
-    <FileManagerToolbar
-      {searchQuery}
-      {sortMode}
-      {viewMode}
-      on:search={(e) => (searchQuery = e.detail)}
-      on:sort-change={(e) => (sortMode = e.detail)}
-      on:view-change={(e) => {
-        viewMode = e.detail;
-        // If switching to list/grid view, retry any previously failed previews so icons repopulate reliably
-        if (viewMode === "list") {
-          if (fileList && typeof fileList.refreshAllFailed === "function") {
-            fileList.refreshAllFailed();
-          } else if (fileList && typeof fileList.refreshAll === "function") {
-            // fallback: refresh everything
-            fileList.refreshAll();
+    <div class="relative z-[60] overflow-visible">
+      <FileManagerToolbar
+        {searchQuery}
+        {sortMode}
+        {viewMode}
+        on:search={(e) => (searchQuery = e.detail)}
+        on:sort-change={(e) => (sortMode = e.detail)}
+        on:view-change={(e) => {
+          viewMode = e.detail;
+          // If switching to list/grid view, retry any previously failed previews so icons repopulate reliably
+          if (viewMode === "list") {
+            if (fileList && typeof fileList.refreshAllFailed === "function") {
+              fileList.refreshAllFailed();
+            } else if (fileList && typeof fileList.refreshAll === "function") {
+              // fallback: refresh everything
+              fileList.refreshAll();
+            }
+          } else if (viewMode === "grid") {
+            if (fileGrid && typeof fileGrid.refreshAllFailed === "function") {
+              fileGrid.refreshAllFailed();
+            } else if (fileGrid && typeof fileGrid.refreshAll === "function") {
+              fileGrid.refreshAll();
+            }
           }
-        } else if (viewMode === "grid") {
-          if (fileGrid && typeof fileGrid.refreshAllFailed === "function") {
-            fileGrid.refreshAllFailed();
-          } else if (fileGrid && typeof fileGrid.refreshAll === "function") {
-            fileGrid.refreshAll();
-          }
-        }
-      }}
-      on:refresh={handleRefresh}
-      on:change-dir={changeDirectoryDialog}
-      on:new-file={() => (creatingNewFile = true)}
-      on:new-folder={() => (creatingNewFolder = true)}
-      on:import-file={handleImportFile}
-      on:import-java={handleImportJava}
-      on:import-telemetry={() => {
-        isOpen = false;
-        showTelemetryDialog.set(true);
-      }}
-    />
+        }}
+        on:refresh={handleRefresh}
+        on:change-dir={changeDirectoryDialog}
+        on:new-file={() => (creatingNewFile = true)}
+        on:new-folder={() => (creatingNewFolder = true)}
+        on:import-file={handleImportFile}
+        on:import-java={handleImportJava}
+        on:import-telemetry={() => {
+          isOpen = false;
+          showTelemetryDialog.set(true);
+        }}
+      />
+    </div>
 
     <!-- Breadcrumbs -->
     <FileManagerBreadcrumbs

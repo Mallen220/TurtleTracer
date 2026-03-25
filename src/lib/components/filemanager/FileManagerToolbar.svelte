@@ -56,12 +56,17 @@
       }
     }
   }
+
+  function handleAddMenuToggle(e: MouseEvent) {
+    e.stopPropagation();
+    showAddMenu = !showAddMenu;
+  }
 </script>
 
 <svelte:window on:click={handleWindowClick} />
 
 <div
-  class="flex flex-col gap-2 p-2 border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shrink-0 z-10"
+  class="flex flex-col gap-2 p-2 border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shrink-0 z-10 overflow-visible"
 >
   <!-- Header: Search + Sort/View + Change Dir -->
   <div class="flex items-center gap-1 w-full relative">
@@ -178,11 +183,11 @@
   </div>
 
   <!-- Row 2: Add Actions & Directories -->
-  <div class="flex items-center gap-1 w-full overflow-x-auto no-scrollbar">
+  <div class="flex items-center gap-1 w-full">
     <!-- Add Dropdown -->
-    <div class="relative add-dropdown-container">
+    <div class="relative add-dropdown-container overflow-visible">
       <button
-        on:click={() => (showAddMenu = !showAddMenu)}
+        on:click={handleAddMenuToggle}
         class="flex items-center justify-center p-1.5 text-neutral-500 hover:text-green-600 dark:text-neutral-400 dark:hover:text-green-400 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
         title="Add / Import"
         aria-label="Add / Import"
@@ -207,7 +212,7 @@
 
       {#if showAddMenu}
         <div
-          class="absolute left-0 top-full mt-1 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-neutral-200 dark:border-neutral-700 py-1 z-50 flex flex-col"
+          class="absolute left-0 top-full mt-1 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-neutral-200 dark:border-neutral-700 py-1 z-[60] flex flex-col"
         >
           <button
             on:click={() => {
