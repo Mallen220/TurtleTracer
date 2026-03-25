@@ -5,11 +5,14 @@
 
   export let x: number;
   export let y: number;
+  export let title: string | undefined = undefined;
+
   export let items: {
     label: string;
     action?: string;
     onClick?: () => void;
     icon?: any;
+    iconHtml?: string;
     separator?: boolean;
     danger?: boolean;
     disabled?: boolean;
@@ -81,6 +84,14 @@
   role="menu"
   tabindex="-1"
 >
+  {#if title}
+    <div
+      class="px-3 py-1.5 text-xs font-semibold text-neutral-400 dark:text-neutral-500 border-b border-neutral-100 dark:border-neutral-700 mb-1 truncate max-w-[200px]"
+    >
+      {title}
+    </div>
+  {/if}
+
   {#each items as item}
     {#if item.separator}
       <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
@@ -95,7 +106,9 @@
         disabled={item.disabled}
         role="menuitem"
       >
-        {#if item.icon}
+        {#if item.iconHtml}
+          {@html item.iconHtml}
+        {:else if item.icon}
           {#if typeof item.icon === "object" || typeof item.icon === "function"}
             <svelte:component this={item.icon} class="size-4" />
           {/if}

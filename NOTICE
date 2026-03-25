@@ -264,3 +264,4 @@ src/utils/javaImporter.ts
 vite.config.d.ts
 src/lib/components/dialogs/KeyboardShortcutsDialog.svelte
 src/utils/settingsPersistence.ts
+src/lib/components/tools/ContextMenu.svelte
