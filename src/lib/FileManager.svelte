@@ -1034,6 +1034,8 @@
     }
   }
 
+  let isDraggingPath = false;
+
   // Mock path utils
   const path = {
     join: (...parts: string[]) => parts.join("/").replace(/\/\//g, "/"),
@@ -1068,12 +1070,48 @@
     />
   {/if}
 
+  <!-- Drop Zone (Right Area) -->
+  {#if isOpen && isDraggingPath}
+    <div
+      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-purple-500/10 backdrop-blur-[2px] z-[1015]"
+      style="left: {sidebarWidth}px;"
+    >
+      <div
+        class="bg-white dark:bg-neutral-800 p-8 rounded-xl shadow-2xl flex flex-col items-center border-4 border-dashed border-purple-500 animate-pulse"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+          />
+        </svg>
+        <h2 class="text-2xl font-bold mb-2 text-neutral-900 dark:text-white">
+          Drop Zone
+        </h2>
+        <p class="text-neutral-500 dark:text-neutral-400">
+          Drop file to add as a macro
+        </p>
+      </div>
+    </div>
+  {/if}
+
   <!-- Sidebar -->
   <div
-    class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800"
+    class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 pointer-events-auto"
     style="width: {isOpen ? sidebarWidth : 384}px"
     class:translate-x-0={isOpen}
     class:-translate-x-full={!isOpen}
+    role="presentation"
+    on:dragstart={() => (isDraggingPath = true)}
+    on:dragend={() => (isDraggingPath = false)}
   >
     <!-- Resizer Handle -->
     <button
