@@ -1846,10 +1846,10 @@
 <!-- Drag Overlay for adding internal macros -->
 {#if isDraggingInternalMacro && $showFileManager}
   <div
-    class="fixed inset-0 z-[1005] bg-blue-500/10 border-4 border-dashed border-blue-500 flex flex-col items-center justify-start pt-[10vh] pointer-events-none transition-all duration-300"
+    class="fixed inset-0 z-[1420] bg-blue-500/20 border-4 border-dashed border-blue-500 flex flex-col items-center justify-start pt-[10vh] pointer-events-none transition-all duration-300"
   >
     <div
-      class="bg-white/90 dark:bg-neutral-800/90 backdrop-blur px-8 py-6 rounded-2xl shadow-2xl flex flex-col items-center animate-bounce-slight"
+      class="bg-white/95 dark:bg-neutral-900/95 backdrop-blur px-8 py-6 rounded-2xl shadow-2xl flex flex-col items-center animate-bounce-slight"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

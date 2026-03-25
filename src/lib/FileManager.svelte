@@ -1070,14 +1070,14 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <div
-  class="fixed inset-0 z-[1010] flex items-center justify-center p-4 pointer-events-none"
+  class="fixed inset-0 z-[1410] flex items-center justify-center p-4 pointer-events-none"
 >
   <!-- Backdrop -->
   {#if isOpen}
     <div
       transition:fade={{ duration: 200 }}
       class="fixed inset-0 transition-all duration-300 pointer-events-auto {isDraggingFromModal
-        ? 'bg-black/10 backdrop-blur-none'
+        ? 'bg-black/25 backdrop-blur-sm'
         : 'bg-black/50 backdrop-blur-sm'}"
       on:click={() => (isOpen = false)}
       role="button"
@@ -1094,7 +1094,7 @@
     <div
       transition:fade={{ duration: 200 }}
       class="relative flex flex-col bg-white dark:bg-neutral-900 shadow-2xl rounded-xl border border-neutral-200 dark:border-neutral-800 w-full max-w-4xl h-full max-h-[85vh] overflow-hidden pointer-events-auto transition-opacity duration-300 {isDraggingFromModal
-        ? 'opacity-60'
+        ? 'opacity-70 pointer-events-none'
         : 'opacity-100'}"
       role="presentation"
       on:dragstart={handleModalDragStart}
