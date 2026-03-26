@@ -36,6 +36,7 @@ export interface TabDefinition {
   label: string;
   component: any;
   icon?: string; // SVG string or image URL
+  iconComponent?: any; // Svelte component
   order?: number;
 }
 
