@@ -21,7 +21,7 @@ import { regenerateProjectMacros } from "./macroUtils";
 import { notification } from "../stores";
 import { hookRegistry } from "./registries";
 import { actionRegistry } from "./actionRegistry";
-import { currentDirectoryStore } from "../stores";
+import { currentDirectoryStore, currentFilePath } from "../stores";
 
 export function normalizeLines(input: Line[]): Line[] {
   return (input || []).map((line) => ({
@@ -197,7 +197,13 @@ export function refreshMacros() {
   if (!hasMacro && !hasMacroElements) return;
 
   try {
-    const result = regenerateProjectMacros(startPoint, lines, sequence, macros);
+    const result = regenerateProjectMacros(
+      startPoint,
+      lines,
+      sequence,
+      macros,
+      get(currentFilePath),
+    );
 
     const oldLinesJson = JSON.stringify(lines);
     const newLinesJson = JSON.stringify(result.lines);

@@ -207,12 +207,18 @@ export function expandMacro(
   macroData: TurtleData,
   macrosMap: Map<string, TurtleData>,
   visitedPaths: Set<string>,
+  depth: number = 0,
 ): {
   lines: Line[];
   sequence: SequenceItem[];
   endPoint: Point;
   endHeading: number;
 } {
+  // Check for deep nesting (malicious recursion without loops)
+  if (depth > 50) {
+    throw new Error(`Maximum macro depth exceeded: ${macroItem.filePath}`);
+  }
+
   // Check for recursion loop
   if (visitedPaths.has(macroItem.filePath)) {
     throw new Error(`Recursion detected: ${macroItem.filePath}`);
@@ -423,6 +429,7 @@ export function expandMacro(
           nestedData,
           macrosMap,
           nextVisited,
+          depth + 1,
         );
 
         generatedLines.push(...result.lines);
@@ -454,6 +461,35 @@ export function expandMacro(
   };
 }
 
+export function wouldCreateCycle(
+  targetFilePath: string,
+  startFilePath: string,
+  macrosMap: Map<string, TurtleData>,
+): boolean {
+  if (targetFilePath === startFilePath) return true;
+
+  const visited = new Set<string>();
+
+  function check(path: string): boolean {
+    if (path === startFilePath) return true;
+    if (visited.has(path)) return false;
+    visited.add(path);
+
+    const data = macrosMap.get(path);
+    if (data && data.sequence) {
+      for (const item of data.sequence) {
+        if (item.kind === "macro") {
+          const childPath = (item as any).filePath;
+          if (childPath && check(childPath)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  return check(targetFilePath);
+}
+
 /**
  * Regenerates all macros in the project based on current user lines.
  * Updates the lines list (including macro lines) and the sequence items.
@@ -463,6 +499,7 @@ export function regenerateProjectMacros(
   lines: Line[],
   sequence: SequenceItem[],
   macrosMap: Map<string, TurtleData>,
+  currentFilePath: string | null = null,
 ): { lines: Line[]; sequence: SequenceItem[] } {
   const newLines: Line[] = [];
   // Separate user lines from macro lines to keep user edits
@@ -532,13 +569,18 @@ export function regenerateProjectMacros(
       const macroData = macrosMap.get(item.filePath);
       if (macroData) {
         // Expand with recursion support
+        const initialVisited = new Set<string>();
+        if (currentFilePath) {
+          initialVisited.add(currentFilePath);
+        }
+
         const result = expandMacro(
           item,
           currentPoint,
           currentHeading,
           macroData,
           macrosMap,
-          new Set(), // Initial visited paths
+          initialVisited,
         );
 
         // Add generated lines to master list

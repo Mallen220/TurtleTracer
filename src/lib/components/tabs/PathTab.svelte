@@ -32,11 +32,15 @@
     selectedLineId,
     selectedPointId,
     toggleCollapseAllTrigger,
+    currentFilePath,
+    notification,
   } from "../../../stores";
-  import { loadMacro } from "../../../lib/projectStore";
+  import { loadMacro, macrosStore } from "../../../lib/projectStore";
+  import { get } from "svelte/store";
   import { getShortcutFromSettings } from "../../../utils";
   import { actionRegistry } from "../../actionRegistry";
   import { getButtonFilledClass } from "../../../utils/buttonStyles";
+  import { wouldCreateCycle } from "../../../lib/macroUtils";
   import {
     updateLinkedWaits,
     updateLinkedRotations,
@@ -252,6 +256,24 @@
   }
 
   async function addMacroToSequence(filePath: string, index: number) {
+    const curPath = get(currentFilePath);
+
+    // Load the macro data into the store so it can be expanded
+    await loadMacro(filePath);
+
+    // Check if adding this macro would create a cycle
+    if (curPath) {
+      const macrosMap = get(macrosStore);
+      if (wouldCreateCycle(filePath, curPath, macrosMap)) {
+        notification.set({
+          message: "Cannot add macro: this would create a recursive loop.",
+          type: "error",
+          timeout: 5000,
+        });
+        return;
+      }
+    }
+
     const macroId = makeId();
     // Default name from filename
     let name = filePath.split(/[\\/]/).pop() || "Macro";
@@ -264,9 +286,6 @@
       name: name,
       locked: false,
     };
-
-    // Load the macro data into the store so it can be expanded
-    await loadMacro(filePath);
 
     const newSeq = [...sequence];
     if (index >= 0 && index <= newSeq.length) {
