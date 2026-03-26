@@ -15,6 +15,14 @@ export function registerAppHandlers(state) {
 
   ipcMain.handle("app:open-external", async (event, url) => {
     try {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        console.warn(
+          "Blocked attempt to open external url with unsupported protocol",
+          url,
+        );
+        return false;
+      }
       await shell.openExternal(url);
       return true;
     } catch (err) {
