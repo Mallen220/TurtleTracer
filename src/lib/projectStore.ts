@@ -509,11 +509,10 @@ export async function updateAllMacroReferences(
     await processFileData(actualDiskPath, macroFilePath, macroData);
   }
 
-  // 2. Scan unopened files in the current active directory
-  const currentDirectory = get(currentDirectoryStore);
-  if (currentDirectory) {
-    // Note: To fully recursively scan, we'd need a recursive file list function.
-    // We'll use the existing listFiles which typically scans 1 level, but we will recursively traverse it.
+  // 2. Scan unopened files in the base directory and all its sub-directories
+  // The user requirement specifies an O(NM) operation reading every single file under the project root.
+  const baseDirectory = await api.getSavedDirectory?.() || get(currentDirectoryStore);
+  if (baseDirectory) {
     async function scanDirectory(dir: string) {
       try {
         const files = await api.listFiles(dir);
@@ -527,14 +526,10 @@ export async function updateAllMacroReferences(
           ) {
             try {
               const content = await api.readFile(f.path);
-              // Quick check before parsing JSON to save performance.
-              // We need to account for folder prefix matches now, so just check if content includes the oldPath base name.
-              const searchString = oldPath.replace(/\\/g, '\\\\');
-              if (content.includes(searchString) || content.includes(oldPath)) {
-                const data = JSON.parse(content);
-                await processFileData(f.path, f.path, data);
-              }
+              const data = JSON.parse(content);
+              await processFileData(f.path, f.path, data);
             } catch (err) {
+              // Ignore parse errors for malformed or non-JSON files.
               console.error(
                 `Failed to read/parse file during macro scan: ${f.path}`,
                 err,
@@ -549,7 +544,7 @@ export async function updateAllMacroReferences(
         );
       }
     }
-    await scanDirectory(currentDirectory);
+    await scanDirectory(baseDirectory);
   }
 
   // Handle macrosStore updates: update modified ones, and also rename the moved macro's key if it is loaded
