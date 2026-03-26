@@ -1,4 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
+
 <script lang="ts" context="module">
   declare global {
     interface Window {
@@ -107,6 +108,40 @@
   let creatingNewFolder = false;
   let newFolderName = "";
 
+  let fileInput: HTMLInputElement;
+  let javaInput: HTMLInputElement;
+  let showAddMenu = false;
+
+  function handleAddMenuToggle(e: MouseEvent) {
+    e.stopPropagation();
+    showAddMenu = !showAddMenu;
+  }
+
+  function handleWindowClick(e: MouseEvent) {
+    if (showAddMenu) {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".floating-add-container")) {
+        showAddMenu = false;
+      }
+    }
+  }
+
+  function onImportFileSelect(e: Event) {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+      handleImportFile({ detail: target.files[0] } as CustomEvent<File>);
+      target.value = "";
+    }
+  }
+
+  function onImportJavaSelect(e: Event) {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+      handleImportJava({ detail: target.files[0] } as CustomEvent<File>);
+      target.value = "";
+    }
+  }
+
   const supportedFileTypes = [...SUPPORTED_PROJECT_EXTENSIONS];
   const electronAPI = window.electronAPI;
 
@@ -124,7 +159,7 @@
   });
 
   // Resizing state
-  let sidebarWidth = 384; // default max-w-sm is roughly 384px (24rem)
+  let sidebarWidth = 600; // default max-w-sm is roughly 655px (24rem)
   let isResizing = false;
 
   // New file input reference for programmatic focus
@@ -1034,6 +1069,8 @@
     }
   }
 
+  let isDraggingPath = false;
+
   // Mock path utils
   const path = {
     join: (...parts: string[]) => parts.join("/").replace(/\/\//g, "/"),
@@ -1050,7 +1087,7 @@
   };
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window on:keydown={handleKeydown} on:click={handleWindowClick} />
 
 <div class="fixed inset-0 z-[1010] flex" class:pointer-events-none={!isOpen}>
   <!-- Backdrop -->
@@ -1068,12 +1105,50 @@
     />
   {/if}
 
+  <!-- Drop Zone (Right Area) -->
+  {#if isOpen && isDraggingPath}
+    <div
+      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-purple-500/10 backdrop-blur-[2px] z-[1015]"
+      style="left: {sidebarWidth}px;"
+    >
+      <div
+        class="bg-white dark:bg-neutral-800 p-8 rounded-xl shadow-2xl flex flex-col items-center border-4 border-dashed border-purple-500 animate-pulse"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+          />
+        </svg>
+        <h2 class="text-2xl font-bold mb-2 text-neutral-900 dark:text-white">
+          Drop Zone
+        </h2>
+        <p class="text-neutral-500 dark:text-neutral-400">
+          Drop file to add as a macro
+        </p>
+      </div>
+    </div>
+  {/if}
+
   <!-- Sidebar -->
   <div
-    class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800"
+    class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 pointer-events-auto"
     style="width: {isOpen ? sidebarWidth : 384}px"
     class:translate-x-0={isOpen}
     class:-translate-x-full={!isOpen}
+    role="presentation"
+    on:dragstart={() => (isDraggingPath = true)}
+    on:dragend={() => (isDraggingPath = false)}
+    on:dragover|preventDefault|stopPropagation
+    on:drop|preventDefault|stopPropagation
   >
     <!-- Resizer Handle -->
     <button
@@ -1116,47 +1191,40 @@
     </div>
 
     <!-- Toolbar -->
-    <FileManagerToolbar
-      {searchQuery}
-      {sortMode}
-      {viewMode}
-      on:search={(e) => (searchQuery = e.detail)}
-      on:sort-change={(e) => (sortMode = e.detail)}
-      on:view-change={(e) => {
-        viewMode = e.detail;
-        // If switching to list/grid view, retry any previously failed previews so icons repopulate reliably
-        if (viewMode === "list") {
-          if (fileList && typeof fileList.refreshAllFailed === "function") {
-            fileList.refreshAllFailed();
-          } else if (fileList && typeof fileList.refreshAll === "function") {
-            // fallback: refresh everything
-            fileList.refreshAll();
+    <div class="relative z-[60] overflow-visible">
+      <FileManagerToolbar
+        {searchQuery}
+        {sortMode}
+        {viewMode}
+        on:search={(e) => (searchQuery = e.detail)}
+        on:sort-change={(e) => (sortMode = e.detail)}
+        on:view-change={(e) => {
+          viewMode = e.detail;
+          // If switching to list/grid view, retry any previously failed previews so icons repopulate reliably
+          if (viewMode === "list") {
+            if (fileList && typeof fileList.refreshAllFailed === "function") {
+              fileList.refreshAllFailed();
+            } else if (fileList && typeof fileList.refreshAll === "function") {
+              // fallback: refresh everything
+              fileList.refreshAll();
+            }
+          } else if (viewMode === "grid") {
+            if (fileGrid && typeof fileGrid.refreshAllFailed === "function") {
+              fileGrid.refreshAllFailed();
+            } else if (fileGrid && typeof fileGrid.refreshAll === "function") {
+              fileGrid.refreshAll();
+            }
           }
-        } else if (viewMode === "grid") {
-          if (fileGrid && typeof fileGrid.refreshAllFailed === "function") {
-            fileGrid.refreshAllFailed();
-          } else if (fileGrid && typeof fileGrid.refreshAll === "function") {
-            fileGrid.refreshAll();
-          }
-        }
-      }}
-      on:refresh={handleRefresh}
-      on:change-dir={changeDirectoryDialog}
-      on:new-file={() => (creatingNewFile = true)}
-      on:new-folder={() => (creatingNewFolder = true)}
-      on:import-file={handleImportFile}
-      on:import-java={handleImportJava}
-      on:import-telemetry={() => {
-        isOpen = false;
-        showTelemetryDialog.set(true);
-      }}
-    />
+        }}
+      />
+    </div>
 
     <!-- Breadcrumbs -->
     <FileManagerBreadcrumbs
       currentPath={currentDirectory}
       isAtBase={currentDirectory === baseDirectory}
       on:change-dir={changeDirectoryManual}
+      on:change-dir-dialog={changeDirectoryDialog}
       on:go-up={goUpDirectory}
     />
 
@@ -1233,90 +1301,295 @@
       </div>
     {/if}
 
-    <!-- File List / Grid -->
-    {#if loading}
-      <div
-        class="flex-1 flex items-center justify-center text-neutral-400 text-sm"
-      >
-        <LoadingSpinner />
-      </div>
-    {:else if filteredFiles.length === 0}
-      <div
-        class="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1"
-          stroke="currentColor"
-          class="size-12 mb-2 opacity-30"
+    <!-- File List / Grid Container with Floating Menu -->
+    <div class="relative flex-1 overflow-hidden flex flex-col">
+      <!-- Floating Add Dropdown -->
+      <div class="absolute top-4 right-4 z-[100] floating-add-container">
+        <button
+          on:click={handleAddMenuToggle}
+          class="flex items-center justify-center p-1.5 text-neutral-500 hover:text-green-600 dark:text-neutral-400 dark:hover:text-green-400 bg-white dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          title="Add / Import"
+          aria-label="Add / Import"
+          aria-haspopup="true"
+          aria-expanded={showAddMenu}
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-          />
-        </svg>
-        <p class="text-sm">No files found</p>
-        {#if searchQuery}
-          <button
-            class="text-xs text-blue-500 mt-2 hover:underline"
-            on:click={() => (searchQuery = "")}>Clear search</button
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="size-5"
           >
-        {:else}
-          <button
-            class="text-xs text-blue-500 mt-2 hover:underline"
-            on:click={() => (creatingNewFile = true)}>Create a new file</button
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 4.5v15m7.5-7.5h-15"
+            />
+          </svg>
+        </button>
+
+        {#if showAddMenu}
+          <div
+            class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-xl border border-neutral-200 dark:border-neutral-700 py-1 flex flex-col overflow-hidden"
           >
+            <button
+              on:click={() => {
+                creatingNewFile = true;
+                showAddMenu = false;
+              }}
+              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="size-4 text-green-500"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+                />
+              </svg>
+              New File
+            </button>
+
+            <button
+              on:click={() => {
+                creatingNewFolder = true;
+                showAddMenu = false;
+              }}
+              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="size-4 text-blue-500"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 10.5v6m3-3H9m4.06-7.19-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
+                />
+              </svg>
+              New Folder
+            </button>
+
+            <div
+              class="h-px bg-neutral-200 dark:bg-neutral-700 my-1 w-full"
+              role="presentation"
+              aria-hidden="true"
+            ></div>
+
+            <button
+              on:click={() => {
+                fileInput?.click();
+                showAddMenu = false;
+              }}
+              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="size-4 text-purple-500"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+                />
+              </svg>
+              Import File
+            </button>
+
+            <button
+              on:click={() => {
+                javaInput?.click();
+                showAddMenu = false;
+              }}
+              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="size-4 text-orange-500"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z"
+                />
+              </svg>
+              Import Java
+            </button>
+
+            <button
+              on:click={() => {
+                isOpen = false;
+                showTelemetryDialog.set(true);
+                showAddMenu = false;
+              }}
+              class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                class="size-4 text-blue-500"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12a2.25 2.25 0 0 0 2.25-2.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z"
+                />
+              </svg>
+              Import Telemetry
+            </button>
+          </div>
         {/if}
       </div>
-    {:else if viewMode === "list"}
-      <FileList
-        bind:this={fileList}
-        files={filteredFiles}
-        selectedFilePath={selectedFile?.path ?? null}
-        {sortMode}
-        fieldImage={settings.fieldMap}
-        {renamingFile}
-        on:select={(e) => (selectedFile = e.detail)}
-        on:open={(e) => handleOpen(e.detail)}
-        on:rename-start={(e) => (renamingFile = e.detail)}
-        on:rename-save={(e) =>
-          renamingFile && renameFile(renamingFile, e.detail)}
-        on:rename-cancel={() => (renamingFile = null)}
-        on:menu-action={handleMenuAction}
-        on:move-file={handleMoveFile}
+
+      <!-- Hidden Inputs for Imports -->
+      <input
+        bind:this={javaInput}
+        type="file"
+        accept=".java"
+        class="hidden"
+        on:change={onImportJavaSelect}
+        tabindex="-1"
       />
-    {:else}
-      <FileGrid
-        bind:this={fileGrid}
-        files={filteredFiles}
-        selectedFilePath={selectedFile?.path ?? null}
-        {sortMode}
-        fieldImage={settings.fieldMap}
-        showGitStatus={settings.gitIntegration}
-        {renamingFile}
-        on:select={(e) => (selectedFile = e.detail)}
-        on:open={(e) => handleOpen(e.detail)}
-        on:rename-start={(e) => (renamingFile = e.detail)}
-        on:rename-save={(e) =>
-          renamingFile && renameFile(renamingFile, e.detail)}
-        on:rename-cancel={() => (renamingFile = null)}
-        on:menu-action={handleMenuAction}
-        on:move-file={handleMoveFile}
+      <input
+        bind:this={fileInput}
+        type="file"
+        accept=".turt,.pp"
+        class="hidden"
+        on:change={onImportFileSelect}
+        tabindex="-1"
       />
-    {/if}
+
+      <!-- File List / Grid -->
+      {#if loading}
+        <div
+          class="flex-1 flex items-center justify-center text-neutral-400 text-sm h-full"
+        >
+          <LoadingSpinner />
+        </div>
+      {:else if filteredFiles.length === 0}
+        <div
+          class="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center h-full"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1"
+            stroke="currentColor"
+            class="size-12 mb-2 opacity-30"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+            />
+          </svg>
+          <p class="text-sm">No files found</p>
+          {#if searchQuery}
+            <button
+              class="text-xs text-blue-500 mt-2 hover:underline"
+              on:click={() => (searchQuery = "")}>Clear search</button
+            >
+          {:else}
+            <button
+              class="text-xs text-blue-500 mt-2 hover:underline"
+              on:click={() => (creatingNewFile = true)}
+              >Create a new file</button
+            >
+          {/if}
+        </div>
+      {:else if viewMode === "list"}
+        <FileList
+          bind:this={fileList}
+          files={filteredFiles}
+          selectedFilePath={selectedFile?.path ?? null}
+          {sortMode}
+          fieldImage={settings.fieldMap}
+          {renamingFile}
+          on:select={(e) => (selectedFile = e.detail)}
+          on:open={(e) => handleOpen(e.detail)}
+          on:rename-start={(e) => (renamingFile = e.detail)}
+          on:rename-save={(e) =>
+            renamingFile && renameFile(renamingFile, e.detail)}
+          on:rename-cancel={() => (renamingFile = null)}
+          on:menu-action={handleMenuAction}
+          on:move-file={handleMoveFile}
+        />
+      {:else}
+        <FileGrid
+          bind:this={fileGrid}
+          files={filteredFiles}
+          selectedFilePath={selectedFile?.path ?? null}
+          {sortMode}
+          fieldImage={settings.fieldMap}
+          showGitStatus={settings.gitIntegration}
+          {renamingFile}
+          on:select={(e) => (selectedFile = e.detail)}
+          on:open={(e) => handleOpen(e.detail)}
+          on:rename-start={(e) => (renamingFile = e.detail)}
+          on:rename-save={(e) =>
+            renamingFile && renameFile(renamingFile, e.detail)}
+          on:rename-cancel={() => (renamingFile = null)}
+          on:menu-action={handleMenuAction}
+          on:move-file={handleMoveFile}
+        />
+      {/if}
+    </div>
 
     <!-- Footer Status -->
     <div
-      class="p-2 text-xs text-neutral-400 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex justify-between"
+      class="p-2 text-xs text-neutral-400 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex justify-between items-center"
     >
-      <span
-        >{filteredFiles.length} file{filteredFiles.length !== 1
-          ? "s"
-          : ""}</span
-      >
+      <div class="flex items-center gap-2">
+        <button
+          on:click={handleRefresh}
+          class="p-1 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          title="Refresh"
+          aria-label="Refresh"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="size-4"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+            />
+          </svg>
+        </button>
+        <span
+          >{filteredFiles.length} file{filteredFiles.length !== 1
+            ? "s"
+            : ""}</span
+        >
+      </div>
       {#if selectedFile}
         <span class="truncate max-w-[150px]">{selectedFile.name}</span>
       {/if}

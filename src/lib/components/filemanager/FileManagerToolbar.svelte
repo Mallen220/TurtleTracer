@@ -2,23 +2,15 @@
 <!-- src/lib/components/filemanager/FileManagerToolbar.svelte -->
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import FolderIcon from "../icons/FolderIcon.svelte";
 
   export let searchQuery = "";
   export let sortMode: "name" | "date" = "name";
   export let viewMode: "list" | "grid" = "list";
 
   const dispatch = createEventDispatcher<{
-    "new-file": void;
-    "new-folder": void;
-    "change-dir": void;
-    refresh: void;
     "sort-change": "name" | "date";
     "view-change": "list" | "grid";
     search: string;
-    "import-file": File;
-    "import-java": File;
-    "import-telemetry": void;
   }>();
 
   function handleSearch(e: Event) {
@@ -26,61 +18,42 @@
     searchQuery = target.value;
     dispatch("search", searchQuery);
   }
-
-  function handleImport(e: Event) {
-    const target = e.target as HTMLInputElement;
-    if (target.files && target.files[0]) {
-      dispatch("import-file", target.files[0]);
-      target.value = ""; // Reset
-    }
-  }
-
-  function handleImportJava(e: Event) {
-    const target = e.target as HTMLInputElement;
-    if (target.files && target.files[0]) {
-      dispatch("import-java", target.files[0]);
-      target.value = ""; // Reset
-    }
-  }
-
-  let fileInput: HTMLInputElement;
-  let javaInput: HTMLInputElement;
 </script>
 
 <div
-  class="flex flex-col gap-2 p-2 border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shrink-0 z-10"
+  class="flex flex-col gap-2 p-2 border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shrink-0 z-10 overflow-visible"
 >
-  <!-- Row 1: Search (Full Width) -->
-  <div class="relative w-full">
-    <div
-      class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-neutral-400"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width="2"
-        stroke="currentColor"
-        class="size-4"
+  <!-- Header: Search + Sort/View + Change Dir -->
+  <div class="flex items-center gap-1 w-full relative">
+    <!-- Search (Full Width) -->
+    <div class="relative flex-1">
+      <div
+        class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-neutral-400"
       >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-        />
-      </svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="size-4"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+          />
+        </svg>
+      </div>
+      <input
+        type="text"
+        value={searchQuery}
+        on:input={handleSearch}
+        placeholder="Search files..."
+        class="w-full pl-8 pr-2 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-800 border-none rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-neutral-900 dark:text-white placeholder-neutral-500"
+      />
     </div>
-    <input
-      type="text"
-      value={searchQuery}
-      on:input={handleSearch}
-      placeholder="Search files..."
-      class="w-full pl-8 pr-2 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-800 border-none rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-neutral-900 dark:text-white placeholder-neutral-500"
-    />
-  </div>
 
-  <!-- Row 2: Controls -->
-  <div class="flex items-center gap-1 w-full overflow-x-auto no-scrollbar">
     <!-- Sort Toggle -->
     <button
       on:click={() =>

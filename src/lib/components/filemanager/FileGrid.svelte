@@ -377,6 +377,44 @@
     e.dataTransfer.setData("text/plain", file.path);
     e.dataTransfer.setData("application/json", JSON.stringify(file));
     e.dataTransfer.effectAllowed = "copyMove";
+
+    if (e.currentTarget instanceof HTMLElement) {
+      const iconPreviewElement =
+        e.currentTarget.querySelector(".preview-container") ||
+        e.currentTarget.querySelector(".mb-2.relative");
+
+      if (iconPreviewElement instanceof HTMLElement) {
+        // Clone the element to avoid weird scaling or visual glitches in the drag ghost
+        const clone = iconPreviewElement.cloneNode(true) as HTMLElement;
+        clone.style.position = "absolute";
+        clone.style.top = "-9999px";
+        clone.style.left = "-9999px";
+        // Ensure the clone has proper styling independent of its flex parent
+        clone.style.width = "80px";
+        clone.style.height = "80px";
+
+        // Ensure svgs inside render
+        const originalSvg = iconPreviewElement.querySelector("svg");
+        const cloneSvg = clone.querySelector("svg");
+        if (originalSvg && cloneSvg) {
+          cloneSvg.innerHTML = originalSvg.innerHTML;
+        }
+
+        document.body.appendChild(clone);
+
+        const offsetX = 40; // half of 80px width
+        const offsetY = 40;
+
+        e.dataTransfer.setDragImage(clone, offsetX, offsetY);
+
+        // Clean up the clone immediately after drag starts
+        setTimeout(() => {
+          if (document.body.contains(clone)) {
+            document.body.removeChild(clone);
+          }
+        }, 0);
+      }
+    }
   }
 
   let dragOverTarget: string | null = null;
@@ -397,12 +435,13 @@
 
   function handleDrop(e: DragEvent, file: FileInfo) {
     dragOverTarget = null;
-    if (!file.isDirectory) return;
 
     // Stop the event from bubbling up to the main window drop handlers
     // which might try to interpret this as importing a new macro
     e.preventDefault();
     e.stopPropagation();
+
+    if (!file.isDirectory) return;
 
     try {
       const data = e.dataTransfer?.getData("application/json");
@@ -436,7 +475,9 @@
       </div>
     {/if}
 
-    <div class="grid grid-cols-3 gap-2 px-2">
+    <div
+      class="grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-2 px-2"
+    >
       {#each group.files as file (file.path)}
         <div
           class="group flex flex-col items-center p-2 rounded-md cursor-pointer transition-all border relative
