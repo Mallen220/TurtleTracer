@@ -2,6 +2,7 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
+  import { CloseIcon, SearchIcon, InfoIcon } from "../icons";
   import type { Settings } from "../../../types/index";
   import { DEFAULT_KEY_BINDINGS } from "../../../config/keybindings";
   import { notification } from "../../../stores";
@@ -314,20 +315,7 @@
             <div
               class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-6"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"
-                />
-              </svg>
+              <InfoIcon className="size-6" />
             </div>
             <div>
               <h2
@@ -346,40 +334,14 @@
             class="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors"
             aria-label="Close dialog"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="size-6"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M6 18 18 6M6 6l12 12"
-              />
-            </svg>
+            <CloseIcon className="size-6" />
           </button>
         </div>
 
         <div class="flex gap-4">
           <!-- Search -->
           <div class="relative flex-1">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-neutral-400"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-              />
-            </svg>
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-neutral-400" />
             <input
               type="text"
               bind:value={searchQuery}
@@ -406,20 +368,7 @@
           <div
             class="flex flex-col items-center justify-center h-full text-neutral-500 dark:text-neutral-400"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="size-12 mb-2 opacity-50"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
-              />
-            </svg>
+            <InfoIcon className="size-12 mb-2 opacity-50" />
             <p>No shortcuts found matching your search.</p>
           </div>
         {:else}

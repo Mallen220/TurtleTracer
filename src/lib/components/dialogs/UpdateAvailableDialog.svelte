@@ -12,6 +12,7 @@
   } from "../../../stores";
   const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import MarkdownIt from "markdown-it";
+  import { CloseIcon, SparklesIcon } from "../icons";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
 
   export let show = false;
@@ -170,20 +171,7 @@
         class="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all z-10"
         aria-label="Close"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="w-5 h-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M6 18 18 6M6 6l12 12"
-          />
-        </svg>
+        <CloseIcon className="w-5 h-5" />
       </button>
 
       <div class="relative p-8 flex flex-col gap-6">
@@ -192,26 +180,7 @@
           <div
             class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-600 dark:text-purple-400 mb-2 shadow-sm ring-1 ring-purple-100 dark:ring-purple-900/50"
           >
-            <!-- Use the rocket icon (consistent with What's New) -->
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="w-8 h-8"
-            >
-              <path
-                d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"
-              />
-              <path
-                d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"
-              />
-              <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
-              <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
-            </svg>
+            <SparklesIcon className="w-8 h-8" />
           </div>
           <h2
             id="update-title"
