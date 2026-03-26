@@ -50,6 +50,7 @@
     loadProjectData,
     macrosStore,
     updateMacroContent,
+    updateAllMacroReferences,
   } from "./projectStore";
   import { saveProject } from "../utils/fileHandlers";
   import { saveAutoPathsDirectory } from "../utils/directorySettings";
@@ -622,32 +623,13 @@
           selectedFile = { ...selectedFile, path: newPath };
           currentFilePath.set(newPath);
         }
-        // Update sequence references if this file was used as a macro
-        let macrosChanged = false;
-        sequence = sequence.map((item) => {
-          if (item.kind === "macro" && item.filePath === sourceFile.path) {
-            macrosChanged = true;
-            return { ...item, filePath: newPath };
-          }
-          return item;
-        });
 
-        // Update macrosStore
-        const macros = get(macrosStore);
-        if (macros.has(sourceFile.path)) {
-          const macroData = macros.get(sourceFile.path);
-          if (macroData) {
-            updateMacroContent(newPath, macroData);
-            macrosStore.update((m) => {
-              m.delete(sourceFile.path);
-              return m;
-            });
-          }
-          macrosChanged = true;
-        }
+        // Use the new centralized macro reference updater to deeply fix all references
+        await updateAllMacroReferences(sourceFile.path, newPath);
 
-        if (macrosChanged) {
-          isUnsaved.set(true); // Since modified sequence, the file needs saving
+        // Set unsaved if the top level sequence was modified
+        if (sequence.some(s => s.kind === "macro" && s.filePath === newPath)) {
+          isUnsaved.set(true);
         }
 
         showToast(
@@ -692,6 +674,14 @@
           selectedFile = { ...selectedFile, name: fileName, path: newFilePath };
           currentFilePath.set(newFilePath);
         }
+
+        // Deeply update any macro references
+        await updateAllMacroReferences(file.path, newFilePath);
+
+        if (sequence.some(s => s.kind === "macro" && s.filePath === newFilePath)) {
+          isUnsaved.set(true);
+        }
+
         showToast(`Renamed to: ${fileName}`, "success");
         await refreshDirectory();
       }

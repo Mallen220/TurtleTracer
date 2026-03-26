@@ -285,6 +285,11 @@ export async function loadMacro(filePath: string, force = false) {
       }
     } catch (e) {
       console.error("Failed to load macro:", filePath, e);
+      notification.set({
+        message: `Macro file not found or failed to load: ${filePath}. Please update references.`,
+        type: "warning",
+        timeout: 5000,
+      });
     } finally {
       loadingMacros.delete(filePath);
     }
@@ -356,17 +361,34 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
       if (projectFilePath && api && api.resolvePath) {
         promises.push(
           (async () => {
-            const resolved = await api.resolvePath(
-              projectFilePath,
-              item.filePath,
-            );
-            // Update the sequence item to use the absolute path for this session
-            item.filePath = resolved;
-            await loadMacro(resolved);
+            try {
+              const resolved = await api.resolvePath(
+                projectFilePath,
+                item.filePath,
+              );
+              if (resolved) {
+                // Update the sequence item to use the absolute path for this session
+                item.filePath = resolved;
+                await loadMacro(resolved);
+              } else {
+                throw new Error("Failed to resolve relative macro path");
+              }
+            } catch (err) {
+              console.error("Error resolving macro path:", item.filePath, err);
+              notification.set({
+                message: `Failed to resolve macro path: ${item.filePath}`,
+                type: "warning",
+                timeout: 5000,
+              });
+            }
           })(),
         );
       } else {
-        promises.push(loadMacro(item.filePath));
+        promises.push(
+          loadMacro(item.filePath).catch((err) => {
+            console.error("Error loading macro:", item.filePath, err);
+          }),
+        );
       }
     }
   }
@@ -385,6 +407,103 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
   // settings are usually loaded separately or merged?
   // In App.svelte loadData does NOT load settings from the file data usually,
   // except if it's a full project save.
+}
+
+// Public repair function: ensure sequence and line names are consistent at runtime
+export async function updateAllMacroReferences(
+  oldPath: string,
+  newPath: string,
+) {
+  const api = (window as any).electronAPI;
+  if (!api || !api.writeFile) return;
+
+  let totalUpdated = 0;
+  const errors: string[] = [];
+
+  // Update top-level sequence if it uses the macro
+  sequenceStore.update((seq) => {
+    let changed = false;
+    const newSeq = seq.map((item) => {
+      if (item.kind === "macro" && item.filePath === oldPath) {
+        changed = true;
+        totalUpdated++;
+        return { ...item, filePath: newPath };
+      }
+      return item;
+    });
+    return changed ? newSeq : seq;
+  });
+
+  // Iterate over loaded macros and update nested sequences
+  const currentMacros = get(macrosStore);
+  const updatedMacros = new Map<string, TurtleData>();
+  let macrosStoreChanged = false;
+
+  for (const [macroFilePath, macroData] of currentMacros.entries()) {
+    if (macroData.sequence && macroData.sequence.length > 0) {
+      let macroChanged = false;
+      const newSeq = macroData.sequence.map((item) => {
+        if (item.kind === "macro" && item.filePath === oldPath) {
+          macroChanged = true;
+          totalUpdated++;
+          return { ...item, filePath: newPath };
+        }
+        return item;
+      });
+
+      if (macroChanged) {
+        macrosStoreChanged = true;
+        const updatedData = { ...macroData, sequence: newSeq };
+        updatedMacros.set(macroFilePath, updatedData);
+
+        // Save updated macro to disk
+        try {
+          const content = JSON.stringify(updatedData, null, 2);
+          await api.writeFile(macroFilePath, content);
+        } catch (e) {
+          console.error(`Failed to save updated macro reference to ${macroFilePath}`, e);
+          errors.push(macroFilePath);
+        }
+      }
+    }
+  }
+
+  // Handle macrosStore updates: update modified ones, and also rename the moved macro's key if it is loaded
+  if (macrosStoreChanged || currentMacros.has(oldPath)) {
+    macrosStore.update((map) => {
+      const newMap = new Map(map);
+      // Apply updated references
+      for (const [k, v] of updatedMacros.entries()) {
+        newMap.set(k, v);
+      }
+      // If the moved macro was loaded, change its key
+      if (newMap.has(oldPath)) {
+        const movedData = newMap.get(oldPath);
+        newMap.delete(oldPath);
+        if (movedData) {
+          newMap.set(newPath, movedData);
+        }
+      }
+      return newMap;
+    });
+    refreshMacros();
+  }
+
+  if (totalUpdated > 0) {
+    if (errors.length === 0) {
+      notification.set({
+        message: `Updated ${totalUpdated} macro reference(s) to new location.`,
+        type: "success",
+        timeout: 4000,
+      });
+    } else {
+      notification.set({
+        message: `Updated ${totalUpdated} reference(s), but failed to save to disk in ${errors.length} file(s).`,
+        type: "warning",
+        timeout: 6000,
+      });
+    }
+  }
 }
 
 // Public repair function: ensure sequence and line names are consistent at runtime
