@@ -59,6 +59,27 @@ describe("fileExtensions utilities", () => {
       expect(stripProjectExtension("project")).toBe("project");
       expect(stripProjectExtension("")).toBe("");
     });
+
+    it("should handle filenames with multiple dots", () => {
+      expect(stripProjectExtension("project.v1.turt")).toBe("project.v1");
+      expect(stripProjectExtension("project.backup.pp")).toBe("project.backup");
+      expect(stripProjectExtension("project.turt.turt")).toBe("project.turt");
+    });
+
+    it("should not modify strings where the extension is not at the end", () => {
+      expect(stripProjectExtension("project.turt.txt")).toBe("project.turt.txt");
+      expect(stripProjectExtension("legacy.pp.bak")).toBe("legacy.pp.bak");
+    });
+
+    it("should not modify strings ending in extension characters without a dot", () => {
+      expect(stripProjectExtension("projectturt")).toBe("projectturt");
+      expect(stripProjectExtension("legacypp")).toBe("legacypp");
+    });
+
+    it("should handle just the extension", () => {
+      expect(stripProjectExtension(".turt")).toBe("");
+      expect(stripProjectExtension(".pp")).toBe("");
+    });
   });
 
   describe("ensureDefaultProjectExtension", () => {
