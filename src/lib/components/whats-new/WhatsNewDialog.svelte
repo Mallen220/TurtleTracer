@@ -3,6 +3,7 @@
   import { createEventDispatcher, onMount, tick } from "svelte";
   import MarkdownIt from "markdown-it";
   import { features, getAllFeatures, type FeatureHighlight } from "./features";
+  import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "../icons";
 
   import pkg from "../../../../package.json";
   export let show = false;
@@ -186,19 +187,7 @@
                 class="p-1 -ml-1 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700"
                 aria-label="Back"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  ><path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 19l-7-7 7-7"
-                  /></svg
-                >
+                <ChevronLeftIcon className="h-5 w-5" />
               </button>
             {/if}
             <h2
@@ -213,19 +202,7 @@
             on:click={close}
             class="md:hidden p-2 -mr-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              ><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              /></svg
-            >
+            <CloseIcon className="h-5 w-5" />
           </button>
         </div>
 
@@ -275,38 +252,14 @@
               }}
             >
               <span>View Previous Releases</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5l7 7-7 7"
-                /></svg
-              >
+              <ChevronRightIcon className="h-4 w-4" />
             </button>
           {:else}
             <button
               class="w-full py-2 px-3 flex items-center justify-between text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
               on:click={() => (viewMode = "features")}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 19l-7-7 7-7"
-                /></svg
-              >
+              <ChevronLeftIcon className="h-4 w-4" />
               <span>Back to What's New</span>
             </button>
           {/if}
@@ -328,19 +281,7 @@
             on:click={() => (viewMode = "features")}
             class="md:hidden flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              ><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 19l-7-7 7-7"
-              /></svg
-            >
+            <ChevronLeftIcon className="h-4 w-4" />
             Back
           </button>
 
@@ -351,19 +292,7 @@
             on:click={close}
             class="hidden md:block p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              ><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              /></svg
-            >
+            <CloseIcon className="h-5 w-5" />
           </button>
         </div>
 
@@ -408,19 +337,7 @@
                           (activeFeatureId = parsedFeatures[i + 1].id)}
                       >
                         Next
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          class="h-4 w-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          ><path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 5l7 7-7 7"
-                          /></svg
-                        >
+                        <ChevronRightIcon className="h-4 w-4" />
                       </button>
                     {:else}
                       <button
