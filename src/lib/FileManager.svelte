@@ -1147,6 +1147,8 @@
     role="presentation"
     on:dragstart={() => (isDraggingPath = true)}
     on:dragend={() => (isDraggingPath = false)}
+    on:dragover|preventDefault|stopPropagation
+    on:drop|preventDefault|stopPropagation
   >
     <!-- Resizer Handle -->
     <button
@@ -1213,14 +1215,6 @@
               fileGrid.refreshAll();
             }
           }
-        }}
-        on:new-file={() => (creatingNewFile = true)}
-        on:new-folder={() => (creatingNewFolder = true)}
-        on:import-file={handleImportFile}
-        on:import-java={handleImportJava}
-        on:import-telemetry={() => {
-          isOpen = false;
-          showTelemetryDialog.set(true);
         }}
       />
     </div>

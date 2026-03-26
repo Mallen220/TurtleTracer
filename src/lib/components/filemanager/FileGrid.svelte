@@ -377,6 +377,15 @@
     e.dataTransfer.setData("text/plain", file.path);
     e.dataTransfer.setData("application/json", JSON.stringify(file));
     e.dataTransfer.effectAllowed = "copyMove";
+
+    if (e.currentTarget instanceof HTMLElement) {
+      const iconContainer =
+        e.currentTarget.querySelector(".preview-container") ||
+        e.currentTarget.querySelector(".mb-2.relative");
+      if (iconContainer) {
+        e.dataTransfer.setDragImage(iconContainer as Element, 32, 32);
+      }
+    }
   }
 
   let dragOverTarget: string | null = null;
@@ -397,12 +406,13 @@
 
   function handleDrop(e: DragEvent, file: FileInfo) {
     dragOverTarget = null;
-    if (!file.isDirectory) return;
 
     // Stop the event from bubbling up to the main window drop handlers
     // which might try to interpret this as importing a new macro
     e.preventDefault();
     e.stopPropagation();
+
+    if (!file.isDirectory) return;
 
     try {
       const data = e.dataTransfer?.getData("application/json");
