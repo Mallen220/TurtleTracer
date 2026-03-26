@@ -14,7 +14,7 @@
     PathOptimizer,
     type OptimizationResult,
   } from "../../../utils/pathOptimizer";
-  import { formatTime } from "../../../utils"; // formatTime exported from utility index
+  import { formatTime } from "../../../utils";
   import { dimmedLinesStore } from "../../../stores";
   import { onDestroy } from "svelte";
 
@@ -33,14 +33,11 @@
   let currentBestTime = 0;
   export let optimizedLines: Line[] | null = null;
   let showPreview = true;
-  // True if optimizer finished but best candidate still has collision penalty
   export let optimizationFailed = false;
   export let collapsed = false;
 
-  // Selection state for path optimization
   let selectionState: Record<string, boolean> = {};
 
-  // Initialize/Update selection state when lines change
   $: {
     lines.forEach((l, idx) => {
       const id = l.id || `idx-${idx}`;
@@ -50,9 +47,7 @@
     });
   }
 
-  // Update dimmed lines store whenever selection state changes
   $: {
-    // Filter lines where selectionState is false
     const unselectedIds = lines
       .filter((l, idx) => {
         const id = l.id || `idx-${idx}`;
@@ -66,7 +61,7 @@
 
   function toggleSelection(id: string) {
     selectionState[id] = !selectionState[id];
-    selectionState = selectionState; // Trigger reactivity
+    selectionState = selectionState;
   }
 
   function selectAll() {
@@ -74,7 +69,7 @@
       const id = l.id || `idx-${idx}`;
       selectionState[id] = true;
     });
-    selectionState = selectionState; // Trigger reactivity
+    selectionState = selectionState;
   }
 
   function deselectAll() {
@@ -82,26 +77,23 @@
       const id = l.id || `idx-${idx}`;
       selectionState[id] = false;
     });
-    selectionState = selectionState; // Trigger reactivity
+    selectionState = selectionState;
   }
 
   onDestroy(() => {
     dimmedLinesStore.set([]);
   });
 
-  // Runtime optimizer instance (allows us to request stop)
   let optimizer: PathOptimizer | null = null;
   let isStopping = false;
 
   export async function startOptimization() {
     isRunning = true;
     progress = 0;
-
     optimizationFailed = false;
     isStopping = false;
 
     if (settings) {
-      // Create a copy of lines where unselected lines are forced to be locked
       const linesToOptimize = structuredClone(lines).map((l, idx) => {
         const id = l.id || `idx-${idx}`;
         if (!selectionState[id]) {
@@ -118,15 +110,11 @@
         shapes,
       );
     } else {
-      console.log("Error: Settings not loaded.");
       isRunning = false;
       return;
     }
 
-    console.log("Initializing population...");
-
     if (!optimizer) {
-      console.log("Error: Optimizer initialization failed.");
       isRunning = false;
       return;
     }
@@ -135,22 +123,11 @@
       (result: OptimizationResult) => {
         progress = result.generation;
         currentBestTime = result.bestTime;
-        // Log every 10 generations to avoid clutter
-        if (result.generation % 10 === 0 || result.generation === 1) {
-          // If time is > 1000, it means it's still validating/colliding
-          const timeDisplay =
-            result.bestTime > 1000
-              ? "Validating..."
-              : formatTime(result.bestTime);
-          console.log(`Gen ${result.generation}: Best Time ${timeDisplay}`);
-          // Auto-scroll logs
-        }
       },
     );
 
     optimizedLines = optimizationResult.lines;
 
-    // Restore original locked state for lines that were temporarily locked
     if (optimizedLines) {
       optimizedLines.forEach((l, idx) => {
         const originalLine = lines[idx];
@@ -164,40 +141,23 @@
     }
 
     const finalBestTime = optimizationResult.bestTime;
-    const wasStopped = optimizationResult.stopped ?? false;
-
-    if (wasStopped) {
-      console.log("Optimization stopped by user.");
-    }
-
-    // If bestTime is still in penalty range (>=10000), treat as failure to find collision-free path
     optimizationFailed = finalBestTime >= 10000;
-    if (optimizationFailed) {
-      console.log(
-        "Warning: No collision-free path was found. You can help the optimizer by creating an initial path that avoids obstacles before running optimization.",
-      );
-    }
 
-    console.log("Optimization Complete!");
     isRunning = false;
     isStopping = false;
     optimizer = null;
-
-    // Automatically show preview of optimized path
     showPreview = true;
+
     if (onPreviewChange) {
       onPreviewChange(optimizedLines);
     }
   }
 
   export function handleApply() {
-    if (optimizationFailed) return; // Do not allow applying a path if optimizer couldn't find a collision-free candidate
+    if (optimizationFailed) return;
     if (optimizedLines) {
-      // Capture and apply optimized lines
       const result = optimizedLines;
       onApply(result);
-
-      // Reset optimizer UI state so subsequent opens show 'Start Optimization'
 
       progress = 0;
       optimizedLines = null;
@@ -211,9 +171,8 @@
   }
 
   export function handleClose() {
-    if (isRunning) return; // Prevent closing while running
+    if (isRunning) return;
     isOpen = false;
-
     progress = 0;
     optimizedLines = null;
     showPreview = false;
@@ -223,9 +182,7 @@
 
   export function stopOptimization() {
     if (!optimizer) return;
-    // Mark that user requested a stop and ask the optimizer to stop at next opportunity
     isStopping = true;
-    console.log("Stop requested — finishing current generation...");
     optimizer.stop();
   }
 
@@ -238,21 +195,22 @@
     }
   }
 
-  // Hide preview if optimization failed
   $: if (optimizationFailed && showPreview) {
     showPreview = false;
     if (onPreviewChange) onPreviewChange(null);
   }
 </script>
 
-<!-- Only embedded panel version -->
+```svelte
 <div
   class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden mb-4"
 >
-  <SectionHeader title="Path Optimizer" bind:collapsed />
+  <SectionHeader title="Path Optimization" bind:collapsed />
 
   {#if !collapsed}
-    <div class="flex flex-col gap-4 p-4">
+    <div
+      class="p-4 space-y-4 border-t border-neutral-200 dark:border-neutral-700"
+    >
       <details class="text-sm text-neutral-600 dark:text-neutral-400 group">
         <summary
           class="cursor-pointer font-medium hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors list-none appearance-none [&::-webkit-details-marker]:hidden flex items-center gap-1"
@@ -495,3 +453,4 @@
     </div>
   {/if}
 </div>
+```
