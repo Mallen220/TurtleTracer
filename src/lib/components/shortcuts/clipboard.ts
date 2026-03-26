@@ -8,8 +8,15 @@ import {
 } from "../../projectStore";
 import { selectedLineId, selectedPointId, notification } from "../../../stores";
 import { actionRegistry } from "../../actionRegistry";
-import type { Line, SequenceItem } from "../../../types/index";
+import type {
+  Line,
+  SequenceItem,
+  Point,
+  BasePoint,
+} from "../../../types/index";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
+import { settingsStore } from "../../projectStore";
+import { toUser } from "../../../utils/coordinates";
 
 // Internal clipboard state for shortcuts
 export let clipboard: SequenceItem | Line | null = null;
@@ -286,6 +293,44 @@ export function cut(
     type: "info",
     timeout: 1500,
   });
+}
+
+export function copyCoordinates() {
+  const sel = get(selectedPointId);
+  if (!sel) return;
+
+  const startPoint = get(startPointStore);
+  const lines = get(linesStore);
+  const settings = get(settingsStore);
+
+  let pt: Point | BasePoint | undefined;
+  if (sel === "point-0-0") {
+    pt = startPoint;
+  } else if (sel.startsWith("point-")) {
+    const parts = sel.split("-");
+    const lineNum = Number(parts[1]);
+    const pointIdx = Number(parts[2]);
+    const lineIndex = lineNum - 1;
+
+    if (lines[lineIndex]) {
+      if (pointIdx === 0) {
+        pt = lines[lineIndex].endPoint;
+      } else {
+        pt = lines[lineIndex].controlPoints[pointIdx - 1];
+      }
+    }
+  }
+
+  if (pt) {
+    const system = settings.coordinateSystem || "Pedro";
+    const userPt = toUser(pt, system);
+    const text = `${userPt.x.toFixed(2)}, ${userPt.y.toFixed(2)}`;
+    navigator.clipboard.writeText(text);
+    notification.set({
+      message: `Copied "${text}"`,
+      type: "success",
+    });
+  }
 }
 
 export function paste(recordChange: (action?: string) => void) {

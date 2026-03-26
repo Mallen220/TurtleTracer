@@ -103,6 +103,7 @@
     copy,
     cut,
     paste,
+    copyCoordinates,
   } from "./shortcuts/clipboard";
   import {
     removeSelected,
@@ -247,6 +248,8 @@
     movePointRight: () => movePoint(1, 0, recordChange),
     selectNextSequence: () => cycleSequenceSelection(1, controlTabRef),
     selectPrevSequence: () => cycleSequenceSelection(-1, controlTabRef),
+    selectNextPoint: () => cycleSelection(1, controlTabRef),
+    selectPrevPoint: () => cycleSelection(-1, controlTabRef),
     increaseValue: () => modifyValue(1, recordChange),
     decreaseValue: () => modifyValue(-1, recordChange),
     increaseValueSmall: () => modifyValue(0.1, recordChange),
@@ -775,6 +778,7 @@
     cancelDialog: () => {
       (actions as any).deselectAll();
     },
+    copyCoordinates: () => copyCoordinates(),
   };
 
   // --- Derived Commands for Search ---

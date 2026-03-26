@@ -456,6 +456,20 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "Navigation",
   },
   {
+    id: "select-next-point",
+    key: "alt+right",
+    description: "Select Next Point",
+    action: "selectNextPoint",
+    category: "Navigation",
+  },
+  {
+    id: "select-prev-point",
+    key: "alt+left",
+    description: "Select Previous Point",
+    action: "selectPrevPoint",
+    category: "Navigation",
+  },
+  {
     id: "select-paths-tab",
     key: "alt+1",
     description: "Switch to Paths tab",
@@ -946,6 +960,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     key: "",
     description: "Copy Path JSON to Clipboard",
     action: "copyPathJson",
+    category: "Export",
+  },
+  {
+    id: "copy-coordinates",
+    key: "alt+x",
+    description: "Copy Selected Coordinates",
+    action: "copyCoordinates",
     category: "Export",
   },
   {
