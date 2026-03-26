@@ -30,7 +30,6 @@
     notification,
   } from "../../stores";
   import { slide } from "svelte/transition";
-  import OptimizationDialog from "./dialogs/OptimizationDialog.svelte";
   import { tick } from "svelte";
   import { tooltipPortal } from "../actions/portal";
   import ObstaclesSection from "./sections/ObstaclesSection.svelte";
@@ -68,11 +67,8 @@
   export let lines: Line[];
   export let sequence: SequenceItem[];
   export let recordChange: () => void;
-  // Handler passed from parent to toggle optimization dialog
-  export let onToggleOptimization: () => void;
 
   // Props for inline optimization panel
-  export let optimizationOpen: boolean = false;
   export let handleOptimizationApply: (
     newLines: import("../../types/index").Line[],
   ) => void;
@@ -182,8 +178,6 @@
   let optFailed: boolean = false;
 
   export async function openAndStartOptimization() {
-    optimizationOpen = true;
-    await tick();
     if (optDialogRef && optDialogRef.startOptimization)
       optDialogRef.startOptimization();
   }
@@ -208,7 +202,7 @@
 
   export function getOptimizationStatus() {
     return {
-      isOpen: optimizationOpen,
+      isOpen: true,
       isRunning: optIsRunning,
       optimizedLines: optOptimizedLines,
       optimizationFailed: optFailed,
@@ -1265,28 +1259,6 @@
           </svg>
         {/if}
       </button>
-      <button
-        title={`Optimize Path${getShortcutFromSettings(settings, "optimize-start")}`}
-        aria-label="Optimize Path"
-        on:click={() => onToggleOptimization && onToggleOptimization()}
-        class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-purple-500 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:outline-none"
-      >
-        <span>Optimize</span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-6"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"
-          />
-        </svg>
-      </button>
     </div>
   </div>
 
@@ -1300,325 +1272,278 @@
       displaySequenceLength={(displaySequence || []).length}
     />
   {/if}
+</div>
 
-  {#if optimizationOpen}
-    <div
-      class="w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-neutral-100 dark:bg-neutral-800 p-4"
-      transition:slide
+<div
+  class="w-full overflow-auto border rounded-md border-neutral-200 dark:border-neutral-700 max-h-[70vh]"
+>
+  <table class="w-full text-left bg-white dark:bg-neutral-900 border-collapse">
+    <thead
+      class="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-semibold sticky top-0 z-10 shadow-sm"
     >
-      <OptimizationDialog
-        bind:this={optDialogRef}
-        bind:isRunning={optIsRunning}
-        bind:optimizedLines={optOptimizedLines}
-        bind:optimizationFailed={optFailed}
-        isOpen={true}
-        {startPoint}
-        {lines}
-        {settings}
-        {sequence}
-        {shapes}
-        onApply={handleOptimizationApply}
-        {onPreviewChange}
-        onClose={() => onToggleOptimization && onToggleOptimization()}
-      />
-    </div>
-  {/if}
-
-  <div
-    class="w-full overflow-auto border rounded-md border-neutral-200 dark:border-neutral-700 max-h-[70vh]"
-  >
-    <table
-      class="w-full text-left bg-white dark:bg-neutral-900 border-collapse"
-    >
-      <thead
-        class="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-semibold sticky top-0 z-10 shadow-sm"
-      >
-        <tr>
-          <th
-            class="w-8 px-2 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
-          ></th>
-          <th
-            class="px-3 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
-            >Name</th
-          >
-          <th
-            class="px-3 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
-            >X (in) / Dur (ms)</th
-          >
-          <th
-            class="px-3 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
-            >Y (in) / Deg (°)</th
-          >
-          <th
-            class="px-3 py-2 border-b dark:border-neutral-700 w-10 bg-neutral-100 dark:bg-neutral-800"
-          ></th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
-        <!-- Start Point -->
-        <tr
-          data-seq-index="-1"
-          class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors duration-150"
-          class:selected={$selectedPointId === "point-0-0" ||
-            $multiSelectedPointIds.includes("point-0-0")}
-          on:click={(e) => handleRowClick(e, "point-0-0", null)}
-          on:contextmenu={(e) => handleContextMenu(e, -1)}
-          class:border-b-2={dragOverIndex === -1 && dragPosition === "bottom"}
-          class:border-blue-500={dragOverIndex === -1}
-          class:dark:border-blue-400={dragOverIndex === -1}
+      <tr>
+        <th
+          class="w-8 px-2 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
+        ></th>
+        <th
+          class="px-3 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
+          >Name</th
         >
-          <td
-            class="w-8 px-2 py-2 text-center text-neutral-300 dark:text-neutral-600"
-          >
-            <!-- No drag handle for Start Point -->
-            ●
-          </td>
-          <td
-            class="px-3 py-2 font-medium text-neutral-800 dark:text-neutral-200"
-          >
-            Start Point
-          </td>
-          <td class="px-3 py-2">
-            <input
-              type="number"
-              class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              step={stepSize}
-              value={formatDisplayCoordinate(
-                toUser(startPoint, settings?.coordinateSystem || "Pedro").x,
-                settings || {},
-              )}
-              aria-label="Start Point X"
-              on:change={(e) => handleInput(e, startPoint, "x")}
-              use:focusOnRequest={{ id: "point-0-0", field: "x" }}
-              disabled={startPoint.locked}
-            />
-          </td>
-          <td class="px-3 py-2">
-            <input
-              type="number"
-              class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              step={stepSize}
-              value={formatDisplayCoordinate(
-                toUser(startPoint, settings?.coordinateSystem || "Pedro").y,
-                settings || {},
-              )}
-              aria-label="Start Point Y"
-              on:change={(e) => handleInput(e, startPoint, "y")}
-              use:focusOnRequest={{ id: "point-0-0", field: "y" }}
-              disabled={startPoint.locked}
-            />
-          </td>
-          <td class="px-3 py-2 flex items-center justify-between gap-1">
-            {#if startPoint.locked}
-              <span
-                title="Locked"
-                class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
+        <th
+          class="px-3 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
+          >X (in) / Dur (ms)</th
+        >
+        <th
+          class="px-3 py-2 border-b dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800"
+          >Y (in) / Deg (°)</th
+        >
+        <th
+          class="px-3 py-2 border-b dark:border-neutral-700 w-10 bg-neutral-100 dark:bg-neutral-800"
+        ></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
+      <!-- Start Point -->
+      <tr
+        data-seq-index="-1"
+        class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors duration-150"
+        class:selected={$selectedPointId === "point-0-0" ||
+          $multiSelectedPointIds.includes("point-0-0")}
+        on:click={(e) => handleRowClick(e, "point-0-0", null)}
+        on:contextmenu={(e) => handleContextMenu(e, -1)}
+        class:border-b-2={dragOverIndex === -1 && dragPosition === "bottom"}
+        class:border-blue-500={dragOverIndex === -1}
+        class:dark:border-blue-400={dragOverIndex === -1}
+      >
+        <td
+          class="w-8 px-2 py-2 text-center text-neutral-300 dark:text-neutral-600"
+        >
+          <!-- No drag handle for Start Point -->
+          ●
+        </td>
+        <td
+          class="px-3 py-2 font-medium text-neutral-800 dark:text-neutral-200"
+        >
+          Start Point
+        </td>
+        <td class="px-3 py-2">
+          <input
+            type="number"
+            class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            step={stepSize}
+            value={formatDisplayCoordinate(
+              toUser(startPoint, settings?.coordinateSystem || "Pedro").x,
+              settings || {},
+            )}
+            aria-label="Start Point X"
+            on:change={(e) => handleInput(e, startPoint, "x")}
+            use:focusOnRequest={{ id: "point-0-0", field: "x" }}
+            disabled={startPoint.locked}
+          />
+        </td>
+        <td class="px-3 py-2">
+          <input
+            type="number"
+            class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            step={stepSize}
+            value={formatDisplayCoordinate(
+              toUser(startPoint, settings?.coordinateSystem || "Pedro").y,
+              settings || {},
+            )}
+            aria-label="Start Point Y"
+            on:change={(e) => handleInput(e, startPoint, "y")}
+            use:focusOnRequest={{ id: "point-0-0", field: "y" }}
+            disabled={startPoint.locked}
+          />
+        </td>
+        <td class="px-3 py-2 flex items-center justify-between gap-1">
+          {#if startPoint.locked}
+            <span
+              title="Locked"
+              class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                class="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </span>
+          {:else}
+            <span class="h-6 w-6" aria-hidden="true"></span>
+          {/if}
+          <span class="h-6 w-6" aria-hidden="true"></span>
+        </td>
+      </tr>
+
+      <!-- Sequence Items (displaySequence ensures missing lines are shown) -->
+      {#each displaySequence as item, seqIdx (item.kind === "path" ? item.lineId : item.id)}
+        {@const seqIndex = findSequenceIndex(item)}
+        {@const actionDef = actionRegistry.get(item.kind)}
+        {#if item.kind === "path"}
+          {#each lines.filter((l) => l.id === item.lineId) as line (line.id)}
+            {@const lineIdx = lines.findIndex((l) => l === line)}
+            <!-- End Point -->
+            {@html debugPointRow(line, undefined)}
+            {@const endPointId = `point-${lineIdx + 1}-0`}
+            <tr
+              data-seq-index={seqIndex}
+              draggable={!line.locked}
+              on:dragstart={(e) => handleDragStart(e, seqIndex)}
+              on:dragend={handleDragEnd}
+              on:contextmenu={(e) => handleContextMenu(e, seqIndex)}
+              class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIds.length > 1 && $multiSelectedPointIds.includes(endPointId) ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
+              class:border-t-2={dragOverIndex === seqIndex &&
+                dragPosition === "top"}
+              class:border-b-2={dragOverIndex === seqIndex &&
+                dragPosition === "bottom"}
+              class:border-blue-500={dragOverIndex === seqIndex}
+              class:dark:border-blue-400={dragOverIndex === seqIndex}
+              class:opacity-50={draggingIndex === seqIndex}
+              on:click={(e) => handleRowClick(e, endPointId, line.id || null)}
+            >
+              <td
+                class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
+                  viewBox="0 0 20 20"
                   fill="currentColor"
-                  class="h-4 w-4"
-                  aria-hidden="true"
+                  class="w-4 h-4 mx-auto"
                 >
                   <path
                     fill-rule="evenodd"
-                    d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
+                    d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
                     clip-rule="evenodd"
                   />
                 </svg>
-              </span>
-            {:else}
-              <span class="h-6 w-6" aria-hidden="true"></span>
-            {/if}
-            <span class="h-6 w-6" aria-hidden="true"></span>
-          </td>
-        </tr>
-
-        <!-- Sequence Items (displaySequence ensures missing lines are shown) -->
-        {#each displaySequence as item, seqIdx (item.kind === "path" ? item.lineId : item.id)}
-          {@const seqIndex = findSequenceIndex(item)}
-          {@const actionDef = actionRegistry.get(item.kind)}
-          {#if item.kind === "path"}
-            {#each lines.filter((l) => l.id === item.lineId) as line (line.id)}
-              {@const lineIdx = lines.findIndex((l) => l === line)}
-              <!-- End Point -->
-              {@html debugPointRow(line, undefined)}
-              {@const endPointId = `point-${lineIdx + 1}-0`}
-              <tr
-                data-seq-index={seqIndex}
-                draggable={!line.locked}
-                on:dragstart={(e) => handleDragStart(e, seqIndex)}
-                on:dragend={handleDragEnd}
-                on:contextmenu={(e) => handleContextMenu(e, seqIndex)}
-                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIds.length > 1 && $multiSelectedPointIds.includes(endPointId) ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
-                class:border-t-2={dragOverIndex === seqIndex &&
-                  dragPosition === "top"}
-                class:border-b-2={dragOverIndex === seqIndex &&
-                  dragPosition === "bottom"}
-                class:border-blue-500={dragOverIndex === seqIndex}
-                class:dark:border-blue-400={dragOverIndex === seqIndex}
-                class:opacity-50={draggingIndex === seqIndex}
-                on:click={(e) => handleRowClick(e, endPointId, line.id || null)}
-              >
-                <td
-                  class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    class="w-4 h-4 mx-auto"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </td>
-                <td class="px-3 py-2">
-                  <div class="flex flex-row items-center gap-2">
-                    <ColorPicker
-                      bind:color={line.color}
+              </td>
+              <td class="px-3 py-2">
+                <div class="flex flex-row items-center gap-2">
+                  <ColorPicker
+                    bind:color={line.color}
+                    on:input={function (e) {
+                      const target = e.currentTarget || e.target;
+                      if (target instanceof HTMLInputElement && line.id) {
+                        updateLineColor(line.id, target.value);
+                      }
+                    }}
+                    disabled={line.locked}
+                    title="Path Color"
+                  />
+                  <div class="relative flex-1 max-w-[140px]">
+                    <input
+                      class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs pr-6"
+                      class:text-blue-500={hoveredLinkId === line.id}
+                      value={line.name}
                       on:input={function (e) {
                         const target = e.currentTarget || e.target;
-                        if (target instanceof HTMLInputElement && line.id) {
-                          updateLineColor(line.id, target.value);
+                        if (target instanceof HTMLInputElement) {
+                          updateLineName(item.lineId, target.value);
                         }
                       }}
+                      use:focusOnRequest={{
+                        id: line.id || "",
+                        field: "name",
+                      }}
                       disabled={line.locked}
-                      title="Path Color"
+                      placeholder="Path {lineIdx + 1}"
+                      aria-label="Path Name"
                     />
-                    <div class="relative flex-1 max-w-[140px]">
-                      <input
-                        class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs pr-6"
-                        class:text-blue-500={hoveredLinkId === line.id}
-                        value={line.name}
-                        on:input={function (e) {
-                          const target = e.currentTarget || e.target;
-                          if (target instanceof HTMLInputElement) {
-                            updateLineName(item.lineId, target.value);
-                          }
-                        }}
-                        use:focusOnRequest={{
-                          id: line.id || "",
-                          field: "name",
-                        }}
-                        disabled={line.locked}
-                        placeholder="Path {lineIdx + 1}"
-                        aria-label="Path Name"
-                      />
-                      {#if line.id && pathStatsMap.has(line.id)}
-                        <div
-                          role="presentation"
-                          class="absolute right-[22px] top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 cursor-help flex items-center justify-center"
-                          on:mouseenter={(e) =>
-                            handleStatsHoverEnter(e, line.id || null)}
-                          on:mouseleave={handleStatsHoverLeave}
+                    {#if line.id && pathStatsMap.has(line.id)}
+                      <div
+                        role="presentation"
+                        class="absolute right-[22px] top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 cursor-help flex items-center justify-center"
+                        on:mouseenter={(e) =>
+                          handleStatsHoverEnter(e, line.id || null)}
+                        on:mouseleave={handleStatsHoverLeave}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke-width="2"
+                          stroke="currentColor"
+                          class="w-3.5 h-3.5"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="2"
-                            stroke="currentColor"
-                            class="w-3.5 h-3.5"
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                          />
+                        </svg>
+                        {#if hoveredStatsLineId === line.id}
+                          <div
+                            use:tooltipPortal={hoveredStatsAnchor}
+                            class="w-48 p-2 bg-neutral-800 border border-neutral-700 rounded shadow-lg text-xs text-neutral-100 z-50 pointer-events-none"
                           >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
-                            />
-                          </svg>
-                          {#if hoveredStatsLineId === line.id}
-                            <div
-                              use:tooltipPortal={hoveredStatsAnchor}
-                              class="w-48 p-2 bg-neutral-800 border border-neutral-700 rounded shadow-lg text-xs text-neutral-100 z-50 pointer-events-none"
-                            >
-                              <strong>Segment Stats</strong><br />
-                              Start: {formatTime(
-                                pathStatsMap.get(line.id).startTime,
-                              )}<br />
-                              End: {formatTime(
-                                pathStatsMap.get(line.id).endTime,
-                              )}<br />
-                              Duration: {formatTime(
-                                pathStatsMap.get(line.id).duration,
-                              )}<br />
-                              {#if pathStatsMap.get(line.id).distance !== undefined}
-                                Distance: {formatDisplayDistance(
-                                  pathStatsMap.get(line.id).distance,
-                                  settings || {},
-                                  2,
-                                )}
-                              {/if}
-                            </div>
-                          {/if}
-                        </div>
-                      {/if}
-                      {#if line.id && isLineLinked(lines, line.id)}
-                        <div
-                          role="presentation"
-                          class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500 cursor-help flex items-center justify-center"
-                          on:mouseenter={(e) =>
-                            handleLinkHoverEnter(e, line.id || null)}
-                          on:mouseleave={handleLinkHoverLeave}
+                            <strong>Segment Stats</strong><br />
+                            Start: {formatTime(
+                              pathStatsMap.get(line.id).startTime,
+                            )}<br />
+                            End: {formatTime(
+                              pathStatsMap.get(line.id).endTime,
+                            )}<br />
+                            Duration: {formatTime(
+                              pathStatsMap.get(line.id).duration,
+                            )}<br />
+                            {#if pathStatsMap.get(line.id).distance !== undefined}
+                              Distance: {formatDisplayDistance(
+                                pathStatsMap.get(line.id).distance,
+                                settings || {},
+                                2,
+                              )}
+                            {/if}
+                          </div>
+                        {/if}
+                      </div>
+                    {/if}
+                    {#if line.id && isLineLinked(lines, line.id)}
+                      <div
+                        role="presentation"
+                        class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500 cursor-help flex items-center justify-center"
+                        on:mouseenter={(e) =>
+                          handleLinkHoverEnter(e, line.id || null)}
+                        on:mouseleave={handleLinkHoverLeave}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          class="w-3.5 h-3.5"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            class="w-3.5 h-3.5"
+                          <path
+                            fill-rule="evenodd"
+                            d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
+                            clip-rule="evenodd"
+                          />
+                        </svg>
+                        {#if hoveredLinkId === line.id}
+                          <div
+                            use:tooltipPortal={hoveredLinkAnchor}
+                            class="w-64 p-2 bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded shadow-lg text-xs text-blue-900 dark:text-blue-100 z-50 pointer-events-none"
                           >
-                            <path
-                              fill-rule="evenodd"
-                              d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
-                              clip-rule="evenodd"
-                            />
-                          </svg>
-                          {#if hoveredLinkId === line.id}
-                            <div
-                              use:tooltipPortal={hoveredLinkAnchor}
-                              class="w-64 p-2 bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded shadow-lg text-xs text-blue-900 dark:text-blue-100 z-50 pointer-events-none"
-                            >
-                              <strong>Linked Path</strong><br />
-                              Logic: Same Name = Shared Position.<br />
-                              This path shares its X/Y coordinates with other paths
-                              named '{line.name}'. Control points & events
-                              remain independent.
-                            </div>
-                          {/if}
-                        </div>
-                      {/if}
-                    </div>
+                            <strong>Linked Path</strong><br />
+                            Logic: Same Name = Shared Position.<br />
+                            This path shares its X/Y coordinates with other paths
+                            named '{line.name}'. Control points & events remain
+                            independent.
+                          </div>
+                        {/if}
+                      </div>
+                    {/if}
                   </div>
-                </td>
-                <td class="px-3 py-2">
-                  <div class="flex items-center gap-2">
-                    <input
-                      type="number"
-                      class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      step={stepSize}
-                      value={formatDisplayCoordinate(
-                        toUser(
-                          line.endPoint,
-                          settings?.coordinateSystem || "Pedro",
-                        ).x,
-                        settings || {},
-                      )}
-                      aria-label="{line.name || `Path ${lineIdx + 1}`} X"
-                      on:change={(e) =>
-                        handleInput(e, line.endPoint, "x", line.id)}
-                      use:focusOnRequest={{ id: endPointId, field: "x" }}
-                      disabled={line.locked}
-                    />
-                    <span class="text-xs text-neutral-500"
-                      >{line.waitBeforeName || line.waitBeforeMs || ""}</span
-                    >
-                  </div>
-                </td>
-                <td class="px-3 py-2">
+                </div>
+              </td>
+              <td class="px-3 py-2">
+                <div class="flex items-center gap-2">
                   <input
                     type="number"
                     class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -1627,383 +1552,398 @@
                       toUser(
                         line.endPoint,
                         settings?.coordinateSystem || "Pedro",
-                      ).y,
+                      ).x,
                       settings || {},
                     )}
-                    aria-label="{line.name || `Path ${lineIdx + 1}`} Y"
+                    aria-label="{line.name || `Path ${lineIdx + 1}`} X"
                     on:change={(e) =>
-                      handleInput(e, line.endPoint, "y", line.id)}
-                    use:focusOnRequest={{ id: endPointId, field: "y" }}
+                      handleInput(e, line.endPoint, "x", line.id)}
+                    use:focusOnRequest={{ id: endPointId, field: "x" }}
+                    disabled={line.locked}
+                  />
+                  <span class="text-xs text-neutral-500"
+                    >{line.waitBeforeName || line.waitBeforeMs || ""}</span
+                  >
+                </div>
+              </td>
+              <td class="px-3 py-2">
+                <input
+                  type="number"
+                  class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  step={stepSize}
+                  value={formatDisplayCoordinate(
+                    toUser(line.endPoint, settings?.coordinateSystem || "Pedro")
+                      .y,
+                    settings || {},
+                  )}
+                  aria-label="{line.name || `Path ${lineIdx + 1}`} Y"
+                  on:change={(e) => handleInput(e, line.endPoint, "y", line.id)}
+                  use:focusOnRequest={{ id: endPointId, field: "y" }}
+                  disabled={line.locked}
+                />
+              </td>
+              <td class="px-3 py-2 flex items-center justify-between gap-1">
+                <!-- Eye/Hide icon -->
+                <button
+                  title={line.hidden ? "Show Path" : "Hide Path"}
+                  aria-label={line.hidden ? "Show Path" : "Hide Path"}
+                  on:click|stopPropagation={() => {
+                    line.hidden = !line.hidden;
+                    lines = [...lines];
+                    if (recordChange) recordChange();
+                  }}
+                  class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                >
+                  {#if line.hidden}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      class="size-5 text-neutral-400"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
+                      />
+                    </svg>
+                  {:else}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      class="size-5 text-gray-400"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+                      />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                      />
+                    </svg>
+                  {/if}
+                </button>
+
+                <!-- Left slot: lock/unlock button always visible -->
+                <button
+                  title={line.locked ? "Unlock Path" : "Lock Path"}
+                  aria-label={line.locked ? "Unlock Path" : "Lock Path"}
+                  on:click|stopPropagation={() => {
+                    line.locked = !line.locked;
+                    lines = [...lines];
+                    if (recordChange) recordChange();
+                  }}
+                  class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                  aria-pressed={line.locked}
+                >
+                  {#if line.locked}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      class="size-5 stroke-yellow-500"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                      />
+                    </svg>
+                  {:else}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="2"
+                      stroke="currentColor"
+                      class="size-5 stroke-gray-400"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+                      />
+                    </svg>
+                  {/if}
+                </button>
+
+                <!-- Right slot: delete or placeholder -->
+                {#if lines.length > 1 && !line.locked}
+                  <button
+                    on:click|stopPropagation={() => {
+                      if (line.id) deleteLine(line.id);
+                    }}
+                    title="Delete path"
+                    aria-label="Delete path"
+                    class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  >
+                    <TrashIcon className="size-4" strokeWidth={2} />
+                  </button>
+                {:else}
+                  <span class="h-6 w-6" aria-hidden="true"></span>
+                {/if}
+              </td>
+            </tr>
+
+            <!-- Control Points -->
+            {#each line.controlPoints as cp, j}
+              {@html debugPointRow(line, cp, j)}
+              {@const cpIndex = [
+                line.endPoint,
+                ...line.controlPoints,
+              ].findIndex((p) => p === cp)}
+              {@const pointId = `point-${lineIdx + 1}-${cpIndex}`}
+              <tr
+                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIds.length > 1 && $multiSelectedPointIds.includes(pointId) ? "bg-green-100 dark:bg-green-800/40" : ""}`}
+                on:click={(e) => handleRowClick(e, pointId, line.id || null)}
+              >
+                <td class="w-8 px-2 py-2">
+                  <!-- No drag handle for control points, but they are drop targets for the parent seqIdx -->
+                </td>
+                <td
+                  class="px-3 py-2 pl-8 text-neutral-500 dark:text-neutral-400 text-xs"
+                >
+                  ↳ Control {j + 1}
+                </td>
+                <td class="px-3 py-2">
+                  <input
+                    type="number"
+                    class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
+                    step={stepSize}
+                    value={formatDisplayCoordinate(
+                      toUser(cp, settings?.coordinateSystem || "Pedro").x,
+                      settings || {},
+                    )}
+                    aria-label="Control Point {j + 1} X for {line.name ||
+                      `Path ${lineIdx + 1}`}"
+                    on:change={(e) => handleInput(e, cp, "x")}
+                    use:focusOnRequest={{ id: pointId, field: "x" }}
+                    disabled={line.locked}
+                  />
+                </td>
+                <td class="px-3 py-2">
+                  <input
+                    type="number"
+                    class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
+                    step={stepSize}
+                    value={formatDisplayCoordinate(
+                      toUser(cp, settings?.coordinateSystem || "Pedro").y,
+                      settings || {},
+                    )}
+                    aria-label="Control Point {j + 1} Y for {line.name ||
+                      `Path ${lineIdx + 1}`}"
+                    on:change={(e) => handleInput(e, cp, "y")}
+                    use:focusOnRequest={{ id: pointId, field: "y" }}
                     disabled={line.locked}
                   />
                 </td>
                 <td class="px-3 py-2 flex items-center justify-between gap-1">
-                  <!-- Eye/Hide icon -->
-                  <button
-                    title={line.hidden ? "Show Path" : "Hide Path"}
-                    aria-label={line.hidden ? "Show Path" : "Hide Path"}
-                    on:click|stopPropagation={() => {
-                      line.hidden = !line.hidden;
-                      lines = [...lines];
-                      if (recordChange) recordChange();
-                    }}
-                    class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-                  >
-                    {#if line.hidden}
+                  {#if line.locked}
+                    <span
+                      title="Locked"
+                      class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
+                    >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
                         viewBox="0 0 24 24"
-                        stroke-width="2"
-                        stroke="currentColor"
-                        class="size-5 text-neutral-400"
+                        fill="currentColor"
+                        class="h-4 w-4"
+                        aria-hidden="true"
                       >
                         <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
+                          fill-rule="evenodd"
+                          d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
+                          clip-rule="evenodd"
                         />
                       </svg>
-                    {:else}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="2"
-                        stroke="currentColor"
-                        class="size-5 text-gray-400"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                        />
-                      </svg>
-                    {/if}
-                  </button>
-
-                  <!-- Left slot: lock/unlock button always visible -->
-                  <button
-                    title={line.locked ? "Unlock Path" : "Lock Path"}
-                    aria-label={line.locked ? "Unlock Path" : "Lock Path"}
-                    on:click|stopPropagation={() => {
-                      line.locked = !line.locked;
-                      lines = [...lines];
-                      if (recordChange) recordChange();
-                    }}
-                    class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-                    aria-pressed={line.locked}
-                  >
-                    {#if line.locked}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="2"
-                        stroke="currentColor"
-                        class="size-5 stroke-yellow-500"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-                        />
-                      </svg>
-                    {:else}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="2"
-                        stroke="currentColor"
-                        class="size-5 stroke-gray-400"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-                        />
-                      </svg>
-                    {/if}
-                  </button>
-
-                  <!-- Right slot: delete or placeholder -->
-                  {#if lines.length > 1 && !line.locked}
+                    </span>
+                    <span class="h-6 w-6" aria-hidden="true"></span>
+                  {:else}
+                    <span class="h-6 w-6" aria-hidden="true"></span>
                     <button
-                      on:click|stopPropagation={() => {
-                        if (line.id) deleteLine(line.id);
-                      }}
-                      title="Delete path"
-                      aria-label="Delete path"
+                      on:click|stopPropagation={() =>
+                        deleteControlPoint(line, j)}
+                      title="Delete control point"
+                      aria-label="Delete control point"
                       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                     >
                       <TrashIcon className="size-4" strokeWidth={2} />
                     </button>
-                  {:else}
-                    <span class="h-6 w-6" aria-hidden="true"></span>
                   {/if}
                 </td>
               </tr>
-
-              <!-- Control Points -->
-              {#each line.controlPoints as cp, j}
-                {@html debugPointRow(line, cp, j)}
-                {@const cpIndex = [
-                  line.endPoint,
-                  ...line.controlPoints,
-                ].findIndex((p) => p === cp)}
-                {@const pointId = `point-${lineIdx + 1}-${cpIndex}`}
-                <tr
-                  class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIds.length > 1 && $multiSelectedPointIds.includes(pointId) ? "bg-green-100 dark:bg-green-800/40" : ""}`}
-                  on:click={(e) => handleRowClick(e, pointId, line.id || null)}
-                >
-                  <td class="w-8 px-2 py-2">
-                    <!-- No drag handle for control points, but they are drop targets for the parent seqIdx -->
-                  </td>
-                  <td
-                    class="px-3 py-2 pl-8 text-neutral-500 dark:text-neutral-400 text-xs"
-                  >
-                    ↳ Control {j + 1}
-                  </td>
-                  <td class="px-3 py-2">
-                    <input
-                      type="number"
-                      class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
-                      step={stepSize}
-                      value={formatDisplayCoordinate(
-                        toUser(cp, settings?.coordinateSystem || "Pedro").x,
-                        settings || {},
-                      )}
-                      aria-label="Control Point {j + 1} X for {line.name ||
-                        `Path ${lineIdx + 1}`}"
-                      on:change={(e) => handleInput(e, cp, "x")}
-                      use:focusOnRequest={{ id: pointId, field: "x" }}
-                      disabled={line.locked}
-                    />
-                  </td>
-                  <td class="px-3 py-2">
-                    <input
-                      type="number"
-                      class="w-20 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
-                      step={stepSize}
-                      value={formatDisplayCoordinate(
-                        toUser(cp, settings?.coordinateSystem || "Pedro").y,
-                        settings || {},
-                      )}
-                      aria-label="Control Point {j + 1} Y for {line.name ||
-                        `Path ${lineIdx + 1}`}"
-                      on:change={(e) => handleInput(e, cp, "y")}
-                      use:focusOnRequest={{ id: pointId, field: "y" }}
-                      disabled={line.locked}
-                    />
-                  </td>
-                  <td class="px-3 py-2 flex items-center justify-between gap-1">
-                    {#if line.locked}
-                      <span
-                        title="Locked"
-                        class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          class="h-4 w-4"
-                          aria-hidden="true"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
-                            clip-rule="evenodd"
-                          />
-                        </svg>
-                      </span>
-                      <span class="h-6 w-6" aria-hidden="true"></span>
-                    {:else}
-                      <span class="h-6 w-6" aria-hidden="true"></span>
-                      <button
-                        on:click|stopPropagation={() =>
-                          deleteControlPoint(line, j)}
-                        title="Delete control point"
-                        aria-label="Delete control point"
-                        class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                      >
-                        <TrashIcon className="size-4" strokeWidth={2} />
-                      </button>
-                    {/if}
-                  </td>
-                </tr>
-              {/each}
             {/each}
-          {:else if actionDef}
-            <svelte:component
-              this={actionDef.component}
-              {item}
-              index={seqIndex}
-              isLocked={getIsLocked(item)}
-              {dragOverIndex}
-              {dragPosition}
-              {draggingIndex}
-              onUpdate={handleUpdateFromComponent.bind(null, seqIndex)}
-              onLock={() => toggleWaitLock(seqIndex)}
-              onDelete={() => deleteSequenceItem(seqIndex)}
-              onUnlink={() => {
-                if (item.kind === "macro") {
-                  unlinkMacro(item, seqIndex);
-                }
-              }}
-              onDragStart={onDragStartFor.bind(null, seqIndex)}
-              onDragEnd={handleDragEnd}
-              onContextMenu={handleContextMenuFor.bind(null, seqIndex)}
-              {sequence}
-            />
-          {/if}
-        {/each}
-
-        <!-- Empty State -->
-        {#if displaySequence.length === 0}
-          <tr>
-            <td
-              colspan="5"
-              class="p-8 text-center text-neutral-500 dark:text-neutral-400 border-t border-dashed border-neutral-200 dark:border-neutral-700"
-            >
-              <div class="flex flex-col items-center gap-4">
-                <div
-                  class="p-3 bg-neutral-100 dark:bg-neutral-800 rounded-full"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                    class="size-6 text-neutral-400"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 4.5v15m7.5-7.5h-15"
-                    />
-                  </svg>
-                </div>
-                <div class="text-sm">
-                  <p class="font-medium text-neutral-800 dark:text-neutral-200">
-                    No path segments yet
-                  </p>
-                  <p class="text-neutral-500 mt-1">
-                    Start your path by adding a segment or wait command.
-                  </p>
-                </div>
-              </div>
-            </td>
-          </tr>
-        {/if}
-      </tbody>
-    </table>
-  </div>
-  <div class="flex items-center justify-between mt-2 px-1">
-    <div
-      class="text-xs text-neutral-500 dark:text-neutral-500 w-2/3 break-words"
-    >
-      <div>
-        * Coordinates in inches. 0,0 is bottom-left. Drag handle to reorder.
-      </div>
-      <div>
-        * Right-click a row to add or reorder points. Use keyboard shortcuts for
-        the best experience (see Keyboard Shortcuts).
-      </div>
-    </div>
-
-    <!-- Persistent Add Buttons -->
-    <div class="flex gap-2 flex-shrink-0">
-      <button
-        on:click={() => insertPath(sequence.length)}
-        class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
-        aria-label="Add new path segment"
-        title={`Add new path segment${getShortcutFromSettings(settings, "add-path")}`}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-3"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 4.5v15m7.5-7.5h-15"
+          {/each}
+        {:else if actionDef}
+          <svelte:component
+            this={actionDef.component}
+            {item}
+            index={seqIndex}
+            isLocked={getIsLocked(item)}
+            {dragOverIndex}
+            {dragPosition}
+            {draggingIndex}
+            onUpdate={handleUpdateFromComponent.bind(null, seqIndex)}
+            onLock={() => toggleWaitLock(seqIndex)}
+            onDelete={() => deleteSequenceItem(seqIndex)}
+            onUnlink={() => {
+              if (item.kind === "macro") {
+                unlinkMacro(item, seqIndex);
+              }
+            }}
+            onDragStart={onDragStartFor.bind(null, seqIndex)}
+            onDragEnd={handleDragEnd}
+            onContextMenu={handleContextMenuFor.bind(null, seqIndex)}
+            {sequence}
           />
-        </svg>
-        Add Path
-      </button>
-
-      {#each Object.values($actionRegistry) as def (def.kind)}
-        {#if def.createDefault && !def.isPath}
-          <button
-            on:click={() => handleAddAction(def)}
-            class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
-            aria-label={`Add ${def.label} command`}
-            title={`Add ${def.label} command${getShortcutFromSettings(settings, def.kind === "wait" ? "add-wait" : def.kind === "rotate" ? "add-rotate" : "")}`}
-          >
-            <!-- Render Icon based on kind for now as SVG string is not easily injectable here without raw HTML -->
-            {#if def.kind === "wait"}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                class="size-3"
-              >
-                <circle cx="12" cy="12" r="9" />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 7v5l3 2"
-                />
-              </svg>
-            {:else if def.kind === "rotate"}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                class="size-3"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                />
-              </svg>
-            {:else}
-              <!-- Fallback icon -->
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-3"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 4.5v15m7.5-7.5h-15"
-                />
-              </svg>
-            {/if}
-            Add {def.label}
-          </button>
         {/if}
       {/each}
+
+      <!-- Empty State -->
+      {#if displaySequence.length === 0}
+        <tr>
+          <td
+            colspan="5"
+            class="p-8 text-center text-neutral-500 dark:text-neutral-400 border-t border-dashed border-neutral-200 dark:border-neutral-700"
+          >
+            <div class="flex flex-col items-center gap-4">
+              <div class="p-3 bg-neutral-100 dark:bg-neutral-800 rounded-full">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="size-6 text-neutral-400"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 4.5v15m7.5-7.5h-15"
+                  />
+                </svg>
+              </div>
+              <div class="text-sm">
+                <p class="font-medium text-neutral-800 dark:text-neutral-200">
+                  No path segments yet
+                </p>
+                <p class="text-neutral-500 mt-1">
+                  Start your path by adding a segment or wait command.
+                </p>
+              </div>
+            </div>
+          </td>
+        </tr>
+      {/if}
+    </tbody>
+  </table>
+</div>
+<div class="flex items-center justify-between mt-2 px-1">
+  <div class="text-xs text-neutral-500 dark:text-neutral-500 w-2/3 break-words">
+    <div>
+      * Coordinates in inches. 0,0 is bottom-left. Drag handle to reorder.
     </div>
+    <div>
+      * Right-click a row to add or reorder points. Use keyboard shortcuts for
+      the best experience (see Keyboard Shortcuts).
+    </div>
+  </div>
+
+  <!-- Persistent Add Buttons -->
+  <div class="flex gap-2 flex-shrink-0">
+    <button
+      on:click={() => insertPath(sequence.length)}
+      class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
+      aria-label="Add new path segment"
+      title={`Add new path segment${getShortcutFromSettings(settings, "add-path")}`}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+        stroke="currentColor"
+        class="size-3"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M12 4.5v15m7.5-7.5h-15"
+        />
+      </svg>
+      Add Path
+    </button>
+
+    {#each Object.values($actionRegistry) as def (def.kind)}
+      {#if def.createDefault && !def.isPath}
+        <button
+          on:click={() => handleAddAction(def)}
+          class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
+          aria-label={`Add ${def.label} command`}
+          title={`Add ${def.label} command${getShortcutFromSettings(settings, def.kind === "wait" ? "add-wait" : def.kind === "rotate" ? "add-rotate" : "")}`}
+        >
+          <!-- Render Icon based on kind for now as SVG string is not easily injectable here without raw HTML -->
+          {#if def.kind === "wait"}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="size-3"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 7v5l3 2"
+              />
+            </svg>
+          {:else if def.kind === "rotate"}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="size-3"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+              />
+            </svg>
+          {:else}
+            <!-- Fallback icon -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="size-3"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 4.5v15m7.5-7.5h-15"
+              />
+            </svg>
+          {/if}
+          Add {def.label}
+        </button>
+      {/if}
+    {/each}
   </div>
 </div>
