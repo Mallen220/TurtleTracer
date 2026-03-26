@@ -71,9 +71,25 @@ describe("fileExtensions utilities", () => {
       );
     });
 
+    it("should preserve path when ending in case-insensitive .turt extension", () => {
+      expect(ensureDefaultProjectExtension("project.TURT")).toBe(
+        "project.TURT",
+      );
+      expect(ensureDefaultProjectExtension("project.Turt")).toBe(
+        "project.Turt",
+      );
+    });
+
     it("should replace .pp with .turt", () => {
       expect(ensureDefaultProjectExtension("legacy.pp")).toBe("legacy.turt");
       expect(ensureDefaultProjectExtension("path/to/legacy.pp")).toBe(
+        "path/to/legacy.turt",
+      );
+    });
+
+    it("should replace case-insensitive .pp with .turt", () => {
+      expect(ensureDefaultProjectExtension("legacy.PP")).toBe("legacy.turt");
+      expect(ensureDefaultProjectExtension("path/to/legacy.Pp")).toBe(
         "path/to/legacy.turt",
       );
     });
@@ -85,6 +101,19 @@ describe("fileExtensions utilities", () => {
       );
       expect(ensureDefaultProjectExtension("path/to/project")).toBe(
         "path/to/project.turt",
+      );
+    });
+
+    it("should handle empty string", () => {
+      expect(ensureDefaultProjectExtension("")).toBe(".turt");
+    });
+
+    it("should handle paths with multiple dots", () => {
+      expect(ensureDefaultProjectExtension("my.project.name")).toBe(
+        "my.project.name.turt",
+      );
+      expect(ensureDefaultProjectExtension("my.project.name.pp")).toBe(
+        "my.project.name.turt",
       );
     });
   });
