@@ -34,4 +34,6 @@ test-results
 /build
 playwright-report/index.html
 .jules
+*.pycoverage/
 *.py
+coverage/
