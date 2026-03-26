@@ -265,4 +265,3 @@ vite.config.d.ts
 src/lib/components/dialogs/KeyboardShortcutsDialog.svelte
 src/utils/settingsPersistence.ts
 src/lib/components/RobotPositionDisplay.svelte
-benchmark.js
