@@ -259,7 +259,7 @@
     const curPath = get(currentFilePath);
 
     // Load the macro data into the store so it can be expanded
-    await loadMacro(filePath);
+    await loadMacro(filePath, true); // Force true to get freshest dependencies from disk
 
     // Check if adding this macro would create a cycle
     if (curPath) {
