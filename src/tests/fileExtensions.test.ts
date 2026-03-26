@@ -67,7 +67,9 @@ describe("fileExtensions utilities", () => {
     });
 
     it("should not modify strings where the extension is not at the end", () => {
-      expect(stripProjectExtension("project.turt.txt")).toBe("project.turt.txt");
+      expect(stripProjectExtension("project.turt.txt")).toBe(
+        "project.turt.txt",
+      );
       expect(stripProjectExtension("legacy.pp.bak")).toBe("legacy.pp.bak");
     });
 

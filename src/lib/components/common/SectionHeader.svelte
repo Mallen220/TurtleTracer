@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { ChevronRightIcon, PlusIcon } from "../icons/index";
+
   export let title: string;
   export let collapsed: boolean = false;
   export let count: number | undefined = undefined;
@@ -19,20 +21,11 @@
     title="{collapsed ? 'Show' : 'Hide'} {title}"
     aria-expanded={!collapsed}
   >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke-width={2}
-      stroke="currentColor"
-      class="size-4 transition-transform {collapsed ? 'rotate-0' : 'rotate-90'}"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="m8.25 4.5 7.5 7.5-7.5 7.5"
-      />
-    </svg>
+    <ChevronRightIcon
+      className="size-4 transition-transform {collapsed
+        ? 'rotate-0'
+        : 'rotate-90'}"
+    />
     {title}
     {#if count !== undefined}
       <span class="text-xs font-normal text-neutral-500 dark:text-neutral-400"
@@ -48,20 +41,7 @@
       title="Add Item"
       aria-label="Add Item to {title}"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width={2}
-        stroke="currentColor"
-        class="size-4"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M12 4.5v15m7.5-7.5h-15"
-        />
-      </svg>
+      <PlusIcon className="size-4" />
       Add
     </button>
   {/if}
