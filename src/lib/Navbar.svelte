@@ -16,6 +16,15 @@
     formatTime,
     getShortcutFromSettings,
   } from "../utils";
+  import {
+    ChevronUpIcon,
+    PenIcon,
+    PlusIcon,
+    ValidIcon,
+    SidebarLeftIcon,
+    SidebarBottomIcon,
+    SidebarHiddenIcon,
+  } from "./components/icons";
   import { formatDisplayDistance } from "../utils/coordinates";
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
@@ -164,22 +173,11 @@
         aria-label="Save options"
         on:click={toggleSaveDropdown}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-3 transition-transform {saveDropdownOpen
+        <ChevronUpIcon
+          className="size-3 transition-transform {saveDropdownOpen
             ? 'rotate-180'
             : ''}"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m19.5 8.25-7.5 7.5-7.5-7.5"
-          />
-        </svg>
+        />
       </button>
 
       {#if saveDropdownOpen}
@@ -243,52 +241,13 @@
                   : "Git: Untracked (New File)"}
             >
               {#if $gitStatusStore[$currentFilePath] === "modified"}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="2"
-                  stroke="currentColor"
-                  class="size-3 flex-shrink-0"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
-                  />
-                </svg>
+                <PenIcon className="size-3 flex-shrink-0" />
                 <span>Modified</span>
               {:else if $gitStatusStore[$currentFilePath] === "staged"}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="2.5"
-                  stroke="currentColor"
-                  class="size-3 flex-shrink-0"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="m4.5 12.75 6 6 9-13.5"
-                  />
-                </svg>
+                <ValidIcon className="size-3 flex-shrink-0" />
                 <span>Staged</span>
               {:else}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="2"
-                  stroke="currentColor"
-                  class="size-3 flex-shrink-0"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
-                  />
-                </svg>
+                <PlusIcon className="size-3 flex-shrink-0" />
                 <span>Untracked</span>
               {/if}
             </div>
@@ -389,22 +348,11 @@
         class="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md shadow-sm transition-colors text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
       >
         <span>Export</span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-3 transition-transform {exportMenuOpen
+        <ChevronUpIcon
+          className="size-3 transition-transform {exportMenuOpen
             ? 'rotate-180'
             : ''}"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m19.5 8.25-7.5 7.5-7.5-7.5"
-          />
-        </svg>
+        />
       </button>
       {#if exportMenuOpen}
         <div
@@ -507,42 +455,13 @@
     >
       {#if showSidebar && isLargeScreen}
         <!-- Sidebar visible: show icon with left pane -->
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          class="size-5"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
-          <rect x="12" y="4" width="9" height="16"></rect>
-        </svg>
+        <SidebarLeftIcon className="size-5" />
       {:else if showSidebar && !isLargeScreen}
         <!-- Shown on vertical: icon with bottom pane -->
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          class="size-5"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
-          <rect x="3" y="12" width="18" height="8"></rect>
-        </svg>
+        <SidebarBottomIcon className="size-5" />
       {:else}
         <!-- Hidden: Empty Box -->
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          class="size-5"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
-        </svg>
+        <SidebarHiddenIcon className="size-5" />
       {/if}
     </button>
   </div>

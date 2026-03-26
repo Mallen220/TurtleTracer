@@ -10,7 +10,12 @@
     Shape,
   } from "../../../types/index";
   import SectionHeader from "../common/SectionHeader.svelte";
-  import { LockIcon, SpinnerIcon } from "../icons/index";
+  import {
+    LockIcon,
+    SpinnerIcon,
+    ChevronRightSolidIcon,
+    PlaySolidIcon,
+  } from "../icons/index";
   import {
     PathOptimizer,
     type OptimizationResult,
@@ -202,7 +207,6 @@
   }
 </script>
 
-```svelte
 <div
   class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden mb-4"
 >
@@ -216,16 +220,9 @@
         <summary
           class="cursor-pointer font-medium hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors list-none appearance-none [&::-webkit-details-marker]:hidden flex items-center gap-1"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3 transition-transform group-open:rotate-90 text-neutral-500 dark:text-neutral-400"
-          >
-            <path
-              d="M6.3 2.841A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.269l9.344-5.89a1.5 1.5 0 0 0 0-2.538L6.3 2.84z"
-            />
-          </svg>
+          <ChevronRightSolidIcon
+            className="size-3 transition-transform group-open:rotate-90 text-neutral-500 dark:text-neutral-400"
+          />
           About Path Optimization
         </summary>
         <div class="mt-2 text-xs leading-relaxed">
@@ -246,16 +243,9 @@
             class="flex justify-between items-center cursor-pointer list-none appearance-none [&::-webkit-details-marker]:hidden"
           >
             <div class="flex items-center gap-1">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                class="size-3 transition-transform group-open:rotate-90 text-neutral-500 dark:text-neutral-400"
-              >
-                <path
-                  d="M6.3 2.841A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.269l9.344-5.89a1.5 1.5 0 0 0 0-2.538L6.3 2.84z"
-                />
-              </svg>
+              <ChevronRightSolidIcon
+                className="size-3 transition-transform group-open:rotate-90 text-neutral-500 dark:text-neutral-400"
+              />
               <span
                 class="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
                 >Paths to Optimize</span
@@ -353,7 +343,9 @@
             disabled
             class="flex-1 px-4 py-2 bg-neutral-400 text-white rounded-md text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2"
           >
-            <SpinnerIcon className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
+            <SpinnerIcon
+              className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+            />
             Optimizing...
           </button>
           <button
@@ -405,22 +397,10 @@
           on:click={startOptimization}
           class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-            class="size-4"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <PlaySolidIcon className="size-4" />
           Start Optimization
         </button>
       {/if}
     </div>
   {/if}
 </div>
-```
