@@ -7,6 +7,14 @@
   } from "../../../stores";
   import { fade, fly } from "svelte/transition";
   import { onMount, onDestroy } from "svelte";
+  import {
+    CloseIcon,
+    FeedbackIcon,
+    InfoIcon,
+    ErrorIcon,
+    SuccessIcon,
+    SpinnerIcon,
+  } from "../icons";
   import { settingsStore } from "../../projectStore";
   import { saveSettings } from "../../../utils/settingsPersistence";
   import pkg from "../../../../package.json";
@@ -202,20 +210,7 @@
         <h2
           class="text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="w-5 h-5 text-purple-600 dark:text-purple-400"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z"
-            />
-          </svg>
+          <FeedbackIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
           Report Issue / Feedback / Features
         </h2>
         <button
@@ -224,18 +219,7 @@
           class="text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors disabled:opacity-50"
           title="Close dialog"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <CloseIcon className="h-5 w-5" />
         </button>
       </div>
 
@@ -259,18 +243,7 @@
           <div
             class="mt-2 flex items-start gap-1.5 text-xs text-neutral-500 dark:text-neutral-400"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              class="w-4 h-4 flex-shrink-0"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
-                clip-rule="evenodd"
-              />
-            </svg>
+            <InfoIcon className="w-4 h-4 flex-shrink-0" />
             <p>
               All data is private and no personal information is sent unless you
               explicitly provide it.
@@ -299,36 +272,14 @@
           <div
             class="p-3 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 text-sm rounded-lg flex items-start gap-2 border border-red-200 dark:border-red-900/50"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              class="w-5 h-5 flex-shrink-0 mt-0.5"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0ZM8.94 6.94a.75.75 0 1 1-1.061-1.061 3 3 0 1 1 2.871 5.026v.361a.75.75 0 0 1-1.5 0v-.5c0-.83.67-1.5 1.5-1.5a1.5 1.5 0 1 0-1.415-2.262v-.001Zm-.75 6.559a1 1 0 1 0 2 0 1 1 0 0 0-2 0Z"
-                clip-rule="evenodd"
-              />
-            </svg>
+            <ErrorIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p>{errorMessage}</p>
           </div>
         {:else if status === "success"}
           <div
             class="p-3 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 text-sm rounded-lg flex items-center gap-2 border border-green-200 dark:border-green-900/50"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              class="w-5 h-5 flex-shrink-0"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
-                clip-rule="evenodd"
-              />
-            </svg>
+            <SuccessIcon className="w-5 h-5 flex-shrink-0" />
             <p>Feedback sent successfully! Thank you.</p>
           </div>
         {/if}
@@ -367,26 +318,7 @@
             {#if cooldownSeconds > 0}
               Wait {Math.floor(cooldownSeconds / 60) + 1}m
             {:else if isSubmitting}
-              <svg
-                class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
+              <SpinnerIcon className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
               Submitting...
             {:else}
               Submit Feedback
