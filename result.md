@@ -1,3 +1,4 @@
+```svelte
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
@@ -201,11 +202,10 @@
   }
 </script>
 
-```svelte
 <div
   class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden mb-4"
 >
-  <SectionHeader title="Path Optimization" bind:collapsed />
+  <SectionHeader title="Path Optimization" bind:collapsed icon="sparkles" />
 
   {#if !collapsed}
     <div
