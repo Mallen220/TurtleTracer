@@ -96,8 +96,9 @@ function calculateMacroCenter(data: TurtleData): { x: number; y: number } {
   let maxX = data.startPoint.x;
   let maxY = data.startPoint.y;
 
-  data.lines.forEach((l) => {
-    [l.endPoint, ...l.controlPoints].forEach((p) => {
+  data.lines.filter(Boolean).forEach((l) => {
+    if (!l.endPoint) return;
+    [l.endPoint, ...l.controlPoints].filter(Boolean).forEach((p) => {
       minX = Math.min(minX, p.x);
       minY = Math.min(minY, p.y);
       maxX = Math.max(maxX, p.x);
@@ -298,7 +299,7 @@ export function expandMacro(
   }
 
   // 2. Process Macro Lines/Sequence
-  const macroLines = transformedData.lines.map((l) => ({ ...l }));
+  const macroLines = transformedData.lines.filter(Boolean).map((l) => ({ ...l }));
 
   // Create a mapping from old ID to new ID to preserve sequence references
   const lineIdMap = new Map<string, string>();

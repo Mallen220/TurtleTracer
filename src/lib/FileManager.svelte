@@ -640,9 +640,13 @@
         // Use the new centralized macro reference updater to deeply fix all references
         const { mainSequenceChanged } = await updateAllMacroReferences(sourceFile.path, newPath);
 
-        // Set unsaved if the top level sequence was modified
+        // Persist the updated sequence to disk so the open file doesn't have stale references
         if (mainSequenceChanged) {
           isUnsaved.set(true);
+          const openPath = get(currentFilePath);
+          if (openPath) {
+            await saveProject(undefined, undefined, undefined, undefined, undefined, false, openPath, { quiet: true });
+          }
         }
 
         showToast(
@@ -704,8 +708,13 @@
         // Deeply update any macro references
         const { mainSequenceChanged } = await updateAllMacroReferences(file.path, newFilePath);
 
+        // Persist the updated sequence to disk so the open file doesn't have stale references
         if (mainSequenceChanged) {
           isUnsaved.set(true);
+          const openPath = get(currentFilePath);
+          if (openPath) {
+            await saveProject(undefined, undefined, undefined, undefined, undefined, false, openPath, { quiet: true });
+          }
         }
 
         showToast(`Renamed to: ${fileName}`, "success");

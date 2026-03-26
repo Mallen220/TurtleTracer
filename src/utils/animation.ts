@@ -65,6 +65,27 @@ export function calculateRobotState(
     }
   }
 
+  // If the binary search landed on a macro wrapper event (type "macro"), it lacks the
+  // line/prevPoint needed to render position. Scan linearly for the actual travel/wait
+  // event covering this timestamp — those are pushed before the wrapper in the timeline.
+  if (activeEvent.type !== "travel" && activeEvent.type !== "wait") {
+    for (let i = 0; i < timeline.length; i++) {
+      const e = timeline[i];
+      if (
+        (e.type === "travel" || e.type === "wait") &&
+        currentSeconds >= e.startTime &&
+        currentSeconds <= e.endTime
+      ) {
+        activeEvent = e;
+        break;
+      }
+    }
+    // If still no travel/wait event found, return startPoint as a safe fallback
+    if (activeEvent.type !== "travel" && activeEvent.type !== "wait") {
+      return { x: xScale(startPoint.x), y: yScale(startPoint.y), heading: 0 };
+    }
+  }
+
   if (activeEvent.type === "wait") {
     // --- STATIONARY ROTATION ---
     const point = activeEvent.atPoint!;
