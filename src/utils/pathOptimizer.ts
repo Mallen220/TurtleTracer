@@ -194,6 +194,10 @@ export class PathOptimizer {
     timeline: TimelineEvent[] | null = null,
     lines: Line[] | null = null,
   ): CollisionMarker[] {
+    if (this.settings.validationDisabled) {
+      return [];
+    }
+
     if (
       this.activeShapes.length === 0 &&
       this.settings.validateFieldBoundaries === false

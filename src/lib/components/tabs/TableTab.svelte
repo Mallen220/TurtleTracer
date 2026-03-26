@@ -9,7 +9,6 @@
   } from "../../../types/index";
   // Fixed incorrect relative import: WaypointTable is one level up from the tabs folder
   import WaypointTable from "../WaypointTable.svelte";
-  import { validatePath } from "../../../utils/validation";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -25,10 +24,6 @@
   let collapsedObstacles = shapes.map(() => true);
   $: if (shapes.length !== collapsedObstacles.length) {
     collapsedObstacles = shapes.map(() => true);
-  }
-
-  function handleValidate() {
-    validatePath(startPoint, lines, settings, sequence, shapes);
   }
 
   function handleOptimizationApply(newLines: Line[]) {
@@ -94,7 +89,6 @@
     bind:lines
     bind:sequence
     {recordChange}
-    onValidate={handleValidate}
     {handleOptimizationApply}
     onPreviewChange={onPreviewChange || (() => {})}
     bind:shapes

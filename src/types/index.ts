@@ -207,6 +207,7 @@ export interface Settings {
   optimizationPopulationSize?: number; // Population size for optimizer
   optimizationMutationRate?: number; // Mutation rate for optimizer
   optimizationMutationStrength?: number; // Mutation strength for optimizer
+  validationDisabled?: boolean; // Completely disable all path validation
   validateFieldBoundaries?: boolean; // Check if robot goes out of bounds
   continuousValidation?: boolean; // Run validation continuously
   restrictDraggingToField?: boolean; // Restrict dragging to field bounds

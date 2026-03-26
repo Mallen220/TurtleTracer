@@ -20,6 +20,7 @@
   import { customExportersStore } from "./pluginsStore";
   import { navbarActionRegistry } from "./registries";
   import { menuNavigation } from "./actions/menuNavigation";
+  import ValidationButton from "./components/tools/ValidationButton.svelte";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -376,6 +377,9 @@
 
   <!-- Right: Export + Sidebar Toggle -->
   <div class="flex items-center gap-2 md:gap-3">
+    <!-- Validation Button -->
+    <ValidationButton />
+
     <!-- Export -->
     <div class="relative">
       <button

@@ -749,7 +749,7 @@
       $sequenceStore &&
       $shapesStore &&
       timePrediction &&
-      $settingsStore.continuousValidation
+      !$settingsStore.validationDisabled
     ) {
       validatePath(
         $startPointStore,
@@ -761,8 +761,7 @@
         timePrediction.timeline,
       );
     } else if (
-      // Clear markers if continuous validation is disabled but markers exist
-      !$settingsStore?.continuousValidation &&
+      $settingsStore?.validationDisabled &&
       get(collisionMarkers).length > 0
     ) {
       collisionMarkers.set([]);
