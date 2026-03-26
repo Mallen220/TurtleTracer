@@ -112,13 +112,13 @@ function transformMacroData(
   data: TurtleData,
   transforms: Transformation[],
 ): { data: TurtleData; resolvedTransforms: Transformation[] } {
-  if (!transforms || transforms.length === 0) {
-    return { data, resolvedTransforms: [] };
-  }
-
-  // Clone data deeply
+  // Clone data deeply to prevent mutating the shared store macro data when expanding
   const newData: TurtleData = structuredClone(data);
   const resolvedTransforms: Transformation[] = [];
+
+  if (!transforms || transforms.length === 0) {
+    return { data: newData, resolvedTransforms: [] };
+  }
 
   transforms.forEach((t) => {
     // Determine pivot for this step
