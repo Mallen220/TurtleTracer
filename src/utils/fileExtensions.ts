@@ -35,7 +35,7 @@ export function ensureDefaultProjectExtension(path: string): string {
 
 export function getProjectExtensionFromPath(path?: string | null): string {
   if (!path) return DEFAULT_PROJECT_EXTENSION;
-  const lower = path.toLowerCase();
+  const lower = path.toLowerCase().trim();
   if (lower.endsWith(LEGACY_PROJECT_EXTENSION)) return LEGACY_PROJECT_EXTENSION;
   if (lower.endsWith(DEFAULT_PROJECT_EXTENSION))
     return DEFAULT_PROJECT_EXTENSION;

@@ -109,6 +109,26 @@ describe("fileExtensions utilities", () => {
     it("should return .turt for paths with other or no extensions", () => {
       expect(getProjectExtensionFromPath("project.txt")).toBe(".turt");
       expect(getProjectExtensionFromPath("project")).toBe(".turt");
+      expect(getProjectExtensionFromPath("project.csv")).toBe(".turt");
+      expect(getProjectExtensionFromPath("project.data.json")).toBe(".turt");
+    });
+
+    it("should handle paths with leading and trailing spaces", () => {
+      expect(getProjectExtensionFromPath("  project.turt  ")).toBe(".turt");
+      expect(getProjectExtensionFromPath("  legacy.pp  ")).toBe(".pp");
+      expect(getProjectExtensionFromPath("  project.txt  ")).toBe(".turt");
+      expect(getProjectExtensionFromPath("  project  ")).toBe(".turt");
+    });
+
+    it("should handle paths that look like extensions but are not at the end", () => {
+      expect(getProjectExtensionFromPath("project.turt.txt")).toBe(".turt");
+      expect(getProjectExtensionFromPath("legacy.pp.bak")).toBe(".turt");
+      expect(getProjectExtensionFromPath("project.turt_data")).toBe(".turt");
+    });
+
+    it("should handle unusual casing", () => {
+      expect(getProjectExtensionFromPath("project.TuRt")).toBe(".turt");
+      expect(getProjectExtensionFromPath("legacy.pP")).toBe(".pp");
     });
   });
 });
