@@ -169,47 +169,87 @@
   </div>
 
   <SettingsItem
-    label="Safety Margin (in)"
-    isModified={settings.safetyMargin !== DEFAULT_SETTINGS.safetyMargin}
+    label="Disable Validation"
+    isModified={settings.validationDisabled !==
+      DEFAULT_SETTINGS.validationDisabled}
     onReset={() => {
-      settings.safetyMargin = DEFAULT_SETTINGS.safetyMargin;
+      settings.validationDisabled = DEFAULT_SETTINGS.validationDisabled;
       settings = { ...settings };
     }}
-    description="Buffer around obstacles and field boundaries"
-    {searchQuery}
-    forId="safety-margin"
-  >
-    <input
-      id="safety-margin"
-      type="number"
-      bind:value={settings.safetyMargin}
-      min="0"
-      max="24"
-      step="0.5"
-      on:change={handleSafetyMarginInput}
-      class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-    />
-  </SettingsItem>
-
-  <SettingsItem
-    label="Validate Field Boundaries"
-    isModified={settings.validateFieldBoundaries !==
-      DEFAULT_SETTINGS.validateFieldBoundaries}
-    onReset={() => {
-      settings.validateFieldBoundaries =
-        DEFAULT_SETTINGS.validateFieldBoundaries;
-      settings = { ...settings };
-    }}
-    description="Warn if robot exits the field"
+    description="Turn off all path validation"
     {searchQuery}
     layout="row"
   >
     <input
       type="checkbox"
-      bind:checked={settings.validateFieldBoundaries}
+      bind:checked={settings.validationDisabled}
       class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
     />
   </SettingsItem>
+
+  {#if !settings.validationDisabled}
+    <SettingsItem
+      label="Safety Margin (in)"
+      isModified={settings.safetyMargin !== DEFAULT_SETTINGS.safetyMargin}
+      onReset={() => {
+        settings.safetyMargin = DEFAULT_SETTINGS.safetyMargin;
+        settings = { ...settings };
+      }}
+      description="Buffer around obstacles and field boundaries"
+      {searchQuery}
+      forId="safety-margin"
+    >
+      <input
+        id="safety-margin"
+        type="number"
+        bind:value={settings.safetyMargin}
+        min="0"
+        max="24"
+        step="0.5"
+        on:change={handleSafetyMarginInput}
+        class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+    </SettingsItem>
+
+    <SettingsItem
+      label="Validate Field Boundaries"
+      isModified={settings.validateFieldBoundaries !==
+        DEFAULT_SETTINGS.validateFieldBoundaries}
+      onReset={() => {
+        settings.validateFieldBoundaries =
+          DEFAULT_SETTINGS.validateFieldBoundaries;
+        settings = { ...settings };
+      }}
+      description="Warn if robot exits the field"
+      {searchQuery}
+      layout="row"
+    >
+      <input
+        type="checkbox"
+        bind:checked={settings.validateFieldBoundaries}
+        class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+      />
+    </SettingsItem>
+
+    <SettingsItem
+      label="Continuous Validation"
+      isModified={settings.continuousValidation !==
+        DEFAULT_SETTINGS.continuousValidation}
+      onReset={() => {
+        settings.continuousValidation = DEFAULT_SETTINGS.continuousValidation;
+        settings = { ...settings };
+      }}
+      description="Show validation issues as you work"
+      {searchQuery}
+      layout="row"
+    >
+      <input
+        type="checkbox"
+        bind:checked={settings.continuousValidation}
+        class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+      />
+    </SettingsItem>
+  {/if}
 
   <SettingsItem
     label="Restrict Dragging"
@@ -227,25 +267,6 @@
     <input
       type="checkbox"
       bind:checked={settings.restrictDraggingToField}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-    />
-  </SettingsItem>
-
-  <SettingsItem
-    label="Continuous Validation"
-    isModified={settings.continuousValidation !==
-      DEFAULT_SETTINGS.continuousValidation}
-    onReset={() => {
-      settings.continuousValidation = DEFAULT_SETTINGS.continuousValidation;
-      settings = { ...settings };
-    }}
-    description="Show validation issues as you work"
-    {searchQuery}
-    layout="row"
-  >
-    <input
-      type="checkbox"
-      bind:checked={settings.continuousValidation}
       class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
     />
   </SettingsItem>
