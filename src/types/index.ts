@@ -381,6 +381,7 @@ export interface TabDefinition {
   label: string;
   component: any;
   icon?: string;
+  iconComponent?: any;
   order?: number;
 }
 
