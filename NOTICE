@@ -265,6 +265,7 @@ vite.config.d.ts
 src/lib/components/dialogs/KeyboardShortcutsDialog.svelte
 src/utils/settingsPersistence.ts
 src/lib/components/RobotPositionDisplay.svelte
+src/lib/components/RobotPositionDisplay.svelte
 src/lib/components/icons/ChevronLeftIcon.svelte
 src/lib/components/icons/ChevronRightIcon.svelte
 src/lib/components/icons/InfoIcon.svelte

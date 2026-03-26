@@ -31,6 +31,7 @@
   } from "../../stores";
   import { slide } from "svelte/transition";
   import { tick } from "svelte";
+  import { derived } from "svelte/store";
   import { tooltipPortal } from "../actions/portal";
   import ObstaclesSection from "./sections/ObstaclesSection.svelte";
   import TrashIcon from "./icons/TrashIcon.svelte";
@@ -145,6 +146,11 @@
       else multiSelectedLineIds.set([]);
     }
   }
+  const multiSelectedPointIdsSet = derived(
+    multiSelectedPointIds,
+    ($ids) => new Set($ids),
+  );
+
   // Focus Handling Action
   function focusOnRequest(
     node: HTMLElement,
@@ -1308,7 +1314,7 @@
         data-seq-index="-1"
         class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors duration-150"
         class:selected={$selectedPointId === "point-0-0" ||
-          $multiSelectedPointIds.includes("point-0-0")}
+          $multiSelectedPointIdsSet.has("point-0-0")}
         on:click={(e) => handleRowClick(e, "point-0-0", null)}
         on:contextmenu={(e) => handleContextMenu(e, -1)}
         class:border-b-2={dragOverIndex === -1 && dragPosition === "bottom"}
@@ -1399,7 +1405,7 @@
               on:dragstart={(e) => handleDragStart(e, seqIndex)}
               on:dragend={handleDragEnd}
               on:contextmenu={(e) => handleContextMenu(e, seqIndex)}
-              class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIds.length > 1 && $multiSelectedPointIds.includes(endPointId) ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
+              class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(endPointId) ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
               class:border-t-2={dragOverIndex === seqIndex &&
                 dragPosition === "top"}
               class:border-b-2={dragOverIndex === seqIndex &&
@@ -1704,7 +1710,7 @@
               ].findIndex((p) => p === cp)}
               {@const pointId = `point-${lineIdx + 1}-${cpIndex}`}
               <tr
-                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIds.length > 1 && $multiSelectedPointIds.includes(pointId) ? "bg-green-100 dark:bg-green-800/40" : ""}`}
+                class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(pointId) ? "bg-green-100 dark:bg-green-800/40" : ""}`}
                 on:click={(e) => handleRowClick(e, pointId, line.id || null)}
               >
                 <td class="w-8 px-2 py-2">
