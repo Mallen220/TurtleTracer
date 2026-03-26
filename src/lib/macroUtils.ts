@@ -200,6 +200,11 @@ function transformMacroData(
  * Expands a macro into a list of lines and a sequence of items.
  * Handles bridge generation and rotation alignment.
  */
+export function normalizePath(p: string): string {
+  if (!p) return "";
+  return p.replace(/\\/g, "/").toLowerCase();
+}
+
 export function expandMacro(
   macroItem: SequenceMacroItem,
   prevPoint: Point,
@@ -219,14 +224,16 @@ export function expandMacro(
     throw new Error(`Maximum macro depth exceeded: ${macroItem.filePath}`);
   }
 
+  const normalizedPath = normalizePath(macroItem.filePath);
+
   // Check for recursion loop
-  if (visitedPaths.has(macroItem.filePath)) {
+  if (visitedPaths.has(normalizedPath)) {
     throw new Error(`Recursion detected: ${macroItem.filePath}`);
   }
 
   // Clone visitedPaths for this branch
   const nextVisited = new Set(visitedPaths);
-  nextVisited.add(macroItem.filePath);
+  nextVisited.add(normalizedPath);
 
   // --- Apply Transformations to Macro Data ---
   const { data: transformedData, resolvedTransforms } = transformMacroData(
@@ -466,28 +473,48 @@ export function wouldCreateCycle(
   startFilePath: string,
   macrosMap: Map<string, TurtleData>,
 ): boolean {
-  if (targetFilePath === startFilePath) return true;
+  const startNormalized = normalizePath(startFilePath);
+  const targetNormalized = normalizePath(targetFilePath);
 
-  const visited = new Set<string>();
+  if (targetNormalized === startNormalized) return true;
 
-  function check(path: string): boolean {
-    if (path === startFilePath) return true;
-    if (visited.has(path)) return false;
-    visited.add(path);
+  const globalVisited = new Set<string>();
 
-    const data = macrosMap.get(path);
+  function check(path: string, currentBranch: Set<string>): boolean {
+    const pNorm = normalizePath(path);
+
+    if (pNorm === startNormalized) return true;
+    if (currentBranch.has(pNorm)) return true;
+    if (globalVisited.has(pNorm)) return false;
+
+    currentBranch.add(pNorm);
+
+    let data: TurtleData | undefined = undefined;
+    for (const [key, value] of macrosMap.entries()) {
+      if (normalizePath(key) === pNorm) {
+        data = value;
+        break;
+      }
+    }
+
     if (data && data.sequence) {
       for (const item of data.sequence) {
         if (item.kind === "macro") {
           const childPath = (item as any).filePath;
-          if (childPath && check(childPath)) return true;
+          if (childPath && check(childPath, new Set(currentBranch))) {
+            return true;
+          }
         }
       }
     }
+
+    currentBranch.delete(pNorm);
+    globalVisited.add(pNorm);
+
     return false;
   }
 
-  return check(targetFilePath);
+  return check(targetFilePath, new Set<string>());
 }
 
 /**
@@ -571,7 +598,7 @@ export function regenerateProjectMacros(
         // Expand with recursion support
         const initialVisited = new Set<string>();
         if (currentFilePath) {
-          initialVisited.add(currentFilePath);
+          initialVisited.add(normalizePath(currentFilePath));
         }
 
         const result = expandMacro(
