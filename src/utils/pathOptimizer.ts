@@ -611,88 +611,35 @@ export class PathOptimizer {
       }
     }
 
-    // Check fixed points against collision logic
+    // Use existing validation logic to check if fixed points are already colliding.
+    // Create a dummy timeline holding only wait events at the fixed points.
     if (!isPathStructurallyImpossible) {
-      const rLength =
-        this.settings.rLength + (this.settings.safetyMargin || 0) * 2;
-      const rWidth =
-        this.settings.rWidth + (this.settings.safetyMargin || 0) * 2;
+      const fixedPoints = [this.startPoint];
+      this.originalLines.forEach((l) => fixedPoints.push(l.endPoint as Point));
 
-      const checkCollision = (p: Point | BasePoint) => {
-        // Assume default heading 0 for static point check if unavailable to maximize safety
+      const fixedTimeline: TimelineEvent[] = fixedPoints.map((p, i) => {
         let heading = 0;
         if ("heading" in p && p.heading === "constant") heading = p.degrees;
-        if ("heading" in p && p.heading === "linear") heading = p.endDeg;
+        else if ("heading" in p && p.heading === "linear") heading = p.endDeg;
 
-        const corners = getRobotCorners(p.x, p.y, heading, rLength, rWidth);
+        return {
+          type: "wait",
+          duration: 0.2, // Arbitrary small duration to force a check
+          startTime: i * 0.2,
+          endTime: (i + 1) * 0.2,
+          atPoint: p,
+          startHeading: heading,
+          targetHeading: heading,
+          lineIndex: i === 0 ? -1 : i - 1, // Use -1 for startPoint to bypass "lineIndex === 0" nearStartBuffer boundary exemptions during this strict check
+        };
+      });
 
-        // 1. Boundary Checks
-        if (this.settings.validateFieldBoundaries !== false) {
-          const BOUNDARY_EPSILON = 0.05;
-          for (const corner of corners) {
-            if (
-              corner.x < -BOUNDARY_EPSILON ||
-              corner.x > FIELD_SIZE + BOUNDARY_EPSILON ||
-              corner.y < -BOUNDARY_EPSILON ||
-              corner.y > FIELD_SIZE + BOUNDARY_EPSILON
-            ) {
-              return true;
-            }
-          }
-        }
-
-        // 2. Obstacle Checks
-        for (const shape of this.activeObstacles) {
-          for (const corner of corners) {
-            if (pointInPolygon([corner.x, corner.y], shape.vertices)) {
-              return true;
-            }
-          }
-          for (const v of shape.vertices) {
-            if (pointInPolygon([v.x, v.y], corners)) {
-              return true;
-            }
-          }
-        }
-
-        // 3. Keep-In Zone Checks
-        if (this.activeKeepInZones.length > 0) {
-          const rawCorners = getRobotCorners(
-            p.x,
-            p.y,
-            heading,
-            this.settings.rLength,
-            this.settings.rWidth,
-          );
-          let insideAnyZone = false;
-          for (const zone of this.activeKeepInZones) {
-            let allCornersIn = true;
-            for (const corner of rawCorners) {
-              if (!pointInPolygon([corner.x, corner.y], zone.vertices)) {
-                allCornersIn = false;
-                break;
-              }
-            }
-            if (allCornersIn) {
-              insideAnyZone = true;
-              break;
-            }
-          }
-          if (!insideAnyZone) return true;
-        }
-
-        return false;
-      };
-
-      if (checkCollision(this.startPoint)) {
+      const fixedMarkers = this.getCollisions(
+        fixedTimeline,
+        this.originalLines,
+      );
+      if (fixedMarkers.length > 0) {
         isPathStructurallyImpossible = true;
-      } else {
-        for (const line of this.originalLines) {
-          if (checkCollision(line.endPoint)) {
-            isPathStructurallyImpossible = true;
-            break;
-          }
-        }
       }
     }
 
