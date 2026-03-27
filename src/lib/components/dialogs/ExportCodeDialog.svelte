@@ -14,7 +14,15 @@
   import plaintext from "svelte-highlight/languages/plaintext";
   import codeStyle from "svelte-highlight/styles/androidstudio";
   import { fade, fly } from "svelte/transition";
-  import { SearchIcon, ChevronUpIcon, ChevronDownIcon, CloseIcon, TriangleWarningIcon, DownloadIcon, SuccessIcon } from "../icons/index";
+  import {
+    SearchIcon,
+    ChevronUpIcon,
+    ChevronDownIcon,
+    CloseIcon,
+    TriangleWarningIcon,
+    DownloadIcon,
+    SuccessIcon,
+  } from "../icons/index";
   import { currentFilePath } from "../../../stores";
   import {
     generateJavaCode,

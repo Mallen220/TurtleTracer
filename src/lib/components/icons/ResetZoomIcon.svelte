@@ -12,7 +12,6 @@
   stroke="currentColor"
   class={className}
 >
-
   <polyline points="4 9 4 4 9 4" />
   <polyline points="15 4 20 4 20 9" />
   <polyline points="20 15 20 20 15 20" />

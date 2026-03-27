@@ -1,6 +1,17 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import {
+    UndoIcon,
+    HistoryIcon,
+    RedoIcon,
+    RulerIcon,
+    ProtractorIcon,
+    GridIcon,
+    OnionSkinIcon,
+    VelocityHeatmapIcon,
+  } from "./icons";
+
+  import {
     showFileManager,
     showFeedbackDialog,
     showSettings,
@@ -451,20 +462,7 @@
                     className="sidebar-icon-small flex-none"
                   />
                 {:else}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="2"
-                    stroke="currentColor"
-                    class="sidebar-icon-small flex-none"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 1 1 0 12h-3"
-                    />
-                  </svg>
+                  <UndoIcon className="sidebar-icon-small flex-none" />
                 {/if}
               </div>
               {#if sidebarExpanded}
@@ -513,20 +511,7 @@
                       className="sidebar-icon-small flex-none"
                     />
                   {:else}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke-width="2"
-                      stroke="currentColor"
-                      class="sidebar-icon-small flex-none"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                      />
-                    </svg>
+                    <HistoryIcon className="sidebar-icon-small flex-none" />
                   {/if}
                 </div>
                 {#if sidebarExpanded}
@@ -618,20 +603,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="2"
-                  stroke="currentColor"
-                  class="sidebar-icon-small flex-none"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M15 9l6 6m0 0-6 6m6-6H9a6 6 0 1 1 0-12h3"
-                  />
-                </svg>
+                <RedoIcon className="sidebar-icon-small flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"
@@ -707,24 +679,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="sidebar-icon-small flex-none"
-                >
-                  <path
-                    d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0z"
-                  ></path>
-                  <path d="m14.5 12.5 2-2"></path>
-                  <path d="m11.5 9.5 2-2"></path>
-                  <path d="m8.5 6.5 2-2"></path>
-                  <path d="m17.5 15.5 2-2"></path>
-                </svg>
+                <RulerIcon className="sidebar-icon-small flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"
@@ -761,20 +716,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="sidebar-icon-small flex-none"
-                >
-                  <path d="M12 21a9 9 0 1 1 0-18c2.52 0 4.93 1 6.74 2.74L21 8"
-                  ></path>
-                  <path d="M12 3v6l3.7 2.7"></path>
-                </svg>
+                <ProtractorIcon className="sidebar-icon-small flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"
@@ -867,22 +809,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="sidebar-icon-small flex-none"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="3" y1="9" x2="21" y2="9"></line>
-                  <line x1="3" y1="15" x2="21" y2="15"></line>
-                  <line x1="9" y1="3" x2="9" y2="21"></line>
-                  <line x1="15" y1="3" x2="15" y2="21"></line>
-                </svg>
+                <GridIcon className="sidebar-icon-small flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"
@@ -975,20 +902,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="sidebar-icon-small flex-none"
-                >
-                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                  <polyline points="2 12 12 17 22 12"></polyline>
-                  <polyline points="2 17 12 22 22 17"></polyline>
-                </svg>
+                <OnionSkinIcon className="sidebar-icon-small flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"
@@ -1130,18 +1044,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="sidebar-icon-small flex-none"
-                >
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                </svg>
+                <VelocityHeatmapIcon className="sidebar-icon-small flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"

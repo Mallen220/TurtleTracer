@@ -129,10 +129,10 @@
       {tabindex}
       class="sr-only"
     />
-      <RotateIcon
-        className={`size-4 ${endPoint.reverse ? "text-purple-500" : "text-neutral-400"}`}
-      />
-    </label>
+    <RotateIcon
+      className={`size-4 ${endPoint.reverse ? "text-purple-500" : "text-neutral-400"}`}
+    />
+  </label>
 
   {#if endPoint.heading === "linear"}
     <div class="flex items-center gap-2 flex-[2]">
