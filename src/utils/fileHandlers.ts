@@ -101,8 +101,7 @@ function addToRecentFiles(path: string, settings?: Settings) {
   settingsStore.update((s) => ({ ...s, recentFiles: recent }));
 }
 
-export async function loadRecentFile(path: string) {
-  // Autosave on Close Logic
+async function performAutoSaveOnClose() {
   const settings = get(settingsStore);
   if (
     settings.autosaveMode === "close" &&
@@ -120,6 +119,45 @@ export async function loadRecentFile(path: string) {
       { quiet: true },
     );
   }
+}
+
+async function triggerAutoExportWithStores(data: any, path: string) {
+  await handleAutoExport(
+    get(startPointStore),
+    get(linesStore),
+    get(sequenceStore),
+    get(settingsStore),
+    get(shapesStore),
+    data,
+    path,
+  );
+}
+
+function createProjectData(
+  startPoint: Point,
+  lines: Line[],
+  shapes: Shape[],
+  sequence: SequenceItem[],
+  extraData: Record<string, any>,
+) {
+  return {
+    version: pkg.version,
+    header: {
+      info: "Created with Turtle Tracer",
+      copyright:
+        "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
+      link: "https://github.com/Mallen220/TurtleTracer",
+    },
+    startPoint,
+    lines,
+    sequence,
+    shapes,
+    extraData,
+  };
+}
+
+export async function loadRecentFile(path: string) {
+  await performAutoSaveOnClose();
 
   const electronAPI = getElectronAPI();
   if (!electronAPI || !electronAPI.readFile) {
@@ -147,15 +185,7 @@ export async function loadRecentFile(path: string) {
     addToRecentFiles(path);
 
     // Trigger auto-export for recent file loads so exported code stays in sync
-    await handleAutoExport(
-      get(startPointStore),
-      get(linesStore),
-      get(sequenceStore),
-      get(settingsStore),
-      get(shapesStore),
-      data,
-      path,
-    );
+    await triggerAutoExportWithStores(data, path);
   } catch (err) {
     console.error("Error loading recent file:", err);
     alert("Failed to load file: " + (err as Error).message);
@@ -271,20 +301,7 @@ async function performSave(
     );
 
     // Create the project data structure
-    const projectData = {
-      version: pkg.version,
-      header: {
-        info: "Created with Turtle Tracer",
-        copyright:
-          "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
-        link: "https://github.com/Mallen220/TurtleTracer",
-      },
-      startPoint: updatedStartPoint,
-      lines: linesToSave,
-      sequence: sequenceToSave,
-      shapes,
-      extraData,
-    };
+    const projectData = createProjectData(updatedStartPoint, linesToSave, shapes, sequenceToSave, extraData);
 
     const jsonString = JSON.stringify(projectData, null, 2);
 
@@ -520,24 +537,8 @@ async function exportProjectFileWithExtension(
       const ln = get(linesStore);
       const updatedStartPoint = calculateStartPointHeadings(sp, ln);
 
-      const jsonString = JSON.stringify(
-        {
-          version: pkg.version,
-          header: {
-            info: "Created with Turtle Tracer",
-            copyright:
-              "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
-            link: "https://github.com/Mallen220/TurtleTracer",
-          },
-          startPoint: updatedStartPoint,
-          lines: ln,
-          shapes: get(shapesStore),
-          sequence: sequence,
-          extraData: get(extraDataStore),
-        },
-        null,
-        2,
-      );
+      const projectData = createProjectData(updatedStartPoint, ln, get(shapesStore), sequence, get(extraDataStore));
+      const jsonString = JSON.stringify(projectData, null, 2);
 
       await electronAPI.writeFile(resolvedPath, jsonString);
       return;
@@ -549,24 +550,8 @@ async function exportProjectFileWithExtension(
   const ln = get(linesStore);
   const updatedStartPoint = calculateStartPointHeadings(sp, ln);
 
-  const jsonString = JSON.stringify(
-    {
-      version: pkg.version,
-      header: {
-        info: "Created with Turtle Tracer",
-        copyright:
-          "Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.",
-        link: "https://github.com/Mallen220/TurtleTracer",
-      },
-      startPoint: updatedStartPoint,
-      lines: ln,
-      shapes: get(shapesStore),
-      sequence: get(sequenceStore),
-      extraData: get(extraDataStore),
-    },
-    null,
-    2,
-  );
+  const projectData = createProjectData(updatedStartPoint, ln, get(shapesStore), get(sequenceStore), get(extraDataStore));
+  const jsonString = JSON.stringify(projectData, null, 2);
 
   // Browser fallback
   downloadTrajectory(
@@ -598,24 +583,7 @@ export async function exportAsPP() {
 }
 
 export async function handleExternalFileOpen(filePath: string) {
-  // Autosave on Close Logic
-  const settings = get(settingsStore);
-  if (
-    settings.autosaveMode === "close" &&
-    get(isUnsaved) &&
-    get(currentFilePath)
-  ) {
-    await saveProject(
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      false,
-      undefined,
-      { quiet: true },
-    );
-  }
+  await performAutoSaveOnClose();
 
   const electronAPI = getElectronAPI();
   if (!electronAPI || !electronAPI.readFile) return;
@@ -638,15 +606,7 @@ export async function handleExternalFileOpen(filePath: string) {
 
       // If auto-export is enabled, regenerate exported code for the newly loaded file
       // (this covers external editors / file-watchers changing the project file on disk).
-      await handleAutoExport(
-        get(startPointStore),
-        get(linesStore),
-        get(sequenceStore),
-        get(settingsStore),
-        get(shapesStore),
-        data,
-        filePath,
-      );
+      await triggerAutoExportWithStores(data, filePath);
 
       return;
     }
@@ -663,15 +623,7 @@ export async function handleExternalFileOpen(filePath: string) {
       addToRecentFiles(filePath);
 
       // If auto-export is enabled, regenerate exported code for the newly loaded file
-      await handleAutoExport(
-        get(startPointStore),
-        get(linesStore),
-        get(sequenceStore),
-        get(settingsStore),
-        get(shapesStore),
-        data,
-        filePath,
-      );
+      await triggerAutoExportWithStores(data, filePath);
     } else {
       // Not in directory. Prompt copy,
       if (
@@ -712,15 +664,7 @@ export async function handleExternalFileOpen(filePath: string) {
           addToRecentFiles(destPath);
 
           // Trigger auto-export for the copied/loaded file too
-          await handleAutoExport(
-            get(startPointStore),
-            get(linesStore),
-            get(sequenceStore),
-            get(settingsStore),
-            get(shapesStore),
-            data,
-            destPath,
-          );
+          await triggerAutoExportWithStores(data, destPath);
         } else {
           // Fallback if copyFile not available (should be)
           await electronAPI.writeFile(destPath, content);
@@ -729,15 +673,7 @@ export async function handleExternalFileOpen(filePath: string) {
           addToRecentFiles(destPath);
 
           // Trigger auto-export for the loaded file
-          await handleAutoExport(
-            get(startPointStore),
-            get(linesStore),
-            get(sequenceStore),
-            get(settingsStore),
-            get(shapesStore),
-            data,
-            destPath,
-          );
+          await triggerAutoExportWithStores(data, destPath);
         }
       } else {
         // User said no to copy
@@ -746,15 +682,7 @@ export async function handleExternalFileOpen(filePath: string) {
         addToRecentFiles(filePath);
 
         // Auto-export the file that was loaded externally as well
-        await handleAutoExport(
-          get(startPointStore),
-          get(linesStore),
-          get(sequenceStore),
-          get(settingsStore),
-          get(shapesStore),
-          data,
-          filePath,
-        );
+        await triggerAutoExportWithStores(data, filePath);
       }
     }
   } catch (err) {
@@ -764,24 +692,7 @@ export async function handleExternalFileOpen(filePath: string) {
 }
 
 export async function loadFile(evt: Event) {
-  // Autosave on Close Logic
-  const settings = get(settingsStore);
-  if (
-    settings.autosaveMode === "close" &&
-    get(isUnsaved) &&
-    get(currentFilePath)
-  ) {
-    await saveProject(
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      false,
-      undefined,
-      { quiet: true },
-    );
-  }
+  await performAutoSaveOnClose();
 
   const electronAPI = getElectronAPI();
   const elem = evt.target as HTMLInputElement;
@@ -823,15 +734,7 @@ export async function loadFile(evt: Event) {
         addToRecentFiles(destPath);
 
         // Trigger auto-export after loading a file uploaded by the user
-        await handleAutoExport(
-          get(startPointStore),
-          get(linesStore),
-          get(sequenceStore),
-          get(settingsStore),
-          get(shapesStore),
-          data,
-          destPath,
-        );
+        await triggerAutoExportWithStores(data, destPath);
       };
       reader.readAsText(file);
     } catch (error) {

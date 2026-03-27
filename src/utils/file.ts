@@ -37,6 +37,20 @@ function triggerDownload(
   URL.revokeObjectURL(url);
 }
 
+function createTrajectoryJson(
+  startPoint: Point,
+  lines: Line[],
+  shapes: Shape[],
+  sequence?: SequenceItem[],
+  extraData?: Record<string, any>,
+): string {
+  return JSON.stringify(
+    { startPoint, lines, shapes, sequence, extraData },
+    null,
+    2,
+  );
+}
+
 /**
  * Download trajectory data as a .turt file
  */
@@ -48,11 +62,7 @@ export function downloadTrajectory(
   extraData?: Record<string, any>,
   filename: string = `trajectory${DEFAULT_PROJECT_EXTENSION}`,
 ): void {
-  const jsonString = JSON.stringify(
-    { startPoint, lines, shapes, sequence, extraData },
-    null,
-    2,
-  );
+  const jsonString = createTrajectoryJson(startPoint, lines, shapes, sequence, extraData);
 
   const lowerName = filename.toLowerCase();
   const finalFilename =
@@ -75,11 +85,7 @@ export function downloadTrajectoryAsText(
   extraData?: Record<string, any>,
   filename: string = "trajectory.txt",
 ): void {
-  const jsonString = JSON.stringify(
-    { startPoint, lines, shapes, sequence, extraData },
-    null,
-    2,
-  );
+  const jsonString = createTrajectoryJson(startPoint, lines, shapes, sequence, extraData);
 
   triggerDownload(jsonString, "text/plain", filename);
 }
