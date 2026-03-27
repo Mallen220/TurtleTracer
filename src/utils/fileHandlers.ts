@@ -301,7 +301,13 @@ async function performSave(
     );
 
     // Create the project data structure
-    const projectData = createProjectData(updatedStartPoint, linesToSave, shapes, sequenceToSave, extraData);
+    const projectData = createProjectData(
+      updatedStartPoint,
+      linesToSave,
+      shapes,
+      sequenceToSave,
+      extraData,
+    );
 
     const jsonString = JSON.stringify(projectData, null, 2);
 
@@ -537,7 +543,13 @@ async function exportProjectFileWithExtension(
       const ln = get(linesStore);
       const updatedStartPoint = calculateStartPointHeadings(sp, ln);
 
-      const projectData = createProjectData(updatedStartPoint, ln, get(shapesStore), sequence, get(extraDataStore));
+      const projectData = createProjectData(
+        updatedStartPoint,
+        ln,
+        get(shapesStore),
+        sequence,
+        get(extraDataStore),
+      );
       const jsonString = JSON.stringify(projectData, null, 2);
 
       await electronAPI.writeFile(resolvedPath, jsonString);
@@ -550,7 +562,13 @@ async function exportProjectFileWithExtension(
   const ln = get(linesStore);
   const updatedStartPoint = calculateStartPointHeadings(sp, ln);
 
-  const projectData = createProjectData(updatedStartPoint, ln, get(shapesStore), get(sequenceStore), get(extraDataStore));
+  const projectData = createProjectData(
+    updatedStartPoint,
+    ln,
+    get(shapesStore),
+    get(sequenceStore),
+    get(extraDataStore),
+  );
   const jsonString = JSON.stringify(projectData, null, 2);
 
   // Browser fallback
