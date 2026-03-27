@@ -531,6 +531,45 @@
     }
   }
 
+  function handleMarkerAction(e: CustomEvent) {
+    const { id, action } = e.detail;
+    if (action === "delete") {
+      let found = false;
+
+      // Check lines
+      for (const l of lines) {
+        if (l.eventMarkers) {
+          const idx = l.eventMarkers.findIndex((m) => m.id === id);
+          if (idx !== -1) {
+            l.eventMarkers.splice(idx, 1);
+            found = true;
+            lines = [...lines]; // Reactivity
+            break;
+          }
+        }
+      }
+
+      // Check sequence (waits/rotates)
+      if (!found) {
+        for (const s of sequence) {
+          if ((s.kind === "wait" || s.kind === "rotate") && s.eventMarkers) {
+            const idx = s.eventMarkers.findIndex((m: any) => m.id === id);
+            if (idx !== -1) {
+              s.eventMarkers.splice(idx, 1);
+              found = true;
+              sequence = [...sequence]; // Reactivity
+              break;
+            }
+          }
+        }
+      }
+
+      if (found) {
+        recordChange("Delete Marker");
+      }
+    }
+  }
+
   // Use the registry for tabs
   $: currentTab =
     $tabRegistry.find((t) => t.id === activeTab) || $tabRegistry[0];
@@ -645,6 +684,7 @@
       {settings}
       {splitPath}
       on:markerChange={handleMarkerChange}
+      on:markerAction={handleMarkerAction}
     />
   </div>
 </div>
