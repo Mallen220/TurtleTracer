@@ -312,7 +312,9 @@ export function expandMacro(
   }
 
   // 2. Process Macro Lines/Sequence
-  const macroLines = transformedData.lines.filter(Boolean).map((l) => ({ ...l }));
+  const macroLines = transformedData.lines
+    .filter(Boolean)
+    .map((l) => ({ ...l }));
 
   // Create a mapping from old ID to new ID to preserve sequence references
   const lineIdMap = new Map<string, string>();

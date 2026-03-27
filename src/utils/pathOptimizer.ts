@@ -572,9 +572,50 @@ export class PathOptimizer {
 
   public async optimize(
     onUpdate: (result: OptimizationResult) => void,
-  ): Promise<{ lines: Line[]; bestTime: number; stopped?: boolean }> {
+  ): Promise<{
+    lines: Line[];
+    bestTime: number;
+    stopped?: boolean;
+    error?: string;
+  }> {
     // Reset cancellation request
     this.stopRequested = false;
+
+    // Early Verification Check for Impossible Paths
+    let anyPointInvalid = false;
+    const checkPoint = (p: { x?: number; y?: number } | undefined) => {
+      if (
+        !p ||
+        typeof p.x !== "number" ||
+        typeof p.y !== "number" ||
+        !Number.isFinite(p.x) ||
+        !Number.isFinite(p.y)
+      ) {
+        anyPointInvalid = true;
+      }
+    };
+
+    checkPoint(this.startPoint);
+    this.originalLines.forEach((line) => {
+      checkPoint(line.endPoint);
+      line.controlPoints.forEach(checkPoint);
+    });
+
+    const initialResult = calculatePathTime(
+      this.startPoint,
+      this.originalLines,
+      this.settings,
+      this.sequence,
+    );
+    const initialTimeInvalid = !Number.isFinite(initialResult.totalTime);
+
+    if (anyPointInvalid || initialTimeInvalid) {
+      return {
+        lines: this.originalLines,
+        bestTime: 20000,
+        error: "No valid path found",
+      };
+    }
 
     // Initialize population
     let population: { lines: Line[]; time: number }[] = [];

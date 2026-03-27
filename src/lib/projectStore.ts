@@ -417,12 +417,19 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
 }
 
 // Helper to update paths when a file or folder is moved
-function getUpdatedPath(currentPath: string, oldPrefix: string, newPrefix: string): string | null {
+function getUpdatedPath(
+  currentPath: string,
+  oldPrefix: string,
+  newPrefix: string,
+): string | null {
   if (currentPath === oldPrefix) {
     return newPrefix;
   }
   // If it's a folder move, check if the currentPath is inside the old folder (support / and \ separators)
-  if (currentPath.startsWith(oldPrefix + "/") || currentPath.startsWith(oldPrefix + "\\")) {
+  if (
+    currentPath.startsWith(oldPrefix + "/") ||
+    currentPath.startsWith(oldPrefix + "\\")
+  ) {
     return newPrefix + currentPath.slice(oldPrefix.length);
   }
   return null;
@@ -434,7 +441,8 @@ export async function updateAllMacroReferences(
   newPath: string,
 ): Promise<{ totalUpdated: number; mainSequenceChanged: boolean }> {
   const api = (window as any).electronAPI;
-  if (!api || !api.writeFile || !api.listFiles || !api.readFile) return { totalUpdated: 0, mainSequenceChanged: false };
+  if (!api || !api.writeFile || !api.listFiles || !api.readFile)
+    return { totalUpdated: 0, mainSequenceChanged: false };
 
   let totalUpdated = 0;
   const errors: string[] = [];
@@ -446,7 +454,11 @@ export async function updateAllMacroReferences(
     let changed = false;
     const newSeq = seq.map((item) => {
       if (item.kind === "macro") {
-        const updatedMacroPath = getUpdatedPath(item.filePath, oldPath, newPath);
+        const updatedMacroPath = getUpdatedPath(
+          item.filePath,
+          oldPath,
+          newPath,
+        );
         if (updatedMacroPath) {
           changed = true;
           totalUpdated++;
@@ -497,20 +509,30 @@ export async function updateAllMacroReferences(
         let absoluteItemPath = item.filePath;
         if (!dataHasAbsolutePaths && api.resolvePath) {
           try {
-            absoluteItemPath = await api.resolvePath(actualFilePath, item.filePath);
+            absoluteItemPath = await api.resolvePath(
+              actualFilePath,
+              item.filePath,
+            );
           } catch {
             // Leave as-is if resolution fails; getUpdatedPath will simply not match.
           }
         }
 
-        const updatedAbsPath = getUpdatedPath(absoluteItemPath, oldPath, newPath);
+        const updatedAbsPath = getUpdatedPath(
+          absoluteItemPath,
+          oldPath,
+          newPath,
+        );
         if (!updatedAbsPath) return item;
 
         // Re-relativize for on-disk storage (mirrors what performSave / makeRelativePath does).
         let diskPath = updatedAbsPath;
         if (!dataHasAbsolutePaths && api.makeRelativePath) {
           try {
-            diskPath = await api.makeRelativePath(actualFilePath, updatedAbsPath);
+            diskPath = await api.makeRelativePath(
+              actualFilePath,
+              updatedAbsPath,
+            );
           } catch {
             diskPath = updatedAbsPath;
           }
@@ -520,7 +542,10 @@ export async function updateAllMacroReferences(
         totalUpdated++;
 
         // In-memory data keeps absolute paths; on-disk data stores relative paths.
-        return { ...item, filePath: dataHasAbsolutePaths ? updatedAbsPath : diskPath };
+        return {
+          ...item,
+          filePath: dataHasAbsolutePaths ? updatedAbsPath : diskPath,
+        };
       }),
     );
 
@@ -545,7 +570,10 @@ export async function updateAllMacroReferences(
             }
           }),
         );
-        updatedMacros.set(originalFilePath, { ...updatedData, sequence: absoluteSeq });
+        updatedMacros.set(originalFilePath, {
+          ...updatedData,
+          sequence: absoluteSeq,
+        });
       } else {
         updatedMacros.set(originalFilePath, updatedData);
       }
@@ -564,19 +592,20 @@ export async function updateAllMacroReferences(
     }
   }
 
-
   // 1. Check all currently loaded macros in memory (paths are already absolute).
   // A loaded macro might be the one that was moved; its disk path is newPath but its key is oldPath.
   const currentMacros = get(macrosStore);
   for (const [macroFilePath, macroData] of currentMacros.entries()) {
-    const actualDiskPath = getUpdatedPath(macroFilePath, oldPath, newPath) || macroFilePath;
+    const actualDiskPath =
+      getUpdatedPath(macroFilePath, oldPath, newPath) || macroFilePath;
     await processFileData(actualDiskPath, macroFilePath, macroData, true);
   }
 
   // 2. Scan every project file in the base directory tree (O(NM) as required).
   //    Files on disk store macro paths as RELATIVE strings — processFileData resolves them
   //    to absolute before comparing and re-relativizes before writing back.
-  const baseDirectory = await api.getSavedDirectory?.() || get(currentDirectoryStore);
+  const baseDirectory =
+    (await api.getSavedDirectory?.()) || get(currentDirectoryStore);
   if (baseDirectory) {
     async function scanDirectory(dir: string) {
       try {
@@ -613,7 +642,9 @@ export async function updateAllMacroReferences(
   }
 
   // 3. Update macrosStore: remap moved keys and apply any reference-updated data.
-  const anyKeyNeedsRename = Array.from(currentMacros.keys()).some(k => getUpdatedPath(k, oldPath, newPath));
+  const anyKeyNeedsRename = Array.from(currentMacros.keys()).some((k) =>
+    getUpdatedPath(k, oldPath, newPath),
+  );
   if (macrosStoreChanged || anyKeyNeedsRename) {
     macrosStore.update((map) => {
       const newMap = new Map();

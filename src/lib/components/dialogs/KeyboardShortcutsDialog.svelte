@@ -341,7 +341,9 @@
         <div class="flex gap-4">
           <!-- Search -->
           <div class="relative flex-1">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-neutral-400" />
+            <SearchIcon
+              className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-neutral-400"
+            />
             <input
               type="text"
               bind:value={searchQuery}
