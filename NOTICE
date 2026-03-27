@@ -286,3 +286,4 @@ src/lib/components/icons/TriangleWarningIcon.svelte
 src/lib/components/icons/ZoomInIcon.svelte
 src/lib/components/icons/ZoomOutIcon.svelte
 src/tests/macroReferenceUpdater.test.ts
+src/utils/file.ts

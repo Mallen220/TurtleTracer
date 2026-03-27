@@ -62,7 +62,13 @@ export function downloadTrajectory(
   extraData?: Record<string, any>,
   filename: string = `trajectory${DEFAULT_PROJECT_EXTENSION}`,
 ): void {
-  const jsonString = createTrajectoryJson(startPoint, lines, shapes, sequence, extraData);
+  const jsonString = createTrajectoryJson(
+    startPoint,
+    lines,
+    shapes,
+    sequence,
+    extraData,
+  );
 
   const lowerName = filename.toLowerCase();
   const finalFilename =
@@ -85,7 +91,13 @@ export function downloadTrajectoryAsText(
   extraData?: Record<string, any>,
   filename: string = "trajectory.txt",
 ): void {
-  const jsonString = createTrajectoryJson(startPoint, lines, shapes, sequence, extraData);
+  const jsonString = createTrajectoryJson(
+    startPoint,
+    lines,
+    shapes,
+    sequence,
+    extraData,
+  );
 
   triggerDownload(jsonString, "text/plain", filename);
 }
