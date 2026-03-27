@@ -40,6 +40,7 @@
   export let optimizedLines: Line[] | null = null;
   let showPreview = true;
   export let optimizationFailed = false;
+  export let optimizationError = "";
   export let collapsed = false;
 
   let selectionState: Record<string, boolean> = {};
@@ -97,6 +98,7 @@
     isRunning = true;
     progress = 0;
     optimizationFailed = false;
+    optimizationError = "";
     isStopping = false;
 
     if (settings) {
@@ -146,8 +148,12 @@
       });
     }
 
+    if (optimizationResult.error) {
+      optimizationError = optimizationResult.error;
+    }
+
     const finalBestTime = optimizationResult.bestTime;
-    optimizationFailed = finalBestTime >= 10000;
+    optimizationFailed = finalBestTime >= 10000 || !!optimizationError;
 
     isRunning = false;
     isStopping = false;
@@ -169,6 +175,7 @@
       optimizedLines = null;
       showPreview = false;
       optimizationFailed = false;
+      optimizationError = "";
       if (onPreviewChange) onPreviewChange(null);
 
       isOpen = false;
@@ -327,7 +334,14 @@
         </div>
       {/if}
 
-      {#if optimizationFailed}
+      {#if optimizationError}
+        <div
+          class="mt-2 rounded-md bg-yellow-50 border-l-4 border-yellow-400 p-3 text-sm text-yellow-800"
+        >
+          ⚠️ <strong>{optimizationError}</strong> The path's structure is currently
+          invalid.
+        </div>
+      {:else if optimizationFailed}
         <div
           class="mt-2 rounded-md bg-yellow-50 border-l-4 border-yellow-400 p-3 text-sm text-yellow-800"
         >

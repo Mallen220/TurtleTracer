@@ -3,6 +3,7 @@
 import type {
   Line,
   Point,
+  BasePoint,
   SequenceItem,
   Settings,
   Shape,
@@ -572,9 +573,91 @@ export class PathOptimizer {
 
   public async optimize(
     onUpdate: (result: OptimizationResult) => void,
-  ): Promise<{ lines: Line[]; bestTime: number; stopped?: boolean }> {
+  ): Promise<{
+    lines: Line[];
+    bestTime: number;
+    stopped?: boolean;
+    error?: string;
+  }> {
     // Reset cancellation request
     this.stopRequested = false;
+
+    // Early Verification Check for Impossible Paths
+    // A path is structurally impossible to optimize if its fixed points (startPoint or endPoints)
+    // are themselves invalid/colliding, since the optimizer is only allowed to move controlPoints.
+    // If the fixed points are already colliding with an obstacle, bounding box, or out of keep-in zones,
+    // we cannot ever resolve the path.
+    let isPathStructurallyImpossible = false;
+
+    // Check fixed points for basic mathematical validity
+    const isPointInvalid = (p: { x?: number; y?: number } | undefined) => {
+      return (
+        !p ||
+        typeof p.x !== "number" ||
+        typeof p.y !== "number" ||
+        !Number.isFinite(p.x) ||
+        !Number.isFinite(p.y)
+      );
+    };
+
+    if (isPointInvalid(this.startPoint)) {
+      isPathStructurallyImpossible = true;
+    } else {
+      for (const line of this.originalLines) {
+        if (isPointInvalid(line.endPoint)) {
+          isPathStructurallyImpossible = true;
+          break;
+        }
+      }
+    }
+
+    // Use existing validation logic to check if fixed points are already colliding.
+    // Create a dummy timeline holding only wait events at the fixed points.
+    if (!isPathStructurallyImpossible) {
+      const fixedPoints = [this.startPoint];
+      this.originalLines.forEach((l) => fixedPoints.push(l.endPoint as Point));
+
+      const fixedTimeline: TimelineEvent[] = fixedPoints.map((p, i) => {
+        let heading = 0;
+        if ("heading" in p && p.heading === "constant") heading = p.degrees;
+        else if ("heading" in p && p.heading === "linear") heading = p.endDeg;
+
+        return {
+          type: "wait",
+          duration: 0.2, // Arbitrary small duration to force a check
+          startTime: i * 0.2,
+          endTime: (i + 1) * 0.2,
+          atPoint: p,
+          startHeading: heading,
+          targetHeading: heading,
+          lineIndex: i === 0 ? -1 : i - 1, // Use -1 for startPoint to bypass "lineIndex === 0" nearStartBuffer boundary exemptions during this strict check
+        };
+      });
+
+      const fixedMarkers = this.getCollisions(
+        fixedTimeline,
+        this.originalLines,
+      );
+      if (fixedMarkers.length > 0) {
+        isPathStructurallyImpossible = true;
+      }
+    }
+
+    const initialResult = calculatePathTime(
+      this.startPoint,
+      this.originalLines,
+      this.settings,
+      this.sequence,
+    );
+    const initialTimeInvalid = !Number.isFinite(initialResult.totalTime);
+
+    if (isPathStructurallyImpossible || initialTimeInvalid) {
+      return {
+        lines: this.originalLines,
+        bestTime: 20000,
+        error: "No valid path found",
+      };
+    }
 
     // Initialize population
     let population: { lines: Line[]; time: number }[] = [];
