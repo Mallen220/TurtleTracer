@@ -23,8 +23,8 @@ import type { SequenceMacroItem, TurtleData } from "../types";
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 const macroKind = (): SequenceMacroItem["kind"] =>
-  (actionRegistry.getAll().find((a: any) => a.isMacro)?.kind as SequenceMacroItem["kind"]) ??
-  "macro";
+  (actionRegistry.getAll().find((a: any) => a.isMacro)
+    ?.kind as SequenceMacroItem["kind"]) ?? "macro";
 
 function makeMacroItem(filePath: string): SequenceMacroItem {
   return { kind: macroKind(), id: "m1", name: "Test Macro", filePath };
@@ -83,22 +83,33 @@ function setupElectronAPI(
       writes[path] = content;
       return true;
     }),
-    readFile: vi.fn(async (path: string) => JSON.stringify(diskFiles[path] ?? {})),
+    readFile: vi.fn(async (path: string) =>
+      JSON.stringify(diskFiles[path] ?? {}),
+    ),
     listFiles: vi.fn(async (dir: string) => {
       // Return entries whose paths start with dir
-      return Object.keys(diskFiles)
-        .filter((p) => p.startsWith(dir + "/"))
-        .map((p) => {
-          const rest = p.slice(dir.length + 1);
-          const isNested = rest.includes("/");
-          if (isNested) {
-            const subdir = dir + "/" + rest.split("/")[0];
-            return { path: subdir, name: rest.split("/")[0], isDirectory: true };
-          }
-          return { path: p, name: rest, isDirectory: false };
-        })
-        // deduplicate directories
-        .filter((item, idx, arr) => arr.findIndex((x) => x.path === item.path) === idx);
+      return (
+        Object.keys(diskFiles)
+          .filter((p) => p.startsWith(dir + "/"))
+          .map((p) => {
+            const rest = p.slice(dir.length + 1);
+            const isNested = rest.includes("/");
+            if (isNested) {
+              const subdir = dir + "/" + rest.split("/")[0];
+              return {
+                path: subdir,
+                name: rest.split("/")[0],
+                isDirectory: true,
+              };
+            }
+            return { path: p, name: rest, isDirectory: false };
+          })
+          // deduplicate directories
+          .filter(
+            (item, idx, arr) =>
+              arr.findIndex((x) => x.path === item.path) === idx,
+          )
+      );
     }),
     fileExists: vi.fn(async () => false),
     getSavedDirectory: vi.fn(async () => BASE),

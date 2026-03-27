@@ -210,7 +210,9 @@
         <h2
           class="text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2"
         >
-          <FeedbackIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <FeedbackIcon
+            className="w-5 h-5 text-purple-600 dark:text-purple-400"
+          />
           Report Issue / Feedback / Features
         </h2>
         <button
@@ -318,7 +320,9 @@
             {#if cooldownSeconds > 0}
               Wait {Math.floor(cooldownSeconds / 60) + 1}m
             {:else if isSubmitting}
-              <SpinnerIcon className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
+              <SpinnerIcon
+                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+              />
               Submitting...
             {:else}
               Submit Feedback

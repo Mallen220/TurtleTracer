@@ -272,3 +272,17 @@ src/lib/components/icons/InfoIcon.svelte
 src/lib/components/icons/SuccessIcon.svelte
 src/lib/components/icons/index.ts
 src/tests/buttonStyles.test.ts
+src/lib/components/icons/ArrowDownTrayIcon.svelte
+src/lib/components/icons/ChevronRightBoldIcon.svelte
+src/lib/components/icons/CloudArrowDownIcon.svelte
+src/lib/components/icons/CodeBracketSquareIcon.svelte
+src/lib/components/icons/DocumentMagnifyingGlassIcon.svelte
+src/lib/components/icons/DocumentPlusIcon.svelte
+src/lib/components/icons/ExitPresentationModeIcon.svelte
+src/lib/components/icons/FolderPlusIcon.svelte
+src/lib/components/icons/ResetZoomIcon.svelte
+src/lib/components/icons/ServerStackIcon.svelte
+src/lib/components/icons/TriangleWarningIcon.svelte
+src/lib/components/icons/ZoomInIcon.svelte
+src/lib/components/icons/ZoomOutIcon.svelte
+src/tests/macroReferenceUpdater.test.ts

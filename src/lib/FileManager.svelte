@@ -82,7 +82,7 @@
     CodeBracketSquareIcon,
     ServerStackIcon,
     DocumentMagnifyingGlassIcon,
-    RotateIcon
+    RotateIcon,
   } from "./components/icons";
 
   export let isOpen = false;
@@ -642,22 +642,39 @@
           if (openPath === sourceFile.path) {
             currentFilePath.set(newPath);
             selectedFile = { ...selectedFile!, path: newPath };
-          } else if (openPath.startsWith(sourceFile.path + "/") || openPath.startsWith(sourceFile.path + "\\")) {
-            const newOpenPath = newPath + openPath.slice(sourceFile.path.length);
+          } else if (
+            openPath.startsWith(sourceFile.path + "/") ||
+            openPath.startsWith(sourceFile.path + "\\")
+          ) {
+            const newOpenPath =
+              newPath + openPath.slice(sourceFile.path.length);
             currentFilePath.set(newOpenPath);
-            if (selectedFile) selectedFile = { ...selectedFile, path: newOpenPath };
+            if (selectedFile)
+              selectedFile = { ...selectedFile, path: newOpenPath };
           }
         }
 
         // Use the new centralized macro reference updater to deeply fix all references
-        const { mainSequenceChanged } = await updateAllMacroReferences(sourceFile.path, newPath);
+        const { mainSequenceChanged } = await updateAllMacroReferences(
+          sourceFile.path,
+          newPath,
+        );
 
         // Persist the updated sequence to disk so the open file doesn't have stale references
         if (mainSequenceChanged) {
           isUnsaved.set(true);
           const openPath = get(currentFilePath);
           if (openPath) {
-            await saveProject(undefined, undefined, undefined, undefined, undefined, false, openPath, { quiet: true });
+            await saveProject(
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              false,
+              openPath,
+              { quiet: true },
+            );
           }
         }
 
@@ -710,22 +727,38 @@
           if (openPath === file.path) {
             currentFilePath.set(newFilePath);
             selectedFile = { ...selectedFile!, path: newFilePath };
-          } else if (openPath.startsWith(file.path + "/") || openPath.startsWith(file.path + "\\")) {
+          } else if (
+            openPath.startsWith(file.path + "/") ||
+            openPath.startsWith(file.path + "\\")
+          ) {
             const newOpenPath = newFilePath + openPath.slice(file.path.length);
             currentFilePath.set(newOpenPath);
-            if (selectedFile) selectedFile = { ...selectedFile, path: newOpenPath };
+            if (selectedFile)
+              selectedFile = { ...selectedFile, path: newOpenPath };
           }
         }
 
         // Deeply update any macro references
-        const { mainSequenceChanged } = await updateAllMacroReferences(file.path, newFilePath);
+        const { mainSequenceChanged } = await updateAllMacroReferences(
+          file.path,
+          newFilePath,
+        );
 
         // Persist the updated sequence to disk so the open file doesn't have stale references
         if (mainSequenceChanged) {
           isUnsaved.set(true);
           const openPath = get(currentFilePath);
           if (openPath) {
-            await saveProject(undefined, undefined, undefined, undefined, undefined, false, openPath, { quiet: true });
+            await saveProject(
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              false,
+              openPath,
+              { quiet: true },
+            );
           }
         }
 
@@ -1150,7 +1183,9 @@
       <div
         class="bg-white dark:bg-neutral-800 p-8 rounded-xl shadow-2xl flex flex-col items-center border-4 border-dashed border-purple-500 animate-pulse"
       >
-        <CloudArrowDownIcon className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4" />
+        <CloudArrowDownIcon
+          className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
+        />
         <h2 class="text-2xl font-bold mb-2 text-neutral-900 dark:text-white">
           Drop Zone
         </h2>

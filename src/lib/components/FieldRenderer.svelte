@@ -126,7 +126,7 @@
     ZoomInIcon,
     ZoomOutIcon,
     ResetZoomIcon,
-    ExitPresentationModeIcon
+    ExitPresentationModeIcon,
   } from "./icons";
 
   // State from props
