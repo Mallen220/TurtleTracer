@@ -38,6 +38,7 @@
   import FeedbackDialog from "./lib/components/dialogs/FeedbackDialog.svelte";
   import RatingDialog from "./lib/components/dialogs/RatingDialog.svelte";
   import TransformDialog from "./lib/components/dialogs/TransformDialog.svelte";
+  import { CloudArrowDownIcon } from "./lib/components/icons";
 
   // Stores
   import {
@@ -1781,20 +1782,7 @@
     <div
       class="bg-white dark:bg-neutral-800 p-8 rounded-xl shadow-2xl flex flex-col items-center animate-bounce-slight"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-        />
-      </svg>
+      <CloudArrowDownIcon className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4" />
       <h2 class="text-2xl font-bold mb-2 dark:text-white">Drop to Open</h2>
       <p class="text-neutral-500 dark:text-neutral-400">
         Release the file to open project

@@ -118,6 +118,16 @@
   import FieldCoordinates from "./FieldCoordinates.svelte";
   import type { Path } from "two.js/src/path";
   import type { Line as PathLine } from "two.js/src/shapes/line";
+  import {
+    ArrowUpIcon,
+    ChevronRightBoldIcon,
+    SpinnerIcon,
+    DiffIcon,
+    ZoomInIcon,
+    ZoomOutIcon,
+    ResetZoomIcon,
+    ExitPresentationModeIcon
+  } from "./icons";
 
   // State from props
   export let width = 0;
@@ -2087,20 +2097,12 @@
                   opacity: ${isSwerve ? 0.8 : Math.abs(val) > 0.05 ? 0.8 : 0.2};
                 `}
               >
-                <svg
-                  width={arrowSize}
-                  height={arrowSize}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#16a34a"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  style={`transform: rotate(${rot}deg); transition: transform 0.1s;`}
-                >
-                  <line x1="12" y1="19" x2="12" y2="5"></line>
-                  <polyline points="5 12 12 5 19 12"></polyline>
-                </svg>
+                <ArrowUpIcon
+                  width={arrowSize.toString()}
+                  height={arrowSize.toString()}
+                  className="size-6 text-green-600"
+                  style="transform: rotate({rot}deg); transition: transform 0.1s;"
+                />
               </div>
             {/each}
           {/if}
@@ -2109,21 +2111,10 @@
           <div
             style="position:absolute; top:50%; left:50%; transform: translate(-50%, -50%); color: rgba(34, 197, 94, 1.0);"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="3"
-              stroke="currentColor"
-              class="w-6 h-6"
+            <ChevronRightBoldIcon
+              className="w-6 h-6"
               style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M8.25 4.5l7.5 7.5-7.5 7.5"
-              />
-            </svg>
+            />
           </div>
         </div>
       {:else}
@@ -2147,21 +2138,10 @@
               style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: {settings.fakeHeadingArrowColor ||
                 '#ffffff'};"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="3"
-                stroke="currentColor"
-                class="w-6 h-6"
+              <ChevronRightBoldIcon
+                className="w-6 h-6"
                 style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                />
-              </svg>
+              />
             </div>
           {/if}
         </div>
@@ -2209,21 +2189,10 @@
             style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: {settings.fakeHeadingArrowColor ||
               '#ffffff'}; opacity: 0.5;"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="3"
-              stroke="currentColor"
-              class="w-6 h-6"
+            <ChevronRightBoldIcon
+              className="w-6 h-6"
               style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.4));"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M8.25 4.5l7.5 7.5-7.5 7.5"
-              />
-            </svg>
+            />
           </div>
         {/if}
       </div>
@@ -2261,42 +2230,10 @@
           title={isDiffMode ? "Exit Diff Mode" : "Compare with Saved"}
         >
           {#if $isLoadingDiff}
-            <svg
-              class="animate-spin w-4 h-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
+            <SpinnerIcon className="animate-spin w-4 h-4" />
           {:else}
             <!-- Diff Icon -->
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="w-4 h-4"
-            >
-              <path
-                d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
+            <DiffIcon className="w-4 h-4" />
           {/if}
         </button>
         <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
@@ -2315,16 +2252,7 @@
         aria-label="Zoom in"
         title="Zoom In (Cmd/Ctrl + +)"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          class="w-4 h-4"
-        >
-          <path
-            d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
-          />
-        </svg>
+        <ZoomInIcon className="w-4 h-4" />
       </button>
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
@@ -2340,18 +2268,7 @@
         aria-label="Zoom out"
         title="Zoom Out (Cmd/Ctrl + -)"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          class="w-4 h-4"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
-            clip-rule="evenodd"
-          />
-        </svg>
+        <ZoomOutIcon className="w-4 h-4" />
       </button>
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
@@ -2363,21 +2280,7 @@
         aria-label="Reset zoom"
         title="Reset Zoom (Cmd/Ctrl + 0)"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="w-4 h-4"
-        >
-          <polyline points="4 9 4 4 9 4" />
-          <polyline points="15 4 20 4 20 9" />
-          <polyline points="20 15 20 20 15 20" />
-          <polyline points="9 20 4 20 4 15" />
-        </svg>
+        <ResetZoomIcon className="w-4 h-4" />
       </button>
     </div>
   {/if}
@@ -2404,16 +2307,7 @@
           aria-label="Zoom in"
           title="Zoom In"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="w-5 h-5"
-          >
-            <path
-              d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
-            />
-          </svg>
+          <ZoomInIcon className="w-5 h-5" />
         </button>
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
@@ -2429,18 +2323,7 @@
           aria-label="Zoom out"
           title="Zoom Out"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="w-5 h-5"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <ZoomOutIcon className="w-5 h-5" />
         </button>
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
@@ -2452,21 +2335,7 @@
           aria-label="Reset zoom"
           title="Reset Zoom"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="w-5 h-5"
-          >
-            <polyline points="4 9 4 4 9 4" />
-            <polyline points="15 4 20 4 20 9" />
-            <polyline points="20 15 20 20 15 20" />
-            <polyline points="9 20 4 20 4 15" />
-          </svg>
+          <ResetZoomIcon className="w-5 h-5" />
         </button>
         <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
         <button
@@ -2475,20 +2344,7 @@
           aria-label="Exit Presentation Mode"
           title="Exit Presentation Mode (Alt+P)"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="w-5 h-5"
-          >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
+          <ExitPresentationModeIcon className="w-5 h-5" />
         </button>
       </div>
     </div>
