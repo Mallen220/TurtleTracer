@@ -574,19 +574,7 @@
             on:click={() => (showCustomSidebarForm = true)}
             class="w-full flex items-center justify-center gap-2 py-2 px-4 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:border-blue-300 transition-colors"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="size-4"
-              ><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 4.5v15m7.5-7.5h-15"
-              /></svg
-            >
+            <ICONS.PlusIcon className="size-4" />
             Create Custom Sidebar Tool
           </button>
         {:else}
@@ -660,19 +648,7 @@
                     <div
                       class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-400"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="2"
-                        stroke="currentColor"
-                        class="size-4"
-                        ><path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-                        /></svg
-                      >
+                      <ICONS.SearchIcon className="size-4" strokeWidth={2} />
                     </div>
                     <input
                       type="text"
@@ -753,19 +729,7 @@
                         <span class="text-neutral-700 dark:text-neutral-300"
                           >{customActionIconKey}</span
                         >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke-width="2"
-                          stroke="currentColor"
-                          class="size-3 ml-auto text-neutral-400 group-hover:translate-y-0.5 transition-transform"
-                          ><path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="m19.5 8.25-7.5 7.5-7.5-7.5"
-                          /></svg
-                        >
+                        <ICONS.ChevronDownIcon className="size-3 ml-auto text-neutral-400 group-hover:translate-y-0.5 transition-transform" strokeWidth={2} />
                       </button>
                       <div
                         class="absolute z-10 top-full left-0 right-0 mt-2 p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all"

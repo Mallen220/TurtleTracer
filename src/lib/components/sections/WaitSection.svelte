@@ -11,6 +11,7 @@
   import { tooltipPortal } from "../../actions/portal";
   import { actionRegistry } from "../../actionRegistry";
   import { getSmallButtonClass } from "../../../utils/buttonStyles";
+  import ChevronDownIcon from "../icons/ChevronDownIcon.svelte";
 
   export let wait: SequenceWaitItem;
   export let sequence: SequenceItem[];
@@ -115,22 +116,12 @@
         aria-label="{collapsed ? 'Expand' : 'Collapse'} wait"
         aria-expanded={!collapsed}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width={2.5}
-          stroke="currentColor"
-          class="size-3.5 transition-transform duration-200 {collapsed
+        <ChevronDownIcon
+          strokeWidth={2.5}
+          className="size-3.5 transition-transform duration-200 {collapsed
             ? '-rotate-90'
             : 'rotate-0'}"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m19.5 8.25-7.5 7.5-7.5-7.5"
-          />
-        </svg>
+        />
         <span
           class="text-xs font-bold uppercase tracking-wider text-amber-500 whitespace-nowrap"
           >Wait</span
