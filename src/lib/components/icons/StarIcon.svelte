@@ -2,11 +2,12 @@
 <script lang="ts">
   export let className = "size-6";
   export let strokeWidth = 2;
+  export let fill = "none";
 </script>
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  fill="none"
+  fill={fill}
   viewBox="0 0 24 24"
   stroke-width={strokeWidth}
   stroke="currentColor"
