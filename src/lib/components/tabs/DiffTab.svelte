@@ -3,6 +3,11 @@
   import { diffResult } from "../../diffStore";
   import { formatDisplayDistance } from "../../../utils/coordinates";
   import type { Settings } from "../../../types";
+  import {
+    PlusCircleIcon,
+    MinusCircleSolidIcon,
+    PencilSolidIcon,
+  } from "../icons";
 
   export let settings: Settings;
   $: result = $diffResult;
@@ -120,16 +125,9 @@
                 <div
                   class="mt-1 flex-none w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    class="w-3 h-3 text-green-600 dark:text-green-400"
-                  >
-                    <path
-                      d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
-                    />
-                  </svg>
+                  <PlusCircleIcon
+                    className="w-3 h-3 text-green-600 dark:text-green-400"
+                  />
                 </div>
                 <div>
                   <p
@@ -153,18 +151,9 @@
                 <div
                   class="mt-1 flex-none w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    class="w-3 h-3 text-red-600 dark:text-red-400"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
+                  <MinusCircleSolidIcon
+                    className="w-3 h-3 text-red-600 dark:text-red-400"
+                  />
                 </div>
                 <div>
                   <p
@@ -188,16 +177,9 @@
                 <div
                   class="mt-1 flex-none w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    class="w-3 h-3 text-blue-600 dark:text-blue-400"
-                  >
-                    <path
-                      d="M15.98 1.804a1 1 0 00-1.96 0l-.24 1.192a1 1 0 01-.784.785l-1.192.238a1 1 0 000 1.96l1.192.238a1 1 0 01.785.785l.238 1.192a1 1 0 001.96 0l.238-1.192a1 1 0 01.785-.785l1.192-.238a1 1 0 000-1.96l-1.192-.238a1 1 0 01-.785-.785l-.238-1.192zM6.949 5.684a1 1 0 00-1.898 0l-.683 2.051a1 1 0 01-.633.633l-2.051.683a1 1 0 000 1.898l2.051.683a1 1 0 01.633.633l.683 2.051a1 1 0 001.898 0l.683-2.051a1 1 0 01.633-.633l2.051-.683a1 1 0 000-1.898l-2.051-.683a1 1 0 01-.633-.633L6.95 5.684zM13.949 13.684a1 1 0 00-1.898 0l-.184.551a1 1 0 01-.632.633l-.551.183a1 1 0 000 1.898l.551.183a1 1 0 01.633.633l.183.551a1 1 0 001.898 0l.183-.551a1 1 0 01.633-.633l.551-.183a1 1 0 000-1.898l-.551-.183a1 1 0 01-.633-.633l-.183-.551z"
-                    />
-                  </svg>
+                  <PencilSolidIcon
+                    className="w-3 h-3 text-blue-600 dark:text-blue-400"
+                  />
                 </div>
                 <div class="flex-1">
                   <div class="flex items-center gap-2 mb-2">
