@@ -37,7 +37,7 @@
   import TrashIcon from "./icons/TrashIcon.svelte";
   import ColorPicker from "./tools/ColorPicker.svelte";
   import ContextMenu from "./tools/ContextMenu.svelte";
-  import { WaitIcon, RotateIcon, PlusIcon } from "./icons";
+  import { WaitIcon, RotateIcon, PlusIcon, LockIcon, CheckIcon } from "./icons";
   import {
     makeId,
     generateName,
@@ -1229,20 +1229,7 @@
       >
         <span>{copyButtonText}</span>
         {#if copyButtonText === "Copied!"}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="size-6 text-green-500"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="m4.5 12.75 6 6 9-13.5"
-            />
-          </svg>
+          <CheckIcon className="size-6 text-green-500" strokeWidth={1.5} />
         {:else}
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -1363,19 +1350,7 @@
               title="Locked"
               class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                class="h-4 w-4"
-                aria-hidden="true"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
-                  clip-rule="evenodd"
-                />
-              </svg>
+              <LockIcon className="h-4 w-4" />
             </span>
           {:else}
             <span class="h-6 w-6" aria-hidden="true"></span>
@@ -1754,19 +1729,7 @@
                       title="Locked"
                       class="inline-flex items-center justify-center h-6 w-6 text-neutral-400"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        class="h-4 w-4"
-                        aria-hidden="true"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
+                      <LockIcon className="h-4 w-4" />
                     </span>
                     <span class="h-6 w-6" aria-hidden="true"></span>
                   {:else}
