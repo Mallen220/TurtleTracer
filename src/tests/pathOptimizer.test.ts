@@ -25,7 +25,7 @@ describe("PathOptimizer", () => {
     registerCoreUI();
 
     startPoint = {
-      x: 0,
+      x: 20, // Move startPoint x>16 to avoid field boundary collision tests
       y: 20,
       heading: "constant",
       degrees: 0,
@@ -161,16 +161,16 @@ describe("PathOptimizer", () => {
     expect(isColliding).toBe(true);
   });
 
-  it("should handle collisions by returning a high fitness score", async () => {
-    // Place a shape that guarantees a corner overlap (as verified above)
+  it("should handle collisions by returning an explicit invalid path error", async () => {
+    // Place a shape that overlaps directly with startPoint (20, 20)
     shapes = [
       {
         id: "obstacle1",
         vertices: [
-          { x: 30, y: 0 },
-          { x: 30, y: 60 },
-          { x: 40, y: 60 },
-          { x: 40, y: 0 },
+          { x: 10, y: 10 },
+          { x: 10, y: 30 },
+          { x: 30, y: 30 },
+          { x: 30, y: 10 },
         ],
         color: "blue",
         fillColor: "blue",
@@ -192,22 +192,25 @@ describe("PathOptimizer", () => {
     const result = await optimizer.optimize(onUpdate);
 
     expect(result.bestTime).toBeGreaterThan(10000);
+    expect(result.error).toBe("No valid path found");
   });
 
-  it("should mutate lines to avoid obstacles", async () => {
+  it("should mutate lines to avoid obstacles when fixed points are valid", async () => {
     // Ensure this obstacle is also detectable by current logic
-    // A small block at 25,25 (center of path)
-    // Robot covers 17-33.
-    // Block at 24-26 is fully inside the robot.
+    // A small block at 35,35 (center of path)
+    // Robot covers 27-43.
+    // Block at 34-36 is fully inside the robot.
     // So "shape vertex inside robot" check should pass.
+    // Importantly, startPoint (20, 20) and endPoint (50, 50) are OUTSIDE the obstacle,
+    // making the path solvable.
     shapes = [
       {
         id: "obstacle1",
         vertices: [
-          { x: 24, y: 24 },
-          { x: 24, y: 26 },
-          { x: 26, y: 26 },
-          { x: 26, y: 24 },
+          { x: 34, y: 34 },
+          { x: 34, y: 36 },
+          { x: 36, y: 36 },
+          { x: 36, y: 34 },
         ],
         color: "blue",
         fillColor: "blue",

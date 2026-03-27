@@ -3,6 +3,7 @@
 import type {
   Line,
   Point,
+  BasePoint,
   SequenceItem,
   Settings,
   Shape,
@@ -582,24 +583,118 @@ export class PathOptimizer {
     this.stopRequested = false;
 
     // Early Verification Check for Impossible Paths
-    let anyPointInvalid = false;
-    const checkPoint = (p: { x?: number; y?: number } | undefined) => {
-      if (
+    // A path is structurally impossible to optimize if its fixed points (startPoint or endPoints)
+    // are themselves invalid/colliding, since the optimizer is only allowed to move controlPoints.
+    // If the fixed points are already colliding with an obstacle, bounding box, or out of keep-in zones,
+    // we cannot ever resolve the path.
+    let isPathStructurallyImpossible = false;
+
+    // Check fixed points for basic mathematical validity
+    const isPointInvalid = (p: { x?: number; y?: number } | undefined) => {
+      return (
         !p ||
         typeof p.x !== "number" ||
         typeof p.y !== "number" ||
         !Number.isFinite(p.x) ||
         !Number.isFinite(p.y)
-      ) {
-        anyPointInvalid = true;
-      }
+      );
     };
 
-    checkPoint(this.startPoint);
-    this.originalLines.forEach((line) => {
-      checkPoint(line.endPoint);
-      line.controlPoints.forEach(checkPoint);
-    });
+    if (isPointInvalid(this.startPoint)) {
+      isPathStructurallyImpossible = true;
+    } else {
+      for (const line of this.originalLines) {
+        if (isPointInvalid(line.endPoint)) {
+          isPathStructurallyImpossible = true;
+          break;
+        }
+      }
+    }
+
+    // Check fixed points against collision logic
+    if (!isPathStructurallyImpossible) {
+      const rLength =
+        this.settings.rLength + (this.settings.safetyMargin || 0) * 2;
+      const rWidth =
+        this.settings.rWidth + (this.settings.safetyMargin || 0) * 2;
+
+      const checkCollision = (p: Point | BasePoint) => {
+        // Assume default heading 0 for static point check if unavailable to maximize safety
+        let heading = 0;
+        if ("heading" in p && p.heading === "constant") heading = p.degrees;
+        if ("heading" in p && p.heading === "linear") heading = p.endDeg;
+
+        const corners = getRobotCorners(p.x, p.y, heading, rLength, rWidth);
+
+        // 1. Boundary Checks
+        if (this.settings.validateFieldBoundaries !== false) {
+          const BOUNDARY_EPSILON = 0.05;
+          for (const corner of corners) {
+            if (
+              corner.x < -BOUNDARY_EPSILON ||
+              corner.x > FIELD_SIZE + BOUNDARY_EPSILON ||
+              corner.y < -BOUNDARY_EPSILON ||
+              corner.y > FIELD_SIZE + BOUNDARY_EPSILON
+            ) {
+              return true;
+            }
+          }
+        }
+
+        // 2. Obstacle Checks
+        for (const shape of this.activeObstacles) {
+          for (const corner of corners) {
+            if (pointInPolygon([corner.x, corner.y], shape.vertices)) {
+              return true;
+            }
+          }
+          for (const v of shape.vertices) {
+            if (pointInPolygon([v.x, v.y], corners)) {
+              return true;
+            }
+          }
+        }
+
+        // 3. Keep-In Zone Checks
+        if (this.activeKeepInZones.length > 0) {
+          const rawCorners = getRobotCorners(
+            p.x,
+            p.y,
+            heading,
+            this.settings.rLength,
+            this.settings.rWidth,
+          );
+          let insideAnyZone = false;
+          for (const zone of this.activeKeepInZones) {
+            let allCornersIn = true;
+            for (const corner of rawCorners) {
+              if (!pointInPolygon([corner.x, corner.y], zone.vertices)) {
+                allCornersIn = false;
+                break;
+              }
+            }
+            if (allCornersIn) {
+              insideAnyZone = true;
+              break;
+            }
+          }
+          if (!insideAnyZone) return true;
+        }
+
+        return false;
+      };
+
+      if (checkCollision(this.startPoint)) {
+        isPathStructurallyImpossible = true;
+      } else {
+        for (const line of this.originalLines) {
+          if (checkCollision(line.endPoint)) {
+            isPathStructurallyImpossible = true;
+            break;
+          }
+        }
+      }
+    }
 
     const initialResult = calculatePathTime(
       this.startPoint,
@@ -609,7 +704,7 @@ export class PathOptimizer {
     );
     const initialTimeInvalid = !Number.isFinite(initialResult.totalTime);
 
-    if (anyPointInvalid || initialTimeInvalid) {
+    if (isPathStructurallyImpossible || initialTimeInvalid) {
       return {
         lines: this.originalLines,
         bestTime: 20000,
