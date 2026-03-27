@@ -900,6 +900,12 @@
   $: if (settings && settings.keyBindings) {
     hotkeys.unbind();
 
+    // Override hotkeys-js default filter to allow shortcuts on input fields
+    // since we do our own filtering via `shouldBlockShortcut`.
+    hotkeys.filter = function (event) {
+      return true;
+    };
+
     // Bind all actions defined in settings
     settings.keyBindings.forEach((binding) => {
       const handler = (actions as any)[binding.action];
