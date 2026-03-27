@@ -2,7 +2,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { cubicInOut } from "svelte/easing";
-  import { CloseIcon, SearchIcon } from "../icons/index";
+  import {
+    CloseIcon,
+    SearchIcon,
+    ArrowPathIcon,
+    TriangleWarningIcon,
+  } from "../icons/index";
   import { fade, fly } from "svelte/transition";
   import {
     resetSettings,
@@ -340,20 +345,7 @@
               on:click={handleReset}
               class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-lg transition-colors"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width={1.5}
-                stroke="currentColor"
-                class="size-4"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                />
-              </svg>
+              <ArrowPathIcon className="size-4" />
               Reset Defaults
             </button>
           </div>
@@ -400,20 +392,9 @@
             <div
               class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg flex gap-3"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width={1.5}
-                stroke="currentColor"
-                class="size-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-                />
-              </svg>
+              <TriangleWarningIcon
+                className="size-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+              />
               <div class="text-sm text-amber-900 dark:text-amber-100">
                 <span class="font-semibold block mb-0.5">UI Settings Only</span>
                 <span class="opacity-90"

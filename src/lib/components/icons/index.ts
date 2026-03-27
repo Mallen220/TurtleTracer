@@ -100,3 +100,5 @@ export { default as PencilSolidIcon } from "./PencilSolidIcon.svelte";
 export { default as MapPinIcon } from "./MapPinIcon.svelte";
 export { default as DocumentIcon } from "./DocumentIcon.svelte";
 export { default as ArrowRightStraightIcon } from "./ArrowRightStraightIcon.svelte";
+export { default as PhotoIcon } from "./PhotoIcon.svelte";
+export { default as ArrowPathIcon } from "./ArrowPathIcon.svelte";
