@@ -3,6 +3,7 @@
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
   import { onMount } from "svelte";
+  import SearchIcon from "./icons/SearchIcon.svelte";
 
   export let isOpen = false;
   export let commands: {
@@ -162,20 +163,10 @@
       <div
         class="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl flex items-center px-5 py-4 border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-6 text-neutral-400 mr-4 flex-shrink-0"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-          />
-        </svg>
+        <SearchIcon
+          className="size-6 text-neutral-400 mr-4 flex-shrink-0"
+          strokeWidth={2}
+        />
         <input
           bind:this={inputElement}
           type="text"
