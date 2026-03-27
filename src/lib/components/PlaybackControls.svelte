@@ -31,6 +31,7 @@
   import { formatTime, getShortcutFromSettings } from "../../utils";
   import { createEventDispatcher, onMount, onDestroy } from "svelte";
   import { loopRangeActiveStore, loopRangeStore } from "../../lib/projectStore";
+  import ContextMenu from "./tools/ContextMenu.svelte";
 
   const dispatch = createEventDispatcher();
 
@@ -46,6 +47,11 @@
   let timelineRect: DOMRect | null = null;
   let timelineContainer: HTMLElement;
   let ignoreClick = false;
+
+  let showContextMenu = false;
+  let contextMenuX = 0;
+  let contextMenuY = 0;
+  let contextMenuTargetId: string | null = null;
 
   let draggingLoopHandle: "min" | "max" | null = null;
   let loopRangeActive = false;
@@ -293,7 +299,42 @@
     window.removeEventListener("mousemove", handleWindowMouseMove);
     window.removeEventListener("mouseup", handleWindowMouseUp);
   }
+
+  function handleContextMenu(e: MouseEvent, id: string | undefined) {
+    if (!id) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Position menu based on mouse cursor
+    contextMenuX = e.clientX;
+    contextMenuY = e.clientY;
+    contextMenuTargetId = id;
+    showContextMenu = true;
+  }
+
+  function handleContextMenuAction(action: string) {
+    if (contextMenuTargetId) {
+      dispatch("markerAction", { id: contextMenuTargetId, action });
+    }
+    showContextMenu = false;
+  }
 </script>
+
+{#if showContextMenu}
+  <ContextMenu
+    x={contextMenuX}
+    y={contextMenuY}
+    items={[
+      {
+        label: "Delete Marker",
+        action: "delete",
+        danger: true,
+      },
+    ]}
+    on:close={() => (showContextMenu = false)}
+    on:action={(e) => handleContextMenuAction(e.detail)}
+  />
+{/if}
 
 <div
   id="playback-controls"
@@ -428,6 +469,7 @@
           role="button"
           tabindex="0"
           on:mousedown={(e) => handleMarkerDragStart(e, index, item)}
+          on:contextmenu={(e) => handleContextMenu(e, item.id)}
           on:click={(e) => {
             if (ignoreClick) return;
             if (draggingMarkerIndex === null) handleSeek(item.percent);
