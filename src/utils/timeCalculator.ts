@@ -15,7 +15,6 @@ import {
   getAngularDifference,
   getDistance,
 } from "./math";
-import { getRandomColor } from "./draw";
 import { actionRegistry } from "../lib/actionRegistry";
 
 /**
@@ -148,24 +147,6 @@ function getBezierSecondDerivative(
     });
   }
   return getCurvePoint(t, rPoints);
-}
-
-/**
- * Calculate curvature at t.
- */
-function getCurvatureRadius(
-  d1: { x: number; y: number },
-  d2: { x: number; y: number },
-): number {
-  const numerator = Math.abs(d1.x * d2.y - d1.y * d2.x);
-  const denominator = Math.pow(d1.x * d1.x + d1.y * d1.y, 1.5);
-
-  if (Math.abs(d1.x) < 1e-6 && Math.abs(d1.y) < 1e-6) {
-    return 0;
-  }
-
-  if (numerator < 1e-6) return Infinity; // Straight line
-  return denominator / numerator;
 }
 
 interface PathStep {

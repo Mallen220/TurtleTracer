@@ -21,8 +21,8 @@ export function easeInOutQuad(x: number): number {
   return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
 }
 
-export function getMousePos(evt: MouseEvent, canvas: any) {
-  let rect = canvas.getBoundingClientRect();
+export function getMousePos(evt: MouseEvent, canvas: SVGSVGElement) {
+  const rect = canvas.getBoundingClientRect();
   return {
     x:
       ((evt.clientX - rect.left) / (rect.right - rect.left)) *
@@ -312,7 +312,7 @@ export function getLineEndHeading(
 }
 
 export function vh(percent: number) {
-  var h = Math.max(
+  const h = Math.max(
     document.documentElement.clientHeight,
     window.innerHeight || 0,
   );
@@ -320,7 +320,7 @@ export function vh(percent: number) {
 }
 
 export function vw(percent: number) {
-  var w = Math.max(
+  const w = Math.max(
     document.documentElement.clientWidth,
     window.innerWidth || 0,
   );
