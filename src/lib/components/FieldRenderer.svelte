@@ -5,6 +5,8 @@
   import Two from "two.js";
   import * as d3 from "d3";
   import { computeZoomStep, computePanForZoom } from "../zoomHelpers";
+  import { getDisplayShortcut } from "../../utils/shortcuts";
+  import { DEFAULT_KEY_BINDINGS } from "../../config/keybindings";
   import {
     gridSize,
     snapToGrid,
@@ -1694,6 +1696,7 @@
           if (isEndPoint) {
             menuItems.push({
               label: "Add Wait Command",
+              shortcut: getDisplayShortcut("addWait", settings.keyBindings || DEFAULT_KEY_BINDINGS),
               onClick: () => {
                 const lineId = lines[lineIndex].id;
                 if (!lineId) return;
@@ -1721,6 +1724,7 @@
 
             menuItems.push({
               label: "Delete Path",
+              shortcut: getDisplayShortcut("removeSelected", settings.keyBindings || DEFAULT_KEY_BINDINGS),
               danger: true,
               onClick: () => {
                 linesStore.update((l) => {
@@ -1734,8 +1738,9 @@
             });
 
             const currentHeading = lines[lineIndex].endPoint.heading;
+            const headingShortcut = getDisplayShortcut("toggleHeadingMode", settings.keyBindings || DEFAULT_KEY_BINDINGS);
             menuItems.push({ separator: true });
-            menuItems.push({ label: "Heading Mode", disabled: true });
+            menuItems.push({ label: "Heading Mode", disabled: true, shortcut: headingShortcut });
             menuItems.push({
               label: "Tangential",
               disabled: currentHeading === "tangential",
@@ -1817,8 +1822,9 @@
             });
           } else if (isStartPoint) {
             const currentHeading = startPoint.heading;
+            const headingShortcut = getDisplayShortcut("toggleHeadingMode", settings.keyBindings || DEFAULT_KEY_BINDINGS);
             menuItems.push({ separator: true });
-            menuItems.push({ label: "Heading Mode", disabled: true });
+            menuItems.push({ label: "Heading Mode", disabled: true, shortcut: headingShortcut });
             menuItems.push({
               label: "Tangential",
               disabled: currentHeading === "tangential",
@@ -1946,6 +1952,7 @@
       }
       menuItems.push({
         label: "Transform Path",
+        shortcut: getDisplayShortcut("toggleTransformDialog", settings.keyBindings || DEFAULT_KEY_BINDINGS),
         onClick: () => {
           showTransformDialog.set(true);
           showContextMenu = false;
