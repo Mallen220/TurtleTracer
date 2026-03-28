@@ -19,6 +19,9 @@
     <a href="LICENSE">
       <img src="https://img.shields.io/badge/License-Apache_2.0-00C853.svg?style=for-the-badge" alt="License">
     </a>
+    <a href="https://gitcgr.com/Mallen220/TurtleTracer" target="_blank" rel="noopener noreferrer">
+      <img src="https://gitcgr.com/badge/Mallen220/TurtleTracer.svg" alt="gitcgr" />
+    </a>
     <img src="https://img.shields.io/badge/Platform-macOS%20|%20Windows%20|%20Linux-424242.svg?style=for-the-badge" alt="Platform">
   </p>
 
