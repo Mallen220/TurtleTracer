@@ -12,7 +12,12 @@
   } from "../../../stores";
   const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import MarkdownIt from "markdown-it";
-  import { CloseIcon, SparklesIcon, ListIcon, ArrowDownTrayIcon } from "../icons";
+  import {
+    CloseIcon,
+    SparklesIcon,
+    ListIcon,
+    ArrowDownTrayIcon,
+  } from "../icons";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
 
   export let show = false;

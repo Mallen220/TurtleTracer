@@ -1653,13 +1653,27 @@
 
     // Handle multi-selection alignment and distribution
     const multiSel = $multiSelectedPointIds;
-    const isClickOnMultiSel = currentElem ? multiSel.includes(currentElem) : true;
+    const isClickOnMultiSel = currentElem
+      ? multiSel.includes(currentElem)
+      : true;
 
-    if (multiSel.length > 1 && multiSel.every(id => id.startsWith("point-")) && isClickOnMultiSel) {
-      menuItems.push(...getAlignmentMenuItems(multiSel, startPoint, lines, (newLines, newStartPoint) => {
-        linesStore.set(newLines);
-        startPointStore.set(newStartPoint);
-      }, onRecordChange));
+    if (
+      multiSel.length > 1 &&
+      multiSel.every((id) => id.startsWith("point-")) &&
+      isClickOnMultiSel
+    ) {
+      menuItems.push(
+        ...getAlignmentMenuItems(
+          multiSel,
+          startPoint,
+          lines,
+          (newLines, newStartPoint) => {
+            linesStore.set(newLines);
+            startPointStore.set(newStartPoint);
+          },
+          onRecordChange,
+        ),
+      );
     }
 
     if (currentElem && (!isClickOnMultiSel || multiSel.length <= 1)) {
@@ -1708,7 +1722,10 @@
           if (isEndPoint) {
             menuItems.push({
               label: "Add Wait Command",
-              shortcut: getDisplayShortcut("addWait", settings.keyBindings || DEFAULT_KEY_BINDINGS),
+              shortcut: getDisplayShortcut(
+                "addWait",
+                settings.keyBindings || DEFAULT_KEY_BINDINGS,
+              ),
               onClick: () => {
                 const lineId = lines[lineIndex].id;
                 if (!lineId) return;
@@ -1736,7 +1753,10 @@
 
             menuItems.push({
               label: "Delete Path",
-              shortcut: getDisplayShortcut("removeSelected", settings.keyBindings || DEFAULT_KEY_BINDINGS),
+              shortcut: getDisplayShortcut(
+                "removeSelected",
+                settings.keyBindings || DEFAULT_KEY_BINDINGS,
+              ),
               danger: true,
               onClick: () => {
                 linesStore.update((l) => {
@@ -1750,9 +1770,16 @@
             });
 
             const currentHeading = lines[lineIndex].endPoint.heading;
-            const headingShortcut = getDisplayShortcut("toggleHeadingMode", settings.keyBindings || DEFAULT_KEY_BINDINGS);
+            const headingShortcut = getDisplayShortcut(
+              "toggleHeadingMode",
+              settings.keyBindings || DEFAULT_KEY_BINDINGS,
+            );
             menuItems.push({ separator: true });
-            menuItems.push({ label: "Heading Mode", disabled: true, shortcut: headingShortcut });
+            menuItems.push({
+              label: "Heading Mode",
+              disabled: true,
+              shortcut: headingShortcut,
+            });
             menuItems.push({
               label: "Tangential",
               disabled: currentHeading === "tangential",
@@ -1834,9 +1861,16 @@
             });
           } else if (isStartPoint) {
             const currentHeading = startPoint.heading;
-            const headingShortcut = getDisplayShortcut("toggleHeadingMode", settings.keyBindings || DEFAULT_KEY_BINDINGS);
+            const headingShortcut = getDisplayShortcut(
+              "toggleHeadingMode",
+              settings.keyBindings || DEFAULT_KEY_BINDINGS,
+            );
             menuItems.push({ separator: true });
-            menuItems.push({ label: "Heading Mode", disabled: true, shortcut: headingShortcut });
+            menuItems.push({
+              label: "Heading Mode",
+              disabled: true,
+              shortcut: headingShortcut,
+            });
             menuItems.push({
               label: "Tangential",
               disabled: currentHeading === "tangential",
@@ -1964,7 +1998,10 @@
       }
       menuItems.push({
         label: "Transform Path",
-        shortcut: getDisplayShortcut("toggleTransformDialog", settings.keyBindings || DEFAULT_KEY_BINDINGS),
+        shortcut: getDisplayShortcut(
+          "toggleTransformDialog",
+          settings.keyBindings || DEFAULT_KEY_BINDINGS,
+        ),
         onClick: () => {
           showTransformDialog.set(true);
           showContextMenu = false;
