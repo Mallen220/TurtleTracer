@@ -13,6 +13,7 @@
     separator?: boolean;
     danger?: boolean;
     disabled?: boolean;
+    shortcut?: string;
   }[] = [];
 
   const dispatch = createEventDispatcher<{
@@ -87,7 +88,7 @@
     {:else}
       <button
         on:click={() => handleItemClick(item)}
-        class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2 {item.danger
+        class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between {item.danger
           ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
           : 'text-neutral-700 dark:text-neutral-200'} {item.disabled
           ? 'opacity-50 cursor-not-allowed'
@@ -95,12 +96,17 @@
         disabled={item.disabled}
         role="menuitem"
       >
-        {#if item.icon}
-          {#if typeof item.icon === "object" || typeof item.icon === "function"}
-            <svelte:component this={item.icon} class="size-4" />
+        <span class="flex items-center gap-2">
+          {#if item.icon}
+            {#if typeof item.icon === "object" || typeof item.icon === "function"}
+              <svelte:component this={item.icon} class="size-4" />
+            {/if}
           {/if}
+          {item.label}
+        </span>
+        {#if item.shortcut}
+          <span class="text-xs text-neutral-400 dark:text-neutral-500 font-sans ml-4">{item.shortcut}</span>
         {/if}
-        {item.label}
       </button>
     {/if}
   {/each}
