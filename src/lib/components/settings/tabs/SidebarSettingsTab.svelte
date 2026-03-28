@@ -620,7 +620,10 @@
                         <span class="text-neutral-700 dark:text-neutral-300"
                           >{customActionIconKey}</span
                         >
-                        <ICONS.ChevronDownIcon className="size-3 ml-auto text-neutral-400 group-hover:translate-y-0.5 transition-transform" strokeWidth={2} />
+                        <ICONS.ChevronDownIcon
+                          className="size-3 ml-auto text-neutral-400 group-hover:translate-y-0.5 transition-transform"
+                          strokeWidth={2}
+                        />
                       </button>
                       <div
                         class="absolute z-10 top-full left-0 right-0 mt-2 p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all"

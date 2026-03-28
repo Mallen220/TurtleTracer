@@ -105,7 +105,10 @@
           {item.label}
         </span>
         {#if item.shortcut}
-          <span class="text-xs text-neutral-400 dark:text-neutral-500 font-sans ml-4">{item.shortcut}</span>
+          <span
+            class="text-xs text-neutral-400 dark:text-neutral-500 font-sans ml-4"
+            >{item.shortcut}</span
+          >
         {/if}
       </button>
     {/if}

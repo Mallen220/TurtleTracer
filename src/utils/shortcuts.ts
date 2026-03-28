@@ -7,7 +7,9 @@ export function getDisplayShortcut(
 ): string {
   if (!settingsKeybindings) return "";
 
-  const binding = settingsKeybindings.find((b) => b.action === actionId || b.id === actionId);
+  const binding = settingsKeybindings.find(
+    (b) => b.action === actionId || b.id === actionId,
+  );
   if (!binding || !binding.key) return "";
 
   const isMac =

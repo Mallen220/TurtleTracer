@@ -6,11 +6,14 @@ export function getAlignmentMenuItems(
   startPoint: Point,
   lines: Line[],
   onUpdate: (newLines: Line[], newStartPoint: Point) => void,
-  onRecordChange: (action?: string) => void
+  onRecordChange: (action?: string) => void,
 ) {
   let menuItems: any[] = [];
 
-  menuItems.push({ label: `Selected Points: ${multiSel.length}`, disabled: true });
+  menuItems.push({
+    label: `Selected Points: ${multiSel.length}`,
+    disabled: true,
+  });
   menuItems.push({ separator: true });
 
   menuItems.push({

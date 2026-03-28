@@ -338,7 +338,10 @@
                   {#if shape.visible !== false}
                     <EyeIcon className="size-4" strokeWidth={1.5} />
                   {:else}
-                    <EyeSlashIcon className="size-4 text-neutral-400" strokeWidth={1.5} />
+                    <EyeSlashIcon
+                      className="size-4 text-neutral-400"
+                      strokeWidth={1.5}
+                    />
                   {/if}
                 </button>
                 <button
