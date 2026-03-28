@@ -7,6 +7,18 @@
   import type { SequenceMacroItem, SequenceItem } from "../../../types/index";
   import { actionRegistry } from "../../actionRegistry";
   import { getSmallButtonClass } from "../../../utils/buttonStyles";
+  import {
+    ChevronRightIcon,
+    EyeIcon,
+    EyeSlashIcon,
+    LockIcon,
+    UnlockIcon,
+    ArrowUpIcon,
+    ArrowDownIcon,
+    PlusIcon,
+    ChevronDownIcon,
+    UnlinkIcon,
+  } from "../icons";
 
   export let macro: SequenceMacroItem;
   export let sequence: SequenceItem[];
@@ -86,22 +98,11 @@
         aria-label="{collapsed ? 'Expand' : 'Collapse'} macro"
         aria-expanded={!collapsed}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width={2.5}
-          stroke="currentColor"
-          class="size-3.5 transition-transform duration-200 {collapsed
-            ? '-rotate-90'
-            : 'rotate-0'}"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m19.5 8.25-7.5 7.5-7.5-7.5"
-          />
-        </svg>
+        <ChevronRightIcon
+          className="size-3.5 transition-transform duration-200 {collapsed
+            ? 'rotate-0'
+            : 'rotate-90'}"
+        />
         <span
           class="text-xs font-bold uppercase tracking-wider text-teal-500 whitespace-nowrap"
           >Macro</span
@@ -138,40 +139,9 @@
         aria-label={isHidden ? "Show Macro" : "Hide Macro"}
       >
         {#if isHidden}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-4 text-neutral-400"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
-            />
-          </svg>
+          <EyeSlashIcon className="size-4 text-neutral-400" strokeWidth={2} />
         {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-4"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-            />
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-            />
-          </svg>
+          <EyeIcon className="size-4" strokeWidth={2} />
         {/if}
       </button>
 
@@ -185,33 +155,9 @@
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
       >
         {#if macro.locked}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            class="size-4 text-teal-500"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <LockIcon className="size-4 text-teal-500" />
         {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width={2}
-            stroke="currentColor"
-            class="size-4"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-            />
-          </svg>
+          <UnlockIcon className="size-4" strokeWidth={2} />
         {/if}
       </button>
 
@@ -233,18 +179,7 @@
           title="Move Up"
           aria-label="Move Up"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3.5"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 17a.75.75 0 0 1-.75-.75V5.612L5.29 9.77a.75.75 0 0 1-1.08-1.04l5.25-5.5a.75.75 0 0 1 1.08 0l5.25 5.5a.75.75 0 1 1-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0 1 10 17Z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <ArrowUpIcon className="size-3.5" />
         </button>
         <button
           on:click|stopPropagation={() => {
@@ -255,18 +190,7 @@
           title="Move Down"
           aria-label="Move Down"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="size-3.5"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 3a.75.75 0 0 1 .75.75v10.638l3.96-4.158a.75.75 0 1 1 1.08 1.04l-5.25 5.5a.75.75 0 0 1-1.08 0l-5.25-5.5a.75.75 0 1 1 1.08-1.04l3.96 4.158V3.75A.75.75 0 0 1 10 3Z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <ArrowDownIcon className="size-3.5" />
         </button>
       </div>
 
@@ -280,20 +204,7 @@
           aria-label="Unlink Macro"
           class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-4"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
-            />
-          </svg>
+          <UnlinkIcon className="size-4" strokeWidth={2} />
         </button>
       {/if}
 
@@ -333,22 +244,11 @@
               : "bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300"
           }`}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="size-3.5 transition-transform duration-200 {showTransforms
+          <ChevronDownIcon
+            className="size-3.5 transition-transform duration-200 {showTransforms
               ? 'rotate-180'
               : ''}"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-            />
-          </svg>
+          />
           <div class="flex items-center gap-1.5">
             <span>Transform Geometry</span>
             {#if macro.transformations && macro.transformations.length > 0}
@@ -392,16 +292,7 @@
               class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium ${getSmallButtonClass(color)}`}
               title={`Add ${def.label} After`}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                class="size-3"
-              >
-                <path
-                  d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
-                />
-              </svg>
+              <PlusIcon className="size-3" />
               {def.label}
             </button>
           {/if}
