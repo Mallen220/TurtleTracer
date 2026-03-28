@@ -5,6 +5,7 @@
   import type { Settings } from "../../../../types/index";
   import RobotProfileManager from "../../settings/RobotProfileManager.svelte";
   import { notification } from "../../../../stores";
+  import { CloseIcon } from "../../icons";
 
   export let settings: Settings;
   export let searchQuery: string;
@@ -348,20 +349,7 @@
             }}
             class="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="size-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="3"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <CloseIcon className="size-3" strokeWidth={3} />
           </button>
         {/if}
       </div>
