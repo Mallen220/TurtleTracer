@@ -12,7 +12,7 @@
   } from "../../../stores";
   const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import MarkdownIt from "markdown-it";
-  import { CloseIcon, SparklesIcon } from "../icons";
+  import { CloseIcon, SparklesIcon, ListIcon, ArrowDownTrayIcon } from "../icons";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
 
   export let show = false;
@@ -261,18 +261,7 @@
           <div
             class="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-white"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              class="w-4 h-4 text-purple-500"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M4.125 3C3.089 3 2.25 3.84 2.25 4.875V18a3 3 0 0 0 3 3h15a3 3 0 0 1-3-3V4.875C17.25 3.839 16.41 3 15.375 3H4.125ZM12 9.75a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 0 0-1.5H12Zm-.75-2.25a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5H12a.75.75 0 0 1-.75-.75ZM6 12.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5H6Zm-.75 3.75a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75ZM6 6.75a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5H6Zm-.75 3.75a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75ZM6 15.75a.75.75 0 0 0 0 1.5h2.25a.75.75 0 0 0 0-1.5H6Z"
-                clip-rule="evenodd"
-              />
-            </svg>
+            <ListIcon className="w-4 h-4 text-purple-500" />
             Release Notes
           </div>
           <div
@@ -296,20 +285,7 @@
             on:click={handleDownload}
             class="w-full py-3 px-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-semibold rounded-xl transition-all transform active:scale-[0.98] shadow-lg shadow-neutral-500/20 dark:shadow-none flex justify-center items-center gap-2"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="w-5 h-5"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
-              />
-            </svg>
+            <ArrowDownTrayIcon className="w-5 h-5" />
             Download & Install
           </button>
 

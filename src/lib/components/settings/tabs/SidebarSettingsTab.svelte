@@ -323,19 +323,7 @@
           <div
             class="flex-none text-neutral-300 dark:text-neutral-600 cursor-grab active:cursor-grabbing hover:text-neutral-500 dark:hover:text-neutral-400 transition-colors"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="size-4"
-              ><path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-              /></svg
-            >
+            <ICONS.ListIcon className="size-4" />
           </div>
           <!-- Icon -->
           <div
@@ -353,37 +341,13 @@
                 {@html item.icon}
               {/if}
             {:else if item.id === "separator"}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-4"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M19.5 12h-15"
-                /></svg
-              >
+              <ICONS.MinusCircleSolidIcon className="size-4" />
             {:else if item.id === "spacer"}
               <div
                 class="h-4 w-4 border-2 border-dashed border-neutral-300 rounded-full"
               ></div>
             {:else}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-4"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 4.5v15m7.5-7.5h-15"
-                /></svg
-              >
+              <ICONS.PlusIcon className="size-4" />
             {/if}
           </div>
           <!-- Label -->
@@ -401,19 +365,7 @@
               class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Move up"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-4"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M4.5 15.75l7.5-7.5 7.5 7.5"
-                /></svg
-              >
+              <ICONS.ChevronUpIcon className="size-4" />
             </button>
             <button
               on:click={() => moveSidebarItemDown(idx)}
@@ -421,38 +373,14 @@
               class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Move down"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-4"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-                /></svg
-              >
+              <ICONS.ChevronDownIcon className="size-4" />
             </button>
             <button
               on:click={() => removeSidebarItem(idx)}
               class="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
               title="Remove from sidebar"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                class="size-4"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                /></svg
-              >
+              <ICONS.CloseIcon className="size-4" />
             </button>
           </div>
         </div>
@@ -492,19 +420,7 @@
                     {@html available.iconSvg}
                   {/if}
                 {:else}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="2"
-                    stroke="currentColor"
-                    class="size-4"
-                    ><path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 4.5v15m7.5-7.5h-15"
-                    /></svg
-                  >
+                  <ICONS.PlusIcon className="size-4" />
                 {/if}
               </span>
               <span class="truncate" title={available.label}
@@ -547,20 +463,7 @@
             class="inline-flex items-center gap-2 px-2.5 py-1 text-xs font-semibold text-red-600 bg-red-50 hover:text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             disabled={!isSidebarLayoutModified && !hasCustomSidebarTools}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="size-4"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"
-              />
-            </svg>
+            <ICONS.ResetIcon className="size-4" />
             Reset Sidebar
           </button>
         </div>
@@ -594,19 +497,7 @@
                 on:click={() => (showCustomSidebarForm = false)}
                 class="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="2"
-                  stroke="currentColor"
-                  class="size-4"
-                  ><path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  /></svg
-                >
+                <ICONS.CloseIcon className="size-4" />
               </button>
             </div>
 

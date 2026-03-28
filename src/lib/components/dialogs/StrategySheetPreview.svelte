@@ -16,6 +16,7 @@
     formatDisplayCoordinate,
   } from "../../../utils/coordinates";
   import { extraDataStore } from "../../projectStore";
+  import { CloseIcon, DocumentIcon, ArrowDownTrayIcon } from "../icons";
 
   export let isOpen = false;
   export let startPoint: Point;
@@ -502,69 +503,21 @@
             on:click={handlePrint}
             class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              fill="currentColor"
-              class="bi bi-printer"
-              viewBox="0 0 16 16"
-            >
-              <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1" />
-              <path
-                d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1"
-              />
-            </svg>
+            <DocumentIcon className="size-4" />
             Print
           </button>
           <button
             on:click={handleDownloadPdf}
             class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="size-4"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 3v12"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M8 13l4 4 4-4"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M3 21h18"
-              />
-            </svg>
+            <ArrowDownTrayIcon className="size-4" />
             Download PDF
           </button>
           <button
             on:click={handleClose}
             class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="size-5"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M6 18 18 6M6 6l12 12"
-              />
-            </svg>
+            <CloseIcon className="size-5" />
           </button>
         </div>
       </div>
