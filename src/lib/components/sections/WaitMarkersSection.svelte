@@ -2,6 +2,8 @@
 <script lang="ts">
   import type { EventMarker, SequenceWaitItem } from "../../../types/index";
   import TrashIcon from "../icons/TrashIcon.svelte";
+  import ChevronRightIcon from "../icons/ChevronRightIcon.svelte";
+  import PlusIcon from "../icons/PlusIcon.svelte";
 
   export let wait: SequenceWaitItem;
   // When a global collapse/expand-all is triggered, wait marker sections should respect it
@@ -83,22 +85,12 @@
       class="flex items-center gap-2 font-light hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-sm"
       title={(collapsed ? "Show" : "Hide") + " event markers"}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width={2}
-        stroke="currentColor"
-        class="size-3 transition-transform {collapsed
+      <ChevronRightIcon
+        className="size-3 transition-transform {collapsed
           ? 'rotate-0'
           : 'rotate-90'}"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="m8.25 4.5 7.5 7.5-7.5 7.5"
-        />
-      </svg>
+        strokeWidth={2}
+      />
       Event Markers ({wait.eventMarkers?.length || 0})
     </button>
     <button
@@ -109,20 +101,7 @@
       title="Add Event Marker"
       disabled={wait.locked}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width={2}
-        stroke="currentColor"
-        class="size-4"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M12 4.5v15m7.5-7.5h-15"
-        />
-      </svg>
+      <PlusIcon className="size-4" strokeWidth={2} />
       Add Marker
     </button>
   </div>

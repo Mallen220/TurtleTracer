@@ -181,20 +181,7 @@
           class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <!-- Download/Load Icon -->
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-4"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75l-3 3m0 0 3 3m-3-3H21"
-            />
-          </svg>
+          <ArrowDownTrayIcon className="size-4" />
         </button>
 
         <button
@@ -236,20 +223,7 @@
           compact={true}
         >
           <div slot="icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="size-6 text-neutral-400"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"
-              />
-            </svg>
+            <BoxIcon className="size-6 text-neutral-400" />
           </div>
         </EmptyState>
       {:else}
@@ -269,24 +243,14 @@
                     ? 'Keep-In'
                     : 'Obstacle'}"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width={2}
-                    stroke="currentColor"
-                    class="size-4 transition-transform {collapsedObstacles[
+                  <ChevronRightIcon
+                    className="size-4 transition-transform {collapsedObstacles[
                       shapeIdx
                     ]
                       ? 'rotate-0'
                       : 'rotate-90'}"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="m8.25 4.5 7.5 7.5-7.5 7.5"
-                    />
-                  </svg>
+                    strokeWidth={2}
+                  />
                   {shape.type === "keep-in" ? "Keep-In" : "Obstacle"}
                   {shapeIdx + 1}
                 </button>
@@ -481,20 +445,7 @@
                           }}
                           disabled={shape.locked ?? false}
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width={2}
-                            stroke="currentColor"
-                            class="size-4"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="M12 4.5v15m7.5-7.5h-15"
-                            />
-                          </svg>
+                          <PlusIcon className="size-4" strokeWidth={2} />
                         </button>
                         {#if shape.vertices.length > 3}
                           <DeleteButtonWithConfirm
