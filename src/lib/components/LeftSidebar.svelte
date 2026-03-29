@@ -65,7 +65,7 @@
     CompassIcon,
     PresentationModeIcon,
     SparklesIcon,
-    RestartTutorialIcon,
+    QuestionMarkicon,
     ExportImageIcon,
     ExportGifIcon,
     PluginManagerIcon,
@@ -1281,7 +1281,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <RestartTutorialIcon className="sidebar-icon-small flex-none" />
+                <QuestionMarkicon className="sidebar-icon-small flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"

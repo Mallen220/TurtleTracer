@@ -30,7 +30,7 @@ import {
   ShowTelemetryTabIcon,
   PresentationModeIcon,
   PluginManagerIcon,
-  RestartTutorialIcon,
+  QuestionMarkicon,
   ExportImageIcon,
   ExportGifIcon,
 } from "../lib/components/icons";
@@ -247,7 +247,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     id: "onboarding",
     label: "Restart Tutorial",
     type: "system",
-    iconComponent: RestartTutorialIcon,
+    iconComponent: QuestionMarkicon,
   },
   {
     id: "exportImage",
