@@ -2,6 +2,12 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
   import type { SequenceMacroItem, Transformation } from "../../../types";
+  import TrashIcon from "../icons/TrashIcon.svelte";
+  import ArrowUpIcon from "../icons/ArrowUpIcon.svelte";
+  import ArrowDownIcon from "../icons/ArrowDownIcon.svelte";
+  import PlusIcon from "../icons/PlusIcon.svelte";
+  import RotateIcon from "../icons/RotateIcon.svelte";
+  import ArrowPathIcon from "../icons/ArrowPathIcon.svelte";
 
   export let macro: SequenceMacroItem;
   export let onUpdate: () => void;
@@ -327,50 +333,11 @@
             class="flex-none p-1 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
           >
             {#if t.type === "translate"}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="size-3"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
-                />
-              </svg>
+              <PlusIcon className="size-3" strokeWidth={2} />
             {:else if t.type === "rotate"}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="size-3"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                />
-              </svg>
+              <RotateIcon className="size-3" strokeWidth={2} />
             {:else}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="size-3"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
-                />
-              </svg>
+              <ArrowPathIcon className="size-3" strokeWidth={2} />
             {/if}
           </div>
 
@@ -399,18 +366,7 @@
               aria-label="Move transform up"
               class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="size-3"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M10 17a.75.75 0 0 1-.75-.75V5.612L5.29 9.77a.75.75 0 0 1-1.08-1.04l5.25-5.5a.75.75 0 0 1 1.08 0l5.25 5.5a.75.75 0 1 1-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0 1 10 17Z"
-                  clip-rule="evenodd"
-                />
-              </svg>
+              <ArrowUpIcon className="size-3" />
             </button>
             <button
               on:click={() => moveTransform(i, 1)}
@@ -418,36 +374,14 @@
               aria-label="Move transform down"
               class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="size-3"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M10 3a.75.75 0 0 1 .75.75v10.638l3.96-4.158a.75.75 0 1 1 1.08 1.04l-5.25 5.5a.75.75 0 0 1-1.08 0l-5.25-5.5a.75.75 0 1 1 1.08-1.04l3.96 4.158V3.75A.75.75 0 0 1 10 3Z"
-                  clip-rule="evenodd"
-                />
-              </svg>
+              <ArrowDownIcon className="size-3" />
             </button>
             <button
               on:click={() => removeTransform(i)}
               aria-label="Remove transform"
               class="p-0.5 text-red-400 hover:text-red-600 ml-1"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="size-3"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
-                  clip-rule="evenodd"
-                />
-              </svg>
+              <TrashIcon className="size-3" />
             </button>
           </div>
         </div>
