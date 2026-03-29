@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import type { ComponentType } from "svelte";
   import {
     UndoIcon,
     HistoryIcon,
@@ -65,14 +66,29 @@
     CompassIcon,
     PresentationModeIcon,
     SparklesIcon,
-    QuestionMarkicon,
+    QuestionMarkIcon,
     ExportImageIcon,
     ExportGifIcon,
     PluginManagerIcon,
   } from "./icons";
-  import { SIDEBAR_ITEMS } from "../../config/sidebarItems";
+  import {
+    SIDEBAR_ITEMS,
+    type SidebarItemConfig,
+  } from "../../config/sidebarItems";
+  import type { CustomSidebarItem } from "../../types";
 
-  const ICON_COMPONENT_MAP: Record<string, any> = {
+  type SidebarEntry = {
+    id: string;
+    label: string;
+    type?: SidebarItemConfig["type"];
+    settingKey?: string;
+    shortcutKey?: string;
+    commandId?: string;
+    iconSvg?: string;
+    iconComponent?: ComponentType;
+  };
+
+  const ICON_COMPONENT_MAP: Record<string, ComponentType> = {
     List: ListIcon,
     Play: PlayIcon,
     Arrow: ArrowRightIcon,
@@ -103,17 +119,21 @@
   $: undoDescription = history?.undoDescriptionStore;
   $: redoDescription = history?.redoDescriptionStore;
 
+  let activeSidebarItems: SidebarEntry[] = [];
+
   $: activeSidebarItems = (
     settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id)
   )
     .map((id) => {
-      let item: any = SIDEBAR_ITEMS.find((item) => item.id === id);
+      let item: SidebarItemConfig | CustomSidebarItem | undefined = SIDEBAR_ITEMS.find(
+        (item) => item.id === id,
+      );
       if (!item && settings.customSidebarItems) {
         item = settings.customSidebarItems.find((i) => i.id === id);
       }
-      return item;
+      return item as SidebarEntry | undefined;
     })
-    .filter((item) => item !== undefined);
+    .filter((item): item is SidebarEntry => item !== undefined);
 
   function toggleSetting(key: string) {
     (settings as any)[key] = !(settings as any)[key];
@@ -368,7 +388,7 @@
           <button
             title={item.label}
             aria-label={item.label}
-            on:click={() => executeCommandBus.set(item.commandId)}
+            on:click={() => executeCommandBus.set(item.commandId ?? null)}
             class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
               ? 'w-[calc(100%-1.1rem)] px-3'
               : 'justify-center'} text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800"
@@ -1281,7 +1301,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <QuestionMarkicon className="sidebar-icon-small flex-none" />
+                <QuestionMarkIcon className="sidebar-icon-small flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"

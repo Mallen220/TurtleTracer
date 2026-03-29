@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Exported type definitions for use in Svelte and TS modules
+import type { ComponentType } from "svelte";
 
 export interface BasePoint {
   x: number;
@@ -157,6 +158,14 @@ export interface KeyBinding {
   category?: string;
 }
 
+export interface CommandPaletteCommand {
+  id: string;
+  label: string;
+  shortcut?: string;
+  category?: string;
+  action: () => void;
+}
+
 export interface CustomFieldConfig {
   id: string;
   name: string;
@@ -172,7 +181,7 @@ export interface CustomSidebarItem {
   label: string;
   commandId: string;
   iconSvg: string;
-  iconComponent?: any;
+  iconComponent?: ComponentType;
 }
 
 export interface Settings {

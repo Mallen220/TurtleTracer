@@ -5,6 +5,7 @@ import type {
   Notification,
   FieldView,
   UpdateData,
+  CommandPaletteCommand,
 } from "./types";
 
 // Math tools stores
@@ -43,7 +44,7 @@ export const exportDialogState = writable<{
 
 // Global command execution bus
 export const executeCommandBus = writable<string | null>(null);
-export const availableCommands = writable<any[]>([]);
+export const availableCommands = writable<CommandPaletteCommand[]>([]);
 
 // Update Notification Store
 export const showUpdateAvailableDialog = writable(false);

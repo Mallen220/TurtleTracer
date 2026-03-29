@@ -165,6 +165,14 @@ interface KeyBinding {
   category?: string;
 }
 
+interface CommandPaletteCommand {
+  id: string;
+  label: string;
+  shortcut?: string;
+  category?: string;
+  action: () => void;
+}
+
 interface CustomFieldConfig {
   id: string;
   name: string;
@@ -180,7 +188,7 @@ interface CustomSidebarItem {
   label: string;
   commandId: string;
   iconSvg: string;
-  iconComponent?: any;
+  iconComponent?: ComponentType;
 }
 
 interface Settings {

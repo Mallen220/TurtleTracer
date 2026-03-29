@@ -3,16 +3,11 @@
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
   import { onMount } from "svelte";
+  import type { CommandPaletteCommand } from "../../types";
   import SearchIcon from "./icons/SearchIcon.svelte";
 
   export let isOpen = false;
-  export let commands: {
-    id: string;
-    label: string;
-    shortcut?: string;
-    action: () => void;
-    category?: string;
-  }[] = [];
+  export let commands: CommandPaletteCommand[] = [];
   export let onClose: () => void;
 
   let searchQuery = "";
@@ -115,7 +110,7 @@
     }
   }
 
-  function executeCommand(command: any) {
+  function executeCommand(command?: CommandPaletteCommand) {
     if (command) {
       // Update recents
       if (command.id) {

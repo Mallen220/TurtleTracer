@@ -42,7 +42,6 @@ export { default as FollowRobotIcon } from "./FollowRobotIcon.svelte";
 export { default as ShowTelemetryTabIcon } from "./ShowTelemetryTabIcon.svelte";
 export { default as PresentationModeIcon } from "./PresentationModeIcon.svelte";
 export { default as PluginManagerIcon } from "./PluginManagerIcon.svelte";
-export { default as QuestionMarkicon } from "./QuestionMarkIcon.svelte";
 export { default as ExportImageIcon } from "./ExportImageIcon.svelte";
 export { default as ExportGifIcon } from "./ExportGifIcon.svelte";
 export { default as UndoIcon } from "./UndoIcon.svelte";

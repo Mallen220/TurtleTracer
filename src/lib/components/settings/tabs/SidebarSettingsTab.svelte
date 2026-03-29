@@ -1,8 +1,13 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import type { ComponentType } from "svelte";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import { DEFAULT_SETTINGS } from "../../../../config/defaults";
-  import type { Settings } from "../../../../types/index";
+  import type {
+    CommandPaletteCommand,
+    CustomSidebarItem,
+    Settings,
+  } from "../../../../types/index";
   import { SIDEBAR_ITEMS } from "../../../../config/sidebarItems";
   import { availableCommands } from "../../../../stores";
   import * as ICONS from "../../icons";
@@ -44,7 +49,10 @@
   $: activeSidebarList = (() => {
     const ids = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
     return ids.map((id) => {
-      let item: any = SIDEBAR_ITEMS.find((i) => i.id === id);
+      let item:
+        | (typeof SIDEBAR_ITEMS)[number]
+        | CustomSidebarItem
+        | undefined = SIDEBAR_ITEMS.find((i) => i.id === id);
       const isCustom = !item && settings.customSidebarItems;
       if (isCustom && settings.customSidebarItems) {
         item = settings.customSidebarItems.find((i) => i.id === id);
@@ -162,7 +170,7 @@
   let customActionLabel = "";
   let commandSearchQuery = "";
 
-  const ICON_COMPONENT_MAP: Record<string, any> = {
+  const ICON_COMPONENT_MAP: Record<string, ComponentType> = {
     ...ICONS,
     Arrow: ICONS.ArrowRightIcon,
     Plus: ICONS.PlusIcon,
@@ -186,7 +194,7 @@
     );
   })();
 
-  function selectSidebarCommand(cmd: any) {
+  function selectSidebarCommand(cmd: CommandPaletteCommand) {
     customActionSelection = cmd.id;
     if (!customActionLabel) {
       customActionLabel = cmd.label;

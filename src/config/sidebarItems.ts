@@ -1,6 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 export type SidebarItemType = "system" | "setting" | "separator" | "spacer";
 
+import type { ComponentType } from "svelte";
+
 import {
   StarIcon,
   FolderIcon,
@@ -30,7 +32,7 @@ import {
   ShowTelemetryTabIcon,
   PresentationModeIcon,
   PluginManagerIcon,
-  QuestionMarkicon,
+  QuestionMarkIcon,
   ExportImageIcon,
   ExportGifIcon,
 } from "../lib/components/icons";
@@ -41,7 +43,7 @@ export interface SidebarItemConfig {
   type: SidebarItemType;
   settingKey?: string; // e.g. "showRobotArrows"
   iconSvg?: string; // For auto-rendered 'setting' types (SVG markup)
-  iconComponent?: any; // Svelte component constructor for imported icons
+  iconComponent?: ComponentType; // Svelte component constructor for imported icons
   shortcutKey?: string; // to look up in keybindings
 }
 
@@ -247,7 +249,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     id: "onboarding",
     label: "Restart Tutorial",
     type: "system",
-    iconComponent: QuestionMarkicon,
+    iconComponent: QuestionMarkIcon,
   },
   {
     id: "exportImage",
