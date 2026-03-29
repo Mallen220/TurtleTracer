@@ -11,6 +11,10 @@
   import { settingsStore } from "../../projectStore";
   import { toUser, toField } from "../../../utils/coordinates";
   import type { Line } from "../../../types/index";
+  import ChevronDownIcon from "../icons/ChevronDownIcon.svelte";
+  import ChevronUpIcon from "../icons/ChevronUpIcon.svelte";
+  import PlusIcon from "../icons/PlusIcon.svelte";
+  import ViewListIcon from "../icons/ViewListIcon.svelte";
   import {
     calculateDragPosition,
     reorderSequence,
@@ -148,22 +152,12 @@
       aria-expanded={!collapsed}
       aria-controls="control-points-list-{lineIdx}"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width={2.5}
-        stroke="currentColor"
-        class="size-3 transition-transform duration-200 {collapsed
+      <ChevronDownIcon
+        className="size-3 transition-transform duration-200 {collapsed
           ? '-rotate-90'
           : 'rotate-0'}"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="m19.5 8.25-7.5 7.5-7.5-7.5"
-        />
-      </svg>
+        strokeWidth={2.5}
+      />
       Control Points ({line.controlPoints.length})
     </button>
 
@@ -183,20 +177,7 @@
       disabled={line.locked}
       aria-label="Add Control Point"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke-width={2.5}
-        stroke="currentColor"
-        class="size-3"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M12 4.5v15m7.5-7.5h-15"
-        />
-      </svg>
+      <PlusIcon className="size-3" strokeWidth={2.5} />
       Add
     </button>
   </div>
@@ -229,18 +210,7 @@
             <div
               class="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 pl-1"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                class="w-4 h-4"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
-                  clip-rule="evenodd"
-                />
-              </svg>
+              <ViewListIcon className="w-4 h-4" />
             </div>
           {/if}
 
@@ -266,20 +236,7 @@
                   class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={idx === 0 || line.locked}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    class="size-3"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="m5 15 7-7 7 7"
-                    />
-                  </svg>
+                  <ChevronUpIcon className="size-3" />
                 </button>
                 <div
                   class="w-px h-3 bg-neutral-200 dark:bg-neutral-700"
@@ -294,20 +251,7 @@
                   disabled={idx === line.controlPoints.length - 1 ||
                     line.locked}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    class="size-3"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="m19 9-7 7-7-7"
-                    />
-                  </svg>
+                  <ChevronDownIcon className="size-3" />
                 </button>
               </div>
 

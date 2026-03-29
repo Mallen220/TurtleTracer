@@ -2,6 +2,11 @@
 <script lang="ts">
   import type { SequenceRotateItem, SequenceItem } from "../../../types";
   import TrashIcon from "../icons/TrashIcon.svelte";
+  import EllipsisHorizontalIcon from "../icons/EllipsisHorizontalIcon.svelte";
+  import LinkIcon from "../icons/LinkIcon.svelte";
+  import TriangleWarningIcon from "../icons/TriangleWarningIcon.svelte";
+  import LockIcon from "../icons/LockIcon.svelte";
+  import UnlockIcon from "../icons/UnlockIcon.svelte";
   import { isRotateLinked } from "../../../utils/pointLinking";
   import { transformAngle } from "../../../utils/math";
   import { focusRequest } from "../../../stores";
@@ -92,18 +97,7 @@
   <td
     class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
   >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      class="w-4 h-4 mx-auto"
-    >
-      <path
-        fill-rule="evenodd"
-        d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
-        clip-rule="evenodd"
-      />
-    </svg>
+    <EllipsisHorizontalIcon className="w-4 h-4 mx-auto" />
   </td>
   <td class="px-3 py-2">
     <div class="relative w-full max-w-[160px]">
@@ -124,18 +118,7 @@
           class="absolute right-1 top-1/2 -translate-y-1/2 text-pink-500 cursor-help flex items-center justify-center"
           title="Linked Rotate: Same Name = Shared Degrees"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            class="w-3.5 h-3.5"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          <LinkIcon className="w-3.5 h-3.5" />
         </div>
       {/if}
     </div>
@@ -164,22 +147,7 @@
           aria-label="Normalize angle"
           class="p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="size-4"
-          >
-            <path
-              d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-            />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
+          <TriangleWarningIcon className="size-4" />
         </button>
       {/if}
     </div>
@@ -194,35 +162,9 @@
       aria-pressed={isLocked}
     >
       {#if isLocked}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5 stroke-yellow-500"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-          />
-        </svg>
+        <LockIcon className="size-5 stroke-yellow-500" />
       {:else}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5 stroke-gray-400"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-          />
-        </svg>
+        <UnlockIcon className="size-5 stroke-gray-400" />
       {/if}
     </button>
 
