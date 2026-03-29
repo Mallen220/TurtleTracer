@@ -32,6 +32,7 @@
   import { createEventDispatcher, onMount, onDestroy } from "svelte";
   import { loopRangeActiveStore, loopRangeStore } from "../../lib/projectStore";
   import ContextMenu from "./tools/ContextMenu.svelte";
+  import { ChevronDownIcon, ChevronUpIcon, ScissorsIcon, BackwardStepIcon, BackwardIcon, ForwardIcon, ForwardStepIcon, PlayIcon, PauseIcon, CheckIcon, ArrowPathIcon } from "./icons";
 
   const dispatch = createEventDispatcher();
 
@@ -547,21 +548,9 @@
         tabindex="0"
       >
         <span class="font-medium">{(playbackSpeed ?? 1).toFixed(2)}x</span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-          class="size-4 text-neutral-500 dark:text-neutral-400"
-          class:rotate-180={showSpeedMenu}
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        <ChevronDownIcon
+          className="size-4 text-neutral-500 dark:text-neutral-400 {showSpeedMenu ? 'rotate-180' : ''}"
+        />
       </button>
 
       {#if showSpeedMenu}
@@ -591,20 +580,7 @@
               >
                 <span>{s.toFixed(2)}x</span>
                 {#if Math.abs(s - (playbackSpeed || 1)) < 1e-6}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    class="size-4 text-green-600"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
+                  <CheckIcon className="size-4 text-green-600" strokeWidth={1.5} />
                 {/if}
               </button>
             </li>
@@ -622,27 +598,7 @@
         on:click={splitPath}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="size-5"
-          ><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line
-            x1="20"
-            y1="4"
-            x2="8.12"
-            y2="15.88"
-          /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line
-            x1="8.12"
-            y1="8.12"
-            x2="12"
-            y2="12"
-          /></svg
-        >
+        <ScissorsIcon className="size-5" />
       </button>
 
       <!-- Skip to Start -->
@@ -652,20 +608,7 @@
         on:click={() => handleSeek(0)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-4"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M15.75 19.5L8.25 12l7.5-7.5M5.25 19.5V4.5"
-          />
-        </svg>
+        <BackwardStepIcon className="size-4" />
       </button>
 
       <!-- Step Back -->
@@ -675,20 +618,7 @@
         on:click={() => step(-0.5)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M15.75 19.5L8.25 12l7.5-7.5"
-          />
-        </svg>
+        <BackwardIcon className="size-5" />
       </button>
 
       <!-- Play/Pause -->
@@ -708,35 +638,9 @@
         class="p-1 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
       >
         {#if !playing}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-8 stroke-green-600 pl-0.5"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
-            />
-          </svg>
+          <PlayIcon className="size-8 stroke-green-600 pl-0.5" strokeWidth={2} />
         {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-8 stroke-green-600"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M15.75 5.25v13.5m-7.5-13.5v13.5"
-            />
-          </svg>
+          <PauseIcon className="size-8 stroke-green-600" strokeWidth={2} />
         {/if}
       </button>
 
@@ -747,20 +651,7 @@
         on:click={() => step(0.5)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M8.25 4.5l7.5 7.5-7.5 7.5"
-          />
-        </svg>
+        <ForwardIcon className="size-5" />
       </button>
 
       <!-- Skip to End -->
@@ -770,20 +661,7 @@
         on:click={() => handleSeek(100)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-4"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M8.25 4.5l7.5 7.5-7.5 7.5M18.75 4.5v15"
-          />
-        </svg>
+        <ForwardStepIcon className="size-4" />
       </button>
     </div>
 
@@ -838,20 +716,7 @@
         class="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
         aria-live="polite"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-6 stroke-blue-500"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-          />
-        </svg>
+        <ArrowPathIcon className="size-6 stroke-blue-500" strokeWidth={2} />
       </button>
     </div>
   </div>

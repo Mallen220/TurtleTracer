@@ -3,7 +3,7 @@
   import { createEventDispatcher } from "svelte";
   import { transformAngle } from "../../utils/math";
   import HeadingIndicator from "./common/HeadingIndicator.svelte";
-  import { RotateIcon, TriangleWarningIcon } from "./icons";
+  import { RotateIcon, TriangleWarningIcon, ArrowRightLeftIcon } from "./icons";
 
   export let endPoint: any;
   export let locked: boolean = false;
@@ -258,21 +258,9 @@
     <div
       class="flex items-center justify-center gap-2 flex-[2] bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 min-w-0"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="size-4 text-neutral-400 dark:text-neutral-500 shrink-0 {endPoint.reverse
-          ? 'scale-x-[-1]'
-          : ''}"
-      >
-        <path d="M5 12h14" />
-        <path d="m12 5 7 7-7 7" />
-      </svg>
+      <ArrowRightLeftIcon
+        className="size-4 text-neutral-400 dark:text-neutral-500 shrink-0 {endPoint.reverse ? 'scale-x-[-1]' : ''}"
+      />
       <span
         class="text-sm text-neutral-500 dark:text-neutral-400 select-none truncate"
         >{endPoint.reverse ? "Facing Backward" : "Facing Forward"}</span
