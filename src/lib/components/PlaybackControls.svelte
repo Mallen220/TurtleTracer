@@ -32,6 +32,7 @@
   import { createEventDispatcher, onMount, onDestroy } from "svelte";
   import { loopRangeActiveStore, loopRangeStore } from "../../lib/projectStore";
   import ContextMenu from "./tools/ContextMenu.svelte";
+  import { ChevronDownIcon, ChevronUpIcon, ScissorsIcon, BackwardStepIcon, BackwardIcon, ForwardIcon, ForwardStepIcon, PlayIcon, PauseIcon, CheckIcon, ArrowPathIcon } from "./icons";
   import {
     SplitPathIcon,
     ChevronDownIcon,
@@ -572,7 +573,7 @@
               >
                 <span>{s.toFixed(2)}x</span>
                 {#if Math.abs(s - (playbackSpeed || 1)) < 1e-6}
-                  <CheckIcon className="size-4 text-green-600" />
+                  <CheckIcon className="size-4 text-green-600" strokeWidth={1.5} />
                 {/if}
               </button>
             </li>
@@ -590,7 +591,7 @@
         on:click={splitPath}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <SplitPathIcon className="size-5" />
+        <ScissorsIcon className="size-5" />
       </button>
 
       <!-- Skip to Start -->
@@ -600,7 +601,7 @@
         on:click={() => handleSeek(0)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <SkipToStartIcon className="size-4" />
+        <BackwardStepIcon className="size-4" />
       </button>
 
       <!-- Step Back -->
@@ -610,7 +611,7 @@
         on:click={() => step(-0.5)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <StepBackIcon className="size-5" />
+        <BackwardIcon className="size-5" />
       </button>
 
       <!-- Play/Pause -->
@@ -630,9 +631,9 @@
         class="p-1 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
       >
         {#if !playing}
-          <PlayIcon className="size-8 stroke-green-600 pl-0.5" />
+          <PlayIcon className="size-8 stroke-green-600 pl-0.5" strokeWidth={2} />
         {:else}
-          <PauseIcon className="size-8 stroke-green-600" />
+          <PauseIcon className="size-8 stroke-green-600" strokeWidth={2} />
         {/if}
       </button>
 
@@ -708,7 +709,7 @@
         class="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
         aria-live="polite"
       >
-        <LoopToggleIcon className="size-6 stroke-blue-500" />
+        <ArrowPathIcon className="size-6 stroke-blue-500" strokeWidth={2} />
       </button>
     </div>
   </div>

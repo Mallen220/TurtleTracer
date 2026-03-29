@@ -37,16 +37,7 @@
   import TrashIcon from "./icons/TrashIcon.svelte";
   import ColorPicker from "./tools/ColorPicker.svelte";
   import ContextMenu from "./tools/ContextMenu.svelte";
-  import {
-    WaitIcon,
-    RotateIcon,
-    PlusIcon,
-    LockIcon,
-    UnlockIcon,
-    CheckIcon,
-    EyeIcon,
-    EyeSlashIcon,
-  } from "./icons";
+  import { WaitIcon, RotateIcon, PlusIcon, LockIcon, UnlockIcon, CheckIcon, EyeIcon, EyeSlashIcon, ClipboardDocumentIcon, Bars3Icon, InfoIcon, LinkIcon } from "./icons";
   import {
     makeId,
     generateName,
@@ -1240,20 +1231,7 @@
         {#if copyButtonText === "Copied!"}
           <CheckIcon className="size-6 text-green-500" strokeWidth={1.5} />
         {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="size-6"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"
-            />
-          </svg>
+          <ClipboardDocumentIcon className="size-6" strokeWidth={1.5} />
         {/if}
       </button>
     </div>
@@ -1397,18 +1375,7 @@
               <td
                 class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  class="w-4 h-4 mx-auto"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm0 5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
+                <Bars3Icon className="w-4 h-4 mx-auto" />
               </td>
               <td class="px-3 py-2">
                 <div class="flex flex-row items-center gap-2">
@@ -1450,20 +1417,7 @@
                           handleStatsHoverEnter(e, line.id || null)}
                         on:mouseleave={handleStatsHoverLeave}
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke-width="2"
-                          stroke="currentColor"
-                          class="w-3.5 h-3.5"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
-                          />
-                        </svg>
+                        <InfoIcon className="w-3.5 h-3.5" />
                         {#if hoveredStatsLineId === line.id}
                           <div
                             use:tooltipPortal={hoveredStatsAnchor}
@@ -1498,18 +1452,7 @@
                           handleLinkHoverEnter(e, line.id || null)}
                         on:mouseleave={handleLinkHoverLeave}
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          class="w-3.5 h-3.5"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z"
-                            clip-rule="evenodd"
-                          />
-                        </svg>
+                        <LinkIcon className="w-3.5 h-3.5" />
                         {#if hoveredLinkId === line.id}
                           <div
                             use:tooltipPortal={hoveredLinkAnchor}
