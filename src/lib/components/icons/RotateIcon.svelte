@@ -1,7 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   export let className = "size-6";
-  export let strokeWidth: number = 2;
 </script>
 
 <svg
@@ -9,7 +8,7 @@
   viewBox="0 0 24 24"
   fill="none"
   stroke="currentColor"
-  stroke-width={strokeWidth}
+  stroke-width="2"
   class={className}
 >
   <path
