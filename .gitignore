@@ -37,3 +37,4 @@ playwright-report/index.html
 *.pycoverage/
 *.py
 coverage/
+/src/lib/components/icons/svg
