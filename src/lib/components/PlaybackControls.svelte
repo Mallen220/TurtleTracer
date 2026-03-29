@@ -30,6 +30,15 @@
   import { menuNavigation } from "../actions/menuNavigation";
   import { formatTime, getShortcutFromSettings } from "../../utils";
   import { createEventDispatcher, onMount, onDestroy } from "svelte";
+  import PlayIcon from "./icons/PlayIcon.svelte";
+  import PauseIcon from "./icons/PauseIcon.svelte";
+  import RedoIcon from "./icons/RedoIcon.svelte";
+  import CheckIcon from "./icons/CheckIcon.svelte";
+  import ChevronDownIcon from "./icons/ChevronDownIcon.svelte";
+  import ArrowRightStraightIcon from "./icons/ArrowRightStraightIcon.svelte";
+  import ScissorsIcon from "./icons/ScissorsIcon.svelte";
+  import RotateIcon from "./icons/RotateIcon.svelte";
+  import { MapPinIcon } from "./icons";
   import { loopRangeActiveStore, loopRangeStore } from "../../lib/projectStore";
   import ContextMenu from "./tools/ContextMenu.svelte";
 
@@ -390,21 +399,9 @@
             aria-hidden="true"
           >
             <!-- Small rotate icon (explicit rotates are pink) -->
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              class="w-4 h-4 rounded-full bg-white dark:bg-neutral-900"
-              style="color: rgb(236 72 153)"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
+            <div class="w-4 h-4 rounded-full bg-white dark:bg-neutral-900 text-pink-500 flex items-center justify-center">
+              <RotateIcon className="size-3" strokeWidth={2} />
+            </div>
           </div>
         {/if}
       {/each}
@@ -493,22 +490,12 @@
           </div>
 
           <!-- Map Pin Icon -->
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            stroke-width="1.5"
-            class={item.fromWait
+          <MapPinIcon
+            className={item.fromWait
               ? "w-6 h-6 drop-shadow-md transition-transform group-hover:scale-125 text-black dark:text-white stroke-white dark:stroke-neutral-900"
               : "w-6 h-6 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125 stroke-white dark:stroke-neutral-900"}
             style={item.fromWait ? "" : `color: ${item.color || "#a855f7"}`}
-          >
-            <path
-              fill-rule="evenodd"
-              d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          />
         </div>
       {:else if item.type === "dot"}
         <div
@@ -547,21 +534,7 @@
         tabindex="0"
       >
         <span class="font-medium">{(playbackSpeed ?? 1).toFixed(2)}x</span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-          class="size-4 text-neutral-500 dark:text-neutral-400"
-          class:rotate-180={showSpeedMenu}
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+          <ChevronDownIcon className="size-4 text-neutral-500 dark:text-neutral-400 {showSpeedMenu ? 'rotate-180' : ''}" />
       </button>
 
       {#if showSpeedMenu}
@@ -591,20 +564,7 @@
               >
                 <span>{s.toFixed(2)}x</span>
                 {#if Math.abs(s - (playbackSpeed || 1)) < 1e-6}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    class="size-4 text-green-600"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
+                  <CheckIcon className="size-4 text-green-600" strokeWidth={1.5} />
                 {/if}
               </button>
             </li>
@@ -622,27 +582,7 @@
         on:click={splitPath}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="size-5"
-          ><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line
-            x1="20"
-            y1="4"
-            x2="8.12"
-            y2="15.88"
-          /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line
-            x1="8.12"
-            y1="8.12"
-            x2="12"
-            y2="12"
-          /></svg
-        >
+        <ScissorsIcon className="size-5" />
       </button>
 
       <!-- Skip to Start -->
@@ -652,20 +592,10 @@
         on:click={() => handleSeek(0)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-4"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M15.75 19.5L8.25 12l7.5-7.5M5.25 19.5V4.5"
-          />
-        </svg>
+        <div class="flex items-center justify-center -space-x-1">
+          <div class="w-0.5 h-4 bg-currentColor rounded"></div>
+          <ArrowRightStraightIcon className="size-4 rotate-180" />
+        </div>
       </button>
 
       <!-- Step Back -->
@@ -675,20 +605,7 @@
         on:click={() => step(-0.5)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M15.75 19.5L8.25 12l7.5-7.5"
-          />
-        </svg>
+        <ArrowRightStraightIcon className="size-5 rotate-180" />
       </button>
 
       <!-- Play/Pause -->
@@ -708,35 +625,9 @@
         class="p-1 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
       >
         {#if !playing}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-8 stroke-green-600 pl-0.5"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
-            />
-          </svg>
+          <PlayIcon className="size-8 stroke-green-600 pl-0.5" />
         {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="size-8 stroke-green-600"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M15.75 5.25v13.5m-7.5-13.5v13.5"
-            />
-          </svg>
+          <PauseIcon className="size-8 stroke-green-600" />
         {/if}
       </button>
 
@@ -747,20 +638,7 @@
         on:click={() => step(0.5)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-5"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M8.25 4.5l7.5 7.5-7.5 7.5"
-          />
-        </svg>
+        <ArrowRightStraightIcon className="size-5" />
       </button>
 
       <!-- Skip to End -->
@@ -770,20 +648,10 @@
         on:click={() => handleSeek(100)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-4"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M8.25 4.5l7.5 7.5-7.5 7.5M18.75 4.5v15"
-          />
-        </svg>
+        <div class="flex items-center justify-center -space-x-1">
+          <ArrowRightStraightIcon className="size-4" />
+          <div class="w-0.5 h-4 bg-currentColor rounded"></div>
+        </div>
       </button>
     </div>
 
@@ -838,20 +706,7 @@
         class="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
         aria-live="polite"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-          class="size-6 stroke-blue-500"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-          />
-        </svg>
+        <RedoIcon className="size-6 stroke-blue-500" />
       </button>
     </div>
   </div>
