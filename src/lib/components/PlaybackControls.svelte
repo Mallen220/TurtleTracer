@@ -33,6 +33,20 @@
   import { loopRangeActiveStore, loopRangeStore } from "../../lib/projectStore";
   import ContextMenu from "./tools/ContextMenu.svelte";
   import { ChevronDownIcon, ChevronUpIcon, ScissorsIcon, BackwardStepIcon, BackwardIcon, ForwardIcon, ForwardStepIcon, PlayIcon, PauseIcon, CheckIcon, ArrowPathIcon } from "./icons";
+  import {
+    SplitPathIcon,
+    ChevronDownIcon,
+    CheckIcon,
+    PlayIcon,
+    PauseIcon,
+    RotateIcon,
+    MapPinSolidIcon,
+    SkipToStartIcon,
+    StepBackIcon,
+    StepForwardIcon,
+    SkipToEndIcon,
+    LoopToggleIcon,
+  } from "./icons";
 
   const dispatch = createEventDispatcher();
 
@@ -391,21 +405,10 @@
             aria-hidden="true"
           >
             <!-- Small rotate icon (explicit rotates are pink) -->
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              class="w-4 h-4 rounded-full bg-white dark:bg-neutral-900"
+            <RotateIcon
+              className="w-4 h-4 rounded-full bg-white dark:bg-neutral-900"
               style="color: rgb(236 72 153)"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
+            />
           </div>
         {/if}
       {/each}
@@ -494,22 +497,12 @@
           </div>
 
           <!-- Map Pin Icon -->
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            stroke-width="1.5"
-            class={item.fromWait
+          <MapPinSolidIcon
+            className={item.fromWait
               ? "w-6 h-6 drop-shadow-md transition-transform group-hover:scale-125 text-black dark:text-white stroke-white dark:stroke-neutral-900"
               : "w-6 h-6 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125 stroke-white dark:stroke-neutral-900"}
             style={item.fromWait ? "" : `color: ${item.color || "#a855f7"}`}
-          >
-            <path
-              fill-rule="evenodd"
-              d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z"
-              clip-rule="evenodd"
-            />
-          </svg>
+          />
         </div>
       {:else if item.type === "dot"}
         <div
@@ -651,7 +644,7 @@
         on:click={() => step(0.5)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <ForwardIcon className="size-5" />
+        <StepForwardIcon className="size-5" />
       </button>
 
       <!-- Skip to End -->
@@ -661,7 +654,7 @@
         on:click={() => handleSeek(100)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <ForwardStepIcon className="size-4" />
+        <SkipToEndIcon className="size-4" />
       </button>
     </div>
 

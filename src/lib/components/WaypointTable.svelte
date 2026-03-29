@@ -1677,7 +1677,9 @@
           >
             <div class="flex flex-col items-center gap-4">
               <div class="p-3 bg-neutral-100 dark:bg-neutral-800 rounded-full">
-                <PlusIcon className="size-6 text-neutral-400 strokeWidth={1.5}" />
+                <PlusIcon
+                  className="size-6 text-neutral-400 strokeWidth={1.5}"
+                />
               </div>
               <div class="text-sm">
                 <p class="font-medium text-neutral-800 dark:text-neutral-200">

@@ -263,7 +263,9 @@
           Duration (ms)
         </label>
         <div class="relative">
-          <WaitIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-neutral-400" />
+          <WaitIcon
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-neutral-400"
+          />
           <input
             id="wait-duration-{wait.id}"
             class="w-full pl-9 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
