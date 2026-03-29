@@ -24,7 +24,7 @@ import {
   ContinuousValidationIcon,
   RestrictDraggingToFieldIcon,
   SmartSnappingIcon,
-  ShowDebugSequenceIcon,
+  ClipboardIcon,
   AutoExportCodeIcon,
   FollowRobotIcon,
   ShowTelemetryTabIcon,
@@ -195,7 +195,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     label: "Show Debug Sequence",
     type: "setting",
     settingKey: "showDebugSequence",
-    iconComponent: ShowDebugSequenceIcon,
+    iconComponent: ClipboardIcon,
   },
   {
     id: "autoExportCode",

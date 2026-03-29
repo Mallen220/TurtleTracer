@@ -46,7 +46,7 @@
     CheckIcon,
     EyeIcon,
     EyeSlashIcon,
-    ClipboardDocumentIcon,
+    ClipboardIcon,
     Bars3Icon,
     InfoIcon,
     LinkIcon,
@@ -1244,7 +1244,7 @@
         {#if copyButtonText === "Copied!"}
           <CheckIcon className="size-6 text-green-500" strokeWidth={1.5} />
         {:else}
-          <ClipboardDocumentIcon className="size-6" strokeWidth={1.5} />
+          <ClipboardIcon className="size-6" strokeWidth={1.5} />
         {/if}
       </button>
     </div>
