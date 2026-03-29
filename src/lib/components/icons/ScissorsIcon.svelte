@@ -6,11 +6,17 @@
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  fill="none"
   viewBox="0 0 24 24"
-  stroke-width={strokeWidth}
+  fill="none"
   stroke="currentColor"
+  stroke-width={strokeWidth}
+  stroke-linecap="round"
+  stroke-linejoin="round"
   class={className}
 >
-  <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+  <circle cx="6" cy="6" r="3" />
+  <circle cx="6" cy="18" r="3" />
+  <line x1="20" y1="4" x2="8.12" y2="15.88" />
+  <line x1="14.47" y1="14.48" x2="20" y2="20" />
+  <line x1="8.12" y1="8.12" x2="12" y2="12" />
 </svg>
