@@ -16,6 +16,8 @@ const EXTENSIONS = {
   ".sh": "HASH",
 };
 
+const IGNORED_FILES = new Set(["vite.config.d.ts"]);
+
 const COMMENT_STYLES = {
   LINE: { start: "// ", end: "", prefix: "" },
   BLOCK: { start: "/*", end: "*/", prefix: " * " }, // Kept for reference or removal
@@ -57,6 +59,9 @@ function traverse(dir) {
         continue;
       traverse(filePath);
     } else {
+      const relativePath = path.relative(".", filePath).replace(/\\/g, "/");
+      if (IGNORED_FILES.has(relativePath)) continue;
+
       const ext = path.extname(file);
       if (EXTENSIONS[ext]) {
         processFile(filePath, EXTENSIONS[ext]);
