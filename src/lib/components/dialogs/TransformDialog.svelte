@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
+  import { CloseIcon } from "../icons";
   import { cubicInOut } from "svelte/easing";
   import { get } from "svelte/store";
   import {
@@ -164,20 +165,7 @@
           class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-md transition-colors"
           aria-label="Close"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="w-5 h-5 text-neutral-500"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+          <CloseIcon className="w-5 h-5 text-neutral-500" strokeWidth={2} />
         </button>
       </div>
 
