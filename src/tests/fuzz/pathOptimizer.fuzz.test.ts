@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { PathOptimizer } from "../../utils/pathOptimizer";
-import type { Line, Point, SequenceItem, Settings, Shape } from "../../types";
+import type { SequenceItem } from "../../types";
 import { FIELD_SIZE } from "../../config";
 
 describe("PathOptimizer Fuzzing", () => {

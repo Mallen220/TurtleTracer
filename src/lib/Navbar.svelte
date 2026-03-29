@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Point, Line, Shape, Settings, SequenceItem } from "../types";
+  import type { Point, Line, Settings, SequenceItem } from "../types";
   import { onMount, onDestroy } from "svelte";
   import {
     currentFilePath,

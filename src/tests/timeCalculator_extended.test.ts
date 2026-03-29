@@ -2,7 +2,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import * as fc from "fast-check";
 import { analyzePathSegment, calculatePathTime } from "../utils/timeCalculator";
-import { getCurvePoint } from "../utils/math";
 import type { Point, Line, SequenceItem, Settings } from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";

@@ -18,7 +18,6 @@
   export let addWaitAtStart: () => void;
   export let addRotateAtStart: () => void;
   import CollapseAllButton from "../tools/CollapseAllButton.svelte";
-  import { tick } from "svelte";
   import LockIcon from "../icons/LockIcon.svelte";
   import MapPinIcon from "../icons/MapPinIcon.svelte";
   import PlusIcon from "../icons/PlusIcon.svelte";

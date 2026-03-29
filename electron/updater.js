@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { dialog, app, shell } from "electron";
+import { app, shell } from "electron";
 import * as fs from "fs";
 import * as path from "path";
 import { spawn, spawnSync } from "child_process";

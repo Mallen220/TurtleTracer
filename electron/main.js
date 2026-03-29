@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { isProjectFilePath, getPluginsDirectory } from "./utils.js";
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from "electron";
+import { app, BrowserWindow, dialog, Menu, shell } from "electron";
 import path from "path";
 import express from "express";
 import http from "http";
@@ -10,10 +10,6 @@ import fs from "fs/promises";
 import fsSync from "fs";
 import AppUpdater from "./updater.js";
 import rateLimit from "express-rate-limit";
-import simpleGit from "simple-git";
-import ts from "typescript";
-import { WebSocket } from "ws";
-import net from "net";
 
 // Handle __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);

@@ -1,9 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { render, fireEvent, waitFor } from "@testing-library/svelte";
+import { render, waitFor } from "@testing-library/svelte";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import ExportCodeDialog from "../lib/components/dialogs/ExportCodeDialog.svelte";
 import { currentFilePath } from "../stores";
-import { get } from "svelte/store";
 
 // Mock the utils module
 vi.mock("../utils", () => {

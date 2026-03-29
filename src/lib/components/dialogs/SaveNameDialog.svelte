@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { tick } from "svelte";
 
   export let show = false;
   export let defaultName = "New Path";

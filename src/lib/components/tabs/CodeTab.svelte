@@ -28,7 +28,7 @@
   import java from "highlight.js/lib/languages/java";
   import json from "highlight.js/lib/languages/json";
   import plaintext from "highlight.js/lib/languages/plaintext";
-  import { fade, slide } from "svelte/transition";
+  import { slide } from "svelte/transition";
   import { highlightAndSplit } from "../../../utils/htmlHighlighter";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
   import pkg from "../../../../package.json";

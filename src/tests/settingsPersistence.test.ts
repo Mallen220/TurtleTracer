@@ -4,7 +4,6 @@ import {
   loadSettings,
   saveSettings,
   resetSettings,
-  settingsFileExists,
 } from "../utils/settingsPersistence";
 import { DEFAULT_SETTINGS } from "../config/defaults";
 

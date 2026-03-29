@@ -2,7 +2,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { exportPathToGif, exportPathToApng } from "../utils/exportAnimation";
 import type { ExportAnimationOptions } from "../utils/exportAnimation";
-import type Two from "two.js";
 
 // Mock gif.js
 vi.mock("gif.js", () => {

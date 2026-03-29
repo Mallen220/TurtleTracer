@@ -2,13 +2,7 @@
 import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
 import { mirrorPathData, reversePathData } from "../../utils/pathTransform";
-import type {
-  Point,
-  Line,
-  Shape,
-  SequenceItem,
-  ControlPoint,
-} from "../../types";
+import type { Point, Line, Shape, ControlPoint } from "../../types";
 
 // Generators
 const pointGenerator = fc.record({

@@ -3,7 +3,6 @@ import type {
   Line,
   SequenceItem,
   SequenceWaitItem,
-  Point,
   SequenceRotateItem,
 } from "../types";
 

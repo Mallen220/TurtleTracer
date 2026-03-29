@@ -24,7 +24,7 @@
 </script>
 
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import { fade } from "svelte/transition";
   import { get } from "svelte/store";
   import type {
@@ -48,8 +48,6 @@
     settingsStore,
     loadMacro,
     loadProjectData,
-    macrosStore,
-    updateMacroContent,
     updateAllMacroReferences,
   } from "./projectStore";
   import { saveProject } from "../utils/fileHandlers";

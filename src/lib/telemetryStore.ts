@@ -1,10 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { writable, derived } from "svelte/store";
-import type {
-  TelemetryPacket,
-  RobotPose,
-  FieldOperation,
-} from "../types/index";
+import type { TelemetryPacket } from "../types/index";
 
 export interface TelemetryPoint {
   time: number;

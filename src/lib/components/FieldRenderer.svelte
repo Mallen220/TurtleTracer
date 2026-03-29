@@ -4,7 +4,7 @@
   import { get } from "svelte/store";
   import Two from "two.js";
   import * as d3 from "d3";
-  import { computeZoomStep, computePanForZoom } from "../zoomHelpers";
+  import { computeZoomStep } from "../zoomHelpers";
   import { getDisplayShortcut } from "../../utils/shortcuts";
   import { DEFAULT_KEY_BINDINGS } from "../../config/keybindings";
   import {
@@ -16,9 +16,6 @@
     multiSelectedPointIds,
     selectedLineId,
     multiSelectedLineIds,
-    showRuler,
-    showProtractor,
-    protractorLockToRobot,
     collisionMarkers,
     forceShowValidation,
     fieldZoom,
@@ -34,7 +31,6 @@
     hookRegistry,
     fieldContextMenuRegistry,
     fieldRenderRegistry,
-    type ContextMenuItem,
   } from "../registries";
   import { actionRegistry } from "../actionRegistry";
   import ContextMenu from "./tools/ContextMenu.svelte";
@@ -73,23 +69,15 @@
     showTransformDialog,
   } from "../../stores";
   import {
-    POINT_RADIUS,
     LINE_WIDTH,
     FIELD_SIZE,
     DEFAULT_ROBOT_LENGTH,
     DEFAULT_ROBOT_WIDTH,
   } from "../../config";
-  import { calculateRobotState } from "../../utils/animation";
   import { generateLinesFromDrawing } from "../../utils/pathEditing";
   import {
-    getCurvePoint,
-    quadraticToCubic,
-    generateOnionLayers,
     getRandomColor,
-    loadRobotImage,
     updateRobotImageDisplay,
-    easeInOutQuad,
-    getAngularDifference,
     getLineStartHeading,
   } from "../../utils";
   import { getAlignmentMenuItems } from "../../utils/alignmentMenu";
@@ -109,18 +97,9 @@
   import { generateFacingLineElements } from "./renderer/FacingLineGenerator";
 
   import { updateLinkedWaypoints } from "../../utils/pointLinking";
-  import type {
-    Line,
-    Point,
-    Shape,
-    Settings,
-    BasePoint,
-    SequenceItem,
-  } from "../../types/index";
+  import type { Line, Point, BasePoint } from "../../types/index";
   import MathTools from "../MathTools.svelte";
   import FieldCoordinates from "./FieldCoordinates.svelte";
-  import type { Path } from "two.js/src/path";
-  import type { Line as PathLine } from "two.js/src/shapes/line";
   import {
     ArrowUpIcon,
     ChevronRightBoldIcon,

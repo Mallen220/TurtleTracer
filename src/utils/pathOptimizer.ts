@@ -3,7 +3,6 @@
 import type {
   Line,
   Point,
-  BasePoint,
   SequenceItem,
   Settings,
   Shape,

@@ -1,11 +1,9 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { render, fireEvent, screen } from "@testing-library/svelte";
+import { render, screen } from "@testing-library/svelte";
 import { vi, test, expect } from "vitest";
 import PathTab from "../lib/components/tabs/PathTab.svelte";
 import { DEFAULT_SETTINGS, getDefaultStartPoint } from "../config";
-import { makeId } from "../utils/nameGenerator";
 import type { Line, SequenceItem } from "../types";
-import { writable } from "svelte/store";
 
 // Mock stores that PathTab uses
 vi.mock("../../../stores", () => {

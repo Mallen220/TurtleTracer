@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { fade, fly } from "svelte/transition";
-  import { cubicInOut } from "svelte/easing";
   import type {
     Line,
     Point,

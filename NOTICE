@@ -306,3 +306,10 @@ src/lib/components/icons/ForwardStepIcon.svelte
 src/lib/components/icons/PauseIcon.svelte
 src/lib/components/icons/PlaySolidIcon.svelte
 src/lib/components/icons/SplitPathIcon.svelte
+src/lib/components/dialogs/SaveNameDialog.svelte
+src/lib/components/tools/ValidationButton.svelte
+src/tests/dragDrop.test.ts
+src/tests/generators.ts
+src/tests/integration.test.ts
+src/tests/settingsPersistence.test.ts
+src/utils/eventScanner.ts

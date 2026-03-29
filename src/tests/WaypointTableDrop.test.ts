@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // src/tests/WaypointTableDrop.test.ts
-import { render, fireEvent } from "@testing-library/svelte";
+import { render } from "@testing-library/svelte";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Point } from "../types";
 import WaypointTable from "../lib/components/WaypointTable.svelte";

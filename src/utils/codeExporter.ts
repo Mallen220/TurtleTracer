@@ -2,7 +2,7 @@
 import prettier from "prettier";
 import prettierJavaPlugin from "prettier-plugin-java";
 import type { Point, Line, BasePoint, SequenceItem } from "../types";
-import { getCurvePoint, getLineStartHeading } from "./math";
+import { getLineStartHeading } from "./math";
 import pkg from "../../package.json";
 import { actionRegistry } from "../lib/actionRegistry";
 import { toUser, toUserHeading, type CoordinateSystem } from "./coordinates";

@@ -1,13 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { tick } from "svelte";
-  import type {
-    Point,
-    Line,
-    SequenceItem,
-    Settings,
-    TimePrediction,
-  } from "../../../types";
+  import type { Point, Line, SequenceItem, Settings } from "../../../types";
   import { fade, fly } from "svelte/transition";
   import { currentFilePath } from "../../../stores";
   import { formatTime } from "../../../utils";

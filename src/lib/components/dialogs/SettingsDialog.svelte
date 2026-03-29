@@ -9,31 +9,14 @@
     TriangleWarningIcon,
   } from "../icons/index";
   import { fade, fly } from "svelte/transition";
-  import {
-    resetSettings,
-    mergeSettings,
-  } from "../../../utils/settingsPersistence";
+  import { resetSettings } from "../../../utils/settingsPersistence";
   import {
     AVAILABLE_FIELD_MAPS,
     DEFAULT_SETTINGS,
   } from "../../../config/defaults";
-  import type { Settings, CustomFieldConfig } from "../../../types/index";
-  import RobotProfileManager from "../settings/RobotProfileManager.svelte";
-  import CustomFieldWizard from "../settings/CustomFieldWizard.svelte";
-  import SettingsItem from "./SettingsItem.svelte";
-  import { themesStore } from "../../pluginsStore";
-  import {
-    showPluginManager,
-    showShortcuts,
-    startTutorial,
-    currentFilePath,
-    currentDirectoryStore,
-    settingsActiveTab,
-    notification,
-  } from "../../../stores";
-  import { followRobotStore } from "../../projectStore";
+  import type { Settings } from "../../../types/index";
+  import { settingsActiveTab } from "../../../stores";
   import { SIDEBAR_ITEMS } from "../../../config/sidebarItems";
-  import { availableCommands } from "../../../stores";
   import * as ICONS from "../icons";
   import GeneralSettingsTab from "../settings/tabs/GeneralSettingsTab.svelte";
   import RobotSettingsTab from "../settings/tabs/RobotSettingsTab.svelte";

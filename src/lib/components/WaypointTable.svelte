@@ -29,11 +29,9 @@
     focusRequest,
     notification,
   } from "../../stores";
-  import { slide } from "svelte/transition";
   import { tick } from "svelte";
   import { derived } from "svelte/store";
   import { tooltipPortal } from "../actions/portal";
-  import ObstaclesSection from "./sections/ObstaclesSection.svelte";
   import TrashIcon from "./icons/TrashIcon.svelte";
   import ColorPicker from "./tools/ColorPicker.svelte";
   import ContextMenu from "./tools/ContextMenu.svelte";
@@ -62,17 +60,12 @@
     handleWaitRename,
     updateLinkedWaits,
     isLineLinked,
-    isWaitLinked,
     handleRotateRename,
     updateLinkedRotations,
-    isRotateLinked,
   } from "../../utils/pointLinking";
   import { getRandomColor } from "../../utils/draw";
   import { actionRegistry } from "../actionRegistry";
-  import {
-    getButtonFilledClass,
-    getSmallButtonClass,
-  } from "../../utils/buttonStyles";
+  import { getButtonFilledClass } from "../../utils/buttonStyles";
   import { getShortcutFromSettings } from "../../utils";
   import { toUser, toField } from "../../utils/coordinates";
   import { calculatePathTime, formatTime } from "../../utils/timeCalculator";

@@ -12,7 +12,6 @@
   import { tick } from "svelte";
   import _ from "lodash";
   import {
-    calculateDragPosition,
     reorderSequence,
     getClosestTarget,
     type DragPosition,
@@ -25,9 +24,6 @@
   import StartingPointSection from "../sections/StartingPointSection.svelte";
   import EmptyState from "../common/EmptyState.svelte";
   import PathLineSection from "../sections/PathLineSection.svelte";
-  import WaitSection from "../sections/WaitSection.svelte";
-  import RotateSection from "../sections/RotateSection.svelte";
-  import MacroSection from "../sections/MacroSection.svelte";
   import {
     selectedLineId,
     selectedPointId,
@@ -37,7 +33,6 @@
   } from "../../../stores";
   import { loadMacro, macrosStore } from "../../../lib/projectStore";
   import { get } from "svelte/store";
-  import { getShortcutFromSettings } from "../../../utils";
   import { actionRegistry } from "../../actionRegistry";
   import { getButtonFilledClass } from "../../../utils/buttonStyles";
   import { wouldCreateCycle } from "../../../lib/macroUtils";

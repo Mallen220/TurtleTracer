@@ -64,7 +64,6 @@
     // alias the import so the original name can be used safely below
     showUpdateAvailableDialog as _showUpdateAvailableDialog,
     updateDataStore,
-    showFeedbackDialog,
     showRatingDialog,
     ratingDialogAutoOpened,
     gitStatusStore,
@@ -110,8 +109,6 @@
   import {
     saveProject,
     saveFileAs,
-    loadFile,
-    loadRecentFile,
     handleExternalFileOpen,
     handleAutoExport,
   } from "./utils/fileHandlers";
@@ -133,7 +130,6 @@
   // Types
   import type { Settings } from "./types/index";
   import {
-    DEFAULT_SETTINGS,
     FIELD_SIZE,
     DEFAULT_ROBOT_LENGTH,
     DEFAULT_ROBOT_WIDTH,

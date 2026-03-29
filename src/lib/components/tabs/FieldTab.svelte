@@ -8,8 +8,6 @@
     Settings,
     BasePoint,
   } from "../../../types/index";
-  import { tick } from "svelte";
-  import { slide } from "svelte/transition";
   import RobotPositionDisplay from "../RobotPositionDisplay.svelte";
   import CollapseAllButton from "../tools/CollapseAllButton.svelte";
   import OptimizationDialog from "../dialogs/OptimizationDialog.svelte";

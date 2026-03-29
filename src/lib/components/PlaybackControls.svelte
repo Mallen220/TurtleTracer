@@ -25,7 +25,7 @@
   export let splitPath: () => void = () => {};
 
   import type { Settings } from "../../types";
-  import { fade, fly } from "svelte/transition";
+  import { fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
   import { menuNavigation } from "../actions/menuNavigation";
   import { formatTime, getShortcutFromSettings } from "../../utils";
@@ -33,21 +33,14 @@
   import { loopRangeActiveStore, loopRangeStore } from "../../lib/projectStore";
   import ContextMenu from "./tools/ContextMenu.svelte";
   import {
-    SplitPathIcon,
     RotateIcon,
     MapPinSolidIcon,
-    SkipToStartIcon,
-    StepBackIcon,
     StepForwardIcon,
     SkipToEndIcon,
-    LoopToggleIcon,
     ChevronDownIcon,
-    ChevronUpIcon,
     ScissorsIcon,
     BackwardStepIcon,
     BackwardIcon,
-    ForwardIcon,
-    ForwardStepIcon,
     PlayIcon,
     PauseIcon,
     CheckIcon,

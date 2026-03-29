@@ -14,7 +14,6 @@ import {
 import type { SaveData } from "../utils/file";
 import { loadTrajectoryFromFile } from "../utils/file";
 import { getRandomColor } from "../utils/draw";
-import Two from "two.js";
 
 // Mock resize observer for Two.js/FieldRenderer
 global.ResizeObserver = class ResizeObserver {

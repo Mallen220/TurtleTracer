@@ -1,13 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { get } from "svelte/store";
 import * as fileHandlers from "../utils/fileHandlers";
-import {
-  currentFilePath,
-  projectMetadataStore,
-  isUnsaved,
-  notification,
-} from "../stores";
+import { currentFilePath, isUnsaved, notification } from "../stores";
 import {
   startPointStore,
   linesStore,
@@ -17,7 +12,6 @@ import {
 } from "../lib/projectStore";
 // recordChange lives in App.svelte and will trigger auto-export when called
 
-import App from "../App.svelte";
 import { DEFAULT_SETTINGS } from "../config/defaults";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";

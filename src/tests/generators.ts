@@ -28,7 +28,6 @@ if (fastCheckInstalled) {
     uuid: () => ({}),
   } as any;
 }
-import type { Point, Line, BasePoint, ControlPoint } from "../types";
 
 // Generate a valid finite number within a reasonable range to avoid extreme float precision issues
 

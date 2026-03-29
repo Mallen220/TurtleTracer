@@ -23,7 +23,7 @@
     cmToInch,
   } from "../../../utils/coordinates";
   import { tooltipPortal } from "../../actions/portal";
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import { actionRegistry } from "../../actionRegistry";
   import { getSmallButtonClass } from "../../../utils/buttonStyles";
   import {

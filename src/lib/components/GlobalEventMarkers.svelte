@@ -11,12 +11,7 @@
   import BoltIcon from "./icons/BoltIcon.svelte";
   import SectionHeader from "./common/SectionHeader.svelte";
   import EmptyState from "./common/EmptyState.svelte";
-  import {
-    selectedLineId,
-    selectedPointId,
-    hoveredMarkerId,
-    diskEventNamesStore,
-  } from "../../stores";
+  import { hoveredMarkerId, diskEventNamesStore } from "../../stores";
   import SearchableDropdown from "./common/SearchableDropdown.svelte";
   import { actionRegistry } from "../actionRegistry";
 

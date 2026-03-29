@@ -29,7 +29,6 @@
     showRuler,
     showProtractor,
     showGrid,
-    showRobot,
     snapToGrid,
     protractorLockToRobot,
     gridSize,
@@ -125,9 +124,8 @@
     settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id)
   )
     .map((id) => {
-      let item: SidebarItemConfig | CustomSidebarItem | undefined = SIDEBAR_ITEMS.find(
-        (item) => item.id === id,
-      );
+      let item: SidebarItemConfig | CustomSidebarItem | undefined =
+        SIDEBAR_ITEMS.find((item) => item.id === id);
       if (!item && settings.customSidebarItems) {
         item = settings.customSidebarItems.find((i) => i.id === id);
       }

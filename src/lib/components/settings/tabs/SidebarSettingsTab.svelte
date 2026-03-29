@@ -49,10 +49,8 @@
   $: activeSidebarList = (() => {
     const ids = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
     return ids.map((id) => {
-      let item:
-        | (typeof SIDEBAR_ITEMS)[number]
-        | CustomSidebarItem
-        | undefined = SIDEBAR_ITEMS.find((i) => i.id === id);
+      let item: (typeof SIDEBAR_ITEMS)[number] | CustomSidebarItem | undefined =
+        SIDEBAR_ITEMS.find((i) => i.id === id);
       const isCustom = !item && settings.customSidebarItems;
       if (isCustom && settings.customSidebarItems) {
         item = settings.customSidebarItems.find((i) => i.id === id);
@@ -685,29 +683,32 @@
                             >
                               {filteredCustomIcons.length} result{filteredCustomIcons.length ===
                               1
-                                ? ''
-                                : 's'}
+                                ? ""
+                                : "s"}
                             </div>
                           </div>
 
                           <div class="max-h-64 overflow-y-auto p-2">
-                            <div class="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
-                            {#each filteredCustomIcons as iconDef}
-                              <button
-                                type="button"
-                                class="aspect-square flex items-center justify-center rounded-lg border transition-colors {iconDef.name ===
-                                customActionIconKey
-                                  ? 'bg-blue-50 dark:bg-blue-900/25 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
-                                  : 'bg-transparent border-transparent text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
-                                on:click={() => selectCustomIcon(iconDef.name)}
-                                title={iconDef.name}
-                              >
-                                <svelte:component
-                                  this={iconDef.component}
-                                  className="size-5 shrink-0"
-                                />
-                              </button>
-                            {/each}
+                            <div
+                              class="grid grid-cols-4 sm:grid-cols-5 gap-1.5"
+                            >
+                              {#each filteredCustomIcons as iconDef}
+                                <button
+                                  type="button"
+                                  class="aspect-square flex items-center justify-center rounded-lg border transition-colors {iconDef.name ===
+                                  customActionIconKey
+                                    ? 'bg-blue-50 dark:bg-blue-900/25 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
+                                    : 'bg-transparent border-transparent text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
+                                  on:click={() =>
+                                    selectCustomIcon(iconDef.name)}
+                                  title={iconDef.name}
+                                >
+                                  <svelte:component
+                                    this={iconDef.component}
+                                    className="size-5 shrink-0"
+                                  />
+                                </button>
+                              {/each}
                             </div>
                           </div>
 

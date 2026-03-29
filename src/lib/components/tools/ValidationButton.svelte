@@ -11,7 +11,6 @@
   import ErrorIcon from "../icons/ErrorIcon.svelte";
   import CriticalIcon from "../icons/CriticalIcon.svelte";
   import DisabledIcon from "../icons/DisabledIcon.svelte";
-  import { get } from "svelte/store";
 
   let isHovering = false;
 

@@ -5,7 +5,6 @@
   import type { FileInfo } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
   import PathPreview from "./PathPreview.svelte";
-  import { AVAILABLE_FIELD_MAPS } from "../../../config/defaults";
   import {
     FolderIcon,
     DocumentGenericIcon,

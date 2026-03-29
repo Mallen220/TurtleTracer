@@ -12,14 +12,12 @@
     Settings,
   } from "../../../types/index";
   import { slide } from "svelte/transition";
-  import { onMount } from "svelte";
   import {
     CloseIcon,
     SuccessIcon,
     ErrorIcon,
     WarningIcon,
     InfoIcon,
-    DocumentIcon,
     PhotoIcon,
     ClipboardIcon,
   } from "../icons";

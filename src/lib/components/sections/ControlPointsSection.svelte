@@ -16,7 +16,6 @@
   import PlusIcon from "../icons/PlusIcon.svelte";
   import ViewListIcon from "../icons/ViewListIcon.svelte";
   import {
-    calculateDragPosition,
     reorderSequence,
     getClosestTarget,
     type DragPosition,

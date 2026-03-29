@@ -4,9 +4,6 @@ import type {
   Point,
   SequenceItem,
   SequenceMacroItem,
-  SequencePathItem,
-  SequenceWaitItem,
-  SequenceRotateItem,
   TurtleData,
   Transformation,
 } from "../types";

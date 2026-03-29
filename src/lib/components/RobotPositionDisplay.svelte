@@ -1,7 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import type { BasePoint, Settings } from "../../types/index";
-  import { getShortcutFromSettings } from "../../utils";
   import { formatDisplayCoordinate } from "../../utils/coordinates";
 
   export let robotXY: BasePoint;

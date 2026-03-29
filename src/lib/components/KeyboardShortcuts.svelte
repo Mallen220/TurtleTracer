@@ -1,12 +1,10 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { onMount } from "svelte";
   import { get } from "svelte/store";
   import hotkeys from "hotkeys-js";
   import CommandPalette from "./CommandPalette.svelte";
   import { isSupportedProjectFileName } from "../../utils/fileExtensions";
   import {
-    gridSize,
     showGrid,
     snapToGrid,
     showProtractor,
@@ -18,12 +16,9 @@
     selectedLineId,
     multiSelectedLineIds,
     toggleCollapseAllTrigger,
-    fieldZoom,
-    fieldPan,
     focusRequest,
     exportDialogState,
     showFileManager,
-    fileManagerNewFileMode,
     showPluginManager,
     showRuler,
     settingsActiveTab,
@@ -34,7 +29,6 @@
     protractorLockToRobot,
     showExportGif,
     notification,
-    showRobot,
     showUpdateAvailableDialog as _showUpdateAvailableDialog,
     showFeedbackDialog,
     showRatingDialog,
@@ -52,39 +46,21 @@
     settingsStore,
     playingStore,
     playbackSpeedStore,
-    renumberDefaultPathNames,
     robotProfilesStore,
   } from "../projectStore";
-  import type { Point } from "../../types";
-  import {
-    updateLinkedWaypoints,
-    updateLinkedWaits,
-    updateLinkedRotations,
-  } from "../../utils/pointLinking";
+
   import { loadFile, loadRecentFile } from "../../utils/fileHandlers";
   import { validatePath } from "../../utils/validation";
   import { reversePathData } from "../../utils/pathTransform";
-  import type { Line, SequenceItem } from "../../types/index";
   import { createTriangle } from "../../utils";
   import { toggleDiff } from "../../lib/diffStore";
-  import {
-    FIELD_SIZE,
-    DEFAULT_SETTINGS,
-    getDefaultStartPoint,
-    AVAILABLE_FIELD_MAPS,
-    SETTINGS_TAB_ORDER,
-  } from "../../config";
+  import { DEFAULT_SETTINGS, SETTINGS_TAB_ORDER } from "../../config";
   import { DEFAULT_KEY_BINDINGS } from "../../config/keybindings";
-  import { getRandomColor } from "../../utils";
-  import { computeZoomStep } from "../zoomHelpers";
   import { actionRegistry } from "../actionRegistry";
-  import _ from "lodash";
 
   // Imports from shortcuts
   import {
     isUIElementFocused,
-    isInputFocused,
-    isButtonFocused,
     shouldBlockShortcut,
     getSelectedSequenceIndex,
   } from "./shortcuts/utils";
@@ -96,21 +72,10 @@
     addControlPoint,
     removeControlPoint,
   } from "./shortcuts/elements";
-  import {
-    clipboard,
-    generateName,
-    duplicate,
-    copy,
-    cut,
-    paste,
-  } from "./shortcuts/clipboard";
+  import { duplicate, copy, cut, paste } from "./shortcuts/clipboard";
   import {
     removeSelected,
     movePoint,
-    LEGACY_movePoint,
-    getSelectableItems,
-    syncSelectionToUI,
-    cycleSelection,
     cycleSequenceSelection,
   } from "./shortcuts/selection";
   import {
