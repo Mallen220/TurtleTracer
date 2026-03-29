@@ -172,9 +172,9 @@
     Wrench: ICONS.WrenchIcon,
   };
 
-  const CUSTOM_ICONS = Object.entries(ICON_COMPONENT_MAP).map(
-    ([name, component]) => ({ name, component }),
-  );
+  const CUSTOM_ICONS = Object.entries(ICON_COMPONENT_MAP)
+    .map(([name, component]) => ({ name, component }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   $: filteredSidebarCommands = (() => {
     if (!commandSearchQuery) return $availableCommands;
@@ -200,12 +200,28 @@
 
   let customActionIconKey = CUSTOM_ICONS.length ? CUSTOM_ICONS[0].name : "";
   let customIconSearch = "";
+  let isIconMenuOpen = false;
+  let iconMenuContainer: HTMLDivElement | null = null;
 
   $: filteredCustomIcons = customIconSearch
     ? CUSTOM_ICONS.filter((icon) =>
         icon.name.toLowerCase().includes(customIconSearch.toLowerCase()),
       )
     : CUSTOM_ICONS;
+
+  function selectCustomIcon(iconName: string) {
+    customActionIconKey = iconName;
+    isIconMenuOpen = false;
+  }
+
+  function handleWindowClick(event: MouseEvent) {
+    if (!isIconMenuOpen) return;
+    const target = event.target as Node | null;
+    if (iconMenuContainer && target && iconMenuContainer.contains(target)) {
+      return;
+    }
+    isIconMenuOpen = false;
+  }
 
   function addNewCustomItem() {
     if (!customActionSelection || !customActionLabel) return;
@@ -226,6 +242,8 @@
     showCustomSidebarForm = false;
     customActionSelection = "";
     customActionLabel = "";
+    customIconSearch = "";
+    isIconMenuOpen = false;
   }
 
   function handleNumberInput(
@@ -248,6 +266,13 @@
     settings = { ...settings };
   }
 </script>
+
+<svelte:window
+  on:click={handleWindowClick}
+  on:keydown={(e) => {
+    if (e.key === "Escape") isIconMenuOpen = false;
+  }}
+/>
 
 <div class="section-container mb-8">
   {#if searchQuery}
@@ -609,59 +634,84 @@
                     >
                       Icon
                     </div>
-                    <div class="relative group">
+                    <div class="relative" bind:this={iconMenuContainer}>
                       <button
+                        type="button"
                         class="w-full flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm transition-all focus:ring-2 focus:ring-blue-500 outline-none"
+                        on:click={() => {
+                          isIconMenuOpen = !isIconMenuOpen;
+                        }}
+                        aria-expanded={isIconMenuOpen}
+                        aria-haspopup="listbox"
                       >
                         <svelte:component
                           this={ICON_COMPONENT_MAP[customActionIconKey]}
                           className="size-5 text-blue-500"
                         />
-                        <span class="text-neutral-700 dark:text-neutral-300"
+                        <span
+                          class="text-neutral-700 dark:text-neutral-300 truncate"
                           >{customActionIconKey}</span
                         >
                         <ICONS.ChevronDownIcon
-                          className="size-3 ml-auto text-neutral-400 group-hover:translate-y-0.5 transition-transform"
+                          className="size-3 ml-auto text-neutral-400 transition-transform {isIconMenuOpen
+                            ? 'rotate-180'
+                            : 'rotate-0'}"
                           strokeWidth={2}
                         />
                       </button>
-                      <div
-                        class="absolute z-10 top-full left-0 right-0 mt-2 p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all"
-                      >
-                        <div class="mb-2">
-                          <input
-                            type="text"
-                            bind:value={customIconSearch}
-                            placeholder="Filter icons..."
-                            class="w-full px-3 py-2 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                        <div class="grid grid-cols-5 gap-2">
-                          {#each filteredCustomIcons as iconDef}
-                            <button
-                              class="aspect-square flex items-center justify-center rounded-lg border transition-all {iconDef.name ===
-                              customActionIconKey
-                                ? 'bg-blue-50 border-blue-400 text-blue-600'
-                                : 'bg-transparent border-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500'}"
-                              on:click={() =>
-                                (customActionIconKey = iconDef.name)}
-                              title={iconDef.name}
-                            >
-                              <svelte:component
-                                this={iconDef.component}
-                                className="size-5"
-                              />
-                            </button>
-                          {/each}
-                        </div>
-                        {#if filteredCustomIcons.length === 0}
+                      {#if isIconMenuOpen}
+                        <div
+                          class="absolute z-20 top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl overflow-hidden"
+                        >
                           <div
-                            class="mt-2 text-xs text-neutral-500 dark:text-neutral-400 italic"
+                            class="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80"
                           >
-                            No icons match your search.
+                            <input
+                              type="text"
+                              bind:value={customIconSearch}
+                              placeholder="Search icons by name..."
+                              class="w-full px-3 py-2 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <div
+                              class="mt-1 text-[10px] uppercase tracking-wider text-neutral-400"
+                            >
+                              {filteredCustomIcons.length} result{filteredCustomIcons.length ===
+                              1
+                                ? ''
+                                : 's'}
+                            </div>
                           </div>
-                        {/if}
-                      </div>
+
+                          <div class="max-h-64 overflow-y-auto p-2">
+                            <div class="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+                            {#each filteredCustomIcons as iconDef}
+                              <button
+                                type="button"
+                                class="aspect-square flex items-center justify-center rounded-lg border transition-colors {iconDef.name ===
+                                customActionIconKey
+                                  ? 'bg-blue-50 dark:bg-blue-900/25 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
+                                  : 'bg-transparent border-transparent text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
+                                on:click={() => selectCustomIcon(iconDef.name)}
+                                title={iconDef.name}
+                              >
+                                <svelte:component
+                                  this={iconDef.component}
+                                  className="size-5 shrink-0"
+                                />
+                              </button>
+                            {/each}
+                            </div>
+                          </div>
+
+                          {#if filteredCustomIcons.length === 0}
+                            <div
+                              class="p-3 text-xs text-neutral-500 dark:text-neutral-400 italic"
+                            >
+                              No icons match your search.
+                            </div>
+                          {/if}
+                        </div>
+                      {/if}
                     </div>
                   </div>
                 </div>
