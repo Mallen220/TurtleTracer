@@ -2,7 +2,7 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
-  import { CloseIcon, SearchIcon, InfoIcon } from "../icons";
+  import { CloseIcon, SearchIcon, InfoIcon, ArrowPathIcon } from "../icons";
   import type { Settings } from "../../../types/index";
   import { DEFAULT_KEY_BINDINGS } from "../../../config/keybindings";
   import { notification } from "../../../stores";
@@ -427,20 +427,7 @@
                           class="text-xs text-neutral-400 hover:text-red-500 transition-colors"
                           title="Reset to default"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="2"
-                            stroke="currentColor"
-                            class="size-4"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"
-                            />
-                          </svg>
+                          <ArrowPathIcon className="size-4" strokeWidth={2} />
                         </button>
                       {/if}
 
@@ -509,20 +496,7 @@
           <div
             class="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="size-4"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"
-              />
-            </svg>
+            <InfoIcon className="size-4" />
             <span
               >Click a keybinding to record a new one. Press <kbd
                 class="font-mono bg-neutral-200 dark:bg-neutral-700 px-1 rounded"

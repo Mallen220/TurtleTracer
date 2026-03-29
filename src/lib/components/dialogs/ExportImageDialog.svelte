@@ -6,7 +6,7 @@
   import { exportPathToImage } from "../../../utils/exportAnimation";
   import { FIELD_SIZE } from "../../../config";
   import { fieldZoom, fieldPan } from "../../../stores";
-  import { CloseIcon } from "../icons";
+  import { CloseIcon, SpinnerIcon, ArrowDownTrayIcon } from "../icons";
 
   export let show = false;
   export let twoInstance: any;
@@ -331,26 +331,7 @@
           <div
             class="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400"
           >
-            <svg
-              class="animate-spin h-4 w-4 text-purple-600"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
+            <SpinnerIcon className="animate-spin h-4 w-4 text-purple-600" />
             <span>{statusMessage}</span>
           </div>
         {:else if status === "error"}
@@ -399,33 +380,7 @@
           on:click={downloadImage}
           disabled={status === "generating" || !previewUrl}
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            class="w-4 h-4"
-          >
-            <g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
-              id="SVGRepo_tracerCarrier"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            ></g><g id="SVGRepo_iconCarrier">
-              <path
-                d="M3 15C3 17.8284 3 19.2426 3.87868 20.1213C4.75736 21 6.17157 21 9 21H15C17.8284 21 19.2426 21 20.1213 20.1213C21 19.2426 21 17.8284 21 15"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              ></path>
-              <path
-                d="M12 3V16M12 16L16 11.625M12 16L8 11.625"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              ></path>
-            </g>
-          </svg>
+          <ArrowDownTrayIcon className="w-4 h-4" strokeWidth={1.5} />
           Download / Save
         </button>
       </div>
