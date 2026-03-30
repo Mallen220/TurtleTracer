@@ -33,12 +33,7 @@
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
   import pkg from "../../../../package.json";
   import { customExportersStore } from "../../pluginsStore";
-  import {
-    CogIcon,
-    DownloadIcon,
-    CheckIcon,
-    ClipboardIcon,
-  } from "../icons";
+  import { CogIcon, DownloadIcon, CheckIcon, ClipboardIcon } from "../icons";
 
   // Register languages for core highlight.js
   hljs.registerLanguage("java", java);
@@ -333,7 +328,12 @@
 
     try {
       const isVirtual = electronAPI ? (electronAPI as any).isVirtual : true;
-      if (!isVirtual && electronAPI && electronAPI.showSaveDialog && electronAPI.writeFile) {
+      if (
+        !isVirtual &&
+        electronAPI &&
+        electronAPI.showSaveDialog &&
+        electronAPI.writeFile
+      ) {
         const filePath = await electronAPI.showSaveDialog({
           title: dialogTitle,
           defaultPath: defaultName,

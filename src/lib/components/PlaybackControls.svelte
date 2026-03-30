@@ -39,8 +39,8 @@
     SkipToEndIcon,
     ChevronDownIcon,
     ScissorsIcon,
-    BackwardStepIcon,
-    BackwardIcon,
+    SkipToStartIcon,
+    ChevronLeftIcon,
     PlayIcon,
     PauseIcon,
     CheckIcon,
@@ -604,7 +604,7 @@
         on:click={() => handleSeek(0)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <BackwardStepIcon className="size-4" />
+        <SkipToStartIcon className="size-4" />
       </button>
 
       <!-- Step Back -->
@@ -614,7 +614,7 @@
         on:click={() => step(-0.5)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <BackwardIcon className="size-5" />
+        <ChevronLeftIcon className="size-5" />
       </button>
 
       <!-- Play/Pause -->

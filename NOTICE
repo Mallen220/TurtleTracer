@@ -313,3 +313,6 @@ src/tests/generators.ts
 src/tests/integration.test.ts
 src/tests/settingsPersistence.test.ts
 src/utils/eventScanner.ts
+public/sw.js
+src/lib/components/icons/ArrowUpIcon.svelte
+src/utils/browserFileSystem.ts

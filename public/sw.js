@@ -80,7 +80,10 @@ self.addEventListener("fetch", (event) => {
         }
 
         // 4. If all else fails, return a 404 or a generic error
-        return new Response("Offline and not found in cache", { status: 503, statusText: "Service Unavailable" });
+        return new Response("Offline and not found in cache", {
+          status: 503,
+          statusText: "Service Unavailable",
+        });
       }
     })(),
   );
