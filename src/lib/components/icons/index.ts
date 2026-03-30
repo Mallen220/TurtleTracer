@@ -54,7 +54,6 @@ export { default as TriangleWarningIcon } from "./TriangleWarningIcon.svelte";
 export { default as ErrorIcon } from "./ErrorIcon.svelte";
 export { default as SparklesIcon } from "./SparklesIcon.svelte";
 export { default as LinkIcon } from "./LinkIcon.svelte";
-export { default as UnlinkIcon } from "./UnlinkIcon.svelte";
 export { default as EyeSlashIcon } from "./EyeSlashIcon.svelte";
 export { default as UnlockIcon } from "./UnlockIcon.svelte";
 export { default as RotateIcon } from "./RotateIcon.svelte";

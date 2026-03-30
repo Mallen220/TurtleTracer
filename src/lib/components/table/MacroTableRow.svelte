@@ -6,7 +6,6 @@
   import LinkIcon from "../icons/LinkIcon.svelte";
   import LockIcon from "../icons/LockIcon.svelte";
   import UnlockIcon from "../icons/UnlockIcon.svelte";
-  import UnlinkIcon from "../icons/UnlinkIcon.svelte";
   import { focusRequest } from "../../../stores";
 
   export let item: SequenceMacroItem;
@@ -133,7 +132,7 @@
           aria-label="Unlink macro"
           class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-teal-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
         >
-          <UnlinkIcon className="size-4" />
+           <LinkIcon className="size-4" />
         </button>
       {/if}
       <button

@@ -17,7 +17,7 @@
     ArrowDownIcon,
     PlusIcon,
     ChevronDownIcon,
-    UnlinkIcon,
+    LinkIcon,
   } from "../icons";
 
   export let macro: SequenceMacroItem;
@@ -204,7 +204,7 @@
           aria-label="Unlink Macro"
           class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
         >
-          <UnlinkIcon className="size-4" strokeWidth={2} />
+           <LinkIcon className="size-4" />
         </button>
       {/if}
 

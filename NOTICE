@@ -290,7 +290,6 @@ src/utils/file.ts
 src/lib/components/icons/ArrowDownIcon.svelte
 src/lib/components/icons/EyeSlashIcon.svelte
 src/lib/components/icons/LinkIcon.svelte
-src/lib/components/icons/UnlinkIcon.svelte
 src/lib/components/icons/UnlockIcon.svelte
 src/lib/components/tools/ContextMenu.svelte
 src/utils/alignmentMenu.ts
