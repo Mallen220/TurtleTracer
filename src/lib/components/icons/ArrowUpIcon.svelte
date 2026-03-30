@@ -5,7 +5,7 @@
   export let height = "24";
   export let style = "";
   export let stroke = "currentColor";
-  export let strokeWidth = 3;
+  export let strokeWidth = 2;
 </script>
 
 <svg
@@ -21,6 +21,21 @@
   {width}
   {height}
 >
-  <line x1="12" y1="19" x2="12" y2="5"></line>
-  <polyline points="5 12 12 5 19 12"></polyline>
+  <line
+    x1="12"
+    y1="19"
+    x2="12"
+    y2="5"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <polyline
+    points="5 12 12 5 19 12"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
 </svg>
