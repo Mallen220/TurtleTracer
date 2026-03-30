@@ -103,6 +103,7 @@ function resolvePath(base: string, relative: string): string {
 // Value: string (file content) OR object for directory (e.g. { type: "dir" })
 
 export const browserFileSystem = {
+  isVirtual: true,
   getDirectory: async (): Promise<string> => {
     await set(VIRTUAL_ROOT, { type: "dir" });
     return VIRTUAL_ROOT;
