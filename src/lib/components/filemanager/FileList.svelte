@@ -7,7 +7,7 @@
   import PathPreview from "./PathPreview.svelte";
   import {
     FolderIcon,
-    DocumentGenericIcon,
+    DocumentIcon,
     PencilSolidIcon,
     CheckIcon,
     QuestionMarkIcon,
@@ -456,7 +456,7 @@
               <div
                 class="w-12 h-12 flex items-center justify-center text-blue-500 dark:text-blue-400"
               >
-                <DocumentGenericIcon className="size-6" />
+                <DocumentIcon className="size-6" />
               </div>
             {/if}
           </div>

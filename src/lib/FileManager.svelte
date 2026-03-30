@@ -74,12 +74,11 @@
     CloudArrowDownIcon,
     CloseIcon,
     PlusIcon,
-    DocumentPlusIcon,
+    DocumentIcon,
     FolderPlusIcon,
     ArrowDownTrayIcon,
     CodeBracketSquareIcon,
     ServerStackIcon,
-    DocumentMagnifyingGlassIcon,
     RotateIcon,
   } from "./components/icons";
 
@@ -1370,7 +1369,7 @@
               }}
               class="px-4 py-2 text-sm text-left text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2"
             >
-              <DocumentPlusIcon className="size-4 text-green-500" />
+              <DocumentIcon className="size-4 text-green-500" />
               New File
             </button>
 
@@ -1457,7 +1456,7 @@
         <div
           class="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center h-full"
         >
-          <DocumentMagnifyingGlassIcon className="size-12 mb-2 opacity-30" />
+          <DocumentIcon className="size-12 mb-2 opacity-30" />
           <p class="text-sm">No files found</p>
           {#if searchQuery}
             <button

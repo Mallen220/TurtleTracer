@@ -7,7 +7,7 @@
     ArrowRightIcon,
     ArrowDownTrayIcon,
     PencilSolidIcon,
-    DocumentPlusIcon,
+    DocumentIcon,
     ArrowPathIcon,
     TrashIcon,
   } from "../icons";
@@ -105,7 +105,7 @@
       on:click={() => dispatch("action", "duplicate")}
       class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
     >
-      <DocumentPlusIcon className="size-4" strokeWidth={1.5} />
+      <DocumentIcon className="size-4" strokeWidth={1.5} />
       Duplicate
     </button>
 

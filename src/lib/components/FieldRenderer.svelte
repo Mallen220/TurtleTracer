@@ -104,7 +104,7 @@
     ArrowUpIcon,
     ChevronRightIcon,
     SpinnerIcon,
-    DiffIcon,
+    DocumentIcon,
     PlusIcon,
     MinusIcon,
     ResetZoomIcon,
@@ -2271,7 +2271,7 @@
             <SpinnerIcon className="animate-spin w-4 h-4" />
           {:else}
             <!-- Diff Icon -->
-            <DiffIcon className="w-4 h-4" />
+            <DocumentIcon className="w-4 h-4" />
           {/if}
         </button>
         <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>

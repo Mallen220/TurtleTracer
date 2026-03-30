@@ -13,7 +13,7 @@
     TableTabIcon,
     ZapIcon,
     CodeIcon,
-    DiffIcon,
+    DocumentIcon,
     StatsIcon,
   } from "./components/icons";
 
@@ -594,7 +594,7 @@
         class="bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200 px-4 py-3 rounded-xl border border-purple-200 dark:border-purple-800 flex items-center justify-between"
       >
         <span class="font-semibold flex items-center gap-2">
-          <DiffIcon className="size-5" />
+          <DocumentIcon className="size-5" />
           Diff View
         </span>
       </div>

@@ -8,7 +8,7 @@
   import { AVAILABLE_FIELD_MAPS } from "../../../config/defaults";
   import {
     FolderIcon,
-    DocumentGenericIcon,
+    DocumentIcon,
     PencilSolidIcon,
     CheckIcon,
     QuestionMarkIcon,
@@ -577,7 +577,7 @@
                   <div
                     class="w-full h-full flex items-center justify-center text-blue-500 dark:text-blue-400"
                   >
-                    <DocumentGenericIcon className="size-8" />
+                    <DocumentIcon className="size-8" />
                   </div>
                 {/if}
               </div>

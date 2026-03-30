@@ -83,7 +83,7 @@
     {
       id: "interface",
       label: "Interface",
-      iconComponent: ICONS.DocumentGenericIcon,
+      iconComponent: ICONS.DocumentIcon,
     },
     {
       id: "sidebar",

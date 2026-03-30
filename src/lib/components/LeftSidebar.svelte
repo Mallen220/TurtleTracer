@@ -12,7 +12,7 @@
     LockIcon,
     UnlockIcon,
     OnionSkinCurrentPathIcon,
-    NewPathIcon,
+    DocumentPlusIcon,
     CogIcon,
     FeedbackIcon,
     GithubIcon,
@@ -1020,7 +1020,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <NewPathIcon className="sidebar-icon flex-none" />
+                <DocumentPlusIcon className="sidebar-icon flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"
