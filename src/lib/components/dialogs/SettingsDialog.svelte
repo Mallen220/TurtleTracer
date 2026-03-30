@@ -73,17 +73,17 @@
     {
       id: "robot",
       label: "Robot",
-      iconComponent: ICONS.BoxIcon,
+      iconComponent: ICONS.ShowRobotIcon,
     },
     {
       id: "motion",
       label: "Motion",
-      iconComponent: ICONS.PlayIcon,
+      iconComponent: ICONS.ZapIcon,
     },
     {
       id: "interface",
       label: "Interface",
-      iconComponent: ICONS.DocumentIcon,
+      iconComponent: ICONS.PenIcon,
     },
     {
       id: "sidebar",
