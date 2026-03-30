@@ -12,7 +12,7 @@
     FieldTabIcon,
     TableTabIcon,
     TelemetryTabIcon,
-    CodeTabIcon,
+    CodeIcon,
     DiffIcon,
     StatsIcon,
   } from "./components/icons";
@@ -52,7 +52,7 @@
       label: "Code",
       component: CodeTab,
       order: 3,
-      iconComponent: CodeTabIcon,
+      iconComponent: CodeIcon,
     });
   };
 
