@@ -6,15 +6,17 @@
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 24 24"
   fill="none"
-  stroke="currentColor"
+  viewBox="0 0 24 24"
   stroke-width={strokeWidth}
-  stroke-linecap="round"
-  stroke-linejoin="round"
+  stroke="currentColor"
   class={className}
 >
   <path
-    d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
+    d="M7.5,21l-4.5-4.5M3,16.5l4.5-4.5M3,16.5h13.5M16.5,3l4.5,4.5M21,7.5l-4.5,4.5M21,7.5H7.5"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
   />
 </svg>

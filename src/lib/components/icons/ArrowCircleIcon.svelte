@@ -2,19 +2,20 @@
 <script lang="ts">
   export let className = "size-6";
   export let strokeWidth = 2;
+  export let stroke = "currentColor";
 </script>
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 24 24"
   fill="none"
-  stroke="currentColor"
+  viewBox="0 0 24 24"
   stroke-width={strokeWidth}
+  {stroke}
   class={className}
 >
   <path
+    d="M16.023,9.349h4.992M2.985,19.645v-4.992M2.985,14.653h4.992M2.984,14.653l3.181,3.183c3.222,3.222,8.445,3.222,11.667,0,1.024-1.024,1.761-2.301,2.136-3.7M4.031,9.866c1.178-4.401,5.702-7.014,10.103-5.836,1.399.375,2.676,1.111,3.7,2.136l3.181,3.182M21.015,4.357v4.99"
     stroke-linecap="round"
     stroke-linejoin="round"
-    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
   />
 </svg>

@@ -6,15 +6,31 @@
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 24 24"
   fill="none"
-  stroke="currentColor"
+  viewBox="0 0 24 24"
   stroke-width={strokeWidth}
-  stroke-linecap="round"
-  stroke-linejoin="round"
+  stroke="currentColor"
   class={className}
 >
-  <path d="M12 3v12" />
-  <path d="M8 11l4 4 4-4" />
-  <path d="M8 21h8" />
+  <path
+    d="M21,15v4c0,1.105-.895,2-2,2H5c-1.105,0-2-.895-2-2v-4"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+  />
+  <polyline
+    points="7 10 12 15 17 10"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+  />
+  <line
+    x1="12"
+    y1="15"
+    x2="12"
+    y2="3"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+  />
 </svg>

@@ -6,14 +6,24 @@
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 24 24"
   fill="none"
+  viewBox="0 0 24 24"
+  stroke-width={strokeWidth}
   stroke="currentColor"
   class={className}
-  stroke-width={strokeWidth}
-  stroke-linecap="round"
-  stroke-linejoin="round"
 >
-  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-  <path d="M3 3v5h5" />
+  <path
+    d="M3,12c0,4.971,4.029,9,9,9s9-4.029,9-9S16.971,3,12,3c-2.516.009-4.931.991-6.74,2.74l-2.26,2.26"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M3,3v5h5"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
 </svg>

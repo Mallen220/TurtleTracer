@@ -1,23 +1,54 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   export let className = "size-6";
+  export let strokeWidth = 2;
 </script>
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 24 24"
   fill="none"
+  viewBox="0 0 24 24"
+  stroke-width={strokeWidth}
   stroke="currentColor"
   class={className}
-  aria-hidden="true"
 >
-  <path
-    d="M4 15c3-6 9-6 14-3"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
+  <circle
+    cx="3.528"
+    cy="18.6"
+    r="1.8"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
   />
-  <circle cx="4" cy="15" r="1.8" fill="currentColor" stroke="none" />
-  <circle cx="12" cy="9" r="1.8" fill="currentColor" stroke="none" />
-  <circle cx="20" cy="12" r="1.8" fill="currentColor" stroke="none" />
+  <circle
+    cx="7.128"
+    cy="5.8"
+    r="1.8"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+  />
+  <circle
+    cx="13.608"
+    cy="15.512"
+    r="1.8"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+  />
+  <circle
+    cx="18.647"
+    cy="4"
+    r="1.8"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+  />
+  <path
+    d="M3.528,18.6s.044-11.331,3.6-12.8,2.247,10.225,6.48,9.712,5.039-11.512,5.039-11.512"
+    stroke-linecap="round"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+  />
 </svg>

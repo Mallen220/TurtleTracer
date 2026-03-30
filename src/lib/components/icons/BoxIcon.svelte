@@ -13,8 +13,10 @@
   class={className}
 >
   <path
+    d="M21,7.5L12,2.25,3,7.5M21,7.5l-9,5.25M21,7.5v9l-9,5.25M3,7.5l9,5.25M3,7.5v9l9,5.25M12,12.75v9"
+    fill="none"
+    stroke="currentColor"
     stroke-linecap="round"
     stroke-linejoin="round"
-    d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-5.25v9"
   />
 </svg>

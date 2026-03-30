@@ -13,7 +13,14 @@
   class={className}
 >
   <path
-    d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
-  ></path>
-  <circle cx="12" cy="13" r="4"></circle>
+    d="M2.531,20.728S1.909,5.108,10,4.672s-2.178,14.656,2.8,13.256,9.887-5.04,7.2-13.256"
+    fill="none"
+    stroke="currentColor"
+    stroke-dasharray="2"
+  />
+  <path
+    d="M10,4.672c8.091-.436-2.178,14.656,2.8,13.256"
+    fill="none"
+    stroke="currentColor"
+  />
 </svg>

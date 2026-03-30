@@ -1,22 +1,39 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   export let className: string = "";
+  export let strokeWidth = 2;
 </script>
 
-<svg class={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+  class={className}
+  stroke-width={strokeWidth}
+>
   <rect
     x="1"
     y="1"
     width="22"
     height="22"
-    fill="rgba(34,197,94,0.1)"
-    stroke="#16a34a"
-    stroke-width="2"
     rx="4"
+    ry="4"
+    fill="none"
+    stroke="#16a34a"
   />
-  <!-- cardinal arrows -->
-  <polygon points="12,4 10,6 14,6" fill="#16a34a" />
-  <polygon points="20,12 18,10 18,14" fill="#16a34a" />
-  <polygon points="12,20 10,18 14,18" fill="#16a34a" />
-  <polygon points="4,12 6,10 6,14" fill="#16a34a" />
+  <polygon
+    points="17.755 3.835 15.71 7.674 19.8 7.674 17.755 3.835"
+    fill="#16a34a"
+  />
+  <polygon
+    points="17.755 16.326 15.71 20.165 19.8 20.165 17.755 16.326"
+    fill="#16a34a"
+  />
+  <polygon
+    points="6.245 16.326 8.29 20.165 4.2 20.165 6.245 16.326"
+    fill="#16a34a"
+  />
+  <polygon
+    points="6.245 3.835 8.29 7.674 4.2 7.674 6.245 3.835"
+    fill="#16a34a"
+  />
 </svg>

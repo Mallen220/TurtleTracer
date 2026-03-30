@@ -3,7 +3,11 @@
   import { createEventDispatcher } from "svelte";
   import { transformAngle } from "../../utils/math";
   import HeadingIndicator from "./common/HeadingIndicator.svelte";
-  import { ArrowCircleIcon, TriangleWarningIcon, ArrowRightIcon } from "./icons";
+  import {
+    ArrowCircleIcon,
+    TriangleWarningIcon,
+    ArrowRightIcon,
+  } from "./icons";
 
   export let endPoint: any;
   export let locked: boolean = false;

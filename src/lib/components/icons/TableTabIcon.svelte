@@ -1,33 +1,34 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   export let className = "size-6";
+  export let strokeWidth = 2;
 </script>
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 24 24"
   fill="none"
+  viewBox="0 0 24 24"
+  stroke-width={strokeWidth}
   stroke="currentColor"
   class={className}
-  aria-hidden="true"
 >
-  <rect x="3" y="4" width="18" height="16" rx="1.5" stroke-width="2" />
   <rect
     x="3"
     y="4"
     width="18"
-    height="5"
+    height="16"
     rx="1.5"
-    fill="currentColor"
-    opacity="0.06"
-    stroke="none"
+    ry="1.5"
+    fill="none"
+    stroke="currentColor"
   />
   <line
     x1="3"
     y1="10"
     x2="21"
     y2="10"
-    stroke-width="2"
+    fill="none"
+    stroke="currentColor"
     stroke-linecap="round"
   />
   <line
@@ -35,7 +36,8 @@
     y1="10"
     x2="9"
     y2="20"
-    stroke-width="1.5"
+    fill="none"
+    stroke="currentColor"
     stroke-linecap="round"
   />
   <line
@@ -43,7 +45,8 @@
     y1="10"
     x2="15"
     y2="20"
-    stroke-width="1.5"
+    fill="none"
+    stroke="currentColor"
     stroke-linecap="round"
   />
 </svg>

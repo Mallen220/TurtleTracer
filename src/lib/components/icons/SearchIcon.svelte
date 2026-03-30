@@ -1,7 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   export let className = "size-6";
-  export let strokeWidth = 1.5;
+  export let strokeWidth = 2;
 </script>
 
 <svg
@@ -13,8 +13,10 @@
   class={className}
 >
   <path
+    d="M21,21l-5.197-5.197M15.803,15.803c2.929-2.929,2.929-7.678,0-10.607-2.929-2.929-7.678-2.929-10.607,0-2.929,2.929-2.929,7.678,0,10.607,2.929,2.929,7.678,2.929,10.607,0Z"
+    fill="none"
+    stroke="currentColor"
     stroke-linecap="round"
     stroke-linejoin="round"
-    d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
   />
 </svg>

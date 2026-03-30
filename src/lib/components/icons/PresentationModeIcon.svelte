@@ -12,7 +12,11 @@
   stroke="currentColor"
   class={className}
 >
-  <path d="M2 3h20" />
-  <path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3" />
-  <path d="m7 21 5-5 5 5" />
+  <path d="M2,3h20" />
+  <path
+    d="M21,3v11c0,1.105-.895,2-2,2H5c-1.105,0-2-.895-2-2V3"
+    fill="none"
+    stroke="currentColor"
+  />
+  <path d="M7,21l5-4.571,5,4.571" />
 </svg>

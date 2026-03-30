@@ -1,18 +1,31 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   export let className = "size-6";
+  export let strokeWidth = 2;
 </script>
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
+  fill="none"
   viewBox="0 0 24 24"
-  fill="currentColor"
+  stroke-width={strokeWidth}
+  stroke="currentColor"
   class={className}
 >
-  <title>Path is locked</title>
   <path
+    d="M12,1.5c-2.899,0-5.25,2.351-5.25,5.25v3c-1.657,0-3,1.343-3,3v6.75c0,1.657,1.343,3,3,3h10.5c1.657,0,3-1.343,3-3v-6.75c0-1.657-1.343-3-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Z"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
     fill-rule="evenodd"
-    d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
-    clip-rule="evenodd"
+  />
+  <line
+    x1="6.75"
+    y1="9.75"
+    x2="17.25"
+    y2="9.75"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
   />
 </svg>

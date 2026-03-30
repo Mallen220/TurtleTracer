@@ -1,19 +1,22 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   export let className = "size-6";
+  export let strokeWidth = 2;
 </script>
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 24 24"
   fill="none"
+  viewBox="0 0 24 24"
+  stroke-width={strokeWidth}
   stroke="currentColor"
   class={className}
 >
   <path
+    d="M9,19v-6c0-1.105-.895-2-2-2h-2c-1.105,0-2,.895-2,2v6c0,1.105.895,2,2,2h2c1.105,0,2-.895,2-2ZM9,19v-10c0-1.105.895-2,2-2h2c1.105,0,2,.895,2,2v10M9,19c0,1.105.895,2,2,2h2c1.105,0,2-.895,2-2M15,19V5c0-1.105.895-2,2-2h2c1.105,0,2,.895,2,2v14c0,1.105-.895,2-2,2h-2c-1.105,0-2-.895-2-2Z"
+    fill="none"
+    stroke="currentColor"
     stroke-linecap="round"
     stroke-linejoin="round"
-    stroke-width="2"
-    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
   />
 </svg>

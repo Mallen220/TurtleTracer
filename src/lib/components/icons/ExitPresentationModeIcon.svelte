@@ -13,10 +13,25 @@
   class={className}
 >
   <path
-    stroke-linecap="round"
+    d="M9,21h-4c-1.105,0-2-.895-2-2V5c0-1.105.895-2,2-2h4"
     stroke-linejoin="round"
-    d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
   />
-  <polyline points="16 17 21 12 16 7" />
-  <line x1="21" y1="12" x2="9" y2="12" />
+  <polyline
+    points="16 17 21 12 16 7"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+  />
+  <line
+    x1="21"
+    y1="12"
+    x2="9"
+    y2="12"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+  />
 </svg>

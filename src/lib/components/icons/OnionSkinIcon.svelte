@@ -12,7 +12,35 @@
   stroke="currentColor"
   class={className}
 >
-  <polygon points="12 2 2 7 12 12 22 7 12 2" />
-  <polyline points="2 12 12 17 22 12" />
-  <polyline points="2 17 12 22 22 17" />
+  <path
+    d="M12,1.689c.74,5.432,9.304,3.032,9.837,10.963s-9.53,8.497-9.53,8.497"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+  />
+  <path
+    d="M12,1.689c.74,5.432,5.594,3.032,6.127,10.963s-5.82,8.497-5.82,8.497"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+  />
+  <path
+    d="M12,1.689c-.74,5.432-9.304,3.032-9.837,10.963-.533,7.931,9.53,8.497,9.53,8.497"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+  />
+  <path
+    d="M12,1.689c-.74,5.432-5.594,3.032-6.127,10.963-.533,7.931,5.82,8.497,5.82,8.497"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+  />
+  <path
+    d="M12,1.689c-.74,5.432-2.284,3.032-2.817,10.963-.533,7.931,2.51,8.497,2.51,8.497h.614s3.043-.566,2.51-8.497-2.077-5.532-2.817-10.963"
+    stroke-linecap="round"
+    fill="none"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+  />
 </svg>

@@ -8,12 +8,28 @@
   xmlns="http://www.w3.org/2000/svg"
   fill="none"
   viewBox="0 0 24 24"
-  stroke-width={strokeWidth}
   stroke="currentColor"
+  stroke-width={strokeWidth}
   class={className}
 >
-  <polyline points="23 4 23 10 17 10"></polyline>
-  <polyline points="1 20 1 14 7 14"></polyline>
-  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-  ></path>
+  <path
+    d="M18.994,22.108s3.824-1.912,3.824-4.78v-3.346l-3.824-1.434-3.824,1.434v3.346c0,2.868,3.824,4.78,3.824,4.78Z"
+    fill="#fff"
+    stroke="currentColor"
+  />
+  <path
+    d="M14.871,19.215s3.824-1.912,3.824-4.78v-3.346l-3.824-1.434-3.824,1.434v3.346c0,2.868,3.824,4.78,3.824,4.78Z"
+    fill="#fff"
+    stroke="currentColor"
+  />
+  <path
+    d="M9.97,15.253s3.824-1.912,3.824-4.78v-3.346l-3.824-1.434-3.824,1.434v3.346c0,2.868,3.824,4.78,3.824,4.78Z"
+    fill="#fff"
+    stroke="currentColor"
+  />
+  <path
+    d="M5.006,11.453s3.824-1.912,3.824-4.78v-3.346l-3.824-1.434-3.824,1.434v3.346c0,2.868,3.824,4.78,3.824,4.78Z"
+    fill="#fff"
+    stroke="currentColor"
+  />
 </svg>

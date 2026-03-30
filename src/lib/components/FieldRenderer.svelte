@@ -2133,6 +2133,7 @@
                 `}
               >
                 <ArrowUpIcon
+                  strokeWidth={3}
                   width={arrowSize.toString()}
                   height={arrowSize.toString()}
                   className="text-green-600"

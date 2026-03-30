@@ -1,68 +1,46 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   export let className: string = "size-4";
+  export let strokeWidth = 2;
   export let isActive: boolean = false;
 </script>
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 24 24"
   fill="none"
+  viewBox="0 0 24 24"
+  stroke-width={strokeWidth}
   stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
   class={className}
 >
-  {#if isActive}
-    <!-- Show a single highlighted layer -->
-    <rect x="4" y="6" width="16" height="4" rx="1" fill="currentColor" />
-    <rect
-      x="4"
-      y="11"
-      width="16"
-      height="4"
-      rx="1"
-      stroke="currentColor"
-      fill="none"
-    />
-    <rect
-      x="4"
-      y="16"
-      width="16"
-      height="4"
-      rx="1"
-      stroke="currentColor"
-      fill="none"
-    />
-  {:else}
-    <!-- Show multiple layers equally -->
-    <rect
-      x="4"
-      y="6"
-      width="16"
-      height="4"
-      rx="1"
-      stroke="currentColor"
-      fill="none"
-    />
-    <rect
-      x="4"
-      y="11"
-      width="16"
-      height="4"
-      rx="1"
-      stroke="currentColor"
-      fill="none"
-    />
-    <rect
-      x="4"
-      y="16"
-      width="16"
-      height="4"
-      rx="1"
-      stroke="currentColor"
-      fill="none"
-    />
-  {/if}
+  <path
+    d="M12,2.27c.74,5.432,9.304,3.032,9.837,10.963s-9.53,8.497-9.53,8.497"
+    stroke-linecap="round"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+    fill="none"
+  />
+  <path
+    d="M12,2.27c-.74,5.432-9.304,3.032-9.837,10.963-.533,7.931,9.53,8.497,9.53,8.497"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+    fill="none"
+  />
+  <path
+    d="M12,2.27c-.74,5.432-2.284,3.032-2.817,10.963-.533,7.931,2.51,8.497,2.51,8.497h.614s3.043-.566,2.51-8.497-2.077-5.532-2.817-10.963"
+    stroke-linecap="round"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+    opacity=".44"
+  />
+  <line
+    x1="12.307"
+    y1="21.73"
+    x2="11.693"
+    y2="21.73"
+    stroke-linecap="round"
+    stroke="currentColor"
+    stroke-miterlimit="10"
+    fill="none"
+  />
 </svg>
