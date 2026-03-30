@@ -12,7 +12,7 @@
     LockIcon,
     SpinnerIcon,
     ChevronRightSolidIcon,
-    PlaySolidIcon,
+    PlayIcon,
   } from "../icons/index";
   import {
     PathOptimizer,
@@ -409,7 +409,7 @@
           on:click={startOptimization}
           class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2"
         >
-          <PlaySolidIcon className="size-4" />
+          <PlayIcon className="size-4" />
           Start Optimization
         </button>
       {/if}

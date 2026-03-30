@@ -20,7 +20,7 @@
     UnlockIcon,
     ArrowUpIcon,
     ArrowDownIcon,
-    ProtractorIcon,
+    ClockIcon,
     PlusIcon,
   } from "../icons";
 
@@ -260,7 +260,7 @@
           Heading (deg)
         </label>
         <div class="relative">
-          <ProtractorIcon
+          <ClockIcon
             className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-neutral-400"
           />
           <input

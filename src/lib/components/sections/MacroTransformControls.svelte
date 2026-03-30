@@ -5,7 +5,7 @@
   import {
     ArrowsPointingOutIcon,
     ArrowPathIcon,
-    ArrowsRightLeftIcon,
+    SwitchIcon,
     ChevronUpIcon,
     ChevronDownIcon,
     TrashIcon,
@@ -339,7 +339,7 @@
             {:else if t.type === "rotate"}
               <ArrowPathIcon className="size-3" strokeWidth={2} />
             {:else}
-              <ArrowsRightLeftIcon className="size-3" strokeWidth={2} />
+              <SwitchIcon className="size-3" strokeWidth={2} />
             {/if}
           </div>
 

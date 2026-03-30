@@ -102,11 +102,11 @@
   import FieldCoordinates from "./FieldCoordinates.svelte";
   import {
     ArrowUpIcon,
-    ChevronRightBoldIcon,
+    ChevronRightIcon,
     SpinnerIcon,
     DiffIcon,
-    ZoomInIcon,
-    ZoomOutIcon,
+    PlusIcon,
+    MinusIcon,
     ResetZoomIcon,
     ExitPresentationModeIcon,
   } from "./icons";
@@ -2135,7 +2135,7 @@
                 <ArrowUpIcon
                   width={arrowSize.toString()}
                   height={arrowSize.toString()}
-                  className="size-6 text-green-600"
+                  className="text-green-600"
                   style="transform: rotate({rot}deg); transition: transform 0.1s;"
                 />
               </div>
@@ -2146,8 +2146,9 @@
           <div
             style="position:absolute; top:50%; left:50%; transform: translate(-50%, -50%); color: rgba(34, 197, 94, 1.0);"
           >
-            <ChevronRightBoldIcon
+            <ChevronRightIcon
               className="w-6 h-6"
+              strokeWidth={3}
               style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));"
             />
           </div>
@@ -2173,8 +2174,9 @@
               style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: {settings.fakeHeadingArrowColor ||
                 '#ffffff'};"
             >
-              <ChevronRightBoldIcon
+              <ChevronRightIcon
                 className="w-6 h-6"
+                strokeWidth={3}
                 style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));"
               />
             </div>
@@ -2224,8 +2226,9 @@
             style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: {settings.fakeHeadingArrowColor ||
               '#ffffff'}; opacity: 0.5;"
           >
-            <ChevronRightBoldIcon
+            <ChevronRightIcon
               className="w-6 h-6"
+              strokeWidth={3}
               style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.4));"
             />
           </div>
@@ -2287,7 +2290,7 @@
         aria-label="Zoom in"
         title="Zoom In (Cmd/Ctrl + +)"
       >
-        <ZoomInIcon className="w-4 h-4" />
+        <PlusIcon className="w-4 h-4" />
       </button>
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
@@ -2303,7 +2306,7 @@
         aria-label="Zoom out"
         title="Zoom Out (Cmd/Ctrl + -)"
       >
-        <ZoomOutIcon className="w-4 h-4" />
+        <MinusIcon className="w-4 h-4" />
       </button>
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
@@ -2342,7 +2345,7 @@
           aria-label="Zoom in"
           title="Zoom In"
         >
-          <ZoomInIcon className="w-5 h-5" />
+          <PlusIcon className="w-5 h-5" />
         </button>
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
@@ -2358,7 +2361,7 @@
           aria-label="Zoom out"
           title="Zoom Out"
         >
-          <ZoomOutIcon className="w-5 h-5" />
+          <MinusIcon className="w-5 h-5" />
         </button>
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"

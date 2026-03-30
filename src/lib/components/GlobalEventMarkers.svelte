@@ -8,7 +8,7 @@
   } from "../../types";
   import { tick } from "svelte";
   import TrashIcon from "./icons/TrashIcon.svelte";
-  import BoltIcon from "./icons/BoltIcon.svelte";
+  import ZapIcon from "./icons/ZapIcon.svelte";
   import SectionHeader from "./common/SectionHeader.svelte";
   import EmptyState from "./common/EmptyState.svelte";
   import { hoveredMarkerId, diskEventNamesStore } from "../../stores";
@@ -373,7 +373,7 @@
           compact={true}
         >
           <div slot="icon">
-            <BoltIcon className="size-6 text-neutral-400" strokeWidth={1.5} />
+            <ZapIcon className="size-6 text-neutral-400" strokeWidth={1.5} />
           </div>
         </EmptyState>
       {:else}

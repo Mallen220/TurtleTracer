@@ -33,12 +33,7 @@
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
   import pkg from "../../../../package.json";
   import { customExportersStore } from "../../pluginsStore";
-  import {
-    CogIcon,
-    ArrowDownOnSquareIcon,
-    CheckIcon,
-    ClipboardIcon,
-  } from "../icons";
+  import { CogIcon, DownloadIcon, CheckIcon, ClipboardIcon } from "../icons";
 
   // Register languages for core highlight.js
   hljs.registerLanguage("java", java);
@@ -416,7 +411,7 @@
       disabled={!code}
       aria-disabled={!code}
     >
-      <ArrowDownOnSquareIcon className="size-4" strokeWidth={2} />
+      <DownloadIcon className="size-4" strokeWidth={2} />
       Download {format === "points" || format === "custom"
         ? ".txt"
         : format === "json"

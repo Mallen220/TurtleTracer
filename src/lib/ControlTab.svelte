@@ -11,7 +11,7 @@
     PathTabIcon,
     FieldTabIcon,
     TableTabIcon,
-    TelemetryTabIcon,
+    ZapIcon,
     CodeIcon,
     DiffIcon,
     StatsIcon,
@@ -45,7 +45,7 @@
       label: "Telemetry",
       component: TelemetryTab,
       order: 3,
-      iconComponent: TelemetryTabIcon,
+      iconComponent: ZapIcon,
     });
     tabRegistryModule.register({
       id: "code",

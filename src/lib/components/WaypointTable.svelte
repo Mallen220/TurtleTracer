@@ -36,7 +36,7 @@
   import ColorPicker from "./tools/ColorPicker.svelte";
   import ContextMenu from "./tools/ContextMenu.svelte";
   import {
-    WaitIcon,
+    ClockIcon,
     RotateIcon,
     PlusIcon,
     LockIcon,
@@ -1735,7 +1735,7 @@
         >
           <!-- Render Icon based on kind for now as SVG string is not easily injectable here without raw HTML -->
           {#if def.kind === "wait"}
-            <WaitIcon className="size-3" />
+            <ClockIcon className="size-3" />
           {:else if def.kind === "rotate"}
             <RotateIcon className="size-3" />
           {:else}

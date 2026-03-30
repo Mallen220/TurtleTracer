@@ -18,7 +18,7 @@
     ListIcon,
     ArrowDownTrayIcon,
     MicrosoftStoreIcon,
-    ArrowRightSmallIcon,
+    ArrowRightIcon,
   } from "../icons";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
 
@@ -234,7 +234,7 @@
                   class="mt-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center gap-1 transition-colors group"
                 >
                   Get it for free
-                  <ArrowRightSmallIcon
+                  <ArrowRightIcon
                     className="h-3 w-3 transition-transform group-hover:translate-x-0.5"
                   />
                 </button>

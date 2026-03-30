@@ -19,7 +19,7 @@
   import LockIcon from "../icons/LockIcon.svelte";
   import PlusIcon from "../icons/PlusIcon.svelte";
   import UnlockIcon from "../icons/UnlockIcon.svelte";
-  import WaitIcon from "../icons/WaitIcon.svelte";
+  import ClockIcon from "../icons/ClockIcon.svelte";
 
   export let wait: SequenceWaitItem;
   export let sequence: SequenceItem[];
@@ -263,7 +263,7 @@
           Duration (ms)
         </label>
         <div class="relative">
-          <WaitIcon
+          <ClockIcon
             className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-neutral-400"
           />
           <input

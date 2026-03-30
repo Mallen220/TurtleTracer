@@ -4,7 +4,7 @@
   import { actionRegistry } from "../../actionRegistry";
   import { getButtonFilledClass } from "../../../utils/buttonStyles";
   import { getShortcutFromSettings } from "../../../utils";
-  import { PlusIcon, WaitIcon, RotateIcon } from "../icons";
+  import { PlusIcon, ClockIcon, RotateIcon } from "../icons";
 
   export let settings: any;
   export let onAddLine: () => void;
@@ -31,7 +31,7 @@
       {#if def.kind === "path"}
         <PlusIcon className="size-4" strokeWidth={2} />
       {:else if def.kind === "wait"}
-        <WaitIcon className="size-4" />
+        <ClockIcon className="size-4" />
       {:else if def.kind === "rotate"}
         <RotateIcon className="size-4" />
       {:else}

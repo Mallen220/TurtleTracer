@@ -3,10 +3,9 @@
   import type { ComponentType } from "svelte";
   import {
     UndoIcon,
-    HistoryIcon,
+    ClockIcon,
     RedoIcon,
     RulerIcon,
-    ProtractorIcon,
     GridIcon,
     OnionSkinIcon,
     VelocityHeatmapIcon,
@@ -53,7 +52,6 @@
     CodeIcon,
     TerminalIcon,
     StarIcon,
-    BoltIcon,
     WrenchIcon,
     PlayIcon,
     PlusIcon,
@@ -66,7 +64,7 @@
     PresentationModeIcon,
     SparklesIcon,
     QuestionMarkIcon,
-    ExportImageIcon,
+    PhotoIcon,
     ExportGifIcon,
     PluginManagerIcon,
   } from "./icons";
@@ -94,7 +92,7 @@
     Code: CodeIcon,
     Terminal: TerminalIcon,
     Star: StarIcon,
-    Bolt: BoltIcon,
+    Bolt: ZapIcon,
     Wrench: WrenchIcon,
     Plus: PlusIcon,
     Folder: FolderIcon,
@@ -543,7 +541,7 @@
                       className="sidebar-icon-small flex-none"
                     />
                   {:else}
-                    <HistoryIcon className="sidebar-icon-small flex-none" />
+                    <ClockIcon className="sidebar-icon-small flex-none" />
                   {/if}
                 </div>
                 {#if sidebarExpanded}
@@ -748,7 +746,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <ProtractorIcon className="sidebar-icon-small flex-none" />
+                <ClockIcon className="sidebar-icon-small flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"
@@ -1335,7 +1333,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <ExportImageIcon className="sidebar-icon-small flex-none" />
+                <PhotoIcon className="sidebar-icon-small flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"

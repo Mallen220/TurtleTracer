@@ -34,13 +34,13 @@
   import ContextMenu from "./tools/ContextMenu.svelte";
   import {
     RotateIcon,
-    MapPinSolidIcon,
-    StepForwardIcon,
+    MapPinIcon,
+    ChevronRightIcon,
     SkipToEndIcon,
     ChevronDownIcon,
     ScissorsIcon,
-    BackwardStepIcon,
-    BackwardIcon,
+    SkipToStartIcon,
+    ChevronLeftIcon,
     PlayIcon,
     PauseIcon,
     CheckIcon,
@@ -495,7 +495,7 @@
           </div>
 
           <!-- Map Pin Icon -->
-          <MapPinSolidIcon
+          <MapPinIcon
             className={item.fromWait
               ? "w-6 h-6 drop-shadow-md transition-transform group-hover:scale-125 text-black dark:text-white stroke-white dark:stroke-neutral-900"
               : "w-6 h-6 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125 stroke-white dark:stroke-neutral-900"}
@@ -604,7 +604,7 @@
         on:click={() => handleSeek(0)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <BackwardStepIcon className="size-4" />
+        <SkipToStartIcon className="size-4" />
       </button>
 
       <!-- Step Back -->
@@ -614,7 +614,7 @@
         on:click={() => step(-0.5)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <BackwardIcon className="size-5" />
+        <ChevronLeftIcon className="size-5" />
       </button>
 
       <!-- Play/Pause -->
@@ -650,7 +650,7 @@
         on:click={() => step(0.5)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
-        <StepForwardIcon className="size-5" />
+        <ChevronRightIcon className="size-5" />
       </button>
 
       <!-- Skip to End -->

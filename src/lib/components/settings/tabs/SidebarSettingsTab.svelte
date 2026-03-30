@@ -372,7 +372,7 @@
                 {@html item.icon}
               {/if}
             {:else if item.id === "separator"}
-              <ICONS.MinusCircleSolidIcon className="size-4" />
+              <ICONS.MinusCircleIcon className="size-4" />
             {:else if item.id === "spacer"}
               <div
                 class="h-4 w-4 border-2 border-dashed border-neutral-300 rounded-full"

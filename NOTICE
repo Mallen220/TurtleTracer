@@ -284,7 +284,7 @@ src/lib/components/icons/ResetZoomIcon.svelte
 src/lib/components/icons/ServerStackIcon.svelte
 src/lib/components/icons/TriangleWarningIcon.svelte
 src/lib/components/icons/ZoomInIcon.svelte
-src/lib/components/icons/ZoomOutIcon.svelte
+src/lib/components/icons/MinusIcon.svelte
 src/tests/macroReferenceUpdater.test.ts
 src/utils/file.ts
 src/lib/components/icons/ArrowDownIcon.svelte
@@ -296,7 +296,7 @@ src/lib/components/tools/ContextMenu.svelte
 src/utils/alignmentMenu.ts
 src/utils/shortcuts.ts
 src/lib/components/icons/ArrowsPointingOutIcon.svelte
-src/lib/components/icons/ArrowsRightLeftIcon.svelte
+src/lib/components/icons/SwitchIcon.svelte
 src/lib/components/icons/BackwardIcon.svelte
 src/lib/components/icons/BackwardStepIcon.svelte
 src/lib/components/icons/Bars3Icon.svelte
@@ -313,3 +313,6 @@ src/tests/generators.ts
 src/tests/integration.test.ts
 src/tests/settingsPersistence.test.ts
 src/utils/eventScanner.ts
+public/sw.js
+src/lib/components/icons/ArrowUpIcon.svelte
+src/utils/browserFileSystem.ts
