@@ -1,11 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Line, Point } from "../types";
 
-export function quadraticToCubic(
-  P0: { x: number; y: number },
-  P1: { x: number; y: number },
-  P2: { x: number; y: number },
-) {
+// Extracted type for 2D points to DRY up function signatures
+type Point2D = { x: number; y: number };
+
+export function quadraticToCubic(P0: Point2D, P1: Point2D, P2: Point2D) {
   const Q1 = {
     x: P0.x + (2 / 3) * (P1.x - P0.x),
     y: P0.y + (2 / 3) * (P1.y - P0.y),
@@ -37,10 +36,6 @@ export function transformAngle(angle: number) {
   return ((((angle + 180) % 360) + 360) % 360) - 180;
 }
 
-/**
- * Calculates the smallest difference between two angles.
- * Returns a value between -180 and 180.
- */
 export function getAngularDifference(start: number, end: number): number {
   const normalizedStart = ((start % 360) + 360) % 360;
   const normalizedEnd = ((end % 360) + 360) % 360;
@@ -52,21 +47,12 @@ export function getAngularDifference(start: number, end: number): number {
   return diff;
 }
 
-/**
- * Calculates the shortest rotation from startAngle to endAngle based on a percentage.
- * @param startAngle
- * @param endAngle
- * @param percentage
- * @returns
- */
 export function shortestRotation(
   startAngle: number,
   endAngle: number,
   percentage: number,
 ) {
-  // Use the helper to find the shortest signed difference
   const diff = getAngularDifference(startAngle, endAngle);
-  // Apply difference to the ORIGINAL startAngle to preserve winding/continuity
   return startAngle + diff * percentage;
 }
 
@@ -78,39 +64,23 @@ export function lerp(ratio: number, start: number, end: number) {
   return start + (end - start) * ratio;
 }
 
-export function lerp2d(
-  ratio: number,
-  start: { x: number; y: number },
-  end: { x: number; y: number },
-) {
+export function lerp2d(ratio: number, start: Point2D, end: Point2D) {
   return {
     x: lerp(ratio, start.x, end.x),
     y: lerp(ratio, start.y, end.y),
   };
 }
 
-export function getDistance(
-  p1: { x: number; y: number },
-  p2: { x: number; y: number },
-) {
+export function getDistance(p1: Point2D, p2: Point2D) {
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-/**
- * Optimized De Casteljau's algorithm for Bezier curves.
- * Uses explicit Bernstein basis polynomials for common degrees (1-3)
- * to avoid recursion and array allocation.
- */
-export function getCurvePoint(
-  t: number,
-  points: { x: number; y: number }[],
-): { x: number; y: number } {
+export function getCurvePoint(t: number, points: Point2D[]): Point2D {
   const len = points.length;
 
   if (len === 2) {
-    // Linear: P = (1-t)P0 + tP1
     const p0 = points[0];
     const p1 = points[1];
     return {
@@ -118,7 +88,6 @@ export function getCurvePoint(
       y: p0.y + (p1.y - p0.y) * t,
     };
   } else if (len === 3) {
-    // Quadratic: P = (1-t)^2 P0 + 2(1-t)t P1 + t^2 P2
     const p0 = points[0];
     const p1 = points[1];
     const p2 = points[2];
@@ -132,7 +101,6 @@ export function getCurvePoint(
       y: a * p0.y + b * p1.y + c * p2.y,
     };
   } else if (len === 4) {
-    // Cubic: P = (1-t)^3 P0 + 3(1-t)^2 t P1 + 3(1-t)t^2 P2 + t^3 P3
     const p0 = points[0];
     const p1 = points[1];
     const p2 = points[2];
@@ -152,11 +120,8 @@ export function getCurvePoint(
     };
   }
 
-  // Fallback for N > 4 (or N=1)
   if (len === 1) return points[0];
 
-  // Iterative De Casteljau to avoid recursion overhead and excessive allocation
-  // Work on a copy of the points to avoid mutating input
   const work = points.slice();
   let n = len;
   while (n > 1) {
@@ -178,77 +143,60 @@ export function getCurvePoint(
   return work[0];
 }
 
-/**
- * Splits a Bezier curve of any degree at parameter t into two curves.
- * Returns [leftCurve, rightCurve], where each is an array of control points.
- */
 export function splitBezier(
   t: number,
-  points: { x: number; y: number }[],
-): [{ x: number; y: number }[], { x: number; y: number }[]] {
-  const left: { x: number; y: number }[] = [];
-  const right: { x: number; y: number }[] = [];
+  points: Point2D[],
+): [Point2D[], Point2D[]] {
+  const left: Point2D[] = [];
+  const right: Point2D[] = [];
   const n = points.length - 1;
 
   let currentPoints = points.slice();
 
-  // Add initial points
   left.push(currentPoints[0]);
   right.push(currentPoints[currentPoints.length - 1]);
 
   for (let i = 0; i < n; i++) {
-    const nextPoints: { x: number; y: number }[] = [];
+    const nextPoints: Point2D[] = [];
     for (let j = 0; j < currentPoints.length - 1; j++) {
       const p0 = currentPoints[j];
       const p1 = currentPoints[j + 1];
-      const newP = {
+      nextPoints.push({
         x: p0.x + (p1.x - p0.x) * t,
         y: p0.y + (p1.y - p0.y) * t,
-      };
-      nextPoints.push(newP);
+      });
     }
     currentPoints = nextPoints;
     left.push(currentPoints[0]);
     right.push(currentPoints[currentPoints.length - 1]);
   }
 
-  // Right array was filled from outside in (P3, Q2, R1, S0), so reverse it to get (S0, R1, Q2, P3)
   right.reverse();
-
   return [left, right];
 }
 
-// Helpers for Heading Calculation
-export function getTangentAngle(
-  p1: { x: number; y: number },
-  p2: { x: number; y: number },
-): number {
+export function getTangentAngle(p1: Point2D, p2: Point2D): number {
   return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
 }
 
 function getHeadingBase(
   endPoint: any,
-  refPoint1: { x: number; y: number },
-  refPoint2: { x: number; y: number },
+  refPoint1: Point2D,
+  refPoint2: Point2D,
 ): number {
   if (endPoint.heading === "constant") {
-    return endPoint.reverse
-      ? transformAngle(endPoint.degrees + 180)
-      : transformAngle(endPoint.degrees);
+    return transformAngle(endPoint.degrees + (endPoint.reverse ? 180 : 0));
   }
   if (endPoint.heading === "facingPoint") {
-    const targetX = endPoint.targetX || 0;
-    const targetY = endPoint.targetY || 0;
-    const angle = getTangentAngle(refPoint1, { x: targetX, y: targetY });
-    return endPoint.reverse
-      ? transformAngle(angle + 180)
-      : transformAngle(angle);
+    const angle = getTangentAngle(refPoint1, {
+      x: endPoint.targetX || 0,
+      y: endPoint.targetY || 0,
+    });
+    return transformAngle(angle + (endPoint.reverse ? 180 : 0));
   }
   if (endPoint.heading === "tangential") {
     const angle = getTangentAngle(refPoint1, refPoint2);
-    return endPoint.reverse
-      ? transformAngle(angle + 180)
-      : transformAngle(angle);
+    return transformAngle(angle + (endPoint.reverse ? 180 : 0));
   }
   return 0;
 }
@@ -258,19 +206,15 @@ export function getLineStartHeading(
   previousPoint: Point,
 ): number {
   if (!line || !line.endPoint) return 0;
-
   if (line.endPoint.heading === "linear") return line.endPoint.startDeg;
 
-  let nextP: { x: number; y: number } = line.endPoint;
+  let nextP: Point2D = line.endPoint;
   if (
     line.endPoint.heading === "tangential" &&
-    line.controlPoints &&
-    line.controlPoints.length > 0
+    line.controlPoints?.length > 0
   ) {
     for (const cp of line.controlPoints) {
-      const dx = cp.x - previousPoint.x;
-      const dy = cp.y - previousPoint.y;
-      if (Math.sqrt(dx * dx + dy * dy) > 1e-6) {
+      if (getDistance(cp, previousPoint) > 1e-6) {
         nextP = cp;
         break;
       }
@@ -285,20 +229,16 @@ export function getLineEndHeading(
   previousPoint: Point,
 ): number {
   if (!line || !line.endPoint) return 0;
-
   if (line.endPoint.heading === "linear") return line.endPoint.endDeg;
 
-  let prevP: { x: number; y: number } = previousPoint;
+  let prevP: Point2D = previousPoint;
   if (
     line.endPoint.heading === "tangential" &&
-    line.controlPoints &&
-    line.controlPoints.length > 0
+    line.controlPoints?.length > 0
   ) {
     for (let i = line.controlPoints.length - 1; i >= 0; i--) {
       const cp = line.controlPoints[i];
-      const dx = cp.x - line.endPoint.x;
-      const dy = cp.y - line.endPoint.y;
-      if (Math.sqrt(dx * dx + dy * dy) > 1e-6) {
+      if (getDistance(cp, line.endPoint) > 1e-6) {
         prevP = cp;
         break;
       }
