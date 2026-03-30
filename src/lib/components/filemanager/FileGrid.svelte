@@ -9,7 +9,7 @@
   import {
     FolderIcon,
     DocumentIcon,
-    PencilSolidIcon,
+    PenIcon,
     CheckIcon,
     QuestionMarkIcon,
     EllipsisHorizontalIcon,
@@ -534,7 +534,7 @@
                 </div>
 
                 {#if file.gitStatus === "modified"}
-                  <PencilSolidIcon className="size-3" strokeWidth={2} />
+                  <PenIcon className="size-3" strokeWidth={2} />
                 {:else if file.gitStatus === "staged"}
                   <CheckIcon className="size-3" strokeWidth={2.5} />
                 {:else}

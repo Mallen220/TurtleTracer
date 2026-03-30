@@ -2,7 +2,7 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
-  import { CloseIcon, SearchIcon, InfoIcon, ArrowPathIcon } from "../icons";
+  import { CloseIcon, SearchIcon, InfoIcon, ArrowCircleIcon } from "../icons";
   import type { Settings } from "../../../types/index";
   import { DEFAULT_KEY_BINDINGS } from "../../../config/keybindings";
   import { notification } from "../../../stores";
@@ -427,7 +427,7 @@
                           class="text-xs text-neutral-400 hover:text-red-500 transition-colors"
                           title="Reset to default"
                         >
-                          <ArrowPathIcon className="size-4" strokeWidth={2} />
+                          <ArrowCircleIcon className="size-4" strokeWidth={2} />
                         </button>
                       {/if}
 

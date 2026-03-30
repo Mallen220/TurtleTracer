@@ -62,11 +62,11 @@
     BoxIcon,
     CompassIcon,
     PresentationModeIcon,
-    SparklesIcon,
+    RocketIcon,
     QuestionMarkIcon,
     PhotoIcon,
     ExportGifIcon,
-    PluginManagerIcon,
+    PuzzleIcon,
   } from "./icons";
   import {
     SIDEBAR_ITEMS,
@@ -1220,7 +1220,7 @@
                     className="sidebar-icon-small flex-none"
                   />
                 {:else}
-                  <PluginManagerIcon className="sidebar-icon-small flex-none" />
+                  <PuzzleIcon className="sidebar-icon-small flex-none" />
                 {/if}
               </div>
               {#if sidebarExpanded}
@@ -1262,7 +1262,7 @@
                     className="sidebar-icon-small flex-none"
                   />
                 {:else}
-                  <SparklesIcon className="sidebar-icon-small flex-none" />
+                  <RocketIcon className="sidebar-icon-small flex-none" />
                 {/if}
               </div>
               {#if sidebarExpanded}

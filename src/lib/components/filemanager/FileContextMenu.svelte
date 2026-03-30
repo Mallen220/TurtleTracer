@@ -6,9 +6,9 @@
   import {
     ArrowRightIcon,
     ArrowDownTrayIcon,
-    PencilSolidIcon,
+    PenIcon,
     DocumentIcon,
-    ArrowPathIcon,
+    ArrowCircleIcon,
     TrashIcon,
   } from "../icons";
 
@@ -96,7 +96,7 @@
     on:click={() => dispatch("action", "rename")}
     class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
   >
-    <PencilSolidIcon className="size-4" strokeWidth={1.5} />
+    <PenIcon className="size-4" strokeWidth={1.5} />
     Rename
   </button>
 
@@ -113,9 +113,9 @@
       on:click={() => dispatch("action", "mirror")}
       class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
     >
-      <!-- Need to flip vertically or similar for Mirror vs Reverse, we'll use ArrowPathIcon or reverse its scale.
-      <!-- Since ArrowPathIcon is symmetrical, we'll just use it for both for now to replace SVG, or ArrowRightIcon -->
-      <ArrowPathIcon className="size-4" strokeWidth={1.5} />
+      <!-- Need to flip vertically or similar for Mirror vs Reverse, we'll use ArrowCircleIcon or reverse its scale.
+      <!-- Since ArrowCircleIcon is symmetrical, we'll just use it for both for now to replace SVG, or ArrowRightIcon -->
+      <ArrowCircleIcon className="size-4" strokeWidth={1.5} />
       Mirror Copy
     </button>
 
@@ -123,7 +123,7 @@
       on:click={() => dispatch("action", "reverse")}
       class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
     >
-      <ArrowPathIcon className="size-4" strokeWidth={1.5} />
+      <ArrowCircleIcon className="size-4" strokeWidth={1.5} />
       Reverse Copy
     </button>
   {/if}

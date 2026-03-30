@@ -29,7 +29,7 @@ import {
   FollowRobotIcon,
   ShowTelemetryTabIcon,
   PresentationModeIcon,
-  PluginManagerIcon,
+  PuzzleIcon,
   QuestionMarkIcon,
   PhotoIcon,
   ExportGifIcon,
@@ -236,7 +236,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     id: "pluginManager",
     label: "Plugin Manager",
     type: "system",
-    iconComponent: PluginManagerIcon,
+    iconComponent: PuzzleIcon,
   },
   {
     id: "whatsNew",

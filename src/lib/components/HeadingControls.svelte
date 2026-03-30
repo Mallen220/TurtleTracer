@@ -3,7 +3,7 @@
   import { createEventDispatcher } from "svelte";
   import { transformAngle } from "../../utils/math";
   import HeadingIndicator from "./common/HeadingIndicator.svelte";
-  import { RotateIcon, TriangleWarningIcon, ArrowRightIcon } from "./icons";
+  import { ArrowCircleIcon, TriangleWarningIcon, ArrowRightIcon } from "./icons";
 
   export let endPoint: any;
   export let locked: boolean = false;
@@ -129,7 +129,7 @@
       {tabindex}
       class="sr-only"
     />
-    <RotateIcon
+    <ArrowCircleIcon
       className={`size-4 ${endPoint.reverse ? "text-purple-500" : "text-neutral-400"}`}
     />
   </label>

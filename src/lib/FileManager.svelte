@@ -79,7 +79,7 @@
     ArrowDownTrayIcon,
     CodeBracketSquareIcon,
     ServerStackIcon,
-    RotateIcon,
+    ArrowCircleIcon,
   } from "./components/icons";
 
   export let isOpen = false;
@@ -1520,7 +1520,7 @@
           title="Refresh"
           aria-label="Refresh"
         >
-          <RotateIcon className="size-4" />
+          <ArrowCircleIcon className="size-4" />
         </button>
         <span
           >{filteredFiles.length} file{filteredFiles.length !== 1
