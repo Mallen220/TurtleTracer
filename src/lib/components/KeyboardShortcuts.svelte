@@ -2,6 +2,10 @@
 <script lang="ts">
   import { get } from "svelte/store";
   import hotkeys from "hotkeys-js";
+
+  // Override hotkeys.filter to allow shortcuts to trigger even when inputs are focused.
+  hotkeys.filter = () => true;
+
   import CommandPalette from "./CommandPalette.svelte";
   import { isSupportedProjectFileName } from "../../utils/fileExtensions";
   import {
