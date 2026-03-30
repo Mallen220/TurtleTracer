@@ -858,6 +858,7 @@
                     title="Grid Size"
                     aria-label="Grid Size"
                   >
+                    <option value={0.5}>0.5"</option>
                     <option value={1}>1"</option>
                     <option value={3}>3"</option>
                     <option value={6}>6"</option>

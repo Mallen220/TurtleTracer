@@ -13,7 +13,7 @@ import { getDefaultStartPoint } from "../../../config";
 import { isUIElementFocused } from "./utils";
 
 export function cycleGridSize() {
-  const options = [1, 3, 6, 12, 24];
+  const options = [0.5, 1, 3, 6, 12, 24];
   const current = (get(gridSize) as number) || options[0];
   const idx = options.indexOf(current);
   const next = options[(idx + 1) % options.length];
@@ -21,7 +21,7 @@ export function cycleGridSize() {
 }
 
 export function cycleGridSizeReverse() {
-  const options = [1, 3, 6, 12, 24];
+  const options = [0.5, 1, 3, 6, 12, 24];
   const current = (get(gridSize) as number) || options[0];
   const idx = options.indexOf(current);
   const prev = options[(idx - 1 + options.length) % options.length];
