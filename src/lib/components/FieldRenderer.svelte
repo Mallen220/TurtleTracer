@@ -106,7 +106,7 @@
     SpinnerIcon,
     DiffIcon,
     PlusIcon,
-    ZoomOutIcon,
+    MinusIcon,
     ResetZoomIcon,
     ExitPresentationModeIcon,
   } from "./icons";
@@ -2306,7 +2306,7 @@
         aria-label="Zoom out"
         title="Zoom Out (Cmd/Ctrl + -)"
       >
-        <ZoomOutIcon className="w-4 h-4" />
+        <MinusIcon className="w-4 h-4" />
       </button>
       <button
         class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
@@ -2361,7 +2361,7 @@
           aria-label="Zoom out"
           title="Zoom Out"
         >
-          <ZoomOutIcon className="w-5 h-5" />
+          <MinusIcon className="w-5 h-5" />
         </button>
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"

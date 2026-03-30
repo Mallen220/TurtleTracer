@@ -284,7 +284,7 @@ src/lib/components/icons/ResetZoomIcon.svelte
 src/lib/components/icons/ServerStackIcon.svelte
 src/lib/components/icons/TriangleWarningIcon.svelte
 src/lib/components/icons/ZoomInIcon.svelte
-src/lib/components/icons/ZoomOutIcon.svelte
+src/lib/components/icons/MinusIcon.svelte
 src/tests/macroReferenceUpdater.test.ts
 src/utils/file.ts
 src/lib/components/icons/ArrowDownIcon.svelte

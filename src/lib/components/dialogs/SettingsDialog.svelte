@@ -78,7 +78,7 @@
     {
       id: "motion",
       label: "Motion",
-      iconComponent: ICONS.PlaySolidIcon,
+      iconComponent: ICONS.PlayIcon,
     },
     {
       id: "interface",

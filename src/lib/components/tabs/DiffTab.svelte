@@ -5,7 +5,7 @@
   import type { Settings } from "../../../types";
   import {
     PlusCircleIcon,
-    MinusCircleSolidIcon,
+    MinusCircleIcon,
     PencilSolidIcon,
   } from "../icons";
 
@@ -151,7 +151,7 @@
                 <div
                   class="mt-1 flex-none w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center"
                 >
-                  <MinusCircleSolidIcon
+                  <MinusCircleIcon
                     className="w-3 h-3 text-red-600 dark:text-red-400"
                   />
                 </div>
