@@ -6,6 +6,7 @@
   import { robotProfilesStore } from "../../../lib/projectStore";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
   import SaveIcon from "../icons/SaveIcon.svelte";
+  import DownloadIcon from "../icons/DownloadIcon.svelte";
   import { fade } from "svelte/transition";
 
   export let settings: Settings;
@@ -174,6 +175,36 @@
       type: "success",
     });
   }
+
+  function handleExportProfile() {
+    const profile = profiles.find((p) => p.id === selectedProfileId);
+    if (!profile) return;
+
+    try {
+      const dataStr = JSON.stringify(profile, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchorNode = document.createElement("a");
+      downloadAnchorNode.setAttribute("href", url);
+      const safeName = profile.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      downloadAnchorNode.setAttribute("download", `robot-profile-${safeName}.json`);
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+      URL.revokeObjectURL(url);
+
+      notification.set({
+        message: `Profile "${profile.name}" exported`,
+        type: "success",
+        timeout: 3000,
+      });
+    } catch (e) {
+      notification.set({
+        message: "Failed to export profile: " + (e as Error).message,
+        type: "error",
+      });
+    }
+  }
 </script>
 
 <div
@@ -296,6 +327,15 @@
                   <SaveIcon className="size-4" strokeWidth={2} />
                 </div>
               {/if}
+            </button>
+
+            <!-- Export Button -->
+            <button
+              on:click={handleExportProfile}
+              class="ml-1 p-1.5 rounded-md transition-all duration-200 flex items-center justify-center hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 w-8"
+              title="Export Profile"
+            >
+              <DownloadIcon className="size-4" strokeWidth={2} />
             </button>
 
             <!-- Delete Button -->
