@@ -510,7 +510,7 @@ async function exportProjectFileWithExtension(
   }
   const defaultName = `${filename}${extension}`;
 
-  if (electronAPI) {
+  if (electronAPI && !(electronAPI as any).isVirtual) {
     // Use save dialog + writeFile
     if (electronAPI.showSaveDialog && electronAPI.writeFile) {
       const filePath = await electronAPI.showSaveDialog({

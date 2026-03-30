@@ -263,7 +263,7 @@
       return;
     }
 
-    if (!electronAPI || !electronAPI.showSaveDialog || !electronAPI.writeFile) {
+    if (!electronAPI || (electronAPI as any).isVirtual || !electronAPI.showSaveDialog || !electronAPI.writeFile) {
       // Fallback for web: use download attribute trick via Blob
       // But downloadTrajectory is specialized for JSON/PP usually; make a generic one.
       const blob = new Blob([exportedCode], { type: "text/plain" });
