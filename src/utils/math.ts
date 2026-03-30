@@ -229,7 +229,7 @@ export function getTangentAngle(
 function getHeadingBase(
   endPoint: any,
   refPoint1: { x: number; y: number },
-  refPoint2: { x: number; y: number }
+  refPoint2: { x: number; y: number },
 ): number {
   if (endPoint.heading === "constant") {
     return endPoint.reverse
@@ -262,7 +262,11 @@ export function getLineStartHeading(
   if (line.endPoint.heading === "linear") return line.endPoint.startDeg;
 
   let nextP: { x: number; y: number } = line.endPoint;
-  if (line.endPoint.heading === "tangential" && line.controlPoints && line.controlPoints.length > 0) {
+  if (
+    line.endPoint.heading === "tangential" &&
+    line.controlPoints &&
+    line.controlPoints.length > 0
+  ) {
     for (const cp of line.controlPoints) {
       const dx = cp.x - previousPoint.x;
       const dy = cp.y - previousPoint.y;
@@ -285,7 +289,11 @@ export function getLineEndHeading(
   if (line.endPoint.heading === "linear") return line.endPoint.endDeg;
 
   let prevP: { x: number; y: number } = previousPoint;
-  if (line.endPoint.heading === "tangential" && line.controlPoints && line.controlPoints.length > 0) {
+  if (
+    line.endPoint.heading === "tangential" &&
+    line.controlPoints &&
+    line.controlPoints.length > 0
+  ) {
     for (let i = line.controlPoints.length - 1; i >= 0; i--) {
       const cp = line.controlPoints[i];
       const dx = cp.x - line.endPoint.x;
@@ -297,7 +305,11 @@ export function getLineEndHeading(
     }
   }
 
-  return getHeadingBase(line.endPoint, line.endPoint.heading === "facingPoint" ? line.endPoint : prevP, line.endPoint);
+  return getHeadingBase(
+    line.endPoint,
+    line.endPoint.heading === "facingPoint" ? line.endPoint : prevP,
+    line.endPoint,
+  );
 }
 
 export function vh(percent: number) {

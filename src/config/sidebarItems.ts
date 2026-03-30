@@ -19,7 +19,6 @@ import {
   FeedbackIcon,
   GithubIcon,
   ShowRobotIcon,
-  ShowRobotArrowsIcon,
   ShowFakeHeadingArrowIcon,
   ValidateFieldBoundariesIcon,
   ContinuousValidationIcon,
@@ -34,6 +33,7 @@ import {
   QuestionMarkIcon,
   ExportImageIcon,
   ExportGifIcon,
+  RobotPlaceholderIcon,
 } from "../lib/components/icons";
 
 export interface SidebarItemConfig {
@@ -154,7 +154,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     label: "Show Robot Arrows",
     type: "setting",
     settingKey: "showRobotArrows",
-    iconComponent: ShowRobotArrowsIcon,
+    iconComponent: RobotPlaceholderIcon,
   },
   {
     id: "showFakeHeadingArrow",

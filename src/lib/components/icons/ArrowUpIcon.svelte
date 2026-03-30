@@ -4,6 +4,8 @@
   export let width = "24";
   export let height = "24";
   export let style = "";
+  export let stroke = "currentColor";
+  export let strokeWidth = 3;
 </script>
 
 <svg
@@ -11,8 +13,8 @@
   xmlns="http://www.w3.org/2000/svg"
   fill="none"
   viewBox="0 0 24 24"
-  stroke="#16a34a"
-  stroke-width="3"
+  {stroke}
+  stroke-width={strokeWidth}
   stroke-linecap="round"
   stroke-linejoin="round"
   class={className}
