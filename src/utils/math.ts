@@ -226,46 +226,54 @@ export function getTangentAngle(
   return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
 }
 
+function getHeadingBase(
+  endPoint: any,
+  refPoint1: { x: number; y: number },
+  refPoint2: { x: number; y: number }
+): number {
+  if (endPoint.heading === "constant") {
+    return endPoint.reverse
+      ? transformAngle(endPoint.degrees + 180)
+      : transformAngle(endPoint.degrees);
+  }
+  if (endPoint.heading === "facingPoint") {
+    const targetX = endPoint.targetX || 0;
+    const targetY = endPoint.targetY || 0;
+    const angle = getTangentAngle(refPoint1, { x: targetX, y: targetY });
+    return endPoint.reverse
+      ? transformAngle(angle + 180)
+      : transformAngle(angle);
+  }
+  if (endPoint.heading === "tangential") {
+    const angle = getTangentAngle(refPoint1, refPoint2);
+    return endPoint.reverse
+      ? transformAngle(angle + 180)
+      : transformAngle(angle);
+  }
+  return 0;
+}
+
 export function getLineStartHeading(
   line: Line | undefined,
   previousPoint: Point,
 ): number {
   if (!line || !line.endPoint) return 0;
 
-  if (line.endPoint.heading === "constant") {
-    return line.endPoint.reverse
-      ? transformAngle(line.endPoint.degrees + 180)
-      : transformAngle(line.endPoint.degrees);
-  }
   if (line.endPoint.heading === "linear") return line.endPoint.startDeg;
-  if (line.endPoint.heading === "facingPoint") {
-    const targetX = (line.endPoint as any).targetX || 0;
-    const targetY = (line.endPoint as any).targetY || 0;
-    const angle = getTangentAngle(previousPoint, { x: targetX, y: targetY });
-    return line.endPoint.reverse
-      ? transformAngle(angle + 180)
-      : transformAngle(angle);
-  }
-  if (line.endPoint.heading === "tangential") {
-    let nextP: { x: number; y: number } = line.endPoint;
-    // Find the first point that isn't the start point (overlap handling)
-    if (line.controlPoints && line.controlPoints.length > 0) {
-      for (const cp of line.controlPoints) {
-        const dx = cp.x - previousPoint.x;
-        const dy = cp.y - previousPoint.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > 1e-6) {
-          nextP = cp;
-          break;
-        }
+
+  let nextP: { x: number; y: number } = line.endPoint;
+  if (line.endPoint.heading === "tangential" && line.controlPoints && line.controlPoints.length > 0) {
+    for (const cp of line.controlPoints) {
+      const dx = cp.x - previousPoint.x;
+      const dy = cp.y - previousPoint.y;
+      if (Math.sqrt(dx * dx + dy * dy) > 1e-6) {
+        nextP = cp;
+        break;
       }
     }
-    const angle = getTangentAngle(previousPoint, nextP);
-    return line.endPoint.reverse
-      ? transformAngle(angle + 180)
-      : transformAngle(angle);
   }
-  return 0;
+
+  return getHeadingBase(line.endPoint, previousPoint, nextP);
 }
 
 export function getLineEndHeading(
@@ -274,41 +282,22 @@ export function getLineEndHeading(
 ): number {
   if (!line || !line.endPoint) return 0;
 
-  if (line.endPoint.heading === "constant") {
-    return line.endPoint.reverse
-      ? transformAngle(line.endPoint.degrees + 180)
-      : transformAngle(line.endPoint.degrees);
-  }
   if (line.endPoint.heading === "linear") return line.endPoint.endDeg;
-  if (line.endPoint.heading === "facingPoint") {
-    const targetX = (line.endPoint as any).targetX || 0;
-    const targetY = (line.endPoint as any).targetY || 0;
-    const angle = getTangentAngle(line.endPoint, { x: targetX, y: targetY });
-    return line.endPoint.reverse
-      ? transformAngle(angle + 180)
-      : transformAngle(angle);
-  }
-  if (line.endPoint.heading === "tangential") {
-    let prevP: { x: number; y: number } = previousPoint;
-    // Find the last point that isn't the end point (overlap handling)
-    if (line.controlPoints && line.controlPoints.length > 0) {
-      for (let i = line.controlPoints.length - 1; i >= 0; i--) {
-        const cp = line.controlPoints[i];
-        const dx = cp.x - line.endPoint.x;
-        const dy = cp.y - line.endPoint.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > 1e-6) {
-          prevP = cp;
-          break;
-        }
+
+  let prevP: { x: number; y: number } = previousPoint;
+  if (line.endPoint.heading === "tangential" && line.controlPoints && line.controlPoints.length > 0) {
+    for (let i = line.controlPoints.length - 1; i >= 0; i--) {
+      const cp = line.controlPoints[i];
+      const dx = cp.x - line.endPoint.x;
+      const dy = cp.y - line.endPoint.y;
+      if (Math.sqrt(dx * dx + dy * dy) > 1e-6) {
+        prevP = cp;
+        break;
       }
     }
-    const angle = getTangentAngle(prevP, line.endPoint);
-    return line.endPoint.reverse
-      ? transformAngle(angle + 180)
-      : transformAngle(angle);
   }
-  return 0;
+
+  return getHeadingBase(line.endPoint, line.endPoint.heading === "facingPoint" ? line.endPoint : prevP, line.endPoint);
 }
 
 export function vh(percent: number) {
