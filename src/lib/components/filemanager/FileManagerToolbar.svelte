@@ -5,7 +5,7 @@
   import {
     SearchIcon,
     SortNameIcon,
-    SortDateIcon,
+    ClockIcon,
     ViewListIcon,
     ViewGridIcon,
   } from "../icons";
@@ -59,7 +59,7 @@
       {#if sortMode === "name"}
         <SortNameIcon className="size-5" strokeWidth={2} />
       {:else}
-        <SortDateIcon className="size-5" strokeWidth={2} />
+        <ClockIcon className="size-5" />
       {/if}
     </button>
 

@@ -11,9 +11,8 @@ import {
   WrenchIcon,
   UndoIcon,
   RedoIcon,
-  HistoryIcon,
+  ClockIcon,
   RulerIcon,
-  ProtractorIcon,
   GridIcon,
   OnionSkinIcon,
   VelocityHeatmapIcon,
@@ -68,7 +67,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     label: "History",
     type: "system",
     shortcutKey: "toggle-history",
-    iconComponent: HistoryIcon,
+    iconComponent: ClockIcon,
   },
   {
     id: "redo",
@@ -96,7 +95,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     label: "Protractor",
     type: "system",
     shortcutKey: "toggle-protractor",
-    iconComponent: ProtractorIcon,
+    iconComponent: ClockIcon,
   },
   {
     id: "grid",
