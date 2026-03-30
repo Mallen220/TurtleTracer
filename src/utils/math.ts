@@ -5,14 +5,8 @@ import type { Line, Point } from "../types";
 type Point2D = { x: number; y: number };
 
 export function quadraticToCubic(P0: Point2D, P1: Point2D, P2: Point2D) {
-  const Q1 = {
-    x: P0.x + (2 / 3) * (P1.x - P0.x),
-    y: P0.y + (2 / 3) * (P1.y - P0.y),
-  };
-  const Q2 = {
-    x: P2.x + (2 / 3) * (P1.x - P2.x),
-    y: P2.y + (2 / 3) * (P1.y - P2.y),
-  };
+  const Q1 = lerp2d(2 / 3, P0, P1);
+  const Q2 = lerp2d(2 / 3, P2, P1);
   return { Q1, Q2 };
 }
 
@@ -71,6 +65,20 @@ export function lerp2d(ratio: number, start: Point2D, end: Point2D) {
   };
 }
 
+export function getFirstValidControlPoint(
+  controlPoints: Point2D[],
+  refPoint: Point2D,
+  reverse: boolean = false,
+): Point2D | null {
+  const pts = reverse ? [...controlPoints].reverse() : controlPoints;
+  for (const cp of pts) {
+    if (getDistance(cp, refPoint) > 1e-6) {
+      return cp;
+    }
+  }
+  return null;
+}
+
 export function getDistance(p1: Point2D, p2: Point2D) {
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
@@ -81,12 +89,7 @@ export function getCurvePoint(t: number, points: Point2D[]): Point2D {
   const len = points.length;
 
   if (len === 2) {
-    const p0 = points[0];
-    const p1 = points[1];
-    return {
-      x: p0.x + (p1.x - p0.x) * t,
-      y: p0.y + (p1.y - p0.y) * t,
-    };
+    return lerp2d(t, points[0], points[1]);
   } else if (len === 3) {
     const p0 = points[0];
     const p1 = points[1];
@@ -126,16 +129,12 @@ export function getCurvePoint(t: number, points: Point2D[]): Point2D {
   let n = len;
   while (n > 1) {
     for (let i = 0; i < n - 1; i++) {
-      const p0 = work[i];
-      const p1 = work[i + 1];
-      const nx = p0.x + (p1.x - p0.x) * t;
-      const ny = p0.y + (p1.y - p0.y) * t;
-
+      const p = lerp2d(t, work[i], work[i + 1]);
       if (n === len) {
-        work[i] = { x: nx, y: ny };
+        work[i] = p;
       } else {
-        work[i].x = nx;
-        work[i].y = ny;
+        work[i].x = p.x;
+        work[i].y = p.y;
       }
     }
     n--;
@@ -159,12 +158,7 @@ export function splitBezier(
   for (let i = 0; i < n; i++) {
     const nextPoints: Point2D[] = [];
     for (let j = 0; j < currentPoints.length - 1; j++) {
-      const p0 = currentPoints[j];
-      const p1 = currentPoints[j + 1];
-      nextPoints.push({
-        x: p0.x + (p1.x - p0.x) * t,
-        y: p0.y + (p1.y - p0.y) * t,
-      });
+      nextPoints.push(lerp2d(t, currentPoints[j], currentPoints[j + 1]));
     }
     currentPoints = nextPoints;
     left.push(currentPoints[0]);
@@ -213,12 +207,8 @@ export function getLineStartHeading(
     line.endPoint.heading === "tangential" &&
     line.controlPoints?.length > 0
   ) {
-    for (const cp of line.controlPoints) {
-      if (getDistance(cp, previousPoint) > 1e-6) {
-        nextP = cp;
-        break;
-      }
-    }
+    nextP =
+      getFirstValidControlPoint(line.controlPoints, previousPoint) || nextP;
   }
 
   return getHeadingBase(line.endPoint, previousPoint, nextP);
@@ -236,13 +226,9 @@ export function getLineEndHeading(
     line.endPoint.heading === "tangential" &&
     line.controlPoints?.length > 0
   ) {
-    for (let i = line.controlPoints.length - 1; i >= 0; i--) {
-      const cp = line.controlPoints[i];
-      if (getDistance(cp, line.endPoint) > 1e-6) {
-        prevP = cp;
-        break;
-      }
-    }
+    prevP =
+      getFirstValidControlPoint(line.controlPoints, line.endPoint, true) ||
+      prevP;
   }
 
   return getHeadingBase(
