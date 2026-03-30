@@ -20,7 +20,6 @@ export { default as WrenchIcon } from "./WrenchIcon.svelte";
 export { default as EyeIcon } from "./EyeIcon.svelte";
 export { default as BoxIcon } from "./BoxIcon.svelte";
 export { default as CompassIcon } from "./CompassIcon.svelte";
-export { default as ArrowRightLeftIcon } from "./ArrowRightLeftIcon.svelte";
 export { default as ArrowsPointingOutIcon } from "./ArrowsPointingOutIcon.svelte";
 export { default as ArrowsRightLeftIcon } from "./ArrowsRightLeftIcon.svelte";
 export { default as ScissorsIcon } from "./ScissorsIcon.svelte";
@@ -36,7 +35,6 @@ export { default as ValidateFieldBoundariesIcon } from "./ValidateFieldBoundarie
 export { default as ContinuousValidationIcon } from "./ContinuousValidationIcon.svelte";
 export { default as RestrictDraggingToFieldIcon } from "./RestrictDraggingToFieldIcon.svelte";
 export { default as SmartSnappingIcon } from "./SmartSnappingIcon.svelte";
-export { default as AutoExportCodeIcon } from "./AutoExportCodeIcon.svelte";
 export { default as FollowRobotIcon } from "./FollowRobotIcon.svelte";
 export { default as ShowTelemetryTabIcon } from "./ShowTelemetryTabIcon.svelte";
 export { default as PresentationModeIcon } from "./PresentationModeIcon.svelte";
@@ -46,7 +44,6 @@ export { default as ExportGifIcon } from "./ExportGifIcon.svelte";
 export { default as UndoIcon } from "./UndoIcon.svelte";
 export { default as RedoIcon } from "./RedoIcon.svelte";
 export { default as ClockIcon } from "./ClockIcon.svelte";
-export { default as WaitIcon } from "./WaitIcon.svelte";
 export { default as RulerIcon } from "./RulerIcon.svelte";
 export { default as GridIcon } from "./GridIcon.svelte";
 export { default as OnionSkinIcon } from "./OnionSkinIcon.svelte";
@@ -100,14 +97,13 @@ export { default as ChevronRightBoldIcon } from "./ChevronRightBoldIcon.svelte";
 export { default as ArrowUpIcon } from "./ArrowUpIcon.svelte";
 export { default as ClipboardIcon } from "./ShowDebugSequenceIcon.svelte";
 export { default as CheckIcon } from "./CheckIcon.svelte";
-export { default as ArrowDownOnSquareIcon } from "./ArrowDownOnSquareIcon.svelte";
 export { default as CogIcon } from "./CogIcon.svelte";
 export { default as PlusCircleIcon } from "./PlusCircleIcon.svelte";
 export { default as MinusCircleSolidIcon } from "./MinusCircleSolidIcon.svelte";
 export { default as PencilSolidIcon } from "./PencilSolidIcon.svelte";
 export { default as MapPinIcon } from "./MapPinIcon.svelte";
 export { default as DocumentIcon } from "./DocumentIcon.svelte";
-export { default as ArrowRightStraightIcon } from "./ArrowRightStraightIcon.svelte";
+
 export { default as PhotoIcon } from "./PhotoIcon.svelte";
 export { default as ArrowPathIcon } from "./ArrowPathIcon.svelte";
 export { default as ArrowUpLeftIcon } from "./ArrowUpLeftIcon.svelte";
@@ -128,5 +124,5 @@ export { default as OnionSkinCurrentPathIcon } from "./OnionSkinCurrentPathIcon.
 export { default as NewPathIcon } from "./NewPathIcon.svelte";
 export { default as SidebarCollapseIcon } from "./SidebarCollapseIcon.svelte";
 export { default as MicrosoftStoreIcon } from "./MicrosoftStoreIcon.svelte";
-export { default as ArrowRightSmallIcon } from "./ArrowRightSmallIcon.svelte";
+
 export { default as RobotPlaceholderIcon } from "./RobotPlaceholderIcon.svelte";

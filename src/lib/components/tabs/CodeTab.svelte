@@ -35,7 +35,7 @@
   import { customExportersStore } from "../../pluginsStore";
   import {
     CogIcon,
-    ArrowDownOnSquareIcon,
+    DownloadIcon,
     CheckIcon,
     ClipboardIcon,
   } from "../icons";
@@ -411,7 +411,7 @@
       disabled={!code}
       aria-disabled={!code}
     >
-      <ArrowDownOnSquareIcon className="size-4" strokeWidth={2} />
+      <DownloadIcon className="size-4" strokeWidth={2} />
       Download {format === "points" || format === "custom"
         ? ".txt"
         : format === "json"
