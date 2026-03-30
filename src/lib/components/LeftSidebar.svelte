@@ -45,6 +45,7 @@
   import type { Settings } from "../../types";
   import type { createHistory } from "../../utils/history";
   import { menuNavigation } from "../actions/menuNavigation";
+  import { isBrowser } from "../../utils/platform";
   import {
     MagnetIcon,
     FolderIcon,
@@ -130,7 +131,13 @@
       }
       return item as SidebarEntry | undefined;
     })
-    .filter((item): item is SidebarEntry => item !== undefined);
+    .filter((item): item is SidebarEntry => item !== undefined)
+    .filter((item) => {
+      if (isBrowser) {
+        if (item.id === "pluginManager") return false;
+      }
+      return true;
+    });
 
   function toggleSetting(key: string) {
     (settings as any)[key] = !(settings as any)[key];

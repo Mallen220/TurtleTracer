@@ -217,20 +217,22 @@
     </button>
   </SettingsItem>
 
-  <SettingsItem
-    label="Software Update"
-    description="Check for new versions of the application"
-    {searchQuery}
-    layout="row"
-  >
-    <button
-      on:click={handleCheckForUpdates}
-      disabled={isCheckingForUpdates}
-      class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors disabled:opacity-50"
+  {#if !isBrowser}
+    <SettingsItem
+      label="Software Update"
+      description="Check for new versions of the application"
+      {searchQuery}
+      layout="row"
     >
-      {isCheckingForUpdates ? "Checking..." : "Check for Updates"}
-    </button>
-  </SettingsItem>
+      <button
+        on:click={handleCheckForUpdates}
+        disabled={isCheckingForUpdates}
+        class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors disabled:opacity-50"
+      >
+        {isCheckingForUpdates ? "Checking..." : "Check for Updates"}
+      </button>
+    </SettingsItem>
+  {/if}
 
   {#if !(isBrowser && isOnline)}
     <SettingsItem
@@ -261,40 +263,42 @@
     </button>
   </SettingsItem>
 
-  <SettingsItem
-    label="Plugin Manager"
-    description="Manage installed plugins"
-    {searchQuery}
-    layout="row"
-  >
-    <button
-      on:click={() => {
-        isOpen = false;
-        showPluginManager.set(true);
-      }}
-      class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+  {#if !isBrowser}
+    <SettingsItem
+      label="Plugin Manager"
+      description="Manage installed plugins"
+      {searchQuery}
+      layout="row"
     >
-      Open Manager
-    </button>
-  </SettingsItem>
+      <button
+        on:click={() => {
+          isOpen = false;
+          showPluginManager.set(true);
+        }}
+        class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+      >
+        Open Manager
+      </button>
+    </SettingsItem>
 
-  <SettingsItem
-    label="Git Integration"
-    isModified={settings.gitIntegration !== DEFAULT_SETTINGS.gitIntegration}
-    onReset={() => {
-      settings.gitIntegration = DEFAULT_SETTINGS.gitIntegration;
-      settings = { ...settings };
-    }}
-    description="Show git status indicators for files"
-    {searchQuery}
-    layout="row"
-  >
-    <input
-      type="checkbox"
-      bind:checked={settings.gitIntegration}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-    />
-  </SettingsItem>
+    <SettingsItem
+      label="Git Integration"
+      isModified={settings.gitIntegration !== DEFAULT_SETTINGS.gitIntegration}
+      onReset={() => {
+        settings.gitIntegration = DEFAULT_SETTINGS.gitIntegration;
+        settings = { ...settings };
+      }}
+      description="Show git status indicators for files"
+      {searchQuery}
+      layout="row"
+    >
+      <input
+        type="checkbox"
+        bind:checked={settings.gitIntegration}
+        class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+      />
+    </SettingsItem>
+  {/if}
 
   <SettingsItem
     label="Transfer Settings"
