@@ -134,6 +134,7 @@
         }
       }
 
+      // Register the service worker to allow the app to work offline
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js").then(
           (registration) => {

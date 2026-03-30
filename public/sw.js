@@ -46,34 +46,41 @@ self.addEventListener("activate", (event) => {
 });
 
 // On fetch, intercept server requests
-// and respond with cached responses instead of going to network
 self.addEventListener("fetch", (event) => {
-  // As a single page app, direct app to always go to cached home page.
-  // if (event.request.mode === "navigate") {
-  //   event.respondWith(caches.match("/"));
-  //   return;
-  // }
+  // Only handle GET requests
+  if (event.request.method !== "GET") return;
 
-  // For all other requests, go to the cache first, and then the network.
+  // Use a Network First, falling back to cache strategy
+  // This ensures users always get the latest version if online,
+  // while still being able to load the app when offline.
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      const cachedResponse = await cache.match(event.request.url);
-      if (cachedResponse) {
-        // Return the cached response if it's available.
-        return cachedResponse;
-      }
-      // Try network if not in cache
+
       try {
+        // 1. Try to fetch from the network first
         const networkResponse = await fetch(event.request);
-        // Cache successful responses for future use
-        if (networkResponse.ok) {
+
+        // If we get a valid response, update the cache and return it
+        if (networkResponse && networkResponse.ok) {
           cache.put(event.request, networkResponse.clone());
         }
         return networkResponse;
       } catch (error) {
-        // If both cache and network fail, return a 404.
-        return new Response(null, { status: 404 });
+        // 2. If the network fails (offline), try to get from cache
+        const cachedResponse = await cache.match(event.request);
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        // 3. If it's a navigation request and we're offline, return the cached index.html
+        if (event.request.mode === "navigate") {
+          const cachedIndex = await cache.match("/");
+          if (cachedIndex) return cachedIndex;
+        }
+
+        // 4. If all else fails, return a 404 or a generic error
+        return new Response("Offline and not found in cache", { status: 503, statusText: "Service Unavailable" });
       }
     })(),
   );
