@@ -179,7 +179,7 @@ export const browserFileSystem = {
     const parts = filePath.split("/").filter(Boolean);
     parts.pop(); // remove filename
     if (parts.length > 0) {
-       await set("/" + parts.join("/"), { type: "dir" });
+      await set("/" + parts.join("/"), { type: "dir" });
     }
     return true;
   },
@@ -208,15 +208,22 @@ export const browserFileSystem = {
   resolvePath: async (base: string, relative: string): Promise<string> => {
     return resolvePath(base, relative);
   },
-  renameFile: async (oldPath: string, newPath: string): Promise<{ success: boolean; newPath: string }> => {
+  renameFile: async (
+    oldPath: string,
+    newPath: string,
+  ): Promise<{ success: boolean; newPath: string }> => {
     const val = await get(oldPath);
     if (!val) throw new Error("File not found");
     await set(newPath, val);
     await del(oldPath);
     return { success: true, newPath };
   },
-  saveFile: async (content: string, path?: string): Promise<{ success: boolean; filepath: string; error?: string }> => {
-    const target = path || VIRTUAL_ROOT + "/trajectory" + DEFAULT_PROJECT_EXTENSION;
+  saveFile: async (
+    content: string,
+    path?: string,
+  ): Promise<{ success: boolean; filepath: string; error?: string }> => {
+    const target =
+      path || VIRTUAL_ROOT + "/trajectory" + DEFAULT_PROJECT_EXTENSION;
     await set(target, content);
     return { success: true, filepath: target };
   },
@@ -227,27 +234,35 @@ export const browserFileSystem = {
     return true;
   },
   showSaveDialog: async (options: any): Promise<string | null> => {
-    const defaultName = options?.defaultPath || ("trajectory" + DEFAULT_PROJECT_EXTENSION);
+    const defaultName =
+      options?.defaultPath || "trajectory" + DEFAULT_PROJECT_EXTENSION;
     return VIRTUAL_ROOT + "/" + defaultName;
   },
   openExternal: async (url: string): Promise<boolean> => {
-    window.open(url, '_blank');
+    window.open(url, "_blank");
     return true;
   },
   rendererReady: async (): Promise<void> => {},
   makeRelativePath: async (base: string, target: string): Promise<string> => {
-     // simple relative path for virtual fs
-     const baseParts = base.split("/").filter(Boolean);
-     if (base.includes(".") && !base.endsWith("/")) baseParts.pop();
-     const targetParts = target.split("/").filter(Boolean);
+    // simple relative path for virtual fs
+    const baseParts = base.split("/").filter(Boolean);
+    if (base.includes(".") && !base.endsWith("/")) baseParts.pop();
+    const targetParts = target.split("/").filter(Boolean);
 
-     let commonLen = 0;
-     while (commonLen < baseParts.length && commonLen < targetParts.length && baseParts[commonLen] === targetParts[commonLen]) {
-         commonLen++;
-     }
+    let commonLen = 0;
+    while (
+      commonLen < baseParts.length &&
+      commonLen < targetParts.length &&
+      baseParts[commonLen] === targetParts[commonLen]
+    ) {
+      commonLen++;
+    }
 
-     const up = baseParts.length - commonLen;
-     const rel = Array(up).fill("..").concat(targetParts.slice(commonLen)).join("/");
-     return rel || ".";
-  }
+    const up = baseParts.length - commonLen;
+    const rel = Array(up)
+      .fill("..")
+      .concat(targetParts.slice(commonLen))
+      .join("/");
+    return rel || ".";
+  },
 };

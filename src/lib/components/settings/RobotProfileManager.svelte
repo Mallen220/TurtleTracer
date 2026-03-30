@@ -176,6 +176,62 @@
     });
   }
 
+  function handleImportProfile(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        if (typeof event.target?.result === "string") {
+          const json = JSON.parse(event.target.result);
+
+          // Basic validation to ensure it looks like a robot profile
+          if (!json.name || typeof json.maxVelocity !== "number") {
+            throw new Error("Invalid robot profile format.");
+          }
+
+          const newProfile: RobotProfile = {
+            id: crypto.randomUUID(),
+            name: `${json.name} (Imported)`,
+            rLength: json.rLength ?? settings.rLength,
+            rWidth: json.rWidth ?? settings.rWidth,
+            maxVelocity: json.maxVelocity,
+            maxAcceleration: json.maxAcceleration ?? settings.maxAcceleration,
+            maxDeceleration: json.maxDeceleration ?? 0,
+            maxAngularAcceleration: json.maxAngularAcceleration,
+            kFriction: json.kFriction ?? settings.kFriction,
+            aVelocity: json.aVelocity ?? settings.aVelocity,
+            xVelocity: json.xVelocity ?? settings.xVelocity,
+            yVelocity: json.yVelocity ?? settings.yVelocity,
+            robotImage: json.robotImage,
+            robotDriveType: json.robotDriveType,
+            showRobotArrows: json.showRobotArrows,
+            showFakeHeadingArrow: json.showFakeHeadingArrow,
+            fakeHeadingArrowColor: json.fakeHeadingArrowColor,
+          } as RobotProfile;
+
+          robotProfilesStore.update((p) => [...p, newProfile]);
+          selectedProfileId = newProfile.id;
+
+          notification.set({
+            message: `Profile "${newProfile.name}" imported successfully`,
+            type: "success",
+            timeout: 3000,
+          });
+        }
+      } catch (err) {
+        notification.set({
+          message: "Error importing profile: " + (err as Error).message,
+          type: "error",
+        });
+      }
+      target.value = "";
+    };
+    reader.readAsText(file);
+  }
+
   function handleExportProfile() {
     const profile = profiles.find((p) => p.id === selectedProfileId);
     if (!profile) return;
@@ -186,8 +242,11 @@
       const url = URL.createObjectURL(blob);
       const downloadAnchorNode = document.createElement("a");
       downloadAnchorNode.setAttribute("href", url);
-      const safeName = profile.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-      downloadAnchorNode.setAttribute("download", `robot-profile-${safeName}.json`);
+      const safeName = profile.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+      downloadAnchorNode.setAttribute(
+        "download",
+        `robot-profile-${safeName}.json`,
+      );
       document.body.appendChild(downloadAnchorNode);
       downloadAnchorNode.click();
       downloadAnchorNode.remove();
@@ -219,15 +278,33 @@
         Save and load robot configurations
       </p>
     </div>
-    {#if !isCreating}
-      <button
-        on:click={() => (isCreating = true)}
-        class="text-xs px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
-        aria-label="Create new profile"
-      >
-        + New Profile
-      </button>
-    {/if}
+    <div class="flex gap-2">
+      {#if !isCreating}
+        <button
+          on:click={() =>
+            document.getElementById("profile-import-input")?.click()}
+          class="text-xs px-2 py-1 bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          aria-label="Import profile"
+        >
+          Import
+        </button>
+        <button
+          on:click={() => (isCreating = true)}
+          class="text-xs px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+          aria-label="Create new profile"
+        >
+          + New Profile
+        </button>
+        <input
+          type="file"
+          id="profile-import-input"
+          class="hidden"
+          tabindex="-1"
+          accept=".json"
+          on:change={handleImportProfile}
+        />
+      {/if}
+    </div>
   </div>
 
   {#if isCreating}
