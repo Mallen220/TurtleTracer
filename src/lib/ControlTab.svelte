@@ -573,7 +573,17 @@
   // Use the registry for tabs
   $: currentTab =
     $tabRegistry.find((t) => t.id === activeTab) || $tabRegistry[0];
+
+  import { isBrowser } from "../utils/platform";
+  let isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
+  $: shouldShowTelemetry =
+    settings?.showTelemetryTab && !(isBrowser && isOnline);
 </script>
+
+<svelte:window
+  on:online={() => (isOnline = true)}
+  on:offline={() => (isOnline = false)}
+/>
 
 <div
   class="flex-1 flex flex-col justify-start items-center gap-2 h-full relative"
@@ -602,7 +612,7 @@
         aria-label="Editor View Selection"
       >
         {#each $tabRegistry as tab (tab.id)}
-          {#if (tab.id !== "code" || settings?.autoExportCode) && (tab.id !== "telemetry" || settings?.showTelemetryTab)}
+          {#if (tab.id !== "code" || settings?.autoExportCode) && (tab.id !== "telemetry" || shouldShowTelemetry)}
             <button
               role="tab"
               aria-selected={activeTab === tab.id}
@@ -645,7 +655,7 @@
       aria-labelledby="{activeTab}-tab"
     >
       {#each $tabRegistry as tab (tab.id)}
-        {#if (tab.id !== "code" || settings?.autoExportCode) && (tab.id !== "telemetry" || settings?.showTelemetryTab)}
+        {#if (tab.id !== "code" || settings?.autoExportCode) && (tab.id !== "telemetry" || shouldShowTelemetry)}
           <div class:hidden={activeTab !== tab.id} class="w-full h-full">
             <svelte:component
               this={tab.component}
