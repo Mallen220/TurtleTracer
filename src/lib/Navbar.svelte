@@ -15,6 +15,7 @@
     calculatePathTime,
     formatTime,
     getShortcutFromSettings,
+    isBrowser,
   } from "../utils";
   import {
     ChevronUpIcon,
@@ -215,10 +216,23 @@
     </div>
 
     <div class="flex flex-col">
-      <span
-        class="font-bold text-lg leading-tight tracking-tight text-neutral-900 dark:text-neutral-100"
-        >Turtle Tracer</span
-      >
+      <div class="flex items-baseline gap-2">
+        <span
+          class="font-bold text-lg leading-tight tracking-tight text-neutral-900 dark:text-neutral-100"
+          >Turtle Tracer</span
+        >
+        {#if isBrowser}
+          <a
+            href="https://github.com/Mallen220/TurtleTracer/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
+            title="Faster, more stable, and better support/features"
+          >
+            Download Desktop App
+          </a>
+        {/if}
+      </div>
       {#if $currentFilePath}
         <div
           class="flex items-center text-xs text-neutral-500 dark:text-neutral-400"
