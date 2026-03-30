@@ -226,7 +226,7 @@
             href="https://github.com/Mallen220/TurtleTracer/releases"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-colors"
+            class="text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-200 bg-purple-100 text-purple-700 hover:bg-purple-200 hover:border-purple-300 dark:border-purple-800 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 dark:hover:border-purple-700 transition-colors whitespace-nowrap uppercase tracking-wider"
             title="Faster, more stable, and better support/features"
           >
             Download Desktop App
