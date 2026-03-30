@@ -31,7 +31,7 @@ import {
   PresentationModeIcon,
   PluginManagerIcon,
   QuestionMarkIcon,
-  ExportImageIcon,
+  PhotoIcon,
   ExportGifIcon,
   RobotPlaceholderIcon,
 } from "../lib/components/icons";
@@ -254,7 +254,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     id: "exportImage",
     label: "Export as Image",
     type: "system",
-    iconComponent: ExportImageIcon,
+    iconComponent: PhotoIcon,
   },
   {
     id: "exportGif",

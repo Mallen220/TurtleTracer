@@ -64,7 +64,7 @@
     PresentationModeIcon,
     SparklesIcon,
     QuestionMarkIcon,
-    ExportImageIcon,
+    PhotoIcon,
     ExportGifIcon,
     PluginManagerIcon,
   } from "./icons";
@@ -1333,7 +1333,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <ExportImageIcon className="sidebar-icon-small flex-none" />
+                <PhotoIcon className="sidebar-icon-small flex-none" />
               </div>
               {#if sidebarExpanded}
                 <span class="ml-3 text-sm font-medium truncate"
