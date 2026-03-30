@@ -106,7 +106,6 @@ export { default as DocumentIcon } from "./DocumentIcon.svelte";
 
 export { default as PhotoIcon } from "./PhotoIcon.svelte";
 export { default as ArrowPathIcon } from "./ArrowPathIcon.svelte";
-export { default as ArrowUpLeftIcon } from "./ArrowUpLeftIcon.svelte";
 export { default as SortNameIcon } from "./SortNameIcon.svelte";
 export { default as ViewListIcon } from "./ViewListIcon.svelte";
 export { default as ViewGridIcon } from "./ViewGridIcon.svelte";

@@ -2135,7 +2135,7 @@
                 <ArrowUpIcon
                   width={arrowSize.toString()}
                   height={arrowSize.toString()}
-                  className="size-6 text-green-600"
+                  className="text-green-600"
                   style="transform: rotate({rot}deg); transition: transform 0.1s;"
                 />
               </div>

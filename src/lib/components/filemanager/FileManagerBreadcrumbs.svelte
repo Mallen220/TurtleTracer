@@ -2,7 +2,7 @@
 <!-- src/lib/components/filemanager/FileManagerBreadcrumbs.svelte -->
 <script lang="ts">
   import { createEventDispatcher, tick } from "svelte";
-  import { FolderIcon, ArrowUpLeftIcon } from "../icons";
+  import { FolderIcon, UndoIcon } from "../icons";
 
   export let currentPath: string;
   export let isAtBase: boolean = false;
@@ -95,7 +95,7 @@
         title="Go up one directory"
         aria-label="Go Up"
       >
-        <ArrowUpLeftIcon className="size-4" />
+        <UndoIcon className="size-4" />
       </button>
     {/if}
     <div
