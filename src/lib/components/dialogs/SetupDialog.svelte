@@ -3,7 +3,7 @@
   import { createEventDispatcher } from "svelte";
 
   import { saveAutoPathsDirectory } from "../../../utils/directorySettings";
-  import { SparklesIcon, FolderIcon } from "../icons";
+  import { RocketIcon, FolderIcon } from "../icons";
 
   export let show = false;
 
@@ -63,7 +63,7 @@
         <h3
           class="text-lg font-bold text-neutral-900 dark:text-white mb-2 flex items-center gap-2"
         >
-          <SparklesIcon className="w-6 h-6" /> Install TurtleTracerLib
+          <RocketIcon className="w-6 h-6" /> Install TurtleTracerLib
         </h3>
         <p
           class="text-neutral-600 dark:text-neutral-300 text-sm leading-relaxed"

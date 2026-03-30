@@ -10,10 +10,9 @@
   import {
     CloseIcon,
     SearchIcon,
-    PluginManagerIcon,
     TrashIcon,
     TriangleWarningIcon,
-    ArrowPathIcon,
+    ArrowCircleIcon,
   } from "../icons";
 
   export let isOpen = false;
@@ -121,7 +120,7 @@
             <div
               class="p-6 bg-neutral-50 dark:bg-neutral-800/50 rounded-full mb-6"
             >
-              <PluginManagerIcon
+              <PuzzleIcon
                 className="size-16 text-neutral-300 dark:text-neutral-600"
               />
             </div>
@@ -322,7 +321,7 @@
             on:click={() => PluginManager.reloadPlugins()}
             class="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors font-medium flex items-center gap-2"
           >
-            <ArrowPathIcon className="size-4" />
+            <ArrowCircleIcon className="size-4" />
             Reload All
           </button>
         </div>

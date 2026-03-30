@@ -6,7 +6,7 @@
   import {
     PlusCircleIcon,
     MinusCircleIcon,
-    PencilSolidIcon,
+    PenIcon,
   } from "../icons";
 
   export let settings: Settings;
@@ -177,7 +177,7 @@
                 <div
                   class="mt-1 flex-none w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center"
                 >
-                  <PencilSolidIcon
+                  <PenIcon
                     className="w-3 h-3 text-blue-600 dark:text-blue-400"
                   />
                 </div>

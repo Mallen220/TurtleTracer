@@ -37,7 +37,7 @@
   import ContextMenu from "./tools/ContextMenu.svelte";
   import {
     ClockIcon,
-    RotateIcon,
+    ArrowCircleIcon,
     PlusIcon,
     LockIcon,
     UnlockIcon,
@@ -1737,7 +1737,7 @@
           {#if def.kind === "wait"}
             <ClockIcon className="size-3" />
           {:else if def.kind === "rotate"}
-            <RotateIcon className="size-3" />
+            <ArrowCircleIcon className="size-3" />
           {:else}
             <!-- Fallback icon -->
             <PlusIcon className="size-3" strokeWidth={2} />

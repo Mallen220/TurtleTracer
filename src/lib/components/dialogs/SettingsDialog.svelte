@@ -5,7 +5,7 @@
   import {
     CloseIcon,
     SearchIcon,
-    ArrowPathIcon,
+    ArrowCircleIcon,
     TriangleWarningIcon,
   } from "../icons/index";
   import { fade, fly } from "svelte/transition";
@@ -315,7 +315,7 @@
               on:click={handleReset}
               class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-lg transition-colors"
             >
-              <ArrowPathIcon className="size-4" />
+              <ArrowCircleIcon className="size-4" />
               Reset Defaults
             </button>
           </div>

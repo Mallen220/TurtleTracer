@@ -14,7 +14,7 @@
   import MarkdownIt from "markdown-it";
   import {
     CloseIcon,
-    SparklesIcon,
+    RocketIcon,
     ListIcon,
     ArrowDownTrayIcon,
     MicrosoftStoreIcon,
@@ -187,7 +187,7 @@
           <div
             class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-600 dark:text-purple-400 mb-2 shadow-sm ring-1 ring-purple-100 dark:ring-purple-900/50"
           >
-            <SparklesIcon className="w-8 h-8" />
+            <RocketIcon className="w-8 h-8" />
           </div>
           <h2
             id="update-title"

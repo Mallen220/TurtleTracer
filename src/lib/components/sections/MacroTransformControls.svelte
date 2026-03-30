@@ -4,7 +4,7 @@
   import type { SequenceMacroItem, Transformation } from "../../../types";
   import {
     ArrowsPointingOutIcon,
-    ArrowPathIcon,
+    ArrowCircleIcon,
     SwitchIcon,
     ChevronUpIcon,
     ChevronDownIcon,
@@ -337,7 +337,7 @@
             {#if t.type === "translate"}
               <ArrowsPointingOutIcon className="size-3" strokeWidth={2} />
             {:else if t.type === "rotate"}
-              <ArrowPathIcon className="size-3" strokeWidth={2} />
+              <ArrowCircleIcon className="size-3" strokeWidth={2} />
             {:else}
               <SwitchIcon className="size-3" strokeWidth={2} />
             {/if}

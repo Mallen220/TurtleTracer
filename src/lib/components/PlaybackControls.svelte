@@ -33,7 +33,7 @@
   import { loopRangeActiveStore, loopRangeStore } from "../../lib/projectStore";
   import ContextMenu from "./tools/ContextMenu.svelte";
   import {
-    RotateIcon,
+    ArrowCircleIcon,
     MapPinIcon,
     ChevronRightIcon,
     SkipToEndIcon,
@@ -44,7 +44,6 @@
     PlayIcon,
     PauseIcon,
     CheckIcon,
-    ArrowPathIcon,
   } from "./icons";
 
   const dispatch = createEventDispatcher();
@@ -404,7 +403,7 @@
             aria-hidden="true"
           >
             <!-- Small rotate icon (explicit rotates are pink) -->
-            <RotateIcon
+            <ArrowCircleIcon
               className="w-4 h-4 rounded-full bg-white dark:bg-neutral-900 text-pink-500"
             />
           </div>
@@ -715,7 +714,7 @@
         class="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
         aria-live="polite"
       >
-        <ArrowPathIcon className="size-6 stroke-blue-500" strokeWidth={2} />
+        <ArrowCircleIcon className="size-6 stroke-blue-500" strokeWidth={2} />
       </button>
     </div>
   </div>

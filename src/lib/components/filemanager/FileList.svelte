@@ -8,7 +8,7 @@
   import {
     FolderIcon,
     DocumentIcon,
-    PencilSolidIcon,
+    PenIcon,
     CheckIcon,
     QuestionMarkIcon,
     EllipsisHorizontalIcon,
@@ -505,7 +505,7 @@
                           : "Git: Untracked (New File)"}
                     >
                       {#if file.gitStatus === "modified"}
-                        <PencilSolidIcon className="size-3" strokeWidth={2} />
+                        <PenIcon className="size-3" strokeWidth={2} />
                         <span>Modified</span>
                       {:else if file.gitStatus === "staged"}
                         <CheckIcon className="size-3" strokeWidth={2.5} />
