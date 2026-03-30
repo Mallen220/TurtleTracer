@@ -25,7 +25,7 @@ export { default as ArrowsRightLeftIcon } from "./ArrowsRightLeftIcon.svelte";
 export { default as ScissorsIcon } from "./ScissorsIcon.svelte";
 export { default as BackwardStepIcon } from "./BackwardStepIcon.svelte";
 export { default as BackwardIcon } from "./BackwardIcon.svelte";
-export { default as ForwardIcon } from "./ForwardIcon.svelte";
+
 export { default as ForwardStepIcon } from "./ForwardStepIcon.svelte";
 export { default as Bars3Icon } from "./Bars3Icon.svelte";
 export { default as ShowRobotIcon } from "./ShowRobotIcon.svelte";
@@ -93,7 +93,7 @@ export { default as ZoomInIcon } from "./ZoomInIcon.svelte";
 export { default as ZoomOutIcon } from "./ZoomOutIcon.svelte";
 export { default as ResetZoomIcon } from "./ResetZoomIcon.svelte";
 export { default as ExitPresentationModeIcon } from "./ExitPresentationModeIcon.svelte";
-export { default as ChevronRightBoldIcon } from "./ChevronRightBoldIcon.svelte";
+
 export { default as ArrowUpIcon } from "./ArrowUpIcon.svelte";
 export { default as ClipboardIcon } from "./ShowDebugSequenceIcon.svelte";
 export { default as CheckIcon } from "./CheckIcon.svelte";
@@ -115,7 +115,7 @@ export { default as EllipsisHorizontalIcon } from "./EllipsisHorizontalIcon.svel
 export { default as MapPinSolidIcon } from "./MapPinSolidIcon.svelte";
 export { default as SkipToStartIcon } from "./SkipToStartIcon.svelte";
 export { default as StepBackIcon } from "./StepBackIcon.svelte";
-export { default as StepForwardIcon } from "./StepForwardIcon.svelte";
+
 export { default as SkipToEndIcon } from "./SkipToEndIcon.svelte";
 export { default as LoopToggleIcon } from "./LoopToggleIcon.svelte";
 export { default as SplitPathIcon } from "./SplitPathIcon.svelte";

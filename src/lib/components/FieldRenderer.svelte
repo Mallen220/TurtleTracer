@@ -102,7 +102,7 @@
   import FieldCoordinates from "./FieldCoordinates.svelte";
   import {
     ArrowUpIcon,
-    ChevronRightBoldIcon,
+    ChevronRightIcon,
     SpinnerIcon,
     DiffIcon,
     ZoomInIcon,
@@ -2146,8 +2146,9 @@
           <div
             style="position:absolute; top:50%; left:50%; transform: translate(-50%, -50%); color: rgba(34, 197, 94, 1.0);"
           >
-            <ChevronRightBoldIcon
+            <ChevronRightIcon
               className="w-6 h-6"
+              strokeWidth={3}
               style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));"
             />
           </div>
@@ -2173,8 +2174,9 @@
               style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: {settings.fakeHeadingArrowColor ||
                 '#ffffff'};"
             >
-              <ChevronRightBoldIcon
+              <ChevronRightIcon
                 className="w-6 h-6"
+                strokeWidth={3}
                 style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));"
               />
             </div>
@@ -2224,8 +2226,9 @@
             style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: {settings.fakeHeadingArrowColor ||
               '#ffffff'}; opacity: 0.5;"
           >
-            <ChevronRightBoldIcon
+            <ChevronRightIcon
               className="w-6 h-6"
+              strokeWidth={3}
               style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.4));"
             />
           </div>
