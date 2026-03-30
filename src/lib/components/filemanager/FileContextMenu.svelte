@@ -4,7 +4,7 @@
   import { createEventDispatcher, onMount } from "svelte";
   import { fade } from "svelte/transition";
   import {
-    ArrowRightStraightIcon,
+    ArrowRightIcon,
     ArrowDownTrayIcon,
     PencilSolidIcon,
     DocumentPlusIcon,
@@ -77,7 +77,7 @@
     on:click={() => dispatch("action", "open")}
     class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
   >
-    <ArrowRightStraightIcon className="size-4" />
+    <ArrowRightIcon className="size-4" />
     Open
   </button>
 
@@ -114,7 +114,7 @@
       class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
     >
       <!-- Need to flip vertically or similar for Mirror vs Reverse, we'll use ArrowPathIcon or reverse its scale.
-           Since ArrowPathIcon is symmetrical, we'll just use it for both for now to replace SVG, or ArrowRightStraightIcon -->
+      <!-- Since ArrowPathIcon is symmetrical, we'll just use it for both for now to replace SVG, or ArrowRightIcon -->
       <ArrowPathIcon className="size-4" strokeWidth={1.5} />
       Mirror Copy
     </button>

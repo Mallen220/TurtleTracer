@@ -26,7 +26,7 @@ import {
   RestrictDraggingToFieldIcon,
   SmartSnappingIcon,
   ClipboardIcon,
-  AutoExportCodeIcon,
+  DownloadIcon,
   FollowRobotIcon,
   ShowTelemetryTabIcon,
   PresentationModeIcon,
@@ -203,7 +203,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     label: "Auto Export Code",
     type: "setting",
     settingKey: "autoExportCode",
-    iconComponent: AutoExportCodeIcon,
+    iconComponent: DownloadIcon,
   },
   {
     id: "followRobot",
