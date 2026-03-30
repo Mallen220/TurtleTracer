@@ -72,7 +72,6 @@ export { default as RotateIcon } from "./RotateIcon.svelte";
 export { default as PathTabIcon } from "./PathTabIcon.svelte";
 export { default as FieldTabIcon } from "./FieldTabIcon.svelte";
 export { default as TableTabIcon } from "./TableTabIcon.svelte";
-export { default as TelemetryTabIcon } from "./TelemetryTabIcon.svelte";
 export { default as DiffIcon } from "./DiffIcon.svelte";
 export { default as StatsIcon } from "./StatsIcon.svelte";
 export { default as SearchIcon } from "./SearchIcon.svelte";
