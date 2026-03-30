@@ -249,17 +249,6 @@
         stroke-width={i % 2 === 0 ? "1.5" : "0.5"}
         opacity="0.3"
       />
-      <text
-        x={x(position)}
-        y={y(0) + 15}
-        class="fill-gray-600 dark:fill-gray-400 text-xs"
-        text-anchor="middle"
-      >
-        {toUser(
-          { x: position, y: 0 },
-          $settingsStore.coordinateSystem || "Pedro",
-        ).y}"
-      </text>
     {/each}
 
     <!-- Horizontal grid lines -->
@@ -273,17 +262,6 @@
         stroke-width={i % 2 === 0 ? "1.5" : "0.5"}
         opacity="0.3"
       />
-      <text
-        x={x(position)}
-        y={y(0) - 5}
-        class="fill-gray-600 dark:fill-gray-400 text-xs"
-        text-anchor="middle"
-      >
-        {toUser(
-          { x: 0, y: position },
-          $settingsStore.coordinateSystem || "Pedro",
-        ).x}"
-      </text>
     {/each}
   </svg>
 {/if}
