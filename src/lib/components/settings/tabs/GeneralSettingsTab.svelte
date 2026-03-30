@@ -14,12 +14,14 @@
     saveSettings,
     mergeSettings,
   } from "../../../../utils/settingsPersistence";
+  import { isBrowser } from "../../../../utils/platform";
 
   export let settings: Settings;
   export let searchQuery: string;
   export let isOpen: boolean;
 
   let isCheckingForUpdates = false;
+  let isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
 
   async function handleCheckForUpdates() {
     const electronAPI = (window as any).electronAPI;
@@ -132,6 +134,11 @@
   }
 </script>
 
+<svelte:window
+  on:online={() => (isOnline = true)}
+  on:offline={() => (isOnline = false)}
+/>
+
 <div class="section-container mb-8">
   {#if searchQuery}
     <h4
@@ -225,18 +232,20 @@
     </button>
   </SettingsItem>
 
-  <SettingsItem
-    label="Show Telemetry Tab"
-    description="Toggle visibility of the telemetry control tab"
-    {searchQuery}
-    layout="row"
-  >
-    <input
-      type="checkbox"
-      bind:checked={settings.showTelemetryTab}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-    />
-  </SettingsItem>
+  {#if !(isBrowser && isOnline)}
+    <SettingsItem
+      label="Show Telemetry Tab"
+      description="Toggle visibility of the telemetry control tab"
+      {searchQuery}
+      layout="row"
+    >
+      <input
+        type="checkbox"
+        bind:checked={settings.showTelemetryTab}
+        class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+      />
+    </SettingsItem>
+  {/if}
 
   <SettingsItem
     label="Keyboard Shortcuts"
