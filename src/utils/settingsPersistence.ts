@@ -17,14 +17,19 @@ interface StoredSettings {
 
 // Helper to get electronAPI safely (allows mocking in tests)
 function getElectronAPI() {
-  return (
-    ((window as any).electronAPI as {
-      getAppDataPath: () => Promise<string>;
-      readFile: (filePath: string) => Promise<string>;
-      writeFile: (filePath: string, content: string) => Promise<boolean>;
-      fileExists: (filePath: string) => Promise<boolean>;
-    }) || undefined
-  );
+  const api = (window as any).electronAPI as {
+    getAppDataPath: () => Promise<string>;
+    readFile: (filePath: string) => Promise<string>;
+    writeFile: (filePath: string, content: string) => Promise<boolean>;
+    fileExists: (filePath: string) => Promise<boolean>;
+    isVirtual?: boolean;
+  };
+
+  if (api && api.isVirtual) {
+    return undefined;
+  }
+
+  return api || undefined;
 }
 
 // Get the settings file path

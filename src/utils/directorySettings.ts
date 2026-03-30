@@ -7,12 +7,11 @@ const DEFAULT_DIRECTORY_SETTINGS: DirectorySettings = {
 };
 
 // Get the path for the directory settings file
-function getDirectorySettingsPath(): string {
+async function getDirectorySettingsPath(): Promise<string> {
   const electronAPI = (window as any).electronAPI;
-  if (electronAPI) {
-    return electronAPI
-      .getAppDataPath()
-      .then((appDataPath: string) => `${appDataPath}/directory-settings.json`);
+  if (electronAPI && !electronAPI.isVirtual) {
+    const appDataPath = await electronAPI.getAppDataPath();
+    return `${appDataPath}/directory-settings.json`;
   }
   return "";
 }
@@ -22,10 +21,16 @@ export async function saveDirectorySettings(
   settings: DirectorySettings,
 ): Promise<void> {
   try {
-    const settingsPath = await getDirectorySettingsPath();
     const electronAPI = (window as any).electronAPI;
 
-    if (electronAPI && settingsPath) {
+    // Use localStorage for browser environment
+    if (!electronAPI || electronAPI.isVirtual) {
+      localStorage.setItem("turtle-tracer-directory-settings", JSON.stringify(settings));
+      return;
+    }
+
+    const settingsPath = await getDirectorySettingsPath();
+    if (settingsPath) {
       await electronAPI.writeFile(
         settingsPath,
         JSON.stringify(settings, null, 2),
@@ -39,10 +44,20 @@ export async function saveDirectorySettings(
 // Load directory settings
 export async function loadDirectorySettings(): Promise<DirectorySettings> {
   try {
-    const settingsPath = await getDirectorySettingsPath();
     const electronAPI = (window as any).electronAPI;
 
-    if (electronAPI && settingsPath) {
+    // Use localStorage for browser environment
+    if (!electronAPI || electronAPI.isVirtual) {
+      const local = localStorage.getItem("turtle-tracer-directory-settings");
+      if (local) {
+        const savedSettings = JSON.parse(local) as Partial<DirectorySettings>;
+        return { ...DEFAULT_DIRECTORY_SETTINGS, ...savedSettings };
+      }
+      return DEFAULT_DIRECTORY_SETTINGS;
+    }
+
+    const settingsPath = await getDirectorySettingsPath();
+    if (settingsPath) {
       const exists = await electronAPI.fileExists(settingsPath);
       if (exists) {
         const content = await electronAPI.readFile(settingsPath);
