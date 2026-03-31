@@ -256,6 +256,11 @@
   });
 
   function tryShowRatingDialog() {
+    // Disable rating dialog in browser mode
+    if (isBrowser) {
+      return;
+    }
+
     const settings = get(settingsStore);
 
     // If they already rated THIS version, or chose Not Interested, don't show.
