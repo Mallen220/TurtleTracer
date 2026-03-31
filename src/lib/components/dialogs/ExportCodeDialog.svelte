@@ -747,14 +747,12 @@
             aria-hidden="true"
             style="transform: translateY(1.0em);"
           >
-            {#each exportedCode.split("\n") as line, i}
+            {#each searchMatches as matchIndex (matchIndex)}
               <!-- Data attribute used for scrolling to this line -->
               <div
-                data-line-index={i}
-                class="w-full {searchMatches.includes(i)
-                  ? 'bg-yellow-500/30'
-                  : 'bg-transparent'}"
-                style="height: 1.625em;"
+                data-line-index={matchIndex}
+                class="absolute left-0 right-0 bg-yellow-500/30"
+                style="top: calc({matchIndex} * 1.625em); height: 1.625em;"
               ></div>
             {/each}
           </div>
