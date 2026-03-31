@@ -94,20 +94,26 @@ async function keys(): Promise<string[]> {
   return Array.from(fileCache.keys());
 }
 
-async function setMultiple(entries: { key: string; value: any }[]): Promise<void> {
+async function setMultiple(
+  entries: { key: string; value: any }[],
+): Promise<void> {
   await initCache();
-  entries.forEach(e => fileCache.set(e.key, e.value));
+  entries.forEach((e) => fileCache.set(e.key, e.value));
   const db = await getDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    entries.forEach(e => store.put(e.value, e.key));
+    entries.forEach((e) => store.put(e.value, e.key));
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
 }
 
-async function renameInDB(oldPath: string, newPath: string, value: any): Promise<void> {
+async function renameInDB(
+  oldPath: string,
+  newPath: string,
+  value: any,
+): Promise<void> {
   await initCache();
   fileCache.delete(oldPath);
   fileCache.set(newPath, value);
@@ -231,7 +237,7 @@ export const browserFileSystem = {
     if (parts.length > 0) {
       await setMultiple([
         { key: filePath, value: content },
-        { key: "/" + parts.join("/"), value: { type: "dir" } }
+        { key: "/" + parts.join("/"), value: { type: "dir" } },
       ]);
     } else {
       await set(filePath, content);
