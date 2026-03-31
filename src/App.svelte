@@ -115,6 +115,7 @@
   import { splitPathAtPercent } from "./utils/pathEditing";
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { PluginManager } from "./lib/pluginManager";
+  import { isBrowser } from "./utils/platform";
   import { themesStore } from "./lib/pluginsStore";
   import { registerCoreUI } from "./lib/coreRegistrations";
   import { componentRegistry } from "./lib/registries";
@@ -956,7 +957,9 @@
   // --- Initialization ---
   onMount(async () => {
     // Initialize Plugins
-    await PluginManager.init();
+    if (!isBrowser) {
+      await PluginManager.init();
+    }
 
     // Load Settings
     const savedSettings = await loadSettings();
