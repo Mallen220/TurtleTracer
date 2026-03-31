@@ -38,3 +38,6 @@ playwright-report/index.html
 *.py
 coverage/
 /src/lib/components/icons/svg
+
+
+.github/instructions/codacy.instructions.md
