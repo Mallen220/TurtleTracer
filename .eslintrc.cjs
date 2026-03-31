@@ -24,5 +24,14 @@ module.exports = {
       parser: "@typescript-eslint/parser",
       extends: ["plugin:prettier/recommended"],
     },
+    {
+      files: ["**/*.svelte"],
+      parser: "svelte-eslint-parser",
+      parserOptions: {
+        parser: "@typescript-eslint/parser",
+        extraFileExtensions: [".svelte"],
+      },
+      extends: ["plugin:svelte/recommended", "plugin:prettier/recommended"],
+    },
   ],
 };
