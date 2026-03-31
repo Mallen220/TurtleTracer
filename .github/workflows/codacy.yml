@@ -55,6 +55,7 @@ jobs:
         uses: codacy/codacy-coverage-reporter-action@v1
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          
           coverage-reports: coverage/lcov.info
 
       # Execute Codacy Analysis CLI and generate a SARIF output with the security issues identified during the analysis
