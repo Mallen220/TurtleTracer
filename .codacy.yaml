@@ -1,0 +1,34 @@
+---
+engines:
+  duplication:
+    config:
+      languages:
+        - javascript
+        - typescript
+    minTokenMatch: 40
+    ignoreLiterals: true
+    ignoreIdentifiers: false
+    ignoreAnnotations: true
+    skipLexicalErrors: true
+
+languages:
+  javascript:
+    extensions:
+      - ".js"
+      - ".cjs"
+      - ".mjs"
+      - ".jsx"
+      - ".svelte"
+  typescript:
+    extensions:
+      - ".ts"
+      - ".tsx"
+
+exclude_paths:
+  - "node_modules/**"
+  - "dist/**"
+  - "build/**"
+  - "release/**"
+  - "coverage/**"
+  - "playwright-report/**"
+  - "test-results/**"

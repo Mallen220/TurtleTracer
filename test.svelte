@@ -4,7 +4,9 @@
 </script>
 
 <div class="container relative p-4 pb-20 overflow-auto h-64 border">
-  <div class="absolute top-4 left-4 right-4 bottom-20 pointer-events-none select-none font-mono text-sm leading-relaxed">
+  <div
+    class="absolute top-4 left-4 right-4 bottom-20 pointer-events-none select-none font-mono text-sm leading-relaxed"
+  >
     {#each searchMatches as matchIndex}
       <div
         data-line-index={matchIndex}
