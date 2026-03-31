@@ -135,6 +135,7 @@
     .filter((item) => {
       if (isBrowser) {
         if (item.id === "pluginManager") return false;
+        if (item.id === "feedback") return false;
       }
       return true;
     });
