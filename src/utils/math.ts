@@ -178,19 +178,20 @@ function getHeadingBase(
   refPoint1: Point2D,
   refPoint2: Point2D,
 ): number {
+  const reverseOffset = endPoint.reverse ? 180 : 0;
   if (endPoint.heading === "constant") {
-    return transformAngle(endPoint.degrees + (endPoint.reverse ? 180 : 0));
+    return transformAngle(endPoint.degrees + reverseOffset);
   }
   if (endPoint.heading === "facingPoint") {
     const angle = getTangentAngle(refPoint1, {
       x: endPoint.targetX || 0,
       y: endPoint.targetY || 0,
     });
-    return transformAngle(angle + (endPoint.reverse ? 180 : 0));
+    return transformAngle(angle + reverseOffset);
   }
   if (endPoint.heading === "tangential") {
     const angle = getTangentAngle(refPoint1, refPoint2);
-    return transformAngle(angle + (endPoint.reverse ? 180 : 0));
+    return transformAngle(angle + reverseOffset);
   }
   return 0;
 }
