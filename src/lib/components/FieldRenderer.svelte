@@ -45,6 +45,7 @@
     percentStore,
     followRobotStore,
     playingStore,
+    isDraggingStore,
   } from "../projectStore";
   import {
     diffMode,
@@ -1267,6 +1268,7 @@
 
       if (clickedElem) {
         isDown = true;
+        isDraggingStore.set(true);
         currentElem = clickedElem;
 
         // --- Multi-select Logic ---
@@ -1360,6 +1362,7 @@
           if (shapes[shapeIdx]?.locked) {
             // Prevent dragging locked obstacle vertices
             isDown = false;
+            isDraggingStore.set(false);
             currentElem = null;
             return;
           }
@@ -1487,6 +1490,7 @@
         onRecordChange(action); // Notify parent of change
       }
       isDown = false;
+      isDraggingStore.set(false);
       isPanning = false;
       multiDragOffsets.clear();
       two.renderer.domElement.style.cursor = "grab";

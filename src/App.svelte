@@ -91,6 +91,7 @@
     loadMacro,
     loopRangeStore,
     loopRangeActiveStore,
+    isDraggingStore,
   } from "./lib/projectStore";
   import { diffMode, committedData } from "./lib/diffStore";
 
@@ -731,6 +732,7 @@
 
   // --- Preview Optimization ---
   let previewOptimizedLines: any[] | null = null;
+  let timePrediction: any = null;
 
   // --- Robot Dimensions ---
   $: robotLength = settings?.rLength || DEFAULT_ROBOT_LENGTH;
@@ -752,7 +754,8 @@
       $sequenceStore &&
       $shapesStore &&
       timePrediction &&
-      !$settingsStore.validationDisabled
+      !$settingsStore.validationDisabled &&
+      !$isDraggingStore
     ) {
       validatePath(
         $startPointStore,
@@ -1112,13 +1115,15 @@
   $: if (settings) debouncedSaveSettings(settings);
 
   // --- Animation Logic ---
-  $: timePrediction = calculatePathTime(
-    startPoint,
-    lines,
-    settings,
-    sequence,
-    macros,
-  );
+  $: if (!$isDraggingStore) {
+    timePrediction = calculatePathTime(
+      startPoint,
+      lines,
+      settings,
+      sequence,
+      macros,
+    );
+  }
 
   // Diff Mode Animation Logic
   $: isDiffMode = $diffMode;
