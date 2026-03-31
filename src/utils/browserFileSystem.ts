@@ -8,6 +8,11 @@ const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
+// In-memory cache for faster reads
+const fileCache = new Map<string, any>();
+let cacheInitialized = false;
+let initPromise: Promise<void> | null = null;
+
 function getDB(): Promise<IDBDatabase> {
   if (!dbPromise) {
     dbPromise = new Promise((resolve, reject) => {
@@ -25,18 +30,42 @@ function getDB(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
+async function initCache(): Promise<void> {
+  if (cacheInitialized) return;
+  if (initPromise) return initPromise;
+
+  initPromise = (async () => {
+    const db = await getDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAll();
+      const reqKeys = store.getAllKeys();
+
+      tx.oncomplete = () => {
+        const vals = req.result;
+        const k = reqKeys.result;
+        for (let i = 0; i < k.length; i++) {
+          fileCache.set(k[i] as string, vals[i]);
+        }
+        cacheInitialized = true;
+        resolve();
+      };
+      tx.onerror = () => reject(tx.error);
+    });
+  })();
+
+  return initPromise;
+}
+
 async function get(key: string): Promise<any> {
-  const db = await getDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const store = tx.objectStore(STORE_NAME);
-    const req = store.get(key);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+  await initCache();
+  return fileCache.get(key);
 }
 
 async function set(key: string, value: any): Promise<void> {
+  await initCache();
+  fileCache.set(key, value);
   const db = await getDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
@@ -48,6 +77,8 @@ async function set(key: string, value: any): Promise<void> {
 }
 
 async function del(key: string): Promise<void> {
+  await initCache();
+  fileCache.delete(key);
   const db = await getDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
@@ -59,13 +90,35 @@ async function del(key: string): Promise<void> {
 }
 
 async function keys(): Promise<string[]> {
+  await initCache();
+  return Array.from(fileCache.keys());
+}
+
+async function setMultiple(entries: { key: string; value: any }[]): Promise<void> {
+  await initCache();
+  entries.forEach(e => fileCache.set(e.key, e.value));
   const db = await getDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readonly");
+    const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    const req = store.getAllKeys();
-    req.onsuccess = () => resolve(req.result as string[]);
-    req.onerror = () => reject(req.error);
+    entries.forEach(e => store.put(e.value, e.key));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function renameInDB(oldPath: string, newPath: string, value: any): Promise<void> {
+  await initCache();
+  fileCache.delete(oldPath);
+  fileCache.set(newPath, value);
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    store.put(value, newPath);
+    store.delete(oldPath);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 }
 
@@ -172,13 +225,16 @@ export const browserFileSystem = {
     return val as string;
   },
   writeFile: async (filePath: string, content: string): Promise<boolean> => {
-    await set(filePath, content);
-
     // ensure parent dir exists
     const parts = filePath.split("/").filter(Boolean);
     parts.pop(); // remove filename
     if (parts.length > 0) {
-      await set("/" + parts.join("/"), { type: "dir" });
+      await setMultiple([
+        { key: filePath, value: content },
+        { key: "/" + parts.join("/"), value: { type: "dir" } }
+      ]);
+    } else {
+      await set(filePath, content);
     }
     return true;
   },
@@ -213,8 +269,7 @@ export const browserFileSystem = {
   ): Promise<{ success: boolean; newPath: string }> => {
     const val = await get(oldPath);
     if (!val) throw new Error("File not found");
-    await set(newPath, val);
-    await del(oldPath);
+    await renameInDB(oldPath, newPath, val);
     return { success: true, newPath };
   },
   saveFile: async (
