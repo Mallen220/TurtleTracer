@@ -1354,7 +1354,7 @@
     mainContentHeight > 0 &&
     !isLargeScreen
   ) {
-    userFieldHeightLimit = mainContentHeight * 0.6;
+    userFieldHeightLimit = mainContentHeight * 0.5;
   }
   $: leftPaneWidth = (() => {
     if (!isLargeScreen) return mainContentWidth;
@@ -1367,8 +1367,8 @@
   })();
   $: fieldDrawSize = (() => {
     if (!isLargeScreen) {
-      const h = userFieldHeightLimit ?? mainContentHeight * 0.6;
-      return Math.min(innerWidth - 32, h - 16);
+      const h = userFieldHeightLimit ?? mainContentHeight * 0.5;
+      return Math.min(Math.min(innerWidth, mainContentWidth) - 16, h - 16);
     }
     const avW = leftPaneWidth - 16;
     const avH = mainContentHeight - 16;
@@ -1830,7 +1830,7 @@
   {/if}
 
   <div
-    class="flex-1 min-h-0 flex flex-row items-stretch overflow-hidden relative gap-0 w-full"
+    class="flex-1 min-h-0 min-w-0 flex flex-row items-stretch overflow-hidden relative gap-0 w-full max-w-full"
   >
     {#if !$isPresentationMode}
       <LeftSidebar
@@ -1845,7 +1845,7 @@
     {/if}
 
     <div
-      class="flex-1 min-h-0 flex flex-col lg:flex-row items-stretch lg:overflow-hidden relative gap-0"
+      class="flex-1 min-h-0 min-w-0 flex flex-col lg:flex-row items-stretch overflow-hidden relative gap-0 w-full max-w-full"
       bind:clientHeight={mainContentHeight}
       bind:clientWidth={mainContentWidth}
       bind:this={mainContentDiv}
@@ -1853,11 +1853,11 @@
       <!-- Field Container -->
       <div
         id="field-container"
-        class="flex-none flex justify-center items-center relative transition-all duration-300 ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden"
+        class="flex-none flex justify-center items-center relative transition-all duration-300 ease-in-out bg-white dark:bg-black lg:dark:bg-black/40 overflow-hidden max-w-full"
         style={`
-        width: ${isLargeScreen && effectiveShowSidebar ? leftPaneWidth + "px" : "100%"};
+        width: ${isLargeScreen && effectiveShowSidebar ? leftPaneWidth + "px" : "100%"}; max-width: 100vw;
         height: ${isLargeScreen ? "100%" : fieldContainerTargetHeight};
-        min-height: ${!isLargeScreen ? (userFieldHeightLimit ? "0" : "60vh") : "0"};
+        min-height: ${!isLargeScreen ? "0" : "0"};
       `}
       >
         <div
@@ -1919,7 +1919,7 @@
       <!-- Control Tab -->
       <div
         bind:this={controlTabContainer}
-        class="relative flex-1 h-auto lg:h-full min-h-0 min-w-0 transition-transform duration-300 ease-in-out transform bg-neutral-50 dark:bg-neutral-900"
+        class="relative flex-1 flex flex-col min-h-0 min-w-0 transition-transform duration-300 ease-in-out transform bg-neutral-50 dark:bg-neutral-900"
         class:translate-x-full={!effectiveShowSidebar && isLargeScreen}
         class:translate-y-full={!effectiveShowSidebar && !isLargeScreen}
         class:overflow-hidden={!effectiveShowSidebar}
