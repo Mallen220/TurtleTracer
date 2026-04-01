@@ -22,10 +22,14 @@ export function registerPluginHandlers() {
   });
 
   ipcMain.handle("plugins:list", async () => {
-    const pluginsDir = getPluginsDirectory();
+    const basePath = getPluginsDirectory();
+    const fullPath = path.normalize(basePath);
+    if (!fullPath.startsWith(basePath)) {
+      throw new Error("Invalid path specified");
+    }
     try {
-      await fs.mkdir(pluginsDir, { recursive: true });
-      const files = await fs.readdir(pluginsDir);
+      await fs.mkdir(fullPath, { recursive: true });
+      const files = await fs.readdir(fullPath);
       return files.filter(
         (f) =>
           (f.endsWith(".js") || f.endsWith(".ts")) &&
@@ -38,13 +42,17 @@ export function registerPluginHandlers() {
   });
 
   ipcMain.handle("plugins:read", async (event, filename) => {
-    const pluginsDir = getPluginsDirectory();
+    const basePath = getPluginsDirectory();
     if (filename.includes("/") || filename.includes("\\")) {
       throw new Error("Invalid plugin filename");
     }
-    const filePath = path.join(pluginsDir, filename);
+    const joinedPath = path.join(basePath, path.basename(filename));
+    const fullPath = path.normalize(joinedPath);
+    if (!fullPath.startsWith(basePath)) {
+      throw new Error("Invalid path specified");
+    }
     try {
-      return await fs.readFile(filePath, "utf-8");
+      return await fs.readFile(fullPath, "utf-8");
     } catch (error) {
       console.error("Error reading plugin:", error);
       throw error;
@@ -52,10 +60,14 @@ export function registerPluginHandlers() {
   });
 
   ipcMain.handle("plugins:open-folder", async () => {
-    const pluginsDir = getPluginsDirectory();
+    const basePath = getPluginsDirectory();
+    const fullPath = path.normalize(basePath);
+    if (!fullPath.startsWith(basePath)) {
+      throw new Error("Invalid path specified");
+    }
     try {
-      await fs.mkdir(pluginsDir, { recursive: true });
-      await shell.openPath(pluginsDir);
+      await fs.mkdir(fullPath, { recursive: true });
+      await shell.openPath(fullPath);
       return true;
     } catch (error) {
       console.error("Error opening plugins folder:", error);
@@ -64,13 +76,17 @@ export function registerPluginHandlers() {
   });
 
   ipcMain.handle("plugins:delete", async (event, filename) => {
-    const pluginsDir = getPluginsDirectory();
+    const basePath = getPluginsDirectory();
     if (filename.includes("/") || filename.includes("\\")) {
       throw new Error("Invalid plugin filename");
     }
-    const filePath = path.join(pluginsDir, filename);
+    const joinedPath = path.join(basePath, path.basename(filename));
+    const fullPath = path.normalize(joinedPath);
+    if (!fullPath.startsWith(basePath)) {
+      throw new Error("Invalid path specified");
+    }
     try {
-      await fs.unlink(filePath);
+      await fs.unlink(fullPath);
       return true;
     } catch (error) {
       console.error("Error deleting plugin:", error);
