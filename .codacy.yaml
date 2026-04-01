@@ -10,8 +10,6 @@ engines:
     ignoreIdentifiers: false
     ignoreAnnotations: true
     skipLexicalErrors: true
-
-engines:
   eslint:
     enabled: true
     config:
