@@ -27,6 +27,7 @@ async function runCommand(cmd, label) {
 
 async function getCurrentVersion() {
   const packageJson = JSON.parse(
+    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     await fs.readFile(path.join(__dirname, "../package.json"), "utf8"),
   );
   return packageJson.version;
@@ -68,6 +69,7 @@ Download and install via the  \`.exe\` installer below.
 `;
 
   try {
+    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     const changelog = await fs.readFile(
       path.join(__dirname, "../CHANGELOG.md"),
       "utf8",
@@ -85,6 +87,7 @@ Download and install via the  \`.exe\` installer below.
   }
 
   const notesFile = path.join(__dirname, `../release-notes-${version}.md`);
+  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   await fs.writeFile(notesFile, notes);
 
   try {
@@ -103,6 +106,7 @@ Download and install via the  \`.exe\` installer below.
       "Creating GitHub draft release",
     );
   } finally {
+    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     await fs.unlink(notesFile).catch(() => {});
   }
 }

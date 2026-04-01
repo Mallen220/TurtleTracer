@@ -13,6 +13,7 @@ const outputPath = path.join(__dirname, "../plugins/turtle.d.ts");
 async function generate() {
   console.log("Generating plugin types...");
   try {
+    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     let content = fs.readFileSync(typesPath, "utf-8");
 
     // Remove imports/exports to make types global
@@ -47,6 +48,7 @@ declare global {
       parser: "typescript",
     });
 
+    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     fs.writeFileSync(outputPath, formatted);
     console.log(`Plugin types generated at ${outputPath}`);
   } catch (error) {

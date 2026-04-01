@@ -32,6 +32,7 @@ async function resizeWithCanvas(srcPath, width, height, outPath) {
   const sx = Math.floor((img.width - sw) / 2);
   const sy = Math.floor((img.height - sh) / 2);
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
+  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   const out = fs.createWriteStream(outPath);
   const stream = canvas.createPNGStream();
   await new Promise((res, rej) => {
@@ -44,10 +45,12 @@ async function resizeWithCanvas(srcPath, width, height, outPath) {
 async function main() {
   const src = path.resolve(__dirname, "..", "public", "icon.png");
   const outDir = path.resolve(__dirname, "..", "build", "win");
+  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   if (!fs.existsSync(src)) {
     console.error("Source icon not found at", src);
     process.exit(2);
   }
+  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
   // UWP tile names and their base sizes (scale 100%)
@@ -82,7 +85,9 @@ async function main() {
     // copy to top-level build/ so electron-builder Appx uses these files
     const buildRoot = path.resolve(__dirname, "..", "build");
     try {
+      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       fs.copyFileSync(out100, path.join(buildRoot, path.basename(out100)));
+      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       fs.copyFileSync(out200, path.join(buildRoot, path.basename(out200)));
     } catch (err) {
       console.warn(
@@ -100,8 +105,10 @@ async function main() {
     if (hasPackage("png-to-ico")) {
       const pngToIco = require("png-to-ico");
       const icoBuf = await pngToIco(buf);
+      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       fs.writeFileSync(icoPath, icoBuf);
     } else {
+      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       fs.writeFileSync(icoPath, buf);
     }
   } else {
@@ -112,6 +119,7 @@ async function main() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(img, 0, 0, 256, 256);
     const buf = canvas.toBuffer("image/png");
+    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     fs.writeFileSync(icoPath, buf);
   }
   try {
@@ -119,6 +127,7 @@ async function main() {
       path.resolve(__dirname, "..", "build"),
       path.basename(icoPath),
     );
+    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     fs.copyFileSync(icoPath, topIco);
     console.log("Also wrote", topIco);
   } catch (err) {

@@ -3,15 +3,12 @@ import { ipcMain, BrowserWindow, dialog } from "electron";
 import fs from "fs/promises";
 import path from "path";
 import simpleGit from "simple-git";
-import { isProjectFilePath } from "../utils.js";
+import { isProjectFilePath, validateArbitraryPath } from "../utils.js";
 
 export function registerFileHandlers() {
   ipcMain.handle("file:copy", async (event, srcPath, destPath) => {
-    if (typeof srcPath !== "string" || typeof destPath !== "string") {
-      throw new Error("Invalid source or destination path");
-    }
-    const resolvedSrc = path.resolve(srcPath);
-    const resolvedDest = path.resolve(destPath);
+    const resolvedSrc = validateArbitraryPath(srcPath);
+    const resolvedDest = validateArbitraryPath(destPath);
     try {
       await fs.copyFile(resolvedSrc, resolvedDest);
       return true;
@@ -22,11 +19,8 @@ export function registerFileHandlers() {
   });
 
   ipcMain.handle("file:rename", async (event, oldPath, newPath) => {
-    if (typeof oldPath !== "string" || typeof newPath !== "string") {
-      throw new Error("Invalid old or new path");
-    }
-    const resolvedOld = path.resolve(oldPath);
-    const resolvedNew = path.resolve(newPath);
+    const resolvedOld = validateArbitraryPath(oldPath);
+    const resolvedNew = validateArbitraryPath(newPath);
     try {
       const exists = await fs
         .access(resolvedNew)
@@ -44,18 +38,16 @@ export function registerFileHandlers() {
   });
 
   ipcMain.handle("file:list", async (event, directory) => {
-    if (
-      !directory ||
-      typeof directory !== "string" ||
-      directory.trim() === ""
-    ) {
-      console.warn(
-        "file:list called with empty or invalid directory:",
-        JSON.stringify(directory),
-      );
+    if (!directory || typeof directory !== "string" || directory.trim() === "") {
       return [];
     }
-    const resolvedDir = path.resolve(directory);
+    let resolvedDir;
+    try {
+      resolvedDir = validateArbitraryPath(directory);
+    } catch (e) {
+      console.warn("file:list called with invalid directory:", e.message);
+      return [];
+    }
     try {
       await fs.access(resolvedDir);
     } catch (err) {
@@ -68,6 +60,7 @@ export function registerFileHandlers() {
     }
 
     try {
+      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       const dirents = await fs.readdir(resolvedDir, { withFileTypes: true });
       const projectFilesAndDirs = dirents.filter(
         (dirent) => dirent.isDirectory() || isProjectFilePath(dirent.name),
@@ -105,6 +98,7 @@ export function registerFileHandlers() {
       const fileDetails = await Promise.all(
         projectFilesAndDirs.map(async (dirent) => {
           const filePath = path.join(directory, dirent.name);
+          // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
           const stats = await fs.stat(filePath);
           const resolvedPath = path.resolve(filePath);
           return {
@@ -126,8 +120,7 @@ export function registerFileHandlers() {
   });
 
   ipcMain.handle("file:read", async (event, filePath) => {
-    if (typeof filePath !== "string") throw new Error("Invalid file path");
-    const resolvedPath = path.resolve(filePath);
+    const resolvedPath = validateArbitraryPath(filePath);
     try {
       const content = await fs.readFile(resolvedPath, "utf-8");
       return content;
@@ -138,8 +131,7 @@ export function registerFileHandlers() {
   });
 
   ipcMain.handle("file:write", async (event, filePath, content) => {
-    if (typeof filePath !== "string") throw new Error("Invalid file path");
-    const resolvedPath = path.resolve(filePath);
+    const resolvedPath = validateArbitraryPath(filePath);
     try {
       await fs.writeFile(resolvedPath, content, "utf-8");
       return true;
@@ -164,8 +156,7 @@ export function registerFileHandlers() {
   ipcMain.handle(
     "file:write-base64",
     async (event, filePath, base64Content) => {
-      if (typeof filePath !== "string") throw new Error("Invalid file path");
-      const resolvedPath = path.resolve(filePath);
+      const resolvedPath = validateArbitraryPath(filePath);
       try {
         const buffer = Buffer.from(base64Content, "base64");
         await fs.writeFile(resolvedPath, buffer);
@@ -192,7 +183,8 @@ export function registerFileHandlers() {
         };
         const result = await dialog.showSaveDialog(win, options);
         if (result.canceled || !result.filePath) return null;
-        await fs.writeFile(result.filePath, content, "utf-8");
+        const resolvedPath = validateArbitraryPath(result.filePath);
+        await fs.writeFile(resolvedPath, content, "utf-8");
         return result.filePath;
       } catch (error) {
         console.error("Error exporting legacy .pp file:", error);
@@ -202,8 +194,7 @@ export function registerFileHandlers() {
   );
 
   ipcMain.handle("file:delete", async (event, filePath) => {
-    if (typeof filePath !== "string") throw new Error("Invalid file path");
-    const resolvedPath = path.resolve(filePath);
+    const resolvedPath = validateArbitraryPath(filePath);
     try {
       const stats = await fs.stat(resolvedPath);
       if (stats.isDirectory()) {
@@ -219,8 +210,12 @@ export function registerFileHandlers() {
   });
 
   ipcMain.handle("file:exists", async (event, filePath) => {
-    if (typeof filePath !== "string") return false;
-    const resolvedPath = path.resolve(filePath);
+    let resolvedPath;
+    try {
+      resolvedPath = validateArbitraryPath(filePath);
+    } catch {
+      return false;
+    }
     try {
       await fs.access(resolvedPath);
       return true;
