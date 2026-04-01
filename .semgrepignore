@@ -1,0 +1,6 @@
+release/**
+node_modules/**
+build/**
+dist/**
+coverage/**
+playwright-report/**
