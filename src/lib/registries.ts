@@ -64,14 +64,7 @@ export const tabRegistry = createTabRegistry();
 
 // --- Navbar Action Registry ---
 // Manages extra buttons/actions in the Navbar.
-export interface NavbarAction {
-  id: string;
-  icon: string; // SVG string
-  title?: string;
-  onClick: () => void;
-  location?: "left" | "right" | "center"; // Where to place it (default right)
-  order?: number;
-}
+import type { NavbarAction } from "../types";
 
 const createNavbarActionRegistry = () => {
   const { subscribe, update, set } = writable<NavbarAction[]>([]);
@@ -179,20 +172,12 @@ const createDialogRegistry = () => {
 
 export const dialogRegistry = createDialogRegistry();
 
-// --- Timeline Transformer Registry ---
-export type TimelineTransformer = (items: any[], context: any) => any[];
-
-export interface TimelineTransformerEntry {
-  id: string;
-  fn: TimelineTransformer;
-}
-
-const createTimelineTransformerRegistry = () => {
-  const { subscribe, update, set } = writable<TimelineTransformerEntry[]>([]);
+const createListRegistry = <T extends { id: string }>() => {
+  const { subscribe, update, set } = writable<T[]>([]);
 
   return {
     subscribe,
-    register: (entry: TimelineTransformerEntry) => {
+    register: (entry: T) => {
       update((entries) => {
         const filtered = entries.filter((e) => e.id !== entry.id);
         return [...filtered, entry];
@@ -205,7 +190,15 @@ const createTimelineTransformerRegistry = () => {
   };
 };
 
-export const timelineTransformerRegistry = createTimelineTransformerRegistry();
+// --- Timeline Transformer Registry ---
+export type TimelineTransformer = (items: any[], context: any) => any[];
+
+export interface TimelineTransformerEntry {
+  id: string;
+  fn: TimelineTransformer;
+}
+
+export const timelineTransformerRegistry = createListRegistry<TimelineTransformerEntry>();
 
 // --- Field Render Registry ---
 export type FieldRenderCallback = (two: any) => void;
@@ -215,22 +208,4 @@ export interface FieldRenderEntry {
   fn: FieldRenderCallback;
 }
 
-const createFieldRenderRegistry = () => {
-  const { subscribe, update, set } = writable<FieldRenderEntry[]>([]);
-
-  return {
-    subscribe,
-    register: (entry: FieldRenderEntry) => {
-      update((entries) => {
-        const filtered = entries.filter((e) => e.id !== entry.id);
-        return [...filtered, entry];
-      });
-    },
-    unregister: (id: string) => {
-      update((entries) => entries.filter((e) => e.id !== id));
-    },
-    reset: () => set([]),
-  };
-};
-
-export const fieldRenderRegistry = createFieldRenderRegistry();
+export const fieldRenderRegistry = createListRegistry<FieldRenderEntry>();

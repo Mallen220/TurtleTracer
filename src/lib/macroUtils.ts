@@ -12,6 +12,7 @@ import {
   getLineStartHeading,
   getLineEndHeading,
   getAngularDifference,
+  getInitialTangentialHeading,
 } from "../utils/math";
 
 // Helper to make unique IDs
@@ -202,6 +203,19 @@ export function normalizePath(p: string): string {
   return p.replace(/\\/g, "/").toLowerCase();
 }
 
+export function updateCurrentHeading(line: Line, currentPoint: Point, currentHeading: number): number {
+  const endHeadingRaw = getLineEndHeading(line, currentPoint);
+  if (line.endPoint.heading === "tangential") {
+    const tangent = endHeadingRaw;
+    return unwrapAngle(tangent, currentHeading);
+  } else if (line.endPoint.heading === "constant") {
+    return line.endPoint.degrees;
+  } else if (line.endPoint.heading === "linear") {
+    return line.endPoint.endDeg;
+  }
+  return currentHeading;
+}
+
 export function expandMacro(
   macroItem: SequenceMacroItem,
   prevPoint: Point,
@@ -384,15 +398,7 @@ export function expandMacro(
           });
 
           // Update state
-          const endHeadingRaw = getLineEndHeading(line, currentPoint);
-          if (line.endPoint.heading === "tangential") {
-            const tangent = endHeadingRaw;
-            currentHeading = unwrapAngle(tangent, currentHeading);
-          } else if (line.endPoint.heading === "constant") {
-            currentHeading = line.endPoint.degrees;
-          } else if (line.endPoint.heading === "linear") {
-            currentHeading = line.endPoint.endDeg;
-          }
+          currentHeading = updateCurrentHeading(line, currentPoint, currentHeading);
 
           currentPoint = line.endPoint;
         }
@@ -555,10 +561,7 @@ export function regenerateProjectMacros(
       if (l) {
         const nextP =
           l.controlPoints.length > 0 ? l.controlPoints[0] : l.endPoint;
-        const angle =
-          Math.atan2(nextP.y - startPoint.y, nextP.x - startPoint.x) *
-          (180 / Math.PI);
-        currentHeading = startPoint.reverse ? angle + 180 : angle;
+        currentHeading = getInitialTangentialHeading(startPoint, nextP);
       }
     }
   }
@@ -575,15 +578,7 @@ export function regenerateProjectMacros(
         );
         currentHeading = requiredStartHeading;
 
-        const endHeadingRaw = getLineEndHeading(line, currentPoint);
-        if (line.endPoint.heading === "tangential") {
-          const tangent = endHeadingRaw;
-          currentHeading = unwrapAngle(tangent, currentHeading);
-        } else if (line.endPoint.heading === "constant") {
-          currentHeading = line.endPoint.degrees;
-        } else if (line.endPoint.heading === "linear") {
-          currentHeading = line.endPoint.endDeg;
-        }
+        currentHeading = updateCurrentHeading(line, currentPoint, currentHeading);
         currentPoint = line.endPoint;
       }
     } else if (item.kind === "wait") {

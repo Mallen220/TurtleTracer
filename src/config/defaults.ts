@@ -256,32 +256,10 @@ export function getDefaultLines(): Line[] {
  * Get default shapes (field obstacles)
  */
 export function getDefaultShapes(): Shape[] {
-  return [
-    {
-      id: "triangle-1",
-      name: "Red Goal",
-      vertices: [
-        { x: 144, y: 69.5 },
-        { x: 144, y: 144 },
-        { x: 119, y: 144 },
-        { x: 137.5, y: 119 },
-        { x: 137.5, y: 69.5 },
-      ],
-      color: "#dc2626",
-      fillColor: "#fca5a5",
-    },
-    {
-      id: "triangle-2",
-      name: "Blue Goal",
-      vertices: [
-        { x: 6.5, y: 119 },
-        { x: 25, y: 144 },
-        { x: 0, y: 144 },
-        { x: 0, y: 69.5 },
-        { x: 6.5, y: 69.5 },
-      ],
-      color: "#0b08d9",
-      fillColor: "#fca5a5",
-    },
-  ];
+  const decodePreset = DEFAULT_SETTINGS.obstaclePresets?.find((p) => p.id === "preset-decode-2025");
+  if (decodePreset) {
+    // Return copies so mutations don't affect the preset
+    return decodePreset.shapes.map((s) => ({ ...s, vertices: s.vertices.map((v) => ({ ...v })) }));
+  }
+  return [];
 }
