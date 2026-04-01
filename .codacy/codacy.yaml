@@ -1,10 +1,17 @@
+exclude_paths:
+    - node_modules/**
+    - dist/**
+    - build/**
+    - release/**
+    - coverage/**
+    - playwright-report/**
+    - test-results/**
 runtimes:
     - java@17.0.10
     - node@22.2.0
     - python@3.11.11
 tools:
     - eslint@8.57.0
-    - lizard@1.17.31
     - opengrep@1.16.4
     - pmd@7.23.0
     - trivy@0.69.3
