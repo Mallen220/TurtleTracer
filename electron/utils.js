@@ -12,7 +12,7 @@ export function isProjectFilePath(filePath) {
 }
 
 export const getDirectorySettingsPath = () => {
-  return path.join(app.getPath("userData"), "directory-settings.json");
+  return path.resolve(app.getPath("userData"), "directory-settings.json");
 };
 
 export const loadDirectorySettings = async () => {

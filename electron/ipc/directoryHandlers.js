@@ -77,8 +77,12 @@ export function registerDirectoryHandlers() {
   });
 
   ipcMain.handle("file:create-directory", async (event, dirPath) => {
+    if (!dirPath || typeof dirPath !== "string" || dirPath.trim() === "") {
+      throw new Error("Invalid directory path");
+    }
+    const resolvedPath = path.resolve(dirPath);
     try {
-      await fs.mkdir(dirPath, { recursive: true });
+      await fs.mkdir(resolvedPath, { recursive: true });
       return true;
     } catch (error) {
       console.error("Error creating directory:", error);
@@ -98,12 +102,13 @@ export function registerDirectoryHandlers() {
         lastModified: new Date(0),
       };
     }
+    const resolvedPath = path.resolve(dirPath);
     try {
-      await fs.access(dirPath);
+      await fs.access(resolvedPath);
     } catch (err) {
       console.warn(
         "Directory not accessible in file:get-directory-stats:",
-        dirPath,
+        resolvedPath,
         err && err.code,
       );
       return {
@@ -113,7 +118,7 @@ export function registerDirectoryHandlers() {
       };
     }
     try {
-      const files = await fs.readdir(dirPath);
+      const files = await fs.readdir(resolvedPath);
       const projectFiles = files.filter((file) => isProjectFilePath(file));
 
       let totalSize = 0;

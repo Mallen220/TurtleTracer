@@ -7,8 +7,13 @@ import { isProjectFilePath } from "../utils.js";
 
 export function registerFileHandlers() {
   ipcMain.handle("file:copy", async (event, srcPath, destPath) => {
+    if (typeof srcPath !== "string" || typeof destPath !== "string") {
+      throw new Error("Invalid source or destination path");
+    }
+    const resolvedSrc = path.resolve(srcPath);
+    const resolvedDest = path.resolve(destPath);
     try {
-      await fs.copyFile(srcPath, destPath);
+      await fs.copyFile(resolvedSrc, resolvedDest);
       return true;
     } catch (error) {
       console.error("Error copying file:", error);
@@ -17,16 +22,21 @@ export function registerFileHandlers() {
   });
 
   ipcMain.handle("file:rename", async (event, oldPath, newPath) => {
+    if (typeof oldPath !== "string" || typeof newPath !== "string") {
+      throw new Error("Invalid old or new path");
+    }
+    const resolvedOld = path.resolve(oldPath);
+    const resolvedNew = path.resolve(newPath);
     try {
       const exists = await fs
-        .access(newPath)
+        .access(resolvedNew)
         .then(() => true)
         .catch(() => false);
       if (exists) {
-        throw new Error(`File "${path.basename(newPath)}" already exists`);
+        throw new Error(`File "${path.basename(resolvedNew)}" already exists`);
       }
-      await fs.rename(oldPath, newPath);
-      return { success: true, newPath };
+      await fs.rename(resolvedOld, resolvedNew);
+      return { success: true, newPath: resolvedNew };
     } catch (error) {
       console.error("Error renaming file:", error);
       throw error;
@@ -45,19 +55,20 @@ export function registerFileHandlers() {
       );
       return [];
     }
+    const resolvedDir = path.resolve(directory);
     try {
-      await fs.access(directory);
+      await fs.access(resolvedDir);
     } catch (err) {
       console.warn(
         "Directory not accessible in file:list:",
-        directory,
+        resolvedDir,
         err && err.code,
       );
       return [];
     }
 
     try {
-      const dirents = await fs.readdir(directory, { withFileTypes: true });
+      const dirents = await fs.readdir(resolvedDir, { withFileTypes: true });
       const projectFilesAndDirs = dirents.filter(
         (dirent) => dirent.isDirectory() || isProjectFilePath(dirent.name),
       );
@@ -115,8 +126,10 @@ export function registerFileHandlers() {
   });
 
   ipcMain.handle("file:read", async (event, filePath) => {
+    if (typeof filePath !== "string") throw new Error("Invalid file path");
+    const resolvedPath = path.resolve(filePath);
     try {
-      const content = await fs.readFile(filePath, "utf-8");
+      const content = await fs.readFile(resolvedPath, "utf-8");
       return content;
     } catch (error) {
       console.error("Error reading file:", error);
@@ -125,8 +138,10 @@ export function registerFileHandlers() {
   });
 
   ipcMain.handle("file:write", async (event, filePath, content) => {
+    if (typeof filePath !== "string") throw new Error("Invalid file path");
+    const resolvedPath = path.resolve(filePath);
     try {
-      await fs.writeFile(filePath, content, "utf-8");
+      await fs.writeFile(resolvedPath, content, "utf-8");
       return true;
     } catch (error) {
       console.error("Error writing file:", error);
@@ -149,9 +164,11 @@ export function registerFileHandlers() {
   ipcMain.handle(
     "file:write-base64",
     async (event, filePath, base64Content) => {
+      if (typeof filePath !== "string") throw new Error("Invalid file path");
+      const resolvedPath = path.resolve(filePath);
       try {
         const buffer = Buffer.from(base64Content, "base64");
-        await fs.writeFile(filePath, buffer);
+        await fs.writeFile(resolvedPath, buffer);
         return true;
       } catch (error) {
         console.error("Error writing base64 file:", error);
@@ -185,12 +202,14 @@ export function registerFileHandlers() {
   );
 
   ipcMain.handle("file:delete", async (event, filePath) => {
+    if (typeof filePath !== "string") throw new Error("Invalid file path");
+    const resolvedPath = path.resolve(filePath);
     try {
-      const stats = await fs.stat(filePath);
+      const stats = await fs.stat(resolvedPath);
       if (stats.isDirectory()) {
-        await fs.rm(filePath, { recursive: true, force: true });
+        await fs.rm(resolvedPath, { recursive: true, force: true });
       } else {
-        await fs.unlink(filePath);
+        await fs.unlink(resolvedPath);
       }
       return true;
     } catch (error) {
@@ -200,8 +219,10 @@ export function registerFileHandlers() {
   });
 
   ipcMain.handle("file:exists", async (event, filePath) => {
+    if (typeof filePath !== "string") return false;
+    const resolvedPath = path.resolve(filePath);
     try {
-      await fs.access(filePath);
+      await fs.access(resolvedPath);
       return true;
     } catch {
       return false;
