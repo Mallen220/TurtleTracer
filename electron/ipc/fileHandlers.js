@@ -5,10 +5,22 @@ import path from "path";
 import simpleGit from "simple-git";
 import { isProjectFilePath } from "../utils.js";
 
+function normalizeAndValidatePath(inputPath) {
+  if (typeof inputPath !== "string") {
+    throw new Error("Invalid path provided");
+  }
+  if (inputPath.includes("\0")) {
+    throw new Error("Path contains null bytes");
+  }
+  return path.normalize(inputPath);
+}
+
 export function registerFileHandlers() {
   ipcMain.handle("file:copy", async (event, srcPath, destPath) => {
     try {
-      await fs.copyFile(srcPath, destPath);
+      const safeSrc = normalizeAndValidatePath(srcPath);
+      const safeDest = normalizeAndValidatePath(destPath);
+      await fs.copyFile(safeSrc, safeDest);
       return true;
     } catch (error) {
       console.error("Error copying file:", error);
@@ -18,15 +30,17 @@ export function registerFileHandlers() {
 
   ipcMain.handle("file:rename", async (event, oldPath, newPath) => {
     try {
+      const safeOld = normalizeAndValidatePath(oldPath);
+      const safeNew = normalizeAndValidatePath(newPath);
       const exists = await fs
-        .access(newPath)
+        .access(safeNew)
         .then(() => true)
         .catch(() => false);
       if (exists) {
-        throw new Error(`File "${path.basename(newPath)}" already exists`);
+        throw new Error(`File "${path.basename(safeNew)}" already exists`);
       }
-      await fs.rename(oldPath, newPath);
-      return { success: true, newPath };
+      await fs.rename(safeOld, safeNew);
+      return { success: true, newPath: safeNew };
     } catch (error) {
       console.error("Error renaming file:", error);
       throw error;
@@ -45,8 +59,11 @@ export function registerFileHandlers() {
       );
       return [];
     }
+
+    let safeDirectory;
     try {
-      await fs.access(directory);
+      safeDirectory = normalizeAndValidatePath(directory);
+      await fs.access(safeDirectory);
     } catch (err) {
       console.warn(
         "Directory not accessible in file:list:",
@@ -57,20 +74,22 @@ export function registerFileHandlers() {
     }
 
     try {
-      const dirents = await fs.readdir(directory, { withFileTypes: true });
+      const dirents = await fs.readdir(safeDirectory, { withFileTypes: true });
       const projectFilesAndDirs = dirents.filter(
         (dirent) => dirent.isDirectory() || isProjectFilePath(dirent.name),
       );
 
       let gitStatuses = {};
       try {
-        const git = simpleGit(directory);
+        const git = simpleGit(safeDirectory);
         if (await git.checkIsRepo()) {
           const status = await git.status();
           const rootDir = await git.revparse(["--show-toplevel"]);
 
           status.files.forEach((fileStatus) => {
-            const absPath = path.resolve(rootDir.trim(), fileStatus.path);
+            const absPath = normalizeAndValidatePath(
+              path.resolve(rootDir.trim(), fileStatus.path),
+            );
             let statusStr = "clean";
             if (
               fileStatus.working_dir === "?" ||
@@ -93,9 +112,11 @@ export function registerFileHandlers() {
 
       const fileDetails = await Promise.all(
         projectFilesAndDirs.map(async (dirent) => {
-          const filePath = path.join(directory, dirent.name);
+          const filePath = normalizeAndValidatePath(
+            path.join(safeDirectory, dirent.name),
+          );
           const stats = await fs.stat(filePath);
-          const resolvedPath = path.resolve(filePath);
+          const resolvedPath = normalizeAndValidatePath(path.resolve(filePath));
           return {
             name: dirent.name,
             path: filePath,
@@ -116,7 +137,8 @@ export function registerFileHandlers() {
 
   ipcMain.handle("file:read", async (event, filePath) => {
     try {
-      const content = await fs.readFile(filePath, "utf-8");
+      const safePath = normalizeAndValidatePath(filePath);
+      const content = await fs.readFile(safePath, "utf-8");
       return content;
     } catch (error) {
       console.error("Error reading file:", error);
@@ -126,7 +148,8 @@ export function registerFileHandlers() {
 
   ipcMain.handle("file:write", async (event, filePath, content) => {
     try {
-      await fs.writeFile(filePath, content, "utf-8");
+      const safePath = normalizeAndValidatePath(filePath);
+      await fs.writeFile(safePath, content, "utf-8");
       return true;
     } catch (error) {
       console.error("Error writing file:", error);
@@ -139,7 +162,7 @@ export function registerFileHandlers() {
       const win = BrowserWindow.fromWebContents(event.sender);
       const result = await dialog.showSaveDialog(win, options || {});
       if (result.canceled) return null;
-      return result.filePath;
+      return result.filePath ? normalizeAndValidatePath(result.filePath) : null;
     } catch (error) {
       console.error("Error showing save dialog:", error);
       throw error;
@@ -150,8 +173,9 @@ export function registerFileHandlers() {
     "file:write-base64",
     async (event, filePath, base64Content) => {
       try {
+        const safePath = normalizeAndValidatePath(filePath);
         const buffer = Buffer.from(base64Content, "base64");
-        await fs.writeFile(filePath, buffer);
+        await fs.writeFile(safePath, buffer);
         return true;
       } catch (error) {
         console.error("Error writing base64 file:", error);
@@ -175,8 +199,9 @@ export function registerFileHandlers() {
         };
         const result = await dialog.showSaveDialog(win, options);
         if (result.canceled || !result.filePath) return null;
-        await fs.writeFile(result.filePath, content, "utf-8");
-        return result.filePath;
+        const safePath = normalizeAndValidatePath(result.filePath);
+        await fs.writeFile(safePath, content, "utf-8");
+        return safePath;
       } catch (error) {
         console.error("Error exporting legacy .pp file:", error);
         throw error;
@@ -186,11 +211,12 @@ export function registerFileHandlers() {
 
   ipcMain.handle("file:delete", async (event, filePath) => {
     try {
-      const stats = await fs.stat(filePath);
+      const safePath = normalizeAndValidatePath(filePath);
+      const stats = await fs.stat(safePath);
       if (stats.isDirectory()) {
-        await fs.rm(filePath, { recursive: true, force: true });
+        await fs.rm(safePath, { recursive: true, force: true });
       } else {
-        await fs.unlink(filePath);
+        await fs.unlink(safePath);
       }
       return true;
     } catch (error) {
@@ -201,7 +227,8 @@ export function registerFileHandlers() {
 
   ipcMain.handle("file:exists", async (event, filePath) => {
     try {
-      await fs.access(filePath);
+      const safePath = normalizeAndValidatePath(filePath);
+      await fs.access(safePath);
       return true;
     } catch {
       return false;
@@ -211,7 +238,7 @@ export function registerFileHandlers() {
   ipcMain.handle("file:resolve-path", (event, base, relative) => {
     if (!base || !relative) return relative;
     try {
-      return path.resolve(path.dirname(base), relative);
+      return normalizeAndValidatePath(path.resolve(path.dirname(base), relative));
     } catch (e) {
       console.error("Error resolving path:", base, relative, e);
       return relative;
@@ -221,7 +248,10 @@ export function registerFileHandlers() {
   ipcMain.handle("file:make-relative-path", (event, base, target) => {
     if (!base || !target) return target;
     try {
-      return path.relative(path.dirname(base), target);
+      // make-relative-path doesn't strictly access the filesystem, but uses the paths.
+      const safeBase = normalizeAndValidatePath(base);
+      const safeTarget = normalizeAndValidatePath(target);
+      return path.relative(path.dirname(safeBase), safeTarget);
     } catch (e) {
       console.error("Error making relative path:", base, target, e);
       return target;
