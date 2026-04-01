@@ -1,51 +1,55 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-<style>
-  body {
-    font-family: monospace;
-    font-size: 14px;
-    line-height: 1.625;
-  }
-  .scroll-container {
-    position: relative;
-    width: 400px;
-    height: 300px;
-    overflow: auto;
-    border: 2px solid black;
-    padding: 1rem;
-    padding-bottom: 5rem;
-  }
-  .highlight-layer {
-    position: absolute;
-    top: 1rem; left: 1rem; right: 1rem; bottom: 5rem;
-    pointer-events: none;
-    transform: translateY(1.0em);
-  }
-  .match {
-    position: absolute;
-    left: 0; right: 0;
-    height: 1.625em;
-    background: rgba(255,255,0,0.5);
-  }
-  .code-layer {
-    position: relative;
-    z-index: 10;
-  }
-</style>
-</head>
-<body>
+  <head>
+    <style>
+      body {
+        font-family: monospace;
+        font-size: 14px;
+        line-height: 1.625;
+      }
+      .scroll-container {
+        position: relative;
+        width: 400px;
+        height: 300px;
+        overflow: auto;
+        border: 2px solid black;
+        padding: 1rem;
+        padding-bottom: 5rem;
+      }
+      .highlight-layer {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        right: 1rem;
+        bottom: 5rem;
+        pointer-events: none;
+        transform: translateY(1em);
+      }
+      .match {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 1.625em;
+        background: rgba(255, 255, 0, 0.5);
+      }
+      .code-layer {
+        position: relative;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
     <div class="scroll-container" id="sc">
       <div class="highlight-layer">
-        <div class="match" style="top: calc(2 * 1.625em);"></div>
-        <div class="match" style="top: calc(5 * 1.625em);"></div>
-        <div class="match" style="top: calc(12 * 1.625em);"></div>
+        <div class="match" style="top: calc(2 * 1.625em)"></div>
+        <div class="match" style="top: calc(5 * 1.625em)"></div>
+        <div class="match" style="top: calc(12 * 1.625em)"></div>
       </div>
       <div class="code-layer">
-        line 0<br>line 1<br>line 2<br>line 3<br>line 4<br>
-        line 5<br>line 6<br>line 7<br>line 8<br>line 9<br>
-        line 10<br>line 11<br>line 12<br>line 13<br>line 14<br>
+        line 0<br />line 1<br />line 2<br />line 3<br />line 4<br />
+        line 5<br />line 6<br />line 7<br />line 8<br />line 9<br />
+        line 10<br />line 11<br />line 12<br />line 13<br />line 14<br />
       </div>
     </div>
-</body>
+  </body>
 </html>

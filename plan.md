@@ -5,7 +5,9 @@
      {#each exportedCode.split("\n") as line, i}
        <div
          data-line-index={i}
-         class="w-full {searchMatches.includes(i) ? 'bg-yellow-500/30' : 'bg-transparent'}"
+         class="w-full {searchMatches.includes(i)
+           ? 'bg-yellow-500/30'
+           : 'bg-transparent'}"
          style="height: 1.625em;"
        ></div>
      {/each}
@@ -15,10 +17,10 @@
      Additionally, `exportedCode.split("\n")` runs reactively multiple times.
      And we're doing it simply to position yellow highlights for search matches!
 2. **Solution**:
-   - We don't need a div for *every* single line of code. We only need `div`s for the lines that *actually have* a match!
+   - We don't need a div for _every_ single line of code. We only need `div`s for the lines that _actually have_ a match!
    - We can position the highlight matches using `top: calc({i} * 1.625em);` or simply `top: {i * 1.625}em;` on absolute positioned divs.
    - However, we also use the empty `div`s for scrolling using `data-line-index={i}` via `document.querySelector('[data-line-index="..."]').scrollIntoView()`.
-   - But we don't *need* DOM elements for scrolling. We could just calculate the scroll position! If each line is `1.625em`, we can convert that to pixels or simply scroll the container to the computed pixel offset. Or, if we just render invisible anchors for the *matches*, we could scroll to those anchors.
+   - But we don't _need_ DOM elements for scrolling. We could just calculate the scroll position! If each line is `1.625em`, we can convert that to pixels or simply scroll the container to the computed pixel offset. Or, if we just render invisible anchors for the _matches_, we could scroll to those anchors.
    - Let's change the scrolling mechanism:
      ```javascript
      function scrollToMatch(lineIndex: number) {
@@ -32,7 +34,7 @@
        }
      }
      ```
-     Wait, if we only render `div`s for `searchMatches`, then `document.querySelector('[data-line-index="..."]')` will *only* find elements for matches, which is exactly what `scrollToMatch(lineIndex)` does! It's always called with a match index.
+     Wait, if we only render `div`s for `searchMatches`, then `document.querySelector('[data-line-index="..."]')` will _only_ find elements for matches, which is exactly what `scrollToMatch(lineIndex)` does! It's always called with a match index.
 3. **Refactoring the Highlight Layer**:
    - Replace the `{#each exportedCode.split("\n") as line, i}` block with:
      ```svelte
@@ -56,11 +58,11 @@
      If we render absolute matches relative to this container, they will be properly aligned:
      ```svelte
      {#each searchMatches as matchIndex (matchIndex)}
-        <div
-          data-line-index={matchIndex}
-          class="absolute left-0 right-0 bg-yellow-500/30"
-          style="top: calc({matchIndex} * 1.625em); height: 1.625em;"
-        ></div>
+       <div
+         data-line-index={matchIndex}
+         class="absolute left-0 right-0 bg-yellow-500/30"
+         style="top: calc({matchIndex} * 1.625em); height: 1.625em;"
+       ></div>
      {/each}
      ```
    - This prevents rendering thousands of elements and removes the `O(N * M)` includes check.

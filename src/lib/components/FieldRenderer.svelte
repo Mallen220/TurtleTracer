@@ -75,7 +75,10 @@
     DEFAULT_ROBOT_LENGTH,
     DEFAULT_ROBOT_WIDTH,
   } from "../../config";
-  import { generateLinesFromDrawing } from "../../utils/pathEditing";
+  import {
+    generateLinesFromDrawing,
+    enforceSmoothTransition,
+  } from "../../utils/pathEditing";
   import {
     getRandomColor,
     updateRobotImageDisplay,
@@ -1703,6 +1706,27 @@
 
           // EndPoint specific actions
           if (isEndPoint) {
+            menuItems.push({
+              label: "Auto-Smooth Transition",
+              disabled: lineIndex >= lines.length - 1,
+              shortcut: getDisplayShortcut(
+                "autoSmooth",
+                settings.keyBindings || DEFAULT_KEY_BINDINGS,
+              ),
+              onClick: () => {
+                const newLines = enforceSmoothTransition(
+                  lineIndex,
+                  lines,
+                  startPoint,
+                );
+                if (newLines) {
+                  linesStore.update((_l) => newLines);
+                  onRecordChange("Auto-Smooth Transition");
+                }
+              },
+            });
+            menuItems.push({ separator: true });
+
             menuItems.push({
               label: "Add Wait Command",
               shortcut: getDisplayShortcut(

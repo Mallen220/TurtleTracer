@@ -22,6 +22,67 @@ export interface PathSplitResult {
 }
 
 /**
+ * Enforces C1 continuity (smooth transition) at the endpoint of the given line index.
+ * It adjusts the adjacent control points to be colinear and parallel to the vector
+ * formed by the preceding and succeeding anchor points.
+ */
+export function enforceSmoothTransition(
+  lineIndex: number,
+  lines: Line[],
+  startPoint: Point,
+): Line[] | null {
+  if (lineIndex < 0 || lineIndex >= lines.length - 1) return null;
+
+  const currentLine = lines[lineIndex];
+  const nextLine = lines[lineIndex + 1];
+
+  const pMid = currentLine.endPoint;
+
+  // Find the preceding anchor point
+  const prevAnchor =
+    lineIndex === 0 ? startPoint : lines[lineIndex - 1].endPoint;
+
+  // Find the succeeding anchor point
+  const nextAnchor = nextLine.endPoint;
+
+  // Calculate the tangent vector from prevAnchor to nextAnchor
+  const dx = nextAnchor.x - prevAnchor.x;
+  const dy = nextAnchor.y - prevAnchor.y;
+  const mag = Math.sqrt(dx * dx + dy * dy);
+
+  if (mag === 0) return null;
+
+  const tX = dx / mag;
+  const tY = dy / mag;
+
+  // Clone lines for mutation
+  const newLines = structuredClone(lines);
+  const newCurrentLine = newLines[lineIndex];
+  const newNextLine = newLines[lineIndex + 1];
+
+  // Adjust incoming control point (last CP of current line)
+  if (newCurrentLine.controlPoints.length > 0) {
+    const cpIn =
+      newCurrentLine.controlPoints[newCurrentLine.controlPoints.length - 1];
+    const distIn = getDistance(pMid, cpIn);
+    // Incoming CP is behind pMid along the tangent
+    cpIn.x = pMid.x - tX * distIn;
+    cpIn.y = pMid.y - tY * distIn;
+  }
+
+  // Adjust outgoing control point (first CP of next line)
+  if (newNextLine.controlPoints.length > 0) {
+    const cpOut = newNextLine.controlPoints[0];
+    const distOut = getDistance(pMid, cpOut);
+    // Outgoing CP is ahead of pMid along the tangent
+    cpOut.x = pMid.x + tX * distOut;
+    cpOut.y = pMid.y + tY * distOut;
+  }
+
+  return newLines;
+}
+
+/**
  * Splits the path at the given global percentage.
  * Returns null if the current time does not correspond to a split-table path segment.
  */

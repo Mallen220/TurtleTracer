@@ -15,12 +15,12 @@ name: Codacy Security Scan
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ "main" ]
+    branches: ["main"]
   schedule:
-    - cron: '35 8 * * 5'
+    - cron: "35 8 * * 5"
 
 permissions:
   contents: read
@@ -55,7 +55,7 @@ jobs:
         uses: codacy/codacy-coverage-reporter-action@v1
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          
+
           coverage-reports: coverage/lcov.info
 
       # Execute Codacy Analysis CLI and generate a SARIF output with the security issues identified during the analysis
