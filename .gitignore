@@ -41,3 +41,5 @@ coverage/
 
 
 .github/instructions/codacy.instructions.md
+tmp/jscpd/jscpd-report.json
+DuplicationReport.txt
