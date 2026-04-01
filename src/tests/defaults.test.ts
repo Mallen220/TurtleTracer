@@ -1,8 +1,50 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
-import { getDefaultLines } from "../config/defaults";
+import { getDefaultLines, getDefaultShapes, DEFAULT_SETTINGS } from "../config/defaults";
 
 describe("Defaults Utilities", () => {
+  describe("getDefaultShapes", () => {
+    it("returns copies of shapes when preset-decode-2025 is present", () => {
+      // This is the default scenario as preset-decode-2025 is in DEFAULT_SETTINGS
+      const shapes = getDefaultShapes();
+      expect(shapes.length).toBeGreaterThan(0);
+      expect(shapes[0].name).toBe("Red Goal");
+
+      // Ensure it returns a copy
+      const decodePreset = DEFAULT_SETTINGS.obstaclePresets!.find(
+        (p) => p.id === "preset-decode-2025",
+      )!;
+      expect(shapes[0]).not.toBe(decodePreset.shapes[0]); // Object identity check
+      expect(shapes[0].vertices[0]).not.toBe(decodePreset.shapes[0].vertices[0]); // Vertex identity check
+    });
+
+    it("returns an empty array when preset-decode-2025 is missing", () => {
+      // We need to temporarily remove the preset to test this behavior
+      const originalPresets = DEFAULT_SETTINGS.obstaclePresets;
+      DEFAULT_SETTINGS.obstaclePresets = DEFAULT_SETTINGS.obstaclePresets?.filter(
+        (p) => p.id !== "preset-decode-2025",
+      );
+
+      const shapes = getDefaultShapes();
+      expect(shapes).toEqual([]);
+
+      // Restore the presets
+      DEFAULT_SETTINGS.obstaclePresets = originalPresets;
+    });
+
+    it("returns an empty array when obstaclePresets is undefined", () => {
+      const originalPresets = DEFAULT_SETTINGS.obstaclePresets;
+      // Simulate obstaclePresets missing completely
+      DEFAULT_SETTINGS.obstaclePresets = undefined;
+
+      const shapes = getDefaultShapes();
+      expect(shapes).toEqual([]);
+
+      // Restore the presets
+      DEFAULT_SETTINGS.obstaclePresets = originalPresets;
+    });
+  });
+
   describe("getDefaultLines", () => {
     it("should return an array with exactly one line by default", () => {
       const lines = getDefaultLines();
