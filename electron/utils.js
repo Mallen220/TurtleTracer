@@ -3,6 +3,41 @@ import path from "path";
 import fs from "fs/promises";
 import { app } from "electron";
 
+export function validateSafePath(inputPath, basePath) {
+  if (typeof inputPath !== "string") {
+    throw new Error("Invalid path: must be a string");
+  }
+  if (inputPath.indexOf("\0") !== -1) {
+    throw new Error("Invalid path: contains null bytes");
+  }
+  const normalized = path.normalize(inputPath);
+  const resolvedBase = basePath ? path.resolve(basePath) : null;
+  if (resolvedBase) {
+    const baseWithSep = resolvedBase.endsWith(path.sep) ? resolvedBase : `${resolvedBase}${path.sep}`;
+    if (!normalized.startsWith(baseWithSep) && normalized !== resolvedBase) {
+      throw new Error("Invalid path: traversal detected");
+    }
+  }
+  return normalized;
+}
+
+export function validateArbitraryPath(inputPath) {
+  if (typeof inputPath !== "string") {
+    throw new Error("Invalid path: must be a string");
+  }
+  if (inputPath.indexOf("\0") !== -1) {
+    throw new Error("Invalid path: contains null bytes");
+  }
+  if (inputPath.includes("..")) {
+    throw new Error("Invalid path: contains traversal sequences");
+  }
+  const normalized = path.normalize(inputPath);
+  if (!path.isAbsolute(normalized)) {
+    throw new Error("Invalid path: must be absolute");
+  }
+  return normalized;
+}
+
 export const PROJECT_EXTENSIONS = [".turt", ".pp"];
 
 export function isProjectFilePath(filePath) {
@@ -12,12 +47,15 @@ export function isProjectFilePath(filePath) {
 }
 
 export const getDirectorySettingsPath = () => {
-  return path.resolve(app.getPath("userData"), "directory-settings.json");
+  const basePath = app.getPath("userData");
+  const settingsPath = path.resolve(basePath, "directory-settings.json");
+  return validateSafePath(settingsPath, basePath);
 };
 
 export const loadDirectorySettings = async () => {
   const settingsPath = getDirectorySettingsPath();
   try {
+    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     const data = await fs.readFile(settingsPath, "utf-8");
     return JSON.parse(data);
   } catch (error) {
@@ -35,6 +73,7 @@ export const loadDirectorySettings = async () => {
 export const saveDirectorySettings = async (settings) => {
   const settingsPath = getDirectorySettingsPath();
   try {
+    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     await fs.writeFile(
       settingsPath,
       JSON.stringify(settings, null, 2),
@@ -48,5 +87,7 @@ export const saveDirectorySettings = async (settings) => {
 };
 
 export const getPluginsDirectory = () => {
-  return path.join(app.getPath("userData"), "plugins");
+  const basePath = app.getPath("userData");
+  const pluginsDir = path.join(basePath, "plugins");
+  return validateSafePath(pluginsDir, basePath);
 };

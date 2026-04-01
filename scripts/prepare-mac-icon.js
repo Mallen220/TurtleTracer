@@ -17,12 +17,14 @@ const SRC = path.resolve(process.cwd(), "public", "icon.png");
 const DST = path.resolve(process.cwd(), "build", "icon.png");
 
 async function main() {
+  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   if (!fs.existsSync(SRC)) {
     console.error("Source icon not found at", SRC);
     process.exit(1);
   }
 
   // Ensure build directory exists before writing the icon.
+  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   fs.mkdirSync(path.dirname(DST), { recursive: true });
 
   // The source icon has a subtle semi-transparent border due to antialiasing.
