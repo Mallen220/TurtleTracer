@@ -30,27 +30,23 @@ export function getDisplayShortcut(
     if (nonMac) best = nonMac;
   }
 
-  // Format the keys
   return best
     .split("+")
     .map((key) => key.trim())
     .map((key) => {
-      if (key.toLowerCase() === "cmd" || key.toLowerCase() === "command") {
-        return isMac ? "⌘" : "Ctrl";
-      }
-      if (key.toLowerCase() === "ctrl" || key.toLowerCase() === "control") {
-        return "Ctrl";
-      }
-      if (key.toLowerCase() === "shift") return "Shift";
-      if (key.toLowerCase() === "alt") return isMac ? "⌥" : "Alt";
-      if (key.toLowerCase() === "enter") return "Enter";
-      if (key.toLowerCase() === "escape") return "Esc";
-      if (key.toLowerCase() === "backspace") return "⌫";
-      if (key.toLowerCase() === "delete") return "Del";
-      if (key.toLowerCase() === "up") return "↑";
-      if (key.toLowerCase() === "down") return "↓";
-      if (key.toLowerCase() === "left") return "←";
-      if (key.toLowerCase() === "right") return "→";
+      const lower = key.toLowerCase();
+      if (lower === "cmd" || lower === "command") return isMac ? "⌘" : "Ctrl";
+      if (lower === "ctrl" || lower === "control") return "Ctrl";
+      if (lower === "shift") return "Shift";
+      if (lower === "alt") return isMac ? "⌥" : "Alt";
+      if (lower === "enter") return "Enter";
+      if (lower === "escape") return "Esc";
+      if (lower === "backspace") return "⌫";
+      if (lower === "delete") return "Del";
+      if (lower === "up") return "↑";
+      if (lower === "down") return "↓";
+      if (lower === "left") return "←";
+      if (lower === "right") return "→";
 
       return key.charAt(0).toUpperCase() + key.slice(1);
     })

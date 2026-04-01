@@ -6,7 +6,6 @@ export const makeId = () =>
 
 export function renumberDefaultPathNames(lines: Line[]): Line[] {
   return lines.map((l, idx) => {
-    // Only renumber explicit default-style names like "Path 5". Preserve empty names.
     if (/^Path \d+$/.test(l.name || "")) {
       return { ...l, name: `Path ${idx + 1}` };
     }
@@ -34,44 +33,13 @@ export function generateName(
     return baseName;
   }
 
-  // Check if it already has " duplicate N" or " duplicate" suffix
-  // Regex to match " duplicate" or " duplicate <number>" at the end
-  const duplicateRegex = / duplicate(?: (\d+))?$/;
-  const match = baseName.match(duplicateRegex);
+  const match = baseName.match(/ duplicate(?: (\d+))?$/);
+  const coreName = match ? baseName.replace(/ duplicate(?: \d+)?$/, "") : baseName;
+  let i = match ? (match[1] ? parseInt(match[1], 10) + 1 : 1) : 0;
 
-  let coreName = baseName;
-  let currentNum = 0;
-
-  if (match) {
-    // It already has the suffix
-    coreName = baseName.replace(duplicateRegex, "");
-    if (match[1]) {
-      currentNum = parseInt(match[1], 10);
-    } else {
-      // " duplicate" implies number 0 (conceptually, next is 1)
-      currentNum = 0;
-    }
-  }
-
-  let candidate = "";
-
-  if (match) {
-    let i = currentNum + 1;
-    while (true) {
-      candidate = `${coreName} duplicate ${i}`;
-      if (!existingSet.has(normalize(candidate))) return candidate;
-      i++;
-    }
-  } else {
-    // First duplication
-    candidate = `${baseName} duplicate`;
+  while (true) {
+    const candidate = i === 0 ? `${coreName} duplicate` : `${coreName} duplicate ${i}`;
     if (!existingSet.has(normalize(candidate))) return candidate;
-
-    let i = 1;
-    while (true) {
-      candidate = `${baseName} duplicate ${i}`;
-      if (!existingSet.has(normalize(candidate))) return candidate;
-      i++;
-    }
+    i++;
   }
 }
