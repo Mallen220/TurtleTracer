@@ -8,23 +8,11 @@ import type {
   SequencePathItem,
   SequenceMacroItem,
 } from "../types";
-import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
+import { pathKind, macroKind } from "./testUtils";
 
 // Ensure core actions available for kind resolution
 registerCoreUI();
-
-const pathKind = (): SequencePathItem["kind"] =>
-  (actionRegistry.getAll().find((a: any) => a.isPath)
-    ?.kind as SequencePathItem["kind"]) ?? "path";
-const macroKind = (): SequenceMacroItem["kind"] =>
-  (actionRegistry.getAll().find((a: any) => a.isMacro)
-    ?.kind as SequenceMacroItem["kind"]) ?? "macro";
-
-const isPathItem = (s: SequenceItem): s is SequencePathItem =>
-  s.kind === pathKind();
-const isMacroItem = (s: SequenceItem): s is SequenceMacroItem =>
-  s.kind === macroKind();
 
 // Mock stores
 vi.mock("../stores", () => ({
@@ -40,23 +28,23 @@ vi.mock("../stores", () => ({
 }));
 
 describe("GlobalEventMarkers", () => {
-  it("skips macros in global position calculation", () => {
-    const lines: Line[] = [
-      {
-        id: "line-1",
-        endPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
-        controlPoints: [],
-        color: "red",
-      },
-      {
-        id: "line-2",
-        endPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
-        controlPoints: [],
-        color: "blue",
-        eventMarkers: [{ id: "m1", name: "Marker 1", position: 0.5 }],
-      },
-    ];
+  const commonLines: Line[] = [
+    {
+      id: "line-1",
+      endPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
+      controlPoints: [],
+      color: "red",
+    },
+    {
+      id: "line-2",
+      endPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
+      controlPoints: [],
+      color: "blue",
+      eventMarkers: [{ id: "m1", name: "Marker 1", position: 0.5 }],
+    },
+  ];
 
+  it("skips macros in global position calculation", () => {
     const sequence: SequenceItem[] = [
       { kind: pathKind(), lineId: "line-1" },
       {
@@ -71,7 +59,7 @@ describe("GlobalEventMarkers", () => {
 
     render(GlobalEventMarkers, {
       sequence,
-      lines,
+      lines: commonLines,
       collapsedMarkers: false,
     });
 
@@ -84,22 +72,6 @@ describe("GlobalEventMarkers", () => {
   });
 
   it("calculates correctly without macros", () => {
-    const lines: Line[] = [
-      {
-        id: "line-1",
-        endPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
-        controlPoints: [],
-        color: "red",
-      },
-      {
-        id: "line-2",
-        endPoint: { x: 0, y: 0, heading: "tangential", reverse: false },
-        controlPoints: [],
-        color: "blue",
-        eventMarkers: [{ id: "m1", name: "Marker 1", position: 0.5 }],
-      },
-    ];
-
     const sequence: SequenceItem[] = [
       { kind: pathKind(), lineId: "line-1" },
       { kind: pathKind(), lineId: "line-2" },
@@ -107,7 +79,7 @@ describe("GlobalEventMarkers", () => {
 
     render(GlobalEventMarkers, {
       sequence,
-      lines,
+      lines: commonLines,
       collapsedMarkers: false,
     });
 

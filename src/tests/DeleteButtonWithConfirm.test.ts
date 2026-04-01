@@ -4,20 +4,23 @@ import { describe, it, expect, vi } from "vitest";
 import DeleteButtonWithConfirm from "../lib/components/common/DeleteButtonWithConfirm.svelte";
 
 describe("DeleteButtonWithConfirm", () => {
-  it("renders correctly", () => {
-    render(DeleteButtonWithConfirm);
+  const setupButton = () => {
+    const { component } = render(DeleteButtonWithConfirm);
+    const mockClickHandler = vi.fn();
+    component.$on("click", mockClickHandler);
     const button = screen.getByTitle("Delete");
+    return { button, mockClickHandler };
+  };
+
+  it("renders correctly", () => {
+    const { button } = setupButton();
     expect(button).toBeInTheDocument();
     // Verify aria-label defaults to title
     expect(button).toHaveAttribute("aria-label", "Delete");
   });
 
   it("requires two clicks to confirm", async () => {
-    const { component } = render(DeleteButtonWithConfirm);
-    const mockClickHandler = vi.fn();
-    component.$on("click", mockClickHandler);
-
-    const button = screen.getByTitle("Delete");
+    const { button, mockClickHandler } = setupButton();
 
     // First click
     await fireEvent.click(button);
@@ -40,11 +43,7 @@ describe("DeleteButtonWithConfirm", () => {
 
   it("resets after timeout", async () => {
     vi.useFakeTimers();
-    const { component } = render(DeleteButtonWithConfirm);
-    const mockClickHandler = vi.fn();
-    component.$on("click", mockClickHandler);
-
-    const button = screen.getByTitle("Delete");
+    const { button, mockClickHandler } = setupButton();
 
     // First click
     await fireEvent.click(button);
@@ -68,8 +67,7 @@ describe("DeleteButtonWithConfirm", () => {
 
   it("resets on blur", async () => {
     vi.useFakeTimers();
-    render(DeleteButtonWithConfirm);
-    const button = screen.getByTitle("Delete");
+    const { button } = setupButton();
 
     // First click
     await fireEvent.click(button);

@@ -12,23 +12,12 @@ import type {
 } from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
+import { pathKind, macroKind } from "./testUtils";
 
 beforeEach(() => {
   actionRegistry.reset();
   registerCoreUI();
 });
-
-const pathKind = (): SequencePathItem["kind"] =>
-  (actionRegistry.getAll().find((a) => a.isPath)
-    ?.kind as SequencePathItem["kind"]) ?? "path";
-const macroKind = (): SequenceMacroItem["kind"] =>
-  (actionRegistry.getAll().find((a) => a.isMacro)
-    ?.kind as SequenceMacroItem["kind"]) ?? "macro";
-
-const isPathItem = (s: SequenceItem): s is SequencePathItem =>
-  s.kind === pathKind();
-const isMacroItem = (s: SequenceItem): s is SequenceMacroItem =>
-  s.kind === macroKind();
 
 describe("Macro Integration", () => {
   const startPoint: Point = {

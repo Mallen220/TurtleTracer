@@ -14,6 +14,7 @@ import {
   getLineEndHeading,
   getAngularDifference,
   getDistance,
+  getInitialTangentialHeading,
 } from "./math";
 import { actionRegistry } from "../lib/actionRegistry";
 
@@ -610,10 +611,7 @@ export function calculatePathTime(
         firstLine.controlPoints.length > 0
           ? firstLine.controlPoints[0]
           : firstLine.endPoint;
-      const angle =
-        Math.atan2(nextP.y - startPoint.y, nextP.x - startPoint.x) *
-        (180 / Math.PI);
-      currentHeading = startPoint.reverse ? angle + 180 : angle;
+      currentHeading = getInitialTangentialHeading(startPoint, nextP);
     } else {
       currentHeading = 0;
     }
