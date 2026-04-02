@@ -43,9 +43,13 @@ describe("File Utils", () => {
     linkMock = document.createElement("a");
     linkMock.click = vi.fn();
 
+    const originalCreateElement = document.createElement.bind(document);
     createElementSpy = vi
       .spyOn(document, "createElement")
-      .mockReturnValue(linkMock);
+      .mockImplementation((tag: any) => {
+        if (tag === "a") return linkMock;
+        return originalCreateElement(tag);
+      });
     appendChildSpy = vi
       .spyOn(document.body, "appendChild")
       .mockImplementation(() => linkMock);
@@ -69,6 +73,20 @@ describe("File Utils", () => {
     vi.restoreAllMocks();
   });
 
+  const expectDownload = (filename: string, mimeType: string) => {
+    expect(createElementSpy).toHaveBeenCalledWith("a");
+    expect(linkMock.download).toBe(filename);
+    expect(linkMock.href).toBe("blob:url");
+    expect(appendChildSpy).toHaveBeenCalledWith(linkMock);
+    expect(linkMock.click).toHaveBeenCalled();
+    expect(removeChildSpy).toHaveBeenCalledWith(linkMock);
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:url");
+
+    // Verify content type
+    const blobCall = createObjectURLSpy.mock.calls[0][0];
+    expect(blobCall.type).toBe(mimeType);
+  }
+
   describe("downloadTrajectoryAsText", () => {
     it("should create a text file download with correct parameters", () => {
       downloadTrajectoryAsText(
@@ -80,17 +98,7 @@ describe("File Utils", () => {
         "custom_name.txt",
       );
 
-      expect(createElementSpy).toHaveBeenCalledWith("a");
-      expect(linkMock.download).toBe("custom_name.txt");
-      expect(linkMock.href).toBe("blob:url");
-      expect(appendChildSpy).toHaveBeenCalledWith(linkMock);
-      expect(linkMock.click).toHaveBeenCalled();
-      expect(removeChildSpy).toHaveBeenCalledWith(linkMock);
-      expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:url");
-
-      // Verify content type
-      const blobCall = createObjectURLSpy.mock.calls[0][0];
-      expect(blobCall.type).toBe("text/plain");
+      expectDownload("custom_name.txt", "text/plain");
     });
   });
 
@@ -98,17 +106,7 @@ describe("File Utils", () => {
     it("should create a .turt file download with correct parameters", () => {
       downloadTrajectory(mockStartPoint, mockLines, mockShapes, mockSequence);
 
-      expect(createElementSpy).toHaveBeenCalledWith("a");
-      expect(linkMock.download).toBe("trajectory.turt");
-      expect(linkMock.href).toBe("blob:url");
-      expect(appendChildSpy).toHaveBeenCalledWith(linkMock);
-      expect(linkMock.click).toHaveBeenCalled();
-      expect(removeChildSpy).toHaveBeenCalledWith(linkMock);
-      expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:url");
-
-      // Verify content type
-      const blobCall = createObjectURLSpy.mock.calls[0][0];
-      expect(blobCall.type).toBe("application/json");
+      expectDownload("trajectory.turt", "application/json");
     });
   });
 

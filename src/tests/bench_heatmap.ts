@@ -26,6 +26,15 @@ for (let i = 0; i < 100; i++) {
 }
 const maxVel = 100;
 
+function getColor(t: number) {
+  const profileIndex = Math.floor(t * (vProfile.length - 1));
+  const safeIndex = Math.min(vProfile.length - 1, Math.max(0, profileIndex));
+  const vAvg = vProfile[safeIndex] || 0;
+  const ratio = Math.min(1, Math.max(0, vAvg / maxVel));
+  const hue = 120 - ratio * 120;
+  return `hsl(${hue}, 100%, 40%)`;
+}
+
 function runBaseline() {
   let objectCount = 0;
   const samples = 100;
@@ -34,14 +43,6 @@ function runBaseline() {
   for (let i = 1; i <= samples; i++) {
     const t = i / samples;
     const currPt = getCurvePoint(t, cps);
-
-    const profileIndex = Math.floor(t * (vProfile.length - 1));
-    const safeIndex = Math.min(vProfile.length - 1, Math.max(0, profileIndex));
-
-    const vAvg = vProfile[safeIndex] || 0;
-    const ratio = Math.min(1, Math.max(0, vAvg / maxVel));
-    const hue = 120 - ratio * 120;
-    // const color = `hsl(${hue}, 100%, 40%)`;
 
     // Simulate new Two.Line
     objectCount++;
@@ -64,14 +65,7 @@ function runOptimized() {
   for (let i = 1; i <= samples; i++) {
     const t = i / samples;
     const currPt = getCurvePoint(t, cps);
-
-    const profileIndex = Math.floor(t * (vProfile.length - 1));
-    const safeIndex = Math.min(vProfile.length - 1, Math.max(0, profileIndex));
-
-    const vAvg = vProfile[safeIndex] || 0;
-    const ratio = Math.min(1, Math.max(0, vAvg / maxVel));
-    const hue = 120 - ratio * 120;
-    const color = `hsl(${hue}, 100%, 40%)`;
+    const color = getColor(t);
 
     if (color !== currentColor) {
       // Color changed.

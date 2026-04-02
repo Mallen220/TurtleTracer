@@ -34,16 +34,17 @@ describe("ExportCodeDialog file reading", () => {
     (window as any).electronAPI = originalElectronAPI;
   });
 
+  const createDialog = () => render(ExportCodeDialog, {
+    isOpen: false,
+    startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
+    lines: [],
+    sequence: [],
+    shapes: [],
+  });
+
   it("reads file content when exporting JSON if file path exists", async () => {
     currentFilePath.set("/path/to/project.pp");
-
-    const { getByText, component } = render(ExportCodeDialog, {
-      isOpen: false,
-      startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
-      lines: [],
-      sequence: [],
-      shapes: [],
-    });
+    const { getByText, component } = createDialog();
 
     // Open with JSON format
     await component.openWithFormat("json");
@@ -71,13 +72,7 @@ describe("ExportCodeDialog file reading", () => {
       new Error("File not found"),
     );
 
-    const { getByText, component } = render(ExportCodeDialog, {
-      isOpen: false,
-      startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
-      lines: [],
-      sequence: [],
-      shapes: [],
-    });
+    const { getByText, component } = createDialog();
 
     await component.openWithFormat("json");
 
@@ -93,14 +88,7 @@ describe("ExportCodeDialog file reading", () => {
 
   it("generates content if no file path", async () => {
     currentFilePath.set(null);
-
-    const { getByText, component } = render(ExportCodeDialog, {
-      isOpen: false,
-      startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 } as any,
-      lines: [],
-      sequence: [],
-      shapes: [],
-    });
+    const { getByText, component } = createDialog();
 
     await component.openWithFormat("json");
 
