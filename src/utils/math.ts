@@ -170,7 +170,7 @@ export function splitBezier(
 }
 
 export function getTangentAngle(p1: Point2D, p2: Point2D): number {
-  return Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+  return radiansToDegrees(Math.atan2(p2.y - p1.y, p2.x - p1.x));
 }
 
 function getHeadingBase(
@@ -219,9 +219,7 @@ export function getInitialTangentialHeading(
   startPoint: Point,
   nextPoint: Point2D,
 ): number {
-  const angle =
-    Math.atan2(nextPoint.y - startPoint.y, nextPoint.x - startPoint.x) *
-    (180 / Math.PI);
+  const angle = getTangentAngle(startPoint, nextPoint);
   return startPoint.reverse ? angle + 180 : angle;
 }
 
