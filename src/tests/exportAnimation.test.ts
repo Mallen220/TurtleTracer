@@ -39,41 +39,9 @@ vi.mock("upng-js", () => {
   };
 });
 
-// Mock global Image
-// use a property descriptor or a class with a backing field to avoid recursion
-const OriginalImage = global.Image;
-class MockImage {
-  _src = "";
-  width = 100;
-  height = 100;
-  crossOrigin = "";
-  onload: () => void = () => {};
-  onerror: (err: any) => void = () => {};
-
-  get src() {
-    return this._src;
-  }
-
-  set src(val: string) {
-    this._src = val;
-    // Simulate async load
-    setTimeout(() => {
-      if (val === "error") {
-        if (this.onerror) this.onerror(new Error("Failed to load"));
-      } else {
-        if (this.onload) this.onload();
-      }
-    }, 5);
-  }
-}
-global.Image = MockImage as any;
-
-// Mock XMLSerializer
-global.XMLSerializer = class {
-  serializeToString(node: Node) {
-    return "<svg></svg>";
-  }
-} as any;
+import { setupImageMocks } from "./exportMocks";
+import { setupCanvasMocks } from "./canvasMocks";
+setupImageMocks();
 
 describe("exportAnimation", () => {
   let mockTwo: any;
@@ -82,45 +50,9 @@ describe("exportAnimation", () => {
   let options: ExportAnimationOptions;
 
   beforeEach(() => {
-    // Mock Canvas Context
-    mockCtx = {
-      clearRect: vi.fn(),
-      drawImage: vi.fn(),
-      save: vi.fn(),
-      restore: vi.fn(),
-      translate: vi.fn(),
-      rotate: vi.fn(),
-      getImageData: vi.fn().mockReturnValue({
-        data: new Uint8Array(100 * 100 * 4),
-        width: 100,
-        height: 100,
-      }),
-    };
-
-    // Mock Canvas
-    const mockCanvas = {
-      width: 100,
-      height: 100,
-      getContext: vi.fn().mockReturnValue(mockCtx),
-      toDataURL: vi.fn().mockReturnValue("data:image/png;base64,dummy"),
-    };
-
-    vi.spyOn(document, "createElement").mockImplementation((tag) => {
-      if (tag === "canvas") return mockCanvas as any;
-      return document.createElement(tag);
-    });
-
-    mockTwo = {
-      update: vi.fn(),
-      renderer: {
-        domElement: {
-          getBoundingClientRect: vi.fn().mockReturnValue({
-            width: 100,
-            height: 100,
-          }),
-        },
-      },
-    };
+    const canvasMocks = setupCanvasMocks();
+    mockCtx = canvasMocks.mockCtx;
+    mockTwo = canvasMocks.mockTwo;
 
     mockController = {
       pause: vi.fn(),
@@ -185,9 +117,9 @@ describe("exportAnimation", () => {
       expect(totalCs).toBe(Math.round(duration * 100));
     });
 
-    it("should abort when signal is aborted (GIF)", async () => {
+    const setupAbortTest = async (exportFn: any) => {
       const controller = new AbortController();
-      const p = exportPathToGif({
+      const p = exportFn({
         ...options,
         durationSec: 0.5,
         fps: 15,
@@ -195,8 +127,11 @@ describe("exportAnimation", () => {
       });
       setTimeout(() => controller.abort(), 10);
       await expect(p).rejects.toHaveProperty("name", "AbortError");
+    }
+
+    it("should abort when signal is aborted (GIF)", async () => {
+      await setupAbortTest(exportPathToGif);
     });
-  });
 
   describe("exportPathToApng", () => {
     it("should export an APNG blob", async () => {
@@ -254,15 +189,8 @@ describe("exportAnimation", () => {
     });
 
     it("should abort when signal is aborted (APNG)", async () => {
-      const controller = new AbortController();
-      const p = exportPathToApng({
-        ...options,
-        durationSec: 0.5,
-        fps: 15,
-        signal: controller.signal,
-      });
-      setTimeout(() => controller.abort(), 10);
-      await expect(p).rejects.toHaveProperty("name", "AbortError");
+      await setupAbortTest(exportPathToApng);
     });
+  });
   });
 });

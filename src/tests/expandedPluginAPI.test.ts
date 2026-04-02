@@ -9,6 +9,7 @@ import {
 } from "../lib/registries";
 import { actionRegistry } from "../lib/actionRegistry";
 import { get } from "svelte/store";
+import { setupLocalStorageMock } from "./localStorageMock";
 
 describe("Expanded Plugin API", () => {
   beforeEach(() => {
@@ -20,23 +21,7 @@ describe("Expanded Plugin API", () => {
     hookRegistry.clear();
     vi.clearAllMocks();
 
-    // Mock localStorage (some tests run without a DOM localStorage)
-    const storage: Record<string, string> = {};
-    Object.defineProperty(window, "localStorage", {
-      value: {
-        getItem: vi.fn((key: string) => storage[key] || null),
-        setItem: vi.fn((key: string, value: string) => {
-          storage[key] = value;
-        }),
-        clear: vi.fn(() => {
-          for (const key in storage) delete storage[key];
-        }),
-        removeItem: vi.fn((key: string) => {
-          delete storage[key];
-        }),
-      },
-      writable: true,
-    });
+    setupLocalStorageMock();
   });
 
   it("should expose registries in turtle API", async () => {

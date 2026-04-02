@@ -6,38 +6,29 @@ import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 // Mock the exporter so it respects AbortSignal
 vi.mock("../utils/exportAnimation", async () => {
   const actual = await vi.importActual<any>("../utils/exportAnimation");
+
+  const createMockExporter = (type: string, content: string) => {
+    return vi.fn(async (opts: any) => {
+      return await new Promise<Blob>((resolve, reject) => {
+        const timeout = setTimeout(
+          () => resolve(new Blob([content], { type })),
+          50,
+        );
+        const onAbort = () => {
+          clearTimeout(timeout);
+          const e = new Error("Aborted");
+          (e as any).name = "AbortError";
+          reject(e);
+        };
+        opts.signal?.addEventListener("abort", onAbort);
+      });
+    });
+  }
+
   return {
     ...actual,
-    exportPathToGif: vi.fn(async (opts: any) => {
-      return await new Promise<Blob>((resolve, reject) => {
-        const timeout = setTimeout(
-          () => resolve(new Blob(["gif"], { type: "image/gif" })),
-          50,
-        );
-        const onAbort = () => {
-          clearTimeout(timeout);
-          const e = new Error("Aborted");
-          (e as any).name = "AbortError";
-          reject(e);
-        };
-        opts.signal?.addEventListener("abort", onAbort);
-      });
-    }),
-    exportPathToApng: vi.fn(async (opts: any) => {
-      return await new Promise<Blob>((resolve, reject) => {
-        const timeout = setTimeout(
-          () => resolve(new Blob(["png"], { type: "image/png" })),
-          50,
-        );
-        const onAbort = () => {
-          clearTimeout(timeout);
-          const e = new Error("Aborted");
-          (e as any).name = "AbortError";
-          reject(e);
-        };
-        opts.signal?.addEventListener("abort", onAbort);
-      });
-    }),
+    exportPathToGif: createMockExporter("image/gif", "gif"),
+    exportPathToApng: createMockExporter("image/png", "png"),
   };
 });
 

@@ -11,16 +11,13 @@ import type {
 } from "../types/index";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
+import { pathKind } from "./testUtils";
 
 describe("PathStatisticsDialog", () => {
   let defaultStartPoint: Point;
   let defaultLines: Line[];
   let defaultSequence: SequenceItem[];
   let defaultSettings: Settings;
-
-  const pathKind = (): SequencePathItem["kind"] =>
-    (actionRegistry.getAll().find((a: any) => a.isPath)
-      ?.kind as SequencePathItem["kind"]) ?? "path";
 
   beforeEach(() => {
     // Ensure core actions registered for stable test kinds

@@ -13,6 +13,12 @@ function getSafePluginsDirectory() {
   return pluginsDir;
 }
 
+/**
+ * Resolves a plugin file path securely.
+ * @param {string} basePath
+ * @param {string} filename
+ * @returns {Promise<string>} The resolved path.
+ */
 async function resolvePluginFilePath(basePath, filename) {
   if (typeof filename !== "string") {
     throw new Error("Invalid plugin filename");
@@ -71,7 +77,7 @@ export function registerPluginHandlers() {
       return result.outputText;
     } catch (error) {
       console.error("Error transpiling plugin:", error);
-      throw new Error(`Transpilation failed: ${error.message}`);
+      throw new Error(`Transpilation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   });
 

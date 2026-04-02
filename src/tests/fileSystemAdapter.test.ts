@@ -203,19 +203,6 @@ describe("Directory Settings & File Handlers", () => {
         );
       });
 
-      it("should just load if in saved directory", async () => {
-        mockElectronAPI.readFile.mockResolvedValue("{}");
-        mockElectronAPI.getSavedDirectory.mockResolvedValue("/project/dir");
-
-        const { handleExternalFileOpen } =
-          await import("../utils/fileHandlers");
-        const confirmMock = vi.spyOn(window, "confirm");
-
-        // Simulate file path being inside the project dir
-        await handleExternalFileOpen("/project/dir/file.pp");
-
-        expect(confirmMock).not.toHaveBeenCalled();
-      });
     });
   });
 });

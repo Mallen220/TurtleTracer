@@ -4,7 +4,7 @@ import { selectedPointId, selectedLineId } from "../../../stores";
 import { sequenceStore } from "../../projectStore";
 import { actionRegistry } from "../../actionRegistry";
 
-export function isUIElementFocused(): boolean {
+export function isInputFocused(): boolean {
   const el = document.activeElement as HTMLElement | null;
   if (!el) return false;
   const tag = el.tagName;
@@ -14,14 +14,8 @@ export function isUIElementFocused(): boolean {
   );
 }
 
-export function isInputFocused(): boolean {
-  const el = document.activeElement as HTMLElement | null;
-  if (!el) return false;
-  const tag = el.tagName;
-  return (
-    ["INPUT", "TEXTAREA", "SELECT"].includes(tag) ||
-    (el as any).isContentEditable
-  );
+export function isUIElementFocused(): boolean {
+  return isInputFocused();
 }
 
 export function isButtonFocused(): boolean {
