@@ -253,16 +253,21 @@ describe("codeExporter", () => {
       expect(code).toMatch(/Score_1 = follower/);
     });
 
-    it("should use correct start heading in setStartingPose", async () => {
-      // Create a line that forces a specific start heading
-      // For a line from (10,10) to (20,20), the tangent is 45 degrees.
-      // If endPoint.heading is 'tangential', the start heading should be 45.
+    const setupTangentTest = () => {
       const line: Line = {
         id: "l1",
         endPoint: { x: 20, y: 20, heading: "tangential", reverse: false },
         controlPoints: [],
         color: "black",
       };
+      return line;
+    }
+
+    it("should use correct start heading in setStartingPose", async () => {
+      // Create a line that forces a specific start heading
+      // For a line from (10,10) to (20,20), the tangent is 45 degrees.
+      // If endPoint.heading is 'tangential', the start heading should be 45.
+      const line = setupTangentTest();
 
       const code = await generateJavaCode(startPoint, [line], true);
 
@@ -301,12 +306,7 @@ describe("codeExporter", () => {
       };
 
       // A line whose geometric tangent would be 45 degrees (different from 123)
-      const line: Line = {
-        id: "l1",
-        endPoint: { x: 20, y: 20, heading: "tangential", reverse: false },
-        controlPoints: [],
-        color: "black",
-      };
+      const line = setupTangentTest();
 
       const code = await generateJavaCode(sp, [line], true);
 
@@ -513,43 +513,21 @@ describe("codeExporter", () => {
       expect(code).toMatch(/private PathChain BTOA;/);
 
       // Test duplicate path naming
+      const makeLine = (id: string, name: string, x: number, y: number) => ({
+        id,
+        endPoint: { x, y },
+        controlPoints: [],
+        color: "r",
+        name,
+        heading: "constant",
+        degrees: 0,
+      } as any);
+
       const loopLines: Line[] = [
-        {
-          id: "1",
-          endPoint: { x: 10, y: 10 },
-          controlPoints: [],
-          color: "r",
-          name: "A",
-          heading: "constant",
-          degrees: 0,
-        } as any,
-        {
-          id: "2",
-          endPoint: { x: 20, y: 20 },
-          controlPoints: [],
-          color: "r",
-          name: "B",
-          heading: "constant",
-          degrees: 0,
-        } as any,
-        {
-          id: "3",
-          endPoint: { x: 10, y: 10 },
-          controlPoints: [],
-          color: "r",
-          name: "A",
-          heading: "constant",
-          degrees: 0,
-        } as any,
-        {
-          id: "4",
-          endPoint: { x: 20, y: 20 },
-          controlPoints: [],
-          color: "r",
-          name: "B",
-          heading: "constant",
-          degrees: 0,
-        } as any,
+        makeLine("1", "A", 10, 10),
+        makeLine("2", "B", 20, 20),
+        makeLine("3", "A", 10, 10),
+        makeLine("4", "B", 20, 20),
       ];
 
       const loopCode = await generateSequentialCommandCode(

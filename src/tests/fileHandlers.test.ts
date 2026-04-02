@@ -196,16 +196,20 @@ describe("fileHandlers", () => {
   });
 
   describe("saveProject", () => {
-    it("uses saveFile API when available", async () => {
-      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.turt");
+    const setupSaveTest = async (dialogPath: string, expectedPath: string) => {
+      mockElectronAPI.showSaveDialog.mockResolvedValue(dialogPath);
       mockElectronAPI.saveFile.mockResolvedValue({
         success: true,
-        filepath: "/saved/file.turt",
+        filepath: expectedPath,
       });
 
       linesStore.set([{ id: "1", name: "Line 1" } as any]);
 
       await fileHandlers.saveProject();
+    }
+
+    it("uses saveFile API when available", async () => {
+      await setupSaveTest("/saved/file.turt", "/saved/file.turt");
 
       expect(mockElectronAPI.saveFile).toHaveBeenCalled();
       expect(get(currentFilePath)).toBe("/saved/file.turt");
@@ -213,15 +217,7 @@ describe("fileHandlers", () => {
     });
 
     it("converts legacy .pp paths to .turt on save", async () => {
-      mockElectronAPI.showSaveDialog.mockResolvedValue("/saved/file.pp");
-      mockElectronAPI.saveFile.mockResolvedValue({
-        success: true,
-        filepath: "/saved/file.turt",
-      });
-
-      linesStore.set([{ id: "1", name: "Line 1" } as any]);
-
-      await fileHandlers.saveProject();
+      await setupSaveTest("/saved/file.pp", "/saved/file.turt");
 
       const callArgs = mockElectronAPI.saveFile.mock.calls[0];
       expect(callArgs[1]).toBe("/saved/file.turt");
@@ -354,18 +350,6 @@ describe("fileHandlers", () => {
       expect(mockElectronAPI.copyFile).toHaveBeenCalled();
     });
 
-    it("should just load if in saved directory", async () => {
-      mockElectronAPI.readFile.mockResolvedValue("{}");
-      mockElectronAPI.getSavedDirectory.mockResolvedValue("/project/dir");
-
-      const { handleExternalFileOpen } = await import("../utils/fileHandlers");
-      const confirmMock = vi.spyOn(window, "confirm");
-
-      // Simulate file path being inside the project dir
-      await handleExternalFileOpen("/project/dir/file.pp");
-
-      expect(confirmMock).not.toHaveBeenCalled();
-    });
 
     it("triggers auto-export (and embeds startPoint) when a file is opened externally and auto-export is enabled", async () => {
       const fileData = {

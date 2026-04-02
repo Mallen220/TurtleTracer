@@ -6,21 +6,24 @@ import PlaybackControls from "../lib/components/PlaybackControls.svelte";
 describe("PlaybackControls", () => {
   const minimalSettings = {} as any;
 
+  const createProps = (overrides = {}) => ({
+    playing: false,
+    play: vi.fn(),
+    pause: vi.fn(),
+    percent: 0,
+    handleSeek: vi.fn(),
+    loopAnimation: false,
+    timelineItems: [],
+    playbackSpeed: 1,
+    setPlaybackSpeed: vi.fn(),
+    settings: minimalSettings,
+    ...overrides,
+  });
+
   it("renders play button when paused", async () => {
     const play = vi.fn();
     render(PlaybackControls, {
-      props: {
-        playing: false,
-        play,
-        pause: vi.fn(),
-        percent: 0,
-        handleSeek: vi.fn(),
-        loopAnimation: false,
-        timelineItems: [],
-        playbackSpeed: 1,
-        setPlaybackSpeed: vi.fn(),
-        settings: minimalSettings,
-      },
+      props: createProps({ play }),
     });
 
     const btn = screen.getByLabelText("Play animation");
@@ -33,18 +36,7 @@ describe("PlaybackControls", () => {
   it("renders pause button when playing", async () => {
     const pause = vi.fn();
     render(PlaybackControls, {
-      props: {
-        playing: true,
-        play: vi.fn(),
-        pause,
-        percent: 0,
-        handleSeek: vi.fn(),
-        loopAnimation: false,
-        timelineItems: [],
-        playbackSpeed: 1,
-        setPlaybackSpeed: vi.fn(),
-        settings: minimalSettings,
-      },
+      props: createProps({ playing: true, pause }),
     });
 
     const btn = screen.getByLabelText("Pause animation");
@@ -56,18 +48,7 @@ describe("PlaybackControls", () => {
 
   it("toggles loop animation", async () => {
     const { component } = render(PlaybackControls, {
-      props: {
-        playing: false,
-        play: vi.fn(),
-        pause: vi.fn(),
-        percent: 0,
-        handleSeek: vi.fn(),
-        loopAnimation: false,
-        timelineItems: [],
-        playbackSpeed: 1,
-        setPlaybackSpeed: vi.fn(),
-        settings: minimalSettings,
-      },
+      props: createProps(),
     });
 
     const loopBtn = screen.getByLabelText("Loop animation");
@@ -82,18 +63,7 @@ describe("PlaybackControls", () => {
   it("changes playback speed", async () => {
     const setPlaybackSpeed = vi.fn();
     render(PlaybackControls, {
-      props: {
-        playing: false,
-        play: vi.fn(),
-        pause: vi.fn(),
-        percent: 0,
-        handleSeek: vi.fn(),
-        loopAnimation: false,
-        timelineItems: [],
-        playbackSpeed: 1.0,
-        setPlaybackSpeed,
-        settings: minimalSettings,
-      },
+      props: createProps({ setPlaybackSpeed }),
     });
 
     const speedBtn = screen.getByLabelText("Playback speed options");
@@ -108,18 +78,7 @@ describe("PlaybackControls", () => {
   it("seeks when slider changes", async () => {
     const handleSeek = vi.fn();
     render(PlaybackControls, {
-      props: {
-        playing: false,
-        play: vi.fn(),
-        pause: vi.fn(),
-        percent: 0,
-        handleSeek,
-        loopAnimation: false,
-        timelineItems: [],
-        playbackSpeed: 1.0,
-        setPlaybackSpeed: vi.fn(),
-        settings: minimalSettings,
-      },
+      props: createProps({ handleSeek }),
     });
 
     const slider = screen.getByLabelText("Animation progress");
@@ -135,18 +94,7 @@ describe("PlaybackControls", () => {
     ];
 
     render(PlaybackControls, {
-      props: {
-        playing: false,
-        play: vi.fn(),
-        pause: vi.fn(),
-        percent: 0,
-        handleSeek: vi.fn(),
-        loopAnimation: false,
-        timelineItems: timelineItems as any[],
-        playbackSpeed: 1.0,
-        setPlaybackSpeed: vi.fn(),
-        settings: minimalSettings,
-      },
+      props: createProps({ timelineItems: timelineItems as any[] }),
     });
 
     expect(screen.getByLabelText("Marker 1")).toBeInTheDocument();

@@ -36,10 +36,7 @@ describe("WaypointTable Drop Handling", () => {
     vi.clearAllMocks();
   });
 
-  it("handles macro drop when isActive is true (default)", async () => {
-    const { component } = render(WaypointTable, { ...defaultProps });
-
-    // Create a mock drag event
+  const triggerDropEvent = () => {
     const dropEvent = new Event("drop", { bubbles: true, cancelable: true });
     Object.defineProperty(dropEvent, "dataTransfer", {
       value: {
@@ -49,59 +46,30 @@ describe("WaypointTable Drop Handling", () => {
         effectAllowed: "move",
       },
     });
-
-    // Fire drop on window
     window.dispatchEvent(dropEvent);
+  };
 
-    // Expect loadMacro to be called
+  it("handles macro drop when isActive is true (default)", async () => {
+    render(WaypointTable, { ...defaultProps });
+    triggerDropEvent();
     expect(loadMacro).toHaveBeenCalledWith("test.pp");
   });
 
   it("does NOT handle macro drop when isActive is false", async () => {
-    const { component } = render(WaypointTable, {
+    render(WaypointTable, {
       ...defaultProps,
       isActive: false,
     });
-
-    // Create a mock drag event
-    const dropEvent = new Event("drop", { bubbles: true, cancelable: true });
-    Object.defineProperty(dropEvent, "dataTransfer", {
-      value: {
-        types: ["application/x-turtle-tracer-macro"],
-        getData: (type: string) =>
-          type === "application/x-turtle-tracer-macro" ? "test.pp" : "",
-        effectAllowed: "move",
-      },
-    });
-
-    // Fire drop on window
-    window.dispatchEvent(dropEvent);
-
-    // Expect loadMacro NOT to be called
+    triggerDropEvent();
     expect(loadMacro).not.toHaveBeenCalled();
   });
 
   it("handles macro drop when isActive is explicitly true", async () => {
-    const { component } = render(WaypointTable, {
+    render(WaypointTable, {
       ...defaultProps,
       isActive: true,
     });
-
-    // Create a mock drag event
-    const dropEvent = new Event("drop", { bubbles: true, cancelable: true });
-    Object.defineProperty(dropEvent, "dataTransfer", {
-      value: {
-        types: ["application/x-turtle-tracer-macro"],
-        getData: (type: string) =>
-          type === "application/x-turtle-tracer-macro" ? "test.pp" : "",
-        effectAllowed: "move",
-      },
-    });
-
-    // Fire drop on window
-    window.dispatchEvent(dropEvent);
-
-    // Expect loadMacro to be called
+    triggerDropEvent();
     expect(loadMacro).toHaveBeenCalledWith("test.pp");
   });
 });

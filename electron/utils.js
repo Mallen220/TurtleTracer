@@ -3,6 +3,12 @@ import path from "path";
 import fs from "fs/promises";
 import { app } from "electron";
 
+/**
+ * Validates that a path is safe and within a base directory.
+ * @param {string} inputPath
+ * @param {string} basePath
+ * @returns {string} The normalized path.
+ */
 export function validateSafePath(inputPath, basePath) {
   if (typeof inputPath !== "string") {
     throw new Error("Invalid path: must be a string");
@@ -23,6 +29,11 @@ export function validateSafePath(inputPath, basePath) {
   return normalized;
 }
 
+/**
+ * Validates an arbitrary absolute path.
+ * @param {string} inputPath
+ * @returns {string} The normalized absolute path.
+ */
 export function validateArbitraryPath(inputPath) {
   if (typeof inputPath !== "string") {
     throw new Error("Invalid path: must be a string");
@@ -42,6 +53,11 @@ export function validateArbitraryPath(inputPath) {
 
 export const PROJECT_EXTENSIONS = [".turt", ".pp"];
 
+/**
+ * Checks if a file path is a project file.
+ * @param {string} filePath
+ * @returns {boolean} True if it's a project file.
+ */
 export function isProjectFilePath(filePath) {
   if (!filePath || typeof filePath !== "string") return false;
   const lower = filePath.toLowerCase();
@@ -72,6 +88,11 @@ export const loadDirectorySettings = async () => {
   }
 };
 
+/**
+ * Saves directory settings.
+ * @param {any} settings
+ * @returns {Promise<boolean>} True if successful.
+ */
 export const saveDirectorySettings = async (settings) => {
   const settingsPath = getDirectorySettingsPath();
   try {
