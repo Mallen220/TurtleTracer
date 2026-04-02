@@ -1,0 +1,34 @@
+export function setupImageMocks() {
+  const OriginalImage = global.Image;
+  class MockImage {
+    _src = "";
+    width = 100;
+    height = 100;
+    crossOrigin = "";
+    onload: () => void = () => {};
+    onerror: (err: any) => void = () => {};
+
+    get src() {
+      return this._src;
+    }
+
+    set src(val: string) {
+      this._src = val;
+      // Simulate async load
+      setTimeout(() => {
+        if (val === "error") {
+          if (this.onerror) this.onerror(new Error("Failed to load"));
+        } else {
+          if (this.onload) this.onload();
+        }
+      }, 5);
+    }
+  }
+  global.Image = MockImage as any;
+
+  global.XMLSerializer = class {
+    serializeToString(node: Node) {
+      return "<svg></svg>";
+    }
+  } as any;
+}

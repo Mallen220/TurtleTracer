@@ -44,26 +44,26 @@ describe("reorderSequence", () => {
 });
 
 describe("calculateDragPosition", () => {
-  it("returns 'top' when cursor is in upper half", () => {
+  const createMockEventAndElement = (clientY: number) => {
     const mockElement = {
       getBoundingClientRect: () => ({ top: 100, height: 100, bottom: 200 }),
     } as unknown as HTMLElement;
 
     const mockEvent = {
-      clientY: 120, // 20px from top
+      clientY,
     } as DragEvent;
+
+    return { mockEvent, mockElement };
+  }
+
+  it("returns 'top' when cursor is in upper half", () => {
+    const { mockEvent, mockElement } = createMockEventAndElement(120); // 20px from top
 
     expect(calculateDragPosition(mockEvent, mockElement)).toBe("top");
   });
 
   it("returns 'bottom' when cursor is in lower half", () => {
-    const mockElement = {
-      getBoundingClientRect: () => ({ top: 100, height: 100, bottom: 200 }),
-    } as unknown as HTMLElement;
-
-    const mockEvent = {
-      clientY: 180, // 80px from top (lower half)
-    } as DragEvent;
+    const { mockEvent, mockElement } = createMockEventAndElement(180); // 80px from top (lower half)
 
     expect(calculateDragPosition(mockEvent, mockElement)).toBe("bottom");
   });
