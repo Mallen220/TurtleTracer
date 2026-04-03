@@ -40,8 +40,6 @@
       <img src="README_Content/lighthouse-badges/lighthouse_seo.svg" alt="Lighthouse SEO Badge">
     </a>
   </p>
-
-  <p><sub>Lighthouse baseline has not been generated yet. Run <code>npm run badges:lighthouse -- --url https://live.turtletracer.com/</code>.</sub></p>
   <!-- LIGHTHOUSE_BADGES_END -->
 
   <a href="https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full" target="_blank" rel="noopener noreferrer">
