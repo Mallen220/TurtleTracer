@@ -8,6 +8,7 @@
     disabled?: boolean;
     title?: string;
     className?: string;
+    onclick?: () => void;
     [key: string]: any;
   }
 
@@ -15,6 +16,7 @@
     disabled = false,
     title = "Delete",
     className = "",
+    onclick,
     ...rest
   }: Props = $props();
 
@@ -37,6 +39,7 @@
       clearTimeout(timeout);
       confirming = false;
       dispatch("click");
+      onclick?.();
     }
   }
 

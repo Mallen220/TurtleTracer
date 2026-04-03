@@ -30,13 +30,19 @@
 >
   <input
     type="color"
-    bind:value={color}
+    value={color}
     class="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
     {title}
     aria-label={title}
     {disabled}
     {tabindex}
-    oninput={(e) => oninput?.(e)}
-    onchange={(e) => onchange?.(e)}
+    oninput={(e) => {
+      color = e.currentTarget.value;
+      oninput?.(e);
+    }}
+    onchange={(e) => {
+      color = e.currentTarget.value;
+      onchange?.(e);
+    }}
   />
 </div>

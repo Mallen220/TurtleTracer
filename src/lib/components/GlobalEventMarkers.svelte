@@ -402,10 +402,11 @@
               <div class="flex items-center gap-2 flex-1">
                 <div class="w-2 h-2 rounded-full bg-purple-500 shrink-0"></div>
                 <SearchableDropdown
-                  bind:value={marker.ref.name}
+                  value={marker.ref.name}
                   options={availableEvents}
                   placeholder="Search or add new..."
-                  on:change={() => {
+                  onchange={(val) => {
+                    marker.ref.name = val;
                     if (marker.parentType === "path") lines = [...lines];
                     else sequence = [...sequence];
                   }}

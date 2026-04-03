@@ -10,6 +10,7 @@
     options?: string[];
     placeholder?: string;
     disabled?: boolean;
+    onchange?: (val: string) => void;
   }
 
   let {
@@ -17,6 +18,7 @@
     options = [],
     placeholder = "Search or add new...",
     disabled = false,
+    onchange,
   }: Props = $props();
 
   const dispatch = createEventDispatcher();
@@ -44,6 +46,7 @@
     value = (e.target as HTMLInputElement).value;
     isOpen = true;
     dispatch("change", value);
+    onchange?.(value);
   }
 
   function handleFocus() {
@@ -62,6 +65,7 @@
     isOpen = false;
     highlightedIndex = -1;
     dispatch("change", value);
+    onchange?.(value);
   }
 
   async function handleKeydown(e: KeyboardEvent) {

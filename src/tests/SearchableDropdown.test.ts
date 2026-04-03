@@ -63,19 +63,15 @@ describe("SearchableDropdown", () => {
   });
 
   it("selects option on Enter", async () => {
-    const { component } = render(SearchableDropdown, { options });
-    const input = screen.getByRole("combobox");
-
     const changeHandler = vi.fn();
-    // component.$on("change", changeHandler);
+    render(SearchableDropdown, { props: { options, onchange: changeHandler } });
+    const input = screen.getByRole("combobox");
 
     await fireEvent.focus(input);
     await fireEvent.keyDown(input, { key: "ArrowDown" }); // Select Option 1
     await fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(changeHandler).toHaveBeenCalledWith(
-      expect.objectContaining({ detail: "Option 1" }),
-    );
+    expect(changeHandler).toHaveBeenCalledWith("Option 1");
     // Dropdown should be considered closed (aria-expanded=false)
     expect(input).toHaveAttribute("aria-expanded", "false");
   });

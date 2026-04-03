@@ -950,7 +950,7 @@
         {@const lineIdx = lines.findIndex((l) => l.id === getPathLineId(item))}
         {#if lineIdx !== -1}
           <PathLineSection
-            bind:line={lines[lineIdx]}
+            line={lines[lineIdx]}
             idx={lineIdx}
             bind:lines
             bind:collapsed={collapsedSections.lines[lineIdx]}
