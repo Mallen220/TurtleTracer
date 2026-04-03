@@ -948,20 +948,15 @@
       class:opacity-50={draggingIndex === sIdx}
     >
       {#if item.kind === "path"}
-        {#each lines.filter((l) => l.id === getPathLineId(item)) as ln (ln.id)}
+        {@const lineIdx = lines.findIndex((l) => l.id === getPathLineId(item))}
+        {#if lineIdx !== -1}
           <PathLineSection
-            bind:line={ln}
-            idx={lines.findIndex((l) => l.id === ln.id)}
+            bind:line={lines[lineIdx]}
+            idx={lineIdx}
             bind:lines
-            bind:collapsed={
-              collapsedSections.lines[lines.findIndex((l) => l.id === ln.id)]
-            }
-            bind:collapsedControlPoints={
-              collapsedSections.controlPoints[
-                lines.findIndex((l) => l.id === ln.id)
-              ]
-            }
-            onRemove={() => removeLine(lines.findIndex((l) => l.id === ln.id))}
+            bind:collapsed={collapsedSections.lines[lineIdx]}
+            bind:collapsedControlPoints={collapsedSections.controlPoints[lineIdx]}
+            onRemove={() => removeLine(lineIdx)}
             onInsertAfter={() => insertLineAfter(sIdx)}
             onAddWaitAfter={() =>
               handleAddActionAfter(sIdx, $actionRegistry["wait"])}
@@ -974,7 +969,7 @@
             canMoveDown={sIdx !== sequence.length - 1}
             {recordChange}
           />
-        {/each}
+        {/if}
       {:else if def && def.sectionComponent}
         <def.sectionComponent
           {...{ [def.kind]: item }}
