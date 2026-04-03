@@ -11,7 +11,7 @@ const readmePath = new URL("../README.md", import.meta.url);
 const outputDir = new URL("../README_Content/lighthouse-badges/", import.meta.url);
 const outputDirPath = fileURLToPath(outputDir);
 const relativeOutputDir = "README_Content/lighthouse-badges";
-const defaultBadgeUrl = "https://live.turtletracer.com/";
+const defaultBadgeUrl = "http://localhost:4173/";
 
 function getArgValue(flagNames) {
   for (let i = 0; i < process.argv.length; i += 1) {
@@ -52,35 +52,27 @@ function runLighthouseBadges(url) {
   });
 }
 
-function buildReadmeBadgeBlock(url) {
-  const now = new Date().toISOString();
+function buildReadmeBadgeBlock(url, version) {
   const lighthouseLink = "https://github.com/GoogleChrome/lighthouse";
 
   return [
     "  <!-- LIGHTHOUSE_BADGES_START -->",
     "  <p>",
     `    <a href="${lighthouseLink}">`,
-    `      <img src="${relativeOutputDir}/scores/lighthouse_accessibility.svg" alt="Lighthouse Accessibility Badge">`,
+    `      <img src="${relativeOutputDir}/lighthouse_accessibility.svg" alt="Lighthouse Accessibility Badge">`,
     "    </a>",
     `    <a href="${lighthouseLink}">`,
-    `      <img src="${relativeOutputDir}/scores/lighthouse_best-practices.svg" alt="Lighthouse Best Practices Badge">`,
+    `      <img src="${relativeOutputDir}/lighthouse_best-practices.svg" alt="Lighthouse Best Practices Badge">`,
     "    </a>",
     `    <a href="${lighthouseLink}">`,
-    `      <img src="${relativeOutputDir}/scores/lighthouse_performance.svg" alt="Lighthouse Performance Badge">`,
+    `      <img src="${relativeOutputDir}/lighthouse_performance.svg" alt="Lighthouse Performance Badge">`,
     "    </a>",
     `    <a href="${lighthouseLink}">`,
-    `      <img src="${relativeOutputDir}/scores/lighthouse_seo.svg" alt="Lighthouse SEO Badge">`,
-    "    </a>",
-    `    <a href="${lighthouseLink}">`,
-    `      <img src="${relativeOutputDir}/scores/lighthouse_pwa.svg" alt="Lighthouse PWA Badge">`,
+    `      <img src="${relativeOutputDir}/lighthouse_seo.svg" alt="Lighthouse SEO Badge">`,
     "    </a>",
     "  </p>",
-    "  <p>",
-    `    <a href="${lighthouseLink}">`,
-    `      <img src="${relativeOutputDir}/scores/lighthouse.svg" alt="Lighthouse Overall Badge">`,
-    "    </a>",
-    "  </p>",
-    `  <p><sub>Lighthouse badges generated at ${now} for <a href="${url}">${url}</a>.</sub></p>`,
+    /* No overall badge since lighthouse-badges only generates individual ones by default */
+    `  <p><sub>Lighthouse badges generated for v${version}</sub></p>`,
     "  <!-- LIGHTHOUSE_BADGES_END -->",
   ].join("\n");
 }
@@ -104,12 +96,10 @@ async function ensureOutputDirectory() {
 
 async function verifyArtifacts() {
   const expectedFiles = [
-    "scores/lighthouse_accessibility.svg",
-    "scores/lighthouse_best-practices.svg",
-    "scores/lighthouse_performance.svg",
-    "scores/lighthouse_seo.svg",
-    "scores/lighthouse_pwa.svg",
-    "scores/lighthouse.svg",
+    "lighthouse_accessibility.svg",
+    "lighthouse_best-practices.svg",
+    "lighthouse_performance.svg",
+    "lighthouse_seo.svg",
   ];
 
   for (const file of expectedFiles) {
@@ -140,8 +130,11 @@ async function main() {
 
   // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   // nosemgrep
+  const packageJsonContent = await fs.readFile(new URL("../package.json", import.meta.url), "utf8");
+  const { version } = JSON.parse(packageJsonContent);
+
   const readme = await fs.readFile(readmePath, "utf8");
-  const updatedBlock = buildReadmeBadgeBlock(url);
+  const updatedBlock = buildReadmeBadgeBlock(url, version);
   const nextReadme = replaceBetweenMarkers(readme, updatedBlock);
 
   // nosemgrep
