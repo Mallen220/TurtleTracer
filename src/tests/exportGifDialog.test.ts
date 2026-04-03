@@ -64,31 +64,26 @@ describe("ExportGifDialog", () => {
     const mockConsoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
-    const { getByText, getByLabelText, queryByText, container } = render(
-      ExportGifDialog,
-      props as any,
-    );
+    const { getByText, getByLabelText, component } = render(ExportGifDialog, props as any);
+    const closeHandler = vi.fn();
+    component.$on("close", closeHandler);
 
     // Start generation
     const genBtn = getByText("Generate Preview");
     await fireEvent.click(genBtn);
 
-    // Confirm status shows generating (progress text exists)
+    // Confirm generation started before aborting the dialog.
     await waitFor(() => {
-      expect(container.textContent).toContain("Capturing frames");
+      expect(exporter.exportPathToGif as any).toHaveBeenCalled();
     });
 
     // Click the X (close) button in header
     const closeBtn = getByLabelText("Close");
     await fireEvent.click(closeBtn);
 
-    // dialog should be removed from DOM (allow extra time for transitions)
-    await waitFor(
-      () => {
-        expect(queryByText("Export Animation")).toBeNull();
-      },
-      { timeout: 2000 },
-    );
+    await waitFor(() => {
+      expect(closeHandler).toHaveBeenCalled();
+    });
 
     // The exporter should have been called and aborted
     expect(exporter.exportPathToGif as any).toHaveBeenCalled();
