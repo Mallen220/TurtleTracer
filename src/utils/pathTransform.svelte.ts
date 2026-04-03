@@ -1,5 +1,5 @@
-// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Point, ControlPoint, Line, Shape, SequenceItem } from "../types";
+import { snapshotClone } from "./clone.svelte";
 
 // Represents a set of data used for path editing operations. Sequence is optional
 // because many helpers only care about the geometric portion.
@@ -26,7 +26,7 @@ export function mirrorPointHeading(point: Point): Point {
 
 // Mirror path data across the center Y-axis (X = 72)
 export function mirrorPathData(data: PathData) {
-  const m = structuredClone(data);
+  const m = snapshotClone(data);
 
   if (m.startPoint) {
     m.startPoint.x = 144 - m.startPoint.x;
@@ -60,7 +60,7 @@ export function translatePathData(
   dx: number,
   dy: number,
 ): PathData {
-  const t = structuredClone(data);
+  const t = snapshotClone(data);
 
   if (t.startPoint) {
     t.startPoint.x += dx;
@@ -107,7 +107,7 @@ export function rotatePathData(
   pivotX: number,
   pivotY: number,
 ): PathData {
-  const r = structuredClone(data);
+  const r = snapshotClone(data);
   const rad = (degrees * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
@@ -195,7 +195,7 @@ export function flipPathData(
   pivotX: number,
   pivotY: number,
 ): PathData {
-  const f = structuredClone(data);
+  const f = snapshotClone(data);
 
   const flipPoint = (x: number, y: number) => {
     let nx = x;
@@ -294,14 +294,14 @@ export function reversePathData(data: {
   shapes?: Shape[];
 }) {
   // Deep clone to avoid mutating original
-  const r = structuredClone(data);
+  const r = snapshotClone(data);
   const originalLines: Line[] = data.lines || [];
 
   if (originalLines.length === 0) return r;
 
   // 1. New Start Point is the last End Point
   const lastLine = originalLines[originalLines.length - 1];
-  const newStartPoint = structuredClone(lastLine.endPoint);
+  const newStartPoint = snapshotClone(lastLine.endPoint);
 
   // Adjust new start point heading properties
   if (newStartPoint.heading === "linear") {
@@ -320,7 +320,7 @@ export function reversePathData(data: {
     const originalLine = originalLines[originalLineIndex];
 
     // The target end point is the start point of the original segment.
-    const targetEndPoint = structuredClone(points[i - 1]);
+    const targetEndPoint = snapshotClone(points[i - 1]);
 
     // Fix heading for target end point if linear
     if (targetEndPoint.heading === "linear") {

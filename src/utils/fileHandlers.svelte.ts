@@ -37,6 +37,7 @@ import {
   stripProjectExtension,
 } from "./fileExtensions";
 import pkg from "../../package.json";
+import { snapshotClone } from "./clone.svelte";
 
 export { loadProjectData };
 
@@ -221,8 +222,8 @@ async function performSave(
 
     // --- PREPARE FOR SAVE: Handle Linked Names ---
     // Deep copy lines and sequence to modify names for saving without affecting the UI
-    const linesToSave = structuredClone(lines);
-    const sequenceToSave = structuredClone(sequence);
+    const linesToSave = snapshotClone(lines);
+    const sequenceToSave = snapshotClone(sequence);
 
     // Track usage of names to detect duplicates
     const nameGroups = new Map<string, Array<Line | any>>(); // any for SequenceWaitItem
@@ -526,7 +527,7 @@ async function exportProjectFileWithExtension(
           : filePath;
 
       // Relativize paths
-      const sequence = structuredClone(get(sequenceStore));
+      const sequence = snapshotClone(get(sequenceStore));
       if (electronAPI.makeRelativePath) {
         for (const item of sequence) {
           if (item.kind === "macro") {

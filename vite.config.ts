@@ -15,6 +15,7 @@ export default defineConfig({
       "prettier/doc": "prettier/doc.js",
       prettier: "prettier/standalone.js",
     },
+    extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".svelte", ".svelte.ts"],
   },
   css: {
     preprocessorOptions: {
