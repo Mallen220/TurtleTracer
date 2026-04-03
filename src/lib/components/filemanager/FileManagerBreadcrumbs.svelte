@@ -19,7 +19,7 @@
 
   let isEditing = $state(false);
   let inputPath = $state("");
-  let inputElement: HTMLInputElement = $state();
+  let inputElement: HTMLInputElement | undefined = $state();
 
   // Format path for display - tries to be smart about common paths
   function formatPath(pathStr: string): string {

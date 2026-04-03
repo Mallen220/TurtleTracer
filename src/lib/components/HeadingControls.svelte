@@ -41,10 +41,10 @@
     dispatch("commit");
   }
 
-  let constantInput: HTMLInputElement = $state();
-  let startInput: HTMLInputElement = $state();
-  let endInput: HTMLInputElement = $state();
-  let reverseInput: HTMLInputElement = $state();
+  let constantInput: HTMLInputElement | undefined = $state();
+  let startInput: HTMLInputElement | undefined = $state();
+  let endInput: HTMLInputElement | undefined = $state();
+  let reverseInput: HTMLInputElement | undefined = $state();
 
   export function focus() {
     if (endPoint.heading === "constant" && constantInput) constantInput.focus();

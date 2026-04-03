@@ -17,7 +17,7 @@
 
   let { isOpen = $bindable(false) }: Props = $props();
 
-  let fileInput: HTMLInputElement = $state();
+  let fileInput: HTMLInputElement | undefined = $state();
   let errorMsg = $state("");
   let summary = $state("");
 

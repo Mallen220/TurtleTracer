@@ -675,7 +675,7 @@
   let statsOpen = $state(false);
   let mainContentHeight = $state(0);
   let mainContentWidth = $state(0);
-  let mainContentDiv: HTMLDivElement = $state();
+  let mainContentDiv: HTMLDivElement | undefined = $state();
   let innerWidth = $state(0);
   let innerHeight = $state(0);
   let userFieldLimit: number | null = $state(null);
@@ -685,7 +685,7 @@
   const MIN_FIELD_PANE_WIDTH = 300;
 
   // --- Animation State ---
-  let animationController: ReturnType<typeof createAnimationController> =
+  let animationController: ReturnType<typeof createAnimationController> | undefined =
     $state();
 
   // --- Preview Optimization ---
@@ -1142,7 +1142,7 @@
     if (!resizeMode) return;
     if (resizeMode === "horizontal") userFieldLimit = cx;
     else if (resizeMode === "vertical" && mainContentDiv) {
-      const rect = mainContentDiv.getBoundingClientRect();
+      const rect = mainContentDiv!.getBoundingClientRect();
       const nh = cy - rect.top;
       const max = rect.height - 100;
       userFieldHeightLimit = Math.max(200, Math.min(nh, max));
@@ -1187,7 +1187,7 @@
         if (e.key === "ArrowUp") current -= step;
         else current += step;
 
-        const rect = mainContentDiv.getBoundingClientRect();
+        const rect = mainContentDiv!.getBoundingClientRect();
         const max = rect.height - 100;
         userFieldHeightLimit = Math.max(200, Math.min(current, max));
       }
@@ -1229,7 +1229,7 @@
   }
 
   // --- Export Dialog Logic ---
-  let exportDialog: ExportCodeDialog = $state();
+  let exportDialog: ExportCodeDialog | undefined = $state();
 
   // --- Apply Custom Theme Class ---
   // Keep track of the previously-applied custom theme class so it can be removed when switching themes.

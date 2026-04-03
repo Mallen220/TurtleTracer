@@ -188,7 +188,7 @@ interface CustomSidebarItem {
   label: string;
   commandId: string;
   iconSvg: string;
-  iconComponent?: ComponentType;
+  iconComponent?: Component;
 }
 
 interface Settings {

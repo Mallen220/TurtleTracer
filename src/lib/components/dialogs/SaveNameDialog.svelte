@@ -23,7 +23,7 @@
   }: Props = $props();
 
   let name = $state(defaultName);
-  let inputElement: HTMLInputElement = $state();
+  let inputElement: HTMLInputElement | undefined = $state();
 
   function handleSave() {
     if (name.trim()) {

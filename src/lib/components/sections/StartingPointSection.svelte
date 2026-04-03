@@ -40,9 +40,9 @@
     allCollapsed,
   }: Props = $props();
 
-  let xInput: HTMLInputElement = $state();
-  let yInput: HTMLInputElement = $state();
-  let headingControls: HeadingControls = $state();
+  let xInput: HTMLInputElement | undefined = $state();
+  let yInput: HTMLInputElement | undefined = $state();
+  let headingControls: HeadingControls | undefined = $state();
 
   let lines = $derived($linesStore);
 

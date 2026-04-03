@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { ComponentType } from "svelte";
+  import type { Component } from "svelte";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import { DEFAULT_SETTINGS } from "../../../../config/defaults";
   import type {

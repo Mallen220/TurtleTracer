@@ -491,10 +491,10 @@
                   bind:value={renameInput}
                   use:focusInput
                   class="w-full px-1 py-0.5 text-sm border border-blue-400 rounded focus:outline-none dark:bg-neutral-700"
-                  onkeydown={stopPropagation((e) => {
+                  onkeydown={(e: KeyboardEvent) => { e.stopPropagation();
                     if (e.key === "Enter") dispatch("rename-save", renameInput);
-                    if (e.key === "Escape") dispatch("rename-cancel");
-                  })}
+                    if (e.key === "Escape") dispatch("rename-cancel"); }}
+
                   onblur={() => dispatch("rename-cancel")}
                 />
               </div>
@@ -560,7 +560,7 @@
           >
             <button
               class="p-1 rounded-full bg-white/80 dark:bg-neutral-800/80 shadow-sm text-neutral-600 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
-              onclick={stopPropagation((e) => handleContextMenu(e, file))}
+              onclick={(e: MouseEvent) => { e.stopPropagation(); handleContextMenu(e, file); }}
               title="More actions"
               aria-label="File actions"
             >

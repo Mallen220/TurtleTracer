@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 export type SidebarItemType = "system" | "setting" | "separator" | "spacer";
 
-import type { ComponentType } from "svelte";
+import type { Component } from "svelte";
 
 import {
   StarIcon,
@@ -43,7 +43,7 @@ export interface SidebarItemConfig {
   type: SidebarItemType;
   settingKey?: string; // e.g. "showRobotArrows"
   iconSvg?: string; // For auto-rendered 'setting' types (SVG markup)
-  iconComponent?: ComponentType; // Svelte component constructor for imported icons
+  iconComponent?: Component; // Svelte component constructor for imported icons
   shortcutKey?: string; // to look up in keybindings
 }
 

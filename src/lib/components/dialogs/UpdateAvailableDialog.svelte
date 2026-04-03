@@ -28,7 +28,7 @@
     show?: boolean;
   }
 
-  let { show = false }: Props = $props();
+  let { show = $bindable(false) }: Props = $props();
 
   const md = new MarkdownIt({
     html: true,

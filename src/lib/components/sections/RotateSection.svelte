@@ -119,8 +119,9 @@
       selectedPointId.set(`rotate-${rotate.id}`);
       selectedLineId.set(null);
     }
-  })}
-  onkeydown={stopPropagation((e) => {
+  }}
+  onkeydown={(e: KeyboardEvent) => {
+    e.stopPropagation();
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (!rotate.locked) {
@@ -128,7 +129,7 @@
         selectedLineId.set(null);
       }
     }
-  })}
+  }}
 >
   <!-- Card Header -->
   <div class="flex items-center justify-between p-3 gap-3">
@@ -197,7 +198,7 @@
           rotate.hidden = !isHidden;
           sequence = [...sequence];
           if (recordChange) recordChange();
-        })}
+        }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
         title={isHidden ? "Show Rotate" : "Hide Rotate"}
         aria-label={isHidden ? "Show Rotate" : "Hide Rotate"}
@@ -213,7 +214,7 @@
         onclick={stopPropagation(() => {
           rotate.locked = !rotate.locked;
           if (recordChange) recordChange();
-        })}
+        }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
         title={rotate.locked ? "Unlock Rotate" : "Lock Rotate"}
         aria-label={rotate.locked ? "Unlock Rotate" : "Lock Rotate"}
@@ -237,7 +238,7 @@
         <button
           onclick={stopPropagation(() => {
             if (!rotate.locked && canMoveUp && onMoveUp) onMoveUp();
-          })}
+          }}
           disabled={!canMoveUp || rotate.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
           title="Move Up"
@@ -248,7 +249,7 @@
         <button
           onclick={stopPropagation(() => {
             if (!rotate.locked && canMoveDown && onMoveDown) onMoveDown();
-          })}
+          }}
           disabled={!canMoveDown || rotate.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
           title="Move Down"
@@ -312,7 +313,7 @@
                 else if (def.isPath) onAddPathAfter();
                 else if (def.isWait) onAddWaitAfter();
                 else if (def.isRotate) onInsertAfter();
-              })}
+              }}
               class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 ${getSmallButtonClass(color)}`}
               title={`Add ${def.label} After`}
               aria-label={`Add ${def.label} After`}

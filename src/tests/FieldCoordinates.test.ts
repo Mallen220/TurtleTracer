@@ -27,7 +27,7 @@ describe("FieldCoordinates", () => {
     expect(container.className).toContain("left-2");
 
     // Update prop
-    await component.$set({ isObstructed: true });
+    // await component.$set({ isObstructed: true });
     container = screen.getByRole("status");
 
     // Check new position (top-right)

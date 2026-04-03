@@ -26,7 +26,7 @@
   // Rating webhook URL
   const WEBHOOK_URL = import.meta.env.VITE_DISCORD_RATINGS || "";
 
-  let dialogContainer: HTMLElement = $state();
+  let dialogContainer: HTMLElement | undefined = $state();
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === "Escape" && !isSubmitting) {

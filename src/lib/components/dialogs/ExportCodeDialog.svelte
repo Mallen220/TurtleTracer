@@ -61,17 +61,17 @@
   let currentLanguage: typeof java | typeof plaintext | typeof json =
     $state(java);
   let copied = $state(false);
-  let dialogRef: HTMLDivElement = $state();
-  let scrollContainer: HTMLDivElement = $state();
+  let dialogRef: HTMLDivElement | undefined = $state();
+  let scrollContainer: HTMLDivElement | undefined = $state();
 
   // Search State
   let showSearch = $state(false);
   let searchQuery = $state("");
   let searchMatches: number[] = $state([]); // Array of line numbers (0-indexed)
   let currentMatchIndex = $state(-1);
-  let searchInputRef: HTMLInputElement = $state();
+  let searchInputRef: HTMLInputElement | undefined = $state();
 
-  const electronAPI = (window as any).electronAPI;
+  const electronAPI = (window  ).electronAPI;
 
   async function relativizeSequenceForPreview(seq: SequenceItem[]) {
     const cloned = structuredClone(seq);
@@ -82,7 +82,7 @@
     for (const item of cloned) {
       if (item.kind === "macro" && item.filePath) {
         try {
-          item.filePath = await electronAPI.makeRelativePath(
+          item.filePath = await (electronAPI as any).makeRelativePath(
             base,
             item.filePath,
           );
@@ -280,8 +280,8 @@
 
     if (
       !electronAPI ||
-      (electronAPI as any).isVirtual ||
-      !electronAPI.showSaveDialog ||
+      (electronAPI  ).isVirtual ||
+      !(electronAPI as any).showSaveDialog ||
       !electronAPI.writeFile
     ) {
       // Fallback for web: use download attribute trick via Blob
@@ -404,8 +404,8 @@
       );
       if (el) {
         // Only call scrollIntoView if supported (jsdom in tests doesn't implement it)
-        if (typeof (el as any).scrollIntoView === "function") {
-          (el as any).scrollIntoView({ behavior: "smooth", block: "center" });
+        if (typeof (el  ).scrollIntoView === "function") {
+          (el  ).scrollIntoView({ behavior: "smooth", block: "center" });
         }
       }
     }

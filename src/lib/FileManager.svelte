@@ -118,8 +118,8 @@
   let creatingNewFolder = $state(false);
   let newFolderName = $state("");
 
-  let fileInput: HTMLInputElement = $state();
-  let javaInput: HTMLInputElement = $state();
+  let fileInput: HTMLInputElement | undefined = $state();
+  let javaInput: HTMLInputElement | undefined = $state();
   let showAddMenu = $state(false);
 
   function handleAddMenuToggle(e: MouseEvent) {

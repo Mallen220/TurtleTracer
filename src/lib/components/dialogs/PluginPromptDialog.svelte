@@ -23,7 +23,7 @@
   }: Props = $props();
 
   let value = $state(defaultText);
-  let inputElement: HTMLInputElement = $state();
+  let inputElement: HTMLInputElement | undefined = $state();
 
   function handleConfirm() {
     onConfirm(value);

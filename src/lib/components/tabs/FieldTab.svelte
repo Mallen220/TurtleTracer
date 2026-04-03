@@ -44,7 +44,7 @@
 
   // Local state for optimization
   let optDialogRef: any = $state(null);
-  let globalMarkersRef: GlobalEventMarkers = $state();
+  let globalMarkersRef: GlobalEventMarkers | undefined = $state();
   let optIsRunning: boolean = $state(false);
   let optOptimizedLines: Line[] | null = $state(null);
   let optFailed: boolean = $state(false);

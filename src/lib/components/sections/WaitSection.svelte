@@ -123,8 +123,9 @@
       selectedPointId.set(`wait-${wait.id}`);
       selectedLineId.set(null);
     }
-  })}
-  onkeydown={stopPropagation((e) => {
+  }}
+  onkeydown={(e: KeyboardEvent) => {
+    e.stopPropagation();
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (!wait.locked) {
@@ -132,7 +133,7 @@
         selectedLineId.set(null);
       }
     }
-  })}
+  }}
 >
   <!-- Card Header -->
   <div class="flex items-center justify-between p-3 gap-3">
@@ -202,7 +203,7 @@
           wait.hidden = !isHidden;
           sequence = [...sequence];
           if (recordChange) recordChange();
-        })}
+        }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         title={isHidden ? "Show Wait" : "Hide Wait"}
         aria-label={isHidden ? "Show Wait" : "Hide Wait"}
@@ -220,7 +221,7 @@
         onclick={stopPropagation(() => {
           wait.locked = !wait.locked;
           if (recordChange) recordChange();
-        })}
+        }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
       >
         {#if wait.locked}
@@ -242,7 +243,7 @@
         <button
           onclick={stopPropagation(() => {
             if (!wait.locked && canMoveUp && onMoveUp) onMoveUp();
-          })}
+          }}
           disabled={!canMoveUp || wait.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           title="Move Up"
@@ -253,7 +254,7 @@
         <button
           onclick={stopPropagation(() => {
             if (!wait.locked && canMoveDown && onMoveDown) onMoveDown();
-          })}
+          }}
           disabled={!canMoveDown || wait.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           title="Move Down"
@@ -317,7 +318,7 @@
                 else if (def.isPath) onAddPathAfter();
                 else if (def.isWait) onInsertAfter();
                 else if (def.isRotate) onAddRotateAfter();
-              })}
+              }}
               class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${getSmallButtonClass(color)}`}
               title={`Add ${def.label} After`}
               aria-label={`Add ${def.label} After`}
