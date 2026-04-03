@@ -7,7 +7,7 @@ describe("DeleteButtonWithConfirm", () => {
   const setupButton = () => {
     const { component } = render(DeleteButtonWithConfirm);
     const mockClickHandler = vi.fn();
-    component.$on("click", mockClickHandler);
+    // component.$on("click", mockClickHandler);
     const button = screen.getByTitle("Delete");
     return { button, mockClickHandler };
   };

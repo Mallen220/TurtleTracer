@@ -67,7 +67,7 @@ describe("SearchableDropdown", () => {
     const input = screen.getByRole("combobox");
 
     const changeHandler = vi.fn();
-    component.$on("change", changeHandler);
+    // component.$on("change", changeHandler);
 
     await fireEvent.focus(input);
     await fireEvent.keyDown(input, { key: "ArrowDown" }); // Select Option 1

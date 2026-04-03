@@ -25,7 +25,7 @@
     action: string; // fallback if onClick is not provided
   }>();
 
-  let menuElement: HTMLDivElement = $state();
+  let menuElement: HTMLDivElement | undefined = $state();
 
   function handleClickOutside(event: MouseEvent) {
     if (menuElement && !menuElement.contains(event.target as Node)) {

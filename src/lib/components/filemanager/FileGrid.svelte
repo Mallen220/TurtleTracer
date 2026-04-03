@@ -628,10 +628,10 @@
                   use:focusInput
                   onclick={stopPropagation(bubble("click"))}
                   class="w-full text-xs text-center border border-blue-400 rounded focus:outline-none dark:bg-neutral-700 py-0.5"
-                  onkeydown={stopPropagation((e) => {
+                  onkeydown={(e: KeyboardEvent) => { e.stopPropagation();
                     if (e.key === "Enter") dispatch("rename-save", renameInput);
-                    if (e.key === "Escape") dispatch("rename-cancel");
-                  })}
+                    if (e.key === "Escape") dispatch("rename-cancel"); }}
+
                   onblur={() => dispatch("rename-cancel")}
                 />
               </div>

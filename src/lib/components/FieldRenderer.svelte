@@ -147,13 +147,13 @@
   }: Props = $props();
 
   // Local state
-  let two: Two = $state();
+  let two: Two | undefined = $state();
   let ghostRobotState: { x: number; y: number; heading: number } | null =
     $state(null);
 
-  let twoElement: HTMLDivElement = $state();
-  let wrapperDiv: HTMLDivElement = $state();
-  let overlayContainer: HTMLDivElement = $state();
+  let twoElement: HTMLDivElement | undefined = $state();
+  let wrapperDiv: HTMLDivElement | undefined = $state();
+  let overlayContainer: HTMLDivElement | undefined = $state();
 
   // Smart Snapping State
   let snapGuides: InstanceType<typeof Two.Line>[] = $state([]);
@@ -252,7 +252,7 @@
 
   function updateRects() {
     if (two?.renderer?.domElement) {
-      cachedRect = two.renderer.domElement.getBoundingClientRect();
+      cachedRect = two!.renderer.domElement.getBoundingClientRect();
     }
     if (wrapperDiv) {
       cachedWrapperRect = wrapperDiv.getBoundingClientRect();
@@ -356,9 +356,9 @@
   // --- Interaction Logic ---
 
   onMount(() => {
-    two = new Two({ fitted: true, type: Two.Types.svg }).appendTo(twoElement);
-    if ((two.renderer as any)?.domElement) {
-      const svgEl = (two.renderer as any).domElement as HTMLElement;
+    two = new Two({ fitted: true, type: Two.Types.svg }).appendTo(twoElement!);
+    if ((two!.renderer as any)?.domElement) {
+      const svgEl = (two!.renderer as any).domElement as HTMLElement;
       svgEl.style.position = "absolute";
       svgEl.style.top = "0";
       svgEl.style.left = "0";
@@ -376,14 +376,14 @@
     followLoop();
 
     // Event Listeners
-    two.renderer.domElement.addEventListener("mouseenter", () => {
+    two!.renderer.domElement.addEventListener("mouseenter", () => {
       // Optimization: Start caching rects when user interacts with field
       updateRects();
       window.addEventListener("resize", updateRects);
       window.addEventListener("scroll", updateRects, true);
     });
 
-    two.renderer.domElement.addEventListener("mouseleave", () => {
+    two!.renderer.domElement.addEventListener("mouseleave", () => {
       isMouseOverField = false;
       hoveredMarkerId.set(null);
       // Optimization: Stop listening when user leaves field to avoid global overhead
@@ -391,10 +391,10 @@
       window.removeEventListener("scroll", updateRects, true);
     });
 
-    two.renderer.domElement.addEventListener("mousemove", (evt: MouseEvent) => {
+    two!.renderer.domElement.addEventListener("mousemove", (evt: MouseEvent) => {
       // Optimization: Use cached rect to prevent layout thrashing
       const rect =
-        cachedRect || two.renderer.domElement.getBoundingClientRect();
+        cachedRect || two!.renderer.domElement.getBoundingClientRect();
       const transformed = getTransformedCoordinates(
         evt.clientX,
         evt.clientY,
@@ -450,14 +450,14 @@
           drawPoints.forEach((p) => {
             pointsForMakePath.push(x(p.x), y(p.y));
           });
-          drawPathElement = two.makePath(...pointsForMakePath);
+          drawPathElement = two!.makePath(...pointsForMakePath);
           drawPathElement.stroke = "#a855f7"; // purple-500
           drawPathElement.linewidth = uiLength(LINE_WIDTH);
           drawPathElement.fill = "transparent";
           drawPathElement.noFill(); // important for two.js paths not to auto fill black
           drawPathElement.closed = false; // important for open paths
-          two.add(drawPathElement);
-          two.update(); // We need to immediately update two.js manually here since this is an event listener outside of standard svelte reactivity loop
+          two!.add(drawPathElement);
+          two!.update(); // We need to immediately update two.js manually here since this is an event listener outside of standard svelte reactivity loop
         }
         return;
       }
@@ -709,7 +709,7 @@
         startPan = { x: evt.clientX, y: evt.clientY };
 
         // Set cursor to grabbing
-        two.renderer.domElement.style.cursor = "grabbing";
+        two!.renderer.domElement.style.cursor = "grabbing";
       } else {
         // Cursor Update
         // Use evt.target instead of elementFromPoint
@@ -720,7 +720,7 @@
           target?.id.startsWith("obstacle") ||
           target?.id.startsWith("targetpoint")
         ) {
-          two.renderer.domElement.style.cursor = "pointer";
+          two!.renderer.domElement.style.cursor = "pointer";
           currentElem = target.id;
           hoveredMarkerId.set(null);
         } else if (
@@ -736,7 +736,7 @@
             target.id.startsWith("rotate-event-circle-") ||
             target.id.startsWith("rotate-event-arrow-"))
         ) {
-          two.renderer.domElement.style.cursor = "pointer";
+          two!.renderer.domElement.style.cursor = "pointer";
           // Normalize ID logic
           const idParts = target.id.split("-");
           if (target.id.startsWith("wait-event-")) {
@@ -814,14 +814,14 @@
           }
           hoveredMarkerId.set(actualHoverId);
         } else {
-          two.renderer.domElement.style.cursor = "grab";
+          two!.renderer.domElement.style.cursor = "grab";
           currentElem = null;
           hoveredMarkerId.set(null);
         }
       }
     });
 
-    two.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
+    two!.renderer.domElement.addEventListener("mousedown", (evt: MouseEvent) => {
       updateRects(); // Ensure fresh rects on start of interaction
 
       if ($isDrawingMode) {
@@ -829,7 +829,7 @@
         drawPoints = [];
 
         // Setup initial point
-        const rectForMouse = two.renderer.domElement.getBoundingClientRect();
+        const rectForMouse = two!.renderer.domElement.getBoundingClientRect();
         const transformedForMouse = getTransformedCoordinates(
           evt.clientX,
           evt.clientY,
@@ -852,7 +852,7 @@
         }
 
         // We'll update the actual visual path in mousemove
-        drawPathElement = two.makePath(
+        drawPathElement = two!.makePath(
           x(inchX),
           y(inchY),
           x(inchX),
@@ -864,8 +864,8 @@
         drawPathElement.fill = "transparent";
         drawPathElement.noFill();
         drawPathElement.closed = false;
-        two.add(drawPathElement);
-        two.update(); // We need to immediately update two.js manually here
+        two!.add(drawPathElement);
+        two!.update(); // We need to immediately update two.js manually here
         return; // Don't process other click events
       }
 
@@ -987,7 +987,7 @@
         // Calculate drag offset
         let objectX = 0;
         let objectY = 0;
-        const rectForMouse = two.renderer.domElement.getBoundingClientRect();
+        const rectForMouse = two!.renderer.domElement.getBoundingClientRect();
         const transformedForMouse = getTransformedCoordinates(
           evt.clientX,
           evt.clientY,
@@ -1076,11 +1076,11 @@
         // Start Panning
         isPanning = true;
         startPan = { x: evt.clientX, y: evt.clientY };
-        two.renderer.domElement.style.cursor = "grabbing";
+        two!.renderer.domElement.style.cursor = "grabbing";
       }
     });
 
-    two.renderer.domElement.addEventListener("mouseup", () => {
+    two!.renderer.domElement.addEventListener("mouseup", () => {
       snapGuides = [];
       if ($isDrawingMode && isDrawing) {
         isDrawing = false;
@@ -1134,11 +1134,11 @@
       isDraggingStore.set(false);
       isPanning = false;
       multiDragOffsets.clear();
-      two.renderer.domElement.style.cursor = "grab";
+      two!.renderer.domElement.style.cursor = "grab";
     });
 
     // Double Click to Add Line
-    two.renderer.domElement.addEventListener("dblclick", (evt: MouseEvent) => {
+    two!.renderer.domElement.addEventListener("dblclick", (evt: MouseEvent) => {
       const target = evt.target as Element;
       if (
         target?.id &&
@@ -1148,7 +1148,7 @@
       )
         return;
 
-      const rect = two.renderer.domElement.getBoundingClientRect();
+      const rect = two!.renderer.domElement.getBoundingClientRect();
       const transformed = getTransformedCoordinates(
         evt.clientX,
         evt.clientY,
@@ -1263,7 +1263,7 @@
     }
 
     // Calculate field coordinates
-    const rect = twoElement.getBoundingClientRect();
+    const rect = twoElement!.getBoundingClientRect();
     const transformed = getTransformedCoordinates(
       e.clientX,
       e.clientY,
@@ -1974,7 +1974,7 @@
 
       // Update dimensions if changed
       if (width && height && (two.width !== width || two.height !== height)) {
-        if (two.renderer) two.renderer.setSize(width, height);
+        if (two!.renderer) two!.renderer.setSize(width, height);
         two.width = width;
         two.height = height;
       }
@@ -2013,12 +2013,12 @@
         diffEventMarkerElements.forEach((el) => eventGroup.add(el));
       }
 
-      two.add(shapeGroup);
-      two.add(lineGroup);
-      two.add(eventGroup);
-      two.add(pointGroup);
-      two.add(collisionGroup);
-      two.add(snapGroup);
+      two!.add(shapeGroup);
+      two!.add(lineGroup);
+      two!.add(eventGroup);
+      two!.add(pointGroup);
+      two!.add(collisionGroup);
+      two!.add(snapGroup);
 
       // Apply custom renderers
       $fieldRenderRegistry.forEach((entry) => {
@@ -2029,7 +2029,7 @@
         }
       });
 
-      two.update();
+      two!.update();
     }
   });
 </script>

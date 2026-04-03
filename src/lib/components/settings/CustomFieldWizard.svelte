@@ -357,9 +357,7 @@
                     <!-- N -->
                     <div
                       class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ns-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "n"),
-                      )}
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "n"); }}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -367,9 +365,7 @@
                     <!-- S -->
                     <div
                       class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ns-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "s"),
-                      )}
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "s"); }}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -377,9 +373,7 @@
                     <!-- W -->
                     <div
                       class="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ew-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "w"),
-                      )}
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "w"); }}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -387,9 +381,7 @@
                     <!-- E -->
                     <div
                       class="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ew-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "e"),
-                      )}
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "e"); }}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -397,9 +389,7 @@
                     <!-- NW -->
                     <div
                       class="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "nw"),
-                      )}
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "nw"); }}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -407,9 +397,7 @@
                     <!-- NE -->
                     <div
                       class="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "ne"),
-                      )}
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "ne"); }}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -417,9 +405,7 @@
                     <!-- SW -->
                     <div
                       class="absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "sw"),
-                      )}
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "sw"); }}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -427,9 +413,7 @@
                     <!-- SE -->
                     <div
                       class="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "se"),
-                      )}
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "se"); }}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}

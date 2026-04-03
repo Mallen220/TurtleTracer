@@ -50,7 +50,7 @@
   let draggingIndex: number | null = $state(null);
   let dragOverIndex: number | null = $state(null);
   let dragPosition: DragPosition | null = $state(null);
-  let containerRef: HTMLElement = $state();
+  let containerRef: HTMLElement | undefined = $state();
 
   let xInputs: (HTMLInputElement | null)[] = $state([]);
   let yInputs: (HTMLInputElement | null)[] = $state([]);

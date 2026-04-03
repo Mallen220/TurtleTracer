@@ -2,7 +2,7 @@
 <script lang="ts">
   import { run } from "svelte/legacy";
 
-  import type { ComponentType } from "svelte";
+  import type { Component } from "svelte";
   import {
     UndoIcon,
     ClockIcon,
@@ -86,10 +86,10 @@
     shortcutKey?: string;
     commandId?: string;
     iconSvg?: string;
-    iconComponent?: ComponentType;
+    iconComponent?: Component;
   };
 
-  const ICON_COMPONENT_MAP: Record<string, ComponentType> = {
+  const ICON_COMPONENT_MAP: Record<string, any> = {
     List: ListIcon,
     Play: PlayIcon,
     Arrow: ArrowRightIcon,
@@ -119,8 +119,8 @@
     return key ? !!(settings as any)[key] : false;
   }
 
-  let historyButtonRef: HTMLElement = $state();
-  let historyDropdownRef: HTMLElement = $state();
+  let historyButtonRef: HTMLElement | undefined = $state();
+  let historyDropdownRef: HTMLElement | undefined = $state();
 
   function handleClickOutside(event: MouseEvent) {
     if (
