@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { ComponentType } from "svelte";
+  import type { Component, ComponentType } from "svelte";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import { DEFAULT_SETTINGS } from "../../../../config/defaults";
   import type {
@@ -181,7 +181,7 @@
   let customActionLabel = $state("");
   let commandSearchQuery = $state("");
 
-  const ICON_COMPONENT_MAP: Record<string, ComponentType> = {
+  const ICON_COMPONENT_MAP: Record<string, Component<any>> = {
     ...ICONS,
     Arrow: ICONS.ArrowRightIcon,
     Plus: ICONS.PlusIcon,

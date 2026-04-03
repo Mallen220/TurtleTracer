@@ -10,6 +10,8 @@
     disabled?: boolean;
     // Explicitly export tabindex to allow parent to control focusability
     tabindex?: number | undefined;
+    oninput?: (e: Event) => void;
+    onchange?: (e: Event) => void;
   }
 
   let {
@@ -17,6 +19,8 @@
     title = "Change Color",
     disabled = false,
     tabindex = undefined,
+    oninput,
+    onchange,
   }: Props = $props();
 </script>
 
@@ -26,13 +30,19 @@
 >
   <input
     type="color"
-    bind:value={color}
+    value={color}
     class="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
     {title}
     aria-label={title}
     {disabled}
     {tabindex}
-    oninput={bubble("input")}
-    onchange={bubble("change")}
+    oninput={(e) => {
+      color = e.currentTarget.value;
+      oninput?.(e);
+    }}
+    onchange={(e) => {
+      color = e.currentTarget.value;
+      onchange?.(e);
+    }}
   />
 </div>

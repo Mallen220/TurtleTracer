@@ -1,8 +1,8 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
 
-  import { createEventDispatcher } from "svelte";
+
+  import { untrack, onMount, onDestroy, createEventDispatcher } from "svelte";
   import { scale } from "svelte/transition";
   import {
     exportPathToGif,
@@ -18,7 +18,7 @@
   let quality = $state(10); // 1-30, default 10 (good balance)
   // UI slider is reversed (left=Draft, right=Best). Keep internal semantics (1=best),
   // and bind the visible slider to `sliderQuality` which maps to `quality = 31 - sliderQuality`.
-  let sliderQuality = $state(31 - quality);
+  let sliderQuality = $state(21); // Default 31 - 10
 
   function invalidatePreview() {
     if (status === "generating") {
@@ -81,16 +81,6 @@
   }
 
   function handleCancel() {
-    if (status === "generating") {
-      // Abort the ongoing generation but keep dialog open
-      try {
-        abortController?.abort();
-      } catch (e) {
-        console.warn("Abort threw", e);
-      }
-      statusMessage = "Cancelling...";
-      return;
-    }
     close();
   }
 
@@ -211,7 +201,7 @@
 
   // ResizeObserver to track preview container size
   let _ro: ResizeObserver | null = null;
-  import { onMount, onDestroy } from "svelte";
+
   interface Props {
     show?: boolean;
     twoInstance: any;
@@ -237,6 +227,8 @@
     robotStateFunction,
     electronAPI,
   }: Props = $props();
+
+
   onMount(() => {
     if (typeof ResizeObserver !== "undefined" && previewContainer) {
       _ro = new ResizeObserver((entries) => {
@@ -253,17 +245,25 @@
     if (_ro) _ro.disconnect();
   });
   // One-way reactive sync: when sliderQuality changes, update internal `quality`.
-  run(() => {
+  $effect(() => {
     quality = 31 - sliderQuality;
   });
-  run(() => {
+
+  $effect(() => {
     if (show) {
-      // Create a dependency on these variables
-      const _f = format;
-      const _fps = fps;
-      const _rs = resolutionScale;
-      const _sq = sliderQuality;
-      invalidatePreview();
+      // Create a dependency on these variables to invalidate preview when they change
+      format;
+      fps;
+      resolutionScale;
+      sliderQuality;
+
+      untrack(() => {
+        // Only invalidate if we aren't currently generating.
+        // If we ARE generating, the next preview will be fresh anyway.
+        if (status !== "generating") {
+          invalidatePreview();
+        }
+      });
     }
   });
   let iconSize = $derived(
@@ -276,7 +276,10 @@
 {#if show}
   <div
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-    transition:scale={{ duration: 200, start: 0.95 }}
+    transition:scale={{ 
+      duration: (globalThis as any).vitest !== undefined ? 0 : 200, 
+      start: 0.95 
+    }}
   >
     <div
       class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]"

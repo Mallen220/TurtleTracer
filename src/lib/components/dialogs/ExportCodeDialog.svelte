@@ -44,10 +44,10 @@
 
   let {
     isOpen = $bindable(false),
-    startPoint,
-    lines,
-    sequence,
-    shapes = [],
+    startPoint = $bindable(),
+    lines = $bindable(),
+    sequence = $bindable(),
+    shapes = $bindable([]),
   }: Props = $props();
 
   let exportFormat: "java" | "points" | "sequential" | "json" | "custom" =
@@ -61,15 +61,15 @@
   let currentLanguage: typeof java | typeof plaintext | typeof json =
     $state(java);
   let copied = $state(false);
-  let dialogRef: HTMLDivElement = $state();
-  let scrollContainer: HTMLDivElement = $state();
+  let dialogRef: HTMLDivElement | undefined = $state();
+  let scrollContainer: HTMLDivElement | undefined = $state();
 
   // Search State
   let showSearch = $state(false);
   let searchQuery = $state("");
   let searchMatches: number[] = $state([]); // Array of line numbers (0-indexed)
   let currentMatchIndex = $state(-1);
-  let searchInputRef: HTMLInputElement = $state();
+  let searchInputRef: HTMLInputElement | undefined = $state();
 
   const electronAPI = (window as any).electronAPI;
 
@@ -82,7 +82,7 @@
     for (const item of cloned) {
       if (item.kind === "macro" && item.filePath) {
         try {
-          item.filePath = await electronAPI.makeRelativePath(
+          item.filePath = await (electronAPI as any).makeRelativePath(
             base,
             item.filePath,
           );
@@ -280,8 +280,8 @@
 
     if (
       !electronAPI ||
-      (electronAPI as any).isVirtual ||
-      !electronAPI.showSaveDialog ||
+      (electronAPI  ).isVirtual ||
+      !(electronAPI as any).showSaveDialog ||
       !electronAPI.writeFile
     ) {
       // Fallback for web: use download attribute trick via Blob
@@ -404,8 +404,8 @@
       );
       if (el) {
         // Only call scrollIntoView if supported (jsdom in tests doesn't implement it)
-        if (typeof (el as any).scrollIntoView === "function") {
-          (el as any).scrollIntoView({ behavior: "smooth", block: "center" });
+        if (typeof (el  ).scrollIntoView === "function") {
+          (el  ).scrollIntoView({ behavior: "smooth", block: "center" });
         }
       }
     }
@@ -819,7 +819,7 @@
           <button
             class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
             use:copy={exportedCode}
-            onsvelte-copy={handleCopy}
+            {...{ "onsvelte-copy": handleCopy }}
             disabled={copied}
           >
             {#if copied}

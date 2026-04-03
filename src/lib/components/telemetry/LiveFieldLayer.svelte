@@ -15,7 +15,7 @@
 
   let { x, y, width, height }: Props = $props();
 
-  let canvas: HTMLCanvasElement = $state();
+  let canvas: HTMLCanvasElement | undefined = $state();
   let ctx: CanvasRenderingContext2D | null = null;
   let renderRequested = $state(false);
 
@@ -92,7 +92,7 @@
   });
 
   onMount(() => {
-    ctx = canvas.getContext("2d");
+    ctx = canvas!.getContext("2d");
   });
 </script>
 

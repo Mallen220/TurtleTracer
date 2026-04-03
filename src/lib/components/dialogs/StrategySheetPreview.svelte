@@ -34,9 +34,9 @@
     twoInstance = null,
   }: Props = $props();
 
-  let fieldContainer: HTMLDivElement = $state();
-  let dialogRef: HTMLDivElement = $state();
-  let textareaRef: HTMLTextAreaElement = $state();
+  let fieldContainer: HTMLDivElement | undefined = $state();
+  let dialogRef: HTMLDivElement | undefined = $state();
+  let textareaRef: HTMLTextAreaElement | undefined = $state();
 
   /**
    * Auto-resizes the Strategy Notes textarea so that all content is visible,

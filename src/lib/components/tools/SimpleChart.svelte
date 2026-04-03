@@ -23,8 +23,8 @@
     currentTime = null,
   }: Props = $props();
 
-  let container: HTMLDivElement = $state();
-  let tooltip: HTMLDivElement = $state();
+  let container: HTMLDivElement | undefined = $state();
+  let tooltip: HTMLDivElement | undefined = $state();
   let width = $state(0);
 
   // Keep references to update efficiently
@@ -247,7 +247,7 @@
   onMount(() => {
     handleResize();
     const ro = new ResizeObserver(handleResize);
-    ro.observe(container);
+    ro.observe(container!);
     return () => ro.disconnect();
   });
   // Make reactive to data/dimensions/time

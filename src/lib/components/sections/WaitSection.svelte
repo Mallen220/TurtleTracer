@@ -124,7 +124,8 @@
       selectedLineId.set(null);
     }
   })}
-  onkeydown={stopPropagation((e) => {
+  onkeydown={(e) => {
+    e.stopPropagation();
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (!wait.locked) {
@@ -132,7 +133,7 @@
         selectedLineId.set(null);
       }
     }
-  })}
+  }}
 >
   <!-- Card Header -->
   <div class="flex items-center justify-between p-3 gap-3">

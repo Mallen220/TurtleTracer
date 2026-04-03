@@ -2,6 +2,7 @@
 <!-- src/lib/components/filemanager/FileContextMenu.svelte -->
 <script lang="ts">
   import { createEventDispatcher, onMount } from "svelte";
+  import { run } from "svelte/legacy";
   import { fade } from "svelte/transition";
   import {
     ArrowRightIcon,
@@ -33,7 +34,7 @@
       | "save-to";
   }>();
 
-  let menuElement: HTMLDivElement = $state();
+  let menuElement: HTMLDivElement | undefined = $state();
 
   function handleClickOutside(event: MouseEvent) {
     if (menuElement && !menuElement.contains(event.target as Node)) {
@@ -42,8 +43,13 @@
   }
 
   // Adjust position if it goes off screen
-  let adjustedX = $state(x);
-  let adjustedY = $state(y);
+  let adjustedX = $state(0);
+  let adjustedY = $state(0);
+
+  run(() => {
+    adjustedX = x;
+    adjustedY = y;
+  });
 
   onMount(() => {
     if (menuElement) {

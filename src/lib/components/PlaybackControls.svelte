@@ -52,7 +52,7 @@
   }
 
   let {
-    playing,
+    playing = $bindable(),
     play,
     pause,
     percent = $bindable(),
@@ -78,7 +78,7 @@
   let draggingMarkerPercent: number = $state(0);
   let wasPlayingBeforeDrag: boolean = false;
   let timelineRect: DOMRect | null = null;
-  let timelineContainer: HTMLElement = $state();
+  let timelineContainer: HTMLElement | undefined = $state();
   let ignoreClick = $state(false);
 
   let showContextMenu = $state(false);

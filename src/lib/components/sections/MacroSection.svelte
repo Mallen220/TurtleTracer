@@ -98,7 +98,8 @@
       selectedLineId.set(null);
     }
   })}
-  onkeydown={stopPropagation((e) => {
+  onkeydown={(e: KeyboardEvent) => {
+    e.stopPropagation();
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (!macro.locked) {
@@ -106,7 +107,7 @@
         selectedLineId.set(null);
       }
     }
-  })}
+  }}
 >
   <!-- Card Header -->
   <div class="flex items-center justify-between p-3 gap-3">

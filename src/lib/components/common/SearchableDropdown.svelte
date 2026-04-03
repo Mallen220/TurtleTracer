@@ -10,6 +10,7 @@
     options?: string[];
     placeholder?: string;
     disabled?: boolean;
+    onchange?: (val: string) => void;
   }
 
   let {
@@ -17,14 +18,15 @@
     options = [],
     placeholder = "Search or add new...",
     disabled = false,
+    onchange,
   }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
   let isOpen = $state(false);
-  let inputElement: HTMLInputElement = $state();
+  let inputElement: HTMLInputElement | undefined = $state();
   let highlightedIndex = $state(-1);
-  let listElement: HTMLDivElement = $state();
+  let listElement: HTMLDivElement | undefined = $state();
 
   // Filter options based on current input
   let filteredOptions = $derived(
@@ -44,6 +46,7 @@
     value = (e.target as HTMLInputElement).value;
     isOpen = true;
     dispatch("change", value);
+    onchange?.(value);
   }
 
   function handleFocus() {
@@ -62,6 +65,7 @@
     isOpen = false;
     highlightedIndex = -1;
     dispatch("change", value);
+    onchange?.(value);
   }
 
   async function handleKeydown(e: KeyboardEvent) {
@@ -95,18 +99,18 @@
       ) {
         e.preventDefault();
         selectOption(filteredOptions[highlightedIndex]);
-        inputElement.blur();
+        inputElement?.blur();
       } else {
         // Just standard enter behavior (submit form?) or close?
         // If simply typing, Enter might mean "I'm done typing"
         isOpen = false;
-        inputElement.blur();
+        inputElement?.blur();
       }
     } else if (e.key === "Escape") {
       e.preventDefault();
       isOpen = false;
       highlightedIndex = -1;
-      inputElement.blur();
+      inputElement?.blur();
     }
   }
 

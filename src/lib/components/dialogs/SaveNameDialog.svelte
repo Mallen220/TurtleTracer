@@ -22,8 +22,13 @@
     onCancel,
   }: Props = $props();
 
-  let name = $state(defaultName);
-  let inputElement: HTMLInputElement = $state();
+  let name = $state("");
+  run(() => {
+    if (show && !wasShown) {
+      name = defaultName;
+    }
+  });
+  let inputElement: HTMLInputElement | undefined = $state();
 
   function handleSave() {
     if (name.trim()) {

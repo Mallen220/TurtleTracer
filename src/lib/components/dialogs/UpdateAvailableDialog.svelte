@@ -28,7 +28,7 @@
     show?: boolean;
   }
 
-  let { show = false }: Props = $props();
+  let { show = $bindable(false) }: Props = $props();
 
   const md = new MarkdownIt({
     html: true,
@@ -341,15 +341,24 @@
     @apply text-sm font-bold mb-1 mt-2;
   }
   :global(.prose p) {
-    @apply mb-2 leading-relaxed text-sm text-neutral-600 dark:text-neutral-300;
+    @apply mb-2 leading-relaxed text-sm text-neutral-600;
+  }
+  :global(.dark) :global(.prose p) {
+    @apply text-neutral-300;
   }
   :global(.prose ul) {
     @apply list-disc list-outside ml-4 mb-2;
   }
   :global(.prose li) {
-    @apply mb-0.5 text-sm text-neutral-600 dark:text-neutral-300;
+    @apply mb-0.5 text-sm text-neutral-600;
+  }
+  :global(.dark) :global(.prose li) {
+    @apply text-neutral-300;
   }
   :global(.prose strong) {
-    @apply font-bold text-neutral-900 dark:text-neutral-100;
+    @apply font-bold text-neutral-900;
+  }
+  :global(.dark) :global(.prose strong) {
+    @apply text-neutral-100;
   }
 </style>

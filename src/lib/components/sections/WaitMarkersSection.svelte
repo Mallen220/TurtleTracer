@@ -21,15 +21,13 @@
 
   let { wait = $bindable(), allCollapsed = false }: Props = $props();
   // Initialize collapsed to reflect global collapse state so newly-rendered waits follow the global command
-  let collapsed: boolean = $state(allCollapsed);
-  let _lastAllCollapsed = $state(allCollapsed);
+  let collapsed = $state(false);
+  let _lastAllCollapsed = $state(false);
 
   // Sync collapsed state when global allCollapsed toggles
   run(() => {
-    if (allCollapsed !== _lastAllCollapsed) {
-      collapsed = allCollapsed;
-      _lastAllCollapsed = allCollapsed;
-    }
+    collapsed = allCollapsed;
+    _lastAllCollapsed = allCollapsed;
   });
 
   function toggleCollapsed() {

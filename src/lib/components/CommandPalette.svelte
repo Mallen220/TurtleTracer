@@ -14,11 +14,11 @@
     onClose: () => void;
   }
 
-  let { isOpen = false, commands = [], onClose }: Props = $props();
+  let { isOpen = $bindable(false), commands = [], onClose }: Props = $props();
 
   let searchQuery = $state("");
   let selectedIndex = $state(0);
-  let inputElement: HTMLInputElement = $state();
+  let inputElement: HTMLInputElement | undefined = $state();
   let recentCommandIds: string[] = $state([]);
   const RECENTS_KEY = "turtle-tracer-recent-commands";
   const LEGACY_RECENTS_KEY = "pedro-pathing-recent-commands";

@@ -172,7 +172,8 @@
   >
     <select
       id="autosave-mode"
-      bind:value={settings.autosaveMode}
+      value={settings.autosaveMode}
+      onchange={(e) => (settings.autosaveMode = e.currentTarget.value as any)}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="never">Never</option>
@@ -199,7 +200,8 @@
       >
         <select
           id="autosave-interval"
-          bind:value={settings.autosaveInterval}
+          value={settings.autosaveInterval}
+          onchange={(e) => (settings.autosaveInterval = parseInt(e.currentTarget.value))}
           class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {#each [1, 5, 10, 15, 20, 40, 60] as interval}
@@ -253,7 +255,8 @@
     >
       <input
         type="checkbox"
-        bind:checked={settings.showTelemetryTab}
+        checked={settings.showTelemetryTab}
+        onchange={(e) => (settings.showTelemetryTab = e.currentTarget.checked)}
         class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
       />
     </SettingsItem>
@@ -304,7 +307,8 @@
     >
       <input
         type="checkbox"
-        bind:checked={settings.gitIntegration}
+        checked={settings.gitIntegration}
+        onchange={(e) => (settings.gitIntegration = e.currentTarget.checked)}
         class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
       />
     </SettingsItem>

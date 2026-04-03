@@ -13,7 +13,7 @@
     currentConfig?: CustomFieldConfig | undefined;
   }
 
-  let { isOpen = false, currentConfig = undefined }: Props = $props();
+  let { isOpen = $bindable(false), currentConfig = undefined }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
@@ -29,8 +29,8 @@
     height: 0.8,
   });
 
-  let imageElement: HTMLImageElement = $state();
-  let imageContainer: HTMLDivElement = $state();
+  let imageElement: HTMLImageElement | undefined = $state();
+  let imageContainer: HTMLDivElement | undefined = $state();
 
   let wasOpen = $state(false);
   run(() => {
@@ -347,29 +347,37 @@
                   <!-- Bounding Box -->
                   <div
                     class="absolute border-2 border-blue-500 bg-blue-500/10 cursor-move"
+                    role="button"
+                    tabindex="0"
+                    aria-label="Move bounding box"
                     style={`left: ${box.x * 100}%; top: ${box.y * 100}%; width: ${box.width * 100}%; height: ${box.height * 100}%;`}
                     onpointerdown={(e) => handlePointerDown(e, "move")}
                     onpointermove={handlePointerMove}
                     onpointerup={handlePointerUp}
                     onpointercancel={handlePointerUp}
+                    onkeydown={() => {}}
                   >
                     <!-- Handles -->
                     <!-- N -->
                     <div
                       class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ns-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "n"),
-                      )}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize North"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "n"); }}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
+                      onkeydown={() => {}}
                     ></div>
                     <!-- S -->
                     <div
                       class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ns-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "s"),
-                      )}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize South"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "s"); }}
+                      onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -377,9 +385,11 @@
                     <!-- W -->
                     <div
                       class="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ew-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "w"),
-                      )}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize West"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "w"); }}
+                      onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -387,9 +397,11 @@
                     <!-- E -->
                     <div
                       class="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ew-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "e"),
-                      )}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize East"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "e"); }}
+                      onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -397,9 +409,11 @@
                     <!-- NW -->
                     <div
                       class="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "nw"),
-                      )}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize North West"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "nw"); }}
+                      onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -407,9 +421,11 @@
                     <!-- NE -->
                     <div
                       class="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "ne"),
-                      )}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize North East"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "ne"); }}
+                      onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -417,9 +433,11 @@
                     <!-- SW -->
                     <div
                       class="absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "sw"),
-                      )}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize South West"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "sw"); }}
+                      onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -427,9 +445,11 @@
                     <!-- SE -->
                     <div
                       class="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize"
-                      onpointerdown={stopPropagation((e) =>
-                        handlePointerDown(e, "se"),
-                      )}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize South East"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "se"); }}
+                      onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}

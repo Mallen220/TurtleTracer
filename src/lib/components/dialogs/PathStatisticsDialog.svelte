@@ -53,7 +53,7 @@
     sequence,
     settings,
     percent = 0,
-    isOpen = false,
+    isOpen = $bindable(false),
     onClose,
     controlRect = null,
   }: Props = $props();

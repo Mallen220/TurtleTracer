@@ -64,11 +64,11 @@
   let exportMenuOpen = $state(false);
   let saveDropdownOpen = $state(false);
   let saveDropdownSide: "left" | "right" = $state("left");
-  let saveDropdownRef: HTMLElement = $state();
-  let saveButtonRef: HTMLElement = $state();
-  let saveOptionsButtonRef: HTMLElement = $state();
-  let exportMenuRef: HTMLElement = $state();
-  let exportButtonRef: HTMLElement = $state();
+  let saveDropdownRef: HTMLElement | undefined = $state();
+  let saveButtonRef: HTMLElement | undefined = $state();
+  let saveOptionsButtonRef: HTMLElement | undefined = $state();
+  let exportMenuRef: HTMLElement | undefined = $state();
+  let exportButtonRef: HTMLElement | undefined = $state();
 
   let timePrediction = $derived(
     calculatePathTime(startPoint, lines, settings, sequence),

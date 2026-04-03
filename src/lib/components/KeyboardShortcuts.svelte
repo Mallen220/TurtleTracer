@@ -158,7 +158,7 @@
     stepBackward,
     splitPath = () => {},
     recordChange,
-    controlTabRef = null,
+    controlTabRef = $bindable(null),
     activeControlTab = $bindable("path"),
     toggleStats = () => {},
     toggleSidebar = () => {},
@@ -178,7 +178,7 @@
 
   // Internal State
   let showCommandPalette = $state(false);
-  let fileInput: HTMLInputElement = $state();
+  let fileInput: HTMLInputElement | undefined = $state();
   let fileCommands: {
     id: string;
     label: string;

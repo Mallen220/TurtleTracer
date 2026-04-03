@@ -88,16 +88,16 @@
   let hoveredLinkId: string | null = $state(null);
   let hoveredLinkAnchor: HTMLElement | null = $state(null);
 
-  let xInput: HTMLInputElement = $state();
-  let yInput: HTMLInputElement = $state();
-  let headingControls: HeadingControls = $state();
+  let xInput: HTMLInputElement | undefined = $state();
+  let yInput: HTMLInputElement | undefined = $state();
+  let headingControls: HeadingControls | undefined = $state();
   let nameInput: HTMLInputElement | undefined;
 
   // Container-based responsiveness: observe the grid container's width and
   // toggle a compact layout when it becomes too narrow (e.g., in a small
   // control tab). This ensures the Heading section snaps under Target Position
   // based on the control tab size and not the viewport width.
-  let gridContainer: HTMLElement = $state();
+  let gridContainer: HTMLElement | undefined = $state();
   let isNarrow: boolean = $state(false);
   const CONTROL_WIDTH_THRESHOLD = 480; // px, tweak as needed
 
@@ -245,7 +245,8 @@
     <!-- Right: Controls -->
     <div class="flex items-center gap-1">
       <ColorPicker
-        bind:color={line.color}
+        color={line.color}
+        onchange={(e) => (line.color = (e.currentTarget as HTMLInputElement).value)}
         title="Change Path Color"
         disabled={line.locked}
       />
