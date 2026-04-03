@@ -1,34 +1,21 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { render, fireEvent, waitFor } from "@testing-library/svelte";
-import ExportGifDialog from "../lib/components/dialogs/ExportGifDialog.svelte";
+import { render, screen, fireEvent, waitFor } from "@testing-library/svelte";
+import ExportGifDialogWrapper from "./ExportGifDialogWrapper.svelte";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
-// Mock the exporter so it respects AbortSignal
+// Mock the exporter
 vi.mock("../utils/exportAnimation", async () => {
   const actual = await vi.importActual<any>("../utils/exportAnimation");
-
-  const createMockExporter = (type: string, content: string) => {
-    return vi.fn(async (opts: any) => {
-      return await new Promise<Blob>((resolve, reject) => {
-        const timeout = setTimeout(
-          () => resolve(new Blob([content], { type })),
-          50,
-        );
-        const onAbort = () => {
-          clearTimeout(timeout);
-          const e = new Error("Aborted");
-          (e as any).name = "AbortError";
-          reject(e);
-        };
-        opts.signal?.addEventListener("abort", onAbort);
-      });
-    });
-  };
-
   return {
     ...actual,
-    exportPathToGif: createMockExporter("image/gif", "gif"),
-    exportPathToApng: createMockExporter("image/png", "png"),
+    exportPathToGif: vi.fn(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+      return new Blob(["gif"], { type: "image/gif" });
+    }),
+    exportPathToApng: vi.fn(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+      return new Blob(["png"], { type: "image/png" });
+    }),
   };
 });
 
@@ -39,7 +26,6 @@ describe("ExportGifDialog", () => {
 
   beforeEach(() => {
     props = {
-      show: true,
       twoInstance: {},
       animationController: {
         getDuration: () => 0.5,
@@ -53,6 +39,7 @@ describe("ExportGifDialog", () => {
       robotWidthPx: 20,
       robotStateFunction: () => ({ x: 10, y: 10, heading: 0 }),
       electronAPI: null,
+      show: true,
     };
   });
 
@@ -60,39 +47,32 @@ describe("ExportGifDialog", () => {
     vi.restoreAllMocks();
   });
 
-  it("X button aborts generation and closes dialog", async () => {
-    const mockConsoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const { getByText, getByLabelText, queryByText, container } = render(
-      ExportGifDialog,
-      props as any,
-    );
-
-    // Start generation
-    const genBtn = getByText("Generate Preview");
-    await fireEvent.click(genBtn);
-
-    // Confirm status shows generating (progress text exists)
-    await waitFor(() => {
-      expect(container.textContent).toContain("Capturing frames");
+  it("Generates preview and can be cancelled", async () => {
+    render(ExportGifDialogWrapper, {
+      props: { props },
     });
 
-    // Click the X (close) button in header
-    const closeBtn = getByLabelText("Close");
-    await fireEvent.click(closeBtn);
+    // Start generation
+    const genBtn = screen.getByText("Generate Preview");
+    await fireEvent.click(genBtn);
+    
+    // Wait for "Capturing frames" to appear
+    const statusMsg = await screen.findByText(/Capturing frames/i, {}, { timeout: 2000 });
+    expect(statusMsg).toBeInTheDocument();
 
-    // dialog should be removed from DOM (allow extra time for transitions)
-    await waitFor(
-      () => {
-        expect(queryByText("Export Animation")).toBeNull();
-      },
-      { timeout: 2000 },
-    );
+    // The exporter should have been called
+    await waitFor(() => {
+      expect(exporter.exportPathToGif).toHaveBeenCalled();
+    });
 
-    // The exporter should have been called and aborted
-    expect(exporter.exportPathToGif as any).toHaveBeenCalled();
+    // Click the Cancel button
+    const cancelBtn = screen.getByText("Cancel");
+    await fireEvent.click(cancelBtn);
 
-    mockConsoleError.mockRestore();
+    // Wait for the wrapper's indicator that show is false
+    await screen.findByTestId("dialog-closed-indicator", {}, { timeout: 3000 });
+
+    // Header should be gone
+    expect(screen.queryByText("Export Animation")).toBeNull();
   });
 });

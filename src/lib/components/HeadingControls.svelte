@@ -88,24 +88,26 @@
 <div class="flex gap-2 w-full">
   <select
     aria-label="Heading style"
-    bind:value={endPoint.heading}
-    onchange={() => {
+    value={endPoint.heading}
+    onchange={(e) => {
       // Notify parent that a change occurred and commit it so timeline and
       // playback recalculate immediately.
       // Also ensure required numeric fields exist when switching types so
       // calculateRobotState doesn't encounter undefined values.
-      if (endPoint.heading === "linear") {
+      const val = e.currentTarget.value;
+      endPoint.heading = val;
+      if (val === "linear") {
         // Initialize linear-specific fields if missing
         if (typeof endPoint.startDeg !== "number")
           endPoint.startDeg = endPoint.degrees ?? 0;
         if (typeof endPoint.endDeg !== "number")
           endPoint.endDeg = endPoint.degrees ?? 0;
-      } else if (endPoint.heading === "constant") {
+      } else if (val === "constant") {
         // Ensure constant degree exists (prefer endDeg/startDeg if present)
         if (typeof endPoint.degrees !== "number") {
           endPoint.degrees = endPoint.endDeg ?? endPoint.startDeg ?? 0;
         }
-      } else if (endPoint.heading === "facingPoint") {
+      } else if (val === "facingPoint") {
         // Initialize facingPoint coordinates
         if (typeof endPoint.targetX !== "number") endPoint.targetX = 72;
         if (typeof endPoint.targetY !== "number") endPoint.targetY = 72;
@@ -135,8 +137,9 @@
     <input
       bind:this={reverseInput}
       type="checkbox"
-      bind:checked={endPoint.reverse}
-      onchange={() => {
+      checked={endPoint.reverse}
+      onchange={(e) => {
+        endPoint.reverse = e.currentTarget.checked;
         dispatch("change");
         dispatch("commit");
       }}
@@ -170,8 +173,12 @@
           class:dark:border-yellow-500={isStartOutOfBounds}
           step="1"
           type="number"
-          bind:value={endPoint.startDeg}
-          oninput={() => dispatch("change")}
+          value={endPoint.startDeg}
+          oninput={(e) => {
+            const val = parseFloat(e.currentTarget.value);
+            if (!isNaN(val)) endPoint.startDeg = val;
+            dispatch("change");
+          }}
           onblur={() => dispatch("commit")}
           title="The heading the robot starts this line at (in degrees)"
           aria-label="Start Heading"
@@ -208,8 +215,12 @@
           class:dark:border-yellow-500={isEndOutOfBounds}
           step="1"
           type="number"
-          bind:value={endPoint.endDeg}
-          oninput={() => dispatch("change")}
+          value={endPoint.endDeg}
+          oninput={(e) => {
+            const val = parseFloat(e.currentTarget.value);
+            if (!isNaN(val)) endPoint.endDeg = val;
+            dispatch("change");
+          }}
           onblur={() => dispatch("commit")}
           title="The heading the robot ends this line at (in degrees)"
           aria-label="End Heading"
@@ -294,8 +305,12 @@
           class="w-full pl-6 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all pr-1"
           step="0.1"
           type="number"
-          bind:value={endPoint.targetX}
-          oninput={() => dispatch("change")}
+          value={endPoint.targetX}
+          oninput={(e) => {
+            const val = parseFloat(e.currentTarget.value);
+            if (!isNaN(val)) endPoint.targetX = val;
+            dispatch("change");
+          }}
           onblur={() => dispatch("commit")}
           title="The X coordinate of the point to face"
           aria-label="Target X"
@@ -312,8 +327,12 @@
           class="w-full pl-6 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all pr-1"
           step="0.1"
           type="number"
-          bind:value={endPoint.targetY}
-          oninput={() => dispatch("change")}
+          value={endPoint.targetY}
+          oninput={(e) => {
+            const val = parseFloat(e.currentTarget.value);
+            if (!isNaN(val)) endPoint.targetY = val;
+            dispatch("change");
+          }}
           onblur={() => dispatch("commit")}
           title="The Y coordinate of the point to face"
           aria-label="Target Y"
