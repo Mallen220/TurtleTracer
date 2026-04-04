@@ -27,6 +27,9 @@
   let activeTab: "translate" | "rotate" | "flip" | "reverse" =
     $state("translate");
 
+  // Target
+  let transformTarget = $state<"all" | "start">("all");
+
   // Translate State
   let translateX = $state(0);
   let translateY = $state(0);
@@ -72,7 +75,7 @@
 
       if (activeTab === "translate") {
         if (translateX === 0 && translateY === 0) return;
-        transformedData = translatePathData(data, translateX, translateY);
+        transformedData = translatePathData(data, translateX, translateY, transformTarget);
         notification.set({
           message: `Path translated by (${translateX}", ${translateY}")`,
           type: "success",
@@ -85,6 +88,7 @@
           rotateDegrees,
           effectivePivotX,
           effectivePivotY,
+          transformTarget
         );
         notification.set({
           message: `Path rotated by ${rotateDegrees}°`,
@@ -99,6 +103,7 @@
           flipVertical,
           effectivePivotX,
           effectivePivotY,
+          transformTarget
         );
         notification.set({
           message: `Path flipped`,
@@ -218,6 +223,39 @@
       </div>
 
       <div class="p-6 bg-white dark:bg-neutral-900 space-y-6">
+        <div class="border-b border-neutral-200 dark:border-neutral-700 pb-4">
+          <label class="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-2">
+            Transform Target
+          </label>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-1.5 cursor-pointer text-sm text-neutral-700 dark:text-neutral-300">
+              <input
+                type="radio"
+                bind:group={transformTarget}
+                value="all"
+                name="transform-target"
+                class="text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600"
+                disabled={activeTab === "reverse"}
+              /> Entire Path
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer text-sm text-neutral-700 dark:text-neutral-300">
+              <input
+                type="radio"
+                bind:group={transformTarget}
+                value="start"
+                name="transform-target"
+                class="text-blue-600 focus:ring-blue-500 border-neutral-300 dark:border-neutral-600"
+                disabled={activeTab === "reverse"}
+              /> Start Point Only
+            </label>
+          </div>
+          {#if transformTarget === "start"}
+            <p class="mt-2 text-xs text-amber-600 dark:text-amber-400">
+              Only the initial starting pose will be modified. All other lines and shapes remain unchanged.
+            </p>
+          {/if}
+        </div>
+
         {#if activeTab === "reverse"}
           <div>
             <p class="text-sm text-neutral-600 dark:text-neutral-400 mb-4">

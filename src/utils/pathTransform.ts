@@ -59,6 +59,7 @@ export function translatePathData(
   data: PathData,
   dx: number,
   dy: number,
+  target: "all" | "start" = "all"
 ): PathData {
   const t = structuredClone(data);
 
@@ -66,6 +67,8 @@ export function translatePathData(
     t.startPoint.x += dx;
     t.startPoint.y += dy;
   }
+
+  if (target === "start") return t;
 
   if (t.lines) {
     t.lines.forEach((line: Line) => {
@@ -106,6 +109,7 @@ export function rotatePathData(
   degrees: number,
   pivotX: number,
   pivotY: number,
+  target: "all" | "start" = "all"
 ): PathData {
   const r = structuredClone(data);
   const rad = (degrees * Math.PI) / 180;
@@ -144,6 +148,8 @@ export function rotatePathData(
     r.startPoint.y = newPt.y;
     r.startPoint = rotateHeading(r.startPoint);
   }
+
+  if (target === "start") return r;
 
   if (r.lines) {
     r.lines.forEach((line: Line) => {
@@ -194,6 +200,7 @@ export function flipPathData(
   vertical: boolean,
   pivotX: number,
   pivotY: number,
+  target: "all" | "start" = "all"
 ): PathData {
   const f = structuredClone(data);
 
@@ -243,6 +250,8 @@ export function flipPathData(
     f.startPoint.y = newPt.y;
     f.startPoint = flipHeading(f.startPoint);
   }
+
+  if (target === "start") return f;
 
   if (f.lines) {
     f.lines.forEach((line: Line) => {
