@@ -17,17 +17,11 @@ import type {
   SequenceWaitItem,
   SequenceRotateItem,
 } from "../types";
-import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
+import { waitKind, rotateKind } from "./testUtils";
 
 // Ensure core actions are available for helper kinds
 registerCoreUI();
-const waitKind = (): SequenceWaitItem["kind"] =>
-  (actionRegistry.getAll().find((a: any) => a.isWait)
-    ?.kind as SequenceWaitItem["kind"]) ?? "wait";
-const rotateKind = (): SequenceRotateItem["kind"] =>
-  (actionRegistry.getAll().find((a: any) => a.isRotate)
-    ?.kind as SequenceRotateItem["kind"]) ?? "rotate";
 
 // Helper to create a dummy line
 const createLine = (id: string, name: string, x: number, y: number): Line => ({

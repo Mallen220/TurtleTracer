@@ -22,6 +22,36 @@ describe("createHistory", () => {
     history = createHistory(5); // Small max size for testing
   });
 
+  const createTestState1 = () => ({
+    ...defaultState,
+    startPoint: {
+      x: 10,
+      y: 10,
+      heading: "tangential",
+      reverse: false,
+    } as Point,
+  });
+
+  const createTestState2 = () => ({
+    ...defaultState,
+    startPoint: {
+      x: 20,
+      y: 20,
+      heading: "tangential",
+      reverse: false,
+    } as Point,
+  });
+
+  const createTestState3 = () => ({
+    ...defaultState,
+    startPoint: {
+      x: 30,
+      y: 30,
+      heading: "tangential",
+      reverse: false,
+    } as Point,
+  });
+
   it("initializes with empty stacks", () => {
     expect(history.canUndo()).toBe(false);
     expect(history.canRedo()).toBe(false);
@@ -33,15 +63,7 @@ describe("createHistory", () => {
   });
 
   it("records a state", () => {
-    const state1 = {
-      ...defaultState,
-      startPoint: {
-        x: 10,
-        y: 10,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
+    const state1 = createTestState1();
     history.record(state1, "Action 1");
 
     expect(history.canUndo()).toBe(false); // Only 1 state, need > 1 to undo
@@ -49,15 +71,7 @@ describe("createHistory", () => {
     expect(get(history.undoDescriptionStore)).toBeNull(); // Nothing to undo yet
 
     // Record another
-    const state2 = {
-      ...defaultState,
-      startPoint: {
-        x: 20,
-        y: 20,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
+    const state2 = createTestState2();
     history.record(state2, "Action 2");
 
     expect(history.canUndo()).toBe(true);
@@ -67,28 +81,12 @@ describe("createHistory", () => {
   });
 
   it("ignores duplicate states", () => {
-    const state1 = {
-      ...defaultState,
-      startPoint: {
-        x: 10,
-        y: 10,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
+    const state1 = createTestState1();
     history.record(state1, "Action 1");
     history.record(state1, "Action 1 Duplicate"); // Duplicate
 
     // Let's verify by adding a distinct state, then duplicate
-    const state2 = {
-      ...defaultState,
-      startPoint: {
-        x: 20,
-        y: 20,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
+    const state2 = createTestState2();
     history.record(state2, "Action 2");
     history.record(state2, "Action 2 Duplicate");
 
@@ -98,24 +96,8 @@ describe("createHistory", () => {
   });
 
   it("undo restores previous state", () => {
-    const state1 = {
-      ...defaultState,
-      startPoint: {
-        x: 10,
-        y: 10,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
-    const state2 = {
-      ...defaultState,
-      startPoint: {
-        x: 20,
-        y: 20,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
+    const state1 = createTestState1();
+    const state2 = createTestState2();
 
     history.record(state1, "Action 1");
     history.record(state2, "Action 2");
@@ -131,24 +113,8 @@ describe("createHistory", () => {
   });
 
   it("redo restores next state", () => {
-    const state1 = {
-      ...defaultState,
-      startPoint: {
-        x: 10,
-        y: 10,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
-    const state2 = {
-      ...defaultState,
-      startPoint: {
-        x: 20,
-        y: 20,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
+    const state1 = createTestState1();
+    const state2 = createTestState2();
 
     history.record(state1, "Action 1");
     history.record(state2, "Action 2");
@@ -163,33 +129,9 @@ describe("createHistory", () => {
   });
 
   it("clears redo stack on new record", () => {
-    const state1 = {
-      ...defaultState,
-      startPoint: {
-        x: 10,
-        y: 10,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
-    const state2 = {
-      ...defaultState,
-      startPoint: {
-        x: 20,
-        y: 20,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
-    const state3 = {
-      ...defaultState,
-      startPoint: {
-        x: 30,
-        y: 30,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
+    const state1 = createTestState1();
+    const state2 = createTestState2();
+    const state3 = createTestState3();
 
     history.record(state1, "Action 1");
     history.record(state2, "Action 2");
@@ -261,15 +203,7 @@ describe("createHistory", () => {
   });
 
   it("deep clones state on record and return", () => {
-    const mutableState = {
-      ...defaultState,
-      startPoint: {
-        x: 10,
-        y: 10,
-        heading: "tangential",
-        reverse: false,
-      } as Point,
-    };
+    const mutableState = createTestState1();
     history.record(mutableState);
 
     // Modify original object
