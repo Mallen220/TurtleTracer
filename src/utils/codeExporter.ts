@@ -97,14 +97,16 @@ export async function generateJavaCode(
   let pathsClass = `
   public static class Paths {
     ${pathChainNames
-      .map((variableName) => {
+      .map((variableName, idx) => {
+        if (lines[idx].isChain) return "";
         return `public PathChain ${variableName};`;
       })
+      .filter(Boolean)
       .join("\n")}
     
     public Paths(Follower follower) {
-      ${lines
-        .map((line, idx) => {
+      ${(() => {
+        const pathData = lines.map((line, idx) => {
           const variableName = pathChainNames[idx];
 
           let startCode, controlPointsCode, endCode, headingConfig;
@@ -264,16 +266,34 @@ export async function generateJavaCode(
               .join("");
           }
 
-          return `${variableName} = follower.pathBuilder().addPath(
-          ${curveType}(
-            ${startCode},
-            ${controlPointsCode}
-            ${endCode}
-          )
-        )${headingMethodCode}${eventMarkerCode}
-        .build();`;
-        })
-        .join("\n\n")}
+          return { line, variableName, curveType, startCode, controlPointsCode, endCode, headingMethodCode, eventMarkerCode };
+        });
+
+        // Consolidate chained paths
+        const consolidatedBlocks: string[] = [];
+        let currentBlock = "";
+
+        for (let i = 0; i < pathData.length; i++) {
+          const pd = pathData[i];
+
+          if (!pd.line.isChain) {
+            if (currentBlock) {
+               currentBlock += "\n        .build();";
+               consolidatedBlocks.push(currentBlock);
+            }
+            currentBlock = `${pd.variableName} = follower.pathBuilder()\n        .addPath(\n          ${pd.curveType}(\n            ${pd.startCode},\n            ${pd.controlPointsCode}\n            ${pd.endCode}\n          )\n        )${pd.headingMethodCode}${pd.eventMarkerCode}`;
+          } else {
+             currentBlock += `\n        .addPath(\n          ${pd.curveType}(\n            ${pd.startCode},\n            ${pd.controlPointsCode}\n            ${pd.endCode}\n          )\n        )${pd.headingMethodCode}${pd.eventMarkerCode}`;
+          }
+        }
+
+        if (currentBlock) {
+           currentBlock += "\n        .build();";
+           consolidatedBlocks.push(currentBlock);
+        }
+
+        return consolidatedBlocks.join("\n\n");
+      })()
     }
 
     ${
@@ -365,16 +385,26 @@ export async function generateJavaCode(
       const idx = lineIndex !== -1 ? lineIndex : -1;
 
       if (idx !== -1) {
-        stateMachineCode += `\n          follower.followPath(paths.${pathChainNames[idx]}, true);`;
-        stateMachineCode += `\n          setPathState(${stateStep + 1});`;
-        stateMachineCode += `\n          break;`;
+        const line = lines[idx];
+        if (line.isChain) {
+            // Chained paths don't get their own followPath command in the state machine,
+            // they are executed as part of the root chain path before them.
+            stateMachineCode += `\n          // Handled by previous chained path`;
+            stateMachineCode += `\n          setPathState(${stateStep + 1});`;
+            stateMachineCode += `\n          break;`;
+            stateStep += 1;
+        } else {
+            stateMachineCode += `\n          follower.followPath(paths.${pathChainNames[idx]}, true);`;
+            stateMachineCode += `\n          setPathState(${stateStep + 1});`;
+            stateMachineCode += `\n          break;`;
 
-        stateMachineCode += `\n        case ${stateStep + 1}:`;
-        stateMachineCode += `\n          if(!follower.isBusy()) {`;
-        stateMachineCode += `\n            setPathState(${stateStep + 2});`;
-        stateMachineCode += `\n          }`;
-        stateMachineCode += `\n          break;`;
-        stateStep += 2;
+            stateMachineCode += `\n        case ${stateStep + 1}:`;
+            stateMachineCode += `\n          if(!follower.isBusy()) {`;
+            stateMachineCode += `\n            setPathState(${stateStep + 2});`;
+            stateMachineCode += `\n          }`;
+            stateMachineCode += `\n          break;`;
+            stateStep += 2;
+        }
       } else {
         stateMachineCode += `\n          setPathState(${stateStep + 1});`;
         stateMachineCode += `\n          break;`;
@@ -802,7 +832,7 @@ export async function generateSequentialCommandCode(
 
   // Generate path chain declarations
   const pathChainDeclarations = lines
-    .map((_, idx) => {
+    .map((line, idx) => {
       const startPoseName =
         idx === 0
           ? "startPoint"
@@ -826,8 +856,14 @@ export async function generateSequentialCommandCode(
 
       pathChainVariables.push(pathName);
 
+      // If this line is chained to the previous, it does not get its own PathChain variable
+      if (line.isChain) {
+        return "";
+      }
+
       return `    private PathChain ${pathName};`;
     })
+    .filter(Boolean)
     .join("\n");
 
   // Generate ProgressTracker field
@@ -889,8 +925,25 @@ export async function generateSequentialCommandCode(
       return;
     }
 
+    // Skip generating an individual FollowPath command if this line is part of a chained group (but not the first)
+    if (line.isChain) {
+        return;
+    }
+
+    // The name of the entire PathChain is the pathName of the root path
     const pathName = pathChainVariables[lineIdx];
     const pathDisplayName = pathName;
+
+    // Gather all event markers for the entire chain starting at this root line
+    let allEventMarkers = [...(line.eventMarkers || [])];
+    let nextIdx = lineIdx + 1;
+    while (nextIdx < lines.length && lines[nextIdx].isChain) {
+        const nextMarkers = lines[nextIdx].eventMarkers;
+        if (nextMarkers && nextMarkers.length > 0) {
+            allEventMarkers.push(...nextMarkers);
+        }
+        nextIdx++;
+    }
 
     // Construct FollowPath instantiation
     const followPathInstance = isNextFTC
@@ -900,7 +953,7 @@ export async function generateSequentialCommandCode(
     if (isNextFTC) {
       commands.push(followPathInstance);
     } else {
-      if (line.eventMarkers && line.eventMarkers.length > 0) {
+      if (allEventMarkers && allEventMarkers.length > 0) {
         // Path has event markers
 
         // First: InstantCommand to set up tracker
@@ -912,7 +965,7 @@ export async function generateSequentialCommandCode(
         );
 
         // Add event registrations
-        line.eventMarkers.forEach((event) => {
+        allEventMarkers.forEach((event) => {
           commands[commands.length - 1] += `
                         progressTracker.registerEvent("${event.name}", ${event.position.toFixed(3)});`;
         });
@@ -926,7 +979,7 @@ export async function generateSequentialCommandCode(
                     new ${SequentialGroupClass}(`);
 
         // Add WaitUntilCommand for each event
-        line.eventMarkers.forEach((event, eventIdx) => {
+        allEventMarkers.forEach((event, eventIdx) => {
           if (eventIdx > 0) commands[commands.length - 1] += ",";
           commands[commands.length - 1] += `
                         new ${WaitUntilCmdClass}(() -> progressTracker.shouldTriggerEvent("${event.name}")),
@@ -953,98 +1006,108 @@ export async function generateSequentialCommandCode(
   });
 
   // Generate path building
-  const pathBuilders = lines
-    .map((line, idx) => {
-      const startPoseName =
-        idx === 0
-          ? "startPoint"
-          : lines[idx - 1]?.name
-            ? lines[idx - 1]!.name!.replace(/[^a-zA-Z0-9]/g, "")
-            : `point${idx}`; // Uses 'pointN' which maps to endPointName in poseVariableNames?
+  const pathBuildersArr: string[] = [];
+  let currentBuilderStr = "";
 
-      const startPoseVar =
-        idx === 0 ? "startPoint" : poseVariableNames.get(`point${idx}`);
-      // Fallback if something is wrong, though logic aligns with declaration loop
-      const actualStartPose = startPoseVar || "startPoint";
+  lines.forEach((line, idx) => {
+    const startPoseVar =
+      idx === 0 ? "startPoint" : poseVariableNames.get(`point${idx}`);
+    // Fallback if something is wrong, though logic aligns with declaration loop
+    const actualStartPose = startPoseVar || "startPoint";
 
-      const endPoseName = line.name
-        ? line.name.replace(/[^a-zA-Z0-9]/g, "")
-        : `point${idx + 1}`;
+    const endPoseName = line.name
+      ? line.name.replace(/[^a-zA-Z0-9]/g, "")
+      : `point${idx + 1}`;
 
-      const endPoseVar = endPoseName;
+    const endPoseVar = endPoseName;
 
-      const pathName = pathChainVariables[idx];
+    const pathName = pathChainVariables[idx];
 
-      const isCurve = line.controlPoints.length > 0;
-      const curveType = isCurve ? "BezierCurve" : "BezierLine";
+    const isCurve = line.controlPoints.length > 0;
+    const curveType = isCurve ? "BezierCurve" : "BezierLine";
 
-      // Build control points string (instantiate inline as new Pose(x, y))
-      let controlPointsStr = "";
-      if (isCurve) {
-        const controlPoints: string[] = [];
-        line.controlPoints.forEach((cp) => {
-          controlPoints.push(
-            `new Pose(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)})`,
-          );
-        });
-        controlPointsStr = controlPoints.join(", ") + ", ";
-      }
+    // Build control points string (instantiate inline as new Pose(x, y))
+    let controlPointsStr = "";
+    if (isCurve) {
+      const controlPoints: string[] = [];
+      line.controlPoints.forEach((cp) => {
+        controlPoints.push(
+          `new Pose(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)})`,
+        );
+      });
+      controlPointsStr = controlPoints.join(", ") + ", ";
+    }
 
-      // Determine heading interpolation
-      let headingConfig = "";
-      if (line.endPoint.heading === "constant") {
-        if (hardcodeValues) {
-          headingConfig = `setConstantHeadingInterpolation(Math.toRadians(${line.endPoint.degrees || 0}))`;
-        } else {
-          headingConfig = `setConstantHeadingInterpolation(${endPoseVar}.getHeading())`;
-        }
-      } else if (line.endPoint.heading === "linear") {
-        if (hardcodeValues) {
-          headingConfig = `setLinearHeadingInterpolation(Math.toRadians(${line.endPoint.startDeg || 0}), Math.toRadians(${line.endPoint.endDeg || 0}))`;
-        } else {
-          headingConfig = `setLinearHeadingInterpolation(${actualStartPose}.getHeading(), ${endPoseVar}.getHeading())`;
-        }
-      } else if (line.endPoint.heading === "facingPoint") {
-        let hxStr = "0";
-        let hyStr = "0";
-        if (coordinateSystem === "FTC") {
-          const uTarget = toUser(
-            {
-              x: line.endPoint.targetX || 0,
-              y: line.endPoint.targetY || 0,
-            },
-            "FTC",
-          );
-          hxStr = uTarget.x.toFixed(3);
-          hyStr = uTarget.y.toFixed(3);
-        } else {
-          let targetX = line.endPoint.targetX || 0;
-          let targetY = line.endPoint.targetY || 0;
-          hxStr =
-            codeUnits === "metric"
-              ? `cmToInches(${(targetX * 2.54).toFixed(3)})`
-              : targetX.toFixed(3);
-          hyStr =
-            codeUnits === "metric"
-              ? `cmToInches(${(targetY * 2.54).toFixed(3)})`
-              : targetY.toFixed(3);
-        }
-        headingConfig = `setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(${hxStr}, ${hyStr})))`;
+    // Determine heading interpolation
+    let headingConfig = "";
+    if (line.endPoint.heading === "constant") {
+      if (hardcodeValues) {
+        headingConfig = `setConstantHeadingInterpolation(Math.toRadians(${line.endPoint.degrees || 0}))`;
       } else {
-        headingConfig = `setTangentHeadingInterpolation()`;
+        headingConfig = `setConstantHeadingInterpolation(${endPoseVar}.getHeading())`;
       }
+    } else if (line.endPoint.heading === "linear") {
+      if (hardcodeValues) {
+        headingConfig = `setLinearHeadingInterpolation(Math.toRadians(${line.endPoint.startDeg || 0}), Math.toRadians(${line.endPoint.endDeg || 0}))`;
+      } else {
+        headingConfig = `setLinearHeadingInterpolation(${actualStartPose}.getHeading(), ${endPoseVar}.getHeading())`;
+      }
+    } else if (line.endPoint.heading === "facingPoint") {
+      let hxStr = "0";
+      let hyStr = "0";
+      if (coordinateSystem === "FTC") {
+        const uTarget = toUser(
+          {
+            x: line.endPoint.targetX || 0,
+            y: line.endPoint.targetY || 0,
+          },
+          "FTC",
+        );
+        hxStr = uTarget.x.toFixed(3);
+        hyStr = uTarget.y.toFixed(3);
+      } else {
+        let targetX = line.endPoint.targetX || 0;
+        let targetY = line.endPoint.targetY || 0;
+        hxStr =
+          codeUnits === "metric"
+            ? `cmToInches(${(targetX * 2.54).toFixed(3)})`
+            : targetX.toFixed(3);
+        hyStr =
+          codeUnits === "metric"
+            ? `cmToInches(${(targetY * 2.54).toFixed(3)})`
+            : targetY.toFixed(3);
+      }
+      headingConfig = `setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(${hxStr}, ${hyStr})))`;
+    } else {
+      headingConfig = `setTangentHeadingInterpolation()`;
+    }
 
-      // Build reverse config
-      const reverseConfig = line.endPoint.reverse
-        ? "\n                .setReversed()"
-        : "";
+    // Build reverse config
+    const reverseConfig = line.endPoint.reverse
+      ? "\n                .setReversed()"
+      : "";
 
-      return `        ${pathName} = follower.pathBuilder()
+    if (!line.isChain) {
+      if (currentBuilderStr !== "") {
+        currentBuilderStr += "\n            .build();";
+        pathBuildersArr.push(currentBuilderStr);
+      }
+      currentBuilderStr = `        ${pathName} = follower.pathBuilder()
             .addPath(new ${curveType}(${actualStartPose}, ${controlPointsStr}${endPoseVar}))
-            .${headingConfig}${reverseConfig}
-            .build();`;
-    })
-    .join("\n\n        ");
+            .${headingConfig}${reverseConfig}`;
+    } else {
+      currentBuilderStr += `
+            .addPath(new ${curveType}(${actualStartPose}, ${controlPointsStr}${endPoseVar}))
+            .${headingConfig}${reverseConfig}`;
+    }
+  });
+
+  if (currentBuilderStr !== "") {
+    currentBuilderStr += "\n            .build();";
+    pathBuildersArr.push(currentBuilderStr);
+  }
+
+  const pathBuilders = pathBuildersArr.join("\n\n");
 
   // Generate imports based on library
   let imports = "";

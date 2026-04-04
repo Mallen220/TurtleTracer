@@ -278,35 +278,50 @@ export function importJavaProject(javaCode: string): TurtleData {
         const eqIdx = tokens.indexOf("=");
         const pathName = eqIdx !== -1 ? tokens[0] : `Path ${lines.length + 1}`;
 
-        const pathTypeIdx = tokens.findIndex(
-          (t) => t === "BezierLine" || t === "BezierCurve",
-        );
-        if (pathTypeIdx !== -1) {
-          // Find the balanced parentheses for the Bezier function
-          let argsStart = -1;
-          for (let i = pathTypeIdx; i < tokens.length; i++) {
-            if (tokens[i] === "(") {
-              argsStart = i;
-              break;
+        // Find all addPath occurrences in this builder chain
+        const addPathIndices: number[] = [];
+        for (let i = 0; i < tokens.length; i++) {
+            if (tokens[i] === "addPath") {
+                addPathIndices.push(i);
             }
-          }
+        }
 
-          if (argsStart === -1) return;
+        // Process each path in the chain
+        for (let pathIdx = 0; pathIdx < addPathIndices.length; pathIdx++) {
+            const startTokenIdx = addPathIndices[pathIdx];
+            const endTokenIdx = pathIdx < addPathIndices.length - 1 ? addPathIndices[pathIdx + 1] : tokens.length;
+            const pathTokens = tokens.slice(startTokenIdx, endTokenIdx);
 
-          let pcount = 0;
-          let argsEnd = argsStart;
-          for (let i = argsStart; i < tokens.length; i++) {
-            if (tokens[i] === "(") pcount++;
-            if (tokens[i] === ")") pcount--;
-            if (pcount === 0) {
-              argsEnd = i;
-              break;
-            }
-          }
+            const pathTypeIdx = pathTokens.findIndex(
+              (t) => t === "BezierLine" || t === "BezierCurve",
+            );
 
-          const innerTokens = tokens.slice(argsStart + 1, argsEnd);
+            if (pathTypeIdx !== -1) {
+              // Find the balanced parentheses for the Bezier function
+              let argsStart = -1;
+              for (let i = pathTypeIdx; i < pathTokens.length; i++) {
+                if (pathTokens[i] === "(") {
+                  argsStart = i;
+                  break;
+                }
+              }
 
-          // Split args
+              if (argsStart === -1) continue;
+
+              let pcount = 0;
+              let argsEnd = argsStart;
+              for (let i = argsStart; i < pathTokens.length; i++) {
+                if (pathTokens[i] === "(") pcount++;
+                if (pathTokens[i] === ")") pcount--;
+                if (pcount === 0 && i > argsStart) {
+                  argsEnd = i;
+                  break;
+                }
+              }
+
+              const innerTokens = pathTokens.slice(argsStart + 1, argsEnd);
+
+              // Split args
           // Wait, the commas might be at the end, due to how tokens are extracted (like Postorder).
           // But looking at the AST, the tokens might be grouped or commas might be just next to identifiers.
           // Let's just collect identifiers and 'new' poses
@@ -425,15 +440,15 @@ export function importJavaProject(javaCode: string): TurtleData {
             };
 
             if (
-              tokens.includes("setLinearHeadingInterpolation") ||
-              (tokens.includes("HeadingInterpolator") &&
-                tokens.includes("linear"))
+              pathTokens.includes("setLinearHeadingInterpolation") ||
+              (pathTokens.includes("HeadingInterpolator") &&
+                pathTokens.includes("linear"))
             ) {
               line.endPoint.heading = "linear";
-              const hIdx = tokens.includes("setLinearHeadingInterpolation")
-                ? tokens.indexOf("setLinearHeadingInterpolation")
-                : tokens.indexOf("HeadingInterpolator");
-              const argsTokens = tokens.slice(hIdx);
+              const hIdx = pathTokens.includes("setLinearHeadingInterpolation")
+                ? pathTokens.indexOf("setLinearHeadingInterpolation")
+                : pathTokens.indexOf("HeadingInterpolator");
+              const argsTokens = pathTokens.slice(hIdx);
               const extracted = parsePoseCreation(argsTokens);
 
               if (extracted && (extracted as any).x !== undefined) {
@@ -444,33 +459,33 @@ export function importJavaProject(javaCode: string): TurtleData {
                 (line.endPoint as any).endDeg = 0;
               }
             } else if (
-              tokens.includes("setTangentHeadingInterpolation") ||
-              (tokens.includes("HeadingInterpolator") &&
-                tokens.includes("tangent"))
+              pathTokens.includes("setTangentHeadingInterpolation") ||
+              (pathTokens.includes("HeadingInterpolator") &&
+                pathTokens.includes("tangent"))
             ) {
               line.endPoint.heading = "tangential";
             } else if (
-              tokens.includes("setConstantHeadingInterpolation") ||
-              (tokens.includes("HeadingInterpolator") &&
-                tokens.includes("constant"))
+              pathTokens.includes("setConstantHeadingInterpolation") ||
+              (pathTokens.includes("HeadingInterpolator") &&
+                pathTokens.includes("constant"))
             ) {
               line.endPoint.heading = "constant";
-              const hIdx = tokens.includes("setConstantHeadingInterpolation")
-                ? tokens.indexOf("setConstantHeadingInterpolation")
-                : tokens.indexOf("HeadingInterpolator");
+              const hIdx = pathTokens.includes("setConstantHeadingInterpolation")
+                ? pathTokens.indexOf("setConstantHeadingInterpolation")
+                : pathTokens.indexOf("HeadingInterpolator");
 
-              const pStart = tokens.indexOf("(", hIdx);
+              const pStart = pathTokens.indexOf("(", hIdx);
               let pEnd = pStart;
               let overallDepth = 0;
-              for (let i = pStart; i < tokens.length; i++) {
-                if (tokens[i] === "(") overallDepth++;
-                if (tokens[i] === ")") overallDepth--;
+              for (let i = pStart; i < pathTokens.length; i++) {
+                if (pathTokens[i] === "(") overallDepth++;
+                if (pathTokens[i] === ")") overallDepth--;
                 if (overallDepth === 0 && i > pStart) {
                   pEnd = i;
                   break;
                 }
               }
-              const argsTokens = tokens.slice(pStart, pEnd + 1);
+              const argsTokens = pathTokens.slice(pStart, pEnd + 1);
 
               const extracted = parsePoseCreation(argsTokens);
 
@@ -485,25 +500,25 @@ export function importJavaProject(javaCode: string): TurtleData {
                 (line.endPoint as any).degrees = ext !== null ? ext : 0;
               }
             } else if (
-              tokens.includes("facingPoint") ||
-              (tokens.includes("HeadingInterpolator") &&
-                tokens.includes("facingPoint"))
+              pathTokens.includes("facingPoint") ||
+              (pathTokens.includes("HeadingInterpolator") &&
+                pathTokens.includes("facingPoint"))
             ) {
               line.endPoint.heading = "facingPoint";
-              const hIdx = tokens.indexOf("facingPoint");
+              const hIdx = pathTokens.indexOf("facingPoint");
 
-              const pStart = tokens.indexOf("(", hIdx);
+              const pStart = pathTokens.indexOf("(", hIdx);
               let pEnd = pStart;
               let overallDepth = 0;
-              for (let i = pStart; i < tokens.length; i++) {
-                if (tokens[i] === "(") overallDepth++;
-                if (tokens[i] === ")") overallDepth--;
+              for (let i = pStart; i < pathTokens.length; i++) {
+                if (pathTokens[i] === "(") overallDepth++;
+                if (pathTokens[i] === ")") overallDepth--;
                 if (overallDepth === 0 && i > pStart) {
                   pEnd = i;
                   break;
                 }
               }
-              const argsTokens = tokens.slice(pStart, pEnd + 1);
+              const argsTokens = pathTokens.slice(pStart, pEnd + 1);
 
               const extracted = parsePoseCreation(argsTokens);
 
@@ -522,26 +537,26 @@ export function importJavaProject(javaCode: string): TurtleData {
 
             // Find event markers
             const markerIndices = [];
-            for (let i = 0; i < tokens.length; i++) {
-              if (tokens[i] === "addEventMarker") markerIndices.push(i);
+            for (let i = 0; i < pathTokens.length; i++) {
+              if (pathTokens[i] === "addEventMarker") markerIndices.push(i);
             }
 
             markerIndices.forEach((idx) => {
-              const tStart = tokens.indexOf("(", idx);
+              const tStart = pathTokens.indexOf("(", idx);
               if (tStart === -1) return;
 
               let pcount = 0;
               let tEnd = tStart;
-              for (let i = tStart; i < tokens.length; i++) {
-                if (tokens[i] === "(") pcount++;
-                if (tokens[i] === ")") pcount--;
+              for (let i = tStart; i < pathTokens.length; i++) {
+                if (pathTokens[i] === "(") pcount++;
+                if (pathTokens[i] === ")") pcount--;
                 if (pcount === 0 && i > tStart) {
                   tEnd = i;
                   break;
                 }
               }
 
-              const mToks = tokens.slice(tStart + 1, tEnd);
+              const mToks = pathTokens.slice(tStart + 1, tEnd);
               // mToks should look like [ '1.000', '"ShootCenter"', ',' ] or similar
               const numStr = mToks.find((t) => !isNaN(parseFloat(t)));
               const strTok = mToks.find((t) => t.includes('"'));
@@ -555,8 +570,13 @@ export function importJavaProject(javaCode: string): TurtleData {
               }
             });
 
-            const isReversed = tokens.includes("setReversed");
+            const isReversed = pathTokens.includes("setReversed");
             (line.endPoint as any).reverse = isReversed;
+
+            // If this is a subsequent path in a chain builder, mark it as chained
+            if (pathIdx > 0) {
+                line.isChain = true;
+            }
 
             lines.push(line);
 

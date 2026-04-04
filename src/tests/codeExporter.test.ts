@@ -111,7 +111,8 @@ describe("codeExporter", () => {
 
       expect(code).toContain("public static class Paths {");
       expect(code).toContain("public PathChain line1;");
-      expect(code).toContain("line1 = follower.pathBuilder().addPath(");
+      expect(code).toContain("line1 = follower.pathBuilder()");
+      expect(code).toContain(".addPath(");
       expect(code).toContain("new BezierLine");
       expect(code).toContain(
         "setConstantHeadingInterpolation(Math.toRadians(90))",
