@@ -4,7 +4,7 @@ import {
   normalizeLines,
   sanitizeSequence,
   renumberDefaultPathNames,
-} from "../lib/projectStore.svelte";
+} from "../lib/projectStore";
 import type {
   Line,
   SequenceItem,

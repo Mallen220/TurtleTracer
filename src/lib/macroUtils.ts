@@ -7,7 +7,6 @@ import type {
   TurtleData,
   Transformation,
 } from "../types";
-import { snapshotClone } from "../utils/clone.svelte";
 import {
   getDistance,
   getLineStartHeading,
@@ -113,7 +112,7 @@ function transformMacroData(
   transforms: Transformation[],
 ): { data: TurtleData; resolvedTransforms: Transformation[] } {
   // Clone data deeply to prevent mutating the shared store macro data when expanding
-  const newData: TurtleData = snapshotClone(data);
+  const newData: TurtleData = structuredClone(data);
   const resolvedTransforms: Transformation[] = [];
 
   if (!transforms || transforms.length === 0) {
