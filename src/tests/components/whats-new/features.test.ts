@@ -33,28 +33,14 @@ describe("features module", () => {
     }
   });
 
-  it("should sort versions correctly based on compareVersions", () => {
-    if (mod.features.length >= 2) {
-      const ids = mod.features.map((f: any) => f.id);
-      // Ensure they are sorted (e.g. v2 > v1)
-      const isSorted = ids.every((id: string, i: number) => {
-        if (i === 0) return true;
-        const prev = ids[i - 1].replace(/^v/, "").split(".").map(Number);
-        const curr = id.replace(/^v/, "").split(".").map(Number);
+  it("should expose features in descending order for representative versions", () => {
+    const expectedLeadingIds = ["v2.1.0", "v2.0.1", "v2.0.0", "v1.8.1", "v1.8.0"];
 
-        let p = prev[0] || 0;
-        let c = curr[0] || 0;
-        if (p > c) return true;
-        if (p < c) return false;
+    const ids = mod.features.map((f: any) => f.id);
 
-        p = prev[1] || 0;
-        c = curr[1] || 0;
-        if (p > c) return true;
-        if (p < c) return false;
-
-        return true;
-      });
-      expect(isSorted).toBe(true);
-    }
+    // Behavior checks: newest draft entry is excluded and sorted output starts with expected latest releases.
+    expect(ids).not.toContain("newest");
+    expect(ids.length).toBeGreaterThanOrEqual(expectedLeadingIds.length);
+    expect(ids.slice(0, expectedLeadingIds.length)).toEqual(expectedLeadingIds);
   });
 });
