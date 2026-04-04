@@ -766,7 +766,6 @@
           <div
             class="absolute top-4 left-4 right-4 bottom-20 pointer-events-none select-none font-mono text-sm leading-relaxed"
             aria-hidden="true"
-            style="transform: translateY(1.0em);"
           >
             {#each searchMatches as matchIndex (matchIndex)}
               <!-- Data attribute used for scrolling to this line -->
@@ -779,7 +778,7 @@
           </div>
 
           <!-- Actual Code Layer -->
-          <pre class="highlight-wrapper hljs text-sm font-mono leading-relaxed relative z-10"><code>{@html highlightedCode}</code></pre>
+          <pre class="highlight-wrapper hljs text-sm font-mono leading-relaxed relative z-10 p-0 m-0 bg-transparent overflow-visible pointer-events-none"><code>{@html highlightedCode}</code></pre>
         </div>
       </div>
 
@@ -840,31 +839,10 @@
 
 <style>
   /* Ensure the highlightjs background is transparent so our line highlights show through */
-  :global(.highlight-wrapper) {
+  pre.highlight-wrapper.hljs {
     background: transparent !important;
-    padding: 0 !important; /* Remove padding from hljs container */
-    margin: 0 !important; /* Remove margin */
-    overflow: visible !important; /* Prevent double scrollbars */
-    font-family:
-      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-      "Courier New", monospace !important;
-    font-size: 0.875rem !important; /* text-sm */
-    line-height: 1.625 !important; /* leading-relaxed */
-  }
-
-  /* Ensure inner pre/code elements also match (some highlight styles add padding on the pre element) */
-  :global(.highlight-wrapper pre),
-  :global(.highlight-wrapper pre.hljs) {
     padding: 0 !important;
     margin: 0 !important;
-    line-height: 1.625 !important;
     overflow: visible !important;
-  }
-
-  :global(.highlight-wrapper code) {
-    overflow: visible !important;
-    font-family:
-      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-      "Courier New", monospace !important;
   }
 </style>
