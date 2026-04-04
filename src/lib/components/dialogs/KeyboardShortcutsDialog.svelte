@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run, self } from "svelte/legacy";
+
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
   import { CloseIcon, SearchIcon, InfoIcon, ArrowCircleIcon } from "../icons";
@@ -7,35 +9,41 @@
   import { DEFAULT_KEY_BINDINGS } from "../../../config/keybindings";
   import { notification } from "../../../stores";
 
-  export let isOpen = false;
-  export let settings: Settings;
+  interface Props {
+    isOpen?: boolean;
+    settings: Settings;
+  }
 
-  let searchQuery = "";
-  let recordingKeyFor: string | null = null;
-  let selectedCategory: string = "All";
+  let { isOpen = $bindable(false), settings = $bindable() }: Props = $props();
+
+  let searchQuery = $state("");
+  let recordingKeyFor: string | null = $state(null);
+  let selectedCategory: string = $state("All");
 
   // Use settings keyBindings if available, otherwise default
-  $: keyBindings = settings?.keyBindings || DEFAULT_KEY_BINDINGS;
+  let keyBindings = $derived(settings?.keyBindings || DEFAULT_KEY_BINDINGS);
 
   // Extract unique categories
-  $: categories = [
+  let categories = $derived([
     "All",
     ...new Set(keyBindings.map((b) => b.category || "Uncategorized")),
-  ];
+  ]);
 
   // Filter bindings based on search and category
-  $: filteredBindings = keyBindings.filter((binding) => {
-    const matchesSearch =
-      binding.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      binding.key.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "All" ||
-      (binding.category || "Uncategorized") === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  let filteredBindings = $derived(
+    keyBindings.filter((binding) => {
+      const matchesSearch =
+        binding.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        binding.key.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "All" ||
+        (binding.category || "Uncategorized") === selectedCategory;
+      return matchesSearch && matchesCategory;
+    }),
+  );
 
   // Group filtered bindings by category for display when "All" is selected
-  $: groupedBindings =
+  let groupedBindings = $derived(
     selectedCategory === "All"
       ? categories
           .filter((c) => c !== "All")
@@ -51,12 +59,13 @@
             category: selectedCategory,
             bindings: filteredBindings,
           },
-        ];
+        ],
+  );
 
   // Detect duplicate keys (case-insensitive) and expose a mapping for UI warnings
-  let duplicateCheckVersion = 0;
+  let duplicateCheckVersion = $state(0);
   let duplicateMap: Record<string, (typeof keyBindings)[number][] | undefined> =
-    {};
+    $state({});
 
   // Whitelisted duplicate sets that are acceptable and should NOT generate warnings
   const ALLOWED_DUPLICATE_SETS: Set<string>[] = [
@@ -78,7 +87,7 @@
     });
   }
 
-  $: {
+  run(() => {
     // include duplicateCheckVersion to force recomputation when a manual reset occurs
     const _dup = duplicateCheckVersion;
     duplicateMap = (keyBindings || []).reduce(
@@ -100,14 +109,16 @@
       },
       {} as Record<string, (typeof keyBindings)[number][] | undefined>,
     );
-  }
+  });
 
   // Exclude allowed duplicate groups from warning list
-  $: duplicateKeys = Object.entries(duplicateMap).filter(([_, arr]) => {
-    if (!arr || arr.length <= 1) return false;
-    if (isAllowedDuplicateSet(arr)) return false;
-    return true;
-  }) as [string, (typeof keyBindings)[number][]][];
+  let duplicateKeys = $derived(
+    Object.entries(duplicateMap).filter(([_, arr]) => {
+      if (!arr || arr.length <= 1) return false;
+      if (isAllowedDuplicateSet(arr)) return false;
+      return true;
+    }) as [string, (typeof keyBindings)[number][]][],
+  );
 
   function getConflicts(binding: (typeof keyBindings)[number]) {
     if (!binding.key) return [];
@@ -290,14 +301,14 @@
   }
 </script>
 
-<svelte:window on:keydown|capture={handleKeyDown} />
+<svelte:window onkeydowncapture={handleKeyDown} />
 
 {#if isOpen}
   <div
     transition:fade={{ duration: 200, easing: cubicInOut }}
     class="fixed inset-0 z-[1006] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
     role="presentation"
-    on:click|self={() => (isOpen = false)}
+    onclick={self(() => (isOpen = false))}
   >
     <div
       role="dialog"
@@ -330,7 +341,7 @@
             </div>
           </div>
           <button
-            on:click={() => (isOpen = false)}
+            onclick={() => (isOpen = false)}
             class="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors"
             aria-label="Close dialog"
           >
@@ -423,7 +434,7 @@
                     <div class="flex items-center gap-3">
                       {#if isModified(binding)}
                         <button
-                          on:click={() => resetBinding(binding.id)}
+                          onclick={() => resetBinding(binding.id)}
                           class="text-xs text-neutral-400 hover:text-red-500 transition-colors"
                           title="Reset to default"
                         >
@@ -461,7 +472,7 @@
                           binding.id && !binding.key}
                         class:dark:border-neutral-700={recordingKeyFor !==
                           binding.id}
-                        on:click={() => startRecordingKey(binding.id)}
+                        onclick={() => startRecordingKey(binding.id)}
                       >
                         {#if recordingKeyFor === binding.id}
                           <span class="animate-pulse">Listening...</span>
@@ -486,7 +497,7 @@
       >
         <div class="flex items-center gap-4">
           <button
-            on:click={resetAllBindings}
+            onclick={resetAllBindings}
             title="Reset all key bindings to defaults"
             class="px-3 py-1.5 text-sm rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 hover:bg-red-100 dark:hover:bg-red-800 transition-colors"
           >
@@ -506,7 +517,7 @@
           </div>
         </div>
         <button
-          on:click={() => (isOpen = false)}
+          onclick={() => (isOpen = false)}
           class="px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-semibold rounded-lg shadow-sm hover:opacity-90 transition-opacity"
         >
           Done

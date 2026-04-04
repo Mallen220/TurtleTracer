@@ -1,11 +1,17 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import { createEventDispatcher, onMount } from "svelte";
   import MarkdownIt from "markdown-it";
   import { features, getAllFeatures, type FeatureHighlight } from "./features";
   import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "../icons";
 
-  export let show = false;
+  interface Props {
+    show?: boolean;
+  }
+
+  let { show = $bindable(false) }: Props = $props();
 
   const dispatch = createEventDispatcher();
   const md = new MarkdownIt({
@@ -15,19 +21,23 @@
   });
 
   // Mode can be 'features' (viewing individual features of current release) or 'releases' (viewing full changelogs)
-  let viewMode: "features" | "releases" = "features";
+  let viewMode: "features" | "releases" = $state("features");
 
-  let currentRelease: FeatureHighlight | null = null;
-  let allReleases: FeatureHighlight[] = [];
+  let currentRelease: FeatureHighlight | null = $state(null);
+  let allReleases: FeatureHighlight[] = $state([]);
 
   // Left menu state
-  let parsedFeatures: { id: string; title: string; content: string }[] = [];
-  let activeFeatureId: string | null = null;
-  let activeReleaseId: string | null = null;
+  let parsedFeatures: { id: string; title: string; content: string }[] = $state(
+    [],
+  );
+  let activeFeatureId: string | null = $state(null);
+  let activeReleaseId: string | null = $state(null);
 
   // Runtime-loaded features (dynamic fallback)
-  let runtimeFeatures: FeatureHighlight[] = [];
-  $: displayedFeatures = features.length ? getAllFeatures() : runtimeFeatures;
+  let runtimeFeatures: FeatureHighlight[] = $state([]);
+  let displayedFeatures = $derived(
+    features.length ? getAllFeatures() : runtimeFeatures,
+  );
 
   onMount(async () => {
     // Dynamic import fallback (kept from original implementation)
@@ -80,58 +90,64 @@
   });
 
   // Re-run parsing automatically when the displayed features update (e.g. via Vite HMR for live preview)
-  $: allReleases = displayedFeatures;
-  $: currentRelease = allReleases.length > 0 ? allReleases[0] : null;
+  run(() => {
+    allReleases = displayedFeatures;
+  });
+  run(() => {
+    currentRelease = allReleases.length > 0 ? allReleases[0] : null;
+  });
 
-  $: if (currentRelease && show) {
-    const lines = currentRelease.content.split("\n");
-    const extracted: { id: string; title: string; content: string }[] = [];
-    let currentTitle = "Overview";
-    let currentContent: string[] = [];
+  run(() => {
+    if (currentRelease && show) {
+      const lines = currentRelease.content.split("\n");
+      const extracted: { id: string; title: string; content: string }[] = [];
+      let currentTitle = "Overview";
+      let currentContent: string[] = [];
 
-    for (const line of lines) {
-      // Find headings like "## Feature" or "### **Bug Fixes:**"
-      const headingMatch = line.match(
-        /^(#{2,4})\s+(?:\*\*|__)?(.*?)(?:\*\*|__)?\s*$/,
-      );
-      if (
-        headingMatch &&
-        !headingMatch[2].toLowerCase().includes("what's new")
-      ) {
-        const text = currentContent.join("\n").trim();
-        // Skip adding sections if they have no real text content
-        if (text.length > 0) {
-          extracted.push({
-            id: currentTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-            title: currentTitle.replace(/:$/, ""),
-            content: text,
-          });
+      for (const line of lines) {
+        // Find headings like "## Feature" or "### **Bug Fixes:**"
+        const headingMatch = line.match(
+          /^(#{2,4})\s+(?:\*\*|__)?(.*?)(?:\*\*|__)?\s*$/,
+        );
+        if (
+          headingMatch &&
+          !headingMatch[2].toLowerCase().includes("what's new")
+        ) {
+          const text = currentContent.join("\n").trim();
+          // Skip adding sections if they have no real text content
+          if (text.length > 0) {
+            extracted.push({
+              id: currentTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+              title: currentTitle.replace(/:$/, ""),
+              content: text,
+            });
+          }
+          currentTitle = headingMatch[2].trim();
+          currentContent = [];
+        } else {
+          currentContent.push(line);
         }
-        currentTitle = headingMatch[2].trim();
-        currentContent = [];
-      } else {
-        currentContent.push(line);
+      }
+      const finalText = currentContent.join("\n").trim();
+      if (finalText.length > 0) {
+        extracted.push({
+          id: currentTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          title: currentTitle.replace(/:$/, ""),
+          content: finalText,
+        });
+      }
+
+      parsedFeatures = extracted;
+      // Auto-select the first feature if we don't have one selected or if it was removed
+      if (
+        parsedFeatures.length > 0 &&
+        (!activeFeatureId ||
+          !parsedFeatures.find((f) => f.id === activeFeatureId))
+      ) {
+        activeFeatureId = parsedFeatures[0].id;
       }
     }
-    const finalText = currentContent.join("\n").trim();
-    if (finalText.length > 0) {
-      extracted.push({
-        id: currentTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-        title: currentTitle.replace(/:$/, ""),
-        content: finalText,
-      });
-    }
-
-    parsedFeatures = extracted;
-    // Auto-select the first feature if we don't have one selected or if it was removed
-    if (
-      parsedFeatures.length > 0 &&
-      (!activeFeatureId ||
-        !parsedFeatures.find((f) => f.id === activeFeatureId))
-    ) {
-      activeFeatureId = parsedFeatures[0].id;
-    }
-  }
+  });
 
   function close() {
     show = false;
@@ -145,18 +161,20 @@
     }
   }
 
-  $: activeContentHtml = (() => {
-    if (viewMode === "features") {
-      const feature = parsedFeatures.find((f) => f.id === activeFeatureId);
-      return feature ? md.render(feature.content) : "";
-    } else {
-      const release = allReleases.find((r) => r.id === activeReleaseId);
-      return release ? md.render(release.content) : "";
-    }
-  })();
+  let activeContentHtml = $derived(
+    (() => {
+      if (viewMode === "features") {
+        const feature = parsedFeatures.find((f) => f.id === activeFeatureId);
+        return feature ? md.render(feature.content) : "";
+      } else {
+        const release = allReleases.find((r) => r.id === activeReleaseId);
+        return release ? md.render(release.content) : "";
+      }
+    })(),
+  );
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if show}
   <div
@@ -182,7 +200,7 @@
           <div class="flex items-center gap-2">
             {#if viewMode === "releases"}
               <button
-                on:click={() => (viewMode = "features")}
+                onclick={() => (viewMode = "features")}
                 class="p-1 -ml-1 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700"
                 aria-label="Back"
               >
@@ -198,7 +216,7 @@
           </div>
           <!-- Mobile Close -->
           <button
-            on:click={close}
+            onclick={close}
             class="md:hidden p-2 -mr-2 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400"
           >
             <CloseIcon className="h-5 w-5" />
@@ -218,7 +236,7 @@
                 feature.id
                   ? 'bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 shadow-sm text-purple-600 dark:text-purple-400 font-bold'
                   : 'border-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50'}"
-                on:click={() => (activeFeatureId = feature.id)}
+                onclick={() => (activeFeatureId = feature.id)}
               >
                 {feature.title}
               </button>
@@ -230,7 +248,7 @@
                 release.id
                   ? 'bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 shadow-sm text-purple-600 dark:text-purple-400 font-bold'
                   : 'border-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50'}"
-                on:click={() => (activeReleaseId = release.id)}
+                onclick={() => (activeReleaseId = release.id)}
               >
                 {release.title}
               </button>
@@ -245,7 +263,7 @@
           {#if viewMode === "features"}
             <button
               class="w-full py-2 px-3 flex items-center justify-between text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-              on:click={() => {
+              onclick={() => {
                 viewMode = "releases";
                 activeReleaseId = currentRelease?.id || allReleases[0]?.id;
               }}
@@ -256,7 +274,7 @@
           {:else}
             <button
               class="w-full py-2 px-3 flex items-center justify-between text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-              on:click={() => (viewMode = "features")}
+              onclick={() => (viewMode = "features")}
             >
               <ChevronLeftIcon className="h-4 w-4" />
               <span>Back to What's New</span>
@@ -277,7 +295,7 @@
         >
           <!-- Mobile Back Button (only when in releases view on small screens) -->
           <button
-            on:click={() => (viewMode = "features")}
+            onclick={() => (viewMode = "features")}
             class="md:hidden flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
           >
             <ChevronLeftIcon className="h-4 w-4" />
@@ -288,7 +306,7 @@
 
           <!-- Desktop Close -->
           <button
-            on:click={close}
+            onclick={close}
             class="hidden md:block p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
           >
             <CloseIcon className="h-5 w-5" />
@@ -332,7 +350,7 @@
                     {#if i < parsedFeatures.length - 1}
                       <button
                         class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md transition-all flex items-center gap-2"
-                        on:click={() =>
+                        onclick={() =>
                           (activeFeatureId = parsedFeatures[i + 1].id)}
                       >
                         Next
@@ -341,7 +359,7 @@
                     {:else}
                       <button
                         class="px-6 py-2.5 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-800 dark:text-white font-bold rounded-lg transition-all"
-                        on:click={close}
+                        onclick={close}
                       >
                         Done
                       </button>

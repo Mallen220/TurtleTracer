@@ -7,8 +7,12 @@
   import { currentFilePath, currentDirectoryStore } from "../../../../stores";
   import * as ICONS from "../../icons";
 
-  export let settings: Settings;
-  export let searchQuery: string;
+  interface Props {
+    settings: Settings;
+    searchQuery: string;
+  }
+
+  let { settings = $bindable(), searchQuery }: Props = $props();
 
   function getBasePath(): string | null {
     let curFile;
@@ -118,7 +122,7 @@
               'relative' || !settings.autoExportPathMode
               ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm'
               : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}"
-            on:click={() => handleModeChange("relative")}
+            onclick={() => handleModeChange("relative")}
           >
             Relative
           </button>
@@ -127,7 +131,7 @@
             'absolute'
               ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm'
               : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}"
-            on:click={() => handleModeChange("absolute")}
+            onclick={() => handleModeChange("absolute")}
           >
             Absolute
           </button>
@@ -153,12 +157,12 @@
             placeholder="GeneratedCode"
           />
           <button
-            on:click={handleBrowse}
+            onclick={handleBrowse}
             class="px-3 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded-md text-neutral-700 dark:text-neutral-300 transition-colors"
             title="Browse Directory"
           >
             <!-- Folder Icon -->
-            <svelte:component this={ICONS.FolderIcon} className="size-5" />
+            <ICONS.FolderIcon className="size-5" />
           </button>
         </div>
         <div class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">

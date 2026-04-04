@@ -11,9 +11,9 @@
     CloseIcon,
   } from "./icons";
 
-  let visible = false;
+  let visible = $state(false);
   let currentNotification: import("../../types/index").Notification | null =
-    null;
+    $state(null);
   let timeoutId: any;
   let cleanupTimeoutId: any;
 
@@ -78,6 +78,7 @@
 </script>
 
 {#if visible && currentNotification}
+  {@const SvelteComponent = getIconComponent(currentNotification.type)}
   <div
     class="fixed bottom-4 right-4 z-[2000] flex max-w-sm w-full"
     in:fly={{ y: 20, duration: 300 }}
@@ -90,17 +91,14 @@
       role="alert"
     >
       <div class="shrink-0 mr-3">
-        <svelte:component
-          this={getIconComponent(currentNotification.type)}
-          className="size-6"
-        />
+        <SvelteComponent className="size-6" />
       </div>
       <div class="flex-1 text-sm font-medium">
         {currentNotification.message}
       </div>
       {#if currentNotification && currentNotification.action && currentNotification.actionLabel}
         <button
-          on:click={() => {
+          onclick={() => {
             const act = currentNotification
               ? currentNotification.action
               : undefined;
@@ -116,7 +114,7 @@
         </button>
       {/if}
       <button
-        on:click={close}
+        onclick={close}
         class="shrink-0 ml-3 p-1 rounded-md hover:bg-black/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
         aria-label="Close notification"
       >

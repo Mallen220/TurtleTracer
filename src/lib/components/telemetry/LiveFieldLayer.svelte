@@ -1,19 +1,25 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import { onMount } from "svelte";
   import { fieldOverlay } from "../../telemetryStore";
   import type { ScaleFunction } from "../../../types";
 
-  export let x: ScaleFunction;
-  export let y: ScaleFunction;
-  export let width: number;
-  export let height: number;
+  interface Props {
+    x: ScaleFunction;
+    y: ScaleFunction;
+    width: number;
+    height: number;
+  }
 
-  let canvas: HTMLCanvasElement;
+  let { x, y, width, height }: Props = $props();
+
+  let canvas: HTMLCanvasElement | undefined = $state();
   let ctx: CanvasRenderingContext2D | null = null;
-  let renderRequested = false;
+  let renderRequested = $state(false);
 
-  $: ops = $fieldOverlay;
+  let ops = $derived($fieldOverlay);
 
   function render() {
     if (!ctx || !canvas) return;
@@ -72,7 +78,7 @@
   }
 
   // Reactive Trigger
-  $: {
+  run(() => {
     if (ops && width && height) {
       if (!renderRequested) {
         renderRequested = true;
@@ -83,10 +89,10 @@
         }
       }
     }
-  }
+  });
 
   onMount(() => {
-    ctx = canvas.getContext("2d");
+    ctx = canvas!.getContext("2d");
   });
 </script>
 
@@ -95,4 +101,4 @@
   {width}
   {height}
   style="position: absolute; top: 0; left: 0; pointer-events: none; z-index: 18;"
-/>
+></canvas>

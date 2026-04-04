@@ -3,17 +3,23 @@
   import { settingsStore } from "../projectStore";
   import { toUser } from "../../utils/coordinates";
 
-  export let x: number;
-  export let y: number;
-  export let visible: boolean = true;
-  export let isObstructed: boolean = false;
+  interface Props {
+    x: number;
+    y: number;
+    visible?: boolean;
+    isObstructed?: boolean;
+  }
 
-  $: positionClass = isObstructed ? "top-2 right-2" : "bottom-2 left-2";
+  let { x, y, visible = true, isObstructed = false }: Props = $props();
+
+  let positionClass = $derived(
+    isObstructed ? "top-2 right-2" : "bottom-2 left-2",
+  );
 
   // Use settings directly
-  $: system = $settingsStore.coordinateSystem || "Pedro";
+  let system = $derived($settingsStore.coordinateSystem || "Pedro");
 
-  $: userPoint = toUser({ x: x || 0, y: y || 0 }, system);
+  let userPoint = $derived(toUser({ x: x || 0, y: y || 0 }, system));
 </script>
 
 {#if visible}

@@ -9,16 +9,20 @@
   import DownloadIcon from "../icons/DownloadIcon.svelte";
   import { fade } from "svelte/transition";
 
-  export let settings: Settings;
-  // Callback to force update of settings in parent
-  export let onSettingsChange: () => void;
+  interface Props {
+    settings: Settings;
+    // Callback to force update of settings in parent
+    onSettingsChange: () => void;
+  }
 
-  $: profiles = $robotProfilesStore;
-  let selectedProfileId: string = "";
-  let newProfileName: string = "";
-  let isCreating = false;
+  let { settings = $bindable(), onSettingsChange }: Props = $props();
 
-  let updateConfirming = false;
+  let profiles = $derived($robotProfilesStore);
+  let selectedProfileId: string = $state("");
+  let newProfileName: string = $state("");
+  let isCreating = $state(false);
+
+  let updateConfirming = $state(false);
   let updateTimeout: ReturnType<typeof setTimeout>;
 
   onDestroy(() => {
@@ -281,7 +285,7 @@
     <div class="flex gap-2">
       {#if !isCreating}
         <button
-          on:click={() =>
+          onclick={() =>
             document.getElementById("profile-import-input")?.click()}
           class="text-xs px-2 py-1 bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           aria-label="Import profile"
@@ -289,7 +293,7 @@
           Import
         </button>
         <button
-          on:click={() => (isCreating = true)}
+          onclick={() => (isCreating = true)}
           class="text-xs px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
           aria-label="Create new profile"
         >
@@ -301,7 +305,7 @@
           class="hidden"
           tabindex="-1"
           accept=".json"
-          on:change={handleImportProfile}
+          onchange={handleImportProfile}
         />
       {/if}
     </div>
@@ -322,20 +326,20 @@
         bind:value={newProfileName}
         placeholder="e.g. Competition Bot"
         class="w-full px-2 py-1 text-sm border border-neutral-300 dark:border-neutral-600 rounded bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-        on:keydown={(e) => {
+        onkeydown={(e) => {
           if (e.key === "Enter") handleCreateProfile();
           if (e.key === "Escape") isCreating = false;
         }}
       />
       <div class="flex justify-end gap-2 mt-1">
         <button
-          on:click={() => (isCreating = false)}
+          onclick={() => (isCreating = false)}
           class="text-xs px-2 py-1 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200"
         >
           Cancel
         </button>
         <button
-          on:click={handleCreateProfile}
+          onclick={handleCreateProfile}
           class="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
         >
           Save Current Settings
@@ -365,7 +369,7 @@
         </select>
 
         <button
-          on:click={handleApplyProfile}
+          onclick={handleApplyProfile}
           disabled={!selectedProfileId}
           class="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           title="Load settings from selected profile"
@@ -382,8 +386,8 @@
           <div class="flex items-center gap-1">
             <!-- Update Button with inline confirm -->
             <button
-              on:click={handleUpdateClick}
-              on:blur={handleUpdateBlur}
+              onclick={handleUpdateClick}
+              onblur={handleUpdateBlur}
               class={`ml-1 p-1.5 rounded-md transition-all duration-200 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 updateConfirming
                   ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/50 w-20"
@@ -408,7 +412,7 @@
 
             <!-- Export Button -->
             <button
-              on:click={handleExportProfile}
+              onclick={handleExportProfile}
               class="ml-1 p-1.5 rounded-md transition-all duration-200 flex items-center justify-center hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 w-8"
               title="Export Profile"
             >

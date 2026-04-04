@@ -7,8 +7,12 @@
   import { notification } from "../../../../stores";
   import { CloseIcon, RobotPlaceholderIcon } from "../../icons";
 
-  export let settings: Settings;
-  export let searchQuery: string;
+  interface Props {
+    settings: Settings;
+    searchQuery: string;
+  }
+
+  let { settings = $bindable(), searchQuery }: Props = $props();
 
   function handleNumberInput(
     value: string,
@@ -141,7 +145,7 @@
         min="1"
         max="36"
         step="0.5"
-        on:change={handleLengthInput}
+        onchange={handleLengthInput}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
@@ -163,7 +167,7 @@
         min="1"
         max="36"
         step="0.5"
-        on:change={handleWidthInput}
+        onchange={handleWidthInput}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
@@ -207,7 +211,7 @@
         min="0"
         max="24"
         step="0.5"
-        on:change={handleSafetyMarginInput}
+        onchange={handleSafetyMarginInput}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
@@ -309,7 +313,7 @@
             src={settings.robotImage}
             alt="Robot Preview"
             class="w-full h-full object-contain"
-            on:error={(e) => {
+            onerror={(e) => {
               console.error("Failed to load robot image:", settings.robotImage);
               handleImageError(e);
             }}
@@ -322,7 +326,7 @@
         {/if}
         {#if settings.robotImage && settings.robotImage !== "/robot.png" && settings.robotImage !== "none"}
           <button
-            on:click={() => {
+            onclick={() => {
               settings.robotImage = "/robot.png";
               settings = { ...settings };
             }}
@@ -354,10 +358,10 @@
           accept="image/*"
           class="hidden"
           tabindex="-1"
-          on:change={handleImageUpload}
+          onchange={handleImageUpload}
         />
         <button
-          on:click={() => {
+          onclick={() => {
             settings.robotImage = "none";
             settings = { ...settings };
           }}
@@ -367,7 +371,7 @@
           No Image (Recommended)
         </button>
         <button
-          on:click={() => {
+          onclick={() => {
             settings.robotImage = "/robot.png";
             settings = { ...settings };
           }}
@@ -378,7 +382,7 @@
           Lightweight Image
         </button>
         <button
-          on:click={() => {
+          onclick={() => {
             settings.robotImage = "/JefferyThePotato.png";
             settings = { ...settings };
           }}
@@ -388,7 +392,7 @@
           <span>🥔</span> Use Potato Robot
         </button>
         <button
-          on:click={() => document.getElementById("robot-image-input")?.click()}
+          onclick={() => document.getElementById("robot-image-input")?.click()}
           class="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
         >
           Upload Custom
@@ -415,7 +419,7 @@
                               {settings.robotDriveType === 'holonomic'
                 ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
                 : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
-              on:click={() => {
+              onclick={() => {
                 settings.robotDriveType = "holonomic";
                 settings = { ...settings };
               }}
@@ -427,7 +431,7 @@
                               {settings.robotDriveType === 'swerve'
                 ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
                 : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
-              on:click={() => {
+              onclick={() => {
                 settings.robotDriveType = "swerve";
                 settings = { ...settings };
               }}

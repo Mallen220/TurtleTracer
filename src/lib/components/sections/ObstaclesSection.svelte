@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import { createTriangle } from "../../../utils";
   import {
     snapToGrid,
@@ -30,13 +32,22 @@
     PlusIcon,
   } from "../icons";
 
-  export let shapes: Shape[];
-  export let collapsedObstacles: boolean[];
-  export let collapsed: boolean = false;
-  export let isActive: boolean = true;
+  interface Props {
+    shapes: Shape[];
+    collapsedObstacles: boolean[];
+    collapsed?: boolean;
+    isActive?: boolean;
+  }
 
-  let selectedPresetId: string = "";
-  let showSaveDialog = false;
+  let {
+    shapes = $bindable(),
+    collapsedObstacles = $bindable(),
+    collapsed = $bindable(false),
+    isActive = true,
+  }: Props = $props();
+
+  let selectedPresetId: string = $state("");
+  let showSaveDialog = $state(false);
 
   // Focus Handling Action
   function focusOnRequest(
@@ -64,8 +75,9 @@
     };
   }
 
-  $: snapToGridTitle =
-    $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping";
+  let snapToGridTitle = $derived(
+    $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping",
+  );
 
   function openSaveDialog() {
     if (shapes.length === 0) {
@@ -130,13 +142,15 @@
   }
 
   // React to external additions to shapes (e.g. from keybindings)
-  $: if (shapes.length > collapsedObstacles.length) {
-    const diff = shapes.length - collapsedObstacles.length;
-    // Default new externally added obstacles to expanded (false) so user can see them immediately
-    collapsedObstacles = [...collapsedObstacles, ...Array(diff).fill(false)];
-    // Force expand section if a new shape is added externally (e.g. shortcut)
-    if (collapsed) collapsed = false;
-  }
+  run(() => {
+    if (shapes.length > collapsedObstacles.length) {
+      const diff = shapes.length - collapsedObstacles.length;
+      // Default new externally added obstacles to expanded (false) so user can see them immediately
+      collapsedObstacles = [...collapsedObstacles, ...Array(diff).fill(false)];
+      // Force expand section if a new shape is added externally (e.g. shortcut)
+      if (collapsed) collapsed = false;
+    }
+  });
 </script>
 
 <div
@@ -174,7 +188,7 @@
       <!-- Action Buttons -->
       <div class="flex items-center gap-1 shrink-0">
         <button
-          on:click={loadPreset}
+          onclick={loadPreset}
           disabled={!selectedPresetId}
           title="Load Selected Preset"
           aria-label="Load Selected Preset"
@@ -185,7 +199,7 @@
         </button>
 
         <button
-          on:click={openSaveDialog}
+          onclick={openSaveDialog}
           disabled={shapes.length === 0}
           title="Save Current as Preset"
           aria-label="Save Current as Preset"
@@ -195,7 +209,7 @@
         </button>
 
         <button
-          on:click={deletePreset}
+          onclick={deletePreset}
           disabled={!selectedPresetId}
           title="Delete Selected Preset"
           aria-label="Delete Selected Preset"
@@ -222,9 +236,11 @@
           description="Click + to add a new obstacle or keep-in zone."
           compact={true}
         >
-          <div slot="icon">
-            <BoxIcon className="size-6 text-neutral-400" />
-          </div>
+          {#snippet icon()}
+            <div>
+              <BoxIcon className="size-6 text-neutral-400" />
+            </div>
+          {/snippet}
         </EmptyState>
       {:else}
         {#each shapes as shape, shapeIdx}
@@ -234,7 +250,7 @@
             <div class="flex flex-row w-full justify-between items-center">
               <div class="flex flex-row items-center gap-2">
                 <button
-                  on:click={() => toggleObstacle(shapeIdx)}
+                  onclick={() => toggleObstacle(shapeIdx)}
                   aria-label="Toggle Obstacle Settings"
                   class="flex items-center gap-2 font-medium text-sm hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors"
                   title="{collapsedObstacles[shapeIdx]
@@ -293,7 +309,7 @@
                   aria-label={shape.visible !== false
                     ? "Hide Shape"
                     : "Show Shape"}
-                  on:click={() => {
+                  onclick={() => {
                     shape.visible = !(shape.visible !== false);
                     shapes = [...shapes];
                   }}
@@ -314,7 +330,7 @@
                     ? "Unlock Obstacle"
                     : "Lock Obstacle"}
                   aria-pressed={shape.locked ?? false}
-                  on:click={() => {
+                  onclick={() => {
                     shape.locked = !(shape.locked ?? false);
                     shapes = [...shapes];
                   }}
@@ -362,7 +378,7 @@
                             vertex.x,
                             $settingsStore.coordinateSystem || "Pedro",
                           )}
-                          on:input={(e) => {
+                          oninput={(e) => {
                             const val = parseFloat(e.currentTarget.value);
                             if (!isNaN(val)) {
                               vertex.x = toFieldCoordinate(
@@ -399,7 +415,7 @@
                             vertex.y,
                             $settingsStore.coordinateSystem || "Pedro",
                           )}
-                          on:input={(e) => {
+                          oninput={(e) => {
                             const val = parseFloat(e.currentTarget.value);
                             if (!isNaN(val)) {
                               vertex.y = toFieldCoordinate(
@@ -437,7 +453,7 @@
                           title="Add Vertex After"
                           aria-label="Add Vertex After"
                           class="text-neutral-400 hover:text-purple-500 transition-colors p-1"
-                          on:click={() => {
+                          onclick={() => {
                             // Duplicate current vertex for easier editing
                             const newVertex = { ...vertex };
                             shape.vertices.splice(vertexIdx + 1, 0, newVertex);

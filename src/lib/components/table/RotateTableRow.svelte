@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { stopPropagation } from "svelte/legacy";
+
   import type { SequenceRotateItem, SequenceItem } from "../../../types";
   import TrashIcon from "../icons/TrashIcon.svelte";
   import EllipsisHorizontalIcon from "../icons/EllipsisHorizontalIcon.svelte";
@@ -11,26 +13,41 @@
   import { transformAngle } from "../../../utils/math";
   import { focusRequest } from "../../../stores";
 
-  export let item: SequenceRotateItem;
-  export let index: number;
-  export let isLocked: boolean = false;
+  interface Props {
+    item: SequenceRotateItem;
+    index: number;
+    isLocked?: boolean;
+    // Drag & Drop props
+    dragOverIndex?: number | null;
+    dragPosition?: string | null;
+    draggingIndex?: number | null;
+    // Interaction callbacks
+    onUpdate: (item: SequenceRotateItem) => void;
+    onLock: () => void;
+    onDelete: () => void;
+    onDragStart: (e: DragEvent) => void;
+    onDragEnd: () => void;
+    onContextMenu: (e: MouseEvent) => void;
+    sequence?: SequenceItem[];
+  }
 
-  // Drag & Drop props
-  export let dragOverIndex: number | null = null;
-  export let dragPosition: string | null = null;
-  export let draggingIndex: number | null = null;
+  let {
+    item = $bindable(),
+    index,
+    isLocked = false,
+    dragOverIndex = null,
+    dragPosition = null,
+    draggingIndex = null,
+    onUpdate,
+    onLock,
+    onDelete,
+    onDragStart,
+    onDragEnd,
+    onContextMenu,
+    sequence = [],
+  }: Props = $props();
 
-  // Interaction callbacks
-  export let onUpdate: (item: SequenceRotateItem) => void;
-  export let onLock: () => void;
-  export let onDelete: () => void;
-  export let onDragStart: (e: DragEvent) => void;
-  export let onDragEnd: () => void;
-  export let onContextMenu: (e: MouseEvent) => void;
-
-  export let sequence: SequenceItem[] = [];
-
-  $: rotateItem = item; // Cast for template usage
+  let rotateItem = $derived(item); // Cast for template usage
 
   function focusOnRequest(
     node: HTMLElement,
@@ -76,17 +93,18 @@
     onUpdate(item);
   }
 
-  $: isOutOfBounds =
+  let isOutOfBounds = $derived(
     rotateItem.degrees !== undefined &&
-    (rotateItem.degrees > 180 || rotateItem.degrees <= -180);
+      (rotateItem.degrees > 180 || rotateItem.degrees <= -180),
+  );
 </script>
 
 <tr
   data-seq-index={index}
   draggable={!isLocked}
-  on:dragstart={onDragStart}
-  on:dragend={onDragEnd}
-  on:contextmenu={onContextMenu}
+  ondragstart={onDragStart}
+  ondragend={onDragEnd}
+  oncontextmenu={onContextMenu}
   class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-pink-50 dark:bg-pink-900/20 transition-colors duration-150"
   class:border-t-2={dragOverIndex === index && dragPosition === "top"}
   class:border-b-2={dragOverIndex === index && dragPosition === "bottom"}
@@ -104,7 +122,7 @@
       <input
         class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-pink-500 focus:outline-none text-xs pr-6"
         value={item.name}
-        on:input={handleNameInput}
+        oninput={handleNameInput}
         use:focusOnRequest={{
           id: `rotate-${item.id}`,
           field: "name",
@@ -133,7 +151,7 @@
         class:dark:border-yellow-500={isOutOfBounds}
         value={rotateItem.degrees}
         aria-label="{item.name || 'Rotate'} Degrees"
-        on:input={handleDegreesInput}
+        oninput={handleDegreesInput}
         use:focusOnRequest={{
           id: `rotate-${item.id}`,
           field: "heading",
@@ -142,7 +160,7 @@
       />
       {#if isOutOfBounds && !isLocked}
         <button
-          on:click={normalizeDegrees}
+          onclick={normalizeDegrees}
           title="Angle is out of bounds. Click to normalize to [-180, 180]."
           aria-label="Normalize angle"
           class="p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
@@ -155,7 +173,7 @@
   <td class="px-3 py-2 text-left flex items-center justify-start gap-1">
     <!-- Lock toggle for rotate -->
     <button
-      on:click|stopPropagation={onLock}
+      onclick={stopPropagation(onLock)}
       title={isLocked ? "Unlock rotate" : "Lock rotate"}
       aria-label={isLocked ? "Unlock rotate" : "Lock rotate"}
       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
@@ -171,7 +189,7 @@
     <!-- Delete slot (hidden when locked) -->
     {#if !isLocked}
       <button
-        on:click|stopPropagation={onDelete}
+        onclick={stopPropagation(onDelete)}
         title="Delete rotate"
         aria-label="Delete rotate"
         class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"

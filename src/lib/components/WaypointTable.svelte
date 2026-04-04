@@ -70,6 +70,7 @@
   import { toUser, toField } from "../../utils/coordinates";
   import { calculatePathTime, formatTime } from "../../utils/timeCalculator";
   import DebugPanel from "./common/DebugPanel.svelte";
+  import { isSupportedProjectFileName } from "../../utils/fileExtensions";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -432,18 +433,52 @@
   function handleWindowDrop(e: DragEvent) {
     if (!isActive) return;
 
-    // Check for macro drop
+    const isInternalReorder = draggingIndex !== null;
+
+    // Check for internal macro data OR OS files that could be macros
+    let isMacroDrop = e.dataTransfer?.types
+      ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
+          (t) => e.dataTransfer?.types.includes(t),
+        )
+      : false;
+
+    // Optional: detect OS file drops as macros if active
+    const hasFiles = e.dataTransfer?.types.includes("Files");
     if (
-      e.dataTransfer &&
-      ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
-        (t) => e.dataTransfer?.types?.includes(t),
-      )
+      !isMacroDrop &&
+      hasFiles &&
+      e.dataTransfer?.files &&
+      e.dataTransfer.files.length > 0
     ) {
+      const file = e.dataTransfer.files[0];
+      // Note: isSupportedProjectFileName should be imported if not already
+      if (typeof isSupportedProjectFileName === "function" && isSupportedProjectFileName(file.name)) {
+        isMacroDrop = true;
+      }
+    }
+
+    if (isMacroDrop) {
       e.preventDefault();
-      const filePath =
-        e.dataTransfer.getData("application/x-turtle-tracer-macro") ||
-        e.dataTransfer.getData("application/x-pedro-macro");
-      if (!filePath) return;
+      e.stopPropagation();
+
+      let filePath =
+        e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
+        e.dataTransfer?.getData("application/x-pedro-macro");
+
+      // Handle OS file path if no internal data
+      if (
+        !filePath &&
+        hasFiles &&
+        e.dataTransfer?.files &&
+        e.dataTransfer.files.length > 0
+      ) {
+        filePath = (e.dataTransfer.files[0] as any).path;
+      }
+
+      if (!filePath) {
+        handleDragEnd();
+        return;
+      }
 
       const target = getClosestTarget(e, "tr[data-seq-index]", document.body);
       let dropIndex = sequence.length;
@@ -463,6 +498,7 @@
 
     if (draggingIndex === null) return;
     e.preventDefault();
+    e.stopPropagation();
 
     if (
       dragOverIndex === null ||
@@ -1210,7 +1246,7 @@
   }
 </script>
 
-<svelte:window on:dragover={handleWindowDragOver} on:drop={handleWindowDrop} />
+<svelte:window ondragover={handleWindowDragOver} ondrop={handleWindowDrop} />
 
 {#if contextMenuOpen}
   <ContextMenu
@@ -1230,7 +1266,7 @@
       <button
         title={copyButtonText}
         aria-label={copyButtonText}
-        on:click={copyTableToClipboard}
+        onclick={copyTableToClipboard}
         class="flex flex-row items-center gap-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-neutral-600 dark:text-neutral-400 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
       >
         <span>{copyButtonText}</span>
@@ -1290,8 +1326,8 @@
         class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors duration-150"
         class:selected={$selectedPointId === "point-0-0" ||
           $multiSelectedPointIdsSet.has("point-0-0")}
-        on:click={(e) => handleRowClick(e, "point-0-0", null)}
-        on:contextmenu={(e) => handleContextMenu(e, -1)}
+        onclick={(e) => handleRowClick(e, "point-0-0", null)}
+        oncontextmenu={(e) => handleContextMenu(e, -1)}
         class:border-b-2={dragOverIndex === -1 && dragPosition === "bottom"}
         class:border-blue-500={dragOverIndex === -1}
         class:dark:border-blue-400={dragOverIndex === -1}
@@ -1317,7 +1353,7 @@
               settings || {},
             )}
             aria-label="Start Point X"
-            on:change={(e) => handleInput(e, startPoint, "x")}
+            onchange={(e) => handleInput(e, startPoint, "x")}
             use:focusOnRequest={{ id: "point-0-0", field: "x" }}
             disabled={startPoint.locked}
           />
@@ -1332,7 +1368,7 @@
               settings || {},
             )}
             aria-label="Start Point Y"
-            on:change={(e) => handleInput(e, startPoint, "y")}
+            onchange={(e) => handleInput(e, startPoint, "y")}
             use:focusOnRequest={{ id: "point-0-0", field: "y" }}
             disabled={startPoint.locked}
           />
@@ -1365,9 +1401,9 @@
             <tr
               data-seq-index={seqIndex}
               draggable={!line.locked}
-              on:dragstart={(e) => handleDragStart(e, seqIndex)}
-              on:dragend={handleDragEnd}
-              on:contextmenu={(e) => handleContextMenu(e, seqIndex)}
+              ondragstart={(e) => handleDragStart(e, seqIndex)}
+              ondragend={handleDragEnd}
+              oncontextmenu={(e) => handleContextMenu(e, seqIndex)}
               class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 font-medium ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(endPointId) ? "bg-green-100 dark:bg-green-800/40" : ""} transition-colors duration-150 ${line.hidden ? "opacity-50 grayscale-[50%]" : ""}`}
               class:border-t-2={dragOverIndex === seqIndex &&
                 dragPosition === "top"}
@@ -1376,7 +1412,7 @@
               class:border-blue-500={dragOverIndex === seqIndex}
               class:dark:border-blue-400={dragOverIndex === seqIndex}
               class:opacity-50={draggingIndex === seqIndex}
-              on:click={(e) => handleRowClick(e, endPointId, line.id || null)}
+              onclick={(e) => handleRowClick(e, endPointId, line.id || null)}
             >
               <td
                 class="w-8 px-2 py-2 text-center cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
@@ -1387,9 +1423,9 @@
                 <div class="flex flex-row items-center gap-2">
                   <ColorPicker
                     bind:color={line.color}
-                    on:input={function (e) {
-                      const target = e.currentTarget || e.target;
-                      if (target instanceof HTMLInputElement && line.id) {
+                    oninput={function (e: Event) {
+                      const target = (e.target || e.currentTarget) as HTMLInputElement;
+                      if (target && line.id) {
                         updateLineColor(line.id, target.value);
                       }
                     }}
@@ -1401,8 +1437,8 @@
                       class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs pr-6"
                       class:text-blue-500={hoveredLinkId === line.id}
                       value={line.name}
-                      on:input={function (e) {
-                        const target = e.currentTarget || e.target;
+                      oninput={function (e: Event & { currentTarget: EventTarget & HTMLInputElement }) {
+                        const target = (e.currentTarget || e.target) as HTMLInputElement;
                         if (target instanceof HTMLInputElement) {
                           updateLineName(item.lineId, target.value);
                         }
@@ -1419,9 +1455,9 @@
                       <div
                         role="presentation"
                         class="absolute right-[22px] top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 cursor-help flex items-center justify-center"
-                        on:mouseenter={(e) =>
+                        onmouseenter={(e) =>
                           handleStatsHoverEnter(e, line.id || null)}
-                        on:mouseleave={handleStatsHoverLeave}
+                        onmouseleave={handleStatsHoverLeave}
                       >
                         <InfoIcon className="w-3.5 h-3.5" />
                         {#if hoveredStatsLineId === line.id}
@@ -1454,9 +1490,9 @@
                       <div
                         role="presentation"
                         class="absolute right-1 top-1/2 -translate-y-1/2 text-blue-500 cursor-help flex items-center justify-center"
-                        on:mouseenter={(e) =>
+                        onmouseenter={(e) =>
                           handleLinkHoverEnter(e, line.id || null)}
-                        on:mouseleave={handleLinkHoverLeave}
+                        onmouseleave={handleLinkHoverLeave}
                       >
                         <LinkIcon className="w-3.5 h-3.5" />
                         {#if hoveredLinkId === line.id}
@@ -1490,7 +1526,7 @@
                       settings || {},
                     )}
                     aria-label="{line.name || `Path ${lineIdx + 1}`} X"
-                    on:change={(e) =>
+                    onchange={(e) =>
                       handleInput(e, line.endPoint, "x", line.id)}
                     use:focusOnRequest={{ id: endPointId, field: "x" }}
                     disabled={line.locked}
@@ -1511,7 +1547,7 @@
                     settings || {},
                   )}
                   aria-label="{line.name || `Path ${lineIdx + 1}`} Y"
-                  on:change={(e) => handleInput(e, line.endPoint, "y", line.id)}
+                  onchange={(e) => handleInput(e, line.endPoint, "y", line.id)}
                   use:focusOnRequest={{ id: endPointId, field: "y" }}
                   disabled={line.locked}
                 />
@@ -1521,7 +1557,7 @@
                 <button
                   title={line.hidden ? "Show Path" : "Hide Path"}
                   aria-label={line.hidden ? "Show Path" : "Hide Path"}
-                  on:click|stopPropagation={() => {
+                  onclick={(e) => { e.stopPropagation();
                     line.hidden = !line.hidden;
                     lines = [...lines];
                     if (recordChange) recordChange();
@@ -1539,7 +1575,7 @@
                 <button
                   title={line.locked ? "Unlock Path" : "Lock Path"}
                   aria-label={line.locked ? "Unlock Path" : "Lock Path"}
-                  on:click|stopPropagation={() => {
+                  onclick={(e) => { e.stopPropagation();
                     line.locked = !line.locked;
                     lines = [...lines];
                     if (recordChange) recordChange();
@@ -1557,7 +1593,7 @@
                 <!-- Right slot: delete or placeholder -->
                 {#if lines.length > 1 && !line.locked}
                   <button
-                    on:click|stopPropagation={() => {
+                    onclick={(e) => { e.stopPropagation();
                       if (line.id) deleteLine(line.id);
                     }}
                     title="Delete path"
@@ -1582,7 +1618,7 @@
               {@const pointId = `point-${lineIdx + 1}-${cpIndex}`}
               <tr
                 class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(pointId) ? "bg-green-100 dark:bg-green-800/40" : ""}`}
-                on:click={(e) => handleRowClick(e, pointId, line.id || null)}
+                onclick={(e) => handleRowClick(e, pointId, line.id || null)}
               >
                 <td class="w-8 px-2 py-2">
                   <!-- No drag handle for control points, but they are drop targets for the parent seqIdx -->
@@ -1603,7 +1639,7 @@
                     )}
                     aria-label="Control Point {j + 1} X for {line.name ||
                       `Path ${lineIdx + 1}`}"
-                    on:change={(e) => handleInput(e, cp, "x")}
+                    onchange={(e) => handleInput(e, cp, "x")}
                     use:focusOnRequest={{ id: pointId, field: "x" }}
                     disabled={line.locked}
                   />
@@ -1619,7 +1655,7 @@
                     )}
                     aria-label="Control Point {j + 1} Y for {line.name ||
                       `Path ${lineIdx + 1}`}"
-                    on:change={(e) => handleInput(e, cp, "y")}
+                    onchange={(e) => handleInput(e, cp, "y")}
                     use:focusOnRequest={{ id: pointId, field: "y" }}
                     disabled={line.locked}
                   />
@@ -1636,8 +1672,8 @@
                   {:else}
                     <span class="h-6 w-6" aria-hidden="true"></span>
                     <button
-                      on:click|stopPropagation={() =>
-                        deleteControlPoint(line, j)}
+                      onclick={(e) => { e.stopPropagation();
+                        deleteControlPoint(line, j); }}
                       title="Delete control point"
                       aria-label="Delete control point"
                       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
@@ -1716,7 +1752,7 @@
   <!-- Persistent Add Buttons -->
   <div class="flex gap-2 flex-shrink-0">
     <button
-      on:click={() => insertPath(sequence.length)}
+      onclick={() => insertPath(sequence.length)}
       class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
       aria-label="Add new path segment"
       title={`Add new path segment${getShortcutFromSettings(settings, "add-path")}`}
@@ -1728,7 +1764,7 @@
     {#each Object.values($actionRegistry) as def (def.kind)}
       {#if def.createDefault && !def.isPath}
         <button
-          on:click={() => handleAddAction(def)}
+          onclick={() => handleAddAction(def)}
           class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
           aria-label={`Add ${def.label} command`}
           title={`Add ${def.label} command${getShortcutFromSettings(settings, def.kind === "wait" ? "add-wait" : def.kind === "rotate" ? "add-rotate" : "")}`}

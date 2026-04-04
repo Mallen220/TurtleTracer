@@ -2,6 +2,7 @@
 <!-- src/lib/components/filemanager/FileContextMenu.svelte -->
 <script lang="ts">
   import { createEventDispatcher, onMount } from "svelte";
+  import { run } from "svelte/legacy";
   import { fade } from "svelte/transition";
   import {
     ArrowRightIcon,
@@ -12,10 +13,14 @@
     TrashIcon,
   } from "../icons";
 
-  export let x: number;
-  export let y: number;
-  export let fileName: string;
-  export let isDirectory: boolean = false;
+  interface Props {
+    x: number;
+    y: number;
+    fileName: string;
+    isDirectory?: boolean;
+  }
+
+  let { x, y, fileName, isDirectory = false }: Props = $props();
 
   const dispatch = createEventDispatcher<{
     close: void;
@@ -29,7 +34,7 @@
       | "save-to";
   }>();
 
-  let menuElement: HTMLDivElement;
+  let menuElement: HTMLDivElement | undefined = $state();
 
   function handleClickOutside(event: MouseEvent) {
     if (menuElement && !menuElement.contains(event.target as Node)) {
@@ -38,8 +43,13 @@
   }
 
   // Adjust position if it goes off screen
-  let adjustedX = x;
-  let adjustedY = y;
+  let adjustedX = $state(0);
+  let adjustedY = $state(0);
+
+  run(() => {
+    adjustedX = x;
+    adjustedY = y;
+  });
 
   onMount(() => {
     if (menuElement) {
@@ -74,7 +84,7 @@
   </div>
 
   <button
-    on:click={() => dispatch("action", "open")}
+    onclick={() => dispatch("action", "open")}
     class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
   >
     <ArrowRightIcon className="size-4" />
@@ -83,7 +93,7 @@
 
   {#if !isDirectory}
     <button
-      on:click={() => dispatch("action", "save-to")}
+      onclick={() => dispatch("action", "save-to")}
       class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
     >
       <ArrowDownTrayIcon className="size-4" />
@@ -93,7 +103,7 @@
   <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
 
   <button
-    on:click={() => dispatch("action", "rename")}
+    onclick={() => dispatch("action", "rename")}
     class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
   >
     <PenIcon className="size-4" strokeWidth={1.5} />
@@ -102,7 +112,7 @@
 
   {#if !isDirectory}
     <button
-      on:click={() => dispatch("action", "duplicate")}
+      onclick={() => dispatch("action", "duplicate")}
       class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
     >
       <DocumentIcon className="size-4" strokeWidth={1.5} />
@@ -110,7 +120,7 @@
     </button>
 
     <button
-      on:click={() => dispatch("action", "mirror")}
+      onclick={() => dispatch("action", "mirror")}
       class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
     >
       <!-- Need to flip vertically or similar for Mirror vs Reverse, we'll use ArrowCircleIcon or reverse its scale.
@@ -120,7 +130,7 @@
     </button>
 
     <button
-      on:click={() => dispatch("action", "reverse")}
+      onclick={() => dispatch("action", "reverse")}
       class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
     >
       <ArrowCircleIcon className="size-4" strokeWidth={1.5} />
@@ -130,7 +140,7 @@
   <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
 
   <button
-    on:click={() => dispatch("action", "delete")}
+    onclick={() => dispatch("action", "delete")}
     class="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
   >
     <TrashIcon className="size-4" strokeWidth={1.5} />

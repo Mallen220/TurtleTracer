@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import type {
     Point,
     Line,
@@ -43,100 +45,45 @@
   import PathActionButtons from "./PathActionButtons.svelte";
   import DebugPanel from "../common/DebugPanel.svelte";
   import MapPinIcon from "../icons/MapPinIcon.svelte";
+  import { isSupportedProjectFileName } from "../../../utils/fileExtensions";
 
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let sequence: SequenceItem[];
-  export let settings: Settings;
-  export let recordChange: (action?: string) => void;
-  export let isActive: boolean = false; // instead of checking activeTab === 'path'
+  interface Props {
+    startPoint: Point;
+    lines: Line[];
+    sequence: SequenceItem[];
+    settings: Settings;
+    recordChange: (action?: string) => void;
+    isActive?: boolean; // instead of checking activeTab === 'path'
+  }
 
-  $: showDebug = (settings as any)?.showDebugSequence;
+  let {
+    startPoint = $bindable(),
+    lines = $bindable(),
+    sequence = $bindable(),
+    settings,
+    recordChange,
+    isActive = false,
+  }: Props = $props();
 
   // --- Logic from ControlTab ---
-  let collapsedEventMarkers: boolean[] = lines.map(() => false);
+  let collapsedEventMarkers: boolean[] = $state(lines.map(() => false));
 
   // State for collapsed sections
-  let collapsedSections = {
+  let collapsedSections = $state({
     lines: lines.map(() => false),
     controlPoints: lines.map(() => true), // Start with control points collapsed
     // Generic map for all sequence items by ID (waits, rotates, macros, etc.)
     items: {} as Record<string, boolean>,
-  };
+  });
 
-  // Debug helpers
-  $: debugLinesIds = Array.isArray(lines)
-    ? lines.map((l) => l.id).filter((id): id is string => id != null)
-    : [];
-  $: debugSequenceIds = Array.isArray(sequence)
-    ? sequence.filter((s) => s.kind === "path").map((s: any) => s.lineId)
-    : ([] as string[]);
-  $: debugMissing = debugLinesIds.filter(
-    (id) => id && !debugSequenceIds.includes(id),
-  ) as string[];
-  $: debugInvalidRefs = debugSequenceIds.filter(
-    (id) => !debugLinesIds.includes(id),
-  ) as string[];
+  let repairedSequenceOnce = $state(false);
 
-  let repairedSequenceOnce = false;
-
-  $: if (
-    Array.isArray(lines) &&
-    Array.isArray(sequence) &&
-    !repairedSequenceOnce
-  ) {
-    const lineIds = new Set(lines.map((l) => l.id));
-    const pruned = sequence.filter(
-      (s) => s.kind !== "path" || lineIds.has((s as any).lineId),
-    );
-    const presentIds = new Set(
-      pruned.filter((s) => s.kind === "path").map((s) => (s as any).lineId),
-    );
-    const missing = lines.filter(
-      (l) => !presentIds.has(l.id) && !l.isMacroElement,
-    );
-
-    if (missing.length || pruned.length !== sequence.length) {
-      sequence = [
-        ...pruned,
-        ...missing.map(
-          (l) =>
-            ({
-              kind: "path",
-              lineId: l.id as string,
-            }) as unknown as SequenceItem,
-        ),
-      ];
-      repairedSequenceOnce = true;
-      recordChange?.("Repair Sequence");
-    }
-  }
-
-  // Reactive statements to update UI state when lines change
-  $: if (lines.length !== collapsedSections.lines.length) {
-    collapsedEventMarkers = lines.map(() => false);
-    const wasAllCollapsed =
-      collapsedSections &&
-      collapsedSections.lines &&
-      collapsedSections.lines.length > 0 &&
-      collapsedSections.lines.every((v) => v === true);
-    collapsedSections = {
-      ...collapsedSections,
-      lines: lines.map(() => (wasAllCollapsed ? true : false)),
-      controlPoints: lines.map(() => true),
-    };
-  }
-
-  let _lastToggleCollapse = $toggleCollapseAllTrigger;
-  $: if ($toggleCollapseAllTrigger !== _lastToggleCollapse) {
-    _lastToggleCollapse = $toggleCollapseAllTrigger;
-    toggleCollapseAll();
-  }
+  let _lastToggleCollapse = $state($toggleCollapseAllTrigger);
 
   // Drag and drop state
-  let draggingIndex: number | null = null;
-  let dragOverIndex: number | null = null;
-  let dragPosition: DragPosition | null = null;
+  let draggingIndex: number | null = $state(null);
+  let dragOverIndex: number | null = $state(null);
+  let dragPosition: DragPosition | null = $state(null);
 
   function handleDragStart(e: DragEvent, index: number) {
     const originElem = document.elementFromPoint(
@@ -206,15 +153,46 @@
     if (!isActive) return;
 
     const isInternalReorder = draggingIndex !== null;
-    const isMacroDrop = e.dataTransfer?.types
+    
+    // Check for internal macro data OR OS files that could be macros
+    let isMacroDrop = e.dataTransfer?.types
       ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
           (t) => e.dataTransfer?.types.includes(t),
         )
       : false;
 
+    // Optional: detect OS file drops as macros if active
+    const hasFiles = e.dataTransfer?.types.includes("Files");
+    if (!isMacroDrop && hasFiles && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (isSupportedProjectFileName(file.name)) {
+        isMacroDrop = true;
+      }
+    }
+
     if (!isInternalReorder && !isMacroDrop) return;
 
     e.preventDefault();
+    e.stopPropagation();
+
+    // If no specific item targeted, but it's a macro, append to end
+    if (isMacroDrop && (dragOverIndex === null || dragPosition === null)) {
+      let filePath =
+        e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
+        e.dataTransfer?.getData("application/x-pedro-macro");
+      
+      // Handle OS file path if no internal data
+      if (!filePath && hasFiles && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        // In Electron, we can often get the path from file.path
+        filePath = (e.dataTransfer.files[0] as any).path;
+      }
+
+      if (filePath) {
+        await addMacroToSequence(filePath, sequence.length);
+      }
+      handleDragEnd();
+      return;
+    }
 
     if (
       dragOverIndex === null ||
@@ -236,9 +214,14 @@
       syncLinesToSequence(newSequence);
       recordChange?.("Reorder Sequence");
     } else if (isMacroDrop) {
-      const filePath =
+      let filePath =
         e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
         e.dataTransfer?.getData("application/x-pedro-macro");
+      
+      if (!filePath && hasFiles && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        filePath = (e.dataTransfer.files[0] as any).path;
+      }
+
       if (filePath) {
         // Calculate insertion index
         let insertIndex = dragOverIndex;
@@ -528,15 +511,6 @@
     collapsedSections = { ...collapsedSections };
     collapsedEventMarkers = [...collapsedEventMarkers];
   }
-
-  $: allCollapsed =
-    collapsedSections.lines.length > 0 &&
-    collapsedSections.lines.every((v) => v) &&
-    collapsedSections.controlPoints.every((v) => v) &&
-    collapsedEventMarkers.every((v) => v) &&
-    sequence
-      .filter((s) => s.kind !== "path")
-      .every((s) => collapsedSections.items[(s as any).id]);
 
   function toggleCollapseAll() {
     if (allCollapsed) expandAll();
@@ -857,6 +831,90 @@
   function getButtonColorClass(color: string) {
     return getButtonFilledClass(color);
   }
+  let showDebug = $derived((settings as any)?.showDebugSequence);
+  // Debug helpers
+  let debugLinesIds = $derived(
+    Array.isArray(lines)
+      ? lines.map((l) => l.id).filter((id): id is string => id != null)
+      : [],
+  );
+  run(() => {
+    if (
+      Array.isArray(lines) &&
+      Array.isArray(sequence) &&
+      !repairedSequenceOnce
+    ) {
+      const lineIds = new Set(lines.map((l) => l.id));
+      const pruned = sequence.filter(
+        (s) => s.kind !== "path" || lineIds.has((s as any).lineId),
+      );
+      const presentIds = new Set(
+        pruned.filter((s) => s.kind === "path").map((s) => (s as any).lineId),
+      );
+      const missing = lines.filter(
+        (l) => !presentIds.has(l.id) && !l.isMacroElement,
+      );
+
+      if (missing.length || pruned.length !== sequence.length) {
+        sequence = [
+          ...pruned,
+          ...missing.map(
+            (l) =>
+              ({
+                kind: "path",
+                lineId: l.id as string,
+              }) as unknown as SequenceItem,
+          ),
+        ];
+        repairedSequenceOnce = true;
+        recordChange?.("Repair Sequence");
+      }
+    }
+  });
+  let debugSequenceIds = $derived(
+    Array.isArray(sequence)
+      ? sequence.filter((s) => s.kind === "path").map((s: any) => s.lineId)
+      : ([] as string[]),
+  );
+  let debugMissing = $derived(
+    debugLinesIds.filter(
+      (id) => id && !debugSequenceIds.includes(id),
+    ) as string[],
+  );
+  let debugInvalidRefs = $derived(
+    debugSequenceIds.filter((id) => !debugLinesIds.includes(id)) as string[],
+  );
+  // Reactive statements to update UI state when lines change
+  run(() => {
+    if (lines.length !== collapsedSections.lines.length) {
+      collapsedEventMarkers = lines.map(() => false);
+      const wasAllCollapsed =
+        collapsedSections &&
+        collapsedSections.lines &&
+        collapsedSections.lines.length > 0 &&
+        collapsedSections.lines.every((v) => v === true);
+      collapsedSections = {
+        ...collapsedSections,
+        lines: lines.map(() => (wasAllCollapsed ? true : false)),
+        controlPoints: lines.map(() => true),
+      };
+    }
+  });
+  run(() => {
+    if ($toggleCollapseAllTrigger !== _lastToggleCollapse) {
+      _lastToggleCollapse = $toggleCollapseAllTrigger;
+      toggleCollapseAll();
+    }
+  });
+  let allCollapsed = $derived(
+    collapsedSections.lines.length > 0 &&
+      collapsedSections.lines.every((v) => v) &&
+      collapsedSections.controlPoints.every((v) => v) &&
+      collapsedEventMarkers.every((v) => v) &&
+      sequence
+        .filter((s) => s.kind !== "path")
+        .every((s) => collapsedSections.items[(s as any).id]),
+  );
 </script>
 
 <div
@@ -891,19 +949,20 @@
       title="Start your path"
       description="Add your first path segment, wait command, or rotation to begin."
     >
-      <div slot="icon">
-        <MapPinIcon className="size-6 text-neutral-400" strokeWidth={1.5} />
-      </div>
-      <div
-        slot="action"
-        class="flex flex-row justify-center items-center gap-3 flex-wrap"
-      >
-        <PathActionButtons
-          {settings}
-          onAddLine={addLine}
-          onHandleAddAction={handleAddAction}
-        />
-      </div>
+      {#snippet icon()}
+        <div>
+          <MapPinIcon className="size-6 text-neutral-400" strokeWidth={1.5} />
+        </div>
+      {/snippet}
+      {#snippet action()}
+        <div class="flex flex-row justify-center items-center gap-3 flex-wrap">
+          <PathActionButtons
+            {settings}
+            onAddLine={addLine}
+            onHandleAddAction={handleAddAction}
+          />
+        </div>
+      {/snippet}
     </EmptyState>
   {/if}
 
@@ -916,8 +975,8 @@
       id={`sequence-item-${getItemId(item)}`}
       class="w-full transition-all duration-200 rounded-lg"
       draggable={!isItemLocked(item, lines)}
-      on:dragstart={(e) => handleDragStart(e, sIdx)}
-      on:dragend={handleDragEnd}
+      ondragstart={(e) => handleDragStart(e, sIdx)}
+      ondragend={handleDragEnd}
       class:border-t-4={dragOverIndex === sIdx && dragPosition === "top"}
       class:border-b-4={dragOverIndex === sIdx && dragPosition === "bottom"}
       class:border-blue-500={dragOverIndex === sIdx}
@@ -925,20 +984,17 @@
       class:opacity-50={draggingIndex === sIdx}
     >
       {#if item.kind === "path"}
-        {#each lines.filter((l) => l.id === getPathLineId(item)) as ln (ln.id)}
+        {@const lineIdx = lines.findIndex((l) => l.id === getPathLineId(item))}
+        {#if lineIdx !== -1}
           <PathLineSection
-            bind:line={ln}
-            idx={lines.findIndex((l) => l.id === ln.id)}
+            line={lines[lineIdx]}
+            idx={lineIdx}
             bind:lines
-            bind:collapsed={
-              collapsedSections.lines[lines.findIndex((l) => l.id === ln.id)]
-            }
+            bind:collapsed={collapsedSections.lines[lineIdx]}
             bind:collapsedControlPoints={
-              collapsedSections.controlPoints[
-                lines.findIndex((l) => l.id === ln.id)
-              ]
+              collapsedSections.controlPoints[lineIdx]
             }
-            onRemove={() => removeLine(lines.findIndex((l) => l.id === ln.id))}
+            onRemove={() => removeLine(lineIdx)}
             onInsertAfter={() => insertLineAfter(sIdx)}
             onAddWaitAfter={() =>
               handleAddActionAfter(sIdx, $actionRegistry["wait"])}
@@ -951,10 +1007,9 @@
             canMoveDown={sIdx !== sequence.length - 1}
             {recordChange}
           />
-        {/each}
+        {/if}
       {:else if def && def.sectionComponent}
-        <svelte:component
-          this={def.sectionComponent}
+        <def.sectionComponent
           {...{ [def.kind]: item }}
           bind:sequence
           collapsed={collapsedSections.items[getItemId(item)]}
@@ -997,4 +1052,4 @@
   {/if}
 </div>
 
-<svelte:window on:dragover={handleWindowDragOver} on:drop={handleWindowDrop} />
+<svelte:window ondragover={handleWindowDragOver} ondrop={handleWindowDrop} />

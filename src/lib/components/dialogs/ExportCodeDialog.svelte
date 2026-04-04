@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run, self } from "svelte/legacy";
+
   import type { Point, Line, SequenceItem, Shape } from "../../../types/index";
   import { copy } from "svelte-copy";
   import Highlight from "svelte-highlight";
@@ -32,31 +34,42 @@
   import pkg from "../../../../package.json";
   import { settingsStore } from "../../projectStore";
 
-  export let isOpen = false;
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let sequence: SequenceItem[];
-  export let shapes: Shape[] = [];
+  interface Props {
+    isOpen?: boolean;
+    startPoint: Point;
+    lines: Line[];
+    sequence: SequenceItem[];
+    shapes?: Shape[];
+  }
+
+  let {
+    isOpen = $bindable(false),
+    startPoint = $bindable(),
+    lines = $bindable(),
+    sequence = $bindable(),
+    shapes = $bindable([]),
+  }: Props = $props();
 
   let exportFormat: "java" | "points" | "sequential" | "json" | "custom" =
-    "java";
-  let customExporterName: string | null = null;
-  let sequentialClassName = "AutoPath";
+    $state("java");
+  let customExporterName: string | null = $state(null);
+  let sequentialClassName = $state("AutoPath");
   const DEFAULT_PACKAGE =
     "org.firstinspires.ftc.teamcode.Commands.AutoCommands";
 
-  let exportedCode = "";
-  let currentLanguage: typeof java | typeof plaintext | typeof json = java;
-  let copied = false;
-  let dialogRef: HTMLDivElement;
-  let scrollContainer: HTMLDivElement;
+  let exportedCode = $state("");
+  let currentLanguage: typeof java | typeof plaintext | typeof json =
+    $state(java);
+  let copied = $state(false);
+  let dialogRef: HTMLDivElement | undefined = $state();
+  let scrollContainer: HTMLDivElement | undefined = $state();
 
   // Search State
-  let showSearch = false;
-  let searchQuery = "";
-  let searchMatches: number[] = []; // Array of line numbers (0-indexed)
-  let currentMatchIndex = -1;
-  let searchInputRef: HTMLInputElement;
+  let showSearch = $state(false);
+  let searchQuery = $state("");
+  let searchMatches: number[] = $state([]); // Array of line numbers (0-indexed)
+  let currentMatchIndex = $state(-1);
+  let searchInputRef: HTMLInputElement | undefined = $state();
 
   const electronAPI = (window as any).electronAPI;
 
@@ -69,7 +82,7 @@
     for (const item of cloned) {
       if (item.kind === "macro" && item.filePath) {
         try {
-          item.filePath = await electronAPI.makeRelativePath(
+          item.filePath = await (electronAPI as any).makeRelativePath(
             base,
             item.filePath,
           );
@@ -83,20 +96,22 @@
   }
 
   // Update sequential class name when file changes
-  $: if ($currentFilePath) {
-    const fileName = $currentFilePath.split(/[\\/]/).pop();
-    if (fileName) {
-      const baseName = fileName
-        .replace(/\.(pp|turt)$/i, "")
-        .replace(/[^a-zA-Z0-9]/g, "_");
-      if (
-        sequentialClassName === "AutoPath" ||
-        sequentialClassName === baseName
-      ) {
-        sequentialClassName = baseName;
+  run(() => {
+    if ($currentFilePath) {
+      const fileName = $currentFilePath.split(/[\\/]/).pop();
+      if (fileName) {
+        const baseName = fileName
+          .replace(/\.(pp|turt)$/i, "")
+          .replace(/[^a-zA-Z0-9]/g, "_");
+        if (
+          sequentialClassName === "AutoPath" ||
+          sequentialClassName === baseName
+        ) {
+          sequentialClassName = baseName;
+        }
       }
     }
-  }
+  });
 
   async function handlePackageKeydown(event: KeyboardEvent) {
     if (event.key !== "Enter") return;
@@ -265,8 +280,8 @@
 
     if (
       !electronAPI ||
-      (electronAPI as any).isVirtual ||
-      !electronAPI.showSaveDialog ||
+      (electronAPI  ).isVirtual ||
+      !(electronAPI as any).showSaveDialog ||
       !electronAPI.writeFile
     ) {
       // Fallback for web: use download attribute trick via Blob
@@ -389,22 +404,22 @@
       );
       if (el) {
         // Only call scrollIntoView if supported (jsdom in tests doesn't implement it)
-        if (typeof (el as any).scrollIntoView === "function") {
-          (el as any).scrollIntoView({ behavior: "smooth", block: "center" });
+        if (typeof (el  ).scrollIntoView === "function") {
+          (el  ).scrollIntoView({ behavior: "smooth", block: "center" });
         }
       }
     }
   }
 
   // Count lines for display
-  $: lineCount = exportedCode.split("\n").length;
+  let lineCount = $derived(exportedCode.split("\n").length);
 </script>
 
 <svelte:head>
   {@html codeStyle}
 </svelte:head>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen}
   <!-- Backdrop -->
@@ -412,7 +427,7 @@
     transition:fade={{ duration: 200 }}
     class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
     role="presentation"
-    on:click|self={() => (isOpen = false)}
+    onclick={self(() => (isOpen = false))}
   >
     <!-- Dialog Panel -->
     <div
@@ -460,7 +475,7 @@
           <!-- Search Toggle -->
           {#if !showSearch}
             <button
-              on:click={() => {
+              onclick={() => {
                 showSearch = true;
                 tick().then(() => searchInputRef?.focus());
               }}
@@ -480,8 +495,8 @@
                 type="text"
                 placeholder="Find..."
                 bind:value={searchQuery}
-                on:input={performSearch}
-                on:keydown={(e) => {
+                oninput={performSearch}
+                onkeydown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
                     if (e.shiftKey) {
@@ -501,7 +516,7 @@
                 {/if}
               </span>
               <button
-                on:click={prevMatch}
+                onclick={prevMatch}
                 disabled={searchMatches.length === 0}
                 class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-30"
                 aria-label="Previous match"
@@ -509,7 +524,7 @@
                 <ChevronUpIcon strokeWidth={2} className="size-4" />
               </button>
               <button
-                on:click={nextMatch}
+                onclick={nextMatch}
                 disabled={searchMatches.length === 0}
                 class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400 disabled:opacity-30"
                 aria-label="Next match"
@@ -517,7 +532,7 @@
                 <ChevronDownIcon strokeWidth={2} className="size-4" />
               </button>
               <button
-                on:click={() => {
+                onclick={() => {
                   showSearch = false;
                   searchQuery = "";
                   searchMatches = [];
@@ -532,7 +547,7 @@
 
           <!-- Close Button -->
           <button
-            on:click={() => (isOpen = false)}
+            onclick={() => (isOpen = false)}
             class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label="Close export dialog"
           >
@@ -558,8 +573,8 @@
               id="package-name-input"
               type="text"
               bind:value={$settingsStore.javaPackageName}
-              on:keydown={handlePackageKeydown}
-              on:input={refreshCode}
+              onkeydown={handlePackageKeydown}
+              oninput={refreshCode}
               class="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full font-mono"
               placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
             />
@@ -586,7 +601,7 @@
                   'SolversLib'
                     ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-300 shadow-sm'
                     : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
-                  on:click={() => {
+                  onclick={() => {
                     $settingsStore.autoExportTargetLibrary = "SolversLib";
                     refreshCode();
                   }}
@@ -601,7 +616,7 @@
                   'NextFTC'
                     ? 'bg-white dark:bg-neutral-700 text-purple-600 dark:text-purple-300 shadow-sm'
                     : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
-                  on:click={() => {
+                  onclick={() => {
                     $settingsStore.autoExportTargetLibrary = "NextFTC";
                     refreshCode();
                   }}
@@ -623,7 +638,7 @@
                 id="class-name-input"
                 type="text"
                 bind:value={sequentialClassName}
-                on:input={refreshCode}
+                oninput={refreshCode}
                 class="px-3 py-1.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
                 placeholder="AutoPath"
               />
@@ -644,7 +659,7 @@
                   <input
                     type="checkbox"
                     bind:checked={$settingsStore.autoExportEmbedPoseData}
-                    on:change={refreshCode}
+                    onchange={refreshCode}
                     class="peer h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-700 dark:ring-offset-neutral-800"
                   />
                 </div>
@@ -686,7 +701,7 @@
                 <input
                   type="checkbox"
                   bind:checked={$settingsStore.autoExportFullClass}
-                  on:change={refreshCode}
+                  onchange={refreshCode}
                   class="peer h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-700 dark:ring-offset-neutral-800"
                 />
               </div>
@@ -710,7 +725,7 @@
                     name="codeUnits"
                     value="imperial"
                     bind:group={$settingsStore.codeUnits}
-                    on:change={refreshCode}
+                    onchange={refreshCode}
                     class="h-4 w-4 text-blue-600"
                   />
                   <span>Imperial (Inches)</span>
@@ -723,7 +738,7 @@
                     name="codeUnits"
                     value="metric"
                     bind:group={$settingsStore.codeUnits}
-                    on:change={refreshCode}
+                    onchange={refreshCode}
                     class="h-4 w-4 text-blue-600"
                   />
                   <span>Metric (cm)</span>
@@ -776,7 +791,7 @@
         <div class="flex gap-3">
           <button
             class="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-            on:click={() => (isOpen = false)}
+            onclick={() => (isOpen = false)}
           >
             Close
           </button>
@@ -784,7 +799,7 @@
           {#if exportFormat !== "json"}
             <button
               class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-              on:click={handleSaveFile}
+              onclick={handleSaveFile}
               title="Save the generated content to a file"
             >
               <DownloadIcon className="size-4" />
@@ -795,7 +810,7 @@
           {#if exportFormat === "json"}
             <button
               class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-              on:click={exportAsProjectFile}
+              onclick={exportAsProjectFile}
             >
               <DownloadIcon className="size-4" />
               Download as .turt
@@ -804,7 +819,7 @@
           <button
             class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
             use:copy={exportedCode}
-            on:svelte-copy={handleCopy}
+            {...{ "onsvelte-copy": handleCopy }}
             disabled={copied}
           >
             {#if copied}

@@ -1,5 +1,8 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run, createBubbler, stopPropagation } from "svelte/legacy";
+
+  const bubble = createBubbler();
   import { showRatingDialog, ratingDialogAutoOpened } from "../../../stores";
   import { fade, fly } from "svelte/transition";
   import { onMount, onDestroy } from "svelte";
@@ -14,16 +17,16 @@
   import { saveSettings } from "../../../utils/settingsPersistence";
   import pkg from "../../../../package.json";
 
-  let rating = 0;
-  let description = "";
-  let isSubmitting = false;
-  let status: "idle" | "success" | "error" = "idle";
-  let errorMessage = "";
+  let rating = $state(0);
+  let description = $state("");
+  let isSubmitting = $state(false);
+  let status: "idle" | "success" | "error" = $state("idle");
+  let errorMessage = $state("");
 
   // Rating webhook URL
   const WEBHOOK_URL = import.meta.env.VITE_DISCORD_RATINGS || "";
 
-  let dialogContainer: HTMLElement;
+  let dialogContainer: HTMLElement | undefined = $state();
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === "Escape" && !isSubmitting) {
@@ -45,14 +48,18 @@
     document.addEventListener("keydown", handleKeydown);
   });
 
-  $: isAlreadyRated = !!(
-    $settingsStore.submittedRatings &&
-    $settingsStore.submittedRatings[pkg.version]
+  let isAlreadyRated = $derived(
+    !!(
+      $settingsStore.submittedRatings &&
+      $settingsStore.submittedRatings[pkg.version]
+    ),
   );
 
-  $: if ($showRatingDialog && isAlreadyRated) {
-    showRatingDialog.set(false);
-  }
+  run(() => {
+    if ($showRatingDialog && isAlreadyRated) {
+      showRatingDialog.set(false);
+    }
+  });
 
   onDestroy(() => {
     document.removeEventListener("keydown", handleKeydown);
@@ -169,22 +176,22 @@
 </script>
 
 {#if $showRatingDialog && !isAlreadyRated}
-  <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     role="presentation"
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-    on:click={() => handleClickOutside()}
+    onclick={() => handleClickOutside()}
     transition:fade={{ duration: 150 }}
   >
-    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div
       role="dialog"
       aria-modal="true"
       tabindex="-1"
       bind:this={dialogContainer}
-      on:click|stopPropagation
+      onclick={stopPropagation(bubble("click"))}
       class="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-neutral-200 dark:border-neutral-700"
       in:fly={{ y: 20, duration: 200, delay: 50 }}
       out:fly={{ y: 20, duration: 150 }}
@@ -200,7 +207,7 @@
           Enjoying Turtle Tracer?
         </h2>
         <button
-          on:click={closeDialog}
+          onclick={closeDialog}
           disabled={isSubmitting}
           class="text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors disabled:opacity-50"
           title="Close dialog"
@@ -221,7 +228,7 @@
             {#each [1, 2, 3, 4, 5] as star}
               <button
                 type="button"
-                on:click={() => (rating = star)}
+                onclick={() => (rating = star)}
                 disabled={isSubmitting}
                 class="hover:scale-110 transition-transform focus:outline-none disabled:opacity-50"
                 aria-label="{star} star rating"
@@ -285,7 +292,7 @@
         {#if $ratingDialogAutoOpened}
           <div class="flex-1 flex justify-start">
             <button
-              on:click={dismissRating}
+              onclick={dismissRating}
               disabled={isSubmitting}
               class="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500/50 disabled:opacity-50"
             >
@@ -294,14 +301,14 @@
           </div>
         {/if}
         <button
-          on:click={closeDialog}
+          onclick={closeDialog}
           disabled={isSubmitting}
           class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500/50 disabled:opacity-50"
         >
           Cancel
         </button>
         <button
-          on:click={submitFeedback}
+          onclick={submitFeedback}
           disabled={isSubmitting || status === "success"}
           class="px-5 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 shadow-sm shadow-purple-900/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 flex items-center gap-2"
         >

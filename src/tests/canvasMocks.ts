@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { vi } from "vitest";
 
 export function setupCanvasMocks() {
@@ -34,10 +35,12 @@ export function setupCanvasMocks() {
   };
 
   const originalCreateElement = document.createElement.bind(document);
-  const createElementSpy = vi.spyOn(document, "createElement").mockImplementation((tag: any) => {
-    if (tag === "canvas") return mockCanvas as any;
-    return originalCreateElement(tag);
-  });
+  const createElementSpy = vi
+    .spyOn(document, "createElement")
+    .mockImplementation((tag: any) => {
+      if (tag === "canvas") return mockCanvas as any;
+      return originalCreateElement(tag);
+    });
 
   const mockTwo = {
     update: vi.fn(),

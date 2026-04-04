@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import * as d3 from "d3";
@@ -319,12 +321,12 @@
   });
 
   // --- Drag and Drop Logic ---
-  let isDraggingFile = false;
+  let isDraggingFile = $state(false);
   let dragCounter = 0;
 
   // Custom Prompt State
-  let showSaveNameDialog = false;
-  let showUnsavedChangesDialog = false;
+  let showSaveNameDialog = $state(false);
+  let showUnsavedChangesDialog = $state(false);
   let pendingAction: "reset" | "close" | null = null;
   let saveNameResolve: ((name: string | null) => void) | null = null;
 
@@ -452,39 +454,47 @@
   }
 
   async function handleDrop(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+    // Reset drag indicators regardless of type
     dragCounter = 0;
     isDraggingFile = false;
 
-    if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      // Refresh electronAPI reference from window to ensure it's available
-      const api = (window as any).electronAPI;
+    // Only intercept if it's an OS file drop we care about (avoids blocking internal drags)
+    if (
+      e.dataTransfer &&
+      e.dataTransfer.types &&
+      e.dataTransfer.types.includes("Files")
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
 
-      if (!api) return;
+      if (e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        // Refresh electronAPI reference from window to ensure it's available
+        const api = (window as any).electronAPI;
 
-      // Case-insensitive check for supported extension
-      if (!isSupportedProjectFileName(file.name)) {
-        alert("Please drop a .turt or .pp file.");
-        return;
-      }
+        if (!api) return;
 
-      let path = (file as any).path;
-      if (!path && api.getPathForFile) {
-        try {
-          path = api.getPathForFile(file);
-        } catch (e) {
-          console.warn("getPathForFile failed:", e);
+        // Case-insensitive check for supported extension
+        if (!isSupportedProjectFileName(file.name)) {
+          alert("Please drop a .turt or .pp file.");
+          return;
         }
-      }
 
-      if (!path) {
-        alert(
-          "Cannot determine file path. If you are running in a browser, this feature is not supported.",
-        );
-        return;
-      }
+        let path = (file as any).path;
+        if (!path && api.getPathForFile) {
+          try {
+            path = api.getPathForFile(file);
+          } catch (e) {
+            console.warn("getPathForFile failed:", e);
+          }
+        }
+
+        if (!path) {
+          alert(
+            "Cannot determine file path. If you are running in a browser, this feature is not supported.",
+          );
+          return;
+        }
 
       try {
         if (get(isUnsaved)) {
@@ -547,9 +557,10 @@
       }
     }
   }
+}
 
   // --- Autosave Logic ---
-  let autosaveIntervalId: any = null;
+  let autosaveIntervalId: any = $state(null);
 
   function performAutosave() {
     const path = get(currentFilePath);
@@ -566,19 +577,6 @@
           quiet: true,
         },
       );
-    }
-  }
-
-  // Manage Time-based Autosave
-  $: {
-    if (autosaveIntervalId) {
-      clearInterval(autosaveIntervalId);
-      autosaveIntervalId = null;
-    }
-
-    if (settings?.autosaveMode === "time" && settings?.autosaveInterval) {
-      const intervalMs = settings.autosaveInterval * 60 * 1000;
-      autosaveIntervalId = setInterval(performAutosave, intervalMs);
     }
   }
 
@@ -638,26 +636,25 @@
   }
 
   // --- Layout State ---
-  let showSidebar = true;
-  $: effectiveShowSidebar = $isPresentationMode ? false : showSidebar;
+  let showSidebar = $state(true);
 
   // DEBUG: force open Whats New during development to validate feature loading
-  let setupMode = false;
+  let setupMode = $state(false);
   // Set this to true to force the setup dialog for testing
   const TEST_SETUP_DIALOG = false;
-  let activeControlTab: "path" | "field" | "table" = "path";
-  let controlTabRef: any = null;
+  let activeControlTab: "path" | "field" | "table" = $state("path");
+  let controlTabRef: any = $state(null);
   // DOM container for the ControlTab; used to size/position the stats panel
-  let controlTabContainer: HTMLDivElement | null = null;
-  let controlTabRect = {
+  let controlTabContainer: HTMLDivElement | null = $state(null);
+  let controlTabRect = $state({
     top: 0,
     left: 0,
     width: 0,
     height: 0,
     right: 0,
     bottom: 0,
-  };
-  let _controlTabObserver: ResizeObserver | null = null;
+  });
+  let _controlTabObserver: ResizeObserver | null = $state(null);
 
   function updateControlRect() {
     if (!controlTabContainer) return;
@@ -672,13 +669,6 @@
     };
   }
 
-  $: if (controlTabContainer && _controlTabObserver) {
-    try {
-      _controlTabObserver.observe(controlTabContainer);
-      updateControlRect();
-    } catch (e) {}
-  }
-
   onMount(() => {
     updateControlRect();
     _controlTabObserver = new ResizeObserver(updateControlRect);
@@ -691,90 +681,31 @@
     window.removeEventListener("resize", updateControlRect);
   });
 
-  let statsOpen = false;
-  $: if (!effectiveShowSidebar && statsOpen) statsOpen = false;
-  let mainContentHeight = 0;
-  let mainContentWidth = 0;
-  let mainContentDiv: HTMLDivElement;
-  let innerWidth = 0;
-  let innerHeight = 0;
-  let userFieldLimit: number | null = null;
-  let userFieldHeightLimit: number | null = null;
-  let resizeMode: "horizontal" | "vertical" | null = null;
-  $: isLargeScreen = innerWidth >= 1024;
+  let statsOpen = $state(false);
+  let mainContentHeight = $state(0);
+  let mainContentWidth = $state(0);
+  let mainContentDiv: HTMLDivElement | undefined = $state();
+  let innerWidth = $state(0);
+  let innerHeight = $state(0);
+  let userFieldLimit: number | null = $state(null);
+  let userFieldHeightLimit: number | null = $state(null);
+  let resizeMode: "horizontal" | "vertical" | null = $state(null);
   const MIN_SIDEBAR_WIDTH = 320;
   const MIN_FIELD_PANE_WIDTH = 300;
 
   // --- Animation State ---
-  let animationController: ReturnType<typeof createAnimationController>;
-  $: settings = $settingsStore;
-  $: startPoint = $startPointStore;
-  $: lines = $linesStore;
-  $: shapes = $shapesStore;
-  $: sequence = $sequenceStore;
-  $: macros = $macrosStore;
-  $: percent = $percentStore;
-  $: playing = $playingStore;
-  $: loopAnimation = $loopAnimationStore;
-  $: playbackSpeed = $playbackSpeedStore;
-  $: loopRange = $loopRangeStore;
-  $: loopRangeActive = $loopRangeActiveStore;
-
-  // --- D3 Scales (Used for resizing logic / math) ---
-  $: x = d3
-    .scaleLinear()
-    .domain([0, FIELD_SIZE])
-    .range([0, fieldDrawSize || FIELD_SIZE]);
-  $: y = d3
-    .scaleLinear()
-    .domain([0, FIELD_SIZE])
-    .range([fieldDrawSize || FIELD_SIZE, 0]);
+  let animationController: ReturnType<typeof createAnimationController> | undefined =
+    $state();
 
   // --- Preview Optimization ---
-  let previewOptimizedLines: any[] | null = null;
-  let timePrediction: any = null;
-
-  // --- Robot Dimensions ---
-  $: robotLength = settings?.rLength || DEFAULT_ROBOT_LENGTH;
-  $: robotWidth = settings?.rWidth || DEFAULT_ROBOT_WIDTH;
+  let previewOptimizedLines: any[] | null = $state(null);
+  let timePrediction: any = $state(null);
 
   // --- History ---
   const history = createHistory();
   const { canUndoStore, canRedoStore, historyStore } = history;
-  $: canUndo = $canUndoStore;
-  $: canRedo = $canRedoStore;
 
-  // Continuous validation when path/settings change
-  $: {
-    // depend on timePrediction to ensure validation with the latest timeline
-    if (
-      $startPointStore &&
-      $linesStore &&
-      $settingsStore &&
-      $sequenceStore &&
-      $shapesStore &&
-      timePrediction &&
-      !$settingsStore.validationDisabled &&
-      !$isDraggingStore
-    ) {
-      validatePath(
-        $startPointStore,
-        $linesStore,
-        $settingsStore,
-        $sequenceStore,
-        $shapesStore,
-        true, // silent
-        timePrediction.timeline,
-      );
-    } else if (
-      $settingsStore?.validationDisabled &&
-      get(collisionMarkers).length > 0
-    ) {
-      collisionMarkers.set([]);
-    }
-  }
-
-  let isLoaded = false;
+  let isLoaded = $state(false);
   let lastSavedState: string = "";
 
   function getAppState(): AppState {
@@ -1112,44 +1043,6 @@
   const debouncedSaveSettings = debounce(async (s: Settings) => {
     await saveSettings(s);
   }, 1000);
-  $: if (settings) debouncedSaveSettings(settings);
-
-  // --- Animation Logic ---
-  $: if (!$isDraggingStore) {
-    timePrediction = calculatePathTime(
-      startPoint,
-      lines,
-      settings,
-      sequence,
-      macros,
-    );
-  }
-
-  // Diff Mode Animation Logic
-  $: isDiffMode = $diffMode;
-  $: committed = $committedData;
-  $: committedTimePrediction =
-    isDiffMode && committed
-      ? calculatePathTime(
-          committed.startPoint,
-          committed.lines,
-          committed.settings,
-          committed.sequence,
-          macros,
-        )
-      : null;
-
-  $: currentTotalTime = timePrediction.totalTime / 1000;
-  $: committedTotalTime = committedTimePrediction
-    ? committedTimePrediction.totalTime / 1000
-    : 0;
-
-  // If in diff mode, duration is the max of both paths
-  $: effectiveDuration = isDiffMode
-    ? Math.max(currentTotalTime, committedTotalTime)
-    : currentTotalTime;
-
-  $: animationDuration = getAnimationDuration(effectiveDuration, playbackSpeed);
 
   onMount(() => {
     animationController = createAnimationController(
@@ -1161,93 +1054,9 @@
     );
   });
 
-  $: if (animationController) {
-    animationController.setDuration(animationDuration);
-    animationController.setLoop(loopAnimation);
-    animationController.setPlaybackRange(
-      loopRange[0],
-      loopRange[1],
-      loopRangeActive,
-    );
-    // If playing state changes externally (e.g. store update), sync controller?
-    // Actually controller drives percent. `playing` store drives controller.
-  }
-
-  // Sync playing store -> controller
-  $: if (animationController) {
-    if (playing && !animationController.isPlaying()) animationController.play();
-    if (!playing && animationController.isPlaying())
-      animationController.pause();
-  }
-
   // Sync controller updates to Robot State
   let committedRobotState: { x: number; y: number; heading: number } | null =
-    null;
-
-  $: {
-    if (
-      timePrediction &&
-      timePrediction.timeline &&
-      (lines.length > 0 || sequence.length > 0)
-    ) {
-      // Calculate Global Time based on effective duration
-      const globalTime = (percent / 100) * effectiveDuration;
-
-      // 1. Current Robot State
-      // Map global time to current path percent
-      let currentPercent = 0;
-      if (currentTotalTime > 0) {
-        currentPercent = (globalTime / currentTotalTime) * 100;
-        if (currentPercent > 100) currentPercent = 100;
-      }
-
-      // Pass identity scales to get inches
-      const state = calculateRobotState(
-        currentPercent,
-        timePrediction.timeline,
-        lines,
-        startPoint,
-        IDENTITY_SCALE,
-        IDENTITY_SCALE,
-      );
-      robotXYStore.set({ x: state.x, y: state.y });
-      robotHeadingStore.set(state.heading);
-
-      // 2. Committed Robot State (if in diff mode)
-      if (isDiffMode && committed && committedTimePrediction) {
-        let committedPercent = 0;
-        if (committedTotalTime > 0) {
-          committedPercent = (globalTime / committedTotalTime) * 100;
-          if (committedPercent > 100) committedPercent = 100;
-        }
-
-        const commState = calculateRobotState(
-          committedPercent,
-          committedTimePrediction.timeline,
-          committed.lines,
-          committed.startPoint,
-          IDENTITY_SCALE,
-          IDENTITY_SCALE,
-        );
-        committedRobotState = {
-          x: commState.x,
-          y: commState.y,
-          heading: commState.heading,
-        };
-      } else {
-        committedRobotState = null;
-      }
-    } else {
-      // Store position in inches
-      robotXYStore.set({ x: startPoint.x, y: startPoint.y });
-      let h = 0;
-      if (startPoint.heading === "constant") h = -startPoint.degrees;
-      else if (startPoint.heading === "linear") h = -startPoint.startDeg;
-      // Tangential defaults to 0 if no lines
-      robotHeadingStore.set(h);
-      committedRobotState = null;
-    }
-  }
+    $state(null);
 
   function play() {
     playingStore.set(true);
@@ -1326,79 +1135,9 @@
   // --- Resizing Logic ---
   // When in vertical (mobile) mode, hide the control tab from layout after
   // its closing animation completes so the field can resize to the freed area.
-  let controlTabHidden = false;
-  let hideControlTabTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  $: if (!isLargeScreen) {
-    // On small screens, when sidebar is closed, wait for animation then hide
-    if (!effectiveShowSidebar) {
-      if (hideControlTabTimeout) clearTimeout(hideControlTabTimeout);
-      hideControlTabTimeout = setTimeout(() => {
-        controlTabHidden = true;
-      }, 320); // slightly longer than the 300ms transition
-    } else {
-      if (hideControlTabTimeout) {
-        clearTimeout(hideControlTabTimeout);
-        hideControlTabTimeout = null;
-      }
-      controlTabHidden = false;
-    }
-  } else {
-    // Ensure visible on large screens
-    controlTabHidden = false;
-    if (hideControlTabTimeout) {
-      clearTimeout(hideControlTabTimeout);
-      hideControlTabTimeout = null;
-    }
-  }
-  $: if (userFieldLimit === null && mainContentWidth > 0 && isLargeScreen) {
-    userFieldLimit = mainContentWidth * 0.49;
-  }
-  $: if (
-    userFieldHeightLimit === null &&
-    mainContentHeight > 0 &&
-    !isLargeScreen
-  ) {
-    userFieldHeightLimit = mainContentHeight * 0.6;
-  }
-  $: leftPaneWidth = (() => {
-    if (!isLargeScreen) return mainContentWidth;
-    if (!effectiveShowSidebar) return mainContentWidth;
-    let target = userFieldLimit ?? mainContentWidth * 0.55;
-    const max = mainContentWidth - MIN_SIDEBAR_WIDTH;
-    const min = MIN_FIELD_PANE_WIDTH;
-    if (max < min) return mainContentWidth * 0.5;
-    return Math.max(min, Math.min(target, max));
-  })();
-  $: fieldDrawSize = (() => {
-    if (!isLargeScreen) {
-      const h = userFieldHeightLimit ?? mainContentHeight * 0.6;
-      return Math.min(innerWidth - 32, h - 16);
-    }
-    const avW = leftPaneWidth - 16;
-    const avH = mainContentHeight - 16;
-    return Math.max(100, Math.min(avW, avH));
-  })();
-
-  $: fieldRenderWidth = $isPresentationMode ? mainContentWidth : fieldDrawSize;
-  $: fieldRenderHeight = $isPresentationMode
-    ? mainContentHeight
-    : fieldDrawSize;
-
-  // Compute a target height for the field container so it can animate smoothly
-  // when the sidebar (control tab) opens/closes in vertical mode
-  $: fieldContainerTargetHeight = (() => {
-    if (isLargeScreen) return "100%";
-    // when sidebar is visible, reserve space for it (use userFieldHeightLimit or default fraction)
-    if (effectiveShowSidebar) {
-      const h = userFieldHeightLimit ?? mainContentHeight * 0.6;
-      const target = Math.min(h, mainContentHeight);
-      return `${Math.max(120, Math.floor(target))}px`;
-    } else {
-      // sidebar not shown -> full available height
-      return `${mainContentHeight}px`;
-    }
-  })();
+  let controlTabHidden = $state(false);
+  let hideControlTabTimeout: ReturnType<typeof setTimeout> | null =
+    $state(null);
 
   function startResize(mode: "horizontal" | "vertical") {
     if (
@@ -1412,7 +1151,7 @@
     if (!resizeMode) return;
     if (resizeMode === "horizontal") userFieldLimit = cx;
     else if (resizeMode === "vertical" && mainContentDiv) {
-      const rect = mainContentDiv.getBoundingClientRect();
+      const rect = mainContentDiv!.getBoundingClientRect();
       const nh = cy - rect.top;
       const max = rect.height - 100;
       userFieldHeightLimit = Math.max(200, Math.min(nh, max));
@@ -1457,7 +1196,7 @@
         if (e.key === "ArrowUp") current -= step;
         else current += step;
 
-        const rect = mainContentDiv.getBoundingClientRect();
+        const rect = mainContentDiv!.getBoundingClientRect();
         const max = rect.height - 100;
         userFieldHeightLimit = Math.max(200, Math.min(current, max));
       }
@@ -1493,26 +1232,324 @@
 
   // --- Export GIF ---
   // Need reference to Two instance from FieldRenderer
-  let fieldRenderer: any;
+  let fieldRenderer: any = $state();
   function exportGif() {
     showExportGif.set(true);
   }
 
   // --- Export Dialog Logic ---
-  let exportDialog: ExportCodeDialog;
-  $: if ($exportDialogState.isOpen && exportDialog) {
-    exportDialog.openWithFormat(
-      $exportDialogState.format,
-      $exportDialogState.exporterName,
-    );
-  }
+  let exportDialog: ExportCodeDialog | undefined = $state();
 
   // --- Apply Custom Theme Class ---
   // Keep track of the previously-applied custom theme class so it can be removed when switching themes.
-  let currentCustomThemeClass: string | null = null;
+  let currentCustomThemeClass: string | null = $state(null);
 
+  let settings = $derived($settingsStore);
+  // Manage Time-based Autosave
+  run(() => {
+    if (autosaveIntervalId) {
+      clearInterval(autosaveIntervalId);
+      autosaveIntervalId = null;
+    }
+
+    if (settings?.autosaveMode === "time" && settings?.autosaveInterval) {
+      const intervalMs = settings.autosaveInterval * 60 * 1000;
+      autosaveIntervalId = setInterval(performAutosave, intervalMs);
+    }
+  });
+  let effectiveShowSidebar = $derived(
+    $isPresentationMode ? false : showSidebar,
+  );
+  run(() => {
+    if (controlTabContainer && _controlTabObserver) {
+      try {
+        _controlTabObserver.observe(controlTabContainer);
+        updateControlRect();
+      } catch (e) {}
+    }
+  });
+  run(() => {
+    if (!effectiveShowSidebar && statsOpen) statsOpen = false;
+  });
+  let isLargeScreen = $derived(innerWidth >= 1024);
+  let startPoint = $derived($startPointStore);
+  let lines = $derived($linesStore);
+  let shapes = $derived($shapesStore);
+  let sequence = $derived($sequenceStore);
+  let macros = $derived($macrosStore);
+  let percent = $derived($percentStore);
+  let playing = $derived($playingStore);
+  let loopAnimation = $derived($loopAnimationStore);
+  let playbackSpeed = $derived($playbackSpeedStore);
+  let loopRange = $derived($loopRangeStore);
+  let loopRangeActive = $derived($loopRangeActiveStore);
+  run(() => {
+    if (
+      userFieldHeightLimit === null &&
+      mainContentHeight > 0 &&
+      !isLargeScreen
+    ) {
+      userFieldHeightLimit = mainContentHeight * 0.6;
+    }
+  });
+  run(() => {
+    if (userFieldLimit === null && mainContentWidth > 0 && isLargeScreen) {
+      userFieldLimit = mainContentWidth * 0.49;
+    }
+  });
+  let leftPaneWidth = $derived(
+    (() => {
+      if (!isLargeScreen) return mainContentWidth;
+      if (!effectiveShowSidebar) return mainContentWidth;
+      let target = userFieldLimit ?? mainContentWidth * 0.55;
+      const max = mainContentWidth - MIN_SIDEBAR_WIDTH;
+      const min = MIN_FIELD_PANE_WIDTH;
+      if (max < min) return mainContentWidth * 0.5;
+      return Math.max(min, Math.min(target, max));
+    })(),
+  );
+  let fieldDrawSize = $derived(
+    (() => {
+      if (!isLargeScreen) {
+        const h = userFieldHeightLimit ?? mainContentHeight * 0.6;
+        return Math.min(innerWidth - 32, h - 16);
+      }
+      const avW = leftPaneWidth - 16;
+      const avH = mainContentHeight - 16;
+      return Math.max(100, Math.min(avW, avH));
+    })(),
+  );
+  // --- D3 Scales (Used for resizing logic / math) ---
+  let x = $derived(
+    d3
+      .scaleLinear()
+      .domain([0, FIELD_SIZE])
+      .range([0, fieldDrawSize || FIELD_SIZE]),
+  );
+  let y = $derived(
+    d3
+      .scaleLinear()
+      .domain([0, FIELD_SIZE])
+      .range([fieldDrawSize || FIELD_SIZE, 0]),
+  );
+  // --- Robot Dimensions ---
+  let robotLength = $derived(settings?.rLength || DEFAULT_ROBOT_LENGTH);
+  let robotWidth = $derived(settings?.rWidth || DEFAULT_ROBOT_WIDTH);
+  let canUndo = $derived($canUndoStore);
+  let canRedo = $derived($canRedoStore);
+  // --- Animation Logic ---
+  run(() => {
+    if (!$isDraggingStore) {
+      timePrediction = calculatePathTime(
+        startPoint,
+        lines,
+        settings,
+        sequence,
+        macros,
+      );
+    }
+  });
+  // Continuous validation when path/settings change
+  run(() => {
+    // depend on timePrediction to ensure validation with the latest timeline
+    if (
+      $startPointStore &&
+      $linesStore &&
+      $settingsStore &&
+      $sequenceStore &&
+      $shapesStore &&
+      timePrediction &&
+      !$settingsStore.validationDisabled &&
+      !$isDraggingStore
+    ) {
+      validatePath(
+        $startPointStore,
+        $linesStore,
+        $settingsStore,
+        $sequenceStore,
+        $shapesStore,
+        true, // silent
+        timePrediction.timeline,
+      );
+    } else if (
+      $settingsStore?.validationDisabled &&
+      get(collisionMarkers).length > 0
+    ) {
+      collisionMarkers.set([]);
+    }
+  });
+  run(() => {
+    if (settings) debouncedSaveSettings(settings);
+  });
+  // Diff Mode Animation Logic
+  let isDiffMode = $derived($diffMode);
+  let committed = $derived($committedData);
+  let committedTimePrediction = $derived(
+    isDiffMode && committed
+      ? calculatePathTime(
+          committed.startPoint,
+          committed.lines,
+          committed.settings,
+          committed.sequence,
+          macros,
+        )
+      : null,
+  );
+  let currentTotalTime = $derived(timePrediction.totalTime / 1000);
+  let committedTotalTime = $derived(
+    committedTimePrediction ? committedTimePrediction.totalTime / 1000 : 0,
+  );
+  // If in diff mode, duration is the max of both paths
+  let effectiveDuration = $derived(
+    isDiffMode
+      ? Math.max(currentTotalTime, committedTotalTime)
+      : currentTotalTime,
+  );
+  let animationDuration = $derived(
+    getAnimationDuration(effectiveDuration, playbackSpeed),
+  );
+  run(() => {
+    if (animationController) {
+      animationController.setDuration(animationDuration);
+      animationController.setLoop(loopAnimation);
+      animationController.setPlaybackRange(
+        loopRange[0],
+        loopRange[1],
+        loopRangeActive,
+      );
+      // If playing state changes externally (e.g. store update), sync controller?
+      // Actually controller drives percent. `playing` store drives controller.
+    }
+  });
+  // Sync playing store -> controller
+  run(() => {
+    if (animationController) {
+      if (playing && !animationController.isPlaying())
+        animationController.play();
+      if (!playing && animationController.isPlaying())
+        animationController.pause();
+    }
+  });
+  run(() => {
+    if (
+      timePrediction &&
+      timePrediction.timeline &&
+      (lines.length > 0 || sequence.length > 0)
+    ) {
+      // Calculate Global Time based on effective duration
+      const globalTime = (percent / 100) * effectiveDuration;
+
+      // 1. Current Robot State
+      // Map global time to current path percent
+      let currentPercent = 0;
+      if (currentTotalTime > 0) {
+        currentPercent = (globalTime / currentTotalTime) * 100;
+        if (currentPercent > 100) currentPercent = 100;
+      }
+
+      // Pass identity scales to get inches
+      const state = calculateRobotState(
+        currentPercent,
+        timePrediction.timeline,
+        lines,
+        startPoint,
+        IDENTITY_SCALE,
+        IDENTITY_SCALE,
+      );
+      robotXYStore.set({ x: state.x, y: state.y });
+      robotHeadingStore.set(state.heading);
+
+      // 2. Committed Robot State (if in diff mode)
+      if (isDiffMode && committed && committedTimePrediction) {
+        let committedPercent = 0;
+        if (committedTotalTime > 0) {
+          committedPercent = (globalTime / committedTotalTime) * 100;
+          if (committedPercent > 100) committedPercent = 100;
+        }
+
+        const commState = calculateRobotState(
+          committedPercent,
+          committedTimePrediction.timeline,
+          committed.lines,
+          committed.startPoint,
+          IDENTITY_SCALE,
+          IDENTITY_SCALE,
+        );
+        committedRobotState = {
+          x: commState.x,
+          y: commState.y,
+          heading: commState.heading,
+        };
+      } else {
+        committedRobotState = null;
+      }
+    } else {
+      // Store position in inches
+      robotXYStore.set({ x: startPoint.x, y: startPoint.y });
+      let h = 0;
+      if (startPoint.heading === "constant") h = -startPoint.degrees;
+      else if (startPoint.heading === "linear") h = -startPoint.startDeg;
+      // Tangential defaults to 0 if no lines
+      robotHeadingStore.set(h);
+      committedRobotState = null;
+    }
+  });
+  run(() => {
+    if (!isLargeScreen) {
+      // On small screens, when sidebar is closed, wait for animation then hide
+      if (!effectiveShowSidebar) {
+        if (hideControlTabTimeout) clearTimeout(hideControlTabTimeout);
+        hideControlTabTimeout = setTimeout(() => {
+          controlTabHidden = true;
+        }, 320); // slightly longer than the 300ms transition
+      } else {
+        if (hideControlTabTimeout) {
+          clearTimeout(hideControlTabTimeout);
+          hideControlTabTimeout = null;
+        }
+        controlTabHidden = false;
+      }
+    } else {
+      // Ensure visible on large screens
+      controlTabHidden = false;
+      if (hideControlTabTimeout) {
+        clearTimeout(hideControlTabTimeout);
+        hideControlTabTimeout = null;
+      }
+    }
+  });
+  let fieldRenderWidth = $derived(
+    $isPresentationMode ? mainContentWidth : fieldDrawSize,
+  );
+  let fieldRenderHeight = $derived(
+    $isPresentationMode ? mainContentHeight : fieldDrawSize,
+  );
+  // Compute a target height for the field container so it can animate smoothly
+  // when the sidebar (control tab) opens/closes in vertical mode
+  let fieldContainerTargetHeight = $derived(
+    (() => {
+      if (isLargeScreen) return "100%";
+      // when sidebar is visible, reserve space for it (use userFieldHeightLimit or default fraction)
+      if (effectiveShowSidebar) {
+        const h = userFieldHeightLimit ?? mainContentHeight * 0.6;
+        const target = Math.min(h, mainContentHeight);
+        return `${Math.max(120, Math.floor(target))}px`;
+      } else {
+        // sidebar not shown -> full available height
+        return `${mainContentHeight}px`;
+      }
+    })(),
+  );
+  run(() => {
+    if ($exportDialogState.isOpen && exportDialog) {
+      exportDialog.openWithFormat(
+        $exportDialogState.format,
+        $exportDialogState.exporterName,
+      );
+    }
+  });
   // --- Apply Theme ---
-  $: {
+  run(() => {
     // Depend on themesStore so re-run when plugins load
     const registeredThemes = $themesStore;
     if (settings) {
@@ -1587,39 +1624,45 @@
         }
       }
     }
-  }
-
+  });
   // --- Apply Program Font Size ---
-  $: {
+  run(() => {
     if (settings && settings.programFontSize) {
       document.documentElement.style.fontSize = `${settings.programFontSize}%`;
     } else {
       document.documentElement.style.fontSize = "100%";
     }
-  }
+  });
+
+  const SvelteComponent_1 = $derived(
+    $componentRegistry.FieldRenderer || FieldRenderer,
+  );
+  const SvelteComponent_2 = $derived(
+    $componentRegistry.ControlTab || ControlTab,
+  );
 </script>
 
 <svelte:window
   bind:innerWidth
   bind:innerHeight
-  on:click={(e) => {
+  onclick={(e) => {
     if (settings?.robotImage === "/JefferyThePotato.png") {
       firePotatoConfetti(e.clientX, e.clientY);
     }
   }}
-  on:dragenter={handleDragEnter}
-  on:dragleave={handleDragLeave}
-  on:dragover={handleDragOver}
-  on:drop={handleDrop}
-  on:mouseup={stopResize}
-  on:mousemove={(e) => {
+  ondragenter={handleDragEnter}
+  ondragleave={handleDragLeave}
+  ondragover={handleDragOver}
+  ondrop={handleDrop}
+  onmouseup={stopResize}
+  onmousemove={(e) => {
     if (resizeMode) {
       e.preventDefault();
       handleResize(e.clientX, e.clientY);
     }
   }}
-  on:touchend={stopResize}
-  on:touchmove={(e) => {
+  ontouchend={stopResize}
+  ontouchmove={(e) => {
     if (resizeMode) {
       const t = e.touches[0];
       handleResize(t.clientX, t.clientY);
@@ -1807,9 +1850,9 @@
   class="h-screen w-full flex flex-col overflow-hidden bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-sans"
 >
   {#if !$isPresentationMode}
+    {@const SvelteComponent = $componentRegistry.Navbar || Navbar}
     <div class="flex-none z-50">
-      <svelte:component
-        this={$componentRegistry.Navbar || Navbar}
+      <SvelteComponent
         bind:lines={$linesStore}
         bind:startPoint={$startPointStore}
         bind:shapes={$shapesStore}
@@ -1868,8 +1911,7 @@
         <div
           class="relative shadow-inner w-full h-full flex justify-center items-center"
         >
-          <svelte:component
-            this={$componentRegistry.FieldRenderer || FieldRenderer}
+          <SvelteComponent_1
             bind:this={fieldRenderer}
             width={fieldRenderWidth}
             height={fieldRenderHeight}
@@ -1885,9 +1927,9 @@
       {#if isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
         <button
           class="group w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
-          on:mousedown={() => startResize("horizontal")}
-          on:keydown={(e) => handleResizeKeyDown(e, "horizontal")}
-          on:dblclick={() => {
+          onmousedown={() => startResize("horizontal")}
+          onkeydown={(e) => handleResizeKeyDown(e, "horizontal")}
+          ondblclick={() => {
             userFieldLimit = null;
           }}
           aria-label="Resize Sidebar"
@@ -1903,13 +1945,13 @@
       {#if !isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
         <button
           class="group h-3 w-full cursor-row-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-t border-b border-neutral-300 dark:border-neutral-700 touch-none"
-          on:mousedown={() => startResize("vertical")}
-          on:keydown={(e) => handleResizeKeyDown(e, "vertical")}
-          on:touchstart={(e) => {
+          onmousedown={() => startResize("vertical")}
+          onkeydown={(e) => handleResizeKeyDown(e, "vertical")}
+          ontouchstart={(e) => {
             e.preventDefault();
             startResize("vertical");
           }}
-          on:dblclick={() => {
+          ondblclick={() => {
             userFieldHeightLimit = null;
           }}
           aria-label="Resize Tab"
@@ -1937,16 +1979,15 @@
             role="button"
             aria-label="Dismiss statistics"
             tabindex="0"
-            on:click={() => (statsOpen = false)}
-            on:keydown={(e) => {
+            onclick={() => (statsOpen = false)}
+            onkeydown={(e) => {
               if (e.key === "Enter" || e.key === " " || e.key === "Spacebar")
                 statsOpen = false;
             }}
           ></div>
         {/if}
 
-        <svelte:component
-          this={$componentRegistry.ControlTab || ControlTab}
+        <SvelteComponent_2
           bind:this={controlTabRef}
           bind:playing={$playingStore}
           {play}

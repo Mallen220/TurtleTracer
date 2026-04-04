@@ -2,12 +2,13 @@
 import "./app.scss";
 import App from "./App.svelte";
 import { browserFileSystem } from "./utils/browserFileSystem";
+import { mount } from "svelte";
 
 if (typeof window !== "undefined" && !window.electronAPI) {
   (window as any).electronAPI = browserFileSystem;
 }
 
-const app = new App({
+const app = mount(App, {
   target: document.body!,
 });
 

@@ -77,7 +77,9 @@ export function registerPluginHandlers() {
       return result.outputText;
     } catch (error) {
       console.error("Error transpiling plugin:", error);
-      throw new Error(`Transpilation failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Transpilation failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   });
 

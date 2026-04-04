@@ -18,30 +18,37 @@
   } from "../../../utils/pathTransform";
   import { sequenceStore } from "../../../lib/projectStore";
 
-  export let isOpen = false;
+  interface Props {
+    isOpen?: boolean;
+  }
 
-  let activeTab: "translate" | "rotate" | "flip" | "reverse" = "translate";
+  let { isOpen = $bindable(false) }: Props = $props();
+
+  let activeTab: "translate" | "rotate" | "flip" | "reverse" =
+    $state("translate");
 
   // Translate State
-  let translateX = 0;
-  let translateY = 0;
+  let translateX = $state(0);
+  let translateY = $state(0);
 
   // Pivot Settings (shared for Rotate & Flip)
-  let pivotMode: "center" | "origin" | "custom" = "center";
-  let customPivotX = 72;
-  let customPivotY = 72;
+  let pivotMode: "center" | "origin" | "custom" = $state("center");
+  let customPivotX = $state(72);
+  let customPivotY = $state(72);
 
   // Rotate State
-  let rotateDegrees = 0;
+  let rotateDegrees = $state(0);
 
   // Flip State
-  let flipHorizontal = false;
-  let flipVertical = false;
+  let flipHorizontal = $state(false);
+  let flipVertical = $state(false);
 
-  $: effectivePivotX =
-    pivotMode === "center" ? 72 : pivotMode === "origin" ? 0 : customPivotX;
-  $: effectivePivotY =
-    pivotMode === "center" ? 72 : pivotMode === "origin" ? 0 : customPivotY;
+  let effectivePivotX = $derived(
+    pivotMode === "center" ? 72 : pivotMode === "origin" ? 0 : customPivotX,
+  );
+  let effectivePivotY = $derived(
+    pivotMode === "center" ? 72 : pivotMode === "origin" ? 0 : customPivotY,
+  );
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && isOpen) {
@@ -137,7 +144,7 @@
   }
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen}
   <div
@@ -161,7 +168,7 @@
           Transform Path
         </h2>
         <button
-          on:click={() => (isOpen = false)}
+          onclick={() => (isOpen = false)}
           class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-md transition-colors"
           aria-label="Close"
         >
@@ -173,7 +180,7 @@
         class="flex border-b border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900"
       >
         <button
-          on:click={() => (activeTab = "translate")}
+          onclick={() => (activeTab = "translate")}
           class="flex-1 py-3 text-sm font-medium border-b-2 transition-colors {activeTab ===
           'translate'
             ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -182,7 +189,7 @@
           Translate
         </button>
         <button
-          on:click={() => (activeTab = "rotate")}
+          onclick={() => (activeTab = "rotate")}
           class="flex-1 py-3 text-sm font-medium border-b-2 transition-colors {activeTab ===
           'rotate'
             ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -191,7 +198,7 @@
           Rotate
         </button>
         <button
-          on:click={() => (activeTab = "flip")}
+          onclick={() => (activeTab = "flip")}
           class="flex-1 py-3 text-sm font-medium border-b-2 transition-colors {activeTab ===
           'flip'
             ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -200,7 +207,7 @@
           Flip
         </button>
         <button
-          on:click={() => (activeTab = "reverse")}
+          onclick={() => (activeTab = "reverse")}
           class="flex-1 py-3 text-sm font-medium border-b-2 transition-colors {activeTab ===
           'reverse'
             ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -395,13 +402,13 @@
         class="p-4 bg-neutral-50 dark:bg-neutral-900/50 border-t border-neutral-200 dark:border-neutral-800 flex justify-end gap-3"
       >
         <button
-          on:click={() => (isOpen = false)}
+          onclick={() => (isOpen = false)}
           class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-md transition-colors"
         >
           Cancel
         </button>
         <button
-          on:click={applyTransform}
+          onclick={applyTransform}
           class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-900"
         >
           Apply

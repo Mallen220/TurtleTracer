@@ -1,10 +1,27 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  export let color: string;
-  export let title: string = "Change Color";
-  export let disabled: boolean = false;
-  // Explicitly export tabindex to allow parent to control focusability
-  export let tabindex: number | undefined = undefined;
+  import { createBubbler } from "svelte/legacy";
+
+  const bubble = createBubbler();
+
+  interface Props {
+    color: string;
+    title?: string;
+    disabled?: boolean;
+    // Explicitly export tabindex to allow parent to control focusability
+    tabindex?: number | undefined;
+    oninput?: (e: Event) => void;
+    onchange?: (e: Event) => void;
+  }
+
+  let {
+    color = $bindable(),
+    title = "Change Color",
+    disabled = false,
+    tabindex = undefined,
+    oninput,
+    onchange,
+  }: Props = $props();
 </script>
 
 <div
@@ -13,13 +30,19 @@
 >
   <input
     type="color"
-    bind:value={color}
+    value={color}
     class="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
     {title}
     aria-label={title}
     {disabled}
     {tabindex}
-    on:input
-    on:change
+    oninput={(e) => {
+      color = e.currentTarget.value;
+      oninput?.(e);
+    }}
+    onchange={(e) => {
+      color = e.currentTarget.value;
+      onchange?.(e);
+    }}
   />
 </div>

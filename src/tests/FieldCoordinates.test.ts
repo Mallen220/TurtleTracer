@@ -17,7 +17,7 @@ describe("FieldCoordinates", () => {
   });
 
   it("changes position when obstructed", async () => {
-    const { component } = render(FieldCoordinates, {
+    const { rerender } = render(FieldCoordinates, {
       props: { x: 0, y: 0, visible: true, isObstructed: false },
     });
     let container = screen.getByRole("status");
@@ -27,7 +27,7 @@ describe("FieldCoordinates", () => {
     expect(container.className).toContain("left-2");
 
     // Update prop
-    await component.$set({ isObstructed: true });
+    await rerender({ x: 0, y: 0, visible: true, isObstructed: true });
     container = screen.getByRole("status");
 
     // Check new position (top-right)

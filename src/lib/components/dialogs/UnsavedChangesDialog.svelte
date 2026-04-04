@@ -1,16 +1,20 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  export let show = false;
-  export let onSave: () => void;
-  export let onDiscard: () => void;
-  export let onCancel: () => void;
+  interface Props {
+    show?: boolean;
+    onSave: () => void;
+    onDiscard: () => void;
+    onCancel: () => void;
+  }
+
+  let { show = $bindable(false), onSave, onDiscard, onCancel }: Props = $props();
 
   function handleKeydown(e: KeyboardEvent) {
     if (show && e.key === "Escape") onCancel();
   }
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if show}
   <div
@@ -30,19 +34,19 @@
 
       <div class="flex justify-end gap-3 flex-wrap">
         <button
-          on:click={onCancel}
+          onclick={onCancel}
           class="px-4 py-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 transition-colors"
         >
           Cancel
         </button>
         <button
-          on:click={onDiscard}
+          onclick={onDiscard}
           class="px-4 py-2 rounded-md bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 font-medium transition-colors"
         >
           Discard Changes
         </button>
         <button
-          on:click={onSave}
+          onclick={onSave}
           class="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
         >
           Save

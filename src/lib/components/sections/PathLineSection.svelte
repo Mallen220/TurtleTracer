@@ -1,5 +1,8 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run, stopPropagation, createBubbler } from "svelte/legacy";
+
+  const bubble = createBubbler();
   import type { Line } from "../../../types/index";
   import { snapToGrid, showGrid, gridSize } from "../../../stores";
   import ControlPointsSection from "./ControlPointsSection.svelte";
@@ -38,43 +41,64 @@
     LinkIcon,
   } from "../icons";
 
-  export let line: Line;
-  export let idx: number;
-  export let lines: Line[];
-  export let collapsed: boolean;
-  // export let collapsedEventMarkers: boolean;
-  export let collapsedControlPoints: boolean;
-  export let onRemove: () => void;
-  export let onInsertAfter: () => void;
-  export let onAddWaitAfter: () => void;
-  export let onAddRotateAfter: () => void;
-  export let onAddAction: ((def: any) => void) | undefined = undefined;
-  export let recordChange: (action?: string) => void;
-  export let onMoveUp: () => void;
-  export let onMoveDown: () => void;
-  export let canMoveUp: boolean = true;
-  export let canMoveDown: boolean = true;
+  interface Props {
+    line: Line;
+    idx: number;
+    lines: Line[];
+    collapsed: boolean;
+    // export let collapsedEventMarkers: boolean;
+    collapsedControlPoints: boolean;
+    onRemove: () => void;
+    onInsertAfter: () => void;
+    onAddWaitAfter: () => void;
+    onAddRotateAfter: () => void;
+    onAddAction?: ((def: any) => void) | undefined;
+    recordChange: (action?: string) => void;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
+    canMoveUp?: boolean;
+    canMoveDown?: boolean;
+  }
 
-  $: isSelected = $selectedLineId === line.id;
-  $: isHidden = line.hidden ?? false;
+  let {
+    line = $bindable(),
+    idx,
+    lines = $bindable(),
+    collapsed = $bindable(),
+    collapsedControlPoints = $bindable(),
+    onRemove,
+    onInsertAfter,
+    onAddWaitAfter,
+    onAddRotateAfter,
+    onAddAction = undefined,
+    recordChange,
+    onMoveUp,
+    onMoveDown,
+    canMoveUp = true,
+    canMoveDown = true,
+  }: Props = $props();
 
-  $: snapToGridTitle =
-    $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping";
+  let isSelected = $derived($selectedLineId === line.id);
+  let isHidden = $derived(line.hidden ?? false);
 
-  let hoveredLinkId: string | null = null;
-  let hoveredLinkAnchor: HTMLElement | null = null;
+  let snapToGridTitle = $derived(
+    $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping",
+  );
 
-  let xInput: HTMLInputElement;
-  let yInput: HTMLInputElement;
-  let headingControls: HeadingControls;
+  let hoveredLinkId: string | null = $state(null);
+  let hoveredLinkAnchor: HTMLElement | null = $state(null);
+
+  let xInput: HTMLInputElement | undefined = $state();
+  let yInput: HTMLInputElement | undefined = $state();
+  let headingControls: HeadingControls | undefined = $state();
   let nameInput: HTMLInputElement | undefined;
 
   // Container-based responsiveness: observe the grid container's width and
   // toggle a compact layout when it becomes too narrow (e.g., in a small
   // control tab). This ensures the Heading section snaps under Target Position
   // based on the control tab size and not the viewport width.
-  let gridContainer: HTMLElement;
-  let isNarrow: boolean = false;
+  let gridContainer: HTMLElement | undefined = $state();
+  let isNarrow: boolean = $state(false);
   const CONTROL_WIDTH_THRESHOLD = 480; // px, tweak as needed
 
   onMount(() => {
@@ -90,28 +114,29 @@
     return () => ro.disconnect();
   });
 
-  $: userPoint = toUser(
-    line.endPoint,
-    $settingsStore.coordinateSystem || "Pedro",
+  let userPoint = $derived(
+    toUser(line.endPoint, $settingsStore.coordinateSystem || "Pedro"),
   );
 
   // Listen for focus requests
-  $: if ($focusRequest) {
-    if ($selectedPointId === `point-${idx + 1}-0`) {
-      if ($focusRequest.field === "x" && xInput) xInput.focus();
-      if ($focusRequest.field === "y" && yInput) yInput.focus();
-      if ($focusRequest.field === "heading" && headingControls)
-        headingControls.focus();
+  run(() => {
+    if ($focusRequest) {
+      if ($selectedPointId === `point-${idx + 1}-0`) {
+        if ($focusRequest.field === "x" && xInput) xInput.focus();
+        if ($focusRequest.field === "y" && yInput) yInput.focus();
+        if ($focusRequest.field === "heading" && headingControls)
+          headingControls.focus();
+      }
+      // Special handling for rename focus which can happen on any selection of this line
+      if (
+        $focusRequest.field === "name" &&
+        $focusRequest.id === line.id &&
+        nameInput
+      ) {
+        nameInput.focus();
+      }
     }
-    // Special handling for rename focus which can happen on any selection of this line
-    if (
-      $focusRequest.field === "name" &&
-      $focusRequest.id === line.id &&
-      nameInput
-    ) {
-      nameInput.focus();
-    }
-  }
+  });
 
   function handleLinkHoverEnter(e: MouseEvent, id: string | null) {
     hoveredLinkId = id;
@@ -147,10 +172,10 @@
       ? "border-purple-500 ring-1 ring-purple-500/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
   } ${isHidden ? "opacity-50 grayscale-[50%]" : ""}`}
-  on:click={() => {
+  onclick={() => {
     if (line.id) selectedLineId.set(line.id);
   }}
-  on:keydown={(e) => {
+  onkeydown={(e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (line.id) selectedLineId.set(line.id);
@@ -162,7 +187,7 @@
     <!-- Left: Title & Name -->
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
-        on:click|stopPropagation={toggleCollapsed}
+        onclick={stopPropagation(toggleCollapsed)}
         class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title="{collapsed ? 'Expand' : 'Collapse'} path"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} Path {idx + 1}"
@@ -189,16 +214,16 @@
             class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all placeholder-neutral-400 truncate"
             class:text-green-500={hoveredLinkId === line.id}
             disabled={line.locked}
-            on:input={handleNameInput}
-            on:blur={() => recordChange && recordChange("Rename Path")}
-            on:click|stopPropagation
+            oninput={handleNameInput}
+            onblur={() => recordChange && recordChange("Rename Path")}
+            onclick={stopPropagation(bubble("click"))}
           />
           {#if line.id && isLineLinked(lines, line.id)}
             <div
               role="presentation"
               class="absolute right-2 top-1/2 -translate-y-1/2 text-green-500 cursor-help"
-              on:mouseenter={(e) => handleLinkHoverEnter(e, line.id || null)}
-              on:mouseleave={handleLinkHoverLeave}
+              onmouseenter={(e) => handleLinkHoverEnter(e, line.id || null)}
+              onmouseleave={handleLinkHoverLeave}
             >
               <LinkIcon className="w-3.5 h-3.5" />
               {#if hoveredLinkId === line.id}
@@ -220,17 +245,18 @@
     <!-- Right: Controls -->
     <div class="flex items-center gap-1">
       <ColorPicker
-        bind:color={line.color}
+        color={line.color}
+        onchange={(e) => (line.color = (e.currentTarget as HTMLInputElement).value)}
         title="Change Path Color"
         disabled={line.locked}
       />
 
       <button
-        on:click|stopPropagation={() => {
+        onclick={stopPropagation(() => {
           line.hidden = !isHidden;
           lines = [...lines];
           if (recordChange) recordChange();
-        }}
+        })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title={isHidden ? "Show Path" : "Hide Path"}
         aria-label={isHidden ? "Show Path" : "Hide Path"}
@@ -243,10 +269,10 @@
       </button>
 
       <button
-        on:click|stopPropagation={() => {
+        onclick={stopPropagation(() => {
           line.locked = !line.locked;
           lines = [...lines];
-        }}
+        })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title={line.locked ? "Unlock Path" : "Lock Path"}
         aria-label={line.locked ? "Unlock Path" : "Lock Path"}
@@ -268,8 +294,9 @@
         class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
       >
         <button
-          on:click|stopPropagation={() =>
-            !line.locked && onMoveUp && onMoveUp()}
+          onclick={stopPropagation(
+            () => !line.locked && onMoveUp && onMoveUp(),
+          )}
           disabled={!canMoveUp || line.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
           title="Move Up"
@@ -278,8 +305,9 @@
           <ArrowUpIcon className="size-3.5" />
         </button>
         <button
-          on:click|stopPropagation={() =>
-            !line.locked && onMoveDown && onMoveDown()}
+          onclick={stopPropagation(
+            () => !line.locked && onMoveDown && onMoveDown(),
+          )}
           disabled={!canMoveDown || line.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
           title="Move Down"
@@ -328,7 +356,7 @@
                 min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
                 max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
                 value={formatDisplayCoordinate(userPoint.x, $settingsStore)}
-                on:change={(e) => {
+                onchange={(e) => {
                   let val = parseFloat(e.currentTarget.value);
                   if (!isNaN(val)) {
                     if ($settingsStore.visualizerUnits === "metric") {
@@ -361,7 +389,7 @@
                 max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
                 type="number"
                 value={formatDisplayCoordinate(userPoint.y, $settingsStore)}
-                on:change={(e) => {
+                onchange={(e) => {
                   let val = parseFloat(e.currentTarget.value);
                   if (!isNaN(val)) {
                     if ($settingsStore.visualizerUnits === "metric") {
@@ -423,7 +451,7 @@
           {#if def.createDefault || def.isPath}
             {@const color = def.buttonColor || "gray"}
             <button
-              on:click={() => {
+              onclick={() => {
                 if (onAddAction) onAddAction(def);
                 else if (def.isPath) onInsertAfter();
                 else if (def.isWait) onAddWaitAfter();

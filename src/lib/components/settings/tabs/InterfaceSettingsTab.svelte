@@ -11,19 +11,23 @@
   import * as ICONS from "../../icons";
   import CustomFieldWizard from "../../settings/CustomFieldWizard.svelte";
 
-  export let settings: Settings;
-  export let searchQuery: string;
+  interface Props {
+    settings: Settings;
+    searchQuery: string;
+  }
 
-  $: availableMaps = [
+  let { settings = $bindable(), searchQuery }: Props = $props();
+
+  let availableMaps = $derived([
     ...AVAILABLE_FIELD_MAPS,
     ...(settings.customMaps || []).map((m) => ({
       value: m.id,
       label: m.name || "Custom Field",
     })),
-  ];
+  ]);
 
-  let isCustomFieldWizardOpen = false;
-  let editingCustomConfig: CustomFieldConfig | undefined = undefined;
+  let isCustomFieldWizardOpen = $state(false);
+  let editingCustomConfig: CustomFieldConfig | undefined = $state(undefined);
 
   function handleAddCustomMap() {
     editingCustomConfig = undefined;
@@ -160,7 +164,7 @@
         <button
           title="Delete Custom Map"
           class="p-2 text-neutral-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
-          on:click={() => handleDeleteCustomMap(settings.fieldMap)}
+          onclick={() => handleDeleteCustomMap(settings.fieldMap)}
         >
           <ICONS.TrashIcon className="size-5" />
         </button>
@@ -169,14 +173,14 @@
     {#if settings.customMaps?.some((m) => m.id === settings.fieldMap)}
       <button
         class="mt-2 w-full px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
-        on:click={() => handleEditCustomMap(settings.fieldMap)}
+        onclick={() => handleEditCustomMap(settings.fieldMap)}
       >
         Edit Custom Map
       </button>
     {/if}
     <button
       class="mt-2 w-full px-3 py-2 text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors border border-neutral-200 dark:border-neutral-700 border-dashed"
-      on:click={handleAddCustomMap}
+      onclick={handleAddCustomMap}
     >
       + Add Custom Field Map
     </button>
@@ -199,7 +203,7 @@
           rotation
             ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500'
             : 'bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
-          on:click={() => {
+          onclick={() => {
             settings.fieldRotation = rotation;
             settings = { ...settings };
           }}
@@ -305,7 +309,7 @@
       id="follow-robot"
       type="checkbox"
       bind:checked={settings.followRobot}
-      on:change={() => followRobotStore.set(!!settings.followRobot)}
+      onchange={() => followRobotStore.set(!!settings.followRobot)}
       class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
     />
   </SettingsItem>

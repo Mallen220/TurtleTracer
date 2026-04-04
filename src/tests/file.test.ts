@@ -85,7 +85,7 @@ describe("File Utils", () => {
     // Verify content type
     const blobCall = createObjectURLSpy.mock.calls[0][0];
     expect(blobCall.type).toBe(mimeType);
-  }
+  };
 
   describe("downloadTrajectoryAsText", () => {
     it("should create a text file download with correct parameters", () => {

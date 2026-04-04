@@ -15,17 +15,23 @@
     ArrowCircleIcon,
   } from "../icons";
 
-  export let isOpen = false;
+  interface Props {
+    isOpen?: boolean;
+  }
 
-  let searchQuery = "";
-  let pluginToDelete: PluginInfo | null = null;
+  let { isOpen = $bindable(false) }: Props = $props();
+
+  let searchQuery = $state("");
+  let pluginToDelete: PluginInfo | null = $state(null);
 
   // Derived status for better UI
-  $: filteredPlugins = $pluginsStore.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  let filteredPlugins = $derived(
+    $pluginsStore.filter((p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    ),
   );
-  $: loadedPlugins = filteredPlugins.filter((p) => p.loaded);
-  $: errorPlugins = filteredPlugins.filter((p) => !p.loaded);
+  let loadedPlugins = $derived(filteredPlugins.filter((p) => p.loaded));
+  let errorPlugins = $derived(filteredPlugins.filter((p) => !p.loaded));
 
   async function confirmDelete() {
     if (pluginToDelete) {
@@ -45,7 +51,7 @@
   }
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen}
   <div
@@ -84,7 +90,7 @@
             </div>
           </div>
           <button
-            on:click={() => (isOpen = false)}
+            onclick={() => (isOpen = false)}
             aria-label="Close"
             class="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
           >
@@ -134,7 +140,7 @@
               (.ts) plugins to your plugins folder.
             </p>
             <button
-              on:click={() => PluginManager.openPluginsFolder()}
+              onclick={() => PluginManager.openPluginsFolder()}
               class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-all font-medium shadow-lg hover:shadow-purple-500/25 flex items-center gap-2"
             >
               <FolderIcon className="size-5" />
@@ -157,7 +163,7 @@
               >"
             </p>
             <button
-              on:click={() => (searchQuery = "")}
+              onclick={() => (searchQuery = "")}
               class="mt-4 text-purple-600 dark:text-purple-400 hover:underline"
             >
               Clear search
@@ -229,7 +235,7 @@
                       <input
                         type="checkbox"
                         checked={plugin.enabled}
-                        on:change={(e) =>
+                        onchange={(e) =>
                           PluginManager.togglePlugin(
                             plugin.name,
                             e.currentTarget.checked,
@@ -247,7 +253,7 @@
                     </label>
 
                     <button
-                      on:click={() => (pluginToDelete = plugin)}
+                      onclick={() => (pluginToDelete = plugin)}
                       class="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                       title="Delete plugin"
                     >
@@ -288,7 +294,7 @@
                     </div>
                   </div>
                   <button
-                    on:click={() => (pluginToDelete = plugin)}
+                    onclick={() => (pluginToDelete = plugin)}
                     class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
                   >
                     <TrashIcon className="size-4" />
@@ -311,14 +317,14 @@
       >
         <div class="flex gap-3">
           <button
-            on:click={() => PluginManager.openPluginsFolder()}
+            onclick={() => PluginManager.openPluginsFolder()}
             class="px-4 py-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors font-medium flex items-center gap-2"
           >
             <FolderIcon className="size-5" />
             Open Folder
           </button>
           <button
-            on:click={() => PluginManager.reloadPlugins()}
+            onclick={() => PluginManager.reloadPlugins()}
             class="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors font-medium flex items-center gap-2"
           >
             <ArrowCircleIcon className="size-4" />
@@ -327,7 +333,7 @@
         </div>
 
         <button
-          on:click={() => (isOpen = false)}
+          onclick={() => (isOpen = false)}
           class="px-6 py-2 text-sm bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black rounded-lg transition-colors font-semibold shadow-sm"
         >
           Done
@@ -360,13 +366,13 @@
             </p>
             <div class="flex gap-3">
               <button
-                on:click={() => (pluginToDelete = null)}
+                onclick={() => (pluginToDelete = null)}
                 class="flex-1 px-4 py-2 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors font-medium text-sm"
               >
                 Cancel
               </button>
               <button
-                on:click={confirmDelete}
+                onclick={confirmDelete}
                 class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors font-medium text-sm shadow-sm"
               >
                 Delete

@@ -1,6 +1,9 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <!-- src/lib/components/filemanager/FileList.svelte -->
 <script lang="ts">
+  import { run, createBubbler, stopPropagation } from "svelte/legacy";
+
+  const bubble = createBubbler();
   import { createEventDispatcher, tick } from "svelte";
   import type { FileInfo } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
@@ -14,14 +17,6 @@
     EllipsisHorizontalIcon,
   } from "../icons";
 
-  export let fieldImage: string | null = null;
-
-  export let files: FileInfo[] = [];
-  export let selectedFilePath: string | null = null;
-  export let sortMode: "name" | "date" = "name";
-  export let renamingFile: FileInfo | null = null;
-  export let showGitStatus = true;
-
   const dispatch = createEventDispatcher<{
     select: FileInfo;
     open: FileInfo;
@@ -32,8 +27,9 @@
     "move-file": { sourceFile: FileInfo; targetDir: FileInfo };
   }>();
 
-  let contextMenu: { x: number; y: number; file: FileInfo } | null = null;
-  let renameInput: string = "";
+  let contextMenu: { x: number; y: number; file: FileInfo } | null =
+    $state(null);
+  let renameInput: string = $state("");
 
   function focusInput(node: HTMLInputElement): { destroy: () => void } {
     tick().then(() => node.select());
@@ -44,7 +40,7 @@
 
   // Preview cache + retry logic (similar to FileGrid)
   let previews: Record<string, { startPoint: any; lines: any[] } | undefined> =
-    {};
+    $state({});
   let previewRetryCount: Record<string, number> = {};
   const MAX_PREVIEW_RETRIES = 5;
   const previewQueue: string[] = [];
@@ -56,15 +52,7 @@
   // Number of top files to proactively preload when icons are enabled
   const PRELOAD_COUNT = 30;
 
-  let lastRenamingPath: string | null = null;
-  $: if (renamingFile) {
-    if (renamingFile.path !== lastRenamingPath) {
-      renameInput = renamingFile.name.replace(/\.(pp|turt)$/i, "");
-      lastRenamingPath = renamingFile.path;
-    }
-  } else {
-    lastRenamingPath = null;
-  }
+  let lastRenamingPath: string | null = $state(null);
 
   function formatFileSize(bytes: number): string {
     if (bytes === 0) return "0 B";
@@ -203,7 +191,7 @@
     }
   }
 
-  let dragOverTarget: string | null = null;
+  let dragOverTarget: string | null = $state(null);
 
   function handleDragOver(e: DragEvent, file: FileInfo) {
     if (file.isDirectory) {
@@ -292,10 +280,6 @@
     }
   }
 
-  // Grouping logic for Date sort
-  $: groups =
-    sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }];
-
   function groupFilesByDate(files: FileInfo[]) {
     const folders: FileInfo[] = [];
     const today: FileInfo[] = [];
@@ -370,34 +354,67 @@
     };
   }
 
-  // Preload top N files proactively when files change (helps when toggling icon display)
-  $: if (files && files.length) {
-    const PRELOAD_COUNT = 12;
-    files.slice(0, PRELOAD_COUNT).forEach((f) => {
-      if (f.isDirectory) return;
-      if (previews[f.path] === undefined) loadPreview(f.path);
-      // If previous attempts failed, force a retry
-      if (previews[f.path] && previews[f.path]!.startPoint == null)
-        loadPreview(f.path, true);
-    });
-  }
-
-  // If the field image changes, retry previously failed previews
-  $: if (fieldImage !== undefined) {
-    Object.keys(previews).forEach((p) => {
-      if (previews[p] && previews[p].startPoint == null) loadPreview(p, true);
-    });
-  }
-
   // Initialize observer on mount
   import { onMount, onDestroy } from "svelte";
+  interface Props {
+    fieldImage?: string | null;
+    files?: FileInfo[];
+    selectedFilePath?: string | null;
+    sortMode?: "name" | "date";
+    renamingFile?: FileInfo | null;
+    showGitStatus?: boolean;
+  }
+
+  let {
+    fieldImage = null,
+    files = [],
+    selectedFilePath = null,
+    sortMode = "name",
+    renamingFile = null,
+    showGitStatus = true,
+  }: Props = $props();
   onMount(() => setupObserver());
   onDestroy(() => observer && observer.disconnect());
+  run(() => {
+    if (renamingFile) {
+      if (renamingFile.path !== lastRenamingPath) {
+        renameInput = renamingFile.name.replace(/\.(pp|turt)$/i, "");
+        lastRenamingPath = renamingFile.path;
+      }
+    } else {
+      lastRenamingPath = null;
+    }
+  });
+  // Grouping logic for Date sort
+  let groups = $derived(
+    sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }],
+  );
+  // Preload top N files proactively when files change (helps when toggling icon display)
+  run(() => {
+    if (files && files.length) {
+      const PRELOAD_COUNT = 12;
+      files.slice(0, PRELOAD_COUNT).forEach((f) => {
+        if (f.isDirectory) return;
+        if (previews[f.path] === undefined) loadPreview(f.path);
+        // If previous attempts failed, force a retry
+        if (previews[f.path] && previews[f.path]!.startPoint == null)
+          loadPreview(f.path, true);
+      });
+    }
+  });
+  // If the field image changes, retry previously failed previews
+  run(() => {
+    if (fieldImage !== undefined) {
+      Object.keys(previews).forEach((p) => {
+        if (previews[p] && previews[p].startPoint == null) loadPreview(p, true);
+      });
+    }
+  });
 </script>
 
 <div
   class="flex-1 overflow-y-auto pb-4"
-  on:click={() => (contextMenu = null)}
+  onclick={() => (contextMenu = null)}
   role="presentation"
 >
   {#each groups as group}
@@ -421,18 +438,18 @@
           {dragOverTarget === file.path
             ? 'bg-blue-100 dark:bg-blue-900 ring-2 ring-blue-500'
             : ''}"
-          on:click={() => dispatch("select", file)}
-          on:dblclick={() => dispatch("open", file)}
-          on:contextmenu={(e) => handleContextMenu(e, file)}
+          onclick={() => dispatch("select", file)}
+          ondblclick={() => dispatch("open", file)}
+          oncontextmenu={(e) => handleContextMenu(e, file)}
           role="button"
           tabindex="0"
           aria-label={file.name}
           draggable="true"
-          on:dragstart={(e) => handleDragStart(e, file)}
-          on:dragover={(e) => handleDragOver(e, file)}
-          on:dragleave={(e) => handleDragLeave(e, file)}
-          on:drop={(e) => handleDrop(e, file)}
-          on:keydown={(e) => {
+          ondragstart={(e) => handleDragStart(e, file)}
+          ondragover={(e) => handleDragOver(e, file)}
+          ondragleave={(e) => handleDragLeave(e, file)}
+          ondrop={(e) => handleDrop(e, file)}
+          onkeydown={(e) => {
             if (e.key === "Enter") dispatch("open", file);
           }}
         >
@@ -466,7 +483,7 @@
             {#if renamingFile?.path === file.path}
               <div
                 class="flex items-center gap-1"
-                on:click|stopPropagation
+                onclick={stopPropagation(bubble("click"))}
                 role="presentation"
               >
                 <input
@@ -474,11 +491,11 @@
                   bind:value={renameInput}
                   use:focusInput
                   class="w-full px-1 py-0.5 text-sm border border-blue-400 rounded focus:outline-none dark:bg-neutral-700"
-                  on:keydown|stopPropagation={(e) => {
+                  onkeydown={(e: KeyboardEvent) => { e.stopPropagation();
                     if (e.key === "Enter") dispatch("rename-save", renameInput);
-                    if (e.key === "Escape") dispatch("rename-cancel");
-                  }}
-                  on:blur={() => dispatch("rename-cancel")}
+                    if (e.key === "Escape") dispatch("rename-cancel"); }}
+
+                  onblur={() => dispatch("rename-cancel")}
                 />
               </div>
             {:else}
@@ -543,7 +560,7 @@
           >
             <button
               class="p-1 rounded-full bg-white/80 dark:bg-neutral-800/80 shadow-sm text-neutral-600 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
-              on:click|stopPropagation={(e) => handleContextMenu(e, file)}
+              onclick={(e: MouseEvent) => { e.stopPropagation(); handleContextMenu(e, file); }}
               title="More actions"
               aria-label="File actions"
             >

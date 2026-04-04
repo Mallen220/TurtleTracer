@@ -94,7 +94,11 @@ export function removeSelected(recordChange: (action?: string) => void) {
     } else {
       const cpIndex = ptIdx - 1;
       if (line.controlPoints && line.controlPoints[cpIndex] !== undefined) {
-        line.controlPoints.splice(cpIndex, 1);
+        // Create a new line object with new controlPoints array
+        lines[lineIndex] = {
+          ...line,
+          controlPoints: line.controlPoints.filter((_, i) => i !== cpIndex),
+        };
         linesChanged = true;
       }
     }
@@ -172,8 +176,14 @@ export function removeSelected(recordChange: (action?: string) => void) {
         item.eventMarkers[evIdx] &&
         !item.locked
       ) {
-        item.eventMarkers.splice(evIdx, 1);
-        sequenceChanged = true;
+        const itemIdx = sequence.findIndex((s) => (s as any).id === itemId);
+        if (itemIdx !== -1) {
+          sequence[itemIdx] = {
+            ...item,
+            eventMarkers: item.eventMarkers.filter((_: any, i: number) => i !== evIdx),
+          };
+          sequenceChanged = true;
+        }
       }
     } else if (itemType === "line") {
       const lineIdx = Number(itemId);
@@ -184,20 +194,23 @@ export function removeSelected(recordChange: (action?: string) => void) {
         line.eventMarkers[evIdx] &&
         !line.locked
       ) {
-        line.eventMarkers.splice(evIdx, 1);
+        lines[lineIdx] = {
+          ...line,
+          eventMarkers: line.eventMarkers.filter((_: any, i: number) => i !== evIdx),
+        };
         linesChanged = true;
       }
     }
   });
 
-  if (linesChanged && linesToRemove.size === 0) linesStore.set(lines);
+  if (linesChanged && linesToRemove.size === 0) linesStore.set([...lines]);
   if (
     sequenceChanged &&
     waitsToDelete.length === 0 &&
     rotatesToDelete.length === 0 &&
     linesToRemove.size === 0
   )
-    sequenceStore.set(sequence);
+    sequenceStore.set([...sequence]);
 
   selectedPointId.set(null);
   multiSelectedPointIds.set([]);
@@ -255,21 +268,18 @@ export function movePoint(
       const ptIdx = Number(parts[2]);
       if (lineNum === 0 && ptIdx === 0) {
         if (!startPoint.locked) {
-          if (snapMode) {
-            if (dx !== 0) startPoint.x = nextGridCoord(startPoint.x, dx);
-            if (dy !== 0) startPoint.y = nextGridCoord(startPoint.y, dy);
-          } else {
-            startPoint.x = Math.max(
-              0,
-              Math.min(FIELD_SIZE, startPoint.x + moveX),
-            );
-            startPoint.y = Math.max(
-              0,
-              Math.min(FIELD_SIZE, startPoint.y + moveY),
-            );
-          }
-          startPoint.x = Number(startPoint.x.toFixed(3));
-          startPoint.y = Number(startPoint.y.toFixed(3));
+          const x = snapMode
+            ? nextGridCoord(startPoint.x, dx)
+            : Math.max(0, Math.min(FIELD_SIZE, startPoint.x + moveX));
+          const y = snapMode
+            ? nextGridCoord(startPoint.y, dy)
+            : Math.max(0, Math.min(FIELD_SIZE, startPoint.y + moveY));
+
+          startPointStore.set({
+            ...startPoint,
+            x: Number(x.toFixed(3)),
+            y: Number(y.toFixed(3)),
+          });
           startPointChanged = true;
         }
         return;
@@ -279,55 +289,49 @@ export function movePoint(
       if (line && !line.locked) {
         if (ptIdx === 0) {
           if (line.endPoint) {
-            if (snapMode) {
-              if (dx !== 0)
-                line.endPoint.x = nextGridCoord(line.endPoint.x, dx);
-              if (dy !== 0)
-                line.endPoint.y = nextGridCoord(line.endPoint.y, dy);
-            } else {
-              line.endPoint.x = Math.max(
-                0,
-                Math.min(FIELD_SIZE, line.endPoint.x + moveX),
-              );
-              line.endPoint.y = Math.max(
-                0,
-                Math.min(FIELD_SIZE, line.endPoint.y + moveY),
-              );
-            }
-            line.endPoint.x = Number(line.endPoint.x.toFixed(3));
-            line.endPoint.y = Number(line.endPoint.y.toFixed(3));
+            const nx = snapMode
+              ? nextGridCoord(line.endPoint.x, dx)
+              : Math.max(0, Math.min(FIELD_SIZE, line.endPoint.x + moveX));
+            const ny = snapMode
+              ? nextGridCoord(line.endPoint.y, dy)
+              : Math.max(0, Math.min(FIELD_SIZE, line.endPoint.y + moveY));
+
+            lines[lineIndex] = {
+              ...line,
+              endPoint: {
+                ...line.endPoint,
+                x: Number(nx.toFixed(3)),
+                y: Number(ny.toFixed(3)),
+              },
+            };
             linesChanged = true;
           }
         } else {
           const cpIndex = ptIdx - 1;
           if (line.controlPoints[cpIndex]) {
-            if (snapMode) {
-              if (dx !== 0)
-                line.controlPoints[cpIndex].x = nextGridCoord(
-                  line.controlPoints[cpIndex].x,
-                  dx,
+            const nx = snapMode
+              ? nextGridCoord(line.controlPoints[cpIndex].x, dx)
+              : Math.max(
+                  0,
+                  Math.min(FIELD_SIZE, line.controlPoints[cpIndex].x + moveX),
                 );
-              if (dy !== 0)
-                line.controlPoints[cpIndex].y = nextGridCoord(
-                  line.controlPoints[cpIndex].y,
-                  dy,
+            const ny = snapMode
+              ? nextGridCoord(line.controlPoints[cpIndex].y, dy)
+              : Math.max(
+                  0,
+                  Math.min(FIELD_SIZE, line.controlPoints[cpIndex].y + moveY),
                 );
-            } else {
-              line.controlPoints[cpIndex].x = Math.max(
-                0,
-                Math.min(FIELD_SIZE, line.controlPoints[cpIndex].x + moveX),
-              );
-              line.controlPoints[cpIndex].y = Math.max(
-                0,
-                Math.min(FIELD_SIZE, line.controlPoints[cpIndex].y + moveY),
-              );
-            }
-            line.controlPoints[cpIndex].x = Number(
-              line.controlPoints[cpIndex].x.toFixed(3),
-            );
-            line.controlPoints[cpIndex].y = Number(
-              line.controlPoints[cpIndex].y.toFixed(3),
-            );
+
+            const newCps = [...line.controlPoints];
+            newCps[cpIndex] = {
+              ...newCps[cpIndex],
+              x: Number(nx.toFixed(3)),
+              y: Number(ny.toFixed(3)),
+            };
+            lines[lineIndex] = {
+              ...line,
+              controlPoints: newCps,
+            };
             linesChanged = true;
           }
         }
@@ -338,15 +342,23 @@ export function movePoint(
       const vertexIdx = Number(parts[2]);
       if (shapes[shapeIdx]?.vertices[vertexIdx]) {
         const v = shapes[shapeIdx].vertices[vertexIdx];
-        if (snapMode) {
-          if (dx !== 0) v.x = nextGridCoord(v.x, dx);
-          if (dy !== 0) v.y = nextGridCoord(v.y, dy);
-        } else {
-          v.x = Math.max(0, Math.min(FIELD_SIZE, v.x + moveX));
-          v.y = Math.max(0, Math.min(FIELD_SIZE, v.y + moveY));
-        }
-        v.x = Number(v.x.toFixed(3));
-        v.y = Number(v.y.toFixed(3));
+        const nx = snapMode
+          ? nextGridCoord(v.x, dx)
+          : Math.max(0, Math.min(FIELD_SIZE, v.x + moveX));
+        const ny = snapMode
+          ? nextGridCoord(v.y, dy)
+          : Math.max(0, Math.min(FIELD_SIZE, v.y + moveY));
+
+        const newVertices = [...shapes[shapeIdx].vertices];
+        newVertices[vertexIdx] = {
+          ...newVertices[vertexIdx],
+          x: Number(nx.toFixed(3)),
+          y: Number(ny.toFixed(3)),
+        };
+        shapes[shapeIdx] = {
+          ...shapes[shapeIdx],
+          vertices: newVertices,
+        };
         shapesChanged = true;
       }
     } else if (currentSel.startsWith("event-wait-")) {
@@ -354,31 +366,43 @@ export function movePoint(
       const evIdx = Number(parts.pop() as string);
       const waitId = parts.slice(2).join("-");
 
-      const item = sequence.find(
+      const itemIdx = sequence.findIndex(
         (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
-      ) as any;
-      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
-        const delta = (dx + dy) * 0.01;
-        let newPos = item.eventMarkers[evIdx].position + delta;
-        newPos = Math.max(0, Math.min(1, newPos));
-        item.eventMarkers[evIdx].position = newPos;
-        sequenceChanged = true;
+      );
+      if (itemIdx !== -1) {
+        const item = sequence[itemIdx] as any;
+        if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+          const delta = (dx + dy) * 0.01;
+          let newPos = item.eventMarkers[evIdx].position + delta;
+          newPos = Math.max(0, Math.min(1, newPos));
+
+          const newMarkers = [...item.eventMarkers];
+          newMarkers[evIdx] = { ...newMarkers[evIdx], position: newPos };
+          sequence[itemIdx] = { ...item, eventMarkers: newMarkers };
+          sequenceChanged = true;
+        }
       }
     } else if (currentSel.startsWith("event-rotate-")) {
       const parts = currentSel.split("-");
       const evIdx = Number(parts.pop() as string);
       const rotateId = parts.slice(2).join("-");
 
-      const item = sequence.find(
+      const itemIdx = sequence.findIndex(
         (s) =>
           actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
-      ) as any;
-      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
-        const delta = (dx + dy) * 0.01;
-        let newPos = item.eventMarkers[evIdx].position + delta;
-        newPos = Math.max(0, Math.min(1, newPos));
-        item.eventMarkers[evIdx].position = newPos;
-        sequenceChanged = true;
+      );
+      if (itemIdx !== -1) {
+        const item = sequence[itemIdx] as any;
+        if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+          const delta = (dx + dy) * 0.01;
+          let newPos = item.eventMarkers[evIdx].position + delta;
+          newPos = Math.max(0, Math.min(1, newPos));
+
+          const newMarkers = [...item.eventMarkers];
+          newMarkers[evIdx] = { ...newMarkers[evIdx], position: newPos };
+          sequence[itemIdx] = { ...item, eventMarkers: newMarkers };
+          sequenceChanged = true;
+        }
       }
     } else if (currentSel.startsWith("event-")) {
       const parts = currentSel.split("-");
@@ -389,16 +413,19 @@ export function movePoint(
         const delta = (dx + dy) * 0.01;
         let newPos = line.eventMarkers[evIdx].position + delta;
         newPos = Math.max(0, Math.min(1, newPos));
-        line.eventMarkers[evIdx].position = newPos;
+
+        const newMarkers = [...line.eventMarkers];
+        newMarkers[evIdx] = { ...newMarkers[evIdx], position: newPos };
+        lines[lineIdx] = { ...line, eventMarkers: newMarkers };
         linesChanged = true;
       }
     }
   });
 
-  if (startPointChanged) startPointStore.set(startPoint);
-  if (linesChanged) linesStore.set(lines);
-  if (shapesChanged) shapesStore.set(shapes);
-  if (sequenceChanged) sequenceStore.set(sequence);
+  if (startPointChanged) startPointStore.set({ ...startPoint });
+  if (linesChanged) linesStore.set([...lines]);
+  if (shapesChanged) shapesStore.set([...shapes]);
+  if (sequenceChanged) sequenceStore.set([...sequence]);
 
   recordChange("Move Point");
 }

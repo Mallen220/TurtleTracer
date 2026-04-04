@@ -5,9 +5,8 @@ import DeleteButtonWithConfirm from "../lib/components/common/DeleteButtonWithCo
 
 describe("DeleteButtonWithConfirm", () => {
   const setupButton = () => {
-    const { component } = render(DeleteButtonWithConfirm);
     const mockClickHandler = vi.fn();
-    component.$on("click", mockClickHandler);
+    render(DeleteButtonWithConfirm, { props: { onclick: mockClickHandler } });
     const button = screen.getByTitle("Delete");
     return { button, mockClickHandler };
   };

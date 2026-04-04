@@ -1,16 +1,29 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import { tick } from "svelte";
 
-  export let show = false;
-  export let title = "Prompt";
-  export let message = "";
-  export let defaultText = "";
-  export let onConfirm: (value: string) => void;
-  export let onCancel: () => void;
+  interface Props {
+    show?: boolean;
+    title?: string;
+    message?: string;
+    defaultText?: string;
+    onConfirm: (value: string) => void;
+    onCancel: () => void;
+  }
 
-  let value = defaultText;
-  let inputElement: HTMLInputElement;
+  let {
+    show = $bindable(false),
+    title = "Prompt",
+    message = "",
+    defaultText = "",
+    onConfirm,
+    onCancel,
+  }: Props = $props();
+
+  let value = $state("");
+  let inputElement: HTMLInputElement | undefined = $state();
 
   function handleConfirm() {
     onConfirm(value);
@@ -30,20 +43,24 @@
   }
 
   // Reset value when dialog opens
-  let wasShown = false;
-  $: if (show && !wasShown) {
-    wasShown = true;
-    value = defaultText || "";
-    tick().then(() => {
-      if (inputElement) {
-        inputElement.focus();
-        inputElement.select();
-      }
-    });
-  }
-  $: if (!show) {
-    wasShown = false;
-  }
+  let wasShown = $state(false);
+  run(() => {
+    if (show && !wasShown) {
+      wasShown = true;
+      value = defaultText || "";
+      tick().then(() => {
+        if (inputElement) {
+          inputElement.focus();
+          inputElement.select();
+        }
+      });
+    }
+  });
+  run(() => {
+    if (!show) {
+      wasShown = false;
+    }
+  });
 </script>
 
 {#if show}
@@ -68,21 +85,21 @@
         bind:this={inputElement}
         type="text"
         bind:value
-        on:keydown={handleKeydown}
-        on:keyup={(e) => e.stopPropagation()}
-        on:keypress={(e) => e.stopPropagation()}
+        onkeydown={handleKeydown}
+        onkeyup={(e) => e.stopPropagation()}
+        onkeypress={(e) => e.stopPropagation()}
         class="w-full px-3 py-2 border rounded-md mb-6 bg-neutral-50 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
       />
 
       <div class="flex justify-end gap-3">
         <button
-          on:click={handleCancel}
+          onclick={handleCancel}
           class="px-4 py-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 transition-colors"
         >
           Cancel
         </button>
         <button
-          on:click={handleConfirm}
+          onclick={handleConfirm}
           class="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
         >
           OK

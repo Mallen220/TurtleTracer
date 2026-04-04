@@ -8,40 +8,52 @@
   import { fieldZoom, fieldPan } from "../../../stores";
   import { CloseIcon, SpinnerIcon, ArrowDownTrayIcon } from "../icons";
 
-  export let show = false;
-  export let twoInstance: any;
-  export let settings: any;
-  export let robotLengthPx: number;
-  export let robotWidthPx: number;
-  export let robotState: { x: number; y: number; heading: number };
-  export let electronAPI: any;
+  interface Props {
+    show?: boolean;
+    twoInstance: any;
+    settings: any;
+    robotLengthPx: number;
+    robotWidthPx: number;
+    robotState: { x: number; y: number; heading: number };
+    electronAPI: any;
+    // D3 Scales passed as functions
+    xScale?: (v: number) => number;
+    yScale?: (v: number) => number;
+  }
 
-  // D3 Scales passed as functions
-  export let xScale: (v: number) => number = (v) => v;
-  export let yScale: (v: number) => number = (v) => v;
+  let {
+    show = $bindable(false),
+    twoInstance,
+    settings,
+    robotLengthPx,
+    robotWidthPx,
+    robotState,
+    electronAPI,
+    xScale = (v) => v,
+    yScale = (v) => v,
+  }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
-  let format: "png" | "jpeg" | "svg" = "png";
-  let resolutionScale = 1.0;
-  let quality = 0.9; // 0.1 - 1.0 for JPEG
+  let format: "png" | "jpeg" | "svg" = $state("png");
+  let resolutionScale = $state(1.0);
+  let quality = $state(0.9); // 0.1 - 1.0 for JPEG
 
-  let status = "idle"; // idle, generating, done, error
-  let statusMessage = "";
+  let status = $state("idle"); // idle, generating, done, error
+  let statusMessage = $state("");
   let previewBlob: Blob | null = null;
-  let previewUrl: string | null = null;
+  let previewUrl: string | null = $state(null);
 
   // Store View State
   let savedZoom = 1.0;
   let savedPan = { x: 0, y: 0 };
 
   // Preview sizing helpers
-  let previewContainer: HTMLDivElement | null = null;
-  let containerW = 0;
-  let containerH = 0;
-  $: iconSize = Math.max(
-    0,
-    Math.floor(Math.min(containerW || 0, containerH || 0)),
+  let previewContainer: HTMLDivElement | null = $state(null);
+  let containerW = $state(0);
+  let containerH = $state(0);
+  let iconSize = $derived(
+    Math.max(0, Math.floor(Math.min(containerW || 0, containerH || 0))),
   );
 
   function close() {
@@ -215,7 +227,7 @@
   });
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if show}
   <div
@@ -236,7 +248,7 @@
         </h2>
         <button
           class="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-          on:click={close}
+          onclick={close}
           aria-label="Close"
         >
           <CloseIcon className="w-6 h-6" />
@@ -258,7 +270,7 @@
             <select
               id="img-format"
               bind:value={format}
-              on:change={generatePreview}
+              onchange={generatePreview}
               class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
             >
               <option value="png">PNG</option>
@@ -278,7 +290,7 @@
             <select
               id="img-scale"
               bind:value={resolutionScale}
-              on:change={generatePreview}
+              onchange={generatePreview}
               class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
             >
               <option value={0.25}>25%</option>
@@ -305,7 +317,7 @@
                 max="1.0"
                 step="0.1"
                 bind:value={quality}
-                on:change={generatePreview}
+                onchange={generatePreview}
                 class="w-full accent-purple-600"
               />
             </div>
@@ -370,14 +382,14 @@
       >
         <button
           class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
-          on:click={close}
+          onclick={close}
         >
           Cancel
         </button>
 
         <button
           class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          on:click={downloadImage}
+          onclick={downloadImage}
           disabled={status === "generating" || !previewUrl}
         >
           <ArrowDownTrayIcon className="w-4 h-4" strokeWidth={1.5} />

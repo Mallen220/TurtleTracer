@@ -111,17 +111,21 @@ export function addEventMarker(recordChange: (action?: string) => void) {
 
     if (waitItem) {
       if (waitItem.locked) return;
-      waitItem.eventMarkers = waitItem.eventMarkers || [];
-      waitItem.eventMarkers.push({
-        id: `event-${Date.now()}`,
-        name: "",
-        position: 0.5,
-      });
-      sequenceStore.set(sequence);
-      selectedPointId.set(
-        `event-wait-${waitId}-${waitItem.eventMarkers.length - 1}`,
-      );
-      recordChange("Add Event Marker");
+      const newMarkers = [
+        ...(waitItem.eventMarkers || []),
+        {
+          id: `event-${Date.now()}`,
+          name: "",
+          position: 0.5,
+        },
+      ];
+      const itemIdx = sequence.findIndex((s) => (s as any).id === waitId);
+      if (itemIdx !== -1) {
+        sequence[itemIdx] = { ...waitItem, eventMarkers: newMarkers };
+        sequenceStore.set([...sequence]);
+        selectedPointId.set(`event-wait-${waitId}-${newMarkers.length - 1}`);
+        recordChange("Add Event Marker");
+      }
       return;
     }
   }
@@ -157,20 +161,21 @@ export function addEventMarker(recordChange: (action?: string) => void) {
 
   if (targetLine) {
     if (targetLine.locked) return; // Don't allow adding event markers to locked lines
-    targetLine.eventMarkers = targetLine.eventMarkers || [];
-    targetLine.eventMarkers.push({
-      id: `event-${Date.now()}`,
-      name: "",
-      position: 0.5,
-    });
-    linesStore.set(lines);
+    const newMarkers = [
+      ...(targetLine.eventMarkers || []),
+      {
+        id: `event-${Date.now()}`,
+        name: "",
+        position: 0.5,
+      },
+    ];
     const lineIdx = lines.findIndex((l) => l.id === targetId);
     if (lineIdx !== -1) {
-      selectedPointId.set(
-        `event-${lineIdx}-${targetLine.eventMarkers.length - 1}`,
-      );
+      lines[lineIdx] = { ...targetLine, eventMarkers: newMarkers };
+      linesStore.set([...lines]);
+      selectedPointId.set(`event-${lineIdx}-${newMarkers.length - 1}`);
+      recordChange("Add Event Marker");
     }
-    recordChange("Add Event Marker");
   }
 }
 
@@ -180,19 +185,23 @@ export function addControlPoint(recordChange: (action?: string) => void) {
   const targetId = get(selectedLineId) || lines[lines.length - 1].id;
   const targetLine =
     lines.find((l) => l.id === targetId) || lines[lines.length - 1];
-  if (!targetLine) return;
-  if (targetLine.locked) return; // Don't allow adding control points to locked lines
+  if (targetLine) {
+    if (targetLine.locked) return; // Don't allow adding control points to locked lines
 
-  targetLine.controlPoints.push({
-    x: _.random(36, 108),
-    y: _.random(36, 108),
-  });
-  linesStore.set(lines);
-  const lineIndex = lines.findIndex((l) => l.id === targetLine.id);
-  const cpIndex = targetLine.controlPoints.length;
-  selectedLineId.set(targetLine.id as string);
-  selectedPointId.set(`point-${lineIndex + 1}-${cpIndex}`);
-  recordChange("Add Control Point");
+    const newCp = {
+      x: _.random(36, 108),
+      y: _.random(36, 108),
+    };
+    const lineIndex = lines.findIndex((l) => l.id === targetLine.id);
+    if (lineIndex !== -1) {
+      const newCps = [...targetLine.controlPoints, newCp];
+      lines[lineIndex] = { ...targetLine, controlPoints: newCps };
+      linesStore.set([...lines]);
+      selectedLineId.set(targetLine.id as string);
+      selectedPointId.set(`point-${lineIndex + 1}-${newCps.length}`);
+      recordChange("Add Control Point");
+    }
+  }
 }
 
 export function removeControlPoint(recordChange: (action?: string) => void) {
@@ -203,9 +212,14 @@ export function removeControlPoint(recordChange: (action?: string) => void) {
       lines.find((l) => l.id === targetId) || lines[lines.length - 1];
     if (targetLine && targetLine.controlPoints.length > 0) {
       if (targetLine.locked) return; // Don't allow removing control points from locked lines
-      targetLine.controlPoints.pop();
-      linesStore.set(lines);
-      recordChange("Remove Control Point");
+      const lineIndex = lines.findIndex((l) => l.id === targetLine.id);
+      if (lineIndex !== -1) {
+        const newCps = [...targetLine.controlPoints];
+        newCps.pop();
+        lines[lineIndex] = { ...targetLine, controlPoints: newCps };
+        linesStore.set([...lines]);
+        recordChange("Remove Control Point");
+      }
     }
   }
 }

@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import {
     showRuler,
     showProtractor,
@@ -20,35 +22,41 @@
   import type * as d3 from "d3";
   import type { Point } from "../types";
 
-  export let x: d3.ScaleLinear<number, number, number>;
-  export let y: d3.ScaleLinear<number, number, number>;
-  export let twoElement: HTMLDivElement;
-  export let robotXY: { x: number; y: number } = { x: 0, y: 0 };
+  interface Props {
+    x: d3.ScaleLinear<number, number, number>;
+    y: d3.ScaleLinear<number, number, number>;
+    twoElement: HTMLDivElement;
+    robotXY?: { x: number; y: number };
+  }
 
-  let rulerStart = { x: 20, y: 72 };
-  let rulerEnd = { x: 80, y: 72 };
+  let { x, y, twoElement, robotXY = { x: 0, y: 0 } }: Props = $props();
+
+  let rulerStart = $state({ x: 20, y: 72 });
+  let rulerEnd = $state({ x: 80, y: 72 });
   let rulerDragging: "start" | "end" | null = null;
 
-  let protractorPos = { x: 72, y: 72 };
-  let protractorRadiusAngle = 0;
+  let protractorPos = $state({ x: 72, y: 72 });
+  let protractorRadiusAngle = $state(0);
   let protractorDragging: "move" | "rotate" | "resize" | null = null;
   let protractorRotateStart = 0;
-  let protractorRadius = 60;
-  let protractorResizeAngle = -60;
+  let protractorRadius = $state(60);
+  let protractorResizeAngle = $state(-60);
 
   const MIN_PROTRACTOR_RADIUS = 30;
   const MAX_PROTRACTOR_RADIUS = 150;
 
-  $: normalizedProtractorAngle = Math.round(
-    protractorRadiusAngle < 0
-      ? 360 + protractorRadiusAngle
-      : protractorRadiusAngle,
+  let normalizedProtractorAngle = $derived(
+    Math.round(
+      protractorRadiusAngle < 0
+        ? 360 + protractorRadiusAngle
+        : protractorRadiusAngle,
+    ),
   );
-  $: resizeHandleRadians = (protractorResizeAngle * Math.PI) / 180;
-  $: resizeHandlePosition = {
+  let resizeHandleRadians = $derived((protractorResizeAngle * Math.PI) / 180);
+  let resizeHandlePosition = $derived({
     x: Math.cos(resizeHandleRadians) * protractorRadius,
     y: -Math.sin(resizeHandleRadians) * protractorRadius,
-  };
+  });
 
   function handleMouseDown(event: MouseEvent, type: string) {
     event.stopPropagation();
@@ -170,71 +178,82 @@
     protractorDragging = null;
   }
 
-  $: rulerLength = Math.sqrt(
-    Math.pow(rulerEnd.x - rulerStart.x, 2) +
-      Math.pow(rulerEnd.y - rulerStart.y, 2),
+  let rulerLength = $derived(
+    Math.sqrt(
+      Math.pow(rulerEnd.x - rulerStart.x, 2) +
+        Math.pow(rulerEnd.y - rulerStart.y, 2),
+    ),
   );
 
-  $: deltaX = Math.abs(rulerEnd.x - rulerStart.x);
-  $: deltaY = Math.abs(rulerEnd.y - rulerStart.y);
-  $: rulerAngle =
+  let deltaX = $derived(Math.abs(rulerEnd.x - rulerStart.x));
+  let deltaY = $derived(Math.abs(rulerEnd.y - rulerStart.y));
+  let rulerAngle = $derived(
     Math.atan2(rulerEnd.y - rulerStart.y, rulerEnd.x - rulerStart.x) *
-    (180 / Math.PI);
-  $: displayAngle = ((rulerAngle % 360) + 360) % 360;
+      (180 / Math.PI),
+  );
+  let displayAngle = $derived(((rulerAngle % 360) + 360) % 360);
 
   // Smart Label Positioning
-  $: startPx = { x: x(rulerStart.x), y: y(rulerStart.y) };
-  $: endPx = { x: x(rulerEnd.x), y: y(rulerEnd.y) };
+  let startPx = $derived({ x: x(rulerStart.x), y: y(rulerStart.y) });
+  let endPx = $derived({ x: x(rulerEnd.x), y: y(rulerEnd.y) });
 
   // Calculate Length Label Position (Perpendicular to hypotenuse, away from corner)
-  $: lengthLabelPos = (() => {
-    // Corner in pixels (Right angle vertex)
-    const cornerPx = { x: endPx.x, y: startPx.y };
-    // Midpoint of hypotenuse
-    const midPx = {
-      x: (startPx.x + endPx.x) / 2,
-      y: (startPx.y + endPx.y) / 2,
-    };
-    // Vector from Corner to Midpoint
-    const dx = midPx.x - cornerPx.x;
-    const dy = midPx.y - cornerPx.y;
-    // Normalize and scale
-    const len = Math.sqrt(dx * dx + dy * dy);
-    const offset = 15; // Distance from line
-    if (len < 0.001) return { x: midPx.x, y: midPx.y - 15 }; // Fallback
-    return {
-      x: midPx.x + (dx / len) * offset,
-      y: midPx.y + (dy / len) * offset,
-    };
-  })();
+  let lengthLabelPos = $derived(
+    (() => {
+      // Corner in pixels (Right angle vertex)
+      const cornerPx = { x: endPx.x, y: startPx.y };
+      // Midpoint of hypotenuse
+      const midPx = {
+        x: (startPx.x + endPx.x) / 2,
+        y: (startPx.y + endPx.y) / 2,
+      };
+      // Vector from Corner to Midpoint
+      const dx = midPx.x - cornerPx.x;
+      const dy = midPx.y - cornerPx.y;
+      // Normalize and scale
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const offset = 15; // Distance from line
+      if (len < 0.001) return { x: midPx.x, y: midPx.y - 15 }; // Fallback
+      return {
+        x: midPx.x + (dx / len) * offset,
+        y: midPx.y + (dy / len) * offset,
+      };
+    })(),
+  );
 
   // Delta Label Visibility Thresholds (in pixels)
   const MIN_LABEL_PX = 30;
-  $: showDeltaX = Math.abs(endPx.x - startPx.x) > MIN_LABEL_PX;
-  $: showDeltaY = Math.abs(endPx.y - startPx.y) > MIN_LABEL_PX;
+  let showDeltaX = $derived(Math.abs(endPx.x - startPx.x) > MIN_LABEL_PX);
+  let showDeltaY = $derived(Math.abs(endPx.y - startPx.y) > MIN_LABEL_PX);
 
   // Calculate protractor position - lock to robot if enabled
-  $: actualProtractorPos = $protractorLockToRobot
-    ? robotXY // robotXY is now in inches
-    : protractorPos;
+  let actualProtractorPos = $derived(
+    $protractorLockToRobot
+      ? robotXY // robotXY is now in inches
+      : protractorPos,
+  );
 
-  let spacing = 12;
-  let gridPositions: number[] = [];
+  let spacing = $state(12);
+  let gridPositions: number[] = $state([]);
 
-  $: spacing = Math.max(1, $gridSize || 12);
-  $: gridPositions = (() => {
-    const positions: number[] = [];
-    for (let pos = 0; pos <= FIELD_SIZE; pos += spacing) {
-      positions.push(Number(pos.toFixed(6)));
-    }
-    if (positions[positions.length - 1] !== FIELD_SIZE) {
-      positions.push(FIELD_SIZE);
-    }
-    return positions;
-  })();
+  run(() => {
+    spacing = Math.max(1, $gridSize || 12);
+  });
+  run(() => {
+    gridPositions = (() => {
+      const positions: number[] = [];
+      for (let pos = 0; pos <= FIELD_SIZE; pos += spacing) {
+        positions.push(Number(pos.toFixed(6)));
+      }
+      if (positions[positions.length - 1] !== FIELD_SIZE) {
+        positions.push(FIELD_SIZE);
+      }
+      return positions;
+    })();
+  });
 </script>
 
-<svelte:window on:mousemove={handleMouseMove} on:mouseup={handleMouseUp} />
+<svelte:window onmousemove={handleMouseMove} onmouseup={handleMouseUp} />
 
 {#if $showGrid && !$isPresentationMode}
   <svg class="absolute top-0 left-0 w-full h-full pointer-events-none z-20">
@@ -350,7 +369,7 @@
       role="button"
       tabindex="0"
       aria-label="Ruler start point"
-      on:mousedown={(e) => handleMouseDown(e, "ruler-start")}
+      onmousedown={(e) => handleMouseDown(e, "ruler-start")}
     />
 
     <!-- End handle -->
@@ -363,7 +382,7 @@
       role="button"
       tabindex="0"
       aria-label="Ruler end point"
-      on:mousedown={(e) => handleMouseDown(e, "ruler-end")}
+      onmousedown={(e) => handleMouseDown(e, "ruler-end")}
     />
 
     <!-- Length label -->
@@ -462,7 +481,7 @@
           role="button"
           tabindex="0"
           aria-label="Drag to rotate radius line"
-          on:mousedown={(e) => handleMouseDown(e, "protractor-rotate")}
+          onmousedown={(e) => handleMouseDown(e, "protractor-rotate")}
         />
         <text
           x={protractorRadius}
@@ -495,7 +514,7 @@
           role="button"
           tabindex="0"
           aria-label="Drag to resize protractor"
-          on:mousedown={(e) => handleMouseDown(e, "protractor-resize")}
+          onmousedown={(e) => handleMouseDown(e, "protractor-resize")}
         />
         <text
           x={resizeHandlePosition.x}
@@ -523,7 +542,7 @@
         aria-label={$protractorLockToRobot
           ? "Click to unlock from robot"
           : "Drag to move protractor"}
-        on:mousedown={(e) => {
+        onmousedown={(e) => {
           if ($protractorLockToRobot) {
             e.stopPropagation();
             protractorLockToRobot.set(false);

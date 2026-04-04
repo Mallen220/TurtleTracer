@@ -1,9 +1,17 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  // A simple reusable puzzle piece icon used throughout the app
-  export let className = "";
-  export let stroke = "none";
-  export let fill = "currentColor";
+  interface Props {
+    // A simple reusable puzzle piece icon used throughout the app
+    className?: string;
+    stroke?: string;
+    fill?: string;
+  }
+
+  let {
+    className = "",
+    stroke = "none",
+    fill = "currentColor",
+  }: Props = $props();
 </script>
 
 <svg

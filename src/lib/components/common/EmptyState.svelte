@@ -2,9 +2,15 @@
 <script lang="ts">
   import DocumentIcon from "../icons/DocumentIcon.svelte";
 
-  export let title: string;
-  export let description: string;
-  export let compact = false;
+  interface Props {
+    title: string;
+    description: string;
+    compact?: boolean;
+    icon?: import("svelte").Snippet;
+    action?: import("svelte").Snippet;
+  }
+
+  let { title, description, compact = false, icon, action }: Props = $props();
 </script>
 
 <div
@@ -17,10 +23,10 @@
       ? 'p-2'
       : 'p-3'}"
   >
-    <slot name="icon">
+    {#if icon}{@render icon()}{:else}
       <!-- Default Icon -->
       <DocumentIcon className="size-6 text-neutral-400" strokeWidth={1.5} />
-    </slot>
+    {/if}
   </div>
   <h3 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
     {title}
@@ -31,6 +37,6 @@
     {description}
   </p>
   <div class="mt-4 empty:hidden">
-    <slot name="action" />
+    {@render action?.()}
   </div>
 </div>

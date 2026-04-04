@@ -1,21 +1,31 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import { createEventDispatcher } from "svelte";
   import { driver } from "driver.js";
   import "driver.js/dist/driver.css";
   import { startTutorial } from "../../stores";
   import { settingsStore } from "../projectStore";
 
-  export let whatsNewOpen = false;
-  export let setupDialogOpen = false;
-  export let isLoaded = false;
+  interface Props {
+    whatsNewOpen?: boolean;
+    setupDialogOpen?: boolean;
+    isLoaded?: boolean;
+  }
+
+  let {
+    whatsNewOpen = false,
+    setupDialogOpen = false,
+    isLoaded = false,
+  }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
   // Dev flag to force start tutorial
   const FORCE_START_DEV = false;
 
-  let isFirstRun = false;
+  let isFirstRun = $state(false);
 
   // Use a customized theme for the driver.js overlay
   const driverObj = driver({
@@ -134,15 +144,17 @@
   });
 
   // Reactive trigger
-  $: if ($startTutorial) {
-    if (!driverObj.isActive()) {
-      driverObj.drive();
-      settingsStore.update((s) => ({ ...s, hasSeenOnboarding: true }));
+  run(() => {
+    if ($startTutorial) {
+      if (!driverObj.isActive()) {
+        driverObj.drive();
+        settingsStore.update((s) => ({ ...s, hasSeenOnboarding: true }));
+      }
     }
-  }
+  });
 
   // Auto-start logic
-  $: {
+  run(() => {
     // Only check if loaded
     if (isLoaded) {
       if (FORCE_START_DEV && !$startTutorial) {
@@ -169,7 +181,7 @@
         }
       }
     }
-  }
+  });
 </script>
 
 <style>

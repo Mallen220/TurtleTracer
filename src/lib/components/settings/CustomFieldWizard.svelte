@@ -1,48 +1,56 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run, stopPropagation } from "svelte/legacy";
+
   import { createEventDispatcher } from "svelte";
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
   import type { CustomFieldConfig } from "../../../types";
   import { CloseIcon, PhotoIcon } from "../icons";
 
-  export let isOpen = false;
-  export let currentConfig: CustomFieldConfig | undefined = undefined;
+  interface Props {
+    isOpen?: boolean;
+    currentConfig?: CustomFieldConfig | undefined;
+  }
+
+  let { isOpen = $bindable(false), currentConfig = undefined }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
-  let step = 1; // 1: Upload, 2: Calibrate Field Bounds, 3: Review
-  let imageData: string | null = null;
-  let mapName = "My Custom Field";
+  let step = $state(1); // 1: Upload, 2: Calibrate Field Bounds, 3: Review
+  let imageData: string | null = $state(null);
+  let mapName = $state("My Custom Field");
 
   // Bounding box state (relative 0-1 percentage of the image container to keep it responsive)
-  let box = {
+  let box = $state({
     x: 0.1,
     y: 0.1,
     width: 0.8,
     height: 0.8,
-  };
+  });
 
-  let imageElement: HTMLImageElement;
-  let imageContainer: HTMLDivElement;
+  let imageElement: HTMLImageElement | undefined = $state();
+  let imageContainer: HTMLDivElement | undefined = $state();
 
-  let wasOpen = false;
-  $: if (isOpen && !wasOpen) {
-    wasOpen = true;
-    // Reset state on open
-    step = 1;
-    box = { x: 0.1, y: 0.1, width: 0.8, height: 0.8 };
+  let wasOpen = $state(false);
+  run(() => {
+    if (isOpen && !wasOpen) {
+      wasOpen = true;
+      // Reset state on open
+      step = 1;
+      box = { x: 0.1, y: 0.1, width: 0.8, height: 0.8 };
 
-    if (currentConfig) {
-      imageData = currentConfig.imageData;
-      mapName = currentConfig.name || "My Custom Field";
-    } else {
-      imageData = null;
-      mapName = "My Custom Field";
+      if (currentConfig) {
+        imageData = currentConfig.imageData;
+        mapName = currentConfig.name || "My Custom Field";
+      } else {
+        imageData = null;
+        mapName = "My Custom Field";
+      }
+    } else if (!isOpen && wasOpen) {
+      wasOpen = false;
     }
-  } else if (!isOpen && wasOpen) {
-    wasOpen = false;
-  }
+  });
 
   function handleClose() {
     dispatch("close");
@@ -246,7 +254,7 @@
           Custom Field Map Wizard
         </h2>
         <button
-          on:click={handleClose}
+          onclick={handleClose}
           class="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
         >
           <CloseIcon className="h-6 w-6" />
@@ -294,7 +302,7 @@
               Upload a custom field map image
             </p>
             <button
-              on:click={() =>
+              onclick={() =>
                 document.getElementById("wizard-image-input")?.click()}
               class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
@@ -306,12 +314,12 @@
               accept="image/*"
               class="hidden"
               tabindex="-1"
-              on:change={handleImageUpload}
+              onchange={handleImageUpload}
             />
             {#if imageData}
               <button
                 class="mt-4 text-blue-600 dark:text-blue-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
-                on:click={() => (step = 2)}
+                onclick={() => (step = 2)}
               >
                 Use currently loaded image
               </button>
@@ -332,91 +340,119 @@
                   src={imageData}
                   alt="Field Calibration"
                   class="max-w-full max-h-[60vh] object-contain pointer-events-none"
-                  on:error={handleImageLoadError}
+                  onerror={handleImageLoadError}
                 />
 
                 {#if step === 2}
                   <!-- Bounding Box -->
                   <div
                     class="absolute border-2 border-blue-500 bg-blue-500/10 cursor-move"
+                    role="button"
+                    tabindex="0"
+                    aria-label="Move bounding box"
                     style={`left: ${box.x * 100}%; top: ${box.y * 100}%; width: ${box.width * 100}%; height: ${box.height * 100}%;`}
-                    on:pointerdown={(e) => handlePointerDown(e, "move")}
-                    on:pointermove={handlePointerMove}
-                    on:pointerup={handlePointerUp}
-                    on:pointercancel={handlePointerUp}
+                    onpointerdown={(e) => handlePointerDown(e, "move")}
+                    onpointermove={handlePointerMove}
+                    onpointerup={handlePointerUp}
+                    onpointercancel={handlePointerUp}
+                    onkeydown={() => {}}
                   >
                     <!-- Handles -->
                     <!-- N -->
                     <div
                       class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ns-resize"
-                      on:pointerdown|stopPropagation={(e) =>
-                        handlePointerDown(e, "n")}
-                      on:pointermove={handlePointerMove}
-                      on:pointerup={handlePointerUp}
-                      on:pointercancel={handlePointerUp}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize North"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "n"); }}
+                      onpointermove={handlePointerMove}
+                      onpointerup={handlePointerUp}
+                      onpointercancel={handlePointerUp}
+                      onkeydown={() => {}}
                     ></div>
                     <!-- S -->
                     <div
                       class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ns-resize"
-                      on:pointerdown|stopPropagation={(e) =>
-                        handlePointerDown(e, "s")}
-                      on:pointermove={handlePointerMove}
-                      on:pointerup={handlePointerUp}
-                      on:pointercancel={handlePointerUp}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize South"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "s"); }}
+                      onkeydown={() => {}}
+                      onpointermove={handlePointerMove}
+                      onpointerup={handlePointerUp}
+                      onpointercancel={handlePointerUp}
                     ></div>
                     <!-- W -->
                     <div
                       class="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ew-resize"
-                      on:pointerdown|stopPropagation={(e) =>
-                        handlePointerDown(e, "w")}
-                      on:pointermove={handlePointerMove}
-                      on:pointerup={handlePointerUp}
-                      on:pointercancel={handlePointerUp}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize West"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "w"); }}
+                      onkeydown={() => {}}
+                      onpointermove={handlePointerMove}
+                      onpointerup={handlePointerUp}
+                      onpointercancel={handlePointerUp}
                     ></div>
                     <!-- E -->
                     <div
                       class="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ew-resize"
-                      on:pointerdown|stopPropagation={(e) =>
-                        handlePointerDown(e, "e")}
-                      on:pointermove={handlePointerMove}
-                      on:pointerup={handlePointerUp}
-                      on:pointercancel={handlePointerUp}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize East"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "e"); }}
+                      onkeydown={() => {}}
+                      onpointermove={handlePointerMove}
+                      onpointerup={handlePointerUp}
+                      onpointercancel={handlePointerUp}
                     ></div>
                     <!-- NW -->
                     <div
                       class="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize"
-                      on:pointerdown|stopPropagation={(e) =>
-                        handlePointerDown(e, "nw")}
-                      on:pointermove={handlePointerMove}
-                      on:pointerup={handlePointerUp}
-                      on:pointercancel={handlePointerUp}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize North West"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "nw"); }}
+                      onkeydown={() => {}}
+                      onpointermove={handlePointerMove}
+                      onpointerup={handlePointerUp}
+                      onpointercancel={handlePointerUp}
                     ></div>
                     <!-- NE -->
                     <div
                       class="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize"
-                      on:pointerdown|stopPropagation={(e) =>
-                        handlePointerDown(e, "ne")}
-                      on:pointermove={handlePointerMove}
-                      on:pointerup={handlePointerUp}
-                      on:pointercancel={handlePointerUp}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize North East"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "ne"); }}
+                      onkeydown={() => {}}
+                      onpointermove={handlePointerMove}
+                      onpointerup={handlePointerUp}
+                      onpointercancel={handlePointerUp}
                     ></div>
                     <!-- SW -->
                     <div
                       class="absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize"
-                      on:pointerdown|stopPropagation={(e) =>
-                        handlePointerDown(e, "sw")}
-                      on:pointermove={handlePointerMove}
-                      on:pointerup={handlePointerUp}
-                      on:pointercancel={handlePointerUp}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize South West"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "sw"); }}
+                      onkeydown={() => {}}
+                      onpointermove={handlePointerMove}
+                      onpointerup={handlePointerUp}
+                      onpointercancel={handlePointerUp}
                     ></div>
                     <!-- SE -->
                     <div
                       class="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize"
-                      on:pointerdown|stopPropagation={(e) =>
-                        handlePointerDown(e, "se")}
-                      on:pointermove={handlePointerMove}
-                      on:pointerup={handlePointerUp}
-                      on:pointercancel={handlePointerUp}
+                      role="button"
+                      tabindex="0"
+                      aria-label="Resize South East"
+                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "se"); }}
+                      onkeydown={() => {}}
+                      onpointermove={handlePointerMove}
+                      onpointerup={handlePointerUp}
+                      onpointercancel={handlePointerUp}
                     ></div>
                   </div>
                 {/if}
@@ -509,20 +545,20 @@
 
               <div class="mt-auto flex justify-between gap-2 pt-4">
                 <button
-                  on:click={prevStep}
+                  onclick={prevStep}
                   disabled={step === 1}
                   class="px-4 py-2 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   >Back</button
                 >
                 {#if step < 3}
                   <button
-                    on:click={nextStep}
+                    onclick={nextStep}
                     class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     >Next</button
                   >
                 {:else}
                   <button
-                    on:click={handleSave}
+                    onclick={handleSave}
                     class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
                     >Save & Apply</button
                   >

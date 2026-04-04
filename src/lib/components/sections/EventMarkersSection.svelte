@@ -1,13 +1,28 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import {
+    createBubbler,
+    preventDefault,
+    stopPropagation,
+  } from "svelte/legacy";
+
+  const bubble = createBubbler();
   import ChevronRightIcon from "../icons/ChevronRightIcon.svelte";
   import PlusIcon from "../icons/PlusIcon.svelte";
   import TrashIcon from "../icons/TrashIcon.svelte";
   import type { Line } from "../../../types/index";
 
-  export let line: Line;
-  export let lineIdx: number;
-  export let collapsed: boolean;
+  interface Props {
+    line: Line;
+    lineIdx: number;
+    collapsed: boolean;
+  }
+
+  let {
+    line = $bindable(),
+    lineIdx,
+    collapsed = $bindable(),
+  }: Props = $props();
 
   function toggleCollapsed() {
     collapsed = !collapsed;
@@ -76,7 +91,7 @@
 <div class="flex flex-col w-full justify-start items-start mt-2">
   <div class="flex items-center justify-between w-full">
     <button
-      on:click={toggleCollapsed}
+      onclick={toggleCollapsed}
       aria-label="Toggle Path Event Markers"
       class="flex items-center gap-2 font-light hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-sm"
       title="{collapsed ? 'Show' : 'Hide'} event markers"
@@ -90,7 +105,7 @@
       Event Markers ({line.eventMarkers?.length || 0})
     </button>
     <button
-      on:click={addEventMarker}
+      onclick={addEventMarker}
       aria-label="Add Event Marker"
       class="text-sm text-purple-500 hover:text-purple-600 flex items-center gap-1 px-2 py-1"
       title="Add Event Marker"
@@ -116,7 +131,7 @@
                 placeholder="Event name"
                 aria-label="Event name"
                 disabled={line.locked}
-                on:change={() => {
+                onchange={() => {
                   // Update the array to trigger reactivity
                   if (line.eventMarkers)
                     line.eventMarkers = [...line.eventMarkers];
@@ -126,7 +141,7 @@
             <!-- Event delete Button -->
 
             <button
-              on:click={() => removeEventMarker(eventIdx)}
+              onclick={() => removeEventMarker(eventIdx)}
               class="text-red-500 hover:text-red-600 ml-auto"
               title="Remove Event Marker"
               aria-label="Remove Event Marker"
@@ -152,8 +167,10 @@
                 aria-label="Event position"
                 data-event-marker-slider
                 disabled={line.locked}
-                on:dragstart|preventDefault|stopPropagation
-                on:input={(e) => handleInput(e, event)}
+                ondragstart={stopPropagation(
+                  preventDefault(bubble("dragstart")),
+                )}
+                oninput={(e) => handleInput(e, event)}
               />
               <input
                 type="number"
@@ -164,12 +181,12 @@
                 max="1"
                 step="0.01"
                 class="w-16 px-2 py-1 text-xs rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                on:input={(e) => {
+                oninput={(e) => {
                   // Don't update immediately, just show the typed value
                   // We'll validate on blur or Enter
                 }}
-                on:blur={(e) => handleBlur(e, event)}
-                on:keydown={(e) => handleKeydown(e, event)}
+                onblur={(e) => handleBlur(e, event)}
+                onkeydown={(e) => handleKeydown(e, event)}
               />
             </div>
           </div>

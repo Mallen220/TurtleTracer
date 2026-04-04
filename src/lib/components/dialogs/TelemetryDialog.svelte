@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { self } from "svelte/legacy";
+
   import { fade, fly } from "svelte/transition";
   import {
     telemetryData,
@@ -9,11 +11,15 @@
     type TelemetryPoint,
   } from "../../telemetryStore";
 
-  export let isOpen = false;
+  interface Props {
+    isOpen?: boolean;
+  }
 
-  let fileInput: HTMLInputElement;
-  let errorMsg = "";
-  let summary = "";
+  let { isOpen = $bindable(false) }: Props = $props();
+
+  let fileInput: HTMLInputElement | undefined = $state();
+  let errorMsg = $state("");
+  let summary = $state("");
 
   function handleFileSelect(e: Event) {
     const file = (e.target as HTMLInputElement).files?.[0];
@@ -131,7 +137,7 @@
     transition:fade={{ duration: 200 }}
     class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
     role="presentation"
-    on:click|self={() => (isOpen = false)}
+    onclick={self(() => (isOpen = false))}
   >
     <div
       transition:fly={{ y: 20, duration: 300 }}
@@ -154,7 +160,7 @@
           <div class="flex items-center gap-3">
             <button
               type="button"
-              on:click={() => fileInput?.click()}
+              onclick={() => fileInput?.click()}
               class="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/50 rounded-full text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
             >
               Choose File
@@ -170,7 +176,7 @@
             type="file"
             accept=".csv,.json,.txt"
             bind:this={fileInput}
-            on:change={handleFileSelect}
+            onchange={handleFileSelect}
             class="hidden"
             tabindex="-1"
           />
@@ -193,7 +199,7 @@
           >
             <span>{summary}</span>
             <button
-              on:click={handleClear}
+              onclick={handleClear}
               class="text-xs px-2 py-1 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-100 rounded hover:bg-green-300 dark:hover:bg-green-700 transition-colors"
             >
               Clear Data
@@ -240,7 +246,7 @@
               class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
             <button
-              on:click={() => ($telemetryOffset = 0)}
+              onclick={() => ($telemetryOffset = 0)}
               class="text-xs px-2 py-1 bg-neutral-200 dark:bg-neutral-700 rounded hover:bg-neutral-300 dark:hover:bg-neutral-600"
               >Reset</button
             >
@@ -255,7 +261,7 @@
         class="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 flex justify-end"
       >
         <button
-          on:click={() => (isOpen = false)}
+          onclick={() => (isOpen = false)}
           class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors"
         >
           Done

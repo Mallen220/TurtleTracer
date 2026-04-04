@@ -3,9 +3,13 @@
   import type { BasePoint, Settings } from "../../types/index";
   import { formatDisplayCoordinate } from "../../utils/coordinates";
 
-  export let robotXY: BasePoint;
-  export let robotHeading: number;
-  export let settings: Settings;
+  interface Props {
+    robotXY: BasePoint;
+    robotHeading: number;
+    settings: Settings;
+  }
+
+  let { robotXY, robotHeading, settings }: Props = $props();
 </script>
 
 <div class="flex flex-col w-full justify-start items-start gap-0.5 text-sm">

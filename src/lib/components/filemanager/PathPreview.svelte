@@ -4,24 +4,36 @@
   import type { Point, Line } from "../../../types";
   import * as d3 from "d3";
 
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let width = 100;
-  export let height = 100;
-  export let fieldImage: string | null = null;
+  interface Props {
+    startPoint: Point;
+    lines: Line[];
+    width?: number;
+    height?: number;
+    fieldImage?: string | null;
+  }
+
+  let {
+    startPoint,
+    lines,
+    width = 100,
+    height = 100,
+    fieldImage = null,
+  }: Props = $props();
 
   const FIELD_SIZE = 144;
 
   // Use a uniform scale based on the minimum dimension so the field preview
   // keeps its aspect and is not stretched. Center the scaled field inside the
   // available width/height.
-  $: iconSize = Math.min(width, height);
-  $: offsetX = Math.max(0, Math.round((width - iconSize) / 2));
-  $: offsetY = Math.max(0, Math.round((height - iconSize) / 2));
+  let iconSize = $derived(Math.min(width, height));
+  let offsetX = $derived(Math.max(0, Math.round((width - iconSize) / 2)));
+  let offsetY = $derived(Math.max(0, Math.round((height - iconSize) / 2)));
 
-  $: _scale = d3.scaleLinear().domain([0, FIELD_SIZE]).range([0, iconSize]);
-  $: scaleX = (v: number) => _scale(v) + offsetX;
-  $: scaleY = (v: number) => offsetY + (iconSize - _scale(v));
+  let _scale = $derived(
+    d3.scaleLinear().domain([0, FIELD_SIZE]).range([0, iconSize]),
+  );
+  let scaleX = $derived((v: number) => _scale(v) + offsetX);
+  let scaleY = $derived((v: number) => offsetY + (iconSize - _scale(v)));
 
   function isValidPoint(p: any): p is Point {
     return p && typeof p.x === "number" && typeof p.y === "number";

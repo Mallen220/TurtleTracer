@@ -1,6 +1,10 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  export let className: string = "size-3";
+  interface Props {
+    className?: string;
+  }
+
+  let { className = "size-3" }: Props = $props();
 </script>
 
 <svg

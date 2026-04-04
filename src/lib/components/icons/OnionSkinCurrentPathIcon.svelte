@@ -1,8 +1,16 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  export let className: string = "size-4";
-  export let strokeWidth = 2;
-  export let isActive: boolean = false;
+  interface Props {
+    className?: string;
+    strokeWidth?: number;
+    isActive?: boolean;
+  }
+
+  let {
+    className = "size-4",
+    strokeWidth = 2,
+    isActive = false,
+  }: Props = $props();
 </script>
 
 <svg

@@ -16,12 +16,22 @@
   } from "../../../../utils/settingsPersistence";
   import { isBrowser } from "../../../../utils/platform";
 
-  export let settings: Settings;
-  export let searchQuery: string;
-  export let isOpen: boolean;
+  interface Props {
+    settings: Settings;
+    searchQuery: string;
+    isOpen: boolean;
+  }
 
-  let isCheckingForUpdates = false;
-  let isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
+  let {
+    settings = $bindable(),
+    searchQuery,
+    isOpen = $bindable(),
+  }: Props = $props();
+
+  let isCheckingForUpdates = $state(false);
+  let isOnline = $state(
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
 
   async function handleCheckForUpdates() {
     const electronAPI = (window as any).electronAPI;
@@ -135,8 +145,8 @@
 </script>
 
 <svelte:window
-  on:online={() => (isOnline = true)}
-  on:offline={() => (isOnline = false)}
+  ononline={() => (isOnline = true)}
+  onoffline={() => (isOnline = false)}
 />
 
 <div class="section-container mb-8">
@@ -162,7 +172,8 @@
   >
     <select
       id="autosave-mode"
-      bind:value={settings.autosaveMode}
+      value={settings.autosaveMode}
+      onchange={(e) => (settings.autosaveMode = e.currentTarget.value as any)}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="never">Never</option>
@@ -189,7 +200,8 @@
       >
         <select
           id="autosave-interval"
-          bind:value={settings.autosaveInterval}
+          value={settings.autosaveInterval}
+          onchange={(e) => (settings.autosaveInterval = parseInt(e.currentTarget.value))}
           class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {#each [1, 5, 10, 15, 20, 40, 60] as interval}
@@ -207,7 +219,7 @@
     layout="row"
   >
     <button
-      on:click={() => {
+      onclick={() => {
         isOpen = false;
         startTutorial.set(true);
       }}
@@ -225,7 +237,7 @@
       layout="row"
     >
       <button
-        on:click={handleCheckForUpdates}
+        onclick={handleCheckForUpdates}
         disabled={isCheckingForUpdates}
         class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors disabled:opacity-50"
       >
@@ -243,7 +255,8 @@
     >
       <input
         type="checkbox"
-        bind:checked={settings.showTelemetryTab}
+        checked={settings.showTelemetryTab}
+        onchange={(e) => (settings.showTelemetryTab = e.currentTarget.checked)}
         class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
       />
     </SettingsItem>
@@ -256,7 +269,7 @@
     layout="row"
   >
     <button
-      on:click={() => showShortcuts.set(true)}
+      onclick={() => showShortcuts.set(true)}
       class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
     >
       Open Editor
@@ -271,7 +284,7 @@
       layout="row"
     >
       <button
-        on:click={() => {
+        onclick={() => {
           isOpen = false;
           showPluginManager.set(true);
         }}
@@ -294,7 +307,8 @@
     >
       <input
         type="checkbox"
-        bind:checked={settings.gitIntegration}
+        checked={settings.gitIntegration}
+        onchange={(e) => (settings.gitIntegration = e.currentTarget.checked)}
         class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
       />
     </SettingsItem>
@@ -308,14 +322,14 @@
   >
     <div class="flex gap-2">
       <button
-        on:click={handleExport}
+        onclick={handleExport}
         title="Export Settings"
         class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
       >
         Export
       </button>
       <button
-        on:click={() =>
+        onclick={() =>
           document.getElementById("settings-import-input")?.click()}
         title="Import Settings"
         class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
@@ -328,7 +342,7 @@
         class="hidden"
         tabindex="-1"
         accept=".json"
-        on:change={handleImport}
+        onchange={handleImport}
       />
     </div>
   </SettingsItem>

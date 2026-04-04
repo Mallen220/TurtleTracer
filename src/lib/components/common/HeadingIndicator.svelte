@@ -3,13 +3,17 @@
   import { settingsStore } from "../../projectStore";
   import ArrowRightIcon from "../icons/ArrowRightIcon.svelte";
 
-  export let degrees: number = 0;
-  export let size: number = 16;
-  export let className: string = "";
+  interface Props {
+    degrees?: number;
+    size?: number;
+    className?: string;
+  }
 
-  $: fieldRotation = $settingsStore.fieldRotation || 0;
+  let { degrees = 0, size = 16, className = "" }: Props = $props();
 
-  $: rotation = -(degrees - fieldRotation);
+  let fieldRotation = $derived($settingsStore.fieldRotation || 0);
+
+  let rotation = $derived(-(degrees - fieldRotation));
 </script>
 
 <div

@@ -2,19 +2,35 @@
 <script lang="ts">
   import { ResetIcon } from "../icons/index";
 
-  export let label: string;
-  export let description: string = "";
-  export let searchQuery: string = "";
-  export let layout: "col" | "row" = "col";
-  export let section: boolean = false;
-  export let forId: string = "";
-  export let onReset: (() => void) | undefined = undefined;
-  export let isModified: boolean = false;
+  interface Props {
+    label: string;
+    description?: string;
+    searchQuery?: string;
+    layout?: "col" | "row";
+    section?: boolean;
+    forId?: string;
+    onReset?: (() => void) | undefined;
+    isModified?: boolean;
+    children?: import("svelte").Snippet;
+  }
 
-  $: isVisible =
+  let {
+    label,
+    description = "",
+    searchQuery = "",
+    layout = "col",
+    section = false,
+    forId = "",
+    onReset = undefined,
+    isModified = false,
+    children,
+  }: Props = $props();
+
+  let isVisible = $derived(
     searchQuery === "" ||
-    label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    description.toLowerCase().includes(searchQuery.toLowerCase());
+      label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      description.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 </script>
 
 <div
@@ -25,7 +41,7 @@
   class:mb-3={!section && layout === "row"}
 >
   {#if section}
-    <slot />
+    {@render children?.()}
   {:else if layout === "col"}
     <div class="flex items-start justify-between mb-1">
       <label
@@ -46,14 +62,14 @@
           type="button"
           class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:text-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           title="Reset to default"
-          on:click={onReset}
+          onclick={onReset}
           aria-label="Reset {label}"
         >
           <ResetIcon className="w-4 h-4" />
         </button>
       {/if}
     </div>
-    <slot />
+    {@render children?.()}
   {:else}
     <div
       class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700"
@@ -71,7 +87,7 @@
               type="button"
               class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:text-neutral-200 dark:hover:bg-neutral-700 transition-colors flex-shrink-0"
               title="Reset to default"
-              on:click={onReset}
+              onclick={onReset}
               aria-label="Reset {label}"
             >
               <ResetIcon className="w-4 h-4" />
@@ -84,7 +100,7 @@
           </div>
         {/if}
       </div>
-      <slot />
+      {@render children?.()}
     </div>
   {/if}
 </div>

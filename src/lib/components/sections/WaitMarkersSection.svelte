@@ -1,22 +1,34 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import {
+    run,
+    createBubbler,
+    preventDefault,
+    stopPropagation,
+  } from "svelte/legacy";
+
+  const bubble = createBubbler();
   import type { EventMarker, SequenceWaitItem } from "../../../types/index";
   import TrashIcon from "../icons/TrashIcon.svelte";
   import ChevronRightIcon from "../icons/ChevronRightIcon.svelte";
   import PlusIcon from "../icons/PlusIcon.svelte";
 
-  export let wait: SequenceWaitItem;
-  // When a global collapse/expand-all is triggered, wait marker sections should respect it
-  export let allCollapsed: boolean = false;
+  interface Props {
+    wait: SequenceWaitItem;
+    // When a global collapse/expand-all is triggered, wait marker sections should respect it
+    allCollapsed?: boolean;
+  }
+
+  let { wait = $bindable(), allCollapsed = false }: Props = $props();
   // Initialize collapsed to reflect global collapse state so newly-rendered waits follow the global command
-  let collapsed: boolean = allCollapsed;
-  let _lastAllCollapsed = allCollapsed;
+  let collapsed = $state(false);
+  let _lastAllCollapsed = $state(false);
 
   // Sync collapsed state when global allCollapsed toggles
-  $: if (allCollapsed !== _lastAllCollapsed) {
+  run(() => {
     collapsed = allCollapsed;
     _lastAllCollapsed = allCollapsed;
-  }
+  });
 
   function toggleCollapsed() {
     collapsed = !collapsed;
@@ -80,7 +92,7 @@
   <div class="flex items-center justify-between w-full">
     <button
       tabindex="-1"
-      on:click={toggleCollapsed}
+      onclick={toggleCollapsed}
       aria-label="Toggle Wait Event Markers"
       class="flex items-center gap-2 font-light hover:bg-neutral-200 dark:hover:bg-neutral-800 px-2 py-1 rounded transition-colors text-sm"
       title={(collapsed ? "Show" : "Hide") + " event markers"}
@@ -95,7 +107,7 @@
     </button>
     <button
       tabindex="-1"
-      on:click={addEventMarker}
+      onclick={addEventMarker}
       aria-label="Add Event Marker"
       class="text-sm text-purple-500 hover:text-purple-600 flex items-center gap-1 px-2 py-1"
       title="Add Event Marker"
@@ -122,14 +134,14 @@
                 placeholder="Event name"
                 aria-label="Event name"
                 disabled={wait.locked}
-                on:change={() => {
+                onchange={() => {
                   wait.eventMarkers = [...(wait.eventMarkers ?? [])];
                 }}
               />
             </div>
             <button
               tabindex="-1"
-              on:click={() => removeEventMarker(eventIdx)}
+              onclick={() => removeEventMarker(eventIdx)}
               class="text-red-500 hover:text-red-600"
               title="Remove Event Marker"
               aria-label="Remove Event Marker"
@@ -154,8 +166,8 @@
               aria-label="Event position"
               data-event-marker-slider
               disabled={wait.locked}
-              on:dragstart|preventDefault|stopPropagation
-              on:input={(e) => handlePositionInput(e, event)}
+              ondragstart={stopPropagation(preventDefault(bubble("dragstart")))}
+              oninput={(e) => handlePositionInput(e, event)}
             />
             <input
               tabindex="-1"
@@ -167,8 +179,8 @@
               max="1"
               step="0.01"
               class="w-16 px-2 py-1 text-xs rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500"
-              on:blur={(e) => handlePositionBlur(e, event)}
-              on:keydown={(e) => handlePositionKeydown(e, event)}
+              onblur={(e) => handlePositionBlur(e, event)}
+              onkeydown={(e) => handlePositionKeydown(e, event)}
             />
           </div>
 

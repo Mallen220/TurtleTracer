@@ -202,7 +202,6 @@ describe("Directory Settings & File Handlers", () => {
           expect.stringContaining("/project/dir"),
         );
       });
-
     });
   });
 });

@@ -3,10 +3,19 @@
 <script lang="ts">
   import { SpinnerIcon } from "../icons/index";
 
-  export let size = "md"; // sm, md, lg
-  export let color = "text-purple-600 dark:text-purple-400";
-  export let showText = true;
-  export let text = "Loading...";
+  interface Props {
+    size?: string; // sm, md, lg
+    color?: string;
+    showText?: boolean;
+    text?: string;
+  }
+
+  let {
+    size = "md",
+    color = "text-purple-600 dark:text-purple-400",
+    showText = true,
+    text = "Loading...",
+  }: Props = $props();
 
   const sizeClasses = {
     sm: "h-4 w-4",
@@ -15,7 +24,9 @@
   };
 
   // Fallback for custom classes or unrecognized size
-  $: svgClass = sizeClasses[size as keyof typeof sizeClasses] || sizeClasses.md;
+  let svgClass = $derived(
+    sizeClasses[size as keyof typeof sizeClasses] || sizeClasses.md,
+  );
 </script>
 
 <div class="flex flex-col items-center justify-center gap-2">

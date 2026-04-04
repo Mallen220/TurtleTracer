@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import {
     analyzePathSegment,
     formatTime,
@@ -26,35 +28,35 @@
   import { formatDisplayDistance } from "../../../utils/coordinates";
   import SimpleChart from "../tools/SimpleChart.svelte";
 
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let sequence: SequenceItem[];
-  export let settings: Settings;
-  export let percent: number = 0;
-  export let isOpen: boolean = false;
-  export let onClose: () => void;
-  // If provided, position/size will match this rect (from the Control Tab container)
-  export let controlRect: {
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-    right: number;
-    bottom: number;
-  } | null = null;
+  interface Props {
+    startPoint: Point;
+    lines: Line[];
+    sequence: SequenceItem[];
+    settings: Settings;
+    percent?: number;
+    isOpen?: boolean;
+    onClose: () => void;
+    // If provided, position/size will match this rect (from the Control Tab container)
+    controlRect?: {
+      top: number;
+      left: number;
+      width: number;
+      height: number;
+      right: number;
+      bottom: number;
+    } | null;
+  }
 
-  // Compute style for panel: inset slightly from controlRect so it behaves like a dialog; use a small gap and min sizes
-  $: panelStyle =
-    controlRect && controlRect.width > 0
-      ? (() => {
-          const gap = 36; // pixels inset from control rect
-          const top = controlRect.top + gap;
-          const left = controlRect.left + gap;
-          const width = Math.max(220, controlRect.width - gap * 2);
-          const height = Math.max(120, controlRect.height - gap * 2);
-          return `position:fixed; top:${top}px; left:${left}px; width:${width}px; height:${height}px; z-index:50;`;
-        })()
-      : `position:fixed; left:36px; right:36px; bottom:36px; height:calc(50vh - 72px); z-index:50;`;
+  let {
+    startPoint,
+    lines,
+    sequence,
+    settings,
+    percent = 0,
+    isOpen = $bindable(false),
+    onClose,
+    controlRect = null,
+  }: Props = $props();
 
   interface SegmentStat {
     name: string;
@@ -87,17 +89,9 @@
     insights: Insight[];
   }
 
-  let pathStats: PathStats | null = null;
-  let activeTab: "summary" | "graphs" | "insights" = "summary";
-  let currentTime = 0;
-
-  $: if (isOpen && lines && sequence && settings) {
-    calculateStats();
-  }
-
-  $: if (pathStats) {
-    currentTime = (percent / 100) * pathStats.totalTime;
-  }
+  let pathStats: PathStats | null = $state(null);
+  let activeTab: "summary" | "graphs" | "insights" = $state("summary");
+  let currentTime = $state(0);
 
   function calculateStats() {
     // Basic time and distance from standard calculator
@@ -592,6 +586,29 @@
       });
     });
   }
+  // Compute style for panel: inset slightly from controlRect so it behaves like a dialog; use a small gap and min sizes
+  let panelStyle = $derived(
+    controlRect && controlRect.width > 0
+      ? (() => {
+          const gap = 36; // pixels inset from control rect
+          const top = controlRect.top + gap;
+          const left = controlRect.left + gap;
+          const width = Math.max(220, controlRect.width - gap * 2);
+          const height = Math.max(120, controlRect.height - gap * 2);
+          return `position:fixed; top:${top}px; left:${left}px; width:${width}px; height:${height}px; z-index:50;`;
+        })()
+      : `position:fixed; left:36px; right:36px; bottom:36px; height:calc(50vh - 72px); z-index:50;`,
+  );
+  run(() => {
+    if (isOpen && lines && sequence && settings) {
+      calculateStats();
+    }
+  });
+  run(() => {
+    if (pathStats) {
+      currentTime = (percent / 100) * pathStats.totalTime;
+    }
+  });
 </script>
 
 {#if isOpen && pathStats}
@@ -623,21 +640,21 @@
         >
           <button
             class={`px-3 py-1 rounded-md transition-all ${activeTab === "summary" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
-            on:click={() => (activeTab = "summary")}
+            onclick={() => (activeTab = "summary")}
             aria-label="Summary view"
           >
             Summary
           </button>
           <button
             class={`px-3 py-1 rounded-md transition-all ${activeTab === "graphs" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
-            on:click={() => (activeTab = "graphs")}
+            onclick={() => (activeTab = "graphs")}
             aria-label="Graphs view"
           >
             Graphs
           </button>
           <button
             class={`px-3 py-1 rounded-md transition-all ${activeTab === "insights" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
-            on:click={() => (activeTab = "insights")}
+            onclick={() => (activeTab = "insights")}
           >
             Insights
           </button>
@@ -646,7 +663,7 @@
 
       <div class="flex items-center gap-2">
         <button
-          on:click={handleCopy}
+          onclick={handleCopy}
           class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           title={activeTab === "graphs"
             ? "Copy SVG to Clipboard"
@@ -657,7 +674,7 @@
           
         </button>
         <button
-          on:click={onClose}
+          onclick={onClose}
           class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           aria-label="Close"
         >
@@ -941,4 +958,4 @@
   </div>
 {/if}
 
-<svelte:window on:keydown={(e) => isOpen && e.key === "Escape" && onClose()} />
+<svelte:window onkeydown={(e) => isOpen && e.key === "Escape" && onClose()} />

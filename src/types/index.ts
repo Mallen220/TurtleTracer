@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Exported type definitions for use in Svelte and TS modules
-import type { ComponentType } from "svelte";
+import type { Component } from "svelte";
 
 export interface BasePoint {
   x: number;
@@ -181,7 +181,7 @@ export interface CustomSidebarItem {
   label: string;
   commandId: string;
   iconSvg: string;
-  iconComponent?: ComponentType;
+  iconComponent?: Component;
 }
 
 export interface Settings {
