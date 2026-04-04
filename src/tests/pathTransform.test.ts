@@ -7,7 +7,7 @@ import {
   translatePathData,
   rotatePathData,
   flipPathData,
-} from "../utils/pathTransform";
+} from "../utils/pathTransform.svelte";
 import type { Point, Line, Shape, SequenceItem } from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";

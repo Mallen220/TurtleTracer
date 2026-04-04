@@ -518,10 +518,8 @@
 
           <!-- Map Pin Icon -->
           <MapPinIcon
-            className={item.fromWait
-              ? "w-6 h-6 drop-shadow-md transition-transform group-hover:scale-125 text-black dark:text-white stroke-white dark:stroke-neutral-900"
-              : "w-6 h-6 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125 stroke-white dark:stroke-neutral-900"}
-            style={item.fromWait ? "" : `color: ${item.color || "#a855f7"}`}
+            className="w-6 h-6 drop-shadow-md transition-transform group-hover:scale-125 stroke-white dark:stroke-neutral-900"
+            style={item.color ? `color: ${item.color}` : "color: currentColor;"}
           />
         </div>
       {:else if item.type === "dot"}

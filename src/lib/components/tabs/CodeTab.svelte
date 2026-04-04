@@ -30,6 +30,7 @@
   import java from "highlight.js/lib/languages/java";
   import json from "highlight.js/lib/languages/json";
   import plaintext from "highlight.js/lib/languages/plaintext";
+  import { snapshotClone } from "../../../utils/clone.svelte";
   import { slide } from "svelte/transition";
   import { highlightAndSplit } from "../../../utils/htmlHighlighter";
   import LoadingSpinner from "../common/LoadingSpinner.svelte";
@@ -63,7 +64,7 @@
   const electronAPI = (window as any).electronAPI;
 
   async function relativizeSequenceForPreview(seq: SequenceItem[]) {
-    const cloned = structuredClone(seq);
+    const cloned = snapshotClone(seq);
 
     const base = get(currentFilePath);
     if (!electronAPI?.makeRelativePath || !base) return cloned;

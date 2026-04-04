@@ -19,7 +19,8 @@
   import {
     PathOptimizer,
     type OptimizationResult,
-  } from "../../../utils/pathOptimizer";
+  } from "../../../utils/pathOptimizer.svelte";
+  import { snapshotClone } from "../../../utils/clone.svelte";
   import { formatTime } from "../../../utils";
   import { dimmedLinesStore } from "../../../stores";
   import { onDestroy } from "svelte";
@@ -119,67 +120,74 @@
     optimizationError = "";
     isStopping = false;
 
-    if (settings) {
-      const linesToOptimize = structuredClone(lines).map((l, idx) => {
-        const id = l.id || `idx-${idx}`;
-        if (!selectionState[id]) {
-          l.locked = true;
-        }
-        return l;
-      });
-
-      optimizer = new PathOptimizer(
-        startPoint,
-        linesToOptimize,
-        settings,
-        sequence,
-        shapes,
-      );
-    } else {
-      isRunning = false;
-      return;
-    }
-
-    if (!optimizer) {
-      isRunning = false;
-      return;
-    }
-
-    const optimizationResult = await optimizer.optimize(
-      (result: OptimizationResult) => {
-        progress = result.generation;
-        currentBestTime = result.bestTime;
-      },
-    );
-
-    optimizedLines = optimizationResult.lines;
-
-    if (optimizedLines) {
-      optimizedLines.forEach((l, idx) => {
-        const originalLine = lines[idx];
-        if (originalLine) {
-          const id = originalLine.id || `idx-${idx}`;
+    try {
+      if (settings) {
+        // Use snapshotClone to handle Svelte 5 proxies safely
+        const linesToOptimize = snapshotClone(lines).map((l, idx) => {
+          const id = l.id || `idx-${idx}`;
           if (!selectionState[id]) {
-            l.locked = originalLine.locked;
+            l.locked = true;
           }
-        }
-      });
-    }
+          return l;
+        });
 
-    if (optimizationResult.error) {
-      optimizationError = optimizationResult.error;
-    }
+        optimizer = new PathOptimizer(
+          startPoint,
+          linesToOptimize,
+          settings,
+          sequence,
+          shapes,
+        );
+      } else {
+        isRunning = false;
+        return;
+      }
 
-    const finalBestTime = optimizationResult.bestTime;
-    optimizationFailed = finalBestTime >= 10000 || !!optimizationError;
+      if (!optimizer) {
+        isRunning = false;
+        return;
+      }
 
-    isRunning = false;
-    isStopping = false;
-    optimizer = null;
-    showPreview = true;
+      const optimizationResult = await optimizer.optimize(
+        (result: OptimizationResult) => {
+          progress = result.generation;
+          currentBestTime = result.bestTime;
+        },
+      );
 
-    if (onPreviewChange) {
-      onPreviewChange(optimizedLines);
+      optimizedLines = optimizationResult.lines;
+
+      if (optimizedLines) {
+        optimizedLines.forEach((l, idx) => {
+          const originalLine = lines[idx];
+          if (originalLine) {
+            const id = originalLine.id || `idx-${idx}`;
+            if (!selectionState[id]) {
+              l.locked = originalLine.locked;
+            }
+          }
+        });
+      }
+
+      if (optimizationResult.error) {
+        optimizationError = optimizationResult.error;
+      }
+
+      const finalBestTime = optimizationResult.bestTime;
+      optimizationFailed = finalBestTime >= 10000 || !!optimizationError;
+
+      if (onPreviewChange) {
+        onPreviewChange(optimizedLines);
+      }
+    } catch (err) {
+      console.error("Optimization failed:", err);
+      optimizationError = "Optimization process crashed.";
+      optimizationFailed = true;
+    } finally {
+      isRunning = false;
+      isStopping = false;
+      optimizer = null;
+      showPreview = true;
     }
   }
 
