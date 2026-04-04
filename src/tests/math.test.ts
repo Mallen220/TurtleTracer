@@ -146,7 +146,6 @@ describe("Math Utils", () => {
       expect(p.x).toBe(5);
       expect(p.y).toBe(5);
     });
-
   });
 
   describe("getTangentAngle", () => {
