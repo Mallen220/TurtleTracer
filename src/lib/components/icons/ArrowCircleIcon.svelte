@@ -1,8 +1,16 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  export let className = "size-6";
-  export let strokeWidth = 2;
-  export let stroke = "currentColor";
+  interface Props {
+    className?: string;
+    strokeWidth?: number;
+    stroke?: string;
+  }
+
+  let {
+    className = "size-6",
+    strokeWidth = 2,
+    stroke = "currentColor",
+  }: Props = $props();
 </script>
 
 <svg

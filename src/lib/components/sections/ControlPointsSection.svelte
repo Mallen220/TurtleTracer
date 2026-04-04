@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run, stopPropagation } from "svelte/legacy";
+
   import _ from "lodash";
   import {
     snapToGrid,
@@ -22,45 +24,57 @@
   } from "../../../utils/dragDrop";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
 
-  export let line: Line;
-  export let lineIdx: number;
-  export let collapsed: boolean;
-  export let recordChange: () => void;
+  interface Props {
+    line: Line;
+    lineIdx: number;
+    collapsed: boolean;
+    recordChange: () => void;
+  }
 
-  $: snapToGridTitle =
-    $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping";
+  let {
+    line = $bindable(),
+    lineIdx,
+    collapsed = $bindable(),
+    recordChange,
+  }: Props = $props();
+
+  let snapToGridTitle = $derived(
+    $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping",
+  );
 
   function toggleCollapsed() {
     collapsed = !collapsed;
   }
 
   // Drag and drop state
-  let draggingIndex: number | null = null;
-  let dragOverIndex: number | null = null;
-  let dragPosition: DragPosition | null = null;
-  let containerRef: HTMLElement;
+  let draggingIndex: number | null = $state(null);
+  let dragOverIndex: number | null = $state(null);
+  let dragPosition: DragPosition | null = $state(null);
+  let containerRef: HTMLElement | undefined = $state();
 
-  let xInputs: (HTMLInputElement | null)[] = [];
-  let yInputs: (HTMLInputElement | null)[] = [];
+  let xInputs: (HTMLInputElement | null)[] = $state([]);
+  let yInputs: (HTMLInputElement | null)[] = $state([]);
 
   // Handle focus request
-  $: if ($focusRequest) {
-    if (
-      $selectedPointId &&
-      $selectedPointId.startsWith(`point-${lineIdx + 1}-`)
-    ) {
-      const ptIdxStr = $selectedPointId.split("-")[2];
-      const ptIdx = Number(ptIdxStr);
-      // Control points are indexed 1..N in the selection ID (since 0 is the endpoint)
-      if (ptIdx > 0) {
-        const cpIndex = ptIdx - 1;
-        if ($focusRequest.field === "x" && xInputs[cpIndex])
-          xInputs[cpIndex]?.focus();
-        if ($focusRequest.field === "y" && yInputs[cpIndex])
-          yInputs[cpIndex]?.focus();
+  run(() => {
+    if ($focusRequest) {
+      if (
+        $selectedPointId &&
+        $selectedPointId.startsWith(`point-${lineIdx + 1}-`)
+      ) {
+        const ptIdxStr = $selectedPointId.split("-")[2];
+        const ptIdx = Number(ptIdxStr);
+        // Control points are indexed 1..N in the selection ID (since 0 is the endpoint)
+        if (ptIdx > 0) {
+          const cpIndex = ptIdx - 1;
+          if ($focusRequest.field === "x" && xInputs[cpIndex])
+            xInputs[cpIndex]?.focus();
+          if ($focusRequest.field === "y" && yInputs[cpIndex])
+            yInputs[cpIndex]?.focus();
+        }
       }
     }
-  }
+  });
 
   function handleDragStart(e: DragEvent, index: number) {
     if (line.locked) {
@@ -139,13 +153,13 @@
   }
 </script>
 
-<svelte:window on:dragover={handleWindowDragOver} on:drop={handleWindowDrop} />
+<svelte:window ondragover={handleWindowDragOver} ondrop={handleWindowDrop} />
 
 <div class="flex flex-col w-full justify-start items-start">
   <!-- Control Points header with toggle and add button -->
   <div class="flex items-center justify-between w-full py-1">
     <button
-      on:click={toggleCollapsed}
+      onclick={toggleCollapsed}
       class="flex items-center gap-2 text-xs font-semibold text-neutral-500 uppercase tracking-wide hover:text-neutral-800 dark:hover:text-neutral-300 transition-colors"
       title="{collapsed ? 'Show' : 'Hide'} control points"
       aria-expanded={!collapsed}
@@ -161,7 +175,7 @@
     </button>
 
     <button
-      on:click={() => {
+      onclick={() => {
         line.controlPoints = [
           ...line.controlPoints,
           {
@@ -194,8 +208,8 @@
           role="listitem"
           data-cp-index={idx}
           draggable={!line.locked}
-          on:dragstart={(e) => handleDragStart(e, idx)}
-          on:dragend={handleDragEnd}
+          ondragstart={(e) => handleDragStart(e, idx)}
+          ondragend={handleDragEnd}
           class="flex items-center gap-3 p-2 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 transition-all duration-200 group"
           class:border-t-4={dragOverIndex === idx && dragPosition === "top"}
           class:border-b-4={dragOverIndex === idx && dragPosition === "bottom"}
@@ -231,7 +245,7 @@
                 <button
                   title={line.locked ? "Locked" : "Move up"}
                   aria-label="Move control point up"
-                  on:click|stopPropagation={() => moveControlPoint(idx, -1)}
+                  onclick={stopPropagation(() => moveControlPoint(idx, -1))}
                   class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={idx === 0 || line.locked}
                 >
@@ -245,7 +259,7 @@
                 <button
                   title={line.locked ? "Locked" : "Move down"}
                   aria-label="Move control point down"
-                  on:click|stopPropagation={() => moveControlPoint(idx, 1)}
+                  onclick={stopPropagation(() => moveControlPoint(idx, 1))}
                   class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={idx === line.controlPoints.length - 1 ||
                     line.locked}
@@ -286,7 +300,7 @@
                   step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                   class="w-full pl-5 pr-1 py-1 text-xs rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} X"
-                  on:input={(e) => {
+                  oninput={(e) => {
                     const val = parseFloat(e.currentTarget.value);
                     if (!isNaN(val)) {
                       const userPt = toUser(
@@ -323,7 +337,7 @@
                   step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                   class="w-full pl-5 pr-1 py-1 text-xs rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} Y"
-                  on:input={(e) => {
+                  oninput={(e) => {
                     const val = parseFloat(e.currentTarget.value);
                     if (!isNaN(val)) {
                       const userPt = toUser(

@@ -4,8 +4,12 @@
   import { DEFAULT_SETTINGS } from "../../../../config/defaults";
   import type { Settings } from "../../../../types/index";
 
-  export let settings: Settings;
-  export let searchQuery: string;
+  interface Props {
+    settings: Settings;
+    searchQuery: string;
+  }
+
+  let { settings = $bindable(), searchQuery }: Props = $props();
 
   function handleNumberInput(
     value: string,
@@ -186,7 +190,7 @@
           max="3000"
           step="1"
           bind:value={settings.optimizationIterations}
-          on:change={handleIterationsInput}
+          onchange={handleIterationsInput}
           class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-purple-700 dark:text-purple-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-purple-500"
         />
       </div>
@@ -211,7 +215,7 @@
           max="200"
           step="1"
           bind:value={settings.optimizationPopulationSize}
-          on:change={handlePopulationInput}
+          onchange={handlePopulationInput}
           class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-blue-700 dark:text-blue-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500"
         />
       </div>
@@ -236,7 +240,7 @@
           max="1"
           step="0.01"
           bind:value={settings.optimizationMutationRate}
-          on:change={handleMutationRateInput}
+          onchange={handleMutationRateInput}
           class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-green-700 dark:text-green-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-green-500"
         />
       </div>
@@ -261,7 +265,7 @@
           max="20"
           step="0.1"
           bind:value={settings.optimizationMutationStrength}
-          on:change={handleMutationStrengthInput}
+          onchange={handleMutationStrengthInput}
           class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-orange-700 dark:text-orange-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-orange-500"
         />
       </div>

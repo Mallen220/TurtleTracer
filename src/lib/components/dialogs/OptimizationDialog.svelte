@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run, preventDefault, stopPropagation } from "svelte/legacy";
+
   import type {
     Line,
     Point,
@@ -22,37 +24,55 @@
   import { dimmedLinesStore } from "../../../stores";
   import { onDestroy } from "svelte";
 
-  export let isOpen = false;
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let settings: Settings | undefined = undefined;
-  export let sequence: SequenceItem[];
-  export let shapes: Shape[] = [];
-  export let onApply: (newLines: Line[]) => void;
-  export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
-  export let onClose: (() => void) | null = null;
+  let progress = $state(0);
+  let currentBestTime = $state(0);
+  let showPreview = $state(true);
+  interface Props {
+    isOpen?: boolean;
+    startPoint: Point;
+    lines: Line[];
+    settings?: Settings | undefined;
+    sequence: SequenceItem[];
+    shapes?: Shape[];
+    onApply: (newLines: Line[]) => void;
+    onPreviewChange?: ((lines: Line[] | null) => void) | null;
+    onClose?: (() => void) | null;
+    isRunning?: boolean;
+    optimizedLines?: Line[] | null;
+    optimizationFailed?: boolean;
+    optimizationError?: string;
+    collapsed?: boolean;
+  }
 
-  export let isRunning = false;
-  let progress = 0;
-  let currentBestTime = 0;
-  export let optimizedLines: Line[] | null = null;
-  let showPreview = true;
-  export let optimizationFailed = false;
-  export let optimizationError = "";
-  export let collapsed = false;
+  let {
+    isOpen = $bindable(false),
+    startPoint,
+    lines,
+    settings = undefined,
+    sequence,
+    shapes = [],
+    onApply,
+    onPreviewChange = null,
+    onClose = null,
+    isRunning = $bindable(false),
+    optimizedLines = $bindable(null),
+    optimizationFailed = $bindable(false),
+    optimizationError = $bindable(""),
+    collapsed = $bindable(false),
+  }: Props = $props();
 
-  let selectionState: Record<string, boolean> = {};
+  let selectionState: Record<string, boolean> = $state({});
 
-  $: {
+  run(() => {
     lines.forEach((l, idx) => {
       const id = l.id || `idx-${idx}`;
       if (selectionState[id] === undefined) {
         selectionState[id] = true;
       }
     });
-  }
+  });
 
-  $: {
+  run(() => {
     const unselectedIds = lines
       .filter((l, idx) => {
         const id = l.id || `idx-${idx}`;
@@ -62,7 +82,7 @@
       .filter((id) => !!id);
 
     dimmedLinesStore.set(unselectedIds);
-  }
+  });
 
   function toggleSelection(id: string) {
     selectionState[id] = !selectionState[id];
@@ -90,7 +110,18 @@
   });
 
   let optimizer: PathOptimizer | null = null;
-  let isStopping = false;
+  let isStopping = $state(false);
+
+  function restoreUnselectedLocks(previewLines: Line[]) {
+    previewLines.forEach((line, idx) => {
+      const originalLine = lines[idx];
+      if (!originalLine) return;
+      const id = originalLine.id || `idx-${idx}`;
+      if (!selectionState[id]) {
+        line.locked = originalLine.locked;
+      }
+    });
+  }
 
   export async function startOptimization() {
     isRunning = true;
@@ -129,21 +160,19 @@
       (result: OptimizationResult) => {
         progress = result.generation;
         currentBestTime = result.bestTime;
+
+        if (showPreview && onPreviewChange && result.bestLines) {
+          const previewLines = structuredClone(result.bestLines);
+          restoreUnselectedLocks(previewLines);
+          onPreviewChange(previewLines);
+        }
       },
     );
 
     optimizedLines = optimizationResult.lines;
 
     if (optimizedLines) {
-      optimizedLines.forEach((l, idx) => {
-        const originalLine = lines[idx];
-        if (originalLine) {
-          const id = originalLine.id || `idx-${idx}`;
-          if (!selectionState[id]) {
-            l.locked = originalLine.locked;
-          }
-        }
-      });
+      restoreUnselectedLocks(optimizedLines);
     }
 
     if (optimizationResult.error) {
@@ -206,10 +235,12 @@
     }
   }
 
-  $: if (optimizationFailed && showPreview) {
-    showPreview = false;
-    if (onPreviewChange) onPreviewChange(null);
-  }
+  run(() => {
+    if (optimizationFailed && showPreview) {
+      showPreview = false;
+      if (onPreviewChange) onPreviewChange(null);
+    }
+  });
 </script>
 
 <div
@@ -258,12 +289,12 @@
             </div>
             <div class="flex gap-2 items-center">
               <button
-                on:click|preventDefault|stopPropagation={selectAll}
+                onclick={stopPropagation(preventDefault(selectAll))}
                 class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >All</button
               >
               <button
-                on:click|preventDefault|stopPropagation={deselectAll}
+                onclick={stopPropagation(preventDefault(deselectAll))}
                 class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >None</button
               >
@@ -280,7 +311,7 @@
                 <input
                   type="checkbox"
                   checked={selectionState[id]}
-                  on:change={() => toggleSelection(id)}
+                  onchange={() => toggleSelection(id)}
                   class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span class="truncate flex-1"
@@ -324,7 +355,7 @@
       {#if !isRunning && !optimizationFailed}
         <div class="flex gap-2 my-2">
           <button
-            on:click={togglePreview}
+            onclick={togglePreview}
             class="px-3 py-1 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 rounded text-xs font-medium transition-colors"
           >
             {showPreview ? "Hide Preview" : "Show Preview"}
@@ -361,7 +392,7 @@
             Optimizing...
           </button>
           <button
-            on:click={stopOptimization}
+            onclick={stopOptimization}
             class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors"
             disabled={isStopping}
           >
@@ -372,13 +403,13 @@
         {#if optimizationFailed}
           <div class="flex gap-2">
             <button
-              on:click={handleClose}
+              onclick={handleClose}
               class="flex-1 px-4 py-2 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 rounded-md text-sm font-medium transition-colors"
             >
               Discard
             </button>
             <button
-              on:click={startOptimization}
+              onclick={startOptimization}
               class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors"
               disabled={isRunning}
               title={isRunning
@@ -391,13 +422,13 @@
         {:else}
           <div class="flex gap-2">
             <button
-              on:click={handleClose}
+              onclick={handleClose}
               class="flex-1 px-4 py-2 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 rounded-md text-sm font-medium transition-colors"
             >
               Discard
             </button>
             <button
-              on:click={handleApply}
+              onclick={handleApply}
               class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors"
             >
               Apply New Path
@@ -406,7 +437,7 @@
         {/if}
       {:else}
         <button
-          on:click={startOptimization}
+          onclick={startOptimization}
           class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2"
         >
           <PlayIcon className="size-4" />

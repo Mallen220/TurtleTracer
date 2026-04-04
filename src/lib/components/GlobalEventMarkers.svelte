@@ -15,9 +15,17 @@
   import SearchableDropdown from "./common/SearchableDropdown.svelte";
   import { actionRegistry } from "../actionRegistry";
 
-  export let sequence: SequenceItem[];
-  export let lines: Line[];
-  export let collapsedMarkers: boolean;
+  interface Props {
+    sequence: SequenceItem[];
+    lines: Line[];
+    collapsedMarkers: boolean;
+  }
+
+  let {
+    sequence = $bindable(),
+    lines = $bindable(),
+    collapsedMarkers = $bindable(),
+  }: Props = $props();
 
   interface GlobalMarker {
     id: string;
@@ -32,23 +40,8 @@
   }
 
   // Keep track of dragging marker to prevent re-sorting while dragging
-  let draggingMarkerId: string | null = null;
+  let draggingMarkerId: string | null = $state(null);
   let cachedSortedMarkers: GlobalMarker[] = [];
-
-  // Reactive list of all markers with global position
-  $: allMarkers = getAllMarkers(sequence, lines, draggingMarkerId);
-
-  // Compute available events from disk and current project
-  $: currentProjectEvents = Array.from(new Set(allMarkers.map((m) => m.name)));
-  $: availableEvents = Array.from(
-    new Set(
-      [...$diskEventNamesStore, ...currentProjectEvents].filter(
-        (n) => n && n.trim() !== "",
-      ),
-    ),
-  ).sort();
-
-  $: nonMacroCount = sequence.filter((s) => s.kind !== "macro").length;
 
   // Helper to build a mapping of marker index to sequence index
   function getSequenceMapping(seq: SequenceItem[]): {
@@ -352,6 +345,24 @@
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }
+  // Reactive list of all markers with global position
+  let allMarkers = $derived(getAllMarkers(sequence, lines, draggingMarkerId));
+  // Compute available events from disk and current project
+  let currentProjectEvents = $derived(
+    Array.from(new Set(allMarkers.map((m) => m.name))),
+  );
+  let availableEvents = $derived(
+    Array.from(
+      new Set(
+        [...$diskEventNamesStore, ...currentProjectEvents].filter(
+          (n) => n && n.trim() !== "",
+        ),
+      ),
+    ).sort(),
+  );
+  let nonMacroCount = $derived(
+    sequence.filter((s) => s.kind !== "macro").length,
+  );
 </script>
 
 <div
@@ -372,9 +383,11 @@
           description="Click + to add an event marker at the end of the sequence."
           compact={true}
         >
-          <div slot="icon">
-            <ZapIcon className="size-6 text-neutral-400" strokeWidth={1.5} />
-          </div>
+          {#snippet icon()}
+            <div>
+              <ZapIcon className="size-6 text-neutral-400" strokeWidth={1.5} />
+            </div>
+          {/snippet}
         </EmptyState>
       {:else}
         {#each allMarkers as marker (marker.id)}
@@ -382,17 +395,18 @@
             role="group"
             id={`global-marker-${marker.id}`}
             class="flex flex-col p-2 border border-purple-200 dark:border-purple-800 rounded-md bg-purple-50/50 dark:bg-purple-900/10 gap-2"
-            on:mouseenter={() => hoveredMarkerId.set(marker.id)}
-            on:mouseleave={() => hoveredMarkerId.set(null)}
+            onmouseenter={() => hoveredMarkerId.set(marker.id)}
+            onmouseleave={() => hoveredMarkerId.set(null)}
           >
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2 flex-1">
                 <div class="w-2 h-2 rounded-full bg-purple-500 shrink-0"></div>
                 <SearchableDropdown
-                  bind:value={marker.ref.name}
+                  value={marker.ref.name}
                   options={availableEvents}
                   placeholder="Search or add new..."
-                  on:change={() => {
+                  onchange={(val) => {
+                    marker.ref.name = val;
                     if (marker.parentType === "path") lines = [...lines];
                     else sequence = [...sequence];
                   }}
@@ -400,7 +414,7 @@
               </div>
               <button
                 class="text-neutral-400 hover:text-red-500 transition-colors"
-                on:click={() => removeMarker(marker)}
+                onclick={() => removeMarker(marker)}
                 title="Remove Marker"
                 aria-label="Remove Marker"
               >
@@ -428,12 +442,12 @@
                 step="0.01"
                 value={marker.globalPosition}
                 class="flex-1 slider accent-purple-500"
-                on:input={(e) =>
+                oninput={(e) =>
                   handleGlobalPositionInput(
                     marker,
                     parseFloat(e.currentTarget.value),
                   )}
-                on:change={(e) =>
+                onchange={(e) =>
                   handleGlobalPositionCommit(
                     marker,
                     parseFloat(e.currentTarget.value),
@@ -447,7 +461,7 @@
                 step="0.01"
                 value={parseFloat(marker.globalPosition.toFixed(2))}
                 class="w-16 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-center"
-                on:change={(e) =>
+                onchange={(e) =>
                   handleGlobalPositionCommit(
                     marker,
                     parseFloat(e.currentTarget.value),

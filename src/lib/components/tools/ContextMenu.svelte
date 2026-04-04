@@ -1,27 +1,32 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { createEventDispatcher, onMount } from "svelte";
+  import { run } from "svelte/legacy";
   import { fade } from "svelte/transition";
 
-  export let x: number;
-  export let y: number;
-  export let items: {
-    label: string;
-    action?: string;
-    onClick?: () => void;
-    icon?: any;
-    separator?: boolean;
-    danger?: boolean;
-    disabled?: boolean;
-    shortcut?: string;
-  }[] = [];
+  interface Props {
+    x: number;
+    y: number;
+    items?: {
+      label: string;
+      action?: string;
+      onClick?: () => void;
+      icon?: any;
+      separator?: boolean;
+      danger?: boolean;
+      disabled?: boolean;
+      shortcut?: string;
+    }[];
+  }
+
+  let { x, y, items = [] }: Props = $props();
 
   const dispatch = createEventDispatcher<{
     close: void;
     action: string; // fallback if onClick is not provided
   }>();
 
-  let menuElement: HTMLDivElement;
+  let menuElement: HTMLDivElement | undefined = $state();
 
   function handleClickOutside(event: MouseEvent) {
     if (menuElement && !menuElement.contains(event.target as Node)) {
@@ -41,8 +46,13 @@
   }
 
   // Adjust position if it goes off screen
-  let adjustedX = x;
-  let adjustedY = y;
+  let adjustedX = $state(0);
+  let adjustedY = $state(0);
+
+  run(() => {
+    adjustedX = x;
+    adjustedY = y;
+  });
 
   onMount(() => {
     if (menuElement) {
@@ -87,7 +97,7 @@
       <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
     {:else}
       <button
-        on:click={() => handleItemClick(item)}
+        onclick={() => handleItemClick(item)}
         class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between {item.danger
           ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
           : 'text-neutral-700 dark:text-neutral-200'} {item.disabled
@@ -99,7 +109,7 @@
         <span class="flex items-center gap-2">
           {#if item.icon}
             {#if typeof item.icon === "object" || typeof item.icon === "function"}
-              <svelte:component this={item.icon} class="size-4" />
+              <item.icon class="size-4" />
             {/if}
           {/if}
           {item.label}

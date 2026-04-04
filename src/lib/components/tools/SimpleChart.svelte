@@ -1,27 +1,31 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import { onMount } from "svelte";
   import * as d3 from "d3";
 
-  export let data: { time: number; value: number }[] = [];
-  export let color: string = "#3b82f6";
-  export let label: string = "";
-  export let unit: string = "";
-  export let height: number = 200;
-  export let currentTime: number | null = null;
-
-  let container: HTMLDivElement;
-  let tooltip: HTMLDivElement;
-  let width = 0;
-
-  // Make reactive to data/dimensions/time
-  $: if (container && data.length > 0 && width > 0) {
-    draw();
+  interface Props {
+    data?: { time: number; value: number }[];
+    color?: string;
+    label?: string;
+    unit?: string;
+    height?: number;
+    currentTime?: number | null;
   }
 
-  $: if (currentTime !== null && width > 0) {
-    updatePlayhead();
-  }
+  let {
+    data = [],
+    color = "#3b82f6",
+    label = "",
+    unit = "",
+    height = 200,
+    currentTime = null,
+  }: Props = $props();
+
+  let container: HTMLDivElement | undefined = $state();
+  let tooltip: HTMLDivElement | undefined = $state();
+  let width = $state(0);
 
   // Keep references to update efficiently
   let playheadSelection: any;
@@ -243,8 +247,19 @@
   onMount(() => {
     handleResize();
     const ro = new ResizeObserver(handleResize);
-    ro.observe(container);
+    ro.observe(container!);
     return () => ro.disconnect();
+  });
+  // Make reactive to data/dimensions/time
+  run(() => {
+    if (container && data.length > 0 && width > 0) {
+      draw();
+    }
+  });
+  run(() => {
+    if (currentTime !== null && width > 0) {
+      updatePlayhead();
+    }
   });
 </script>
 

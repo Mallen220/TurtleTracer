@@ -1,34 +1,52 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run, preventDefault } from "svelte/legacy";
+
   import { createEventDispatcher, tick } from "svelte";
   import { slide } from "svelte/transition";
 
-  export let value: string = "";
-  export let options: string[] = [];
-  export let placeholder: string = "Search or add new...";
-  export let disabled: boolean = false;
+  interface Props {
+    value?: string;
+    options?: string[];
+    placeholder?: string;
+    disabled?: boolean;
+    onchange?: (val: string) => void;
+  }
+
+  let {
+    value = $bindable(""),
+    options = [],
+    placeholder = "Search or add new...",
+    disabled = false,
+    onchange,
+  }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
-  let isOpen = false;
-  let inputElement: HTMLInputElement;
-  let highlightedIndex = -1;
-  let listElement: HTMLDivElement;
+  let isOpen = $state(false);
+  let inputElement: HTMLInputElement | undefined = $state();
+  let highlightedIndex = $state(-1);
+  let listElement: HTMLDivElement | undefined = $state();
 
   // Filter options based on current input
-  $: filteredOptions = options
-    .filter((opt) => opt.toLowerCase().includes(value.toLowerCase()))
-    .sort();
+  let filteredOptions = $derived(
+    options
+      .filter((opt) => opt.toLowerCase().includes(value.toLowerCase()))
+      .sort(),
+  );
 
   // Reset highlight when options change
-  $: if (filteredOptions) {
-    highlightedIndex = -1;
-  }
+  run(() => {
+    if (filteredOptions) {
+      highlightedIndex = -1;
+    }
+  });
 
   function handleInput(e: Event) {
     value = (e.target as HTMLInputElement).value;
     isOpen = true;
     dispatch("change", value);
+    onchange?.(value);
   }
 
   function handleFocus() {
@@ -47,6 +65,7 @@
     isOpen = false;
     highlightedIndex = -1;
     dispatch("change", value);
+    onchange?.(value);
   }
 
   async function handleKeydown(e: KeyboardEvent) {
@@ -80,18 +99,18 @@
       ) {
         e.preventDefault();
         selectOption(filteredOptions[highlightedIndex]);
-        inputElement.blur();
+        inputElement?.blur();
       } else {
         // Just standard enter behavior (submit form?) or close?
         // If simply typing, Enter might mean "I'm done typing"
         isOpen = false;
-        inputElement.blur();
+        inputElement?.blur();
       }
     } else if (e.key === "Escape") {
       e.preventDefault();
       isOpen = false;
       highlightedIndex = -1;
-      inputElement.blur();
+      inputElement?.blur();
     }
   }
 
@@ -116,10 +135,10 @@
     {placeholder}
     {disabled}
     class="text-sm font-medium bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 rounded px-2 py-0.5 w-full"
-    on:input={handleInput}
-    on:focus={handleFocus}
-    on:blur={handleBlur}
-    on:keydown={handleKeydown}
+    oninput={handleInput}
+    onfocus={handleFocus}
+    onblur={handleBlur}
+    onkeydown={handleKeydown}
     aria-label={placeholder}
     role="combobox"
     aria-autocomplete="list"
@@ -148,7 +167,7 @@
             {index === highlightedIndex
             ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-900 dark:text-purple-100'
             : 'hover:bg-purple-50 dark:hover:bg-purple-900/20 text-neutral-700 dark:text-neutral-200'}"
-          on:mousedown|preventDefault={() => selectOption(option)}
+          onmousedown={preventDefault(() => selectOption(option))}
         >
           {option}
         </div>

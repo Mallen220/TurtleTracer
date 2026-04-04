@@ -1,12 +1,24 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  export let show = false;
-  export let title = "Confirm";
-  export let message = "";
-  export let confirmText = "OK";
-  export let cancelText = "Cancel";
-  export let onConfirm: () => void;
-  export let onCancel: () => void;
+  interface Props {
+    show?: boolean;
+    title?: string;
+    message?: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }
+
+  let {
+    show = $bindable(false),
+    title = "Confirm",
+    message = "",
+    confirmText = "OK",
+    cancelText = "Cancel",
+    onConfirm,
+    onCancel,
+  }: Props = $props();
 
   function handleConfirm() {
     onConfirm();
@@ -39,13 +51,13 @@
 
       <div class="flex justify-end gap-3">
         <button
-          on:click={handleCancel}
+          onclick={handleCancel}
           class="px-4 py-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 transition-colors"
         >
           {cancelText}
         </button>
         <button
-          on:click={handleConfirm}
+          onclick={handleConfirm}
           class="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
         >
           {confirmText}

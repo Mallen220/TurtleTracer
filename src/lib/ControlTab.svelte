@@ -1,5 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
-<script context="module" lang="ts">
+<script module lang="ts">
   import { tabRegistry as tabRegistryModule } from "./registries";
   import PathTab from "./components/tabs/PathTab.svelte";
   import FieldTab from "./components/tabs/FieldTab.svelte";
@@ -61,6 +61,8 @@
 </script>
 
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import type {
     Point,
     Line,
@@ -76,84 +78,63 @@
   import { diffMode } from "./diffStore";
   import { actionRegistry } from "./actionRegistry";
 
-  export let percent: number;
-  export let playing: boolean;
-  export let play: () => any;
-  export let pause: () => any;
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let sequence: SequenceItem[];
   export const robotLength: number = 16; // Can be removed?
   export const robotWidth: number = 16; // Can be removed?
-  export let robotXY: BasePoint;
-  export let robotHeading: number;
-  export let settings: Settings;
-  export let handleSeek: (percent: number) => void;
-  export let loopAnimation: boolean;
-  export let playbackSpeed: number = 1.0;
-  export let splitPath: () => void = () => {};
   export const resetPlaybackSpeed = undefined as unknown as () => void;
-  export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
-  export let totalSeconds: number = 0;
 
   export const resetAnimation = undefined as unknown as () => void;
 
-  export let shapes: Shape[];
-  export let recordChange: (action?: string) => void;
-  export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
-  export let statsOpen = false;
-  export let activeTab: string = "path";
-
   // Optimization Interface
-  let tabInstances: Record<string, any> = {};
+  let tabInstances: Record<string, any> = $state({});
 
-  $: activeTabInstance = tabInstances[activeTab];
-
-  // If code tab is active but setting is disabled, switch to path
-  $: if (
-    activeTab === "code" &&
-    settings &&
-    settings.autoExportCode === false
-  ) {
-    activeTab = "path";
+  function getOptimizationController() {
+    return tabInstances["field"] || activeTabInstance;
   }
 
-  // collapse telemetry tab if user disabled it
-  $: if (
-    activeTab === "telemetry" &&
-    settings &&
-    settings.showTelemetryTab === false
-  ) {
-    activeTab = "path";
+  function focusOptimizationTab() {
+    activeTab = "field";
   }
 
   export async function openAndStartOptimization() {
-    if (activeTabInstance && activeTabInstance.openAndStartOptimization) {
-      return await activeTabInstance.openAndStartOptimization();
+    focusOptimizationTab();
+    const optimizerController = getOptimizationController();
+    if (
+      optimizerController &&
+      optimizerController.openAndStartOptimization
+    ) {
+      return await optimizerController.openAndStartOptimization();
     }
   }
 
   export function stopOptimization() {
-    if (activeTabInstance && activeTabInstance.stopOptimization) {
-      activeTabInstance.stopOptimization();
+    focusOptimizationTab();
+    const optimizerController = getOptimizationController();
+    if (optimizerController && optimizerController.stopOptimization) {
+      optimizerController.stopOptimization();
     }
   }
 
   export function applyOptimization() {
-    if (activeTabInstance && activeTabInstance.applyOptimization) {
-      activeTabInstance.applyOptimization();
+    focusOptimizationTab();
+    const optimizerController = getOptimizationController();
+    if (optimizerController && optimizerController.applyOptimization) {
+      optimizerController.applyOptimization();
     }
   }
 
   export function discardOptimization() {
-    if (activeTabInstance && activeTabInstance.discardOptimization) {
-      activeTabInstance.discardOptimization();
+    focusOptimizationTab();
+    const optimizerController = getOptimizationController();
+    if (optimizerController && optimizerController.discardOptimization) {
+      optimizerController.discardOptimization();
     }
   }
 
   export function retryOptimization() {
-    if (activeTabInstance && activeTabInstance.retryOptimization) {
-      activeTabInstance.retryOptimization();
+    focusOptimizationTab();
+    const optimizerController = getOptimizationController();
+    if (optimizerController && optimizerController.retryOptimization) {
+      optimizerController.retryOptimization();
     }
   }
 
@@ -176,8 +157,9 @@
   }
 
   export function getOptimizationStatus() {
-    if (activeTabInstance && activeTabInstance.getOptimizationStatus) {
-      return activeTabInstance.getOptimizationStatus();
+    const optimizerController = getOptimizationController();
+    if (optimizerController && optimizerController.getOptimizationStatus) {
+      return optimizerController.getOptimizationStatus();
     }
     return {
       isOpen: false,
@@ -233,165 +215,6 @@
       }
     }
   }
-
-  // Compute timeline markers for the UI (passed to PlaybackControls)
-  $: timePrediction = calculatePathTime(startPoint, lines, settings, sequence);
-
-  $: timelineItems = (() => {
-    const items: {
-      type: "marker" | "wait" | "rotate" | "dot" | "macro";
-      percent: number;
-      durationPercent?: number;
-      color?: string;
-      name: string;
-      explicit?: boolean;
-      fromWait?: boolean;
-      id?: string;
-      parentId?: string;
-    }[] = [];
-
-    if (
-      !timePrediction ||
-      !timePrediction.timeline ||
-      timePrediction.totalTime <= 0
-    )
-      return items;
-
-    const totalTime = timePrediction.totalTime;
-    const timeline = timePrediction.timeline;
-    const toPct = (t: number) => (t / totalTime) * 100;
-
-    timeline.forEach((ev) => {
-      if (ev.type === "travel") {
-        const startPct = toPct(ev.startTime);
-        const lineIndex = ev.lineIndex as number;
-        const line = (ev as any).line || lines[lineIndex]; // Use timeline line if available
-        const color = line?.color || "#ffffff";
-        const name =
-          line?.name ||
-          (lineIndex >= 0 ? `Path ${lineIndex + 1}` : "Macro/Bridge Path");
-        items.push({ type: "dot", percent: startPct, color, name });
-      } else if (ev.type === "wait") {
-        const startPct = toPct(ev.startTime);
-        const durPct = toPct(ev.duration);
-        let isRotate = false;
-        let explicit = undefined as boolean | undefined;
-        let itemName = ev.name || "Wait";
-
-        if (ev.waitId) {
-          const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
-          if (seqItem) {
-            const def = actionRegistry.get(seqItem.kind);
-            if (def?.isRotate) {
-              isRotate = true;
-              explicit = true;
-              itemName = "Rotate";
-            } else if (def?.isWait) {
-              isRotate = false;
-              explicit = true;
-              itemName = "Wait";
-            }
-          }
-        }
-        if (
-          !isRotate &&
-          Math.abs((ev.startHeading || 0) - (ev.targetHeading || 0)) > 1.0
-        ) {
-          isRotate = true;
-          explicit = false;
-          itemName = "Rotate";
-        }
-
-        items.push({
-          type: isRotate ? "rotate" : "wait",
-          percent: startPct,
-          durationPercent: durPct,
-          name: ev.name || itemName,
-          explicit: isRotate ? explicit : explicit,
-        });
-      } else if (ev.type === "macro") {
-        const startPct = toPct(ev.startTime);
-        const durPct = toPct(ev.duration);
-        items.push({
-          type: "macro",
-          percent: startPct,
-          durationPercent: durPct,
-          name: ev.name || "Macro",
-        });
-      }
-    });
-
-    timeline.forEach((ev) => {
-      if (ev.type === "travel") {
-        const line = (ev as any).line || lines[ev.lineIndex as number];
-        if (line && line.eventMarkers) {
-          line.eventMarkers.forEach((m: any) => {
-            let timeOffset = 0;
-            if (ev.motionProfile) {
-              const steps = ev.motionProfile.length - 1;
-              if (steps > 0) {
-                const idx = Math.min(Math.floor(m.position * steps), steps);
-                timeOffset = ev.motionProfile[idx];
-              }
-            } else {
-              timeOffset = ev.duration * m.position;
-            }
-            const absTime = ev.startTime + timeOffset;
-            items.push({
-              type: "marker",
-              percent: toPct(absTime),
-              color: line.color,
-              name: m.name,
-              id: m.id,
-              parentId: line.id,
-            });
-          });
-        }
-      }
-    });
-
-    timeline.forEach((ev) => {
-      if (ev.type === "wait" && ev.waitId) {
-        const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
-        const def = seqItem ? actionRegistry.get(seqItem.kind) : null;
-        if (
-          seqItem &&
-          (seqItem.kind === "wait" || seqItem.kind === "rotate") &&
-          seqItem.eventMarkers
-        ) {
-          seqItem.eventMarkers.forEach((m: any) => {
-            const timeOffset = ev.duration * m.position;
-            const absTime = ev.startTime + timeOffset;
-            items.push({
-              type: "marker",
-              percent: toPct(absTime),
-              fromWait: true,
-              name: m.name,
-              id: m.id,
-              parentId: seqItem.id,
-            });
-          });
-        }
-      }
-    });
-
-    // Apply transformers
-    let transformedItems = items;
-    $timelineTransformerRegistry.forEach((entry) => {
-      try {
-        transformedItems = entry.fn(transformedItems, {
-          timePrediction,
-          sequence,
-          lines,
-          settings,
-        });
-      } catch (e) {
-        console.error(`Error in timeline transformer ${entry.id}:`, e);
-      }
-    });
-
-    return transformedItems;
-  })();
 
   function handleMarkerChange(e: CustomEvent) {
     const { id, percent } = e.detail;
@@ -570,19 +393,247 @@
     }
   }
 
-  // Use the registry for tabs
-  $: currentTab =
-    $tabRegistry.find((t) => t.id === activeTab) || $tabRegistry[0];
-
   import { isBrowser } from "../utils/platform";
-  let isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
-  $: shouldShowTelemetry =
-    settings?.showTelemetryTab && !(isBrowser && isOnline);
+  interface Props {
+    percent: number;
+    playing: boolean;
+    play: () => any;
+    pause: () => any;
+    startPoint: Point;
+    lines: Line[];
+    sequence: SequenceItem[];
+    robotXY: BasePoint;
+    robotHeading: number;
+    settings: Settings;
+    handleSeek: (percent: number) => void;
+    loopAnimation: boolean;
+    playbackSpeed?: number;
+    splitPath?: () => void;
+    setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
+    totalSeconds?: number;
+    shapes: Shape[];
+    recordChange: (action?: string) => void;
+    onPreviewChange?: ((lines: Line[] | null) => void) | null;
+    statsOpen?: boolean;
+    activeTab?: string;
+  }
+
+  let {
+    percent = $bindable(),
+    playing = $bindable(),
+    play,
+    pause,
+    startPoint = $bindable(),
+    lines = $bindable(),
+    sequence = $bindable(),
+    robotXY = $bindable(),
+    robotHeading = $bindable(),
+    settings = $bindable(),
+    handleSeek,
+    loopAnimation = $bindable(),
+    playbackSpeed = 1.0,
+    splitPath = () => {},
+    setPlaybackSpeed,
+    totalSeconds = 0,
+    shapes = $bindable(),
+    recordChange,
+    onPreviewChange = null,
+    statsOpen = $bindable(false),
+    activeTab = $bindable("path"),
+  }: Props = $props();
+  let isOnline = $state(
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
+  // If code tab is active but setting is disabled, switch to path
+  run(() => {
+    if (activeTab === "code" && settings && settings.autoExportCode === false) {
+      activeTab = "path";
+    }
+  });
+  // collapse telemetry tab if user disabled it
+  run(() => {
+    if (
+      activeTab === "telemetry" &&
+      settings &&
+      settings.showTelemetryTab === false
+    ) {
+      activeTab = "path";
+    }
+  });
+  let activeTabInstance = $derived(tabInstances[activeTab]);
+  // Compute timeline markers for the UI (passed to PlaybackControls)
+  let timePrediction = $derived(
+    calculatePathTime(startPoint, lines, settings, sequence),
+  );
+  let timelineItems = $derived(
+    (() => {
+      const items: {
+        type: "marker" | "wait" | "rotate" | "dot" | "macro";
+        percent: number;
+        durationPercent?: number;
+        color?: string;
+        name: string;
+        explicit?: boolean;
+        fromWait?: boolean;
+        id?: string;
+        parentId?: string;
+      }[] = [];
+
+      if (
+        !timePrediction ||
+        !timePrediction.timeline ||
+        timePrediction.totalTime <= 0
+      )
+        return items;
+
+      const totalTime = timePrediction.totalTime;
+      const timeline = timePrediction.timeline;
+      const toPct = (t: number) => (t / totalTime) * 100;
+
+      timeline.forEach((ev) => {
+        if (ev.type === "travel") {
+          const startPct = toPct(ev.startTime);
+          const lineIndex = ev.lineIndex as number;
+          const line = (ev as any).line || lines[lineIndex]; // Use timeline line if available
+          const color = line?.color || "#ffffff";
+          const name =
+            line?.name ||
+            (lineIndex >= 0 ? `Path ${lineIndex + 1}` : "Macro/Bridge Path");
+          items.push({ type: "dot", percent: startPct, color, name });
+        } else if (ev.type === "wait") {
+          const startPct = toPct(ev.startTime);
+          const durPct = toPct(ev.duration);
+          let isRotate = false;
+          let explicit = undefined as boolean | undefined;
+          let itemName = ev.name || "Wait";
+
+          if (ev.waitId) {
+            const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
+            if (seqItem) {
+              const def = actionRegistry.get(seqItem.kind);
+              if (def?.isRotate) {
+                isRotate = true;
+                explicit = true;
+                itemName = "Rotate";
+              } else if (def?.isWait) {
+                isRotate = false;
+                explicit = true;
+                itemName = "Wait";
+              }
+            }
+          }
+          if (
+            !isRotate &&
+            Math.abs((ev.startHeading || 0) - (ev.targetHeading || 0)) > 1.0
+          ) {
+            isRotate = true;
+            explicit = false;
+            itemName = "Rotate";
+          }
+
+          items.push({
+            type: isRotate ? "rotate" : "wait",
+            percent: startPct,
+            durationPercent: durPct,
+            name: ev.name || itemName,
+            explicit: isRotate ? explicit : explicit,
+          });
+        } else if (ev.type === "macro") {
+          const startPct = toPct(ev.startTime);
+          const durPct = toPct(ev.duration);
+          items.push({
+            type: "macro",
+            percent: startPct,
+            durationPercent: durPct,
+            name: ev.name || "Macro",
+          });
+        }
+      });
+
+      timeline.forEach((ev) => {
+        if (ev.type === "travel") {
+          const line = (ev as any).line || lines[ev.lineIndex as number];
+          if (line && line.eventMarkers) {
+            line.eventMarkers.forEach((m: any) => {
+              let timeOffset = 0;
+              if (ev.motionProfile) {
+                const steps = ev.motionProfile.length - 1;
+                if (steps > 0) {
+                  const idx = Math.min(Math.floor(m.position * steps), steps);
+                  timeOffset = ev.motionProfile[idx];
+                }
+              } else {
+                timeOffset = ev.duration * m.position;
+              }
+              const absTime = ev.startTime + timeOffset;
+              items.push({
+                type: "marker",
+                percent: toPct(absTime),
+                color: line.color,
+                name: m.name,
+                id: m.id,
+                parentId: line.id,
+              });
+            });
+          }
+        }
+      });
+
+      timeline.forEach((ev) => {
+        if (ev.type === "wait" && ev.waitId) {
+          const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
+          const def = seqItem ? actionRegistry.get(seqItem.kind) : null;
+          if (
+            seqItem &&
+            (seqItem.kind === "wait" || seqItem.kind === "rotate") &&
+            seqItem.eventMarkers
+          ) {
+            seqItem.eventMarkers.forEach((m: any) => {
+              const timeOffset = ev.duration * m.position;
+              const absTime = ev.startTime + timeOffset;
+              items.push({
+                type: "marker",
+                percent: toPct(absTime),
+                fromWait: true,
+                name: m.name,
+                id: m.id,
+                parentId: seqItem.id,
+              });
+            });
+          }
+        }
+      });
+
+      // Apply transformers
+      let transformedItems = items;
+      $timelineTransformerRegistry.forEach((entry) => {
+        try {
+          transformedItems = entry.fn(transformedItems, {
+            timePrediction,
+            sequence,
+            lines,
+            settings,
+          });
+        } catch (e) {
+          console.error(`Error in timeline transformer ${entry.id}:`, e);
+        }
+      });
+
+      return transformedItems;
+    })(),
+  );
+  // Use the registry for tabs
+  let currentTab = $derived(
+    $tabRegistry.find((t) => t.id === activeTab) || $tabRegistry[0],
+  );
+  let shouldShowTelemetry = $derived(
+    settings?.showTelemetryTab && !(isBrowser && isOnline),
+  );
 </script>
 
 <svelte:window
-  on:online={() => (isOnline = true)}
-  on:offline={() => (isOnline = false)}
+  ononline={() => (isOnline = true)}
+  onoffline={() => (isOnline = false)}
 />
 
 <div
@@ -622,12 +673,12 @@
               tab.id
                 ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white ring-1 ring-black/5 dark:ring-white/5'
                 : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-50/50 dark:hover:bg-neutral-700/50'}"
-              on:click={() => (activeTab = tab.id)}
+              onclick={() => (activeTab = tab.id)}
             >
               {#if tab.icon}
                 {@html tab.icon}
               {:else if tab.iconComponent}
-                <svelte:component this={tab.iconComponent} className="size-4" />
+                <tab.iconComponent className="size-4" />
               {/if}
               {tab.label}
             </button>
@@ -636,7 +687,7 @@
       </div>
       <button
         id="stats-btn"
-        on:click={() => (statsOpen = !statsOpen)}
+        onclick={() => (statsOpen = !statsOpen)}
         class="flex-none flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:text-neutral-900 dark:hover:text-neutral-200 gap-2 shadow-sm"
         title={`Path Statistics${getShortcutFromSettings(settings, "toggle-stats")}`}
         aria-label="View path statistics"
@@ -657,8 +708,7 @@
       {#each $tabRegistry as tab (tab.id)}
         {#if (tab.id !== "code" || settings?.autoExportCode) && (tab.id !== "telemetry" || shouldShowTelemetry)}
           <div class:hidden={activeTab !== tab.id} class="w-full h-full">
-            <svelte:component
-              this={tab.component}
+            <tab.component
               bind:this={tabInstances[tab.id]}
               bind:startPoint
               bind:lines

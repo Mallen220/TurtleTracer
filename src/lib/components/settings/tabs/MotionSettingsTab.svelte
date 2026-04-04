@@ -4,22 +4,30 @@
   import { DEFAULT_SETTINGS } from "../../../../config/defaults";
   import type { Settings } from "../../../../types/index";
 
-  export let settings: Settings;
-  export let searchQuery: string;
+  interface Props {
+    settings: Settings;
+    searchQuery: string;
+  }
 
-  let angularVelocityUnit: "rad" | "deg" = "rad";
+  let { settings = $bindable(), searchQuery }: Props = $props();
 
-  $: angularVelocityDisplay = settings
-    ? angularVelocityUnit === "rad"
-      ? settings.aVelocity / Math.PI
-      : (settings.aVelocity * 180) / Math.PI
-    : 1;
+  let angularVelocityUnit: "rad" | "deg" = $state("rad");
 
-  $: maxAngularAccelerationDisplay = settings
-    ? angularVelocityUnit === "rad"
-      ? (settings.maxAngularAcceleration ?? 0)
-      : ((settings.maxAngularAcceleration ?? 0) * 180) / Math.PI
-    : 0;
+  let angularVelocityDisplay = $derived(
+    settings
+      ? angularVelocityUnit === "rad"
+        ? settings.aVelocity / Math.PI
+        : (settings.aVelocity * 180) / Math.PI
+      : 1,
+  );
+
+  let maxAngularAccelerationDisplay = $derived(
+    settings
+      ? angularVelocityUnit === "rad"
+        ? (settings.maxAngularAcceleration ?? 0)
+        : ((settings.maxAngularAcceleration ?? 0) * 180) / Math.PI
+      : 0,
+  );
 
   function handleNumberInput(
     value: string,
@@ -160,7 +168,7 @@
         bind:value={settings.xVelocity}
         min="0"
         step="1"
-        on:change={handleXVelocityInput}
+        onchange={handleXVelocityInput}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
@@ -180,7 +188,7 @@
         bind:value={settings.yVelocity}
         min="0"
         step="1"
-        on:change={handleYVelocityInput}
+        onchange={handleYVelocityInput}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
@@ -198,7 +206,7 @@
       value={Number((maxAngularAccelerationDisplay ?? 0).toFixed(2))}
       min="0"
       step={angularVelocityUnit === "rad" ? 0.1 : 10}
-      on:input={handleMaxAngularAccelerationInput}
+      oninput={handleMaxAngularAccelerationInput}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     />
   </SettingsItem>
@@ -226,7 +234,7 @@
           class="px-2 py-0.5 {angularVelocityUnit === 'rad'
             ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium'
             : 'bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}"
-          on:click={() => (angularVelocityUnit = "rad")}>π rad/s</button
+          onclick={() => (angularVelocityUnit = "rad")}>π rad/s</button
         >
         <div
           class="w-px h-full bg-neutral-300 dark:bg-neutral-600"
@@ -237,7 +245,7 @@
           class="px-2 py-0.5 {angularVelocityUnit === 'deg'
             ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium'
             : 'bg-neutral-50 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'}"
-          on:click={() => (angularVelocityUnit = "deg")}>deg/s</button
+          onclick={() => (angularVelocityUnit = "deg")}>deg/s</button
         >
       </div>
     </div>
@@ -247,8 +255,8 @@
       value={angularVelocityDisplay}
       min="0"
       step={angularVelocityUnit === "rad" ? 0.1 : 10}
-      on:input={handleAngularVelocityInput}
-      on:change={handleAngularVelocityChange}
+      oninput={handleAngularVelocityInput}
+      onchange={handleAngularVelocityChange}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     />
   </SettingsItem>
@@ -269,7 +277,7 @@
       bind:value={settings.maxVelocity}
       min="0"
       step="1"
-      on:change={handleMaxVelocityInput}
+      onchange={handleMaxVelocityInput}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     />
   </SettingsItem>
@@ -291,7 +299,7 @@
         bind:value={settings.maxAcceleration}
         min="0"
         step="1"
-        on:change={handleMaxAccelerationInput}
+        onchange={handleMaxAccelerationInput}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
@@ -311,7 +319,7 @@
         bind:value={settings.maxDeceleration}
         min="0"
         step="1"
-        on:change={handleMaxDecelerationInput}
+        onchange={handleMaxDecelerationInput}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
@@ -334,7 +342,7 @@
       bind:value={settings.kFriction}
       min="0"
       step="0.1"
-      on:change={handleFrictionInput}
+      onchange={handleFrictionInput}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     />
   </SettingsItem>

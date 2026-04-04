@@ -2,7 +2,11 @@
 <script lang="ts">
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import packageJson from "../../../../../package.json";
-  export let searchQuery: string;
+  interface Props {
+    searchQuery: string;
+  }
+
+  let { searchQuery }: Props = $props();
   let appVersion = packageJson.version;
 </script>
 

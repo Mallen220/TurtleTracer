@@ -1,5 +1,8 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { stopPropagation, createBubbler } from "svelte/legacy";
+
+  const bubble = createBubbler();
   import { selectedPointId, selectedLineId } from "../../../stores";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
   import type { SequenceRotateItem, SequenceItem } from "../../../types/index";
@@ -24,29 +27,45 @@
     PlusIcon,
   } from "../icons";
 
-  export let rotate: SequenceRotateItem;
-  export let sequence: SequenceItem[];
+  interface Props {
+    rotate: SequenceRotateItem;
+    sequence: SequenceItem[];
+    // Collapsed state
+    collapsed?: boolean;
+    onRemove: () => void;
+    onInsertAfter: () => void; // Usually insert wait after
+    onAddPathAfter: () => void;
+    onAddWaitAfter: () => void;
+    onAddAction?: ((def: any) => void) | undefined;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
+    canMoveUp?: boolean;
+    canMoveDown?: boolean;
+    recordChange?: (() => void) | undefined;
+  }
 
-  // Collapsed state
-  export let collapsed: boolean = false;
+  let {
+    rotate = $bindable(),
+    sequence = $bindable(),
+    collapsed = $bindable(false),
+    onRemove,
+    onInsertAfter,
+    onAddPathAfter,
+    onAddWaitAfter,
+    onAddAction = undefined,
+    onMoveUp,
+    onMoveDown,
+    canMoveUp = true,
+    canMoveDown = true,
+    recordChange = undefined,
+  }: Props = $props();
 
-  export let onRemove: () => void;
-  export let onInsertAfter: () => void; // Usually insert wait after
-  export let onAddPathAfter: () => void;
-  export let onAddWaitAfter: () => void;
-  export let onAddAction: ((def: any) => void) | undefined = undefined;
-  export let onMoveUp: () => void;
-  export let onMoveDown: () => void;
-  export let canMoveUp: boolean = true;
-  export let canMoveDown: boolean = true;
-  export let recordChange: (() => void) | undefined = undefined;
+  let isSelected = $derived($selectedPointId === `rotate-${rotate.id}`);
+  let isHidden = $derived(rotate.hidden ?? false);
+  let linked = $derived(isRotateLinked(sequence, rotate.id));
 
-  $: isSelected = $selectedPointId === `rotate-${rotate.id}`;
-  $: isHidden = rotate.hidden ?? false;
-  $: linked = isRotateLinked(sequence, rotate.id);
-
-  let hoveredRotateId: string | null = null;
-  let hoveredRotateAnchor: HTMLElement | null = null;
+  let hoveredRotateId: string | null = $state(null);
+  let hoveredRotateAnchor: HTMLElement | null = $state(null);
 
   function handleRotateHoverEnter(e: MouseEvent, id: string | null) {
     hoveredRotateId = id;
@@ -95,13 +114,14 @@
       ? "border-pink-500 ring-1 ring-pink-500/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
   } ${isHidden ? "opacity-50 grayscale-[50%]" : ""}`}
-  on:click|stopPropagation={() => {
+  onclick={stopPropagation(() => {
     if (!rotate.locked) {
       selectedPointId.set(`rotate-${rotate.id}`);
       selectedLineId.set(null);
     }
-  }}
-  on:keydown|stopPropagation={(e) => {
+  })}
+  onkeydown={(e: KeyboardEvent) => {
+    e.stopPropagation();
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (!rotate.locked) {
@@ -116,7 +136,7 @@
     <!-- Left: Title & Name -->
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
-        on:click|stopPropagation={toggleCollapsed}
+        onclick={stopPropagation(toggleCollapsed)}
         class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
         title="{collapsed ? 'Expand' : 'Collapse'} rotate"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} rotate"
@@ -143,16 +163,16 @@
             class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 outline-none transition-all placeholder-neutral-400 truncate"
             class:text-pink-500={hoveredRotateId === rotate.id}
             disabled={rotate.locked}
-            on:input={handleNameInput}
-            on:blur={handleBlur}
-            on:click|stopPropagation
+            oninput={handleNameInput}
+            onblur={handleBlur}
+            onclick={stopPropagation(bubble("click"))}
           />
           {#if linked}
             <div
               role="presentation"
               class="absolute right-2 top-1/2 -translate-y-1/2 text-pink-500 cursor-help"
-              on:mouseenter={(e) => handleRotateHoverEnter(e, rotate.id)}
-              on:mouseleave={handleRotateHoverLeave}
+              onmouseenter={(e) => handleRotateHoverEnter(e, rotate.id)}
+              onmouseleave={handleRotateHoverLeave}
             >
               <LinkIcon className="w-3.5 h-3.5" />
               {#if hoveredRotateId === rotate.id}
@@ -174,11 +194,11 @@
     <!-- Right: Controls -->
     <div class="flex items-center gap-1">
       <button
-        on:click|stopPropagation={() => {
+        onclick={stopPropagation(() => {
           rotate.hidden = !isHidden;
           sequence = [...sequence];
           if (recordChange) recordChange();
-        }}
+        })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
         title={isHidden ? "Show Rotate" : "Hide Rotate"}
         aria-label={isHidden ? "Show Rotate" : "Hide Rotate"}
@@ -191,10 +211,10 @@
       </button>
 
       <button
-        on:click|stopPropagation={() => {
+        onclick={stopPropagation(() => {
           rotate.locked = !rotate.locked;
           if (recordChange) recordChange();
-        }}
+        })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
         title={rotate.locked ? "Unlock Rotate" : "Lock Rotate"}
         aria-label={rotate.locked ? "Unlock Rotate" : "Lock Rotate"}
@@ -216,9 +236,9 @@
         class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
       >
         <button
-          on:click|stopPropagation={() => {
+          onclick={stopPropagation(() => {
             if (!rotate.locked && canMoveUp && onMoveUp) onMoveUp();
-          }}
+          })}
           disabled={!canMoveUp || rotate.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
           title="Move Up"
@@ -227,9 +247,9 @@
           <ArrowUpIcon className="size-3.5" />
         </button>
         <button
-          on:click|stopPropagation={() => {
+          onclick={stopPropagation(() => {
             if (!rotate.locked && canMoveDown && onMoveDown) onMoveDown();
-          }}
+          })}
           disabled={!canMoveDown || rotate.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
           title="Move Down"
@@ -269,8 +289,8 @@
             type="number"
             step="any"
             value={rotate.degrees}
-            on:change={handleDegreesChange}
-            on:click|stopPropagation
+            onchange={handleDegreesChange}
+            onclick={stopPropagation(bubble("click"))}
             disabled={rotate.locked}
           />
         </div>
@@ -288,12 +308,12 @@
           {#if def.createDefault || def.isPath}
             {@const color = def.buttonColor || "gray"}
             <button
-              on:click|stopPropagation={() => {
+              onclick={stopPropagation(() => {
                 if (onAddAction) onAddAction(def);
                 else if (def.isPath) onAddPathAfter();
                 else if (def.isWait) onAddWaitAfter();
                 else if (def.isRotate) onInsertAfter();
-              }}
+              })}
               class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 ${getSmallButtonClass(color)}`}
               title={`Add ${def.label} After`}
               aria-label={`Add ${def.label} After`}

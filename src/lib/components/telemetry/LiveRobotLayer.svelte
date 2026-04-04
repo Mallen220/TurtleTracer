@@ -4,14 +4,23 @@
   import type { ScaleFunction } from "../../../types";
   import { DEFAULT_ROBOT_LENGTH, DEFAULT_ROBOT_WIDTH } from "../../../config";
 
-  export let x: ScaleFunction;
-  export let y: ScaleFunction;
-  export let robotLength = DEFAULT_ROBOT_LENGTH;
-  export let robotWidth = DEFAULT_ROBOT_WIDTH;
-  export let overridePose: { x: number; y: number; heading: number } | null =
-    null;
+  interface Props {
+    x: ScaleFunction;
+    y: ScaleFunction;
+    robotLength?: any;
+    robotWidth?: any;
+    overridePose?: { x: number; y: number; heading: number } | null;
+  }
 
-  $: pose = overridePose || $robotPose;
+  let {
+    x,
+    y,
+    robotLength = DEFAULT_ROBOT_LENGTH,
+    robotWidth = DEFAULT_ROBOT_WIDTH,
+    overridePose = null,
+  }: Props = $props();
+
+  let pose = $derived(overridePose || $robotPose);
 
   // Convert Heading from Radians to Degrees and negate for CSS/SVG rotation (CCW -> CW)
   // If overridePose is used (from logs/history), heading might already be in degrees or radians?
@@ -29,22 +38,24 @@
   // If overridePose, assume degrees (legacy).
   // If $robotPose, assume radians (new).
 
-  $: rotation = (() => {
-    if (overridePose) {
-      // Legacy: Degrees. Negate for CSS?
-      // FieldRenderer used `rotate(${heading}deg)`.
-      // If heading is CCW deg, CSS needs -heading.
-      return -overridePose.heading;
-    }
-    if ($robotPose) {
-      return -(($robotPose.heading * 180) / Math.PI);
-    }
-    return 0;
-  })();
+  let rotation = $derived(
+    (() => {
+      if (overridePose) {
+        // Legacy: Degrees. Negate for CSS?
+        // FieldRenderer used `rotate(${heading}deg)`.
+        // If heading is CCW deg, CSS needs -heading.
+        return -overridePose.heading;
+      }
+      if ($robotPose) {
+        return -(($robotPose.heading * 180) / Math.PI);
+      }
+      return 0;
+    })(),
+  );
 
   // Calculate pixel dimensions
-  $: widthPx = Math.abs(x(robotLength) - x(0));
-  $: heightPx = Math.abs(x(robotWidth) - x(0));
+  let widthPx = $derived(Math.abs(x(robotLength) - x(0)));
+  let heightPx = $derived(Math.abs(x(robotWidth) - x(0)));
 </script>
 
 {#if pose}

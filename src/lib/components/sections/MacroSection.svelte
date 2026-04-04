@@ -1,5 +1,8 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { stopPropagation, createBubbler } from "svelte/legacy";
+
+  const bubble = createBubbler();
   import { selectedPointId, selectedLineId } from "../../../stores";
   import { slide } from "svelte/transition";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
@@ -20,30 +23,48 @@
     LinkIcon,
   } from "../icons";
 
-  export let macro: SequenceMacroItem;
-  export let sequence: SequenceItem[];
-
-  // Collapsed state (for consistency, though macros might not have inner content to collapse yet)
-  export let collapsed: boolean = false;
-
-  export let onRemove: () => void;
-  export let onUnlink: (() => void) | undefined = undefined;
   // onInsertAfter was previously an exported prop but unused internally.
   // If external code depends on its presence, export it as a const to avoid Svelte unused-export warning.
   export const onInsertAfter: (() => void) | undefined = undefined;
-  // PathTab usually passes specific inserters.
-  export let onAddWaitAfter: () => void;
-  export let onAddPathAfter: () => void;
-  export let onAddRotateAfter: () => void;
-  export let onAddAction: ((def: any) => void) | undefined = undefined;
-  export let onMoveUp: () => void;
-  export let onMoveDown: () => void;
-  export let canMoveUp: boolean = true;
-  export let canMoveDown: boolean = true;
-  export let recordChange: (() => void) | undefined = undefined;
 
-  $: isSelected = $selectedPointId === `macro-${macro.id}`;
-  $: isHidden = macro.hidden ?? false;
+  interface Props {
+    macro: SequenceMacroItem;
+    sequence: SequenceItem[];
+    // Collapsed state (for consistency, though macros might not have inner content to collapse yet)
+    collapsed?: boolean;
+    onRemove: () => void;
+    onUnlink?: (() => void) | undefined;
+    // PathTab usually passes specific inserters.
+    onAddWaitAfter: () => void;
+    onAddPathAfter: () => void;
+    onAddRotateAfter: () => void;
+    onAddAction?: ((def: any) => void) | undefined;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
+    canMoveUp?: boolean;
+    canMoveDown?: boolean;
+    recordChange?: (() => void) | undefined;
+  }
+
+  let {
+    macro = $bindable(),
+    sequence = $bindable(),
+    collapsed = $bindable(false),
+    onRemove,
+    onUnlink = undefined,
+    onAddWaitAfter,
+    onAddPathAfter,
+    onAddRotateAfter,
+    onAddAction = undefined,
+    onMoveUp,
+    onMoveDown,
+    canMoveUp = true,
+    canMoveDown = true,
+    recordChange = undefined,
+  }: Props = $props();
+
+  let isSelected = $derived($selectedPointId === `macro-${macro.id}`);
+  let isHidden = $derived(macro.hidden ?? false);
 
   function toggleCollapsed() {
     collapsed = !collapsed;
@@ -59,7 +80,7 @@
     if (recordChange) recordChange();
   }
 
-  let showTransforms = false;
+  let showTransforms = $state(false);
 </script>
 
 <div
@@ -71,13 +92,14 @@
       ? "border-teal-400 ring-1 ring-teal-400/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
   } ${isHidden ? "opacity-50 grayscale-[50%]" : ""}`}
-  on:click|stopPropagation={() => {
+  onclick={stopPropagation(() => {
     if (!macro.locked) {
       selectedPointId.set(`macro-${macro.id}`);
       selectedLineId.set(null);
     }
-  }}
-  on:keydown|stopPropagation={(e) => {
+  })}
+  onkeydown={(e: KeyboardEvent) => {
+    e.stopPropagation();
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (!macro.locked) {
@@ -92,7 +114,7 @@
     <!-- Left: Title & Name -->
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
-        on:click|stopPropagation={toggleCollapsed}
+        onclick={stopPropagation(toggleCollapsed)}
         class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
         title="{collapsed ? 'Expand' : 'Collapse'} macro"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} macro"
@@ -118,9 +140,9 @@
             title="Edit macro name"
             class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all placeholder-neutral-400 truncate"
             disabled={macro.locked}
-            on:input={handleNameInput}
-            on:blur={handleBlur}
-            on:click|stopPropagation
+            oninput={handleNameInput}
+            onblur={handleBlur}
+            onclick={stopPropagation(bubble("click"))}
           />
         </div>
       </div>
@@ -129,11 +151,11 @@
     <!-- Right: Controls -->
     <div class="flex items-center gap-1">
       <button
-        on:click|stopPropagation={() => {
+        onclick={stopPropagation(() => {
           macro.hidden = !isHidden;
           sequence = [...sequence];
           if (recordChange) recordChange();
-        }}
+        })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
         title={isHidden ? "Show Macro" : "Hide Macro"}
         aria-label={isHidden ? "Show Macro" : "Hide Macro"}
@@ -148,10 +170,10 @@
       <button
         title={macro.locked ? "Unlock Macro" : "Lock Macro"}
         aria-label={macro.locked ? "Unlock Macro" : "Lock Macro"}
-        on:click|stopPropagation={() => {
+        onclick={stopPropagation(() => {
           macro.locked = !macro.locked;
           if (recordChange) recordChange();
-        }}
+        })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
       >
         {#if macro.locked}
@@ -171,9 +193,9 @@
         class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
       >
         <button
-          on:click|stopPropagation={() => {
+          onclick={stopPropagation(() => {
             if (!macro.locked && canMoveUp && onMoveUp) onMoveUp();
-          }}
+          })}
           disabled={!canMoveUp || macro.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
           title="Move Up"
@@ -182,9 +204,9 @@
           <ArrowUpIcon className="size-3.5" />
         </button>
         <button
-          on:click|stopPropagation={() => {
+          onclick={stopPropagation(() => {
             if (!macro.locked && canMoveDown && onMoveDown) onMoveDown();
-          }}
+          })}
           disabled={!canMoveDown || macro.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
           title="Move Down"
@@ -196,9 +218,9 @@
 
       {#if onUnlink}
         <button
-          on:click|stopPropagation={() => {
+          onclick={stopPropagation(() => {
             if (!macro.locked && onUnlink) onUnlink();
-          }}
+          })}
           disabled={macro.locked}
           title="Unlink Macro"
           aria-label="Unlink Macro"
@@ -236,7 +258,7 @@
 
       <div class="pt-1">
         <button
-          on:click|stopPropagation={() => (showTransforms = !showTransforms)}
+          onclick={stopPropagation(() => (showTransforms = !showTransforms))}
           disabled={macro.locked}
           class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-colors w-full justify-center border disabled:opacity-50 ${
             showTransforms
@@ -283,12 +305,12 @@
           {#if def.createDefault || def.isPath}
             {@const color = def.buttonColor || "gray"}
             <button
-              on:click|stopPropagation={() => {
+              onclick={stopPropagation(() => {
                 if (onAddAction) onAddAction(def);
                 else if (def.isPath) onAddPathAfter();
                 else if (def.isWait) onAddWaitAfter();
                 else if (def.isRotate) onAddRotateAfter();
-              }}
+              })}
               class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium ${getSmallButtonClass(color)}`}
               title={`Add ${def.label} After`}
             >

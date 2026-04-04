@@ -1,6 +1,8 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { ComponentType } from "svelte";
+  import { run } from "svelte/legacy";
+
+  import type { Component } from "svelte";
   import {
     UndoIcon,
     ClockIcon,
@@ -84,10 +86,10 @@
     shortcutKey?: string;
     commandId?: string;
     iconSvg?: string;
-    iconComponent?: ComponentType;
+    iconComponent?: Component;
   };
 
-  const ICON_COMPONENT_MAP: Record<string, ComponentType> = {
+  const ICON_COMPONENT_MAP: Record<string, any> = {
     List: ListIcon,
     Play: PlayIcon,
     Arrow: ArrowRightIcon,
@@ -106,39 +108,7 @@
     Compass: CompassIcon,
   };
 
-  export let undoAction: () => any;
-  export let redoAction: () => any;
-  export let canUndo: boolean;
-  export let canRedo: boolean;
-  export let history: ReturnType<typeof createHistory>;
-  export let resetProject: () => any;
-  export let settings: Settings;
-
-  $: historyStore = history?.historyStore;
-  $: undoDescription = history?.undoDescriptionStore;
-  $: redoDescription = history?.redoDescriptionStore;
-
-  let activeSidebarItems: SidebarEntry[] = [];
-
-  $: activeSidebarItems = (
-    settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id)
-  )
-    .map((id) => {
-      let item: SidebarItemConfig | CustomSidebarItem | undefined =
-        SIDEBAR_ITEMS.find((item) => item.id === id);
-      if (!item && settings.customSidebarItems) {
-        item = settings.customSidebarItems.find((i) => i.id === id);
-      }
-      return item as SidebarEntry | undefined;
-    })
-    .filter((item): item is SidebarEntry => item !== undefined)
-    .filter((item) => {
-      if (isBrowser) {
-        if (item.id === "pluginManager") return false;
-        if (item.id === "feedback") return false;
-      }
-      return true;
-    });
+  let activeSidebarItems: SidebarEntry[] = $state([]);
 
   function toggleSetting(key: string) {
     (settings as any)[key] = !(settings as any)[key];
@@ -149,26 +119,8 @@
     return key ? !!(settings as any)[key] : false;
   }
 
-  $: undoTooltip = (() => {
-    let title = !canUndo ? "Nothing to Undo" : "Undo";
-    if (canUndo && $undoDescription) {
-      title = `Undo: ${$undoDescription}`;
-    }
-    const shortcut = getShortcutFromSettings(settings, "undo");
-    return shortcut ? `${title}${shortcut}` : title;
-  })();
-
-  $: redoTooltip = (() => {
-    let title = !canRedo ? "Nothing to Redo" : "Redo";
-    if (canRedo && $redoDescription) {
-      title = `Redo: ${$redoDescription}`;
-    }
-    const shortcut = getShortcutFromSettings(settings, "redo");
-    return shortcut ? `${title}${shortcut}` : title;
-  })();
-
-  let historyButtonRef: HTMLElement;
-  let historyDropdownRef: HTMLElement;
+  let historyButtonRef: HTMLElement | undefined = $state();
+  let historyDropdownRef: HTMLElement | undefined = $state();
 
   function handleClickOutside(event: MouseEvent) {
     if (
@@ -189,6 +141,25 @@
   }
 
   import { onMount, onDestroy } from "svelte";
+  interface Props {
+    undoAction: () => any;
+    redoAction: () => any;
+    canUndo: boolean;
+    canRedo: boolean;
+    history: ReturnType<typeof createHistory>;
+    resetProject: () => any;
+    settings: Settings;
+  }
+
+  let {
+    undoAction,
+    redoAction,
+    canUndo,
+    canRedo,
+    history,
+    resetProject,
+    settings = $bindable(),
+  }: Props = $props();
 
   onMount(() => {
     document.addEventListener("click", handleClickOutside);
@@ -200,9 +171,7 @@
     document.removeEventListener("keydown", handleKeyDown);
   });
 
-  let isResizing = false;
-  $: sidebarWidth = settings.sidebarWidth || 240;
-  $: sidebarExpanded = settings.sidebarExpanded || false;
+  let isResizing = $state(false);
 
   function startResizing(e: MouseEvent) {
     if (!sidebarExpanded) return;
@@ -233,8 +202,8 @@
     settingsStore.update((s) => ({ ...s, sidebarExpanded: newState }));
   }
 
-  let dragSourceIndex: number | null = null;
-  let dragOverIndex: number | null = null;
+  let dragSourceIndex: number | null = $state(null);
+  let dragOverIndex: number | null = $state(null);
 
   function handleDragStart(e: DragEvent, index: number) {
     if (!sidebarExpanded) return;
@@ -284,6 +253,52 @@
     dragSourceIndex = null;
     dragOverIndex = null;
   }
+  let historyStore = $derived(history?.historyStore);
+  let undoDescription = $derived(history?.undoDescriptionStore);
+  let redoDescription = $derived(history?.redoDescriptionStore);
+  run(() => {
+    activeSidebarItems = (
+      settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id)
+    )
+      .map((id) => {
+        let item: SidebarItemConfig | CustomSidebarItem | undefined =
+          SIDEBAR_ITEMS.find((item) => item.id === id);
+        if (!item && settings.customSidebarItems) {
+          item = settings.customSidebarItems.find((i) => i.id === id);
+        }
+        return item as SidebarEntry | undefined;
+      })
+      .filter((item): item is SidebarEntry => item !== undefined)
+      .filter((item) => {
+        if (isBrowser) {
+          if (item.id === "pluginManager") return false;
+          if (item.id === "feedback") return false;
+        }
+        return true;
+      });
+  });
+  let undoTooltip = $derived(
+    (() => {
+      let title = !canUndo ? "Nothing to Undo" : "Undo";
+      if (canUndo && $undoDescription) {
+        title = `Undo: ${$undoDescription}`;
+      }
+      const shortcut = getShortcutFromSettings(settings, "undo");
+      return shortcut ? `${title}${shortcut}` : title;
+    })(),
+  );
+  let redoTooltip = $derived(
+    (() => {
+      let title = !canRedo ? "Nothing to Redo" : "Redo";
+      if (canRedo && $redoDescription) {
+        title = `Redo: ${$redoDescription}`;
+      }
+      const shortcut = getShortcutFromSettings(settings, "redo");
+      return shortcut ? `${title}${shortcut}` : title;
+    })(),
+  );
+  let sidebarWidth = $derived(settings.sidebarWidth || 240);
+  let sidebarExpanded = $derived(settings.sidebarExpanded || false);
 </script>
 
 <aside
@@ -305,11 +320,11 @@
       {#if item.type === "separator"}
         <div
           draggable={sidebarExpanded}
-          on:dragstart={(e) => handleDragStart(e, idx)}
-          on:dragover={(e) => handleDragOver(e, idx)}
-          on:dragleave={() => handleDragLeave(idx)}
-          on:drop={(e) => handleDrop(e, idx)}
-          on:dragend={handleDragEnd}
+          ondragstart={(e) => handleDragStart(e, idx)}
+          ondragover={(e) => handleDragOver(e, idx)}
+          ondragleave={() => handleDragLeave(idx)}
+          ondrop={(e) => handleDrop(e, idx)}
+          ondragend={handleDragEnd}
           role="presentation"
           aria-hidden="true"
           class="w-8 h-px bg-neutral-200 dark:bg-neutral-700 my-1 transition-all {dragOverIndex ===
@@ -320,11 +335,11 @@
       {:else if item.type === "spacer"}
         <div
           draggable={sidebarExpanded}
-          on:dragstart={(e) => handleDragStart(e, idx)}
-          on:dragover={(e) => handleDragOver(e, idx)}
-          on:dragleave={() => handleDragLeave(idx)}
-          on:drop={(e) => handleDrop(e, idx)}
-          on:dragend={handleDragEnd}
+          ondragstart={(e) => handleDragStart(e, idx)}
+          ondragover={(e) => handleDragOver(e, idx)}
+          ondragleave={() => handleDragLeave(idx)}
+          ondrop={(e) => handleDrop(e, idx)}
+          ondragend={handleDragEnd}
           role="presentation"
           aria-hidden="true"
           class="flex-grow w-full transition-all {dragOverIndex === idx &&
@@ -336,11 +351,11 @@
         {@const isActive = checkSettingActive(item.settingKey)}
         <div
           draggable={sidebarExpanded}
-          on:dragstart={(e) => handleDragStart(e, idx)}
-          on:dragover={(e) => handleDragOver(e, idx)}
-          on:dragleave={() => handleDragLeave(idx)}
-          on:drop={(e) => handleDrop(e, idx)}
-          on:dragend={handleDragEnd}
+          ondragstart={(e) => handleDragStart(e, idx)}
+          ondragover={(e) => handleDragOver(e, idx)}
+          ondragleave={() => handleDragLeave(idx)}
+          ondrop={(e) => handleDrop(e, idx)}
+          ondragend={handleDragEnd}
           role="listitem"
           class="w-full flex justify-center transition-all {dragOverIndex ===
             idx && dragSourceIndex !== idx
@@ -351,7 +366,7 @@
             title={`${item.label}${item.shortcutKey ? getShortcutFromSettings(settings, item.shortcutKey) : ""}`}
             aria-label={item.label}
             aria-pressed={isActive}
-            on:click={() => item.settingKey && toggleSetting(item.settingKey)}
+            onclick={() => item.settingKey && toggleSetting(item.settingKey)}
             class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
               ? 'w-[calc(100%-1.1rem)] px-3'
               : 'justify-center'} {isActive
@@ -362,10 +377,7 @@
               class="sidebar-icon flex-none flex items-center justify-center"
             >
               {#if item.iconComponent}
-                <svelte:component
-                  this={item.iconComponent}
-                  className="sidebar-icon flex-none"
-                />
+                <item.iconComponent className="sidebar-icon flex-none" />
               {:else}
                 {@html item.iconSvg}
               {/if}
@@ -379,11 +391,11 @@
       {:else if item.commandId}
         <div
           draggable={sidebarExpanded}
-          on:dragstart={(e) => handleDragStart(e, idx)}
-          on:dragover={(e) => handleDragOver(e, idx)}
-          on:dragleave={() => handleDragLeave(idx)}
-          on:drop={(e) => handleDrop(e, idx)}
-          on:dragend={handleDragEnd}
+          ondragstart={(e) => handleDragStart(e, idx)}
+          ondragover={(e) => handleDragOver(e, idx)}
+          ondragleave={() => handleDragLeave(idx)}
+          ondrop={(e) => handleDrop(e, idx)}
+          ondragend={handleDragEnd}
           role="listitem"
           class="w-full flex justify-center transition-all {dragOverIndex ===
             idx && dragSourceIndex !== idx
@@ -393,7 +405,7 @@
           <button
             title={item.label}
             aria-label={item.label}
-            on:click={() => executeCommandBus.set(item.commandId ?? null)}
+            onclick={() => executeCommandBus.set(item.commandId ?? null)}
             class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
               ? 'w-[calc(100%-1.1rem)] px-3'
               : 'justify-center'} text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800"
@@ -402,20 +414,12 @@
               class="sidebar-icon flex-none flex items-center justify-center"
             >
               {#if item.iconComponent}
-                <svelte:component
-                  this={item.iconComponent}
-                  className="sidebar-icon flex-none"
-                />
+                <item.iconComponent className="sidebar-icon flex-none" />
               {:else if item.iconSvg && ICON_COMPONENT_MAP[item.iconSvg]}
-                <svelte:component
-                  this={ICON_COMPONENT_MAP[item.iconSvg]}
-                  className="sidebar-icon flex-none"
-                />
+                {@const SvelteComponent = ICON_COMPONENT_MAP[item.iconSvg]}
+                <SvelteComponent className="sidebar-icon flex-none" />
               {:else}
-                <svelte:component
-                  this={StarIcon}
-                  className="sidebar-icon flex-none"
-                />
+                <StarIcon className="sidebar-icon flex-none" />
               {/if}
             </div>
             {#if sidebarExpanded}
@@ -429,11 +433,11 @@
           <!-- File Manager -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -444,7 +448,7 @@
               id="sidebar-file-manager-btn"
               title={`Open File Manager${getShortcutFromSettings(settings, "toggle-file-manager")}`}
               aria-label="Open File Manager"
-              on:click={() => showFileManager.set(true)}
+              onclick={() => showFileManager.set(true)}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-purple-600 dark:hover:text-purple-400 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
@@ -453,10 +457,7 @@
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
                 {#if item.iconComponent}
-                  <svelte:component
-                    this={item.iconComponent}
-                    className="sidebar-icon flex-none"
-                  />
+                  <item.iconComponent className="sidebar-icon flex-none" />
                 {:else}
                   <FolderIcon className="sidebar-icon flex-none" />
                 {/if}
@@ -472,11 +473,11 @@
           <!-- Undo -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -486,7 +487,7 @@
             <button
               title={undoTooltip}
               aria-label={undoTooltip}
-              on:click={undoAction}
+              onclick={undoAction}
               disabled={!canUndo}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
@@ -496,8 +497,7 @@
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
                 {#if item.iconComponent}
-                  <svelte:component
-                    this={item.iconComponent}
+                  <item.iconComponent
                     className="sidebar-icon-small flex-none"
                   />
                 {:else}
@@ -516,11 +516,11 @@
           {#if history}
             <div
               draggable={sidebarExpanded}
-              on:dragstart={(e) => handleDragStart(e, idx)}
-              on:dragover={(e) => handleDragOver(e, idx)}
-              on:dragleave={() => handleDragLeave(idx)}
-              on:drop={(e) => handleDrop(e, idx)}
-              on:dragend={handleDragEnd}
+              ondragstart={(e) => handleDragStart(e, idx)}
+              ondragover={(e) => handleDragOver(e, idx)}
+              ondragleave={() => handleDragLeave(idx)}
+              ondrop={(e) => handleDrop(e, idx)}
+              ondragend={handleDragEnd}
               role="listitem"
               class="w-full flex justify-center transition-all {dragOverIndex ===
                 idx && dragSourceIndex !== idx
@@ -534,7 +534,7 @@
                 aria-haspopup="menu"
                 aria-expanded={$showHistory}
                 aria-controls="history-menu"
-                on:click={() => showHistory.set(!$showHistory)}
+                onclick={() => showHistory.set(!$showHistory)}
                 class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                   ? 'w-[calc(100%-1.1rem)] px-3'
                   : 'justify-center'} {$showHistory
@@ -545,8 +545,7 @@
                   class="sidebar-icon flex-none flex items-center justify-center"
                 >
                   {#if item.iconComponent}
-                    <svelte:component
-                      this={item.iconComponent}
+                    <item.iconComponent
                       className="sidebar-icon-small flex-none"
                     />
                   {:else}
@@ -567,7 +566,7 @@
                   aria-label="History Menu"
                   bind:this={historyDropdownRef}
                   use:menuNavigation
-                  on:close={() => showHistory.set(false)}
+                  onclose={() => showHistory.set(false)}
                   class="absolute left-full ml-2 mt-0 w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
                 >
                   <div
@@ -585,7 +584,7 @@
                     {#each $historyStore as entry, i}
                       <button
                         role="menuitem"
-                        on:click={() => {
+                        onclick={() => {
                           history.restore(entry.item.id);
                           showHistory.set(false);
                         }}
@@ -619,11 +618,11 @@
           <!-- Redo -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -633,7 +632,7 @@
             <button
               title={redoTooltip}
               aria-label={redoTooltip}
-              on:click={redoAction}
+              onclick={redoAction}
               disabled={!canRedo}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
@@ -655,10 +654,10 @@
           <!-- Drawing toggle -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -669,7 +668,7 @@
               title={`Draw Path${getShortcutFromSettings(settings, "toggle-draw")}`}
               aria-label="Draw Path"
               aria-pressed={$isDrawingMode}
-              on:click={() => isDrawingMode.update((v) => !v)}
+              onclick={() => isDrawingMode.update((v) => !v)}
               class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'} {$isDrawingMode
@@ -679,7 +678,7 @@
               <div
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
-                <svelte:component this={item.iconComponent} />
+                <item.iconComponent />
               </div>
               {#if sidebarExpanded}
                 <span
@@ -693,11 +692,11 @@
           <!-- View Options / Toggles -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -708,7 +707,7 @@
               title={`Toggle Ruler${getShortcutFromSettings(settings, "toggle-ruler")}`}
               aria-label="Toggle Ruler"
               aria-pressed={$showRuler}
-              on:click={() => showRuler.update((v) => !v)}
+              onclick={() => showRuler.update((v) => !v)}
               class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'} {$showRuler
@@ -730,11 +729,11 @@
         {:else if item.id === "protractor"}
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex flex-col items-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -745,7 +744,7 @@
               title={`Toggle Protractor${getShortcutFromSettings(settings, "toggle-protractor")}`}
               aria-label="Toggle Protractor"
               aria-pressed={$showProtractor}
-              on:click={() => showProtractor.update((v) => !v)}
+              onclick={() => showProtractor.update((v) => !v)}
               class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'} {$showProtractor
@@ -772,7 +771,7 @@
                   ? "Unlock Protractor from Robot"
                   : "Lock Protractor to Robot"}
                 aria-pressed={$protractorLockToRobot}
-                on:click={() => protractorLockToRobot.update((v) => !v)}
+                onclick={() => protractorLockToRobot.update((v) => !v)}
                 class="p-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                   ? 'w-[calc(100%-1.1rem)] px-3'
                   : 'justify-center'} {$protractorLockToRobot
@@ -797,11 +796,11 @@
         {:else if item.id === "grid"}
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex flex-col items-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -812,7 +811,7 @@
               title={`Toggle Grid${getShortcutFromSettings(settings, "toggle-grid")}`}
               aria-label="Toggle Grid"
               aria-pressed={$showGrid}
-              on:click={() => showGrid.update((v) => !v)}
+              onclick={() => showGrid.update((v) => !v)}
               class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'} {$showGrid
@@ -835,7 +834,7 @@
                 title={`Toggle Snap${getShortcutFromSettings(settings, "toggle-snap")}`}
                 aria-label={$snapToGrid ? "Disable Snap" : "Enable Snap"}
                 aria-pressed={$snapToGrid}
-                on:click={() => snapToGrid.update((v) => !v)}
+                onclick={() => snapToGrid.update((v) => !v)}
                 class="p-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                   ? 'w-[calc(100%-1.1rem)] px-3'
                   : 'justify-center'} {$snapToGrid
@@ -885,11 +884,11 @@
         {:else if item.id === "onionSkin"}
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex flex-col items-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -900,7 +899,7 @@
               title={`Toggle Onion Skin${getShortcutFromSettings(settings, "toggle-onion")}`}
               aria-label="Toggle Onion Skin"
               aria-pressed={settings.showOnionLayers}
-              on:click={() => {
+              onclick={() => {
                 settings.showOnionLayers = !settings.showOnionLayers;
                 settingsStore.update((s) => ({
                   ...s,
@@ -931,7 +930,7 @@
                   ? "Show All Paths"
                   : "Show Current Path Only"}
                 aria-pressed={settings.onionSkinCurrentPathOnly}
-                on:click={() => {
+                onclick={() => {
                   settings.onionSkinCurrentPathOnly =
                     !settings.onionSkinCurrentPathOnly;
                   settingsStore.update((s) => ({
@@ -962,11 +961,11 @@
         {:else if item.id === "velocityHeatmap"}
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -977,7 +976,7 @@
               title={`Toggle Velocity Heatmap`}
               aria-label="Toggle Velocity Heatmap"
               aria-pressed={settings.showVelocityHeatmap}
-              on:click={() => {
+              onclick={() => {
                 settings.showVelocityHeatmap = !settings.showVelocityHeatmap;
                 settingsStore.update((s) => ({
                   ...s,
@@ -1006,11 +1005,11 @@
           <!-- New Path -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -1021,7 +1020,7 @@
               id="sidebar-new-path-btn"
               title={`New Path${getShortcutFromSettings(settings, "new-file")}`}
               aria-label="New Path"
-              on:click={() => resetProject()}
+              onclick={() => resetProject()}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
@@ -1042,11 +1041,11 @@
           <!-- Settings -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -1057,7 +1056,7 @@
               id="sidebar-settings-btn"
               title={`Settings${getShortcutFromSettings(settings, "open-settings")}`}
               aria-label="Settings"
-              on:click={() => showSettings.set(true)}
+              onclick={() => showSettings.set(true)}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
@@ -1078,11 +1077,11 @@
           <!-- Feedback / Report Bug Button -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -1093,7 +1092,7 @@
               id="sidebar-feedback-btn"
               title="Report Issue / Rating"
               aria-label="Report Issue / Rating"
-              on:click={() => showFeedbackDialog.set(true)}
+              onclick={() => showFeedbackDialog.set(true)}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
@@ -1116,11 +1115,11 @@
           <!-- GitHub Repo Link -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -1155,11 +1154,11 @@
           <!-- Presentation Mode -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -1169,7 +1168,7 @@
             <button
               title="Presentation Mode"
               aria-label="Presentation Mode"
-              on:click={() => isPresentationMode.set(!$isPresentationMode)}
+              onclick={() => isPresentationMode.set(!$isPresentationMode)}
               class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'} {$isPresentationMode
@@ -1180,8 +1179,7 @@
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
                 {#if item.iconComponent}
-                  <svelte:component
-                    this={item.iconComponent}
+                  <item.iconComponent
                     className="sidebar-icon-small flex-none"
                   />
                 {:else}
@@ -1201,11 +1199,11 @@
           <!-- Plugin Manager -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -1215,7 +1213,7 @@
             <button
               title="Plugin Manager"
               aria-label="Plugin Manager"
-              on:click={() => showPluginManager.set(true)}
+              onclick={() => showPluginManager.set(true)}
               class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'} text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800"
@@ -1224,8 +1222,7 @@
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
                 {#if item.iconComponent}
-                  <svelte:component
-                    this={item.iconComponent}
+                  <item.iconComponent
                     className="sidebar-icon-small flex-none"
                   />
                 {:else}
@@ -1243,11 +1240,11 @@
           <!-- What's New & Docs -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -1257,7 +1254,7 @@
             <button
               title="What's New & Docs"
               aria-label="What's New & Docs"
-              on:click={() => showWhatsNew.set(true)}
+              onclick={() => showWhatsNew.set(true)}
               class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'} text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800"
@@ -1266,8 +1263,7 @@
                 class="sidebar-icon flex-none flex items-center justify-center"
               >
                 {#if item.iconComponent}
-                  <svelte:component
-                    this={item.iconComponent}
+                  <item.iconComponent
                     className="sidebar-icon-small flex-none"
                   />
                 {:else}
@@ -1285,11 +1281,11 @@
           <!-- Restart Tutorial -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -1299,7 +1295,7 @@
             <button
               title="Restart Tutorial"
               aria-label="Restart Tutorial"
-              on:click={() => startTutorial.set(true)}
+              onclick={() => startTutorial.set(true)}
               class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'} text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800"
@@ -1320,11 +1316,11 @@
           <!-- Export Image -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -1334,7 +1330,7 @@
             <button
               title="Export as Image"
               aria-label="Export as Image"
-              on:click={() => showExportImage.set(true)}
+              onclick={() => showExportImage.set(true)}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
@@ -1355,11 +1351,11 @@
           <!-- Export GIF -->
           <div
             draggable={sidebarExpanded}
-            on:dragstart={(e) => handleDragStart(e, idx)}
-            on:dragover={(e) => handleDragOver(e, idx)}
-            on:dragleave={() => handleDragLeave(idx)}
-            on:drop={(e) => handleDrop(e, idx)}
-            on:dragend={handleDragEnd}
+            ondragstart={(e) => handleDragStart(e, idx)}
+            ondragover={(e) => handleDragOver(e, idx)}
+            ondragleave={() => handleDragLeave(idx)}
+            ondrop={(e) => handleDrop(e, idx)}
+            ondragend={handleDragEnd}
             role="listitem"
             class="w-full flex justify-center transition-all {dragOverIndex ===
               idx && dragSourceIndex !== idx
@@ -1369,7 +1365,7 @@
             <button
               title="Export as GIF"
               aria-label="Export as GIF"
-              on:click={() => showExportGif.set(true)}
+              onclick={() => showExportGif.set(true)}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
                 : 'justify-center'}"
@@ -1401,7 +1397,7 @@
         aria-label={sidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
         aria-expanded={sidebarExpanded}
         aria-controls="sidebar-toolbar"
-        on:click={toggleSidebar}
+        onclick={toggleSidebar}
         class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
           ? 'w-[calc(100%-1.1rem)] px-3'
           : 'justify-center'} text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800"
@@ -1434,8 +1430,8 @@
       aria-valuetext="{sidebarWidth} pixels"
       aria-orientation="vertical"
       class="absolute right-0 top-0 w-1.5 h-full cursor-col-resize hover:bg-purple-500/20 transition-colors z-[60] group focus:outline-none focus:bg-purple-500/30 appearance-none border-none bg-transparent"
-      on:mousedown={startResizing}
-      on:keydown={(e) => {
+      onmousedown={startResizing}
+      onkeydown={(e) => {
         if (e.key === "ArrowLeft") {
           sidebarWidth = Math.max(160, sidebarWidth - 10);
           settingsStore.update((s) => ({ ...s, sidebarWidth }));

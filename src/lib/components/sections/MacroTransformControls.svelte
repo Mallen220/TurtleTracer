@@ -11,19 +11,23 @@
     TrashIcon,
   } from "../icons";
 
-  export let macro: SequenceMacroItem;
-  export let onUpdate: () => void;
+  interface Props {
+    macro: SequenceMacroItem;
+    onUpdate: () => void;
+  }
 
-  let activeTab: "translate" | "rotate" | "flip" = "translate";
+  let { macro = $bindable(), onUpdate }: Props = $props();
+
+  let activeTab: "translate" | "rotate" | "flip" = $state("translate");
 
   // Form State
-  let dx = 0;
-  let dy = 0;
-  let degrees = 90;
-  let pivotType: "origin" | "center" | "custom" = "center";
-  let pivotX = 72;
-  let pivotY = 72;
-  let flipAxis: "horizontal" | "vertical" = "horizontal";
+  let dx = $state(0);
+  let dy = $state(0);
+  let degrees = $state(90);
+  let pivotType: "origin" | "center" | "custom" = $state("center");
+  let pivotX = $state(72);
+  let pivotY = $state(72);
+  let flipAxis: "horizontal" | "vertical" = $state("horizontal");
 
   function addTransform() {
     let t: Transformation;
@@ -109,7 +113,7 @@
         'translate'
           ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400'
           : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
-        on:click={() => (activeTab = "translate")}
+        onclick={() => (activeTab = "translate")}
       >
         Translate
       </button>
@@ -118,7 +122,7 @@
         'rotate'
           ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400'
           : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
-        on:click={() => (activeTab = "rotate")}
+        onclick={() => (activeTab = "rotate")}
       >
         Rotate
       </button>
@@ -127,7 +131,7 @@
         'flip'
           ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400'
           : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}"
-        on:click={() => (activeTab = "flip")}
+        onclick={() => (activeTab = "flip")}
       >
         Flip
       </button>
@@ -315,7 +319,7 @@
       {/if}
 
       <button
-        on:click={addTransform}
+        onclick={addTransform}
         class="w-full mt-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors shadow-sm"
       >
         Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
@@ -363,7 +367,7 @@
             class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <button
-              on:click={() => moveTransform(i, -1)}
+              onclick={() => moveTransform(i, -1)}
               disabled={i === 0}
               aria-label="Move transform up"
               class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
@@ -371,7 +375,7 @@
               <ChevronUpIcon className="size-3" />
             </button>
             <button
-              on:click={() => moveTransform(i, 1)}
+              onclick={() => moveTransform(i, 1)}
               disabled={i === (macro.transformations?.length ?? 0) - 1}
               aria-label="Move transform down"
               class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
@@ -379,7 +383,7 @@
               <ChevronDownIcon className="size-3" />
             </button>
             <button
-              on:click={() => removeTransform(i)}
+              onclick={() => removeTransform(i)}
               aria-label="Remove transform"
               class="p-0.5 text-red-400 hover:text-red-600 ml-1"
             >

@@ -11,10 +11,10 @@
   import { notification } from "../../../stores";
 
   // Inputs
-  let ip = "192.168.43.1";
-  let protocol: "tcp" | "websocket" = "tcp";
-  let port = 8888;
-  let connecting = false;
+  let ip = $state("192.168.43.1");
+  let protocol: "tcp" | "websocket" = $state("tcp");
+  let port = $state(8888);
+  let connecting = $state(false);
 
   // Update default port when protocol changes
   function updateDefaultPort() {
@@ -22,12 +22,12 @@
     else port = 8082;
   }
 
-  $: status = $telemetryState.status;
-  $: fps = $telemetryState.fps;
-  $: lines = $telemetryLines;
+  let status = $derived($telemetryState.status);
+  let fps = $derived($telemetryState.fps);
+  let lines = $derived($telemetryLines);
 
   // Sort keys alphabetically
-  $: sortedKeys = Object.keys(lines).sort();
+  let sortedKeys = $derived(Object.keys(lines).sort());
 
   // Listen for IPC events
   let cleanupListeners: (() => void) | null = null;
@@ -96,7 +96,7 @@
           type="radio"
           bind:group={protocol}
           value="tcp"
-          on:change={updateDefaultPort}
+          onchange={updateDefaultPort}
           disabled={$isConnected}
           class="text-purple-600 focus:ring-purple-500"
         />
@@ -109,7 +109,7 @@
           type="radio"
           bind:group={protocol}
           value="websocket"
-          on:change={updateDefaultPort}
+          onchange={updateDefaultPort}
           disabled={$isConnected}
           class="text-purple-600 focus:ring-purple-500"
         />
@@ -136,7 +136,7 @@
       />
     </div>
     <button
-      on:click={toggleConnection}
+      onclick={toggleConnection}
       class="w-full py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
             {$isConnected
         ? 'bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-500'

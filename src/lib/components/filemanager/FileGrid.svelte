@@ -1,6 +1,9 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <!-- src/lib/components/filemanager/FileGrid.svelte -->
 <script lang="ts">
+  import { run, stopPropagation, createBubbler } from "svelte/legacy";
+
+  const bubble = createBubbler();
   import { createEventDispatcher, tick, onMount, onDestroy } from "svelte";
   import type { FileInfo, Point, Line } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
@@ -14,12 +17,23 @@
     QuestionMarkIcon,
     EllipsisHorizontalIcon,
   } from "../icons";
-  export let files: FileInfo[] = [];
-  export let selectedFilePath: string | null = null;
-  export let sortMode: "name" | "date" = "name";
-  export let renamingFile: FileInfo | null = null;
-  export let fieldImage: string | null = null;
-  export let showGitStatus = true;
+  interface Props {
+    files?: FileInfo[];
+    selectedFilePath?: string | null;
+    sortMode?: "name" | "date";
+    renamingFile?: FileInfo | null;
+    fieldImage?: string | null;
+    showGitStatus?: boolean;
+  }
+
+  let {
+    files = [],
+    selectedFilePath = null,
+    sortMode = "name",
+    renamingFile = null,
+    fieldImage = null,
+    showGitStatus = true,
+  }: Props = $props();
 
   const dispatch = createEventDispatcher<{
     select: FileInfo;
@@ -31,14 +45,15 @@
     "move-file": { sourceFile: FileInfo; targetDir: FileInfo };
   }>();
 
-  let contextMenu: { x: number; y: number; file: FileInfo } | null = null;
-  let renameInput = "";
+  let contextMenu: { x: number; y: number; file: FileInfo } | null =
+    $state(null);
+  let renameInput = $state("");
 
   // Preview Data Cache
   let previews: Record<
     string,
     { startPoint: Point; lines: Line[] } | undefined
-  > = {};
+  > = $state({});
   // Retry counters for failed previews
   let previewRetryCount: Record<string, number> = {};
   const MAX_PREVIEW_RETRIES = 5;
@@ -52,15 +67,7 @@
   let observer: IntersectionObserver;
   let elementMap = new Map<HTMLElement, string>();
 
-  let lastRenamingPath: string | null = null;
-  $: if (renamingFile) {
-    if (renamingFile.path !== lastRenamingPath) {
-      renameInput = renamingFile.name.replace(/\.(pp|turt)$/i, "");
-      lastRenamingPath = renamingFile.path;
-    }
-  } else {
-    lastRenamingPath = null;
-  }
+  let lastRenamingPath: string | null = $state(null);
 
   // --- Preview Loading Logic ---
   // Queue for loading previews to avoid overwhelming IPC
@@ -282,10 +289,6 @@
     }
   }
 
-  // Grouping logic for Date sort
-  $: groups =
-    sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }];
-
   function groupFilesByDate(files: FileInfo[]) {
     const folders: FileInfo[] = [];
     const today: FileInfo[] = [];
@@ -317,39 +320,6 @@
     return {
       destroy: () => {},
     };
-  }
-  // When files change, proactively load previews for recently modified files (e.g., today)
-  $: if (files && files.length) {
-    // Preload top N files proactively
-    files.slice(0, PRELOAD_COUNT).forEach((f) => {
-      if (f.isDirectory) return;
-      if (previews[f.path] === undefined) loadPreview(f.path);
-      if (previews[f.path] && previews[f.path]!.startPoint == null)
-        loadPreview(f.path, true);
-    });
-    files.forEach((f) => {
-      if (f.isDirectory) return;
-      const d = new Date(f.modified);
-      if (isToday(d)) {
-        if (previews[f.path] === undefined) {
-          loadPreview(f.path);
-        }
-      }
-
-      // If an earlier preview attempt failed (startPoint === null), retry it
-      if (previews[f.path] && previews[f.path]!.startPoint == null) {
-        loadPreview(f.path, true);
-      }
-    });
-  }
-
-  // If the field image or other settings change, retry any previously-failed previews
-  $: if (fieldImage !== undefined) {
-    Object.keys(previews).forEach((p) => {
-      if (previews[p] && previews[p]!.startPoint == null) {
-        loadPreview(p, true);
-      }
-    });
   }
 
   // Expose functions to allow parent to force refresh/clear previews when files open/save
@@ -424,7 +394,7 @@
     }
   }
 
-  let dragOverTarget: string | null = null;
+  let dragOverTarget: string | null = $state(null);
 
   function handleDragOver(e: DragEvent, file: FileInfo) {
     if (file.isDirectory) {
@@ -462,14 +432,64 @@
       // Ignored
     }
   }
+  run(() => {
+    if (renamingFile) {
+      if (renamingFile.path !== lastRenamingPath) {
+        renameInput = renamingFile.name.replace(/\.(pp|turt)$/i, "");
+        lastRenamingPath = renamingFile.path;
+      }
+    } else {
+      lastRenamingPath = null;
+    }
+  });
+  // Grouping logic for Date sort
+  let groups = $derived(
+    sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }],
+  );
+  // When files change, proactively load previews for recently modified files (e.g., today)
+  run(() => {
+    if (files && files.length) {
+      // Preload top N files proactively
+      files.slice(0, PRELOAD_COUNT).forEach((f) => {
+        if (f.isDirectory) return;
+        if (previews[f.path] === undefined) loadPreview(f.path);
+        if (previews[f.path] && previews[f.path]!.startPoint == null)
+          loadPreview(f.path, true);
+      });
+      files.forEach((f) => {
+        if (f.isDirectory) return;
+        const d = new Date(f.modified);
+        if (isToday(d)) {
+          if (previews[f.path] === undefined) {
+            loadPreview(f.path);
+          }
+        }
+
+        // If an earlier preview attempt failed (startPoint === null), retry it
+        if (previews[f.path] && previews[f.path]!.startPoint == null) {
+          loadPreview(f.path, true);
+        }
+      });
+    }
+  });
+  // If the field image or other settings change, retry any previously-failed previews
+  run(() => {
+    if (fieldImage !== undefined) {
+      Object.keys(previews).forEach((p) => {
+        if (previews[p] && previews[p]!.startPoint == null) {
+          loadPreview(p, true);
+        }
+      });
+    }
+  });
 </script>
 
 <div
   class="flex-1 overflow-y-auto pb-4"
-  on:click={() => (contextMenu = null)}
+  onclick={() => (contextMenu = null)}
   role="button"
   tabindex="0"
-  on:keydown={(e) => {
+  onkeydown={(e) => {
     if (e.key === "Enter" || e.key === " ") contextMenu = null;
   }}
 >
@@ -494,19 +514,19 @@
           {dragOverTarget === file.path
             ? 'bg-blue-100 dark:bg-blue-900 ring-2 ring-blue-500'
             : ''}"
-          on:click={() => dispatch("select", file)}
-          on:dblclick={() => dispatch("open", file)}
-          on:contextmenu={(e) => handleContextMenu(e, file)}
+          onclick={() => dispatch("select", file)}
+          ondblclick={() => dispatch("open", file)}
+          oncontextmenu={(e) => handleContextMenu(e, file)}
           role="button"
           tabindex="0"
           aria-label={file.name}
           use:observeElement={file}
           draggable="true"
-          on:dragstart={(e) => handleDragStart(e, file)}
-          on:dragover={(e) => handleDragOver(e, file)}
-          on:dragleave={(e) => handleDragLeave(e, file)}
-          on:drop={(e) => handleDrop(e, file)}
-          on:keydown={(e) => {
+          ondragstart={(e) => handleDragStart(e, file)}
+          ondragover={(e) => handleDragOver(e, file)}
+          ondragleave={(e) => handleDragLeave(e, file)}
+          ondrop={(e) => handleDrop(e, file)}
+          onkeydown={(e) => {
             if (e.key === "Enter") dispatch("open", file);
           }}
         >
@@ -571,7 +591,7 @@
                     src={`/fields/${fieldImage}`}
                     alt="Field Map"
                     class="w-full h-full object-contain object-center"
-                    on:error={handleFieldImageError}
+                    onerror={handleFieldImageError}
                   />
                 {:else}
                   <div
@@ -587,8 +607,9 @@
             <button
               class="absolute top-1 right-1 p-1 rounded-full bg-white/80 dark:bg-neutral-800/80 shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
               aria-label="File actions"
-              on:click|stopPropagation={(e) =>
-                openContextMenuFromEvent(e, file)}
+              onclick={stopPropagation((e) =>
+                openContextMenuFromEvent(e, file),
+              )}
               title="More actions"
             >
               <EllipsisHorizontalIcon
@@ -605,13 +626,13 @@
                   type="text"
                   bind:value={renameInput}
                   use:focusInput
-                  on:click|stopPropagation
+                  onclick={stopPropagation(bubble("click"))}
                   class="w-full text-xs text-center border border-blue-400 rounded focus:outline-none dark:bg-neutral-700 py-0.5"
-                  on:keydown|stopPropagation={(e) => {
+                  onkeydown={(e: KeyboardEvent) => { e.stopPropagation();
                     if (e.key === "Enter") dispatch("rename-save", renameInput);
-                    if (e.key === "Escape") dispatch("rename-cancel");
-                  }}
-                  on:blur={() => dispatch("rename-cancel")}
+                    if (e.key === "Escape") dispatch("rename-cancel"); }}
+
+                  onblur={() => dispatch("rename-cancel")}
                 />
               </div>
             {:else}

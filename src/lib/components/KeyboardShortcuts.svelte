@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import { get } from "svelte/store";
   import hotkeys from "hotkeys-js";
 
@@ -115,49 +117,74 @@
     toggleOnionCurrentPath,
   } from "./shortcuts/misc";
 
-  // Actions
-  export let saveProject: () => void;
-  export let resetProject: () => void;
-  export let saveFileAs: () => void;
-  export let exportGif: () => void;
-  export let exportImage: () => void = () => {};
-  export let undoAction: () => void;
-  export let redoAction: () => void;
-  export let play: () => void;
-  export let pause: () => void;
-  export let resetAnimation: () => void;
-  export let stepForward: () => void;
-  export let stepBackward: () => void;
-  export let splitPath: () => void = () => {};
-  export let recordChange: (action?: string) => void;
-  export let controlTabRef: any = null;
-  export let activeControlTab: "path" | "field" | "table" | "code" = "path";
-  export let toggleStats: () => void = () => {};
-  export let toggleSidebar: () => void = () => {};
-  export let toggleControlTab: () => void = () => {};
-  export let fieldRenderer: any = null;
+  interface Props {
+    // Actions
+    saveProject: () => void;
+    resetProject: () => void;
+    saveFileAs: () => void;
+    exportGif: () => void;
+    exportImage?: () => void;
+    undoAction: () => void;
+    redoAction: () => void;
+    play: () => void;
+    pause: () => void;
+    resetAnimation: () => void;
+    stepForward: () => void;
+    stepBackward: () => void;
+    splitPath?: () => void;
+    recordChange: (action?: string) => void;
+    controlTabRef?: any;
+    activeControlTab?: "path" | "field" | "table" | "code";
+    toggleStats?: () => void;
+    toggleSidebar?: () => void;
+    toggleControlTab?: () => void;
+    fieldRenderer?: any;
+    // Optional callback provided by App.svelte to open the What's New dialog
+    openWhatsNew: () => void;
+  }
 
-  // Optional callback provided by App.svelte to open the What's New dialog
-  export let openWhatsNew: () => void;
+  let {
+    saveProject,
+    resetProject,
+    saveFileAs,
+    exportGif,
+    exportImage = () => {},
+    undoAction,
+    redoAction,
+    play,
+    pause,
+    resetAnimation,
+    stepForward,
+    stepBackward,
+    splitPath = () => {},
+    recordChange,
+    controlTabRef = $bindable(null),
+    activeControlTab = $bindable("path"),
+    toggleStats = () => {},
+    toggleSidebar = () => {},
+    toggleControlTab = () => {},
+    fieldRenderer = null,
+    openWhatsNew,
+  }: Props = $props();
 
   // Reactive Values
-  $: settings = $settingsStore;
-  $: lines = $linesStore;
-  $: startPoint = $startPointStore;
-  $: shapes = $shapesStore;
-  $: sequence = $sequenceStore;
-  $: playing = $playingStore;
-  $: playbackSpeed = $playbackSpeedStore;
+  let settings = $derived($settingsStore);
+  let lines = $derived($linesStore);
+  let startPoint = $derived($startPointStore);
+  let shapes = $derived($shapesStore);
+  let sequence = $derived($sequenceStore);
+  let playing = $derived($playingStore);
+  let playbackSpeed = $derived($playbackSpeedStore);
 
   // Internal State
-  let showCommandPalette = false;
-  let fileInput: HTMLInputElement;
+  let showCommandPalette = $state(false);
+  let fileInput: HTMLInputElement | undefined = $state();
   let fileCommands: {
     id: string;
     label: string;
     action: () => void;
     category: string;
-  }[] = [];
+  }[] = $state([]);
 
   async function fetchFiles() {
     if (!window.electronAPI) return;
@@ -180,14 +207,16 @@
     }
   }
 
-  $: if (showCommandPalette) {
-    fetchFiles();
-  }
+  run(() => {
+    if (showCommandPalette) {
+      fetchFiles();
+    }
+  });
 
   // --- Registration ---
 
   // Create map of actionId -> handler
-  $: actions = {
+  let actions = $derived({
     saveProject: () => saveProject(),
     saveFileAs: () => saveFileAs(),
     exportGif: () => exportGif(),
@@ -744,85 +773,72 @@
     cancelDialog: () => {
       (actions as any).deselectAll();
     },
-  };
+  });
 
   // --- Derived Commands for Search ---
-  $: lineCommands = lines.map((l, i) => ({
-    id: `cmd-line-${l.id}`,
-    label: l.name ? `Path: ${l.name}` : `Path ${i + 1}`,
-    category: "Path Segment",
-    action: () => {
-      selectedLineId.set(l.id || null);
-      const idx = lines.findIndex((ln) => ln.id === l.id);
-      if (idx !== -1) {
-        selectedPointId.set(`point-${idx + 1}-0`);
-      }
-
-      if (controlTabRef && controlTabRef.scrollToItem) {
-        controlTabRef.scrollToItem("path", l.id || "");
-      }
-    },
-  }));
-
-  $: waitCommands = sequence
-    .filter((s) => actionRegistry.get(s.kind)?.isWait)
-    .map((s: any) => ({
-      id: `cmd-wait-${s.id}`,
-      label: s.name ? `Wait: ${s.name}` : "Wait",
-      category: "Wait",
+  let lineCommands = $derived(
+    lines.map((l, i) => ({
+      id: `cmd-line-${l.id}`,
+      label: l.name ? `Path: ${l.name}` : `Path ${i + 1}`,
+      category: "Path Segment",
       action: () => {
-        selectedPointId.set(`wait-${s.id}`);
-        selectedLineId.set(null);
+        selectedLineId.set(l.id || null);
+        const idx = lines.findIndex((ln) => ln.id === l.id);
+        if (idx !== -1) {
+          selectedPointId.set(`point-${idx + 1}-0`);
+        }
+
         if (controlTabRef && controlTabRef.scrollToItem) {
-          controlTabRef.scrollToItem("wait", s.id);
+          controlTabRef.scrollToItem("path", l.id || "");
         }
       },
-    }));
+    })),
+  );
 
-  $: rotateCommands = sequence
-    .filter((s) => actionRegistry.get(s.kind)?.isRotate)
-    .map((s: any) => ({
-      id: `cmd-rotate-${s.id}`,
-      label: s.name ? `Rotate: ${s.name}` : "Rotate",
-      category: "Rotate",
-      action: () => {
-        selectedPointId.set(`rotate-${s.id}`);
-        selectedLineId.set(null);
-        if (controlTabRef && controlTabRef.scrollToItem) {
-          controlTabRef.scrollToItem("rotate", s.id);
-        }
-      },
-    }));
+  let waitCommands = $derived(
+    sequence
+      .filter((s) => actionRegistry.get(s.kind)?.isWait)
+      .map((s: any) => ({
+        id: `cmd-wait-${s.id}`,
+        label: s.name ? `Wait: ${s.name}` : "Wait",
+        category: "Wait",
+        action: () => {
+          selectedPointId.set(`wait-${s.id}`);
+          selectedLineId.set(null);
+          if (controlTabRef && controlTabRef.scrollToItem) {
+            controlTabRef.scrollToItem("wait", s.id);
+          }
+        },
+      })),
+  );
 
-  $: eventCommands = (() => {
-    const cmds: any[] = [];
+  let rotateCommands = $derived(
+    sequence
+      .filter((s) => actionRegistry.get(s.kind)?.isRotate)
+      .map((s: any) => ({
+        id: `cmd-rotate-${s.id}`,
+        label: s.name ? `Rotate: ${s.name}` : "Rotate",
+        category: "Rotate",
+        action: () => {
+          selectedPointId.set(`rotate-${s.id}`);
+          selectedLineId.set(null);
+          if (controlTabRef && controlTabRef.scrollToItem) {
+            controlTabRef.scrollToItem("rotate", s.id);
+          }
+        },
+      })),
+  );
 
-    lines.forEach((l, lIdx) => {
-      if (l.eventMarkers) {
-        l.eventMarkers.forEach((m) => {
-          cmds.push({
-            id: `cmd-event-${m.id}`,
-            label: m.name ? `Event: ${m.name}` : `Event (Path ${lIdx + 1})`,
-            category: "Event Marker",
-            action: () => {
-              if (controlTabRef && controlTabRef.scrollToItem) {
-                controlTabRef.scrollToItem("event", m.id);
-              }
-            },
-          });
-        });
-      }
-    });
+  let eventCommands = $derived(
+    (() => {
+      const cmds: any[] = [];
 
-    sequence.forEach((s) => {
-      const def = actionRegistry.get(s.kind);
-      if (def?.isWait || def?.isRotate) {
-        const item = s as any;
-        if (item.eventMarkers) {
-          item.eventMarkers.forEach((m: any) => {
+      lines.forEach((l, lIdx) => {
+        if (l.eventMarkers) {
+          l.eventMarkers.forEach((m) => {
             cmds.push({
               id: `cmd-event-${m.id}`,
-              label: m.name ? `Event: ${m.name}` : `Event (${def.label})`,
+              label: m.name ? `Event: ${m.name}` : `Event (Path ${lIdx + 1})`,
               category: "Event Marker",
               action: () => {
                 if (controlTabRef && controlTabRef.scrollToItem) {
@@ -832,13 +848,34 @@
             });
           });
         }
-      }
-    });
-    return cmds;
-  })();
+      });
+
+      sequence.forEach((s) => {
+        const def = actionRegistry.get(s.kind);
+        if (def?.isWait || def?.isRotate) {
+          const item = s as any;
+          if (item.eventMarkers) {
+            item.eventMarkers.forEach((m: any) => {
+              cmds.push({
+                id: `cmd-event-${m.id}`,
+                label: m.name ? `Event: ${m.name}` : `Event (${def.label})`,
+                category: "Event Marker",
+                action: () => {
+                  if (controlTabRef && controlTabRef.scrollToItem) {
+                    controlTabRef.scrollToItem("event", m.id);
+                  }
+                },
+              });
+            });
+          }
+        }
+      });
+      return cmds;
+    })(),
+  );
 
   // Derive commands list for Command Palette
-  $: paletteCommands = [
+  let paletteCommands = $derived([
     ...(settings?.keyBindings || DEFAULT_KEY_BINDINGS)
       .filter((b) => (actions as any)[b.action])
       .map((b) => ({
@@ -853,38 +890,44 @@
     ...waitCommands,
     ...rotateCommands,
     ...eventCommands,
-  ];
+  ]);
 
-  $: availableCommands.set(paletteCommands);
+  run(() => {
+    availableCommands.set(paletteCommands);
+  });
 
-  $: if ($executeCommandBus) {
-    const cmdId = $executeCommandBus;
-    executeCommandBus.set(null);
-    const cmd = paletteCommands.find((c) => c.id === cmdId);
-    if (cmd && cmd.action) {
-      cmd.action();
-    }
-  }
-
-  $: if (settings && settings.keyBindings) {
-    hotkeys.unbind();
-
-    // Bind all actions defined in settings
-    settings.keyBindings.forEach((binding) => {
-      const handler = (actions as any)[binding.action];
-      if (handler && binding.key) {
-        hotkeys(binding.key, (e) => {
-          if (shouldBlockShortcut(e, binding.id)) return;
-          e.preventDefault();
-          handler(e);
-        });
+  run(() => {
+    if ($executeCommandBus) {
+      const cmdId = $executeCommandBus;
+      executeCommandBus.set(null);
+      const cmd = paletteCommands.find((c) => c.id === cmdId);
+      if (cmd && cmd.action) {
+        cmd.action();
       }
-    });
+    }
+  });
 
-    // Special case for Play/Pause toggle which is mapped to 'togglePlay' action
-    // but the ID in defaults is 'play-pause' and action is 'togglePlay'.
-    // The loop above covers it if keyBinding is correct.
-  }
+  run(() => {
+    if (settings && settings.keyBindings) {
+      hotkeys.unbind();
+
+      // Bind all actions defined in settings
+      settings.keyBindings.forEach((binding) => {
+        const handler = (actions as any)[binding.action];
+        if (handler && binding.key) {
+          hotkeys(binding.key, (e) => {
+            if (shouldBlockShortcut(e, binding.id)) return;
+            e.preventDefault();
+            handler(e);
+          });
+        }
+      });
+
+      // Special case for Play/Pause toggle which is mapped to 'togglePlay' action
+      // but the ID in defaults is 'play-pause' and action is 'togglePlay'.
+      // The loop above covers it if keyBinding is correct.
+    }
+  });
 </script>
 
 <CommandPalette
@@ -901,7 +944,7 @@
   class="hidden"
   style="display:none;"
   tabindex="-1"
-  on:change={function (e) {
+  onchange={function (e) {
     const target = e.currentTarget || e.target;
     if (
       target instanceof HTMLInputElement &&

@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 export function setupImageMocks() {
   const OriginalImage = global.Image;
   class MockImage {

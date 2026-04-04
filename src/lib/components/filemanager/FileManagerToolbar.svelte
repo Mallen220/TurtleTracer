@@ -10,9 +10,17 @@
     ViewGridIcon,
   } from "../icons";
 
-  export let searchQuery = "";
-  export let sortMode: "name" | "date" = "name";
-  export let viewMode: "list" | "grid" = "list";
+  interface Props {
+    searchQuery?: string;
+    sortMode?: "name" | "date";
+    viewMode?: "list" | "grid";
+  }
+
+  let {
+    searchQuery = $bindable(""),
+    sortMode = "name",
+    viewMode = "list",
+  }: Props = $props();
 
   const dispatch = createEventDispatcher<{
     "sort-change": "name" | "date";
@@ -42,7 +50,7 @@
       <input
         type="text"
         value={searchQuery}
-        on:input={handleSearch}
+        oninput={handleSearch}
         placeholder="Search files..."
         class="w-full pl-8 pr-2 py-1.5 text-sm bg-neutral-100 dark:bg-neutral-800 border-none rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-neutral-900 dark:text-white placeholder-neutral-500"
       />
@@ -50,7 +58,7 @@
 
     <!-- Sort Toggle -->
     <button
-      on:click={() =>
+      onclick={() =>
         dispatch("sort-change", sortMode === "name" ? "date" : "name")}
       class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       title={`Sort by ${sortMode === "name" ? "Date" : "Name"}`}
@@ -65,7 +73,7 @@
 
     <!-- View Toggle -->
     <button
-      on:click={() =>
+      onclick={() =>
         dispatch("view-change", viewMode === "list" ? "grid" : "list")}
       class="p-1.5 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       title={`Switch to ${viewMode === "list" ? "Grid" : "List"} View`}

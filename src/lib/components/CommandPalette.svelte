@@ -1,19 +1,25 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run, self } from "svelte/legacy";
+
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
   import { onMount } from "svelte";
   import type { CommandPaletteCommand } from "../../types";
   import SearchIcon from "./icons/SearchIcon.svelte";
 
-  export let isOpen = false;
-  export let commands: CommandPaletteCommand[] = [];
-  export let onClose: () => void;
+  interface Props {
+    isOpen?: boolean;
+    commands?: CommandPaletteCommand[];
+    onClose: () => void;
+  }
 
-  let searchQuery = "";
-  let selectedIndex = 0;
-  let inputElement: HTMLInputElement;
-  let recentCommandIds: string[] = [];
+  let { isOpen = $bindable(false), commands = [], onClose }: Props = $props();
+
+  let searchQuery = $state("");
+  let selectedIndex = $state(0);
+  let inputElement: HTMLInputElement | undefined = $state();
+  let recentCommandIds: string[] = $state([]);
   const RECENTS_KEY = "turtle-tracer-recent-commands";
   const LEGACY_RECENTS_KEY = "pedro-pathing-recent-commands";
 
@@ -56,40 +62,46 @@
     }
   });
 
-  $: filteredCommands = (() => {
-    const lowerQuery = searchQuery.toLowerCase();
-    let matched = commands.filter((cmd) =>
-      cmd.label.toLowerCase().includes(lowerQuery),
-    );
+  let filteredCommands = $derived(
+    (() => {
+      const lowerQuery = searchQuery.toLowerCase();
+      let matched = commands.filter((cmd) =>
+        cmd.label.toLowerCase().includes(lowerQuery),
+      );
 
-    // Sort by recent first
-    matched.sort((a, b) => {
-      const indexA = recentCommandIds.indexOf(a.id);
-      const indexB = recentCommandIds.indexOf(b.id);
+      // Sort by recent first
+      matched.sort((a, b) => {
+        const indexA = recentCommandIds.indexOf(a.id);
+        const indexB = recentCommandIds.indexOf(b.id);
 
-      if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB; // Both recent: earlier in list means more recent
-      }
-      if (indexA !== -1) return -1; // A is recent
-      if (indexB !== -1) return 1; // B is recent
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB; // Both recent: earlier in list means more recent
+        }
+        if (indexA !== -1) return -1; // A is recent
+        if (indexB !== -1) return 1; // B is recent
 
-      return 0;
-    });
+        return 0;
+      });
 
-    return matched;
-  })();
+      return matched;
+    })(),
+  );
 
-  $: if (isOpen && inputElement) {
-    // Focus input when opened
-    setTimeout(() => {
-      if (inputElement) inputElement.focus();
-    }, 50);
-    selectedIndex = 0;
-  }
+  run(() => {
+    if (isOpen && inputElement) {
+      // Focus input when opened
+      setTimeout(() => {
+        if (inputElement) inputElement.focus();
+      }, 50);
+      selectedIndex = 0;
+    }
+  });
 
-  $: if (!isOpen) {
-    searchQuery = "";
-  }
+  run(() => {
+    if (!isOpen) {
+      searchQuery = "";
+    }
+  });
 
   function handleKeyDown(event: KeyboardEvent) {
     if (!isOpen) return;
@@ -131,18 +143,18 @@
   }
 </script>
 
-<svelte:window on:keydown={handleKeyDown} />
+<svelte:window onkeydown={handleKeyDown} />
 
 {#if isOpen}
-  <!-- svelte-ignore a11y-click-events-have-key-events -->
-  <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     role="presentation"
     transition:fade={{ duration: 150, easing: cubicInOut }}
     class="fixed inset-0 z-[2000] flex items-start justify-center pt-[15vh] bg-black bg-opacity-60 backdrop-blur-sm"
-    on:click|self={onClose}
-    on:keydown={(e) => {
+    onclick={self(onClose)}
+    onkeydown={(e) => {
       if (e.key === "Escape") onClose();
     }}
   >
@@ -213,8 +225,8 @@
                 {index === selectedIndex
                   ? 'bg-indigo-600 text-white shadow-md transform scale-[1.00]'
                   : 'text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
-                on:click={() => executeCommand(command)}
-                on:mousemove={() => (selectedIndex = index)}
+                onclick={() => executeCommand(command)}
+                onmousemove={() => (selectedIndex = index)}
               >
                 <div class="flex items-center gap-4">
                   <div class="flex flex-col">

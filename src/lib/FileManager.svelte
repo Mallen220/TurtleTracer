@@ -1,5 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
-<script lang="ts" context="module">
+<script lang="ts" module>
   declare global {
     interface Window {
       electronAPI: {
@@ -24,6 +24,14 @@
 </script>
 
 <script lang="ts">
+  import {
+    run,
+    createBubbler,
+    preventDefault,
+    stopPropagation,
+  } from "svelte/legacy";
+
+  const bubble = createBubbler();
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
   import { get } from "svelte/store";
@@ -82,44 +90,37 @@
     ArrowCircleIcon,
   } from "./components/icons";
 
-  export let isOpen = false;
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let shapes: Shape[];
-  export let sequence: SequenceItem[];
-  export let settings: Settings;
-
   // Initialize from session state
   const session = get(fileManagerSessionState);
-  let sortMode: "name" | "date" = session.sortMode ?? "date";
-  let sortModeInitialized = false;
-  let viewMode: "list" | "grid" = session.viewMode;
-  let currentDirectory = "";
-  let baseDirectory = "";
-  let files: FileInfo[] = [];
-  let filteredFiles: FileInfo[] = [];
-  let loading = false;
-  let selectedFile: FileInfo | null = null;
-  let errorMessage = "";
-  let searchQuery = session.searchQuery;
+  let sortMode: "name" | "date" = $state(session.sortMode ?? "date");
+  let sortModeInitialized = $state(false);
+  let viewMode: "list" | "grid" = $state(session.viewMode);
+  let currentDirectory = $state("");
+  let baseDirectory = $state("");
+  let files: FileInfo[] = $state([]);
+  let filteredFiles: FileInfo[] = $state([]);
+  let loading = $state(false);
+  let selectedFile: FileInfo | null = $state(null);
+  let errorMessage = $state("");
+  let searchQuery = $state(session.searchQuery);
 
   // Renaming state
-  let renamingFile: FileInfo | null = null;
+  let renamingFile: FileInfo | null = $state(null);
   // Reference to child components for preview refreshes
-  let fileGrid: any;
-  let fileList: any;
+  let fileGrid: any = $state();
+  let fileList: any = $state();
 
   // New file state
-  let creatingNewFile = false;
-  let newFileName = "";
+  let creatingNewFile = $state(false);
+  let newFileName = $state("");
 
   // New folder state
-  let creatingNewFolder = false;
-  let newFolderName = "";
+  let creatingNewFolder = $state(false);
+  let newFolderName = $state("");
 
-  let fileInput: HTMLInputElement;
-  let javaInput: HTMLInputElement;
-  let showAddMenu = false;
+  let fileInput: HTMLInputElement | undefined = $state();
+  let javaInput: HTMLInputElement | undefined = $state();
+  let showAddMenu = $state(false);
 
   function handleAddMenuToggle(e: MouseEvent) {
     e.stopPropagation();
@@ -168,31 +169,13 @@
   });
 
   // Resizing state
-  let sidebarWidth = 600; // default max-w-sm is roughly 655px (24rem)
+  let sidebarWidth = $state(600); // default max-w-sm is roughly 655px (24rem)
   let isResizing = false;
 
   // New file input reference for programmatic focus
   import { tick } from "svelte";
-  let newFileInput: HTMLInputElement | null = null;
-  let newFolderInput: HTMLInputElement | null = null;
-
-  $: if (creatingNewFile) {
-    // Focus the input after it renders
-    tick().then(() => newFileInput?.focus());
-  }
-
-  $: if (creatingNewFolder) {
-    tick().then(() => newFolderInput?.focus());
-  }
-
-  $: if ($fileManagerNewFileMode) {
-    creatingNewFile = true;
-    fileManagerNewFileMode.set(false);
-  }
-
-  $: if (currentDirectory) {
-    currentDirectoryStore.set(currentDirectory);
-  }
+  let newFileInput: HTMLInputElement | null = $state(null);
+  let newFolderInput: HTMLInputElement | null = $state(null);
 
   function startResize(e: MouseEvent) {
     isResizing = true;
@@ -214,37 +197,24 @@
     window.removeEventListener("mouseup", stopResize);
   }
 
-  // Persist session state when changed
-  $: fileManagerSessionState.set({ searchQuery, viewMode, sortMode });
-
   import { saveSettings } from "../utils/settingsPersistence";
-
-  // Sync sortMode to settings only after initialization and persist it
-  $: if (sortModeInitialized && settings && sortMode) {
-    if (settings.fileManagerSortMode !== sortMode) {
-      settings.fileManagerSortMode = sortMode;
-      // Force update so Svelte reactivity at higher levels will detect the change
-      settings = { ...settings };
-
-      // Persist settings to disk (non-blocking)
-      saveSettings(settings).catch((e) =>
-        console.error("Failed to save settings fileManagerSortMode:", e),
-      );
-
-      // Re-sort files now that mode changed
-      sortFiles();
-    }
+  interface Props {
+    isOpen?: boolean;
+    startPoint: Point;
+    lines: Line[];
+    shapes: Shape[];
+    sequence: SequenceItem[];
+    settings: Settings;
   }
 
-  // Update filtered files whenever files or searchQuery changes
-  $: {
-    if (!searchQuery) {
-      filteredFiles = [...files];
-    } else {
-      const q = searchQuery.toLowerCase();
-      filteredFiles = files.filter((f) => f.name.toLowerCase().includes(q));
-    }
-  }
+  let {
+    isOpen = $bindable(false),
+    startPoint = $bindable(),
+    lines = $bindable(),
+    shapes = $bindable(),
+    sequence = $bindable(),
+    settings = $bindable(),
+  }: Props = $props();
 
   // Normalize trailing numeric duplicates like "shooter (2)" to maintain links
   function stripSuffix(name?: string | null): string {
@@ -400,10 +370,6 @@
       });
     }
     files = files; // trigger update
-  }
-
-  $: if (sortMode) {
-    sortFiles();
   }
 
   // Handle directory change (dialog)
@@ -1135,7 +1101,7 @@
     }
   }
 
-  let isDraggingPath = false;
+  let isDraggingPath = $state(false);
 
   // Mock path utils
   const path = {
@@ -1151,9 +1117,67 @@
       return parts.join("/") || "/";
     },
   };
+  run(() => {
+    if ($fileManagerNewFileMode) {
+      creatingNewFile = true;
+      fileManagerNewFileMode.set(false);
+    }
+  });
+  run(() => {
+    if (creatingNewFile) {
+      // Focus the input after it renders
+      tick().then(() => newFileInput?.focus());
+    }
+  });
+  run(() => {
+    if (creatingNewFolder) {
+      tick().then(() => newFolderInput?.focus());
+    }
+  });
+  run(() => {
+    if (currentDirectory) {
+      currentDirectoryStore.set(currentDirectory);
+    }
+  });
+  // Persist session state when changed
+  run(() => {
+    fileManagerSessionState.set({ searchQuery, viewMode, sortMode });
+  });
+  // Sync sortMode to settings only after initialization and persist it
+  run(() => {
+    if (sortModeInitialized && settings && sortMode) {
+      if (settings.fileManagerSortMode !== sortMode) {
+        settings.fileManagerSortMode = sortMode;
+        // Force update so Svelte reactivity at higher levels will detect the change
+        settings = { ...settings };
+
+        // Persist settings to disk (non-blocking)
+        saveSettings(settings).catch((e) =>
+          console.error("Failed to save settings fileManagerSortMode:", e),
+        );
+
+        // Re-sort files now that mode changed
+        sortFiles();
+      }
+    }
+  });
+  // Update filtered files whenever files or searchQuery changes
+  run(() => {
+    if (!searchQuery) {
+      filteredFiles = [...files];
+    } else {
+      const q = searchQuery.toLowerCase();
+      filteredFiles = files.filter((f) => f.name.toLowerCase().includes(q));
+    }
+  });
+  run(() => {
+    if (sortMode) {
+      sortFiles();
+    }
+  });
 </script>
 
-<svelte:window on:keydown={handleKeydown} on:click={handleWindowClick} />
+<svelte:window onkeydown={handleKeydown} onclick={handleWindowClick} />
 
 <div class="fixed inset-0 z-[1010] flex" class:pointer-events-none={!isOpen}>
   <!-- Backdrop -->
@@ -1161,14 +1185,14 @@
     <div
       transition:fade={{ duration: 200 }}
       class="fixed inset-0 bg-black/50 backdrop-blur-sm"
-      on:click={() => (isOpen = false)}
+      onclick={() => (isOpen = false)}
       role="button"
       tabindex="0"
       aria-label="Close file manager"
-      on:keydown={(e) => {
+      onkeydown={(e) => {
         if (e.key === "Escape") isOpen = false;
       }}
-    />
+    ></div>
   {/if}
 
   <!-- Drop Zone (Right Area) -->
@@ -1200,16 +1224,16 @@
     class:translate-x-0={isOpen}
     class:-translate-x-full={!isOpen}
     role="presentation"
-    on:dragstart={() => (isDraggingPath = true)}
-    on:dragend={() => (isDraggingPath = false)}
-    on:dragover|preventDefault|stopPropagation
-    on:drop|preventDefault|stopPropagation
+    ondragstart={() => (isDraggingPath = true)}
+    ondragend={() => (isDraggingPath = false)}
+    ondragover={stopPropagation(preventDefault(bubble("dragover")))}
+    ondrop={stopPropagation(preventDefault(bubble("drop")))}
   >
     <!-- Resizer Handle -->
     <button
       type="button"
       class="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 z-50 transition-colors appearance-none bg-transparent"
-      on:mousedown={startResize}
+      onmousedown={startResize}
       aria-label="Resize sidebar"
     ></button>
 
@@ -1224,7 +1248,7 @@
         Files
       </h2>
       <button
-        on:click={() => (isOpen = false)}
+        onclick={() => (isOpen = false)}
         class="p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
         aria-label="Close"
       >
@@ -1292,7 +1316,7 @@
           bind:this={newFolderInput}
           class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
           placeholder="New Folder"
-          on:keydown={(e) => {
+          onkeydown={(e) => {
             if (e.key === "Enter") createNewFolder(newFolderName);
             if (e.key === "Escape") creatingNewFolder = false;
           }}
@@ -1301,11 +1325,11 @@
         <div class="flex gap-2">
           <button
             class="flex-1 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-            on:click={() => createNewFolder(newFolderName)}>Create</button
+            onclick={() => createNewFolder(newFolderName)}>Create</button
           >
           <button
             class="flex-1 py-1 text-xs bg-neutral-400 text-white rounded hover:bg-neutral-500"
-            on:click={() => (creatingNewFolder = false)}>Cancel</button
+            onclick={() => (creatingNewFolder = false)}>Cancel</button
           >
         </div>
       </div>
@@ -1324,7 +1348,7 @@
           bind:this={newFileInput}
           class="w-full px-2 py-1.5 text-sm border border-blue-400 rounded focus:outline-none bg-white dark:bg-neutral-700 mb-2"
           placeholder="path_name.turt"
-          on:keydown={(e) => {
+          onkeydown={(e) => {
             if (e.key === "Enter") createNewFile(newFileName);
             if (e.key === "Escape") creatingNewFile = false;
           }}
@@ -1333,11 +1357,11 @@
         <div class="flex gap-2">
           <button
             class="flex-1 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
-            on:click={() => createNewFile(newFileName)}>Create</button
+            onclick={() => createNewFile(newFileName)}>Create</button
           >
           <button
             class="flex-1 py-1 text-xs bg-neutral-400 text-white rounded hover:bg-neutral-500"
-            on:click={() => (creatingNewFile = false)}>Cancel</button
+            onclick={() => (creatingNewFile = false)}>Cancel</button
           >
         </div>
       </div>
@@ -1348,7 +1372,7 @@
       <!-- Floating Add Dropdown -->
       <div class="absolute top-4 right-4 z-[100] floating-add-container">
         <button
-          on:click={handleAddMenuToggle}
+          onclick={handleAddMenuToggle}
           class="flex items-center justify-center p-1.5 text-neutral-500 hover:text-green-600 dark:text-neutral-400 dark:hover:text-green-400 bg-white dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 shadow-sm hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
           title="Add / Import"
           aria-label="Add / Import"
@@ -1363,7 +1387,7 @@
             class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-xl border border-neutral-200 dark:border-neutral-700 py-1 flex flex-col overflow-hidden"
           >
             <button
-              on:click={() => {
+              onclick={() => {
                 creatingNewFile = true;
                 showAddMenu = false;
               }}
@@ -1374,7 +1398,7 @@
             </button>
 
             <button
-              on:click={() => {
+              onclick={() => {
                 creatingNewFolder = true;
                 showAddMenu = false;
               }}
@@ -1391,7 +1415,7 @@
             ></div>
 
             <button
-              on:click={() => {
+              onclick={() => {
                 fileInput?.click();
                 showAddMenu = false;
               }}
@@ -1402,7 +1426,7 @@
             </button>
 
             <button
-              on:click={() => {
+              onclick={() => {
                 javaInput?.click();
                 showAddMenu = false;
               }}
@@ -1413,7 +1437,7 @@
             </button>
 
             <button
-              on:click={() => {
+              onclick={() => {
                 isOpen = false;
                 showTelemetryDialog.set(true);
                 showAddMenu = false;
@@ -1433,7 +1457,7 @@
         type="file"
         accept=".java"
         class="hidden"
-        on:change={onImportJavaSelect}
+        onchange={onImportJavaSelect}
         tabindex="-1"
       />
       <input
@@ -1441,7 +1465,7 @@
         type="file"
         accept=".turt,.pp"
         class="hidden"
-        on:change={onImportFileSelect}
+        onchange={onImportFileSelect}
         tabindex="-1"
       />
 
@@ -1461,13 +1485,12 @@
           {#if searchQuery}
             <button
               class="text-xs text-blue-500 mt-2 hover:underline"
-              on:click={() => (searchQuery = "")}>Clear search</button
+              onclick={() => (searchQuery = "")}>Clear search</button
             >
           {:else}
             <button
               class="text-xs text-blue-500 mt-2 hover:underline"
-              on:click={() => (creatingNewFile = true)}
-              >Create a new file</button
+              onclick={() => (creatingNewFile = true)}>Create a new file</button
             >
           {/if}
         </div>
@@ -1515,7 +1538,7 @@
     >
       <div class="flex items-center gap-2">
         <button
-          on:click={handleRefresh}
+          onclick={handleRefresh}
           class="p-1 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           title="Refresh"
           aria-label="Refresh"

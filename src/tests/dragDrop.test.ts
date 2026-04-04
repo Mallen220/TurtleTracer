@@ -54,7 +54,7 @@ describe("calculateDragPosition", () => {
     } as DragEvent;
 
     return { mockEvent, mockElement };
-  }
+  };
 
   it("returns 'top' when cursor is in upper half", () => {
     const { mockEvent, mockElement } = createMockEventAndElement(120); // 20px from top

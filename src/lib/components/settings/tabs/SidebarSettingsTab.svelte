@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { ComponentType } from "svelte";
+  import type { Component, ComponentType } from "svelte";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import { DEFAULT_SETTINGS } from "../../../../config/defaults";
   import type {
@@ -12,8 +12,12 @@
   import { availableCommands } from "../../../../stores";
   import * as ICONS from "../../icons";
 
-  export let settings: Settings;
-  export let searchQuery: string;
+  interface Props {
+    settings: Settings;
+    searchQuery: string;
+  }
+
+  let { settings = $bindable(), searchQuery }: Props = $props();
 
   const DEFAULT_SIDEBAR_LAYOUT =
     DEFAULT_SETTINGS.sidebarItems ?? SIDEBAR_ITEMS.map((i) => i.id);
@@ -27,11 +31,12 @@
     return true;
   }
 
-  $: isSidebarLayoutModified = !arraysEqual(
-    settings.sidebarItems,
-    DEFAULT_SIDEBAR_LAYOUT,
+  let isSidebarLayoutModified = $derived(
+    !arraysEqual(settings.sidebarItems, DEFAULT_SIDEBAR_LAYOUT),
   );
-  $: hasCustomSidebarTools = (settings.customSidebarItems?.length ?? 0) > 0;
+  let hasCustomSidebarTools = $derived(
+    (settings.customSidebarItems?.length ?? 0) > 0,
+  );
 
   function resetSidebarSettings() {
     if (
@@ -46,27 +51,31 @@
     settings = { ...settings };
   }
 
-  $: activeSidebarList = (() => {
-    const ids = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
-    return ids.map((id) => {
-      let item: (typeof SIDEBAR_ITEMS)[number] | CustomSidebarItem | undefined =
-        SIDEBAR_ITEMS.find((i) => i.id === id);
-      const isCustom = !item && settings.customSidebarItems;
-      if (isCustom && settings.customSidebarItems) {
-        item = settings.customSidebarItems.find((i) => i.id === id);
-      }
-      return {
-        id,
-        label: item?.label ?? id,
-        icon: item?.iconSvg ?? "",
-        iconComponent: item?.iconComponent,
-        isCustom: !!isCustom,
-      };
-    });
-  })();
+  let activeSidebarList = $derived(
+    (() => {
+      const ids = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
+      return ids.map((id) => {
+        let item:
+          | (typeof SIDEBAR_ITEMS)[number]
+          | CustomSidebarItem
+          | undefined = SIDEBAR_ITEMS.find((i) => i.id === id);
+        const isCustom = !item && settings.customSidebarItems;
+        if (isCustom && settings.customSidebarItems) {
+          item = settings.customSidebarItems.find((i) => i.id === id);
+        }
+        return {
+          id,
+          label: item?.label ?? id,
+          icon: item?.iconSvg ?? "",
+          iconComponent: item?.iconComponent,
+          isCustom: !!isCustom,
+        };
+      });
+    })(),
+  );
 
-  let dragSourceIndex: number | null = null;
-  let dragOverIndex: number | null = null;
+  let dragSourceIndex: number | null = $state(null);
+  let dragOverIndex: number | null = $state(null);
 
   function handleDragStart(e: DragEvent, index: number) {
     dragSourceIndex = index;
@@ -140,17 +149,21 @@
     settings = { ...settings };
   }
 
-  $: unusedAvailableTools = (() => {
-    const active = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
-    const builtIn = SIDEBAR_ITEMS.filter(
-      (i) =>
-        i.type !== "separator" && i.type !== "spacer" && !active.includes(i.id),
-    );
-    const custom = (settings.customSidebarItems || []).filter(
-      (i) => !active.includes(i.id),
-    );
-    return [...builtIn, ...custom];
-  })();
+  let unusedAvailableTools = $derived(
+    (() => {
+      const active = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
+      const builtIn = SIDEBAR_ITEMS.filter(
+        (i) =>
+          i.type !== "separator" &&
+          i.type !== "spacer" &&
+          !active.includes(i.id),
+      );
+      const custom = (settings.customSidebarItems || []).filter(
+        (i) => !active.includes(i.id),
+      );
+      return [...builtIn, ...custom];
+    })(),
+  );
 
   function deleteCustomItem(id: string) {
     if (!settings.customSidebarItems) return;
@@ -163,12 +176,12 @@
     settings = { ...settings };
   }
 
-  let showCustomSidebarForm = false;
-  let customActionSelection = "";
-  let customActionLabel = "";
-  let commandSearchQuery = "";
+  let showCustomSidebarForm = $state(false);
+  let customActionSelection = $state("");
+  let customActionLabel = $state("");
+  let commandSearchQuery = $state("");
 
-  const ICON_COMPONENT_MAP: Record<string, ComponentType> = {
+  const ICON_COMPONENT_MAP: Record<string, Component<any>> = {
     ...ICONS,
     Arrow: ICONS.ArrowRightIcon,
     Plus: ICONS.PlusIcon,
@@ -182,15 +195,17 @@
     .map(([name, component]) => ({ name, component }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  $: filteredSidebarCommands = (() => {
-    if (!commandSearchQuery) return $availableCommands;
-    const low = commandSearchQuery.toLowerCase();
-    return $availableCommands.filter(
-      (c) =>
-        c.label.toLowerCase().includes(low) ||
-        (c.id && c.id.toLowerCase().includes(low)),
-    );
-  })();
+  let filteredSidebarCommands = $derived(
+    (() => {
+      if (!commandSearchQuery) return $availableCommands;
+      const low = commandSearchQuery.toLowerCase();
+      return $availableCommands.filter(
+        (c) =>
+          c.label.toLowerCase().includes(low) ||
+          (c.id && c.id.toLowerCase().includes(low)),
+      );
+    })(),
+  );
 
   function selectSidebarCommand(cmd: CommandPaletteCommand) {
     customActionSelection = cmd.id;
@@ -200,20 +215,24 @@
     commandSearchQuery = "";
   }
 
-  $: selectedCommand = $availableCommands.find(
-    (c) => c.id === customActionSelection,
+  let selectedCommand = $derived(
+    $availableCommands.find((c) => c.id === customActionSelection),
   );
 
-  let customActionIconKey = CUSTOM_ICONS.length ? CUSTOM_ICONS[0].name : "";
-  let customIconSearch = "";
-  let isIconMenuOpen = false;
-  let iconMenuContainer: HTMLDivElement | null = null;
+  let customActionIconKey = $state(
+    CUSTOM_ICONS.length ? CUSTOM_ICONS[0].name : "",
+  );
+  let customIconSearch = $state("");
+  let isIconMenuOpen = $state(false);
+  let iconMenuContainer: HTMLDivElement | null = $state(null);
 
-  $: filteredCustomIcons = customIconSearch
-    ? CUSTOM_ICONS.filter((icon) =>
-        icon.name.toLowerCase().includes(customIconSearch.toLowerCase()),
-      )
-    : CUSTOM_ICONS;
+  let filteredCustomIcons = $derived(
+    customIconSearch
+      ? CUSTOM_ICONS.filter((icon) =>
+          icon.name.toLowerCase().includes(customIconSearch.toLowerCase()),
+        )
+      : CUSTOM_ICONS,
+  );
 
   function selectCustomIcon(iconName: string) {
     customActionIconKey = iconName;
@@ -274,8 +293,8 @@
 </script>
 
 <svelte:window
-  on:click={handleWindowClick}
-  on:keydown={(e) => {
+  onclick={handleWindowClick}
+  onkeydown={(e) => {
     if (e.key === "Escape") isIconMenuOpen = false;
   }}
 />
@@ -307,7 +326,7 @@
         max="32"
         step="1"
         value={settings.sidebarIconSize || 20}
-        on:input={(e) =>
+        oninput={(e) =>
           handleNumberInput(e.currentTarget.value, "sidebarIconSize", 16, 32)}
         class="w-32 accent-blue-500"
       />
@@ -335,11 +354,11 @@
           role="listitem"
           aria-grabbed={dragSourceIndex === idx}
           draggable="true"
-          on:dragstart={(e) => handleDragStart(e, idx)}
-          on:dragover={(e) => handleDragOver(e, idx)}
-          on:drop={(e) => handleDrop(e, idx)}
-          on:dragend={handleDragEnd}
-          on:dragleave={() => {
+          ondragstart={(e) => handleDragStart(e, idx)}
+          ondragover={(e) => handleDragOver(e, idx)}
+          ondrop={(e) => handleDrop(e, idx)}
+          ondragend={handleDragEnd}
+          ondragleave={() => {
             if (dragOverIndex === idx) dragOverIndex = null;
           }}
           class="flex items-center gap-2 bg-white dark:bg-neutral-800 border p-2 rounded-lg shadow-sm transition-all {dragOverIndex ===
@@ -361,13 +380,11 @@
             class="flex-none w-5 h-5 flex items-center justify-center text-neutral-500"
           >
             {#if item.iconComponent}
-              <svelte:component this={item.iconComponent} className="size-5" />
+              <item.iconComponent className="size-5" />
             {:else if item.icon}
               {#if ICON_COMPONENT_MAP[item.icon]}
-                <svelte:component
-                  this={ICON_COMPONENT_MAP[item.icon]}
-                  className="size-5"
-                />
+                {@const SvelteComponent = ICON_COMPONENT_MAP[item.icon]}
+                <SvelteComponent className="size-5" />
               {:else}
                 {@html item.icon}
               {/if}
@@ -391,7 +408,7 @@
           <!-- Controls -->
           <div class="flex items-center gap-0.5">
             <button
-              on:click={() => moveSidebarItemUp(idx)}
+              onclick={() => moveSidebarItemUp(idx)}
               disabled={idx === 0}
               class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Move up"
@@ -399,7 +416,7 @@
               <ICONS.ChevronUpIcon className="size-4" />
             </button>
             <button
-              on:click={() => moveSidebarItemDown(idx)}
+              onclick={() => moveSidebarItemDown(idx)}
               disabled={idx === activeSidebarList.length - 1}
               class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Move down"
@@ -407,7 +424,7 @@
               <ICONS.ChevronDownIcon className="size-4" />
             </button>
             <button
-              on:click={() => removeSidebarItem(idx)}
+              onclick={() => removeSidebarItem(idx)}
               class="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
               title="Remove from sidebar"
             >
@@ -430,23 +447,19 @@
             class="flex items-center border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 rounded-md shadow-sm group overflow-hidden"
           >
             <button
-              on:click={() => addSidebarItem(available.id)}
+              onclick={() => addSidebarItem(available.id)}
               class="flex-grow flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-white dark:hover:bg-neutral-700 transition-colors min-w-0"
             >
               <span
                 class="w-5 h-5 flex-none flex items-center justify-center text-neutral-500"
               >
                 {#if available.iconComponent}
-                  <svelte:component
-                    this={available.iconComponent}
-                    className="size-4"
-                  />
+                  <available.iconComponent className="size-4" />
                 {:else if available.iconSvg}
                   {#if ICON_COMPONENT_MAP[available.iconSvg]}
-                    <svelte:component
-                      this={ICON_COMPONENT_MAP[available.iconSvg]}
-                      className="size-4"
-                    />
+                    {@const SvelteComponent_1 =
+                      ICON_COMPONENT_MAP[available.iconSvg]}
+                    <SvelteComponent_1 className="size-4" />
                   {:else}
                     {@html available.iconSvg}
                   {/if}
@@ -464,7 +477,7 @@
             </button>
             {#if available.id && available.id.startsWith("custom_")}
               <button
-                on:click={() => deleteCustomItem(available.id)}
+                onclick={() => deleteCustomItem(available.id)}
                 class="px-3 py-2 text-neutral-400 hover:text-red-500 border-l border-neutral-200 dark:border-neutral-700 hover:bg-red-50 dark:hover:bg-red-900/40 transition-colors"
                 title="Permanently Delete Custom Item"
               >
@@ -490,7 +503,7 @@
             Create Custom Tool
           </h5>
           <button
-            on:click={resetSidebarSettings}
+            onclick={resetSidebarSettings}
             class="inline-flex items-center gap-2 px-2.5 py-1 text-xs font-semibold text-red-600 bg-red-50 hover:text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             disabled={!isSidebarLayoutModified && !hasCustomSidebarTools}
           >
@@ -505,13 +518,15 @@
 
         {#if !showCustomSidebarForm}
           <button
-            on:click={() => (showCustomSidebarForm = true)}
+            onclick={() => (showCustomSidebarForm = true)}
             class="w-full flex items-center justify-center gap-2 py-2 px-4 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:border-blue-300 transition-colors"
           >
             <ICONS.PlusIcon className="size-4" />
             Create Custom Sidebar Tool
           </button>
         {:else}
+          {@const SvelteComponent_2 = ICON_COMPONENT_MAP[customActionIconKey]}
+          {@const SvelteComponent_3 = ICON_COMPONENT_MAP[customActionIconKey]}
           <div
             class="p-5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl mt-3 shadow-sm transition-all"
           >
@@ -525,7 +540,7 @@
                 Create Custom Tool
               </h6>
               <button
-                on:click={() => (showCustomSidebarForm = false)}
+                onclick={() => (showCustomSidebarForm = false)}
                 class="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
               >
                 <ICONS.CloseIcon className="size-4" />
@@ -556,7 +571,7 @@
                       >
                     </div>
                     <button
-                      on:click={() => {
+                      onclick={() => {
                         customActionSelection = "";
                         commandSearchQuery = "";
                       }}
@@ -584,7 +599,7 @@
                   >
                     {#each filteredSidebarCommands.slice(0, 10) as cmd}
                       <button
-                        on:click={() => selectSidebarCommand(cmd)}
+                        onclick={() => selectSidebarCommand(cmd)}
                         class="w-full text-left px-4 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex items-center justify-between group"
                       >
                         <span
@@ -644,16 +659,13 @@
                       <button
                         type="button"
                         class="w-full flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm transition-all focus:ring-2 focus:ring-blue-500 outline-none"
-                        on:click={() => {
+                        onclick={() => {
                           isIconMenuOpen = !isIconMenuOpen;
                         }}
                         aria-expanded={isIconMenuOpen}
                         aria-haspopup="listbox"
                       >
-                        <svelte:component
-                          this={ICON_COMPONENT_MAP[customActionIconKey]}
-                          className="size-5 text-blue-500"
-                        />
+                        <SvelteComponent_2 className="size-5 text-blue-500" />
                         <span
                           class="text-neutral-700 dark:text-neutral-300 truncate"
                           >{customActionIconKey}</span
@@ -699,12 +711,10 @@
                                   customActionIconKey
                                     ? 'bg-blue-50 dark:bg-blue-900/25 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
                                     : 'bg-transparent border-transparent text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
-                                  on:click={() =>
-                                    selectCustomIcon(iconDef.name)}
+                                  onclick={() => selectCustomIcon(iconDef.name)}
                                   title={iconDef.name}
                                 >
-                                  <svelte:component
-                                    this={iconDef.component}
+                                  <iconDef.component
                                     className="size-5 shrink-0"
                                   />
                                 </button>
@@ -737,10 +747,7 @@
                     <div
                       class="size-12 flex flex-col items-center justify-center bg-neutral-100 dark:bg-neutral-800 rounded-lg shadow-inner text-blue-600 dark:text-blue-400 border border-white dark:border-neutral-700"
                     >
-                      <svelte:component
-                        this={ICON_COMPONENT_MAP[customActionIconKey]}
-                        className="size-6"
-                      />
+                      <SvelteComponent_3 className="size-6" />
                     </div>
                   </div>
                   <div class="flex-1 space-y-1">
@@ -761,14 +768,14 @@
               <!-- Actions -->
               <div class="flex gap-3 pt-2">
                 <button
-                  on:click={addNewCustomItem}
+                  onclick={addNewCustomItem}
                   disabled={!customActionSelection || !customActionLabel}
                   class="flex-1 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 active:scale-95 disabled:opacity-30 disabled:scale-100 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20"
                 >
                   Create Tool
                 </button>
                 <button
-                  on:click={() => (showCustomSidebarForm = false)}
+                  onclick={() => (showCustomSidebarForm = false)}
                   class="px-4 py-2.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 text-sm font-bold rounded-lg hover:bg-neutral-300 dark:hover:bg-neutral-600 active:scale-95 transition-all"
                 >
                   Cancel

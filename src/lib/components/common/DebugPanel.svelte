@@ -18,12 +18,23 @@
     notification,
   } from "../../../stores";
 
-  export let componentName = "DebugPanel";
-  export let debugMissing: string[] = [];
-  export let debugInvalidRefs: string[] = [];
-  export let displaySequenceLength: number | undefined = undefined;
-  export let linesLength: number = 0;
-  export let sequenceLength: number = 0;
+  interface Props {
+    componentName?: string;
+    debugMissing?: string[];
+    debugInvalidRefs?: string[];
+    displaySequenceLength?: number | undefined;
+    linesLength?: number;
+    sequenceLength?: number;
+  }
+
+  let {
+    componentName = "DebugPanel",
+    debugMissing = [],
+    debugInvalidRefs = [],
+    displaySequenceLength = undefined,
+    linesLength = 0,
+    sequenceLength = 0,
+  }: Props = $props();
 
   function generateDebugData() {
     return {
@@ -104,13 +115,13 @@
     <div class="flex gap-2">
       <button
         class="px-2 py-1 bg-white dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-600 transition-colors shadow-sm font-medium"
-        on:click={copyDebugData}
+        onclick={copyDebugData}
       >
         Copy to Clipboard
       </button>
       <button
         class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors shadow-sm font-medium"
-        on:click={exportDebugData}
+        onclick={exportDebugData}
       >
         Export Log
       </button>

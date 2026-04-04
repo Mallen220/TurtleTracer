@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import type { Point, Line, Settings, SequenceItem } from "../types";
   import { onMount, onDestroy } from "svelte";
   import {
@@ -31,30 +33,46 @@
   import { menuNavigation } from "./actions/menuNavigation";
   import ValidationButton from "./components/tools/ValidationButton.svelte";
 
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let sequence: SequenceItem[];
-  export let robotLength: number;
-  export let robotWidth: number;
-  export let settings: Settings;
+  interface Props {
+    startPoint: Point;
+    lines: Line[];
+    sequence: SequenceItem[];
+    robotLength: number;
+    robotWidth: number;
+    settings: Settings;
+    showSidebar?: boolean;
+    isLargeScreen?: boolean;
+    saveProject: () => any;
+    saveFileAs: () => any;
+    exportGif: () => any;
+  }
 
-  export let showSidebar = true;
-  export let isLargeScreen = true;
+  let {
+    startPoint,
+    lines,
+    sequence,
+    robotLength,
+    robotWidth,
+    settings = $bindable(),
+    showSidebar = $bindable(true),
+    isLargeScreen = true,
+    saveProject,
+    saveFileAs,
+    exportGif,
+  }: Props = $props();
 
-  export let saveProject: () => any;
-  export let saveFileAs: () => any;
-  export let exportGif: () => any;
+  let exportMenuOpen = $state(false);
+  let saveDropdownOpen = $state(false);
+  let saveDropdownSide: "left" | "right" = $state("left");
+  let saveDropdownRef: HTMLElement | undefined = $state();
+  let saveButtonRef: HTMLElement | undefined = $state();
+  let saveOptionsButtonRef: HTMLElement | undefined = $state();
+  let exportMenuRef: HTMLElement | undefined = $state();
+  let exportButtonRef: HTMLElement | undefined = $state();
 
-  let exportMenuOpen = false;
-  let saveDropdownOpen = false;
-  let saveDropdownSide: "left" | "right" = "left";
-  let saveDropdownRef: HTMLElement;
-  let saveButtonRef: HTMLElement;
-  let saveOptionsButtonRef: HTMLElement;
-  let exportMenuRef: HTMLElement;
-  let exportButtonRef: HTMLElement;
-
-  $: timePrediction = calculatePathTime(startPoint, lines, settings, sequence);
+  let timePrediction = $derived(
+    calculatePathTime(startPoint, lines, settings, sequence),
+  );
 
   function formatEstimatedTime(totalSeconds: number): string {
     if (!Number.isFinite(totalSeconds)) return "Infinite";
@@ -79,10 +97,12 @@
     exportDialogState.set({ isOpen: true, format, exporterName });
   }
 
-  $: if (settings) {
-    settings.rWidth = robotWidth;
-    settings.rLength = robotLength;
-  }
+  run(() => {
+    if (settings) {
+      settings.rWidth = robotWidth;
+      settings.rLength = robotLength;
+    }
+  });
 
   function toggleSaveDropdown() {
     if (!saveDropdownOpen && saveOptionsButtonRef) {
@@ -137,15 +157,21 @@
     }
   }
 
-  $: leftActions = $navbarActionRegistry
-    .filter((a) => a.location === "left")
-    .sort((a, b) => (a.order || 0) - (b.order || 0));
-  $: centerActions = $navbarActionRegistry
-    .filter((a) => a.location === "center")
-    .sort((a, b) => (a.order || 0) - (b.order || 0));
-  $: rightActions = $navbarActionRegistry
-    .filter((a) => !a.location || a.location === "right")
-    .sort((a, b) => (a.order || 0) - (b.order || 0));
+  let leftActions = $derived(
+    $navbarActionRegistry
+      .filter((a) => a.location === "left")
+      .sort((a, b) => (a.order || 0) - (b.order || 0)),
+  );
+  let centerActions = $derived(
+    $navbarActionRegistry
+      .filter((a) => a.location === "center")
+      .sort((a, b) => (a.order || 0) - (b.order || 0)),
+  );
+  let rightActions = $derived(
+    $navbarActionRegistry
+      .filter((a) => !a.location || a.location === "right")
+      .sort((a, b) => (a.order || 0) - (b.order || 0)),
+  );
 
   onMount(() => {
     document.addEventListener("click", handleClickOutside);
@@ -170,7 +196,7 @@
       <button
         id="save-project-btn"
         bind:this={saveButtonRef}
-        on:click={() => {
+        onclick={() => {
           saveProject();
           saveDropdownOpen = false;
         }}
@@ -186,7 +212,7 @@
         class="flex items-center justify-center p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 last:rounded-r-md"
         aria-expanded={saveDropdownOpen}
         aria-label="Save options"
-        on:click={toggleSaveDropdown}
+        onclick={toggleSaveDropdown}
       >
         <ChevronUpIcon
           className="size-3 transition-transform {saveDropdownOpen
@@ -199,14 +225,14 @@
         <div
           bind:this={saveDropdownRef}
           use:menuNavigation
-          on:close={() => (saveDropdownOpen = false)}
+          onclose={() => (saveDropdownOpen = false)}
           class="absolute top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)] {saveDropdownSide ===
           'left'
             ? 'right-full'
             : 'left-full'}"
         >
           <button
-            on:click={() => {
+            onclick={() => {
               saveProject();
               saveDropdownOpen = false;
             }}
@@ -216,7 +242,7 @@
             <span class="font-medium">Save</span>
           </button>
           <button
-            on:click={() => {
+            onclick={() => {
               saveFileAs();
               saveDropdownOpen = false;
             }}
@@ -297,7 +323,7 @@
       <button
         title={action.title}
         aria-label={action.title}
-        on:click={action.onClick}
+        onclick={action.onClick}
         class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         {@html action.icon}
@@ -354,7 +380,7 @@
       <button
         title={action.title}
         aria-label={action.title}
-        on:click={action.onClick}
+        onclick={action.onClick}
         class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors hidden md:block focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         {@html action.icon}
@@ -372,7 +398,7 @@
       <button
         id="export-project-btn"
         bind:this={exportButtonRef}
-        on:click={() => (exportMenuOpen = !exportMenuOpen)}
+        onclick={() => (exportMenuOpen = !exportMenuOpen)}
         class="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md shadow-sm transition-colors text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
       >
         <span>Export</span>
@@ -386,29 +412,29 @@
         <div
           bind:this={exportMenuRef}
           use:menuNavigation
-          on:close={() => (exportMenuOpen = false)}
+          onclose={() => (exportMenuOpen = false)}
           class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)]"
         >
           <button
-            on:click={() => handleExport("java")}
+            onclick={() => handleExport("java")}
             class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
             title={`Export Java${getShortcutFromSettings(settings, "export-java")}`}
             >Java Code</button
           >
           <button
-            on:click={() => handleExport("points")}
+            onclick={() => handleExport("points")}
             class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
             title={`Export Points${getShortcutFromSettings(settings, "export-points")}`}
             >Points Array</button
           >
           <button
-            on:click={() => handleExport("sequential")}
+            onclick={() => handleExport("sequential")}
             class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
             title={`Export Sequential${getShortcutFromSettings(settings, "export-sequential")}`}
             >Sequential Command</button
           >
           <button
-            on:click={() => handleExport("json")}
+            onclick={() => handleExport("json")}
             class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
             title={`Export .turt${getShortcutFromSettings(settings, "export-pp")}`}
             >.turt File</button
@@ -416,7 +442,7 @@
 
           <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
           <button
-            on:click={() => {
+            onclick={() => {
               exportMenuOpen = false;
               showExportImage.set(true);
             }}
@@ -424,7 +450,7 @@
             title="Export as Image">Export as Image</button
           >
           <button
-            on:click={() => {
+            onclick={() => {
               exportMenuOpen = false;
               exportGif && exportGif();
             }}
@@ -433,7 +459,7 @@
             >Export Animated</button
           >
           <button
-            on:click={() => {
+            onclick={() => {
               exportMenuOpen = false;
               showStrategySheet.set(true);
             }}
@@ -450,7 +476,7 @@
             </div>
             {#each $customExportersStore as exporter}
               <button
-                on:click={() => handleExport("custom", exporter.name)}
+                onclick={() => handleExport("custom", exporter.name)}
                 class="block w-full text-left px-4 py-2 text-sm text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700"
               >
                 {exporter.name}
@@ -466,7 +492,7 @@
       <button
         title={action.title}
         aria-label={action.title}
-        on:click={action.onClick}
+        onclick={action.onClick}
         class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         {@html action.icon}
@@ -478,7 +504,7 @@
       id="sidebar-toggle-btn"
       title={`${showSidebar ? "Hide Sidebar" : "Show Sidebar"}${getShortcutFromSettings(settings, "toggle-sidebar")}`}
       aria-label={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
-      on:click={() => (showSidebar = !showSidebar)}
+      onclick={() => (showSidebar = !showSidebar)}
       class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
     >
       {#if showSidebar && isLargeScreen}

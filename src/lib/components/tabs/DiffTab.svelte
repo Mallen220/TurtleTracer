@@ -5,19 +5,23 @@
   import type { Settings } from "../../../types";
   import { PlusCircleIcon, MinusCircleIcon, PenIcon } from "../icons";
 
-  export let settings: Settings;
-  $: result = $diffResult;
+  interface Props {
+    settings: Settings;
+  }
+
+  let { settings }: Props = $props();
+  let result = $derived($diffResult);
 
   // Derived lists from the flat eventDiff array
-  $: addedEvents = result
-    ? result.eventDiff.filter((e) => e.changeType === "added")
-    : [];
-  $: removedEvents = result
-    ? result.eventDiff.filter((e) => e.changeType === "removed")
-    : [];
-  $: changedEvents = result
-    ? result.eventDiff.filter((e) => e.changeType === "changed")
-    : [];
+  let addedEvents = $derived(
+    result ? result.eventDiff.filter((e) => e.changeType === "added") : [],
+  );
+  let removedEvents = $derived(
+    result ? result.eventDiff.filter((e) => e.changeType === "removed") : [],
+  );
+  let changedEvents = $derived(
+    result ? result.eventDiff.filter((e) => e.changeType === "changed") : [],
+  );
 
   function formatNum(n: number) {
     return n.toFixed(2);

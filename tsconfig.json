@@ -14,8 +14,12 @@
     "allowJs": true,
     "checkJs": true,
     "isolatedModules": true,
-    "moduleDetection": "force"
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"],
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "src/**/*.svelte.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

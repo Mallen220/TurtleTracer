@@ -5,7 +5,11 @@
   import { saveAutoPathsDirectory } from "../../../utils/directorySettings";
   import { RocketIcon, FolderIcon } from "../icons";
 
-  export let show = false;
+  interface Props {
+    show?: boolean;
+  }
+
+  let { show = $bindable(false) }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
@@ -81,7 +85,7 @@
       </div>
       <button
         class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:shadow-green-500/20 transform hover:-translate-y-1 transition-all duration-200 flex items-center gap-3 text-lg w-full sm:w-auto justify-center"
-        on:click={selectDirectory}
+        onclick={selectDirectory}
       >
         <FolderIcon className="w-6 h-6" />
         Select Directory...

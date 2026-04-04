@@ -6,9 +6,13 @@
   import { getShortcutFromSettings } from "../../../utils";
   import { PlusIcon, ClockIcon, ArrowCircleIcon } from "../icons";
 
-  export let settings: any;
-  export let onAddLine: () => void;
-  export let onHandleAddAction: (def: any) => void;
+  interface Props {
+    settings: any;
+    onAddLine: () => void;
+    onHandleAddAction: (def: any) => void;
+  }
+
+  let { settings, onAddLine, onHandleAddAction }: Props = $props();
 
   function getButtonColorClass(color: string) {
     return getButtonFilledClass(color);
@@ -18,7 +22,7 @@
 {#each Object.values($actionRegistry) as def (def.kind)}
   {#if def.createDefault || def.isPath}
     <button
-      on:click={() => {
+      onclick={() => {
         if (def.isPath) onAddLine();
         else onHandleAddAction(def);
       }}

@@ -261,7 +261,7 @@ describe("codeExporter", () => {
         color: "black",
       };
       return line;
-    }
+    };
 
     it("should use correct start heading in setStartingPose", async () => {
       // Create a line that forces a specific start heading
@@ -513,15 +513,16 @@ describe("codeExporter", () => {
       expect(code).toMatch(/private PathChain BTOA;/);
 
       // Test duplicate path naming
-      const makeLine = (id: string, name: string, x: number, y: number) => ({
-        id,
-        endPoint: { x, y },
-        controlPoints: [],
-        color: "r",
-        name,
-        heading: "constant",
-        degrees: 0,
-      } as any);
+      const makeLine = (id: string, name: string, x: number, y: number) =>
+        ({
+          id,
+          endPoint: { x, y },
+          controlPoints: [],
+          color: "r",
+          name,
+          heading: "constant",
+          degrees: 0,
+        }) as any;
 
       const loopLines: Line[] = [
         makeLine("1", "A", 10, 10),

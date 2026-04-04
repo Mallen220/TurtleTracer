@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import type {
     Point,
     Line,
@@ -13,39 +15,85 @@
   import OptimizationDialog from "../dialogs/OptimizationDialog.svelte";
   import GlobalEventMarkers from "../GlobalEventMarkers.svelte";
   import ObstaclesSection from "../sections/ObstaclesSection.svelte";
+  import { linesStore } from "../../projectStore";
 
-  export let robotXY: BasePoint;
-  export let robotHeading: number;
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let sequence: SequenceItem[];
-  export let shapes: Shape[];
-  export let settings: Settings;
-  export let recordChange: () => void;
-  export let onPreviewChange: ((lines: Line[] | null) => void) | null = null;
-  export let isActive: boolean = false;
+  interface Props {
+    robotXY: BasePoint;
+    robotHeading: number;
+    startPoint: Point;
+    lines: Line[];
+    sequence: SequenceItem[];
+    shapes: Shape[];
+    settings: Settings;
+    recordChange: () => void;
+    onPreviewChange?: ((lines: Line[] | null) => void) | null;
+    isActive?: boolean;
+  }
+
+  let {
+    robotXY,
+    robotHeading,
+    startPoint,
+    lines = $bindable(),
+    sequence = $bindable(),
+    shapes = $bindable(),
+    settings,
+    recordChange,
+    onPreviewChange = null,
+    isActive = false,
+  }: Props = $props();
 
   // Local state for optimization
-  let optDialogRef: any = null;
-  let globalMarkersRef: GlobalEventMarkers;
-  let optIsRunning: boolean = false;
-  let optOptimizedLines: Line[] | null = null;
-  let optFailed: boolean = false;
+  let optDialogRef: any = $state(null);
+  let globalMarkersRef: GlobalEventMarkers | undefined = $state();
+  let optIsRunning: boolean = $state(false);
+  let optOptimizedLines: Line[] | null = $state(null);
+  let optFailed: boolean = $state(false);
 
   // Collapsed state
-  let collapsedSections = {
+  let collapsedSections = $state({
     obstacles: shapes.map(() => true),
     obstaclesSection: false,
     globalMarkers: false,
-  };
+  });
 
-  $: if (shapes.length !== collapsedSections.obstacles.length) {
-    collapsedSections.obstacles = shapes.map(() => true);
+  run(() => {
+    if (shapes.length !== collapsedSections.obstacles.length) {
+      collapsedSections.obstacles = shapes.map(() => true);
+    }
+  });
+
+  function toSerializableLines(input: Line[]): Line[] {
+    const seen = new WeakSet<object>();
+    const serialized = JSON.stringify(input, (_key, value) => {
+      if (typeof value === "function") return undefined;
+
+      if (value && typeof value === "object") {
+        if (typeof window !== "undefined" && value === window) {
+          return undefined;
+        }
+
+        if (typeof Node !== "undefined" && value instanceof Node) {
+          return undefined;
+        }
+
+        const obj = value as object;
+        if (seen.has(obj)) {
+          return undefined;
+        }
+        seen.add(obj);
+      }
+
+      return value;
+    });
+
+    return JSON.parse(serialized) as Line[];
   }
 
-  $: allCollapsed =
+  let allCollapsed = $derived(
     collapsedSections.obstacles.every((v) => v) &&
-    collapsedSections.globalMarkers;
+      collapsedSections.globalMarkers,
+  );
 
   function toggleCollapseAll() {
     if (allCollapsed) {
@@ -61,7 +109,10 @@
   }
 
   function handleOptimizationApply(newLines: Line[]) {
-    lines = newLines;
+    const safeLines = toSerializableLines(newLines);
+    // Commit to the canonical store first so recordChange snapshots the new path.
+    linesStore.set(safeLines);
+    lines = safeLines;
     recordChange?.();
   }
 

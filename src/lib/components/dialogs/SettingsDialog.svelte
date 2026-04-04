@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import { onMount } from "svelte";
   import { cubicInOut } from "svelte/easing";
   import {
@@ -27,9 +29,6 @@
   import AdvancedSettingsTab from "../settings/tabs/AdvancedSettingsTab.svelte";
   import AboutSettingsTab from "../settings/tabs/AboutSettingsTab.svelte";
 
-  export let isOpen = false;
-  export let settings: Settings = { ...DEFAULT_SETTINGS };
-
   type TabId =
     | "general"
     | "robot"
@@ -39,24 +38,14 @@
     | "sidebar"
     | "advanced"
     | "about";
-  let activeTab: TabId = "general";
-  let searchQuery = "";
-
-  // Sync active tab from store when opening
-  $: if (isOpen) {
-    activeTab = $settingsActiveTab as TabId;
-  }
-
-  // Reset tab when closed so it's fresh on next open
-  $: if (!isOpen) {
-    searchQuery = "";
-  }
+  let activeTab: TabId = $state("general");
+  let searchQuery = $state("");
 
   // Get version from package. json
   import packageJson from "../../../../package.json";
   let appVersion = packageJson.version;
 
-  let downloadCount: number | null = null;
+  let downloadCount: number | null = $state(null);
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && isOpen) {
@@ -162,6 +151,15 @@
   // Display value for max angular acceleration
 
   import { saveSettings } from "../../../utils/settingsPersistence";
+  interface Props {
+    isOpen?: boolean;
+    settings?: Settings;
+  }
+
+  let {
+    isOpen = $bindable(false),
+    settings = $bindable({ ...DEFAULT_SETTINGS }),
+  }: Props = $props();
 
   async function handleSave() {
     await saveSettings(settings);
@@ -191,47 +189,63 @@
     }
   }
 
-  $: availableMaps = [
+  // Sync active tab from store when opening
+  run(() => {
+    if (isOpen) {
+      activeTab = $settingsActiveTab as TabId;
+    }
+  });
+  // Reset tab when closed so it's fresh on next open
+  run(() => {
+    if (!isOpen) {
+      searchQuery = "";
+    }
+  });
+  let availableMaps = $derived([
     ...AVAILABLE_FIELD_MAPS,
     ...(settings.customMaps || []).map((m) => ({
       value: m.id,
       label: m.name || "Custom Field",
     })),
-  ];
-
+  ]);
   // ==== Sidebar Settings State ====
 
-  $: activeSidebarList = (() => {
-    const ids = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
-    return ids.map((id) => {
-      let item: any = SIDEBAR_ITEMS.find((i) => i.id === id);
-      const isCustom = !item && settings.customSidebarItems;
-      if (isCustom && settings.customSidebarItems) {
-        item = settings.customSidebarItems.find((i) => i.id === id);
-      }
-      return {
-        id,
-        label: item?.label ?? id,
-        icon: item?.iconSvg ?? "",
-        iconComponent: item?.iconComponent,
-        isCustom: !!isCustom,
-      };
-    });
-  })();
-
+  let activeSidebarList = $derived(
+    (() => {
+      const ids = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
+      return ids.map((id) => {
+        let item: any = SIDEBAR_ITEMS.find((i) => i.id === id);
+        const isCustom = !item && settings.customSidebarItems;
+        if (isCustom && settings.customSidebarItems) {
+          item = settings.customSidebarItems.find((i) => i.id === id);
+        }
+        return {
+          id,
+          label: item?.label ?? id,
+          icon: item?.iconSvg ?? "",
+          iconComponent: item?.iconComponent,
+          isCustom: !!isCustom,
+        };
+      });
+    })(),
+  );
   // Native drag-and-drop reordering
 
-  $: unusedAvailableTools = (() => {
-    const active = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
-    const builtIn = SIDEBAR_ITEMS.filter(
-      (i) =>
-        i.type !== "separator" && i.type !== "spacer" && !active.includes(i.id),
-    );
-    const custom = (settings.customSidebarItems || []).filter(
-      (i) => !active.includes(i.id),
-    );
-    return [...builtIn, ...custom];
-  })();
+  let unusedAvailableTools = $derived(
+    (() => {
+      const active = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
+      const builtIn = SIDEBAR_ITEMS.filter(
+        (i) =>
+          i.type !== "separator" &&
+          i.type !== "spacer" &&
+          !active.includes(i.id),
+      );
+      const custom = (settings.customSidebarItems || []).filter(
+        (i) => !active.includes(i.id),
+      );
+      return [...builtIn, ...custom];
+    })(),
+  );
 
   // Custom Item Form State
 
@@ -239,7 +253,7 @@
   // This includes all icons exported from the icons folder, plus a few friendly aliases.
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen}
   <div
@@ -294,7 +308,7 @@
           <nav class="flex-1 overflow-y-auto p-2 space-y-1">
             {#each tabs as tab}
               <button
-                on:click={() => {
+                onclick={() => {
                   activeTab = tab.id;
                   searchQuery = "";
                 }}
@@ -303,7 +317,7 @@
                   ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
                   : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
               >
-                <svelte:component this={tab.iconComponent} className="size-5" />
+                <tab.iconComponent className="size-5" />
                 {tab.label}
               </button>
             {/each}
@@ -312,7 +326,7 @@
           <!-- Sidebar Footer (Reset) -->
           <div class="p-4 border-t border-neutral-200 dark:border-neutral-800">
             <button
-              on:click={handleReset}
+              onclick={handleReset}
               class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-lg transition-colors"
             >
               <ArrowCircleIcon className="size-4" />
@@ -338,13 +352,13 @@
             </h3>
             <div class="flex gap-2 items-center">
               <button
-                on:click={handleSave}
+                onclick={handleSave}
                 class="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors shadow-sm"
               >
                 Save
               </button>
               <button
-                on:click={() => (isOpen = false)}
+                onclick={() => (isOpen = false)}
                 aria-label="Close settings"
                 class="p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-500"
               >

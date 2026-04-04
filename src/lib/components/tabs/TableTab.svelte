@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import type {
     Point,
     Line,
@@ -10,20 +12,34 @@
   // Fixed incorrect relative import: WaypointTable is one level up from the tabs folder
   import WaypointTable from "../WaypointTable.svelte";
 
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let sequence: SequenceItem[];
-  export let recordChange: () => void;
-  export let shapes: Shape[];
-  export let settings: Settings;
-  export let isActive: boolean = false;
-
-  let waypointTableRef: any = null;
-
-  let collapsedObstacles = shapes.map(() => true);
-  $: if (shapes.length !== collapsedObstacles.length) {
-    collapsedObstacles = shapes.map(() => true);
+  interface Props {
+    startPoint: Point;
+    lines: Line[];
+    sequence: SequenceItem[];
+    recordChange: () => void;
+    shapes: Shape[];
+    settings: Settings;
+    isActive?: boolean;
   }
+
+  let {
+    startPoint = $bindable(),
+    lines = $bindable(),
+    sequence = $bindable(),
+    recordChange,
+    shapes = $bindable(),
+    settings,
+    isActive = false,
+  }: Props = $props();
+
+  let waypointTableRef: any = $state(null);
+
+  let collapsedObstacles = $state(shapes.map(() => true));
+  run(() => {
+    if (shapes.length !== collapsedObstacles.length) {
+      collapsedObstacles = shapes.map(() => true);
+    }
+  });
 
   function handleOptimizationApply(newLines: Line[]) {
     lines = newLines;

@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { stopPropagation } from "svelte/legacy";
+
   import type { SequenceMacroItem, SequenceItem } from "../../../types";
   import TrashIcon from "../icons/TrashIcon.svelte";
   import EllipsisHorizontalIcon from "../icons/EllipsisHorizontalIcon.svelte";
@@ -8,27 +10,43 @@
   import UnlockIcon from "../icons/UnlockIcon.svelte";
   import { focusRequest } from "../../../stores";
 
-  export let item: SequenceMacroItem;
-  export let index: number;
-  export let isLocked: boolean = false;
+  interface Props {
+    item: SequenceMacroItem;
+    index: number;
+    isLocked?: boolean;
+    // Drag & Drop props
+    dragOverIndex?: number | null;
+    dragPosition?: string | null;
+    draggingIndex?: number | null;
+    // Interaction callbacks
+    onUpdate: (item: SequenceMacroItem) => void;
+    onLock: () => void;
+    onDelete: () => void;
+    onUnlink?: (() => void) | undefined;
+    onDragStart: (e: DragEvent) => void;
+    onDragEnd: () => void;
+    onContextMenu: (e: MouseEvent) => void;
+  }
 
-  // Drag & Drop props
-  export let dragOverIndex: number | null = null;
-  export let dragPosition: string | null = null;
-  export let draggingIndex: number | null = null;
-
-  // Interaction callbacks
-  export let onUpdate: (item: SequenceMacroItem) => void;
-  export let onLock: () => void;
-  export let onDelete: () => void;
-  export let onUnlink: (() => void) | undefined = undefined;
-  export let onDragStart: (e: DragEvent) => void;
-  export let onDragEnd: () => void;
-  export let onContextMenu: (e: MouseEvent) => void;
+  let {
+    item = $bindable(),
+    index,
+    isLocked = false,
+    dragOverIndex = null,
+    dragPosition = null,
+    draggingIndex = null,
+    onUpdate,
+    onLock,
+    onDelete,
+    onUnlink = undefined,
+    onDragStart,
+    onDragEnd,
+    onContextMenu,
+  }: Props = $props();
 
   export const sequence: SequenceItem[] = [];
 
-  $: macroItem = item as any; // Cast for template usage
+  let macroItem = $derived(item as any); // Cast for template usage
 
   function focusOnRequest(
     node: HTMLElement,
@@ -56,15 +74,15 @@
     onUpdate(item);
   }
 
-  $: filePath = (item as any).filePath || "";
+  let filePath = $derived((item as any).filePath || "");
 </script>
 
 <tr
   data-seq-index={index}
   draggable={!isLocked}
-  on:dragstart={onDragStart}
-  on:dragend={onDragEnd}
-  on:contextmenu={onContextMenu}
+  ondragstart={onDragStart}
+  ondragend={onDragEnd}
+  oncontextmenu={onContextMenu}
   class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-teal-50 dark:bg-teal-900/20 transition-colors duration-150"
   class:border-t-2={dragOverIndex === index && dragPosition === "top"}
   class:border-b-2={dragOverIndex === index && dragPosition === "bottom"}
@@ -82,7 +100,7 @@
       <input
         class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-teal-500 focus:outline-none text-xs pr-6"
         value={item.name}
-        on:input={handleNameInput}
+        oninput={handleNameInput}
         use:focusOnRequest={{
           id: `macro-${item.id}`,
           field: "name",
@@ -110,7 +128,7 @@
   <td class="px-3 py-2 text-left flex items-center justify-start gap-1">
     <!-- Lock toggle for macro -->
     <button
-      on:click|stopPropagation={onLock}
+      onclick={stopPropagation(onLock)}
       title={isLocked ? "Unlock macro" : "Lock macro"}
       aria-label={isLocked ? "Unlock macro" : "Lock macro"}
       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
@@ -127,7 +145,7 @@
     {#if !isLocked}
       {#if onUnlink}
         <button
-          on:click|stopPropagation={onUnlink}
+          onclick={stopPropagation(onUnlink)}
           title="Unlink macro"
           aria-label="Unlink macro"
           class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-teal-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"
@@ -136,7 +154,7 @@
         </button>
       {/if}
       <button
-        on:click|stopPropagation={onDelete}
+        onclick={stopPropagation(onDelete)}
         title="Delete macro"
         aria-label="Delete macro"
         class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"

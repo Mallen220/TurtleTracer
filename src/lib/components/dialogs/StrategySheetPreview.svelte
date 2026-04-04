@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run, self } from "svelte/legacy";
+
   import { tick } from "svelte";
   import type { Point, Line, SequenceItem, Settings } from "../../../types";
   import { fade, fly } from "svelte/transition";
@@ -12,17 +14,29 @@
   import { extraDataStore } from "../../projectStore";
   import { CloseIcon, DocumentIcon, ArrowDownTrayIcon } from "../icons";
 
-  export let isOpen = false;
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let sequence: SequenceItem[];
-  export let settings: Settings;
-  export let timePrediction: any; // Type is loose because TimePrediction might be complex
-  export let twoInstance: any = null; // Two.js instance
+  interface Props {
+    isOpen?: boolean;
+    startPoint: Point;
+    lines: Line[];
+    sequence: SequenceItem[];
+    settings: Settings;
+    timePrediction: any; // Type is loose because TimePrediction might be complex
+    twoInstance?: any; // Two.js instance
+  }
 
-  let fieldContainer: HTMLDivElement;
-  let dialogRef: HTMLDivElement;
-  let textareaRef: HTMLTextAreaElement;
+  let {
+    isOpen = $bindable(false),
+    startPoint,
+    lines,
+    sequence,
+    settings,
+    timePrediction,
+    twoInstance = null,
+  }: Props = $props();
+
+  let fieldContainer: HTMLDivElement | undefined = $state();
+  let dialogRef: HTMLDivElement | undefined = $state();
+  let textareaRef: HTMLTextAreaElement | undefined = $state();
 
   /**
    * Auto-resizes the Strategy Notes textarea so that all content is visible,
@@ -338,14 +352,16 @@
     fieldContainer.appendChild(svg);
   }
 
-  $: if (isOpen) {
-    tick().then(() => {
-      renderField();
-      if (dialogRef) dialogRef.focus();
-      // Initial resize for notes
-      autoResizeTextarea();
-    });
-  }
+  run(() => {
+    if (isOpen) {
+      tick().then(() => {
+        renderField();
+        if (dialogRef) dialogRef.focus();
+        // Initial resize for notes
+        autoResizeTextarea();
+      });
+    }
+  });
 
   function handlePrint() {
     window.print();
@@ -393,76 +409,80 @@
   }
 
   // Combine Path, Waits, and Rotations into a linear list for the table
-  $: combinedSequence = (() => {
-    const items: Array<{
-      type: "path" | "wait" | "macro" | "rotate";
-      name: string;
-      details: string;
-      events: string[];
-      duration?: number;
-    }> = [];
+  let combinedSequence = $derived(
+    (() => {
+      const items: Array<{
+        type: "path" | "wait" | "macro" | "rotate";
+        name: string;
+        details: string;
+        events: string[];
+        duration?: number;
+      }> = [];
 
-    // Helper to find line by ID
-    const findLine = (id: string) => lines.find((l) => l.id === id);
+      // Helper to find line by ID
+      const findLine = (id: string) => lines.find((l) => l.id === id);
 
-    // Initial Start
-    // items.push({ type: 'start', name: 'Start', details: `(${startPoint.x.toFixed(1)}, ${startPoint.y.toFixed(1)})`, events: [] });
+      // Initial Start
+      // items.push({ type: 'start', name: 'Start', details: `(${startPoint.x.toFixed(1)}, ${startPoint.y.toFixed(1)})`, events: [] });
 
-    // Iterate Sequence
-    sequence.forEach((seqItem, idx) => {
-      if (seqItem.kind === "path") {
-        const line = findLine(seqItem.lineId);
-        if (line) {
-          const events = (line.eventMarkers || []).map(
-            (e) => `${e.name} @ ${(e.position * 100).toFixed(0)}%`,
-          );
+      // Iterate Sequence
+      sequence.forEach((seqItem, idx) => {
+        if (seqItem.kind === "path") {
+          const line = findLine(seqItem.lineId);
+          if (line) {
+            const events = (line.eventMarkers || []).map(
+              (e) => `${e.name} @ ${(e.position * 100).toFixed(0)}%`,
+            );
+            items.push({
+              type: "path",
+              name: line.name || `Path ${lines.indexOf(line) + 1}`,
+              details: `-> (${line.endPoint.x.toFixed(1)}, ${line.endPoint.y.toFixed(1)})`,
+              events,
+              duration: undefined,
+            });
+          }
+        } else if (seqItem.kind === "wait") {
           items.push({
-            type: "path",
-            name: line.name || `Path ${lines.indexOf(line) + 1}`,
-            details: `-> (${line.endPoint.x.toFixed(1)}, ${line.endPoint.y.toFixed(1)})`,
-            events,
-            duration: undefined,
+            type: "wait",
+            name: seqItem.name || "Wait",
+            details: `${seqItem.durationMs}ms`,
+            events: [],
+            duration: seqItem.durationMs / 1000,
+          });
+        } else if (seqItem.kind === "rotate") {
+          items.push({
+            type: "rotate",
+            name: seqItem.name || "Rotate",
+            details: `${seqItem.degrees}°`,
+            events: (seqItem.eventMarkers || []).map(
+              (e) => `${e.name} @ ${(e.position * 100).toFixed(0)}%`,
+            ),
+          });
+        } else if (seqItem.kind === "macro") {
+          items.push({
+            type: "macro",
+            name: seqItem.name,
+            details: "Macro",
+            events: [],
           });
         }
-      } else if (seqItem.kind === "wait") {
-        items.push({
-          type: "wait",
-          name: seqItem.name || "Wait",
-          details: `${seqItem.durationMs}ms`,
-          events: [],
-          duration: seqItem.durationMs / 1000,
-        });
-      } else if (seqItem.kind === "rotate") {
-        items.push({
-          type: "rotate",
-          name: seqItem.name || "Rotate",
-          details: `${seqItem.degrees}°`,
-          events: (seqItem.eventMarkers || []).map(
-            (e) => `${e.name} @ ${(e.position * 100).toFixed(0)}%`,
-          ),
-        });
-      } else if (seqItem.kind === "macro") {
-        items.push({
-          type: "macro",
-          name: seqItem.name,
-          details: "Macro",
-          events: [],
-        });
-      }
-    });
+      });
 
-    return items;
-  })();
+      return items;
+    })(),
+  );
 
-  $: projectName = $currentFilePath
-    ? $currentFilePath
-        .split(/[\\/]/)
-        .pop()
-        ?.replace(/\.(pp|turt)$/i, "")
-    : "Untitled Project";
+  let projectName = $derived(
+    $currentFilePath
+      ? $currentFilePath
+          .split(/[\\/]/)
+          .pop()
+          ?.replace(/\.(pp|turt)$/i, "")
+      : "Untitled Project",
+  );
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen}
   <!-- Backdrop (Hidden on Print) -->
@@ -470,7 +490,7 @@
     transition:fade={{ duration: 200 }}
     class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 print:hidden"
     role="presentation"
-    on:click|self={handleClose}
+    onclick={self(handleClose)}
   >
     <!-- Dialog Panel -->
     <div
@@ -494,21 +514,21 @@
         </h2>
         <div class="flex items-center gap-2">
           <button
-            on:click={handlePrint}
+            onclick={handlePrint}
             class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
           >
             <DocumentIcon className="size-4" />
             Print
           </button>
           <button
-            on:click={handleDownloadPdf}
+            onclick={handleDownloadPdf}
             class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
           >
             <ArrowDownTrayIcon className="size-4" />
             Download PDF
           </button>
           <button
-            on:click={handleClose}
+            onclick={handleClose}
             class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
             <CloseIcon className="size-5" />
@@ -667,7 +687,7 @@
                 class="w-full flex-1 min-h-[150px] p-2 bg-transparent border-none resize-none focus:outline-none focus:ring-1 focus:ring-gray-300 print:overflow-visible overflow-hidden text-sm leading-relaxed"
                 placeholder="Type your strategy notes here..."
                 bind:value={$extraDataStore.strategyNotes}
-                on:input={autoResizeTextarea}
+                oninput={autoResizeTextarea}
               ></textarea>
               {#if !$extraDataStore.strategyNotes}
                 <!--

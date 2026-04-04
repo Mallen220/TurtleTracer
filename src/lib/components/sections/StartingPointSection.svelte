@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run, stopPropagation } from "svelte/legacy";
+
   import type { Point, Settings } from "../../../types/index";
   import { selectedPointId, focusRequest } from "../../../stores";
   import { linesStore } from "../../../lib/projectStore";
@@ -12,35 +14,49 @@
   } from "../../../utils/coordinates";
   import HeadingControls from "../HeadingControls.svelte";
 
-  export let startPoint: Point;
-  export let settings: Settings;
-  export let addPathAtStart: () => void;
-  export let addWaitAtStart: () => void;
-  export let addRotateAtStart: () => void;
   import CollapseAllButton from "../tools/CollapseAllButton.svelte";
   import LockIcon from "../icons/LockIcon.svelte";
   import MapPinIcon from "../icons/MapPinIcon.svelte";
   import PlusIcon from "../icons/PlusIcon.svelte";
   import UnlockIcon from "../icons/UnlockIcon.svelte";
 
-  export let toggleCollapseAll: () => void;
-  export let allCollapsed: boolean;
+  interface Props {
+    startPoint: Point;
+    settings: Settings;
+    addPathAtStart: () => void;
+    addWaitAtStart: () => void;
+    addRotateAtStart: () => void;
+    toggleCollapseAll: () => void;
+    allCollapsed: boolean;
+  }
 
-  let xInput: HTMLInputElement;
-  let yInput: HTMLInputElement;
-  let headingControls: HeadingControls;
+  let {
+    startPoint = $bindable(),
+    settings,
+    addPathAtStart,
+    addWaitAtStart,
+    addRotateAtStart,
+    toggleCollapseAll,
+    allCollapsed,
+  }: Props = $props();
 
-  $: lines = $linesStore;
+  let xInput: HTMLInputElement | undefined = $state();
+  let yInput: HTMLInputElement | undefined = $state();
+  let headingControls: HeadingControls | undefined = $state();
+
+  let lines = $derived($linesStore);
 
   // Subscribe to focus requests
-  $: if ($focusRequest) {
-    if ($selectedPointId === "point-0-0") {
-      if ($focusRequest.field === "x" && xInput) xInput.focus();
-      if ($focusRequest.field === "y" && yInput) yInput.focus();
-      if ($focusRequest.field === "heading" && headingControls)
-        headingControls.focus();
+  run(() => {
+    if ($focusRequest) {
+      if ($selectedPointId === "point-0-0") {
+        if ($focusRequest.field === "x" && xInput) xInput.focus();
+        if ($focusRequest.field === "y" && yInput) yInput.focus();
+        if ($focusRequest.field === "heading" && headingControls)
+          headingControls.focus();
+      }
     }
-  }
+  });
 </script>
 
 <div
@@ -61,10 +77,10 @@
         aria-label={startPoint.locked
           ? "Unlock Starting Point"
           : "Lock Starting Point"}
-        on:click|stopPropagation={() => {
+        onclick={stopPropagation(() => {
           startPoint.locked = !startPoint.locked;
           startPoint = { ...startPoint };
-        }}
+        })}
         class="ml-1 p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         {#if startPoint.locked}
@@ -91,7 +107,7 @@
             toUser(startPoint, settings?.coordinateSystem || "Pedro").x,
             settings,
           )}
-          on:change={(e) => {
+          onchange={(e) => {
             let val = parseFloat(e.currentTarget.value);
             if (!isNaN(val)) {
               if (settings?.visualizerUnits === "metric") val = cmToInch(val);
@@ -127,7 +143,7 @@
             toUser(startPoint, settings?.coordinateSystem || "Pedro").y,
             settings,
           )}
-          on:change={(e) => {
+          onchange={(e) => {
             let val = parseFloat(e.currentTarget.value);
             if (!isNaN(val)) {
               if (settings?.visualizerUnits === "metric") val = cmToInch(val);
@@ -179,7 +195,7 @@
       >After first step:</span
     >
     <button
-      on:click={addPathAtStart}
+      onclick={addPathAtStart}
       aria-label="Add Path after start"
       title={`Add Path${getShortcutFromSettings(settings, "add-path-start")}`}
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800/30 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
@@ -188,7 +204,7 @@
       Path
     </button>
     <button
-      on:click={addWaitAtStart}
+      onclick={addWaitAtStart}
       aria-label="Add Wait after start"
       title={`Add Wait${getShortcutFromSettings(settings, "add-wait-start")}`}
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200 dark:border-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
@@ -197,7 +213,7 @@
       Wait
     </button>
     <button
-      on:click={addRotateAtStart}
+      onclick={addRotateAtStart}
       aria-label="Add Rotate after start"
       title={`Add Rotate${getShortcutFromSettings(settings, "add-rotate-start")}`}
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"

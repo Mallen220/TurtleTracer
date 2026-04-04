@@ -127,70 +127,71 @@ describe("exportAnimation", () => {
       });
       setTimeout(() => controller.abort(), 10);
       await expect(p).rejects.toHaveProperty("name", "AbortError");
-    }
+    };
 
     it("should abort when signal is aborted (GIF)", async () => {
       await setupAbortTest(exportPathToGif);
     });
 
-  describe("exportPathToApng", () => {
-    it("should export an APNG blob", async () => {
-      const blob = await exportPathToApng(options);
-      expect(blob).toBeDefined();
-      expect(blob.type).toBe("image/png");
+    describe("exportPathToApng", () => {
+      it("should export an APNG blob", async () => {
+        const blob = await exportPathToApng(options);
+        expect(blob).toBeDefined();
+        expect(blob.type).toBe("image/png");
 
-      expect(mockController.pause).toHaveBeenCalled();
-      expect(mockController.seekToPercent).toHaveBeenCalled();
-      expect(mockController.play).toHaveBeenCalled();
+        expect(mockController.pause).toHaveBeenCalled();
+        expect(mockController.seekToPercent).toHaveBeenCalled();
+        expect(mockController.play).toHaveBeenCalled();
+      });
+
+      it("should respect quality settings", async () => {
+        // Quality <= 9 should use cnum 0 (lossless)
+        const upng = await import("upng-js");
+        await exportPathToApng({ ...options, quality: 5 });
+        expect(upng.encode).toHaveBeenCalledWith(
+          expect.anything(),
+          100,
+          100,
+          0,
+          expect.anything(),
+        );
+
+        // Quality >= 10 should use cnum 256
+        await exportPathToApng({ ...options, quality: 20 });
+        expect(upng.encode).toHaveBeenCalledWith(
+          expect.anything(),
+          100,
+          100,
+          256,
+          expect.anything(),
+        );
+      });
+
+      it("should not cap frames for APNG exports", async () => {
+        const duration = 20; // seconds
+        const fps = 30;
+        const calculatedFrames = Math.ceil(duration * fps);
+        const upng = await import("upng-js");
+        await exportPathToApng({ ...options, durationSec: duration, fps });
+        // The first argument to encode is the buffers array
+        const mockEncode = upng.encode as unknown as {
+          mock: { calls: any[][] };
+        };
+        expect(mockEncode.mock.calls.length).toBeGreaterThanOrEqual(1);
+        const buffers =
+          mockEncode.mock.calls[mockEncode.mock.calls.length - 1][0];
+        expect(buffers.length).toBe(calculatedFrames);
+
+        // Ensure delays sum to total duration in ms
+        const delays =
+          mockEncode.mock.calls[mockEncode.mock.calls.length - 1][4];
+        const totalMs = delays.reduce((s: number, v: number) => s + v, 0);
+        expect(totalMs).toBe(Math.round(duration * 1000));
+      });
+
+      it("should abort when signal is aborted (APNG)", async () => {
+        await setupAbortTest(exportPathToApng);
+      });
     });
-
-    it("should respect quality settings", async () => {
-      // Quality <= 9 should use cnum 0 (lossless)
-      const upng = await import("upng-js");
-      await exportPathToApng({ ...options, quality: 5 });
-      expect(upng.encode).toHaveBeenCalledWith(
-        expect.anything(),
-        100,
-        100,
-        0,
-        expect.anything(),
-      );
-
-      // Quality >= 10 should use cnum 256
-      await exportPathToApng({ ...options, quality: 20 });
-      expect(upng.encode).toHaveBeenCalledWith(
-        expect.anything(),
-        100,
-        100,
-        256,
-        expect.anything(),
-      );
-    });
-
-    it("should not cap frames for APNG exports", async () => {
-      const duration = 20; // seconds
-      const fps = 30;
-      const calculatedFrames = Math.ceil(duration * fps);
-      const upng = await import("upng-js");
-      await exportPathToApng({ ...options, durationSec: duration, fps });
-      // The first argument to encode is the buffers array
-      const mockEncode = upng.encode as unknown as {
-        mock: { calls: any[][] };
-      };
-      expect(mockEncode.mock.calls.length).toBeGreaterThanOrEqual(1);
-      const buffers =
-        mockEncode.mock.calls[mockEncode.mock.calls.length - 1][0];
-      expect(buffers.length).toBe(calculatedFrames);
-
-      // Ensure delays sum to total duration in ms
-      const delays = mockEncode.mock.calls[mockEncode.mock.calls.length - 1][4];
-      const totalMs = delays.reduce((s: number, v: number) => s + v, 0);
-      expect(totalMs).toBe(Math.round(duration * 1000));
-    });
-
-    it("should abort when signal is aborted (APNG)", async () => {
-      await setupAbortTest(exportPathToApng);
-    });
-  });
   });
 });

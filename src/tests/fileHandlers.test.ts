@@ -206,7 +206,7 @@ describe("fileHandlers", () => {
       linesStore.set([{ id: "1", name: "Line 1" } as any]);
 
       await fileHandlers.saveProject();
-    }
+    };
 
     it("uses saveFile API when available", async () => {
       await setupSaveTest("/saved/file.turt", "/saved/file.turt");
@@ -349,7 +349,6 @@ describe("fileHandlers", () => {
       // Depending on separator logic in implementation
       expect(mockElectronAPI.copyFile).toHaveBeenCalled();
     });
-
 
     it("triggers auto-export (and embeds startPoint) when a file is opened externally and auto-export is enabled", async () => {
       const fileData = {

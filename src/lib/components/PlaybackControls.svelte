@@ -1,28 +1,8 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  export let playing: boolean;
-  export let play: () => any;
-  export let pause: () => any;
-  export let percent: number;
-  export let handleSeek: (percent: number) => void;
-  export let loopAnimation: boolean;
-  // New prop for timeline items (markers, waits, rotates)
-  export let timelineItems: {
-    type: "marker" | "wait" | "rotate" | "dot" | "macro";
-    percent: number;
-    durationPercent?: number;
-    color?: string;
-    name: string;
-    explicit?: boolean; // true = user-defined action, false = implicit pathing behavior
-    fromWait?: boolean; // true when the marker comes from a wait/rotate event
-    id?: string;
-    parentId?: string;
-  }[] = [];
-  export let playbackSpeed: number = 1.0;
-  export let setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
-  export let totalSeconds: number = 0;
-  export let settings: Settings | undefined;
-  export let splitPath: () => void = () => {};
+  import { run, stopPropagation, createBubbler } from "svelte/legacy";
+
+  const bubble = createBubbler();
 
   import type { Settings } from "../../types";
   import { fly } from "svelte/transition";
@@ -45,30 +25,70 @@
     PauseIcon,
     CheckIcon,
   } from "./icons";
+  interface Props {
+    playing: boolean;
+    play: () => any;
+    pause: () => any;
+    percent: number;
+    handleSeek: (percent: number) => void;
+    loopAnimation: boolean;
+    // New prop for timeline items (markers, waits, rotates)
+    timelineItems?: {
+      type: "marker" | "wait" | "rotate" | "dot" | "macro";
+      percent: number;
+      durationPercent?: number;
+      color?: string;
+      name: string;
+      explicit?: boolean; // true = user-defined action, false = implicit pathing behavior
+      fromWait?: boolean; // true when the marker comes from a wait/rotate event
+      id?: string;
+      parentId?: string;
+    }[];
+    playbackSpeed?: number;
+    setPlaybackSpeed: (factor: number, autoPlay?: boolean) => void;
+    totalSeconds?: number;
+    settings: Settings | undefined;
+    splitPath?: () => void;
+  }
+
+  let {
+    playing = $bindable(),
+    play,
+    pause,
+    percent = $bindable(),
+    handleSeek,
+    loopAnimation = $bindable(),
+    timelineItems = [],
+    playbackSpeed = 1.0,
+    setPlaybackSpeed,
+    totalSeconds = 0,
+    settings,
+    splitPath = () => {},
+  }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
   // Speed dropdown state & helpers
-  let showSpeedMenu = false;
+  let showSpeedMenu = $state(false);
   const speedOptions = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0];
 
   // Drag State
-  let draggingMarkerIndex: number | null = null;
+  let draggingMarkerIndex: number | null = $state(null);
   let draggingMarkerId: string | null = null;
-  let draggingMarkerPercent: number = 0;
+  let draggingMarkerPercent: number = $state(0);
   let wasPlayingBeforeDrag: boolean = false;
   let timelineRect: DOMRect | null = null;
-  let timelineContainer: HTMLElement;
-  let ignoreClick = false;
+  let timelineContainer: HTMLElement | undefined = $state();
+  let ignoreClick = $state(false);
 
-  let showContextMenu = false;
-  let contextMenuX = 0;
-  let contextMenuY = 0;
+  let showContextMenu = $state(false);
+  let contextMenuX = $state(0);
+  let contextMenuY = $state(0);
   let contextMenuTargetId: string | null = null;
 
   let draggingLoopHandle: "min" | "max" | null = null;
-  let loopRangeActive = false;
-  let loopRange: [number, number] = [0, 100];
+  let loopRangeActive = $state(false);
+  let loopRange: [number, number] = $state([0, 100]);
   let unsub1: () => void;
   let unsub2: () => void;
 
@@ -118,10 +138,11 @@
     if (wasPlayingBeforeDrag) play();
   }
 
-  $: currentTime =
+  let currentTime = $derived(
     (draggingMarkerIndex !== null
       ? draggingMarkerPercent / 100
-      : percent / 100) * totalSeconds;
+      : percent / 100) * totalSeconds,
+  );
 
   function toggleSpeedMenu() {
     showSpeedMenu = !showSpeedMenu;
@@ -136,7 +157,7 @@
     if (e.key === "Escape") showSpeedMenu = false;
   }
 
-  let shiftHeld = false;
+  let shiftHeld = $state(false);
 
   function step(amount: number) {
     let newPercent = percent + amount;
@@ -208,12 +229,14 @@
   }
 
   // Time Editing
-  let isEditingTime = false;
-  let timeInputValue = "";
+  let isEditingTime = $state(false);
+  let timeInputValue = $state("");
 
-  $: if (!isEditingTime) {
-    timeInputValue = formatTime(currentTime);
-  }
+  run(() => {
+    if (!isEditingTime) {
+      timeInputValue = formatTime(currentTime);
+    }
+  });
 
   function handleTimeInput(e: Event) {
     const target = e.target as HTMLInputElement;
@@ -432,7 +455,7 @@
         tabindex="0"
         class="absolute top-1/2 -translate-y-1/2 w-2 h-4 bg-purple-500 hover:bg-purple-400 cursor-ew-resize z-20 rounded-sm shadow-md"
         style="left: {loopRange[0]}%; transform: translateX(-50%);"
-        on:mousedown={(e) => startDragLoopHandle(e, "min")}
+        onmousedown={(e) => startDragLoopHandle(e, "min")}
       ></div>
       <!-- B Handle -->
 
@@ -442,7 +465,7 @@
         tabindex="0"
         class="absolute top-1/2 -translate-y-1/2 w-2 h-4 bg-purple-500 hover:bg-purple-400 cursor-ew-resize z-20 rounded-sm shadow-md"
         style="left: {loopRange[1]}%; transform: translateX(-50%);"
-        on:mousedown={(e) => startDragLoopHandle(e, "max")}
+        onmousedown={(e) => startDragLoopHandle(e, "max")}
       ></div>
     {/if}
 
@@ -457,8 +480,8 @@
       aria-label="Animation progress"
       class="w-full appearance-none slider focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 rounded-full bg-transparent dark:bg-transparent relative z-10 timeline-slider"
       style={draggingMarkerIndex !== null ? "pointer-events: none;" : ""}
-      on:input={handleSeekInput}
-      on:keydown={handleSliderKeydown}
+      oninput={handleSeekInput}
+      onkeydown={handleSliderKeydown}
     />
 
     <!-- Event Markers Layer (Top, Map Pins) -->
@@ -469,13 +492,13 @@
           class="absolute z-20 group rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
           role="button"
           tabindex="0"
-          on:mousedown={(e) => handleMarkerDragStart(e, index, item)}
-          on:contextmenu={(e) => handleContextMenu(e, item.id)}
-          on:click={(e) => {
+          onmousedown={(e) => handleMarkerDragStart(e, index, item)}
+          oncontextmenu={(e) => handleContextMenu(e, item.id)}
+          onclick={(e) => {
             if (ignoreClick) return;
             if (draggingMarkerIndex === null) handleSeek(item.percent);
           }}
-          on:keydown={(e) => {
+          onkeydown={(e) => {
             if (e.key === "Enter" || e.key === " ") handleSeek(item.percent);
           }}
           style="left: {draggingMarkerIndex === index
@@ -495,10 +518,8 @@
 
           <!-- Map Pin Icon -->
           <MapPinIcon
-            className={item.fromWait
-              ? "w-6 h-6 drop-shadow-md transition-transform group-hover:scale-125 text-black dark:text-white stroke-white dark:stroke-neutral-900"
-              : "w-6 h-6 text-purple-500 drop-shadow-md transition-transform group-hover:scale-125 stroke-white dark:stroke-neutral-900"}
-            style={item.fromWait ? "" : `color: ${item.color || "#a855f7"}`}
+            className="w-6 h-6 drop-shadow-md transition-transform group-hover:scale-125"
+            style={item.color ? `color: ${item.color}` : ""}
           />
         </div>
       {:else if item.type === "dot"}
@@ -506,8 +527,8 @@
           class="absolute z-20 group ring-2 ring-black/5 dark:ring-white/20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
           role="button"
           tabindex="0"
-          on:click={() => handleSeek(item.percent)}
-          on:keydown={(e) => {
+          onclick={() => handleSeek(item.percent)}
+          onkeydown={(e) => {
             if (e.key === "Enter" || e.key === " ") handleSeek(item.percent);
           }}
           style={`left: ${item.percent}%; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; background: ${item.color}; cursor: pointer;`}
@@ -533,7 +554,7 @@
         aria-label="Playback speed options"
         aria-haspopup="menu"
         aria-expanded={showSpeedMenu}
-        on:click|stopPropagation={toggleSpeedMenu}
+        onclick={stopPropagation(toggleSpeedMenu)}
         class="flex items-center gap-2 px-3 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-sm text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
         tabindex="0"
       >
@@ -551,18 +572,18 @@
           role="menu"
           aria-label="Playback speeds"
           class="absolute left-0 bottom-full mb-2 w-36 rounded-md bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 shadow-lg z-50 overflow-hidden"
-          on:click|stopPropagation
-          on:keydown|stopPropagation
+          onclick={stopPropagation(bubble("click"))}
+          onkeydown={stopPropagation(bubble("keydown"))}
           use:menuNavigation
-          on:close={() => (showSpeedMenu = false)}
+          onclose={() => (showSpeedMenu = false)}
           in:fly={{ y: 8, duration: 160, easing: cubicInOut }}
           out:fly={{ y: 8, duration: 120, easing: cubicInOut }}
         >
           {#each speedOptions as s}
             <li role="menuitem">
               <button
-                on:click={() => selectSpeed(s)}
-                on:keydown={(e) => {
+                onclick={() => selectSpeed(s)}
+                onkeydown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     selectSpeed(s);
@@ -590,7 +611,7 @@
       <button
         title="Split Path Here"
         aria-label="Split path here"
-        on:click={splitPath}
+        onclick={splitPath}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <ScissorsIcon className="size-5" />
@@ -600,7 +621,7 @@
       <button
         title="Skip to Start"
         aria-label="Skip to start"
-        on:click={() => handleSeek(0)}
+        onclick={() => handleSeek(0)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <SkipToStartIcon className="size-4" />
@@ -610,7 +631,7 @@
       <button
         title="Step Back"
         aria-label="Step back"
-        on:click={() => step(-0.5)}
+        onclick={() => step(-0.5)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <ChevronLeftIcon className="size-5" />
@@ -623,7 +644,7 @@
           ? `Pause Animation${getShortcutFromSettings(settings, "play-pause")}`
           : `Play Animation${getShortcutFromSettings(settings, "play-pause")}`}
         aria-label={playing ? "Pause animation" : "Play animation"}
-        on:click={() => {
+        onclick={() => {
           if (playing) {
             pause();
           } else {
@@ -646,7 +667,7 @@
       <button
         title="Step Forward"
         aria-label="Step forward"
-        on:click={() => step(0.5)}
+        onclick={() => step(0.5)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <ChevronRightIcon className="size-5" />
@@ -656,7 +677,7 @@
       <button
         title="Skip to End"
         aria-label="Skip to end"
-        on:click={() => handleSeek(100)}
+        onclick={() => handleSeek(100)}
         class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <SkipToEndIcon className="size-4" />
@@ -670,10 +691,10 @@
         <input
           type="text"
           value={timeInputValue}
-          on:input={handleTimeInput}
-          on:focus={handleTimeFocus}
-          on:blur={commitTime}
-          on:keydown={handleTimeKey}
+          oninput={handleTimeInput}
+          onfocus={handleTimeFocus}
+          onblur={commitTime}
+          onkeydown={handleTimeKey}
           class="w-20 px-2 py-1 text-xs font-mono text-center bg-transparent border border-transparent rounded hover:border-neutral-300 dark:hover:border-neutral-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all text-neutral-600 dark:text-neutral-400"
           aria-label="Current time"
         />
@@ -684,7 +705,7 @@
         title="Toggle Section Looping"
         aria-label="Toggle Section Looping"
         aria-pressed={loopRangeActive}
-        on:click={() => {
+        onclick={() => {
           const newVal = !loopRangeActive;
           loopRangeActiveStore.set(newVal);
           if (newVal) {
@@ -708,7 +729,7 @@
         title={loopAnimation ? "Disable Loop" : "Enable Loop"}
         aria-label="Loop animation"
         aria-pressed={loopAnimation}
-        on:click={() => (loopAnimation = !loopAnimation)}
+        onclick={() => (loopAnimation = !loopAnimation)}
         class:opacity-100={loopAnimation}
         class:opacity-50={!loopAnimation}
         class="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
@@ -721,12 +742,12 @@
 </div>
 
 <svelte:window
-  on:click={() => (showSpeedMenu = false)}
-  on:keydown={(e) => {
+  onclick={() => (showSpeedMenu = false)}
+  onkeydown={(e) => {
     if (e.key === "Shift") shiftHeld = true;
     if (e.key === "Escape") showSpeedMenu = false;
   }}
-  on:keyup={(e) => {
+  onkeyup={(e) => {
     if (e.key === "Shift") shiftHeld = false;
   }}
 />

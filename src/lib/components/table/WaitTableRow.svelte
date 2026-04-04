@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { stopPropagation } from "svelte/legacy";
+
   import type { SequenceWaitItem, SequenceItem } from "../../../types";
   import { tooltipPortal } from "../../actions/portal";
   import TrashIcon from "../icons/TrashIcon.svelte";
@@ -10,29 +12,44 @@
   import { isWaitLinked } from "../../../utils/pointLinking";
   import { focusRequest } from "../../../stores";
 
-  export let item: SequenceWaitItem;
-  export let index: number;
-  export let isLocked: boolean = false;
+  interface Props {
+    item: SequenceWaitItem;
+    index: number;
+    isLocked?: boolean;
+    // Drag & Drop props
+    dragOverIndex?: number | null;
+    dragPosition?: string | null;
+    draggingIndex?: number | null;
+    // Interaction callbacks
+    onUpdate: (item: SequenceWaitItem) => void;
+    onLock: () => void;
+    onDelete: () => void;
+    onDragStart: (e: DragEvent) => void;
+    onDragEnd: () => void;
+    onContextMenu: (e: MouseEvent) => void;
+    sequence?: SequenceItem[]; // Needed for linking checks
+  }
 
-  // Drag & Drop props
-  export let dragOverIndex: number | null = null;
-  export let dragPosition: string | null = null;
-  export let draggingIndex: number | null = null;
+  let {
+    item = $bindable(),
+    index,
+    isLocked = false,
+    dragOverIndex = null,
+    dragPosition = null,
+    draggingIndex = null,
+    onUpdate,
+    onLock,
+    onDelete,
+    onDragStart,
+    onDragEnd,
+    onContextMenu,
+    sequence = [],
+  }: Props = $props();
 
-  // Interaction callbacks
-  export let onUpdate: (item: SequenceWaitItem) => void;
-  export let onLock: () => void;
-  export let onDelete: () => void;
-  export let onDragStart: (e: DragEvent) => void;
-  export let onDragEnd: () => void;
-  export let onContextMenu: (e: MouseEvent) => void;
+  let waitItem = $derived(item); // Cast for template usage
 
-  export let sequence: SequenceItem[] = []; // Needed for linking checks
-
-  $: waitItem = item; // Cast for template usage
-
-  let hoveredWaitId: string | null = null;
-  let hoveredWaitAnchor: HTMLElement | null = null;
+  let hoveredWaitId: string | null = $state(null);
+  let hoveredWaitAnchor: HTMLElement | null = $state(null);
 
   function handleWaitHoverEnter(e: MouseEvent, id: string | null) {
     hoveredWaitId = id;
@@ -80,9 +97,9 @@
 <tr
   data-seq-index={index}
   draggable={!isLocked}
-  on:dragstart={onDragStart}
-  on:dragend={onDragEnd}
-  on:contextmenu={onContextMenu}
+  ondragstart={onDragStart}
+  ondragend={onDragEnd}
+  oncontextmenu={onContextMenu}
   class="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 bg-amber-50 dark:bg-amber-900/20 transition-colors duration-150"
   class:border-t-2={dragOverIndex === index && dragPosition === "top"}
   class:border-b-2={dragOverIndex === index && dragPosition === "bottom"}
@@ -101,7 +118,7 @@
         class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-amber-500 focus:outline-none text-xs pr-6"
         class:text-amber-500={hoveredWaitId === item.id}
         value={item.name}
-        on:input={handleNameInput}
+        oninput={handleNameInput}
         use:focusOnRequest={{
           id: `wait-${item.id}`,
           field: "name",
@@ -114,8 +131,8 @@
         <div
           role="presentation"
           class="absolute right-1 top-1/2 -translate-y-1/2 text-amber-500 cursor-help flex items-center justify-center"
-          on:mouseenter={(e) => handleWaitHoverEnter(e, item.id)}
-          on:mouseleave={handleWaitHoverLeave}
+          onmouseenter={(e) => handleWaitHoverEnter(e, item.id)}
+          onmouseleave={handleWaitHoverLeave}
         >
           <LinkIcon className="w-3.5 h-3.5" />
           {#if hoveredWaitId === item.id}
@@ -139,7 +156,7 @@
       min="0"
       value={waitItem.durationMs}
       aria-label="{item.name || 'Wait'} Duration"
-      on:input={handleDurationInput}
+      oninput={handleDurationInput}
       use:focusOnRequest={{ id: `wait-${item.id}`, field: "x" }}
       disabled={isLocked}
     />
@@ -148,7 +165,7 @@
   <td class="px-3 py-2 text-left flex items-center justify-start gap-1">
     <!-- Lock toggle for wait -->
     <button
-      on:click|stopPropagation={onLock}
+      onclick={stopPropagation(onLock)}
       title={isLocked ? "Unlock wait" : "Lock wait"}
       aria-label={isLocked ? "Unlock wait" : "Lock wait"}
       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
@@ -164,7 +181,7 @@
     <!-- Delete slot (hidden when locked) -->
     {#if !isLocked}
       <button
-        on:click|stopPropagation={onDelete}
+        onclick={stopPropagation(onDelete)}
         title="Delete wait"
         aria-label="Delete wait"
         class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"

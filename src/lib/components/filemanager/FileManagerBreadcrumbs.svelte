@@ -5,8 +5,12 @@
   import { FolderIcon, UndoIcon } from "../icons";
   import { isBrowser } from "../../../utils/platform";
 
-  export let currentPath: string;
-  export let isAtBase: boolean = false;
+  interface Props {
+    currentPath: string;
+    isAtBase?: boolean;
+  }
+
+  let { currentPath, isAtBase = false }: Props = $props();
 
   const dispatch = createEventDispatcher<{
     "change-dir": string;
@@ -14,9 +18,9 @@
     "go-up": void;
   }>();
 
-  let isEditing = false;
-  let inputPath = "";
-  let inputElement: HTMLInputElement;
+  let isEditing = $state(false);
+  let inputPath = $state("");
+  let inputElement: HTMLInputElement | undefined = $state();
 
   // Format path for display - tries to be smart about common paths
   function formatPath(pathStr: string): string {
@@ -80,8 +84,8 @@
     <input
       bind:this={inputElement}
       bind:value={inputPath}
-      on:blur={finishEditing}
-      on:keydown={handleKeydown}
+      onblur={finishEditing}
+      onkeydown={handleKeydown}
       class="w-full text-xs font-mono bg-transparent border-none focus:outline-none focus:ring-0 p-1 text-neutral-900 dark:text-neutral-100"
     />
   </div>
@@ -92,7 +96,7 @@
     {#if !isAtBase}
       <button
         class="p-1 mr-2 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 shrink-0"
-        on:click={() => dispatch("go-up")}
+        onclick={() => dispatch("go-up")}
         title="Go up one directory"
         aria-label="Go Up"
       >
@@ -102,23 +106,23 @@
     <div
       class="flex-1 min-w-0 truncate cursor-text hover:text-neutral-700 dark:hover:text-neutral-200 px-2 py-0.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
       title="Click to edit path"
-      on:click={startEditing}
+      onclick={startEditing}
       role="button"
       tabindex="0"
-      on:keydown={(e) => e.key === "Enter" && startEditing()}
+      onkeydown={(e) => e.key === "Enter" && startEditing()}
     >
       {formatPath(currentPath)}
     </div>
 
     {#if !isBrowser}
       <button
-        on:click={() => dispatch("change-dir-dialog")}
-        class="p-1 ml-1 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-        title="Change Directory"
-        aria-label="Change Directory"
-      >
-        <FolderIcon className="size-4" />
-      </button>
+      onclick={() => dispatch("change-dir-dialog")}
+      class="p-1 ml-1 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      title="Change Directory"
+      aria-label="Change Directory"
+    >
+      <FolderIcon className="size-4" />
+    </button>
     {/if}
   </div>
 {/if}

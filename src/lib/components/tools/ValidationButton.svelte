@@ -1,5 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { run } from "svelte/legacy";
+
   import {
     collisionMarkers,
     notification,
@@ -12,15 +14,17 @@
   import CriticalIcon from "../icons/CriticalIcon.svelte";
   import DisabledIcon from "../icons/DisabledIcon.svelte";
 
-  let isHovering = false;
+  let isHovering = $state(false);
 
-  $: $forceShowValidation = isHovering;
+  run(() => {
+    $forceShowValidation = isHovering;
+  });
 
   // Derive error types from collision markers
-  $: errorTypes = Array.from(
-    new Set($collisionMarkers.map((m) => m.type || "unknown")),
+  let errorTypes = $derived(
+    Array.from(new Set($collisionMarkers.map((m) => m.type || "unknown"))),
   );
-  $: errorCount = errorTypes.length;
+  let errorCount = $derived(errorTypes.length);
 
   function toggleValidation() {
     let newMode: "continuous" | "on-check" | "disabled" = "on-check";
@@ -65,12 +69,12 @@
 
 <div
   class="relative flex items-center h-full"
-  on:mouseenter={() => (isHovering = true)}
-  on:mouseleave={() => (isHovering = false)}
+  onmouseenter={() => (isHovering = true)}
+  onmouseleave={() => (isHovering = false)}
   role="presentation"
 >
   <button
-    on:click={toggleValidation}
+    onclick={toggleValidation}
     class="flex items-center justify-center p-2 bg-transparent text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
     aria-label="Toggle Validation"
   >
