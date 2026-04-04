@@ -2,7 +2,7 @@
 <!-- src/lib/components/filemanager/FileManagerBreadcrumbs.svelte -->
 <script lang="ts">
   import { createEventDispatcher, tick } from "svelte";
-  import { FolderIcon, UndoIcon } from "../icons";
+  import { FolderIcon, UndoIcon, GithubIcon } from "../icons";
   import { isBrowser } from "../../../utils/platform";
 
   interface Props {
@@ -16,6 +16,7 @@
     "change-dir": string;
     "change-dir-dialog": void;
     "go-up": void;
+    "github-dialog": void;
   }>();
 
   let isEditing = $state(false);
@@ -115,6 +116,15 @@
     </div>
 
     {#if !isBrowser}
+      <button
+        onclick={() => dispatch("github-dialog")}
+        class="p-1 ml-1 text-neutral-500 hover:text-sky-600 dark:text-neutral-400 dark:hover:text-sky-400 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+        title="Import from GitHub"
+        aria-label="Import from GitHub"
+      >
+        <GithubIcon className="size-4" />
+      </button>
+
       <button
         onclick={() => dispatch("change-dir-dialog")}
         class="p-1 ml-1 text-neutral-500 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"

@@ -1315,6 +1315,10 @@
       on:change-dir={changeDirectoryManual}
       on:change-dir-dialog={changeDirectoryDialog}
       on:go-up={goUpDirectory}
+      on:github-dialog={() => {
+        gitHubUrl = "";
+        showGitHubDialog = true;
+      }}
     />
 
     <!-- Error Display -->
