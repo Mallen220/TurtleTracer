@@ -430,3 +430,5 @@ src/tests/ExportGifDialogWrapper.svelte
 tsconfig.json
 src/tests/icons.test.ts
 src/tests/math.test.ts
+src/tests/contextMenu.test.ts
+src/tests/fileContextMenu.test.ts

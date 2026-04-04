@@ -1,8 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <!-- src/lib/components/filemanager/FileContextMenu.svelte -->
 <script lang="ts">
-  import { createEventDispatcher, onMount } from "svelte";
-  import { run } from "svelte/legacy";
+  import { createEventDispatcher, onMount, tick } from "svelte";
   import { fade } from "svelte/transition";
   import { menuNavigation } from "../../actions/menuNavigation";
   import {
@@ -47,25 +46,41 @@
   let adjustedX = $state(0);
   let adjustedY = $state(0);
 
-  run(() => {
-    adjustedX = x;
-    adjustedY = y;
-  });
+  function updatePosition() {
+    let nextX = x;
+    let nextY = y;
 
-  onMount(() => {
     if (menuElement) {
       const rect = menuElement.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
 
       if (x + rect.width > viewportWidth) {
-        adjustedX = x - rect.width;
+        nextX = x - rect.width;
       }
       if (y + rect.height > viewportHeight) {
-        adjustedY = y - rect.height;
+        nextY = y - rect.height;
       }
     }
 
+    adjustedX = nextX;
+    adjustedY = nextY;
+  }
+
+  $effect(() => {
+    // Re-run whenever x, y or menuElement change
+    // Just mentioning them here tracks them
+    x;
+    y;
+    menuElement;
+
+    // We defer to tick so the menuElement has a chance to be mounted/rendered
+    tick().then(() => {
+      updatePosition();
+    });
+  });
+
+  onMount(() => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   });
