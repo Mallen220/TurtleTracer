@@ -24,8 +24,6 @@
   import UnlockIcon from "../icons/UnlockIcon.svelte";
   import ClockIcon from "../icons/ClockIcon.svelte";
 
-  // export let idx: number = 0;
-
   // Markers collapsed state (for "Collapse All" deep behavior)
 
   interface Props {
@@ -33,7 +31,6 @@
     sequence: SequenceItem[];
     // Collapsed state
     collapsed?: boolean;
-    // export let collapsedMarkers: boolean = false;
     onRemove: () => void;
     onInsertAfter: () => void; // Deprecated in favor of onAddAction, but kept for compatibility if needed
     onAddPathAfter: () => void; // Deprecated

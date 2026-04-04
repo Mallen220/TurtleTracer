@@ -72,51 +72,48 @@
   import DebugPanel from "./common/DebugPanel.svelte";
   import { isSupportedProjectFileName } from "../../utils/fileExtensions";
 
-  export let startPoint: Point;
-  export let lines: Line[];
-  export let sequence: SequenceItem[];
-  export let recordChange: () => void;
+  let {
+    startPoint = $bindable(),
+    lines = $bindable(),
+    sequence = $bindable(),
+    recordChange,
+    settings = undefined,
+    shapes = $bindable([]),
+    collapsedObstacles = $bindable([]),
+    isActive = true
+  }: {
+    startPoint: Point;
+    lines: Line[];
+    sequence: SequenceItem[];
+    recordChange: () => void;
+    settings?: import("../../types/index").Settings | undefined;
+    shapes: import("../../types/index").Shape[];
+    collapsedObstacles: boolean[];
+    isActive?: boolean;
+  } = $props();
 
-  // Props for inline optimization panel
-  export let settings: import("../../types/index").Settings | undefined =
-    undefined;
-
-  // Shapes and collapsedObstacles binding for ObstaclesSection
-  export let shapes: import("../../types/index").Shape[];
-  export let collapsedObstacles: boolean[];
-  export let isActive: boolean = true;
-
-  // Prevent Svelte unused-export warnings
-  $: shapes;
-  $: collapsedObstacles;
-  $: _shapesCount = Array.isArray(shapes) ? shapes.length : 0;
-  $: _settingsRef = settings; // Reference settings to suppress unused warning
-  $: showDebug = (settings as any)?.showDebugSequence;
-  $: _collapsedObstaclesCount = Array.isArray(collapsedObstacles)
-    ? collapsedObstacles.length
-    : 0;
+  let showDebug = $derived((settings as any)?.showDebugSequence);
 
   // Compute segment statistics for contextual display
-  $: timePrediction = calculatePathTime(
+  let timePrediction = $derived(calculatePathTime(
     startPoint,
     lines,
     settings || ({} as any),
     sequence,
-  );
+  ));
 
-  let pathStatsMap = new Map();
-  $: {
-    pathStatsMap.clear();
+  let pathStatsMap = $derived.by(() => {
+    const map = new Map();
     if (timePrediction && timePrediction.timeline) {
       timePrediction.timeline.forEach((event) => {
         if (event.type === "travel" && event.lineIndex !== undefined) {
           const lineId = lines[event.lineIndex]?.id;
-          if (lineId) pathStatsMap.set(lineId, event);
+          if (lineId) map.set(lineId, event);
         }
       });
     }
-    pathStatsMap = pathStatsMap; // trigger reactivity
-  }
+    return map;
+  });
 
   function handleRowClick(
     e: MouseEvent,
@@ -218,7 +215,7 @@
   }
 
   // Use snap stores to determine step size for inputs
-  $: stepSize = $snapToGrid && $showGrid ? $gridSize : 0.1;
+  let stepSize = $derived($snapToGrid && $showGrid ? $gridSize : 0.1);
 
   function updatePoint(
     point: Point | ControlPoint,
@@ -352,7 +349,7 @@
   }
 
   // Ensure UI shows any lines that might be missing from the sequence (robustness)
-  $: displaySequence = (() => {
+  let displaySequence = $derived((() => {
     try {
       // Keep original sequence order and append any missing path items for lines
       const seqCopy = Array.isArray(sequence) ? [...sequence] : [];
@@ -370,33 +367,33 @@
     } catch (e) {
       return sequence || [];
     }
-  })();
+  })());
 
   // Computed debug values to keep template expressions simple
-  $: debugLinesIds = Array.isArray(lines)
+  let debugLinesIds = $derived(Array.isArray(lines)
     ? lines.map((l) => l.id).filter((id): id is string => id != null)
-    : [];
-  $: debugSequenceIds = Array.isArray(sequence)
+    : []);
+  let debugSequenceIds = $derived(Array.isArray(sequence)
     ? sequence.map((s) =>
         actionRegistry.get(s.kind)?.isPath ? (s as any).lineId : (s as any).id,
       )
-    : [];
-  $: debugDisplayIds = Array.isArray(displaySequence)
+    : []);
+  let debugDisplayIds = $derived(Array.isArray(displaySequence)
     ? displaySequence.map((d) =>
         actionRegistry.get(d.kind)?.isPath ? (d as any).lineId : (d as any).id,
       )
-    : [];
-  $: debugMissing = debugLinesIds.filter(
+    : []);
+  let debugMissing = $derived(debugLinesIds.filter(
     (id) => id && !debugSequenceIds.includes(id),
-  ) as string[];
-  $: debugInvalidRefs = debugSequenceIds.filter(
+  ) as string[]);
+  let debugInvalidRefs = $derived(debugSequenceIds.filter(
     (id) => id && !debugLinesIds.includes(id),
-  ) as string[];
+  ) as string[]);
 
   // Drag and drop state
-  let draggingIndex: number | null = null;
-  let dragOverIndex: number | null = null;
-  let dragPosition: DragPosition | null = null;
+  let draggingIndex: number | null = $state(null);
+  let dragOverIndex: number | null = $state(null);
+  let dragPosition: DragPosition | null = $state(null);
 
   // One-time repair flag for missing sequence items
   let repairedOnce = false;
@@ -557,30 +554,32 @@
   }
 
   // Watch for missing sequence entries and repair once to keep UI in sync
-  $: if (Array.isArray(lines) && Array.isArray(sequence) && !repairedOnce) {
-    const missing = lines.filter(
-      (l) =>
-        !l.isMacroElement &&
-        !sequence.some(
-          (s) =>
-            actionRegistry.get(s.kind)?.isPath && (s as any).lineId === l.id,
-        ),
-    );
-    if (missing.length) {
-      console.warn(
-        "[WaypointTable] repairing missing sequence items:",
-        missing.map((m) => m.id),
+  $effect(() => {
+    if (Array.isArray(lines) && Array.isArray(sequence) && !repairedOnce) {
+      const missing = lines.filter(
+        (l) =>
+          !l.isMacroElement &&
+          !sequence.some(
+            (s) =>
+              actionRegistry.get(s.kind)?.isPath && (s as any).lineId === l.id,
+          ),
       );
-      sequence = [
-        ...sequence,
-        ...missing.map(
-          (l) => ({ kind: "path", lineId: l.id || "" }) as SequenceItem,
-        ),
-      ];
-      repairedOnce = true;
-      if (recordChange) recordChange();
+      if (missing.length) {
+        console.warn(
+          "[WaypointTable] repairing missing sequence items:",
+          missing.map((m) => m.id),
+        );
+        sequence = [
+          ...sequence,
+          ...missing.map(
+            (l) => ({ kind: "path", lineId: l.id || "" }) as SequenceItem,
+          ),
+        ];
+        repairedOnce = true;
+        if (recordChange) recordChange();
+      }
     }
-  }
+  });
 
   // Delete helpers
   function deleteLine(lineId: string) {
@@ -701,7 +700,7 @@
     }
   }
 
-  let copyButtonText = "Copy Table";
+  let copyButtonText = $state("Copy Table");
 
   export function copyTableToClipboard() {
     const system = settings?.coordinateSystem || "Pedro";
@@ -766,18 +765,18 @@
 
   // --- Context Menu Logic ---
 
-  let contextMenuOpen = false;
-  let contextMenuX = 0;
-  let contextMenuY = 0;
-  let contextMenuItems: any[] = [];
+  let contextMenuOpen = $state(false);
+  let contextMenuX = $state(0);
+  let contextMenuY = $state(0);
+  let contextMenuItems: any[] = $state([]);
 
-  let hoveredLinkId: string | null = null;
-  let hoveredWaitId: string | null = null;
-  let hoveredStatsLineId: string | null = null;
+  let hoveredLinkId: string | null = $state(null);
+  let hoveredWaitId: string | null = $state(null);
+  let hoveredStatsLineId: string | null = $state(null);
   // Anchor elements used for portal positioning (moved to body)
-  let hoveredLinkAnchor: HTMLElement | null = null;
-  let hoveredWaitAnchor: HTMLElement | null = null;
-  let hoveredStatsAnchor: HTMLElement | null = null;
+  let hoveredLinkAnchor: HTMLElement | null = $state(null);
+  let hoveredWaitAnchor: HTMLElement | null = $state(null);
+  let hoveredStatsAnchor: HTMLElement | null = $state(null);
 
   function handleLinkHoverEnter(e: MouseEvent, id: string | null) {
     hoveredLinkId = id;
@@ -1700,8 +1699,8 @@
             {/each}
           {/each}
         {:else if actionDef}
-          <svelte:component
-            this={actionDef.component}
+          {@const DynamicComponent = actionDef.component}
+          <DynamicComponent
             {item}
             index={seqIndex}
             isLocked={getIsLocked(item)}

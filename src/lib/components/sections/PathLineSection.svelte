@@ -46,7 +46,6 @@
     idx: number;
     lines: Line[];
     collapsed: boolean;
-    // export let collapsedEventMarkers: boolean;
     collapsedControlPoints: boolean;
     onRemove: () => void;
     onInsertAfter: () => void;
