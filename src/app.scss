@@ -110,6 +110,12 @@ img[alt="Robot"] {
   @apply rounded-lg shadow-md max-w-full my-4 border border-neutral-200 dark:border-neutral-700;
 }
 
+body.is-browser {
+  [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+  }
+}
+
 /* Custom scrollbar to match the new UI (subtle) */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

@@ -3,6 +3,11 @@ import "./app.scss";
 import App from "./App.svelte";
 import { browserFileSystem } from "./utils/browserFileSystem";
 import { mount } from "svelte";
+import { isBrowser } from "./utils/platform";
+
+if (isBrowser) {
+  document.body.classList.add("is-browser");
+}
 
 if (typeof window !== "undefined" && !window.electronAPI) {
   (window as any).electronAPI = browserFileSystem;
