@@ -30,10 +30,9 @@
   import { get } from "svelte/store";
 
   import { customExportersStore } from "../../pluginsStore";
-  import { exportAsProjectFile } from "../../../utils/fileHandlers.svelte";
+  import { exportAsProjectFile } from "../../../utils/fileHandlers";
   import pkg from "../../../../package.json";
-  import { settingsStore } from "../../projectStore.svelte";
-  import { snapshotClone } from "../../../utils/clone.svelte";
+  import { settingsStore } from "../../projectStore";
 
   interface Props {
     isOpen?: boolean;
@@ -75,7 +74,7 @@
   const electronAPI = (window as any).electronAPI;
 
   async function relativizeSequenceForPreview(seq: SequenceItem[]) {
-    const cloned = snapshotClone(seq);
+    const cloned = structuredClone(seq);
 
     const base = get(currentFilePath);
     if (!electronAPI?.makeRelativePath || !base) return cloned;

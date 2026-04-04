@@ -7,8 +7,7 @@
     SequenceItem,
     SequenceMacroItem,
   } from "../../types/index";
-  import { snapshotClone } from "../../utils/clone.svelte";
-  import { loadMacro } from "../projectStore.svelte";
+  import { loadMacro } from "../projectStore";
   import {
     reorderSequence,
     getClosestTarget,
@@ -952,7 +951,7 @@
     if (!item) return;
 
     if (item.kind === "wait") {
-      const newItem = snapshotClone(item);
+      const newItem = structuredClone(item);
       newItem.id = makeId();
       newItem.locked = false; // unlock duplicate?
       // Preserve empty name when duplicating unnamed waits
@@ -974,7 +973,7 @@
       const line = lines.find((l) => l.id === (item as any).lineId);
       if (!line) return;
 
-      const newLine = snapshotClone(line);
+      const newLine = structuredClone(line);
       newLine.id = makeId();
       newLine.locked = false;
       // Preserve empty name when duplicating unnamed paths

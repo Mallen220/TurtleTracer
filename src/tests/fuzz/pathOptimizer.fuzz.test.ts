@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { PathOptimizer } from "../../utils/pathOptimizer.svelte";
+import { PathOptimizer } from "../../utils/pathOptimizer";
 import type { SequenceItem } from "../../types";
 import { FIELD_SIZE } from "../../config";
 

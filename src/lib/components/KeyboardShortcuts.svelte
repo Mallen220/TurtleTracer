@@ -53,12 +53,11 @@
     playingStore,
     playbackSpeedStore,
     robotProfilesStore,
-  } from "../projectStore.svelte";
+  } from "../projectStore";
 
-  import { snapshotClone } from "../../utils/clone.svelte";
-  import { loadFile, loadRecentFile } from "../../utils/fileHandlers.svelte";
+  import { loadFile, loadRecentFile } from "../../utils/fileHandlers";
   import { validatePath } from "../../utils/validation";
-  import { reversePathData } from "../../utils/pathTransform.svelte";
+  import { reversePathData } from "../../utils/pathTransform";
   import { createTriangle } from "../../utils";
   import { toggleDiff } from "../../lib/diffStore";
   import { DEFAULT_SETTINGS, SETTINGS_TAB_ORDER } from "../../config";
@@ -79,7 +78,7 @@
     addControlPoint,
     removeControlPoint,
   } from "./shortcuts/elements";
-  import { duplicate, copy, cut, paste } from "./shortcuts/clipboard.svelte";
+  import { duplicate, copy, cut, paste } from "./shortcuts/clipboard";
   import {
     removeSelected,
     movePoint,
@@ -640,7 +639,7 @@
       }
     },
     resetSettings: () => {
-      settingsStore.set(snapshotClone(DEFAULT_SETTINGS));
+      settingsStore.set(structuredClone(DEFAULT_SETTINGS));
     },
     cycleTheme: () => {
       settingsStore.update((s) => {

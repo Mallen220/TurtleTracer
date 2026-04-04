@@ -84,57 +84,25 @@ export function renumberDefaultPathNames(lines: Line[]): Line[] {
   });
 }
 
-// --- Svelte 5 Reactive State ---
-// Helper: create a Svelte 5 reactive store that maintain's the Svelte 4 store contract
-// but allows deep reactivity through $state proxies.
-function createReactiveStore<T>(initialValue: T) {
-  let value = $state(initialValue);
-  const subscribers = new Set<(v: T) => void>();
-
-  const notify = () => {
-    subscribers.forEach((run) => run(value));
-  };
-
-  return {
-    get current() {
-      return value;
-    },
-    // Required to satisfy Svelte store contract
-    subscribe(run: (v: T) => void) {
-      subscribers.add(run);
-      run(value);
-      return () => subscribers.delete(run);
-    },
-    set(v: T) {
-      value = v;
-      notify();
-    },
-    update(fn: (v: T) => T) {
-      value = fn(value);
-      notify();
-    },
-  };
-}
-
-// Create writable stores for the project state using Svelte 5 reactivity
-export const startPointStore = createReactiveStore<Point>(getDefaultStartPoint());
+// Create writable stores for the project state
+export const startPointStore = writable<Point>(getDefaultStartPoint());
 
 // Ensure using the exact same default lines instance for both linesStore and sequenceStore
 // to prevent ID mismatches when getDefaultLines() generates random IDs.
 const initialDefaultLines = normalizeLines(getDefaultLines());
 
-export const linesStore = createReactiveStore<Line[]>(initialDefaultLines);
-export const shapesStore = createReactiveStore<Shape[]>(getDefaultShapes());
+export const linesStore = writable<Line[]>(initialDefaultLines);
+export const shapesStore = writable<Shape[]>(getDefaultShapes());
 
-export const sequenceStore = createReactiveStore<SequenceItem[]>(
+export const sequenceStore = writable<SequenceItem[]>(
   initialDefaultLines.map((ln) => ({
     kind: "path",
     lineId: ln.id!,
   })),
 );
-export const settingsStore = createReactiveStore<Settings>({ ...DEFAULT_SETTINGS });
-export const extraDataStore = createReactiveStore<Record<string, any>>({});
-export const macrosStore = createReactiveStore<Map<string, TurtleData>>(new Map());
+export const settingsStore = writable<Settings>({ ...DEFAULT_SETTINGS });
+export const extraDataStore = writable<Record<string, any>>({});
+export const macrosStore = writable<Map<string, TurtleData>>(new Map());
 
 // Track currently loading macros to prevent infinite recursion
 const loadingMacros = new Set<string>();

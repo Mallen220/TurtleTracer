@@ -10,7 +10,6 @@ import type {
   ControlPoint,
   CollisionMarker,
 } from "../types";
-import { snapshotClone } from "./clone.svelte";
 import { calculatePathTime } from "./timeCalculator";
 import { FIELD_SIZE } from "../config";
 import { pointInPolygon, getRobotCorners } from "./geometry";
@@ -50,8 +49,8 @@ export class PathOptimizer {
     sequence: SequenceItem[],
     shapes: Shape[] = [],
   ) {
-    this.startPoint = snapshotClone(startPoint);
-    this.originalLines = snapshotClone(lines);
+    this.startPoint = structuredClone(startPoint);
+    this.originalLines = structuredClone(lines);
     this.settings = settings;
     this.sequence = sequence;
     this.shapes = shapes;

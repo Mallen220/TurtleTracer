@@ -22,10 +22,8 @@ export type HistoryStoreItem = {
   future: boolean;
 };
 
-import { snapshotClone } from "./clone.svelte";
-
 function deepClone<T>(obj: T): T {
-  return snapshotClone(obj);
+  return structuredClone(obj);
 }
 
 export function createHistory(maxSize = 200) {
