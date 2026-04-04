@@ -428,3 +428,4 @@ scripts/update-lighthouse-readme-badges.js
 src/setupTests.ts
 src/tests/ExportGifDialogWrapper.svelte
 tsconfig.json
+src/types/types.d.ts

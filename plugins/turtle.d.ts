@@ -97,12 +97,14 @@ interface Line {
   isMacroElement?: boolean;
   macroId?: string;
   originalId?: string;
+  isChain?: boolean;
 }
 
 type SequencePathItem = {
   kind: "path";
   lineId: string;
   hidden?: boolean;
+  isChain?: boolean;
 };
 
 type SequenceWaitItem = {

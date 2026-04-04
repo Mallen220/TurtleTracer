@@ -90,12 +90,14 @@ export interface Line {
   isMacroElement?: boolean;
   macroId?: string;
   originalId?: string;
+  isChain?: boolean;
 }
 
 export type SequencePathItem = {
   kind: "path";
   lineId: string;
   hidden?: boolean;
+  isChain?: boolean;
 };
 
 export type SequenceWaitItem = {

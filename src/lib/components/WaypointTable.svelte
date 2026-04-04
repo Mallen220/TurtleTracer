@@ -933,6 +933,22 @@
     contextMenuOpen = true;
   }
 
+  function toggleChain(seqIndex: number) {
+    const item = sequence[seqIndex];
+    if (item && item.kind === "path") {
+      const newSeq = [...sequence];
+      newSeq[seqIndex] = { ...item, isChain: !(item as any).isChain };
+      sequence = newSeq;
+      // Also update the line object
+      const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
+      if (lineIdx !== -1) {
+        lines[lineIdx] = { ...lines[lineIdx], isChain: !(item as any).isChain };
+        lines = [...lines];
+      }
+      recordChange();
+    }
+  }
+
   function toggleLock(seqIndex: number) {
     const item = sequence[seqIndex];
     if (item.kind === "path") {
@@ -1396,6 +1412,31 @@
         {@const seqIndex = findSequenceIndex(item)}
         {@const actionDef = actionRegistry.get(item.kind)}
         {#if item.kind === "path"}
+          <!-- If previous item was a path, add a small chaining button between them -->
+          {#if seqIdx > 0 && displaySequence[seqIdx - 1].kind === "path"}
+            <tr class="group h-4 p-0 m-0 leading-none">
+              <td colspan="5" class="p-0 text-center relative border-none">
+                <button
+                  class="absolute left-[36px] -top-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded p-0.5 z-10 transition-colors bg-white dark:bg-neutral-900 shadow-sm border border-neutral-200 dark:border-neutral-800"
+                  onclick={() => toggleChain(seqIndex)}
+                  title={(item as any).isChain
+                    ? "Unchain paths"
+                    : "Chain paths together"}
+                  aria-label="Toggle Path Chain"
+                >
+                  <LinkIcon
+                    className={`w-3.5 h-3.5 ${(item as any).isChain ? "text-blue-500 dark:text-blue-400" : "text-neutral-400 opacity-50"}`}
+                  />
+                </button>
+                {#if (item as any).isChain}
+                  <div
+                    class="absolute left-[42px] top-[-10px] w-[2px] h-[20px] bg-blue-500 dark:bg-blue-400 -z-10 opacity-30"
+                  ></div>
+                {/if}
+              </td>
+            </tr>
+          {/if}
+
           {#each lines.filter((l) => l.id === item.lineId) as line (line.id)}
             {@const lineIdx = lines.findIndex((l) => l === line)}
             <!-- End Point -->

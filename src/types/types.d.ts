@@ -111,11 +111,13 @@ interface Line {
   waitAfterMs?: number;
   waitBeforeName?: string;
   waitAfterName?: string;
+  isChain?: boolean;
 }
 
 type SequencePathItem = {
   kind: "path";
   lineId: string;
+  isChain?: boolean;
 };
 
 type SequenceWaitItem = {

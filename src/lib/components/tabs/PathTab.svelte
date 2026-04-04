@@ -984,11 +984,66 @@
   {#each sequence as item, sIdx (getItemId(item))}
     {@const isLocked = isItemLocked(item, lines)}
     {@const def = $actionRegistry[item.kind]}
+    {@const prevItem = sIdx > 0 ? sequence[sIdx - 1] : null}
+    {@const isChain =
+      item.kind === "path" &&
+      prevItem?.kind === "path" &&
+      (item as any).isChain}
+
+    {#if item.kind === "path" && prevItem?.kind === "path"}
+      <div class="flex justify-center -my-3 z-10 relative">
+        <button
+          class="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full p-1 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shadow-sm {isChain
+            ? 'text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+            : 'text-neutral-400 dark:text-neutral-500'}"
+          title={isChain ? "Unchain paths" : "Chain paths"}
+          onclick={() => {
+            const newIsChain = !(item as any).isChain;
+            (item as any).isChain = newIsChain;
+            // Also update the line object
+            const lIdx = lines.findIndex((l) => l.id === (item as any).lineId);
+            if (lIdx !== -1) {
+              lines[lIdx] = { ...lines[lIdx], isChain: newIsChain };
+            }
+            lines = [...lines];
+            sequence = [...sequence];
+            if (recordChange) recordChange("Toggle Path Chain");
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-4 h-4"
+          >
+            {#if isChain}
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
+              />
+            {:else}
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
+                stroke-dasharray="2 2"
+              />
+            {/if}
+          </svg>
+        </button>
+      </div>
+    {/if}
+
     <div
       role="listitem"
       data-index={sIdx}
       id={`sequence-item-${getItemId(item)}`}
-      class="w-full transition-all duration-200 rounded-lg"
+      class="w-full transition-all duration-200 rounded-lg {isChain
+        ? '-mt-2'
+        : ''}"
       draggable={!isItemLocked(item, lines)}
       ondragstart={(e) => handleDragStart(e, sIdx)}
       ondragend={handleDragEnd}
