@@ -127,10 +127,10 @@ export function getRobotCorners(
   const sin = Math.sin(headingRad);
 
   const corners = [
-    { dx: -hl, dy: -hw },
-    { dx: hl, dy: -hw },
-    { dx: hl, dy: hw },
-    { dx: -hl, dy: hw },
+    { dx: -hl, dy: -hw }, // front-left
+    { dx: hl, dy: -hw }, // front-right
+    { dx: hl, dy: hw }, // back-right
+    { dx: -hl, dy: hw }, // back-left
   ];
 
   return corners.map((corner) => ({
