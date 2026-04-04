@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { onMount } from "svelte";
   import { cubicInOut } from "svelte/easing";
   import {
@@ -150,19 +148,32 @@
 
   // Display value for max angular acceleration
 
+  import { get } from "svelte/store";
   import { saveSettings } from "../../../utils/settingsPersistence";
+  import { settingsStore } from "../../../lib/projectStore";
+
   interface Props {
     isOpen?: boolean;
-    settings?: Settings;
   }
 
   let {
     isOpen = $bindable(false),
-    settings = $bindable({ ...DEFAULT_SETTINGS }),
   }: Props = $props();
 
+  let settings: Settings = $state({ ...DEFAULT_SETTINGS });
+
+  // Sync local draft from store when opened
+  $effect(() => {
+    if (isOpen) {
+      settings = structuredClone(get(settingsStore));
+    }
+  });
+
   async function handleSave() {
-    await saveSettings(settings);
+    // Only update global store when Save is clicked
+    const plainSettings = JSON.parse(JSON.stringify(settings));
+    settingsStore.set(plainSettings);
+    await saveSettings(plainSettings);
     isOpen = false;
   }
 
@@ -173,7 +184,7 @@
       )
     ) {
       const defaultSettings = await resetSettings();
-      // Update the bound settings object
+      // Update local draft
       Object.keys(defaultSettings).forEach((key) => {
         (settings as any)[key] = (defaultSettings as any)[key];
       });
@@ -181,8 +192,12 @@
       // Prevent the UI from immediately triggering the onboarding tutorial
       (settings as any).hasSeenOnboarding = true;
       settings = { ...settings };
+
       try {
-        await saveSettings(settings);
+        const plainSettings = JSON.parse(JSON.stringify(settings));
+        // Also write directly to store for reset
+        settingsStore.set(plainSettings);
+        await saveSettings(plainSettings);
       } catch (e) {
         console.warn("Failed to persist settings after reset", e);
       }
@@ -190,13 +205,13 @@
   }
 
   // Sync active tab from store when opening
-  run(() => {
+  $effect(() => {
     if (isOpen) {
       activeTab = $settingsActiveTab as TabId;
     }
   });
   // Reset tab when closed so it's fresh on next open
-  run(() => {
+  $effect(() => {
     if (!isOpen) {
       searchQuery = "";
     }

@@ -1795,7 +1795,7 @@
 
 <UpdateAvailableDialog bind:show={$showUpdateAvailableDialog} />
 
-<SettingsDialog bind:isOpen={$showSettings} bind:settings={$settingsStore} />
+<SettingsDialog bind:isOpen={$showSettings} />
 <TelemetryDialog bind:isOpen={$showTelemetryDialog} />
 <TransformDialog bind:isOpen={$showTransformDialog} />
 <KeyboardShortcutsDialog

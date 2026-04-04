@@ -29,7 +29,7 @@ describe("SettingsDialog", () => {
     window.confirm = () => true;
 
     const { getByText } = render(SettingsDialog, {
-      props: { isOpen: true, settings },
+      props: { isOpen: true },
     });
 
     const btn = getByText("Reset Defaults");
