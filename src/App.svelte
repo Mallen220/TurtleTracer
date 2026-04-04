@@ -454,39 +454,47 @@
   }
 
   async function handleDrop(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+    // Reset drag indicators regardless of type
     dragCounter = 0;
     isDraggingFile = false;
 
-    if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      // Refresh electronAPI reference from window to ensure it's available
-      const api = (window as any).electronAPI;
+    // Only intercept if it's an OS file drop we care about (avoids blocking internal drags)
+    if (
+      e.dataTransfer &&
+      e.dataTransfer.types &&
+      e.dataTransfer.types.includes("Files")
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
 
-      if (!api) return;
+      if (e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        // Refresh electronAPI reference from window to ensure it's available
+        const api = (window as any).electronAPI;
 
-      // Case-insensitive check for supported extension
-      if (!isSupportedProjectFileName(file.name)) {
-        alert("Please drop a .turt or .pp file.");
-        return;
-      }
+        if (!api) return;
 
-      let path = (file as any).path;
-      if (!path && api.getPathForFile) {
-        try {
-          path = api.getPathForFile(file);
-        } catch (e) {
-          console.warn("getPathForFile failed:", e);
+        // Case-insensitive check for supported extension
+        if (!isSupportedProjectFileName(file.name)) {
+          alert("Please drop a .turt or .pp file.");
+          return;
         }
-      }
 
-      if (!path) {
-        alert(
-          "Cannot determine file path. If you are running in a browser, this feature is not supported.",
-        );
-        return;
-      }
+        let path = (file as any).path;
+        if (!path && api.getPathForFile) {
+          try {
+            path = api.getPathForFile(file);
+          } catch (e) {
+            console.warn("getPathForFile failed:", e);
+          }
+        }
+
+        if (!path) {
+          alert(
+            "Cannot determine file path. If you are running in a browser, this feature is not supported.",
+          );
+          return;
+        }
 
       try {
         if (get(isUnsaved)) {
@@ -549,6 +557,7 @@
       }
     }
   }
+}
 
   // --- Autosave Logic ---
   let autosaveIntervalId: any = $state(null);

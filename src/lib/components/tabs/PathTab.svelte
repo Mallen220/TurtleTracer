@@ -45,6 +45,7 @@
   import PathActionButtons from "./PathActionButtons.svelte";
   import DebugPanel from "../common/DebugPanel.svelte";
   import MapPinIcon from "../icons/MapPinIcon.svelte";
+  import { isSupportedProjectFileName } from "../../../utils/fileExtensions";
 
   interface Props {
     startPoint: Point;
@@ -152,15 +153,46 @@
     if (!isActive) return;
 
     const isInternalReorder = draggingIndex !== null;
-    const isMacroDrop = e.dataTransfer?.types
+    
+    // Check for internal macro data OR OS files that could be macros
+    let isMacroDrop = e.dataTransfer?.types
       ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
           (t) => e.dataTransfer?.types.includes(t),
         )
       : false;
 
+    // Optional: detect OS file drops as macros if active
+    const hasFiles = e.dataTransfer?.types.includes("Files");
+    if (!isMacroDrop && hasFiles && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (isSupportedProjectFileName(file.name)) {
+        isMacroDrop = true;
+      }
+    }
+
     if (!isInternalReorder && !isMacroDrop) return;
 
     e.preventDefault();
+    e.stopPropagation();
+
+    // If no specific item targeted, but it's a macro, append to end
+    if (isMacroDrop && (dragOverIndex === null || dragPosition === null)) {
+      let filePath =
+        e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
+        e.dataTransfer?.getData("application/x-pedro-macro");
+      
+      // Handle OS file path if no internal data
+      if (!filePath && hasFiles && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        // In Electron, we can often get the path from file.path
+        filePath = (e.dataTransfer.files[0] as any).path;
+      }
+
+      if (filePath) {
+        await addMacroToSequence(filePath, sequence.length);
+      }
+      handleDragEnd();
+      return;
+    }
 
     if (
       dragOverIndex === null ||
@@ -182,9 +214,14 @@
       syncLinesToSequence(newSequence);
       recordChange?.("Reorder Sequence");
     } else if (isMacroDrop) {
-      const filePath =
+      let filePath =
         e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
         e.dataTransfer?.getData("application/x-pedro-macro");
+      
+      if (!filePath && hasFiles && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        filePath = (e.dataTransfer.files[0] as any).path;
+      }
+
       if (filePath) {
         // Calculate insertion index
         let insertIndex = dragOverIndex;

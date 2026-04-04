@@ -70,6 +70,7 @@
   import { toUser, toField } from "../../utils/coordinates";
   import { calculatePathTime, formatTime } from "../../utils/timeCalculator";
   import DebugPanel from "./common/DebugPanel.svelte";
+  import { isSupportedProjectFileName } from "../../utils/fileExtensions";
 
   export let startPoint: Point;
   export let lines: Line[];
@@ -432,18 +433,52 @@
   function handleWindowDrop(e: DragEvent) {
     if (!isActive) return;
 
-    // Check for macro drop
+    const isInternalReorder = draggingIndex !== null;
+
+    // Check for internal macro data OR OS files that could be macros
+    let isMacroDrop = e.dataTransfer?.types
+      ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
+          (t) => e.dataTransfer?.types.includes(t),
+        )
+      : false;
+
+    // Optional: detect OS file drops as macros if active
+    const hasFiles = e.dataTransfer?.types.includes("Files");
     if (
-      e.dataTransfer &&
-      ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
-        (t) => e.dataTransfer?.types?.includes(t),
-      )
+      !isMacroDrop &&
+      hasFiles &&
+      e.dataTransfer?.files &&
+      e.dataTransfer.files.length > 0
     ) {
+      const file = e.dataTransfer.files[0];
+      // Note: isSupportedProjectFileName should be imported if not already
+      if (typeof isSupportedProjectFileName === "function" && isSupportedProjectFileName(file.name)) {
+        isMacroDrop = true;
+      }
+    }
+
+    if (isMacroDrop) {
       e.preventDefault();
-      const filePath =
-        e.dataTransfer.getData("application/x-turtle-tracer-macro") ||
-        e.dataTransfer.getData("application/x-pedro-macro");
-      if (!filePath) return;
+      e.stopPropagation();
+
+      let filePath =
+        e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
+        e.dataTransfer?.getData("application/x-pedro-macro");
+
+      // Handle OS file path if no internal data
+      if (
+        !filePath &&
+        hasFiles &&
+        e.dataTransfer?.files &&
+        e.dataTransfer.files.length > 0
+      ) {
+        filePath = (e.dataTransfer.files[0] as any).path;
+      }
+
+      if (!filePath) {
+        handleDragEnd();
+        return;
+      }
 
       const target = getClosestTarget(e, "tr[data-seq-index]", document.body);
       let dropIndex = sequence.length;
@@ -463,6 +498,7 @@
 
     if (draggingIndex === null) return;
     e.preventDefault();
+    e.stopPropagation();
 
     if (
       dragOverIndex === null ||
