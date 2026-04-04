@@ -1,7 +1,12 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import ExportGifDialog from "../lib/components/dialogs/ExportGifDialog.svelte";
-  let { props } = $props<{ props: any }>();
-  let show = $state(props.show);
+  export let props: any;
+  let show = false;
+
+  onMount(() => {
+    show = props.show ?? false;
+  });
 </script>
 
 <ExportGifDialog {...props} bind:show={show} />
