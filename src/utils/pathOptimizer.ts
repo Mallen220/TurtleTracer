@@ -26,6 +26,13 @@ export interface OptimizationResult {
   bestLines: Line[];
 }
 
+interface AABB {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
 export class PathOptimizer {
   private populationSize: number;
   private generations: number;
@@ -41,6 +48,8 @@ export class PathOptimizer {
   private activeShapes: Shape[]; // All active shapes
   private activeObstacles: Shape[]; // Only obstacle type
   private activeKeepInZones: Shape[]; // Only keep-in type
+  private obstacleAABBs: AABB[]; // Pre-calculated AABBs for obstacles
+  private keepInZoneAABBs: AABB[]; // Pre-calculated AABBs for keep-in zones
 
   constructor(
     startPoint: Point,
@@ -61,6 +70,22 @@ export class PathOptimizer {
     this.activeKeepInZones = this.activeShapes.filter(
       (s) => s.type === "keep-in",
     );
+
+    // Pre-calculate AABBs
+    const calculateAABB = (shape: Shape): AABB => {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const v of shape.vertices) {
+        if (v.x < minX) minX = v.x;
+        if (v.x > maxX) maxX = v.x;
+        if (v.y < minY) minY = v.y;
+        if (v.y > maxY) maxY = v.y;
+      }
+      return { minX, maxX, minY, maxY };
+    };
+
+    this.obstacleAABBs = this.activeObstacles.map(calculateAABB);
+    this.keepInZoneAABBs = this.activeKeepInZones.map(calculateAABB);
+
     // Use settings values if provided, else defaults
     this.generations = settings.optimizationIterations ?? 100;
     this.populationSize = settings.optimizationPopulationSize ?? 50;
@@ -240,6 +265,14 @@ export class PathOptimizer {
       this.settings.rLength + (this.settings.safetyMargin || 0) * 2;
     const rWidth = this.settings.rWidth + (this.settings.safetyMargin || 0) * 2;
 
+    // Pre-calculate half diagonal for fast AABB radius
+    const halfDiag = Math.sqrt(
+      Math.pow(rLength / 2, 2) + Math.pow(rWidth / 2, 2),
+    );
+    const rawHalfDiag = Math.sqrt(
+      Math.pow(this.settings.rLength / 2, 2) + Math.pow(this.settings.rWidth / 2, 2),
+    );
+
     let eventIdx = 0;
 
     for (let t = 0; t <= totalTime; t += step) {
@@ -345,8 +378,13 @@ export class PathOptimizer {
         }
       }
 
-      const corners = getRobotCorners(x, y, heading, rLength, rWidth);
+      // Robot AABB for fast rejection
+      const robotMinX = x - halfDiag;
+      const robotMaxX = x + halfDiag;
+      const robotMinY = y - halfDiag;
+      const robotMaxY = y + halfDiag;
 
+      let corners: ReturnType<typeof getRobotCorners> | null = null;
       let isColliding = false;
       let collisionType: "obstacle" | "boundary" | "keep-in" = "obstacle";
 
@@ -359,10 +397,6 @@ export class PathOptimizer {
         const distToStart = Math.sqrt(
           Math.pow(x - this.startPoint.x, 2) +
             Math.pow(y - this.startPoint.y, 2),
-        );
-
-        const halfDiag = Math.sqrt(
-          Math.pow(rLength / 2, 2) + Math.pow(rWidth / 2, 2),
         );
 
         const exclusionDist = Math.max(
@@ -382,16 +416,26 @@ export class PathOptimizer {
 
         if (distToStart > exclusionDist) {
           const BOUNDARY_EPSILON = 0.05;
-          for (const corner of corners) {
-            if (
-              corner.x < -BOUNDARY_EPSILON ||
-              corner.x > FIELD_SIZE + BOUNDARY_EPSILON ||
-              corner.y < -BOUNDARY_EPSILON ||
-              corner.y > FIELD_SIZE + BOUNDARY_EPSILON
-            ) {
-              isColliding = true;
-              collisionType = "boundary";
-              break;
+
+          // Fast AABB check against boundaries first
+          if (
+            robotMinX < -BOUNDARY_EPSILON ||
+            robotMaxX > FIELD_SIZE + BOUNDARY_EPSILON ||
+            robotMinY < -BOUNDARY_EPSILON ||
+            robotMaxY > FIELD_SIZE + BOUNDARY_EPSILON
+          ) {
+            corners = getRobotCorners(x, y, heading, rLength, rWidth);
+            for (const corner of corners) {
+              if (
+                corner.x < -BOUNDARY_EPSILON ||
+                corner.x > FIELD_SIZE + BOUNDARY_EPSILON ||
+                corner.y < -BOUNDARY_EPSILON ||
+                corner.y > FIELD_SIZE + BOUNDARY_EPSILON
+              ) {
+                isColliding = true;
+                collisionType = "boundary";
+                break;
+              }
             }
           }
         }
@@ -399,42 +443,79 @@ export class PathOptimizer {
 
       // 2. Obstacle Checks
       if (!isColliding) {
-        for (const shape of this.activeObstacles) {
-          // Check if any robot corner is in shape
-          for (const corner of corners) {
-            if (pointInPolygon([corner.x, corner.y], shape.vertices)) {
-              isColliding = true;
-              break;
-            }
-          }
-          if (isColliding) break;
+        for (let i = 0; i < this.activeObstacles.length; i++) {
+          const shape = this.activeObstacles[i];
+          const aabb = this.obstacleAABBs[i];
 
-          // Also check if any shape vertex is inside the robot
-          for (const v of shape.vertices) {
-            if (pointInPolygon([v.x, v.y], corners)) {
-              isColliding = true;
-              break;
+          // Fast AABB Intersection Check
+          if (
+            robotMaxX >= aabb.minX &&
+            robotMinX <= aabb.maxX &&
+            robotMaxY >= aabb.minY &&
+            robotMinY <= aabb.maxY
+          ) {
+            if (!corners) {
+              corners = getRobotCorners(x, y, heading, rLength, rWidth);
             }
+            // Check if any robot corner is in shape
+            for (const corner of corners) {
+              if (pointInPolygon([corner.x, corner.y], shape.vertices)) {
+                isColliding = true;
+                break;
+              }
+            }
+            if (isColliding) break;
+
+            // Also check if any shape vertex is inside the robot
+            for (const v of shape.vertices) {
+              if (pointInPolygon([v.x, v.y], corners)) {
+                isColliding = true;
+                break;
+              }
+            }
+            if (isColliding) break;
           }
-          if (isColliding) break;
         }
       }
 
       // 3. Keep-In Zone Checks
       // Robot must be strictly INSIDE at least one keep-in zone
       if (!isColliding && this.activeKeepInZones.length > 0) {
-        // Recalculate corners WITHOUT safety margin
-        // Pass full dimensions; getRobotCorners expects full length and calculates extents
-        const rawCorners = getRobotCorners(
-          x,
-          y,
-          heading,
-          this.settings.rLength,
-          this.settings.rWidth,
-        );
-
         let insideAnyZone = false;
-        for (const zone of this.activeKeepInZones) {
+        let rawCorners: ReturnType<typeof getRobotCorners> | null = null;
+        const rawRobotMinX = x - rawHalfDiag;
+        const rawRobotMaxX = x + rawHalfDiag;
+        const rawRobotMinY = y - rawHalfDiag;
+        const rawRobotMaxY = y + rawHalfDiag;
+
+        for (let i = 0; i < this.activeKeepInZones.length; i++) {
+          const zone = this.activeKeepInZones[i];
+          const aabb = this.keepInZoneAABBs[i];
+
+          // Fast AABB inclusion check: robot AABB must be fully inside the keep-in zone AABB
+          // If the robot's AABB is not fully inside the zone's AABB, we still need to check corners
+          // because the zone could be a weird shape, but if the robot AABB is OUTSIDE the zone AABB entirely,
+          // it's definitely not inside.
+
+          if (
+            rawRobotMaxX < aabb.minX ||
+            rawRobotMinX > aabb.maxX ||
+            rawRobotMaxY < aabb.minY ||
+            rawRobotMinY > aabb.maxY
+          ) {
+            continue; // Completely outside this zone's AABB
+          }
+
+          if (!rawCorners) {
+             rawCorners = getRobotCorners(
+               x,
+               y,
+               heading,
+               this.settings.rLength,
+               this.settings.rWidth,
+             );
+          }
+
           let allCornersIn = true;
           for (const corner of rawCorners) {
             if (!pointInPolygon([corner.x, corner.y], zone.vertices)) {
@@ -442,6 +523,7 @@ export class PathOptimizer {
               break;
             }
           }
+
           if (allCornersIn) {
             insideAnyZone = true;
             break;
