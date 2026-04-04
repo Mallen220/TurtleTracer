@@ -430,3 +430,6 @@ src/tests/ExportGifDialogWrapper.svelte
 tsconfig.json
 src/tests/icons.test.ts
 src/tests/math.test.ts
+src/tests/components/renderer/generators.test.ts
+src/tests/components/shortcuts/properties.test.ts
+src/tests/components/whats-new/features.test.ts

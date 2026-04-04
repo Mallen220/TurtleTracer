@@ -4,12 +4,16 @@
 
   import type { Point, Line, SequenceItem, Shape } from "../../../types/index";
   import { copy } from "svelte-copy";
-  import Highlight from "svelte-highlight";
-  import { java } from "svelte-highlight/languages";
-  import json from "svelte-highlight/languages/json";
-  import plaintext from "svelte-highlight/languages/plaintext";
+  import hljs from "highlight.js/lib/core";
+  import java from "highlight.js/lib/languages/java";
+  import json from "highlight.js/lib/languages/json";
+  import plaintext from "highlight.js/lib/languages/plaintext";
   import codeStyle from "svelte-highlight/styles/androidstudio";
   import { fade, fly } from "svelte/transition";
+
+  hljs.registerLanguage("java", java);
+  hljs.registerLanguage("json", json);
+  hljs.registerLanguage("plaintext", plaintext);
   import {
     SearchIcon,
     ChevronUpIcon,
@@ -58,8 +62,10 @@
     "org.firstinspires.ftc.teamcode.Commands.AutoCommands";
 
   let exportedCode = $state("");
-  let currentLanguage: typeof java | typeof plaintext | typeof json =
-    $state(java);
+  let currentLanguageName = $state("java");
+  let highlightedCode = $derived(
+    hljs.highlight(exportedCode || "", { language: currentLanguageName }).value,
+  );
   let copied = $state(false);
   let dialogRef: HTMLDivElement | undefined = $state();
   let scrollContainer: HTMLDivElement | undefined = $state();
@@ -147,10 +153,10 @@
           $settingsStore?.coordinateSystem,
           codeUnits,
         );
-        currentLanguage = java;
+        currentLanguageName = "java";
       } else if (exportFormat === "points") {
         exportedCode = generatePointsArray(startPoint, lines, codeUnits);
-        currentLanguage = plaintext;
+        currentLanguageName = "plaintext";
       } else if (exportFormat === "sequential") {
         exportedCode = await generateSequentialCommandCode(
           startPoint,
@@ -163,7 +169,7 @@
           $settingsStore?.coordinateSystem,
           codeUnits,
         );
-        currentLanguage = java;
+        currentLanguageName = "java";
       } else if (exportFormat === "json") {
         let loadedFromFile = false;
         const filePath = get(currentFilePath);
@@ -200,7 +206,7 @@
             2,
           );
         }
-        currentLanguage = json;
+        currentLanguageName = "json";
       } else if (exportFormat === "custom" && customExporterName) {
         const exporters = get(customExportersStore);
         const exporter = exporters.find((e) => e.name === customExporterName);
@@ -208,14 +214,14 @@
           try {
             const data = { startPoint, lines, shapes, sequence };
             exportedCode = exporter.handler(data);
-            currentLanguage = plaintext;
+            currentLanguageName = "plaintext";
           } catch (e) {
             exportedCode = `Error in plugin: ${e}`;
-            currentLanguage = plaintext;
+            currentLanguageName = "plaintext";
           }
         } else {
           exportedCode = "Exporter not found.";
-          currentLanguage = plaintext;
+          currentLanguageName = "plaintext";
         }
       }
 
@@ -227,7 +233,7 @@
       console.error("Refresh failed:", error);
       exportedCode =
         "// Error refreshing code. Please check the console for details.";
-      currentLanguage = plaintext;
+      currentLanguageName = "plaintext";
     }
   }
 
@@ -773,11 +779,7 @@
           </div>
 
           <!-- Actual Code Layer -->
-          <Highlight
-            language={currentLanguage}
-            code={exportedCode}
-            class="highlight-wrapper text-sm font-mono leading-relaxed relative z-10"
-          />
+          <pre class="highlight-wrapper hljs text-sm font-mono leading-relaxed relative z-10"><code>{@html highlightedCode}</code></pre>
         </div>
       </div>
 

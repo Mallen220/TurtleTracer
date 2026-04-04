@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Because `import.meta.glob` is processed by Vite *before* the code runs,
@@ -34,7 +35,13 @@ describe("features module", () => {
   });
 
   it("should expose features in descending order for representative versions", () => {
-    const expectedLeadingIds = ["v2.1.0", "v2.0.1", "v2.0.0", "v1.8.1", "v1.8.0"];
+    const expectedLeadingIds = [
+      "v2.1.0",
+      "v2.0.1",
+      "v2.0.0",
+      "v1.8.1",
+      "v1.8.0",
+    ];
 
     const ids = mod.features.map((f: any) => f.id);
 
