@@ -994,12 +994,14 @@
       <div class="flex justify-center -my-3 z-10 relative">
         <button
           class="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full p-1 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shadow-sm {isChain
-            ? 'text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+            ? 'text-green-500 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
             : 'text-neutral-400 dark:text-neutral-500'}"
           title={isChain ? "Unchain paths" : "Chain paths"}
           onclick={() => {
             const newIsChain = !(item as any).isChain;
-            (item as any).isChain = newIsChain;
+            // Need to create a new object to trigger reactivity in Svelte 5 for the `isChain` derived value
+            sequence[sIdx] = { ...item, isChain: newIsChain };
+
             // Also update the line object
             const lIdx = lines.findIndex((l) => l.id === (item as any).lineId);
             if (lIdx !== -1) {
@@ -1014,7 +1016,7 @@
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
-            stroke-width="1.5"
+            stroke-width={isChain ? "2" : "1.5"}
             stroke="currentColor"
             class="w-4 h-4"
           >

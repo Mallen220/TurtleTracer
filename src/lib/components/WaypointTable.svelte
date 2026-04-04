@@ -1425,12 +1425,13 @@
                   aria-label="Toggle Path Chain"
                 >
                   <LinkIcon
-                    className={`w-3.5 h-3.5 ${(item as any).isChain ? "text-blue-500 dark:text-blue-400" : "text-neutral-400 opacity-50"}`}
+                    className={`w-3.5 h-3.5 ${(item as any).isChain ? "text-green-500 dark:text-green-400" : "text-neutral-400 opacity-50"}`}
+                    strokeWidth={(item as any).isChain ? 2.5 : 1.5}
                   />
                 </button>
                 {#if (item as any).isChain}
                   <div
-                    class="absolute left-[42px] top-[-10px] w-[2px] h-[20px] bg-blue-500 dark:bg-blue-400 -z-10 opacity-30"
+                    class="absolute left-[42px] top-[-10px] w-[2px] h-[20px] bg-green-500 dark:bg-green-400 -z-10 opacity-30"
                   ></div>
                 {/if}
               </td>
