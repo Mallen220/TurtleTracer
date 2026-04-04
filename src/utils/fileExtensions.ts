@@ -18,7 +18,12 @@ export function isLegacyProjectFileName(name: string): boolean {
 }
 
 export function stripProjectExtension(name: string): string {
-  return name.replace(/\.(pp|turt)$/i, "");
+  for (const ext of SUPPORTED_PROJECT_EXTENSIONS) {
+    if (name.toLowerCase().endsWith(ext)) {
+      return name.slice(0, -ext.length);
+    }
+  }
+  return name;
 }
 
 export function ensureDefaultProjectExtension(path: string): string {
@@ -37,7 +42,5 @@ export function getProjectExtensionFromPath(path?: string | null): string {
   if (!path) return DEFAULT_PROJECT_EXTENSION;
   const lower = path.toLowerCase().trim();
   if (lower.endsWith(LEGACY_PROJECT_EXTENSION)) return LEGACY_PROJECT_EXTENSION;
-  if (lower.endsWith(DEFAULT_PROJECT_EXTENSION))
-    return DEFAULT_PROJECT_EXTENSION;
   return DEFAULT_PROJECT_EXTENSION;
 }

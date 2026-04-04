@@ -4,6 +4,7 @@ import {
   DEFAULT_PROJECT_EXTENSION,
   LEGACY_PROJECT_EXTENSION,
   isSupportedProjectFileName,
+  ensureDefaultProjectExtension,
 } from "./fileExtensions";
 
 /**
@@ -37,18 +38,21 @@ function triggerDownload(
   URL.revokeObjectURL(url);
 }
 
-function createTrajectoryJson(
+function downloadProjectFile(
   startPoint: Point,
   lines: Line[],
   shapes: Shape[],
-  sequence?: SequenceItem[],
-  extraData?: Record<string, any>,
-): string {
-  return JSON.stringify(
+  sequence: SequenceItem[] | undefined,
+  extraData: Record<string, any> | undefined,
+  filename: string,
+  type: string,
+) {
+  const jsonString = JSON.stringify(
     { startPoint, lines, shapes, sequence, extraData },
     null,
     2,
   );
+  triggerDownload(jsonString, type, filename);
 }
 
 /**
@@ -62,22 +66,15 @@ export function downloadTrajectory(
   extraData?: Record<string, any>,
   filename: string = `trajectory${DEFAULT_PROJECT_EXTENSION}`,
 ): void {
-  const jsonString = createTrajectoryJson(
+  downloadProjectFile(
     startPoint,
     lines,
     shapes,
     sequence,
     extraData,
+    ensureDefaultProjectExtension(filename),
+    "application/json",
   );
-
-  const lowerName = filename.toLowerCase();
-  const finalFilename =
-    lowerName.endsWith(DEFAULT_PROJECT_EXTENSION) ||
-    lowerName.endsWith(LEGACY_PROJECT_EXTENSION)
-      ? filename
-      : `${filename}${DEFAULT_PROJECT_EXTENSION}`;
-
-  triggerDownload(jsonString, "application/json", finalFilename);
 }
 
 /**
@@ -91,15 +88,15 @@ export function downloadTrajectoryAsText(
   extraData?: Record<string, any>,
   filename: string = "trajectory.txt",
 ): void {
-  const jsonString = createTrajectoryJson(
+  downloadProjectFile(
     startPoint,
     lines,
     shapes,
     sequence,
     extraData,
+    filename,
+    "text/plain",
   );
-
-  triggerDownload(jsonString, "text/plain", filename);
 }
 
 /**
