@@ -10,7 +10,9 @@ export function platform(): string {
   return "unknown";
 }
 
-export const isMac = /Mac|iPod|iPhone|iPad|darwin/i.test(platform());
+export const isMac =
+  typeof navigator !== "undefined" &&
+  /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 export const modKey = isMac ? "Cmd" : "Ctrl";
 export const altKey = isMac ? "Opt" : "Alt";
 

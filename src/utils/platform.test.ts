@@ -1,24 +1,47 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 describe('platform', () => {
-  let originalNavigator: any;
-  let originalWindow: any;
+  let originalNavigatorPlatform: any;
+  let originalNavigatorUserAgent: any;
   let originalProcessPlatform: any;
 
   beforeEach(() => {
-    originalNavigator = global.navigator;
-    originalWindow = global.window;
-    originalProcessPlatform = global.process.platform;
+    originalNavigatorPlatform = global.navigator?.platform;
+    originalNavigatorUserAgent = global.navigator?.userAgent;
+    originalProcessPlatform = global.process?.platform;
     vi.resetModules();
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    if (global.navigator) {
+      Object.defineProperty(global.navigator, 'platform', {
+        value: originalNavigatorPlatform,
+        writable: true,
+        configurable: true,
+      });
+      Object.defineProperty(global.navigator, 'userAgent', {
+        value: originalNavigatorUserAgent,
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    if (global.process) {
+      Object.defineProperty(global.process, 'platform', {
+        value: originalProcessPlatform,
+        writable: true,
+        configurable: true,
+      });
+    }
     vi.resetModules();
   });
 
   it('detects Mac correctly', async () => {
-    vi.stubGlobal('navigator', { platform: 'MacIntel' });
+    Object.defineProperty(global.navigator, 'platform', {
+      value: 'MacIntel',
+      writable: true,
+      configurable: true,
+    });
     const { isMac, modKey, altKey } = await import('./platform');
     expect(isMac).toBe(true);
     expect(modKey).toBe('Cmd');
@@ -26,7 +49,11 @@ describe('platform', () => {
   });
 
   it('detects Windows correctly', async () => {
-    vi.stubGlobal('navigator', { platform: 'Win32' });
+    Object.defineProperty(global.navigator, 'platform', {
+      value: 'Win32',
+      writable: true,
+      configurable: true,
+    });
     const { isMac, modKey, altKey } = await import('./platform');
     expect(isMac).toBe(false);
     expect(modKey).toBe('Ctrl');
@@ -34,15 +61,21 @@ describe('platform', () => {
   });
 
   it('detects browser correctly', async () => {
-    vi.stubGlobal('window', {});
-    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0' });
+    Object.defineProperty(global.navigator, 'userAgent', {
+      value: 'Mozilla/5.0',
+      writable: true,
+      configurable: true,
+    });
     const { isBrowser } = await import('./platform');
     expect(isBrowser).toBe(true);
   });
 
   it('detects electron correctly', async () => {
-    vi.stubGlobal('window', {});
-    vi.stubGlobal('navigator', { userAgent: 'Electron/12.0.0' });
+    Object.defineProperty(global.navigator, 'userAgent', {
+      value: 'Electron/12.0.0',
+      writable: true,
+      configurable: true,
+    });
     const { isBrowser } = await import('./platform');
     expect(isBrowser).toBe(false);
   });
@@ -63,7 +96,11 @@ describe('platform', () => {
       writable: true,
       configurable: true,
     });
-    vi.stubGlobal('navigator', { platform: 'Win32' });
+    Object.defineProperty(global.navigator, 'platform', {
+      value: 'Win32',
+      writable: true,
+      configurable: true,
+    });
     const { platform } = await import('./platform');
     expect(platform()).toBe('Win32');
   });
@@ -74,7 +111,11 @@ describe('platform', () => {
       writable: true,
       configurable: true,
     });
-    vi.stubGlobal('navigator', undefined);
+    Object.defineProperty(global.navigator, 'platform', {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
     const { platform } = await import('./platform');
     expect(platform()).toBe('unknown');
   });
