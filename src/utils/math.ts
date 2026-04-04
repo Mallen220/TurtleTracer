@@ -1,7 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Line, Point } from "../types";
 
-// Extracted type for 2D points to DRY up function signatures
 type Point2D = { x: number; y: number };
 
 export function quadraticToCubic(P0: Point2D, P1: Point2D, P2: Point2D) {
@@ -26,14 +25,16 @@ export function getMousePos(evt: MouseEvent, canvas: SVGSVGElement) {
   };
 }
 
+export function normalizeAngle(angle: number): number {
+  return ((angle % 360) + 360) % 360;
+}
+
 export function transformAngle(angle: number) {
-  return ((((angle + 180) % 360) + 360) % 360) - 180;
+  return normalizeAngle(angle + 180) - 180;
 }
 
 export function getAngularDifference(start: number, end: number): number {
-  const normalizedStart = ((start % 360) + 360) % 360;
-  const normalizedEnd = ((end % 360) + 360) % 360;
-  let diff = normalizedEnd - normalizedStart;
+  let diff = normalizeAngle(end) - normalizeAngle(start);
 
   if (diff > 180) diff -= 360;
   else if (diff < -180) diff += 360;

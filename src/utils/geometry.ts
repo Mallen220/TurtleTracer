@@ -118,14 +118,11 @@ export function getRobotCorners(
   length: number,
   width: number,
 ): BasePoint[] {
-  // Convert heading from degrees to radians
   const headingRad = (heading * Math.PI) / 180;
 
-  // Half dimensions
   const hl = length / 2;
   const hw = width / 2;
 
-  // Calculate rotation components
   const cos = Math.cos(headingRad);
   const sin = Math.sin(headingRad);
 
@@ -136,8 +133,6 @@ export function getRobotCorners(
     { dx: -hl, dy: hw }, // back-left
   ];
 
-  // Rotate and translate corners
-  // Using standard 2D rotation matrix for screen coordinates
   return corners.map((corner) => ({
     x: x + corner.dx * cos - corner.dy * sin,
     y: y + corner.dx * sin + corner.dy * cos,
@@ -152,10 +147,8 @@ export function getRobotCorners(
 export function convexHull(points: BasePoint[]): BasePoint[] {
   if (points.length < 3) return points;
 
-  // Create a copy to avoid modifying the input
   const pts = [...points];
 
-  // Find the point with the lowest y-coordinate (and leftmost if tie)
   let minIdx = 0;
   for (let i = 1; i < pts.length; i++) {
     if (
@@ -166,11 +159,11 @@ export function convexHull(points: BasePoint[]): BasePoint[] {
     }
   }
 
-  // Swap the bottom-most point to the first position
   [pts[0], pts[minIdx]] = [pts[minIdx], pts[0]];
   const pivot = pts[0];
 
-  // Sort points by polar angle with respect to pivot
+  const distSq = (p: BasePoint) => (p.x - pivot.x) ** 2 + (p.y - pivot.y) ** 2;
+
   const sorted = pts.slice(1).sort((a, b) => {
     const angleA = Math.atan2(a.y - pivot.y, a.x - pivot.x);
     const angleB = Math.atan2(b.y - pivot.y, b.x - pivot.x);
@@ -179,22 +172,16 @@ export function convexHull(points: BasePoint[]): BasePoint[] {
       return angleA - angleB;
     }
 
-    // If angles are equal, sort by distance
-    const distA = (a.x - pivot.x) ** 2 + (a.y - pivot.y) ** 2;
-    const distB = (b.x - pivot.x) ** 2 + (b.y - pivot.y) ** 2;
-    return distA - distB;
+    return distSq(a) - distSq(b);
   });
 
-  // Helper function to compute cross product
   const cross = (o: BasePoint, a: BasePoint, b: BasePoint): number => {
     return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
   };
 
-  // Build the convex hull
   const hull: BasePoint[] = [pivot];
 
   for (const point of sorted) {
-    // Remove points that would create a right turn
     while (
       hull.length >= 2 &&
       cross(hull[hull.length - 2], hull[hull.length - 1], point) <= 0

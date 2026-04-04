@@ -46,7 +46,6 @@
     idx: number;
     lines: Line[];
     collapsed: boolean;
-    // export let collapsedEventMarkers: boolean;
     collapsedControlPoints: boolean;
     onRemove: () => void;
     onInsertAfter: () => void;
@@ -424,8 +423,12 @@
             bind:this={headingControls}
             endPoint={line.endPoint}
             locked={line.locked}
-            on:change={() => (lines = [...lines])}
+            on:change={() => {
+              lines[idx] = { ...line, endPoint: { ...line.endPoint } };
+              lines = [...lines];
+            }}
             on:commit={() => {
+              lines[idx] = { ...line, endPoint: { ...line.endPoint } };
               lines = [...lines];
               recordChange("Update Heading");
             }}

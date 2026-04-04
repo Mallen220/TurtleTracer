@@ -85,7 +85,7 @@ export { default as ResetZoomIcon } from "./ResetZoomIcon.svelte";
 export { default as ExitPresentationModeIcon } from "./ExitPresentationModeIcon.svelte";
 
 export { default as ArrowUpIcon } from "./ArrowUpIcon.svelte";
-export { default as ClipboardIcon } from "./ShowDebugSequenceIcon.svelte";
+export { default as ClipboardIcon } from "./ClipboardIcon.svelte";
 export { default as CheckIcon } from "./CheckIcon.svelte";
 export { default as CogIcon } from "./CogIcon.svelte";
 export { default as PlusCircleIcon } from "./PlusCircleIcon.svelte";
@@ -101,9 +101,10 @@ export { default as EllipsisHorizontalIcon } from "./EllipsisHorizontalIcon.svel
 export { default as SkipToStartIcon } from "./SkipToStartIcon.svelte";
 
 export { default as SkipToEndIcon } from "./SkipToEndIcon.svelte";
-export { default as SplitPathIcon } from "./SplitPathIcon.svelte";
 export { default as OnionSkinCurrentPathIcon } from "./OnionSkinCurrentPathIcon.svelte";
 export { default as SidebarCollapseIcon } from "./SidebarCollapseIcon.svelte";
 export { default as MicrosoftStoreIcon } from "./MicrosoftStoreIcon.svelte";
 
 export { default as RobotPlaceholderIcon } from "./RobotPlaceholderIcon.svelte";
+export { default as CriticalIcon } from "./CriticalIcon.svelte";
+export { default as DisabledIcon } from "./DisabledIcon.svelte";

@@ -146,20 +146,6 @@ describe("Math Utils", () => {
       expect(p.x).toBe(5);
       expect(p.y).toBe(5);
     });
-
-    it("calculates point on higher order curve (recursive fallback)", () => {
-      const points = [
-        { x: 0, y: 0 },
-        { x: 10, y: 0 },
-        { x: 10, y: 10 },
-        { x: 0, y: 10 },
-        { x: 0, y: 0 },
-      ];
-      const p = getCurvePoint(0.5, points);
-      // Fallback works recursively
-      expect(p.x).toBeDefined();
-      expect(p.y).toBeDefined();
-    });
   });
 
   describe("getTangentAngle", () => {

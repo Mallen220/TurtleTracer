@@ -4,6 +4,8 @@ import {
   calculatePathTime,
   formatTime,
   analyzePathSegment,
+  getAnimationDuration,
+  calculateRotationTime,
 } from "../utils/timeCalculator";
 import type { Point, Line, Settings, SequenceItem } from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
@@ -80,6 +82,40 @@ describe("Time Calculator", () => {
     expect(formatTime(1.5)).toBe("1.500s");
     expect(formatTime(65.123)).toBe("1:05.123s");
     expect(formatTime(0)).toBe("0.000s");
+    expect(formatTime(-5)).toBe("0.000s");
+    expect(formatTime(NaN)).toBe("Infinite");
+    expect(formatTime(Infinity)).toBe("Infinite");
+  });
+
+  describe("getAnimationDuration", () => {
+    it("calculates animation duration correctly", () => {
+      expect(getAnimationDuration(2)).toBe(2000);
+      expect(getAnimationDuration(2, 2)).toBe(1000);
+      expect(getAnimationDuration(2, 0.5)).toBe(4000);
+    });
+
+    it("handles edge cases gracefully", () => {
+      expect(getAnimationDuration(0)).toBe(0);
+      expect(getAnimationDuration(NaN)).toBeNaN();
+      expect(getAnimationDuration(Infinity)).toBe(Infinity);
+      expect(getAnimationDuration(1, Infinity)).toBe(0);
+      expect(getAnimationDuration(1, 0)).toBe(Infinity);
+    });
+  });
+
+  describe("calculateRotationTime", () => {
+    it("returns 0 for small or negative angles", () => {
+      expect(calculateRotationTime(0.001, defaultSettings)).toBe(0);
+      expect(calculateRotationTime(0, defaultSettings)).toBe(0);
+      expect(calculateRotationTime(-10, defaultSettings)).toBe(0);
+    });
+
+    it("handles zero or undefined maxAngularAcceleration", () => {
+      const settingsNoAngAccel = { ...defaultSettings, maxAngularAcceleration: 0 };
+      // with maxAccel=5, rWidth=18 -> maxAngAccel = 5/9 = 0.555
+      const res = calculateRotationTime(90, settingsNoAngAccel);
+      expect(res).toBeCloseTo(3.36, 1);
+    });
   });
 
   it("handles wait commands", () => {
@@ -215,6 +251,29 @@ describe("Time Calculator", () => {
     const rotationEvents = result.timeline.filter((e) => e.waitId === "rot1");
     expect(rotationEvents.length).toBe(1);
     expect(rotationEvents[0].duration).toBeCloseTo(1.157, 2);
+  });
+
+  it("handles edge cases in calculatePathTime", () => {
+    const lines: Line[] = [
+      {
+        id: "line1",
+        endPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
+        controlPoints: [],
+        color: "#fff",
+      },
+      {
+        id: "line2",
+        endPoint: { x: 10, y: 0, heading: "constant", degrees: 0 },
+        controlPoints: [],
+        color: "#fff",
+      },
+    ];
+    const zeroVelSettings: Settings = { ...defaultSettings, xVelocity: 0, yVelocity: 0, maxVelocity: 0, maxAcceleration: 0, maxDeceleration: 0 };
+    const badStart: Point = { x: 0, y: 0, heading: "linear", startDeg: NaN, endDeg: NaN };
+
+    const result = calculatePathTime(badStart, lines, zeroVelSettings);
+    expect(Number.isFinite(result.totalTime)).toBe(true);
+    expect(result.segmentTimes.every((t) => Number.isFinite(t))).toBe(true);
   });
 
   describe("analyzePathSegment", () => {

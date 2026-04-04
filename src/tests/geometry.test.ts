@@ -11,14 +11,14 @@ import {
 } from "../utils/geometry";
 
 describe("Geometry Utils", () => {
-  describe("pointInPolygon", () => {
-    const square = [
-      { x: 0, y: 0 },
-      { x: 10, y: 0 },
-      { x: 10, y: 10 },
-      { x: 0, y: 10 },
-    ];
+  const square = [
+    { x: 0, y: 0 },
+    { x: 10, y: 0 },
+    { x: 10, y: 10 },
+    { x: 0, y: 10 },
+  ];
 
+  describe("pointInPolygon", () => {
     it("returns true for point inside polygon", () => {
       expect(pointInPolygon([5, 5], square)).toBe(true);
     });
@@ -82,13 +82,6 @@ describe("Geometry Utils", () => {
   });
 
   describe("minDistanceToPolygon", () => {
-    const square = [
-      { x: 0, y: 0 },
-      { x: 10, y: 0 },
-      { x: 10, y: 10 },
-      { x: 0, y: 10 },
-    ];
-
     it("calculates minimum distance to any edge", () => {
       // Point at (5, 15) -> distance to top edge (0,10)-(10,10) is 5
       expect(minDistanceToPolygon([5, 15], square)).toBe(5);
@@ -103,12 +96,6 @@ describe("Geometry Utils", () => {
 
   describe("polygonCenter", () => {
     it("calculates centroid of polygon", () => {
-      const square = [
-        { x: 0, y: 0 },
-        { x: 10, y: 0 },
-        { x: 10, y: 10 },
-        { x: 0, y: 10 },
-      ];
       const center = polygonCenter(square);
       expect(center[0]).toBe(5);
       expect(center[1]).toBe(5);

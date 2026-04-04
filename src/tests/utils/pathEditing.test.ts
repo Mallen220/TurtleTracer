@@ -26,8 +26,7 @@ describe("pathEditing", () => {
         x: 0,
         y: 0,
         locked: false,
-        control1: { x: 0, y: 0 },
-        control2: { x: 0, y: 0 },
+        heading: "tangential",
       } as Point;
 
       const result = generateLinesFromDrawing(drawnPoints, startPoint, [], []);

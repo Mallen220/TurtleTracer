@@ -64,40 +64,45 @@ describe("ExportCodeDialog file reading", () => {
     );
   });
 
-  it("falls back to generation if file read fails", async () => {
-    const mockConsoleWarn = vi
-      .spyOn(console, "warn")
-      .mockImplementation(() => {});
-    currentFilePath.set("/path/to/project.pp");
-    (window as any).electronAPI.readFile.mockRejectedValue(
-      new Error("File not found"),
-    );
-
+  const testFallbackGeneration = async (
+    setupMock: () => void,
+    expectReadFileCall: boolean,
+  ) => {
+    setupMock();
     const { getByText, component } = createDialog();
 
     await component.openWithFormat("json");
 
     await waitFor(() => {
-      expect((window as any).electronAPI.readFile).toHaveBeenCalled();
+      if (expectReadFileCall) {
+        expect((window as any).electronAPI.readFile).toHaveBeenCalled();
+      } else {
+        expect((window as any).electronAPI.readFile).not.toHaveBeenCalled();
+      }
     });
 
-    // Should contain generated content (e.g. "version")
+    // Should contain generated content
     await waitFor(() => expect(getByText(/"version"/)).toBeTruthy());
+  };
+
+  it("falls back to generation if file read fails", async () => {
+    const mockConsoleWarn = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+
+    await testFallbackGeneration(() => {
+      currentFilePath.set("/path/to/project.pp");
+      (window as any).electronAPI.readFile.mockRejectedValue(
+        new Error("File not found"),
+      );
+    }, true);
 
     mockConsoleWarn.mockRestore();
   });
 
   it("generates content if no file path", async () => {
-    currentFilePath.set(null);
-    const { getByText, component } = createDialog();
-
-    await component.openWithFormat("json");
-
-    await waitFor(() => {
-      expect((window as any).electronAPI.readFile).not.toHaveBeenCalled();
-    });
-
-    // Should contain generated content
-    await waitFor(() => expect(getByText(/"version"/)).toBeTruthy());
+    await testFallbackGeneration(() => {
+      currentFilePath.set(null);
+    }, false);
   });
 });

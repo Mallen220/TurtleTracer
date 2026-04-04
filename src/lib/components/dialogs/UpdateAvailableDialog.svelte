@@ -14,6 +14,7 @@
   } from "../../../stores";
   const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import MarkdownIt from "markdown-it";
+  import DOMPurify from "dompurify";
   import {
     CloseIcon,
     RocketIcon,
@@ -85,15 +86,15 @@
 
       if (response.ok) {
         const text = await response.text();
-        releaseNotesHtml = md.render(text);
+        releaseNotesHtml = DOMPurify.sanitize(md.render(text));
       } else {
         throw new Error("Failed to fetch remote notes");
       }
     } catch (e) {
       console.warn("Failed to fetch detailed release notes, using fallback", e);
       // Fallback to the notes provided by the update check (usually GitHub Release body)
-      releaseNotesHtml = md.render(
-        fallbackNotes || "No release notes available.",
+      releaseNotesHtml = DOMPurify.sanitize(
+        md.render(fallbackNotes || "No release notes available."),
       );
     } finally {
       isLoadingNotes = false;

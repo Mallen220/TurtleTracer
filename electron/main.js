@@ -22,8 +22,8 @@ let serverPort = 17218;
 let appUpdater;
 
 // Global references to prevent Electron Menu garbage collection (macOS WeakPtr bug)
-let appMenu = null;
-let dockMenu = null;
+global.appMenu = null;
+global.dockMenu = null;
 
 // Track if we've already cleared the default session storage/cache once
 let sessionCleared = false;
@@ -407,7 +407,7 @@ const createWindow = async () => {
 
 const updateDockMenu = () => {
   if (process.platform === "darwin") {
-    dockMenu = Menu.buildFromTemplate([
+    global.dockMenu = Menu.buildFromTemplate([
       {
         label: "New Window",
         click() {
@@ -415,7 +415,7 @@ const updateDockMenu = () => {
         },
       },
     ]);
-    app.dock.setMenu(dockMenu);
+    app.dock.setMenu(global.dockMenu);
   }
 };
 
@@ -620,8 +620,8 @@ const createMenu = () => {
     },
   ];
 
-  appMenu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(appMenu);
+  global.appMenu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(global.appMenu);
 };
 
 // CRITICAL: Satisfies "when the project closes it should auto close"
