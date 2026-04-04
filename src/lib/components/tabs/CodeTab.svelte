@@ -264,17 +264,17 @@
   }, 1000);
 
   // Trigger update when dependencies change
+  // Trigger update when dependencies change
   run(() => {
-    if (
-      isActive &&
-      (startPoint ||
-        lines ||
-        sequence ||
-        settings ||
-        (settings as Settings)?.codeUnits ||
-        format ||
-        targetLibrary)
-    ) {
+    // Deeply track dependencies in Svelte 5
+    $state.snapshot(startPoint);
+    $state.snapshot(lines);
+    $state.snapshot(sequence);
+    $state.snapshot(settings);
+    format;
+    targetLibrary;
+
+    if (isActive) {
       updateCode();
     }
   });
