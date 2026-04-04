@@ -112,6 +112,17 @@
   let optimizer: PathOptimizer | null = null;
   let isStopping = $state(false);
 
+  function restoreUnselectedLocks(previewLines: Line[]) {
+    previewLines.forEach((line, idx) => {
+      const originalLine = lines[idx];
+      if (!originalLine) return;
+      const id = originalLine.id || `idx-${idx}`;
+      if (!selectionState[id]) {
+        line.locked = originalLine.locked;
+      }
+    });
+  }
+
   export async function startOptimization() {
     isRunning = true;
     progress = 0;
@@ -149,21 +160,19 @@
       (result: OptimizationResult) => {
         progress = result.generation;
         currentBestTime = result.bestTime;
+
+        if (showPreview && onPreviewChange && result.bestLines) {
+          const previewLines = structuredClone(result.bestLines);
+          restoreUnselectedLocks(previewLines);
+          onPreviewChange(previewLines);
+        }
       },
     );
 
     optimizedLines = optimizationResult.lines;
 
     if (optimizedLines) {
-      optimizedLines.forEach((l, idx) => {
-        const originalLine = lines[idx];
-        if (originalLine) {
-          const id = originalLine.id || `idx-${idx}`;
-          if (!selectionState[id]) {
-            l.locked = originalLine.locked;
-          }
-        }
-      });
+      restoreUnselectedLocks(optimizedLines);
     }
 
     if (optimizationResult.error) {

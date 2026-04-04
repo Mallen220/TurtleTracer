@@ -15,6 +15,7 @@
   import OptimizationDialog from "../dialogs/OptimizationDialog.svelte";
   import GlobalEventMarkers from "../GlobalEventMarkers.svelte";
   import ObstaclesSection from "../sections/ObstaclesSection.svelte";
+  import { linesStore } from "../../projectStore";
 
   interface Props {
     robotXY: BasePoint;
@@ -62,6 +63,33 @@
     }
   });
 
+  function toSerializableLines(input: Line[]): Line[] {
+    const seen = new WeakSet<object>();
+    const serialized = JSON.stringify(input, (_key, value) => {
+      if (typeof value === "function") return undefined;
+
+      if (value && typeof value === "object") {
+        if (typeof window !== "undefined" && value === window) {
+          return undefined;
+        }
+
+        if (typeof Node !== "undefined" && value instanceof Node) {
+          return undefined;
+        }
+
+        const obj = value as object;
+        if (seen.has(obj)) {
+          return undefined;
+        }
+        seen.add(obj);
+      }
+
+      return value;
+    });
+
+    return JSON.parse(serialized) as Line[];
+  }
+
   let allCollapsed = $derived(
     collapsedSections.obstacles.every((v) => v) &&
       collapsedSections.globalMarkers,
@@ -81,7 +109,10 @@
   }
 
   function handleOptimizationApply(newLines: Line[]) {
-    lines = newLines;
+    const safeLines = toSerializableLines(newLines);
+    // Commit to the canonical store first so recordChange snapshots the new path.
+    linesStore.set(safeLines);
+    lines = safeLines;
     recordChange?.();
   }
 
