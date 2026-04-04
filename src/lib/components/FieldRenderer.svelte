@@ -639,14 +639,25 @@
               const shapeIdx = Number(parts[1]);
               if (shapes[shapeIdx]?.locked) return;
               const vertexIdx = Number(parts[2]);
-              shapes[shapeIdx].vertices[vertexIdx].x = inchX;
-              shapes[shapeIdx].vertices[vertexIdx].y = inchY;
+              const newVertices = [...shapes[shapeIdx].vertices];
+              newVertices[vertexIdx] = {
+                ...newVertices[vertexIdx],
+                x: inchX,
+                y: inchY,
+              };
+              shapes[shapeIdx] = { ...shapes[shapeIdx], vertices: newVertices };
               shapesChanged = true;
             } else if (id.startsWith("targetpoint-")) {
               const line = Number(id.split("-")[1]) - 1;
               if (lines[line] && lines[line].endPoint) {
-                lines[line].endPoint.targetX = inchX;
-                lines[line].endPoint.targetY = inchY;
+                lines[line] = {
+                  ...lines[line],
+                  endPoint: {
+                    ...lines[line].endPoint,
+                    targetX: inchX,
+                    targetY: inchY,
+                  } as Point,
+                };
                 linesChanged = true;
               }
             } else {
@@ -655,14 +666,15 @@
 
               if (line === -1) {
                 if (!startPoint.locked) {
-                  startPoint.x = inchX;
-                  startPoint.y = inchY;
+                  startPoint = { ...startPoint, x: inchX, y: inchY };
                   startPointChanged = true;
                 }
               } else if (lines[line]) {
                 if (point === 0 && lines[line].endPoint) {
-                  lines[line].endPoint.x = inchX;
-                  lines[line].endPoint.y = inchY;
+                  lines[line] = {
+                    ...lines[line],
+                    endPoint: { ...lines[line].endPoint, x: inchX, y: inchY },
+                  };
                   if (lines[line].id) {
                     const updated = updateLinkedWaypoints(
                       lines,
@@ -675,8 +687,16 @@
                   }
                 } else {
                   if (!lines[line]?.locked) {
-                    lines[line].controlPoints[point - 1].x = inchX;
-                    lines[line].controlPoints[point - 1].y = inchY;
+                    const newControlPoints = [...lines[line].controlPoints];
+                    newControlPoints[point - 1] = {
+                      ...newControlPoints[point - 1],
+                      x: inchX,
+                      y: inchY,
+                    };
+                    lines[line] = {
+                      ...lines[line],
+                      controlPoints: newControlPoints,
+                    };
                   }
                 }
                 linesChanged = true;
@@ -1681,6 +1701,12 @@
     fieldViewStore.set({ xScale: x, yScale: y, width, height });
   });
   let lines = $derived($linesStore);
+  let sequencedLines = $derived(
+    $sequenceStore
+      .filter((s) => actionRegistry.get(s.kind)?.isPath)
+      .map((s) => lines.find((l) => l.id === (s as any).lineId))
+      .filter((l): l is Line => !!l),
+  );
   let effectiveTimePrediction = $derived(
     $isDraggingStore ? null : timePrediction,
   );
@@ -1872,7 +1898,7 @@
 
       // Fallback if no simulation (e.g. initial load or error)
       return generatePathElements(
-        lines,
+        sequencedLines,
         startPoint,
         (l) => l.color,
         (l) =>
@@ -1921,7 +1947,7 @@
 
       // 2. Current Path (New/Same)
       const currentPaths = generatePathElements(
-        lines,
+        sequencedLines,
         startPoint,
         (l) => {
           // Check if same

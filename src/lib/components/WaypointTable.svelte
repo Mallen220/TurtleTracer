@@ -80,7 +80,7 @@
     settings = undefined,
     shapes = $bindable([]),
     collapsedObstacles = $bindable([]),
-    isActive = true
+    isActive = true,
   }: {
     startPoint: Point;
     lines: Line[];
@@ -95,12 +95,9 @@
   let showDebug = $derived((settings as any)?.showDebugSequence);
 
   // Compute segment statistics for contextual display
-  let timePrediction = $derived(calculatePathTime(
-    startPoint,
-    lines,
-    settings || ({} as any),
-    sequence,
-  ));
+  let timePrediction = $derived(
+    calculatePathTime(startPoint, lines, settings || ({} as any), sequence),
+  );
 
   let pathStatsMap = $derived.by(() => {
     const map = new Map();
@@ -349,46 +346,62 @@
   }
 
   // Ensure UI shows any lines that might be missing from the sequence (robustness)
-  let displaySequence = $derived((() => {
-    try {
-      // Keep original sequence order and append any missing path items for lines
-      const seqCopy = Array.isArray(sequence) ? [...sequence] : [];
-      const pathIds = new Set(
-        seqCopy
-          .filter((s) => actionRegistry.get((s as any).kind)?.isPath)
-          .map((s) => (s as any).lineId),
-      );
-      lines.forEach((l) => {
-        if (l.id && !pathIds.has(l.id) && !l.isMacroElement) {
-          seqCopy.push({ kind: "path", lineId: l.id });
-        }
-      });
-      return seqCopy;
-    } catch (e) {
-      return sequence || [];
-    }
-  })());
+  let displaySequence = $derived(
+    (() => {
+      try {
+        // Keep original sequence order and append any missing path items for lines
+        const seqCopy = Array.isArray(sequence) ? [...sequence] : [];
+        const pathIds = new Set(
+          seqCopy
+            .filter((s) => actionRegistry.get((s as any).kind)?.isPath)
+            .map((s) => (s as any).lineId),
+        );
+        lines.forEach((l) => {
+          if (l.id && !pathIds.has(l.id) && !l.isMacroElement) {
+            seqCopy.push({ kind: "path", lineId: l.id });
+          }
+        });
+        return seqCopy;
+      } catch (e) {
+        return sequence || [];
+      }
+    })(),
+  );
 
   // Computed debug values to keep template expressions simple
-  let debugLinesIds = $derived(Array.isArray(lines)
-    ? lines.map((l) => l.id).filter((id): id is string => id != null)
-    : []);
-  let debugSequenceIds = $derived(Array.isArray(sequence)
-    ? sequence.map((s) =>
-        actionRegistry.get(s.kind)?.isPath ? (s as any).lineId : (s as any).id,
-      )
-    : []);
-  let debugDisplayIds = $derived(Array.isArray(displaySequence)
-    ? displaySequence.map((d) =>
-        actionRegistry.get(d.kind)?.isPath ? (d as any).lineId : (d as any).id,
-      )
-    : []);
-  let debugMissing = $derived(debugLinesIds.filter(
-    (id) => id && !debugSequenceIds.includes(id),
-  ) as string[]);
-  let debugInvalidRefs = $derived(debugSequenceIds.filter(
-    (id) => id && !debugLinesIds.includes(id),
-  ) as string[]);
+  let debugLinesIds = $derived(
+    Array.isArray(lines)
+      ? lines.map((l) => l.id).filter((id): id is string => id != null)
+      : [],
+  );
+  let debugSequenceIds = $derived(
+    Array.isArray(sequence)
+      ? sequence.map((s) =>
+          actionRegistry.get(s.kind)?.isPath
+            ? (s as any).lineId
+            : (s as any).id,
+        )
+      : [],
+  );
+  let debugDisplayIds = $derived(
+    Array.isArray(displaySequence)
+      ? displaySequence.map((d) =>
+          actionRegistry.get(d.kind)?.isPath
+            ? (d as any).lineId
+            : (d as any).id,
+        )
+      : [],
+  );
+  let debugMissing = $derived(
+    debugLinesIds.filter(
+      (id) => id && !debugSequenceIds.includes(id),
+    ) as string[],
+  );
+  let debugInvalidRefs = $derived(
+    debugSequenceIds.filter(
+      (id) => id && !debugLinesIds.includes(id),
+    ) as string[],
+  );
 
   // Drag and drop state
   let draggingIndex: number | null = $state(null);

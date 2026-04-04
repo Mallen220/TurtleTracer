@@ -19,7 +19,6 @@ describe("Geometry Utils", () => {
   ];
 
   describe("pointInPolygon", () => {
-
     it("returns true for point inside polygon", () => {
       expect(pointInPolygon([5, 5], square)).toBe(true);
     });

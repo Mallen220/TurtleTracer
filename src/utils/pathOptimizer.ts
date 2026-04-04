@@ -73,7 +73,10 @@ export class PathOptimizer {
 
     // Pre-calculate AABBs
     const calculateAABB = (shape: Shape): AABB => {
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
       for (const v of shape.vertices) {
         if (v.x < minX) minX = v.x;
         if (v.x > maxX) maxX = v.x;
@@ -270,7 +273,8 @@ export class PathOptimizer {
       Math.pow(rLength / 2, 2) + Math.pow(rWidth / 2, 2),
     );
     const rawHalfDiag = Math.sqrt(
-      Math.pow(this.settings.rLength / 2, 2) + Math.pow(this.settings.rWidth / 2, 2),
+      Math.pow(this.settings.rLength / 2, 2) +
+        Math.pow(this.settings.rWidth / 2, 2),
     );
 
     let eventIdx = 0;
@@ -507,13 +511,13 @@ export class PathOptimizer {
           }
 
           if (!rawCorners) {
-             rawCorners = getRobotCorners(
-               x,
-               y,
-               heading,
-               this.settings.rLength,
-               this.settings.rWidth,
-             );
+            rawCorners = getRobotCorners(
+              x,
+              y,
+              heading,
+              this.settings.rLength,
+              this.settings.rWidth,
+            );
           }
 
           let allCornersIn = true;
