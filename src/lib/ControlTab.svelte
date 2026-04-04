@@ -87,33 +87,54 @@
   // Optimization Interface
   let tabInstances: Record<string, any> = $state({});
 
+  function getOptimizationController() {
+    return tabInstances["field"] || activeTabInstance;
+  }
+
+  function focusOptimizationTab() {
+    activeTab = "field";
+  }
+
   export async function openAndStartOptimization() {
-    if (activeTabInstance && activeTabInstance.openAndStartOptimization) {
-      return await activeTabInstance.openAndStartOptimization();
+    focusOptimizationTab();
+    const optimizerController = getOptimizationController();
+    if (
+      optimizerController &&
+      optimizerController.openAndStartOptimization
+    ) {
+      return await optimizerController.openAndStartOptimization();
     }
   }
 
   export function stopOptimization() {
-    if (activeTabInstance && activeTabInstance.stopOptimization) {
-      activeTabInstance.stopOptimization();
+    focusOptimizationTab();
+    const optimizerController = getOptimizationController();
+    if (optimizerController && optimizerController.stopOptimization) {
+      optimizerController.stopOptimization();
     }
   }
 
   export function applyOptimization() {
-    if (activeTabInstance && activeTabInstance.applyOptimization) {
-      activeTabInstance.applyOptimization();
+    focusOptimizationTab();
+    const optimizerController = getOptimizationController();
+    if (optimizerController && optimizerController.applyOptimization) {
+      optimizerController.applyOptimization();
     }
   }
 
   export function discardOptimization() {
-    if (activeTabInstance && activeTabInstance.discardOptimization) {
-      activeTabInstance.discardOptimization();
+    focusOptimizationTab();
+    const optimizerController = getOptimizationController();
+    if (optimizerController && optimizerController.discardOptimization) {
+      optimizerController.discardOptimization();
     }
   }
 
   export function retryOptimization() {
-    if (activeTabInstance && activeTabInstance.retryOptimization) {
-      activeTabInstance.retryOptimization();
+    focusOptimizationTab();
+    const optimizerController = getOptimizationController();
+    if (optimizerController && optimizerController.retryOptimization) {
+      optimizerController.retryOptimization();
     }
   }
 
@@ -136,8 +157,9 @@
   }
 
   export function getOptimizationStatus() {
-    if (activeTabInstance && activeTabInstance.getOptimizationStatus) {
-      return activeTabInstance.getOptimizationStatus();
+    const optimizerController = getOptimizationController();
+    if (optimizerController && optimizerController.getOptimizationStatus) {
+      return optimizerController.getOptimizationStatus();
     }
     return {
       isOpen: false,
