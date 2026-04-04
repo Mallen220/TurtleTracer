@@ -496,7 +496,7 @@
   {#each groups as group}
     {#if sortMode === "date"}
       <div
-        class="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-neutral-50/50 dark:bg-neutral-800/50 sticky top-0 backdrop-blur-sm z-1 mb-2"
+        class="px-3 py-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-neutral-50/50 dark:bg-neutral-800/50 sticky top-0  z-1 mb-2"
       >
         {group.title}
       </div>

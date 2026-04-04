@@ -152,7 +152,7 @@
   <div
     role="presentation"
     transition:fade={{ duration: 150, easing: cubicInOut }}
-    class="fixed inset-0 z-[2000] flex items-start justify-center pt-[15vh] bg-black bg-opacity-60 backdrop-blur-sm"
+    class="fixed inset-0 z-[2000] flex items-start justify-center pt-[15vh] bg-black bg-opacity-60 "
     onclick={self(onClose)}
     onkeydown={(e) => {
       if (e.key === "Escape") onClose();

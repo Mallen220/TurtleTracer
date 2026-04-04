@@ -682,7 +682,7 @@
                           class="absolute z-20 top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl overflow-hidden"
                         >
                           <div
-                            class="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80"
+                            class="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-white/95 dark:bg-neutral-900/95  supports-[backdrop-filter]:bg-white/80"
                           >
                             <input
                               type="text"

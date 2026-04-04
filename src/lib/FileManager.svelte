@@ -1184,7 +1184,7 @@
   {#if isOpen}
     <div
       transition:fade={{ duration: 200 }}
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm"
+      class="fixed inset-0 bg-black/50 "
       onclick={() => (isOpen = false)}
       role="button"
       tabindex="0"
@@ -1198,7 +1198,7 @@
   <!-- Drop Zone (Right Area) -->
   {#if isOpen && isDraggingPath}
     <div
-      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-purple-500/10 backdrop-blur-[2px] z-[1015]"
+      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-purple-500/10  z-[1015]"
       style="left: {sidebarWidth}px;"
     >
       <div

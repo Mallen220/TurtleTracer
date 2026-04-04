@@ -272,7 +272,7 @@
 
 {#if show}
   <div
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50  p-4"
     transition:scale={{
       duration: (globalThis as any).vitest !== undefined ? 0 : 200,
       start: 0.95,

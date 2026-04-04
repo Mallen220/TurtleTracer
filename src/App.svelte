@@ -1830,7 +1830,7 @@
 <!-- Drag Overlay -->
 {#if isDraggingFile}
   <div
-    class="fixed inset-0 z-[100] bg-purple-500/20 backdrop-blur-sm border-4 border-purple-500 flex items-center justify-center pointer-events-none"
+    class="fixed inset-0 z-[100] bg-purple-500/20  border-4 border-purple-500 flex items-center justify-center pointer-events-none"
   >
     <div
       class="bg-white dark:bg-neutral-800 p-8 rounded-xl shadow-2xl flex flex-col items-center animate-bounce-slight"

@@ -159,7 +159,7 @@
 
 {#if show && updateData}
   <div
-    class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm"
+    class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-neutral-900/60 "
     transition:fade={{ duration: 200 }}
   >
     <div
@@ -218,7 +218,7 @@
             class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-1 rounded-2xl"
           >
             <div
-              class="bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-blue-100 dark:border-blue-900/50 rounded-xl p-4 flex items-start gap-4"
+              class="bg-white/60 dark:bg-white/5  border border-blue-100 dark:border-blue-900/50 rounded-xl p-4 flex items-start gap-4"
             >
               <div
                 class="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-600 dark:text-blue-400 shrink-0"

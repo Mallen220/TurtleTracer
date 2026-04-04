@@ -149,7 +149,7 @@
 {#if isOpen}
   <div
     transition:fade={{ duration: 200, easing: cubicInOut }}
-    class="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+    class="fixed inset-0 z-[2000] bg-black/40  flex items-center justify-center p-4"
     role="dialog"
     aria-modal="true"
     aria-labelledby="transform-dialog-title"

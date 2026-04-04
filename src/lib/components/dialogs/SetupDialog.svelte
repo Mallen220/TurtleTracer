@@ -30,7 +30,7 @@
 
 {#if show}
   <div
-    class="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-2xl p-4 transition-all duration-300"
+    class="fixed inset-0 z-[110] flex items-center justify-center bg-black/80  p-4 transition-all duration-300"
     role="dialog"
     aria-modal="true"
     aria-labelledby="setup-title"

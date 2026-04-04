@@ -56,7 +56,7 @@
 {#if isOpen}
   <div
     transition:fade={{ duration: 300, easing: cubicInOut }}
-    class="fixed inset-0 z-[1005] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+    class="fixed inset-0 z-[1005] flex items-center justify-center p-4 bg-black/40 "
     role="dialog"
     aria-modal="true"
     aria-labelledby="plugin-manager-title"
@@ -344,7 +344,7 @@
       {#if pluginToDelete}
         <div
           transition:fade={{ duration: 150 }}
-          class="absolute inset-0 bg-white/60 dark:bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          class="absolute inset-0 bg-white/60 dark:bg-neutral-900/60  z-50 flex items-center justify-center p-4"
         >
           <div
             transition:scale={{ duration: 200, start: 0.95 }}

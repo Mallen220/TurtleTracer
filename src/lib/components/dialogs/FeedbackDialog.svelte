@@ -191,7 +191,7 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     role="presentation"
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50  p-4"
     onclick={() => handleClickOutside()}
     transition:fade={{ duration: 150 }}
   >

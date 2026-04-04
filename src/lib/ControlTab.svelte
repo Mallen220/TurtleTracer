@@ -655,7 +655,7 @@
     <div class="w-full px-4 pt-4 flex-none z-10 flex gap-3">
       <div
         id="tab-switcher"
-        class="flex-1 flex flex-row bg-neutral-200/60 dark:bg-neutral-800/60 p-1.5 gap-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm overflow-x-auto"
+        class="flex-1 flex flex-row bg-neutral-200/60 dark:bg-neutral-800/60 p-1.5 gap-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700  overflow-x-auto"
         role="tablist"
         aria-label="Editor View Selection"
       >

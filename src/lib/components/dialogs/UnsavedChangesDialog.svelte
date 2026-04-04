@@ -23,7 +23,7 @@
 
 {#if show}
   <div
-    class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 "
     role="dialog"
     aria-modal="true"
   >

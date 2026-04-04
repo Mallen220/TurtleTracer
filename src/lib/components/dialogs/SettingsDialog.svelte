@@ -273,7 +273,7 @@
 {#if isOpen}
   <div
     transition:fade={{ duration: 300, easing: cubicInOut }}
-    class="bg-black bg-opacity-40 flex flex-col justify-center items-center fixed top-0 left-0 w-full h-full z-[1005] backdrop-blur-sm"
+    class="bg-black bg-opacity-40 flex flex-col justify-center items-center fixed top-0 left-0 w-full h-full z-[1005] "
     role="dialog"
     aria-modal="true"
     aria-labelledby="settings-title"
