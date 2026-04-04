@@ -16,8 +16,8 @@ export function modifyValue(
 ) {
   if (isUIElementFocused()) return;
   const current = get(selectedPointId);
-  const sequence = get(sequenceStore);
-  const lines = get(linesStore);
+  const sequence = [...get(sequenceStore)];
+  const lines = [...get(linesStore)];
   if (!current) return;
 
   if (current.startsWith("wait-")) {
@@ -27,10 +27,16 @@ export function modifyValue(
     ) as any;
     if (item) {
       if (item.locked) return; // Don't modify locked waits
-      item.durationMs = Math.max(0, item.durationMs + delta * 100);
-      // Update linked waits so waits that share a name keep the same duration
-      sequenceStore.set(updateLinkedWaits(sequence, item.id));
-      recordChange("Modify Duration");
+      const newItem = {
+        ...item,
+        durationMs: Math.max(0, item.durationMs + delta * 100),
+      };
+      const itemIdx = sequence.findIndex((s) => (s as any).id === waitId);
+      if (itemIdx !== -1) {
+        sequence[itemIdx] = newItem;
+        sequenceStore.set([...updateLinkedWaits(sequence, newItem.id)]);
+        recordChange("Modify Duration");
+      }
     }
     return;
   }
@@ -42,9 +48,16 @@ export function modifyValue(
     if (item) {
       if (item.locked) return; // Don't modify locked rotates
       const step = 5;
-      item.degrees = Number((item.degrees + delta * step).toFixed(2));
-      sequenceStore.set(updateLinkedRotations(sequence, item.id));
-      recordChange("Modify Rotation");
+      const newItem = {
+        ...item,
+        degrees: Number((item.degrees + delta * step).toFixed(2)),
+      };
+      const itemIdx = sequence.findIndex((s) => (s as any).id === rotateId);
+      if (itemIdx !== -1) {
+        sequence[itemIdx] = newItem;
+        sequenceStore.set([...updateLinkedRotations(sequence, newItem.id)]);
+        recordChange("Modify Rotation");
+      }
     }
     return;
   }
@@ -53,17 +66,23 @@ export function modifyValue(
     const evIdx = Number(parts.pop());
     const waitId = parts.slice(2).join("-");
 
-    const item = sequence.find(
+    const itemIdx = sequence.findIndex(
       (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
-    ) as any;
-    if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
-      if (item.locked) return; // Don't modify event markers on locked waits
-      const step = 0.01 * delta;
-      let newPos = item.eventMarkers[evIdx].position + step;
-      newPos = Math.max(0, Math.min(1, newPos));
-      item.eventMarkers[evIdx].position = newPos;
-      sequenceStore.set(sequence);
-      recordChange("Move Event Marker");
+    );
+    if (itemIdx !== -1) {
+      const item = sequence[itemIdx] as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        if (item.locked) return; // Don't modify event markers on locked waits
+        const step = 0.01 * delta;
+        let newPos = item.eventMarkers[evIdx].position + step;
+        newPos = Math.max(0, Math.min(1, newPos));
+
+        const newMarkers = [...item.eventMarkers];
+        newMarkers[evIdx] = { ...newMarkers[evIdx], position: newPos };
+        sequence[itemIdx] = { ...item, eventMarkers: newMarkers };
+        sequenceStore.set([...sequence]);
+        recordChange("Move Event Marker");
+      }
     }
     return;
   }
@@ -72,17 +91,23 @@ export function modifyValue(
     const evIdx = Number(parts.pop());
     const rotateId = parts.slice(2).join("-");
 
-    const item = sequence.find(
+    const itemIdx = sequence.findIndex(
       (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
-    ) as any;
-    if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
-      if (item.locked) return; // Don't modify event markers on locked rotates
-      const step = 0.01 * delta;
-      let newPos = item.eventMarkers[evIdx].position + step;
-      newPos = Math.max(0, Math.min(1, newPos));
-      item.eventMarkers[evIdx].position = newPos;
-      sequenceStore.set(sequence);
-      recordChange("Move Event Marker");
+    );
+    if (itemIdx !== -1) {
+      const item = sequence[itemIdx] as any;
+      if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
+        if (item.locked) return; // Don't modify event markers on locked rotates
+        const step = 0.01 * delta;
+        let newPos = item.eventMarkers[evIdx].position + step;
+        newPos = Math.max(0, Math.min(1, newPos));
+
+        const newMarkers = [...item.eventMarkers];
+        newMarkers[evIdx] = { ...newMarkers[evIdx], position: newPos };
+        sequence[itemIdx] = { ...item, eventMarkers: newMarkers };
+        sequenceStore.set([...sequence]);
+        recordChange("Move Event Marker");
+      }
     }
     return;
   }
@@ -96,24 +121,33 @@ export function modifyValue(
       const step = 0.01 * delta;
       let newPos = line.eventMarkers[evIdx].position + step;
       newPos = Math.max(0, Math.min(1, newPos));
-      line.eventMarkers[evIdx].position = newPos;
-      linesStore.set(lines);
+
+      const newMarkers = [...line.eventMarkers];
+      newMarkers[evIdx] = { ...newMarkers[evIdx], position: newPos };
+      lines[lineIdx] = { ...line, eventMarkers: newMarkers };
+      linesStore.set([...lines]);
       recordChange("Move Event Marker");
     }
     return;
   }
   // Modify last event if line selected
   if (get(selectedLineId)) {
-    const line = lines.find((l) => l.id === get(selectedLineId));
-    if (line && line.eventMarkers && line.eventMarkers.length > 0) {
-      if (line.locked) return; // Don't modify event markers on locked lines
-      const lastIdx = line.eventMarkers.length - 1;
-      const step = 0.01 * delta;
-      let newPos = line.eventMarkers[lastIdx].position + step;
-      newPos = Math.max(0, Math.min(1, newPos));
-      line.eventMarkers[lastIdx].position = newPos;
-      linesStore.set(lines);
-      recordChange("Move Event Marker");
+    const lineIdx = lines.findIndex((l) => l.id === get(selectedLineId));
+    if (lineIdx !== -1) {
+      const line = lines[lineIdx];
+      if (line && line.eventMarkers && line.eventMarkers.length > 0) {
+        if (line.locked) return; // Don't modify event markers on locked lines
+        const lastIdx = line.eventMarkers.length - 1;
+        const step = 0.01 * delta;
+        let newPos = line.eventMarkers[lastIdx].position + step;
+        newPos = Math.max(0, Math.min(1, newPos));
+
+        const newMarkers = [...line.eventMarkers];
+        newMarkers[lastIdx] = { ...newMarkers[lastIdx], position: newPos };
+        lines[lineIdx] = { ...line, eventMarkers: newMarkers };
+        linesStore.set([...lines]);
+        recordChange("Move Event Marker");
+      }
     }
   }
 }
@@ -181,34 +215,43 @@ export function toggleHeadingMode(recordChange: (action?: string) => void) {
     const next = modes[(modes.indexOf(current as string) + 1) % modes.length];
 
     if (next === "tangential") {
-      line.endPoint = {
-        ...line.endPoint,
-        heading: "tangential",
-        reverse: false,
-        degrees: undefined,
-        startDeg: undefined,
-        endDeg: undefined,
-      } as unknown as Point;
+      lines[lineIndex] = {
+        ...line,
+        endPoint: {
+          ...line.endPoint,
+          heading: "tangential",
+          reverse: false,
+          degrees: undefined,
+          startDeg: undefined,
+          endDeg: undefined,
+        } as unknown as Point,
+      };
     } else if (next === "constant") {
-      line.endPoint = {
-        ...line.endPoint,
-        heading: "constant",
-        degrees: 0,
-        reverse: undefined,
-        startDeg: undefined,
-        endDeg: undefined,
-      } as unknown as Point;
+      lines[lineIndex] = {
+        ...line,
+        endPoint: {
+          ...line.endPoint,
+          heading: "constant",
+          degrees: 0,
+          reverse: undefined,
+          startDeg: undefined,
+          endDeg: undefined,
+        } as unknown as Point,
+      };
     } else {
-      line.endPoint = {
-        ...line.endPoint,
-        heading: "linear",
-        startDeg: 90,
-        endDeg: 180,
-        reverse: undefined,
-        degrees: undefined,
-      } as unknown as Point;
+      lines[lineIndex] = {
+        ...line,
+        endPoint: {
+          ...line.endPoint,
+          heading: "linear",
+          startDeg: 90,
+          endDeg: 180,
+          reverse: undefined,
+          degrees: undefined,
+        } as unknown as Point,
+      };
     }
-    linesStore.set(lines);
+    linesStore.set([...lines]);
     recordChange("Toggle Heading Mode");
   }
 }
@@ -242,8 +285,14 @@ export function toggleReverse(recordChange: (action?: string) => void) {
     if (!line || line.locked) return;
 
     if (line.endPoint.heading === "tangential") {
-      line.endPoint.reverse = !line.endPoint.reverse;
-      linesStore.set(lines);
+      lines[lineIndex] = {
+        ...line,
+        endPoint: {
+          ...line.endPoint,
+          reverse: !line.endPoint.reverse,
+        },
+      };
+      linesStore.set([...lines]);
       recordChange("Toggle Reverse");
     }
   }
