@@ -985,10 +985,15 @@
     {@const isLocked = isItemLocked(item, lines)}
     {@const def = $actionRegistry[item.kind]}
     {@const prevItem = sIdx > 0 ? sequence[sIdx - 1] : null}
+    {@const nextItem = sIdx < sequence.length - 1 ? sequence[sIdx + 1] : null}
     {@const isChain =
       item.kind === "path" &&
       prevItem?.kind === "path" &&
       (item as any).isChain}
+    {@const isChainedWithNext =
+      item.kind === "path" &&
+      nextItem?.kind === "path" &&
+      (nextItem as any).isChain}
 
     {#if item.kind === "path" && prevItem?.kind === "path"}
       <div class="flex justify-center -my-3 z-10 relative">
@@ -1016,7 +1021,7 @@
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
-            stroke-width={isChain ? "2" : "1.5"}
+            stroke-width="2"
             stroke="currentColor"
             class="w-4 h-4"
           >
@@ -1045,7 +1050,7 @@
       id={`sequence-item-${getItemId(item)}`}
       class="w-full transition-all duration-200 rounded-lg {isChain
         ? '-mt-2'
-        : ''}"
+        : ''} {isChainedWithNext ? '-mb-2' : ''}"
       draggable={!isItemLocked(item, lines)}
       ondragstart={(e) => handleDragStart(e, sIdx)}
       ondragend={handleDragEnd}
