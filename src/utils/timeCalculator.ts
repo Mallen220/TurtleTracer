@@ -483,6 +483,8 @@ export function calculateRotationTime(
 function calculateMotionProfileDetailed(
   steps: PathStep[],
   settings: Settings,
+  isChainedFromPrev: boolean = false,
+  isChainedToNext: boolean = false,
 ): { totalTime: number; profile: number[]; velocityProfile: number[] } {
   const maxVelGlobal = settings.maxVelocity || 100;
   const maxAcc = settings.maxAcceleration || 30;
@@ -495,7 +497,7 @@ function calculateMotionProfileDetailed(
   if (n === 0) return { totalTime: 0, profile: [0], velocityProfile: [0] };
 
   const vAtPoints = new Float64Array(n + 1);
-  vAtPoints[0] = 0;
+  vAtPoints[0] = isChainedFromPrev ? maxVelGlobal : 0;
 
   // 1. Forward Pass
   for (let i = 0; i < n; i++) {
@@ -516,7 +518,7 @@ function calculateMotionProfileDetailed(
   }
 
   // 2. Backward Pass
-  vAtPoints[n] = 0;
+  vAtPoints[n] = isChainedToNext ? maxVelGlobal : 0;
   for (let i = n - 1; i >= 0; i--) {
     const dist = steps[i].deltaLength;
     const maxReachable = Math.sqrt(
@@ -689,6 +691,9 @@ export function calculatePathTime(
       }
       const prevPoint = lastPoint;
 
+      const prevItem = idx > 0 ? seq[idx - 1] : null;
+      const isChained = !!(prevItem && prevItem.kind === "path" && ((item as any).isChain === true || line.isChain === true));
+
       // --- ROTATION CHECK (Initial Turn-to-Face or Wait) ---
       // Unwind requiredStartHeading relative to currentHeading
       let requiredStartHeadingRaw = getLineStartHeading(line, prevPoint);
@@ -706,10 +711,10 @@ export function calculatePathTime(
         isFirstPathItem = false;
       }
 
-      const diff = Math.abs(currentHeading - requiredStartHeading);
+      let diff = Math.abs(currentHeading - requiredStartHeading);
 
       // Use a small epsilon
-      if (diff > 0.1) {
+      if (diff > 0.1 && !isChained) {
         // Convert diff to rotation time WITH ACCELERATION logic for Wait events
         const rotTime = calculateRotationTime(diff, safeSettings);
 
@@ -724,7 +729,14 @@ export function calculatePathTime(
         });
         currentTime += rotTime;
         currentHeading = requiredStartHeading;
+      } else if (isChained) {
+          // If chained, we don't stop.
+          // However, we want to rotate to requiredStartHeading smoothly.
+          // Since the robot can drive and rotate, we will factor this into the travel time check below.
+          // We will NOT insert a wait block. We just leave currentHeading as is for the start of travel.
       }
+
+      const chainRotationRequired = isChained && diff > 0.1 ? diff : 0;
 
       // --- TRAVEL ANALYSIS ---
       // Pass currentHeading to start tracking
@@ -743,10 +755,15 @@ export function calculatePathTime(
       let velocityProfile: number[] | undefined = undefined;
       let headingProfile: number[] | undefined = undefined;
 
+      const nextItem = seq[idx + 1];
+      const isChainedToNext = nextItem && nextItem.kind === "path" && ((nextItem as any).isChain === true || (lineById.get((nextItem as any).lineId) as any)?.isChain === true);
+
       if (useMotionProfile) {
         const result = calculateMotionProfileDetailed(
           analysis.steps,
           safeSettings,
+          isChained, // isChainedFromPrev
+          isChainedToNext
         );
         translationTime = result.totalTime;
         motionProfile = result.profile;
@@ -861,10 +878,13 @@ export function calculatePathTime(
 
       if (!Number.isFinite(endHeading)) endHeading = currentHeading;
 
+      // Ensure any chained rotation required is factored in so the segment takes at least
+      // as long as the robot needs to turn.
+      const totalRotationRequiredForSegment = rotationRequired + chainRotationRequired;
+
       // Use simple velocity check for segment duration max check
       // This maintains continuity with previous logic that didn't penalize smooth travel
-      const rotationTime =
-        (rotationRequired * (Math.PI / 180)) / safeSettings.aVelocity;
+      const rotationTime = calculateRotationTime(totalRotationRequiredForSegment, safeSettings);
 
       const segmentTime = Math.max(translationTime, rotationTime);
 
