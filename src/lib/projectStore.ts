@@ -31,6 +31,7 @@ export function normalizeLines(input: Line[]): Line[] {
     eventMarkers: line.eventMarkers || [],
     color: line.color || getRandomColor(),
     name: line.name || "",
+    isChain: line.isChain ?? false,
     waitBeforeMs: Math.max(
       0,
       Number(line.waitBeforeMs ?? line.waitBefore?.durationMs ?? 0),
@@ -51,12 +52,24 @@ export function sanitizeSequence(
 ): SequenceItem[] {
   const candidate = Array.isArray(seq) ? [...seq] : [];
   const lineIds = new Set(lines.map((l) => l.id));
+  const lineMap = new Map(lines.map((l) => [l.id, l]));
 
   // Remove path entries that reference lines not present
   const pruned = candidate.filter(
     (s) =>
       !actionRegistry.get(s.kind)?.isPath || lineIds.has((s as any).lineId),
-  );
+  ).map((s) => {
+    if (actionRegistry.get(s.kind)?.isPath) {
+      const line = lineMap.get((s as any).lineId);
+      if (line) {
+        return {
+          ...s,
+          isChain: line.isChain ?? (s as any).isChain ?? false,
+        };
+      }
+    }
+    return s;
+  });
 
   // Append any lines that are missing from the sequence
   const presentIds = new Set(
@@ -70,7 +83,7 @@ export function sanitizeSequence(
 
   return [
     ...pruned,
-    ...missing.map((l) => ({ kind: "path", lineId: l.id }) as SequencePathItem),
+    ...missing.map((l) => ({ kind: "path", lineId: l.id, isChain: l.isChain ?? false }) as SequencePathItem),
   ];
 }
 
