@@ -1448,8 +1448,7 @@
                   };
                   line.endPoint = {
                     ...base,
-                    heading: "tangential",
-                    reverse: (ep as any).reverse ?? false,
+                    heading: "tangential", reverse: (ep as any).reverse ?? false
                   };
                   return l;
                 });
@@ -1477,7 +1476,8 @@
                     heading: "constant",
                     degrees: (ep as any).degrees ?? 0,
                   };
-                  return l;
+                  l[lineIndex] = { ...line };
+                  return [...l];
                 });
                 onRecordChange("Set Heading Constant");
               },
@@ -1504,7 +1504,8 @@
                     startDeg: (ep as any).startDeg ?? 0,
                     endDeg: (ep as any).endDeg ?? 0,
                   };
-                  return l;
+                  l[lineIndex] = { ...line };
+                  return [...l];
                 });
                 onRecordChange("Set Heading Linear");
               },
