@@ -12,6 +12,7 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{js,ts}"],
     coverage: {
       reporter: ["text", "json", "html", "lcov"],
+      exclude: ["src/setupTests.ts", "src/tests/**", "src/**/*.d.ts"],
     },
   },
   resolve: {
