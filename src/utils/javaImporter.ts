@@ -587,8 +587,8 @@ export function importJavaProject(javaCode: string): TurtleData {
           }
         }
       }
-    },
-  });
+    }
+  }});
 
   walkAST(ast, {
     // We look for any context where a wait/rotate might be wrapped into the commands block.

@@ -295,11 +295,12 @@ export async function generateJavaCode(
         return consolidatedBlocks.join("\n\n");
       })()
     }
+  }}
 
     ${
       coordinateSystem === "FTC"
         ? `
-    private Pose buildPose(double x, double y, double heading) {
+    private static Pose buildPose(double x, double y, double heading) {
         return PoseConverter.pose2DToPose(
             new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
                 org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH,
@@ -316,13 +317,12 @@ export async function generateJavaCode(
     ${
       codeUnits === "metric"
         ? `
-    private double cmToInches(double cm) {
+    private static double cmToInches(double cm) {
         return cm / 2.54;
     }
 `
         : ""
     }
-  }
   `;
 
   // Add NamedCommands registration instructions
@@ -572,7 +572,7 @@ export async function generateJavaCode(
                   codeUnits === "metric"
                     ? `cmToInches(${(uStart.y * 2.54).toFixed(3)})`
                     : uStart.y.toFixed(3);
-                return `follower.setStartingPose(new Paths(follower).buildPose(${px}, ${py}, Math.toRadians(${uHead.toFixed(3)})));`;
+                return `follower.setStartingPose(buildPose(${px}, ${py}, Math.toRadians(${uHead.toFixed(3)})));`;
               })()
             : (() => {
                 const px =
