@@ -180,7 +180,9 @@ export function removeSelected(recordChange: (action?: string) => void) {
         if (itemIdx !== -1) {
           sequence[itemIdx] = {
             ...item,
-            eventMarkers: item.eventMarkers.filter((_: any, i: number) => i !== evIdx),
+            eventMarkers: item.eventMarkers.filter(
+              (_: any, i: number) => i !== evIdx,
+            ),
           };
           sequenceChanged = true;
         }
@@ -196,7 +198,9 @@ export function removeSelected(recordChange: (action?: string) => void) {
       ) {
         lines[lineIdx] = {
           ...line,
-          eventMarkers: line.eventMarkers.filter((_: any, i: number) => i !== evIdx),
+          eventMarkers: line.eventMarkers.filter(
+            (_: any, i: number) => i !== evIdx,
+          ),
         };
         linesChanged = true;
       }

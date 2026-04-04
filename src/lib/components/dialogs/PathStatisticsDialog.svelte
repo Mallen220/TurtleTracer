@@ -670,8 +670,7 @@
             : "Copy as Markdown"}
           aria-label="Copy content"
         >
-        <ClipboardIcon className="size-5" />
-          
+          <ClipboardIcon className="size-5" />
         </button>
         <button
           onclick={onClose}

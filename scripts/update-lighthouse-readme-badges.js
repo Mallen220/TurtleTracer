@@ -1,6 +1,6 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /* eslint-env node */
 /* global URL, process, console */
-// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import fs from "fs/promises";
 import { fileURLToPath } from "url";
 import { spawn } from "child_process";
@@ -8,7 +8,10 @@ import { spawn } from "child_process";
 const repoRoot = new URL("../", import.meta.url);
 const repoRootPath = fileURLToPath(repoRoot);
 const readmePath = new URL("../README.md", import.meta.url);
-const outputDir = new URL("../README_Content/lighthouse-badges/", import.meta.url);
+const outputDir = new URL(
+  "../README_Content/lighthouse-badges/",
+  import.meta.url,
+);
 const outputDirPath = fileURLToPath(outputDir);
 const relativeOutputDir = "README_Content/lighthouse-badges";
 const defaultBadgeUrl = "http://localhost:4173/";
@@ -52,7 +55,7 @@ function runLighthouseBadges(url) {
   });
 }
 
-function buildReadmeBadgeBlock(url, version) {
+function buildReadmeBadgeBlock(version) {
   const lighthouseLink = "https://github.com/GoogleChrome/lighthouse";
 
   return [
@@ -78,7 +81,8 @@ function buildReadmeBadgeBlock(url, version) {
 }
 
 function replaceBetweenMarkers(content, replacement) {
-  const pattern = /\s*<!-- LIGHTHOUSE_BADGES_START -->[\s\S]*?<!-- LIGHTHOUSE_BADGES_END -->/;
+  const pattern =
+    /\s*<!-- LIGHTHOUSE_BADGES_START -->[\s\S]*?<!-- LIGHTHOUSE_BADGES_END -->/;
 
   if (!pattern.test(content)) {
     throw new Error(
@@ -130,11 +134,14 @@ async function main() {
 
   // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   // nosemgrep
-  const packageJsonContent = await fs.readFile(new URL("../package.json", import.meta.url), "utf8");
+  const packageJsonContent = await fs.readFile(
+    new URL("../package.json", import.meta.url),
+    "utf8",
+  );
   const { version } = JSON.parse(packageJsonContent);
 
   const readme = await fs.readFile(readmePath, "utf8");
-  const updatedBlock = buildReadmeBadgeBlock(url, version);
+  const updatedBlock = buildReadmeBadgeBlock(version);
   const nextReadme = replaceBetweenMarkers(readme, updatedBlock);
 
   // nosemgrep

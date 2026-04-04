@@ -1,3 +1,4 @@
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { onMount } from "svelte";
   import ExportGifDialog from "../lib/components/dialogs/ExportGifDialog.svelte";
@@ -9,7 +10,7 @@
   });
 </script>
 
-<ExportGifDialog {...props} bind:show={show} />
+<ExportGifDialog {...props} bind:show />
 
 {#if !show}
   <div data-testid="dialog-closed-indicator">Closed</div>

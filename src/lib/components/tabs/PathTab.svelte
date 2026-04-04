@@ -153,7 +153,7 @@
     if (!isActive) return;
 
     const isInternalReorder = draggingIndex !== null;
-    
+
     // Check for internal macro data OR OS files that could be macros
     let isMacroDrop = e.dataTransfer?.types
       ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
@@ -163,7 +163,12 @@
 
     // Optional: detect OS file drops as macros if active
     const hasFiles = e.dataTransfer?.types.includes("Files");
-    if (!isMacroDrop && hasFiles && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+    if (
+      !isMacroDrop &&
+      hasFiles &&
+      e.dataTransfer?.files &&
+      e.dataTransfer.files.length > 0
+    ) {
       const file = e.dataTransfer.files[0];
       if (isSupportedProjectFileName(file.name)) {
         isMacroDrop = true;
@@ -180,9 +185,14 @@
       let filePath =
         e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
         e.dataTransfer?.getData("application/x-pedro-macro");
-      
+
       // Handle OS file path if no internal data
-      if (!filePath && hasFiles && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+      if (
+        !filePath &&
+        hasFiles &&
+        e.dataTransfer?.files &&
+        e.dataTransfer.files.length > 0
+      ) {
         // In Electron, we can often get the path from file.path
         filePath = (e.dataTransfer.files[0] as any).path;
       }
@@ -217,8 +227,13 @@
       let filePath =
         e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
         e.dataTransfer?.getData("application/x-pedro-macro");
-      
-      if (!filePath && hasFiles && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+
+      if (
+        !filePath &&
+        hasFiles &&
+        e.dataTransfer?.files &&
+        e.dataTransfer.files.length > 0
+      ) {
         filePath = (e.dataTransfer.files[0] as any).path;
       }
 

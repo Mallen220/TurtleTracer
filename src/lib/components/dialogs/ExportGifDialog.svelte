@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-
-
   import { untrack, onMount, onDestroy, createEventDispatcher } from "svelte";
   import { scale } from "svelte/transition";
   import {
@@ -228,7 +226,6 @@
     electronAPI,
   }: Props = $props();
 
-
   onMount(() => {
     if (typeof ResizeObserver !== "undefined" && previewContainer) {
       _ro = new ResizeObserver((entries) => {
@@ -276,9 +273,9 @@
 {#if show}
   <div
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-    transition:scale={{ 
-      duration: (globalThis as any).vitest !== undefined ? 0 : 200, 
-      start: 0.95 
+    transition:scale={{
+      duration: (globalThis as any).vitest !== undefined ? 0 : 200,
+      start: 0.95,
     }}
   >
     <div

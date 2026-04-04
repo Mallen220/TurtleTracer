@@ -280,7 +280,7 @@
 
     if (
       !electronAPI ||
-      (electronAPI  ).isVirtual ||
+      electronAPI.isVirtual ||
       !(electronAPI as any).showSaveDialog ||
       !electronAPI.writeFile
     ) {
@@ -404,8 +404,8 @@
       );
       if (el) {
         // Only call scrollIntoView if supported (jsdom in tests doesn't implement it)
-        if (typeof (el  ).scrollIntoView === "function") {
-          (el  ).scrollIntoView({ behavior: "smooth", block: "center" });
+        if (typeof el.scrollIntoView === "function") {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       }
     }

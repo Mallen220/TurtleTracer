@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import "@testing-library/jest-dom";
 
 // Ensure localStorage is always defined and functional for tests
@@ -12,7 +13,9 @@ const createMockStorage = () => {
         delete mockStorage[key];
       }
     },
-    get length() { return Object.keys(mockStorage).length; },
+    get length() {
+      return Object.keys(mockStorage).length;
+    },
     key: (index: number) => Object.keys(mockStorage)[index] || null,
   };
 };

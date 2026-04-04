@@ -496,68 +496,68 @@
           return;
         }
 
-      try {
-        if (get(isUnsaved)) {
-          if (
-            confirm(
-              "You have unsaved changes. Press OK to save them before opening. Press Cancel to proceed without saving.",
-            )
-          ) {
-            const currentPath = get(currentFilePath);
-            let success = false;
+        try {
+          if (get(isUnsaved)) {
+            if (
+              confirm(
+                "You have unsaved changes. Press OK to save them before opening. Press Cancel to proceed without saving.",
+              )
+            ) {
+              const currentPath = get(currentFilePath);
+              let success = false;
 
-            if (!currentPath && api.getSavedDirectory) {
-              // Try to use default directory + prompt
-              const savedDir = await api.getSavedDirectory();
-              if (savedDir) {
-                const name = await openSaveNamePrompt();
-                if (name) {
-                  const sep = savedDir.includes("\\") ? "\\" : "/";
-                  const cleanDir = savedDir.endsWith(sep)
-                    ? savedDir.slice(0, -1)
-                    : savedDir;
-                  const fullPath = `${cleanDir}${sep}${name}${DEFAULT_PROJECT_EXTENSION}`;
-                  success = await saveProject(
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    undefined,
-                    false,
-                    fullPath,
-                  );
+              if (!currentPath && api.getSavedDirectory) {
+                // Try to use default directory + prompt
+                const savedDir = await api.getSavedDirectory();
+                if (savedDir) {
+                  const name = await openSaveNamePrompt();
+                  if (name) {
+                    const sep = savedDir.includes("\\") ? "\\" : "/";
+                    const cleanDir = savedDir.endsWith(sep)
+                      ? savedDir.slice(0, -1)
+                      : savedDir;
+                    const fullPath = `${cleanDir}${sep}${name}${DEFAULT_PROJECT_EXTENSION}`;
+                    success = await saveProject(
+                      undefined,
+                      undefined,
+                      undefined,
+                      undefined,
+                      undefined,
+                      false,
+                      fullPath,
+                    );
+                  } else {
+                    // User cancelled name input
+                    return;
+                  }
                 } else {
-                  // User cancelled name input
-                  return;
+                  success = await saveProject();
                 }
               } else {
                 success = await saveProject();
               }
-            } else {
-              success = await saveProject();
-            }
 
-            if (!success) return; // Save failed or cancelled
-          } else {
-            if (
-              !confirm(
-                "This will discard your unsaved changes. Are you sure you want to open the new file?",
-              )
-            ) {
-              return;
+              if (!success) return; // Save failed or cancelled
+            } else {
+              if (
+                !confirm(
+                  "This will discard your unsaved changes. Are you sure you want to open the new file?",
+                )
+              ) {
+                return;
+              }
             }
           }
-        }
 
-        await handleExternalFileOpen(path);
-        recordChange("Load Project");
-      } catch (err) {
-        console.error("Error opening dropped file:", err);
-        alert("Failed to open file: " + err);
+          await handleExternalFileOpen(path);
+          recordChange("Load Project");
+        } catch (err) {
+          console.error("Error opening dropped file:", err);
+          alert("Failed to open file: " + err);
+        }
       }
     }
   }
-}
 
   // --- Autosave Logic ---
   let autosaveIntervalId: any = $state(null);
@@ -694,8 +694,9 @@
   const MIN_FIELD_PANE_WIDTH = 300;
 
   // --- Animation State ---
-  let animationController: ReturnType<typeof createAnimationController> | undefined =
-    $state();
+  let animationController:
+    | ReturnType<typeof createAnimationController>
+    | undefined = $state();
 
   // --- Preview Optimization ---
   let previewOptimizedLines: any[] | null = $state(null);

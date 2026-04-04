@@ -55,9 +55,13 @@ describe("ExportGifDialog", () => {
     // Start generation
     const genBtn = screen.getByText("Generate Preview");
     await fireEvent.click(genBtn);
-    
+
     // Wait for "Capturing frames" to appear
-    const statusMsg = await screen.findByText(/Capturing frames/i, {}, { timeout: 2000 });
+    const statusMsg = await screen.findByText(
+      /Capturing frames/i,
+      {},
+      { timeout: 2000 },
+    );
     expect(statusMsg).toBeInTheDocument();
 
     // The exporter should have been called

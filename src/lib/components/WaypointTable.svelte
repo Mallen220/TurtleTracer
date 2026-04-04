@@ -452,7 +452,10 @@
     ) {
       const file = e.dataTransfer.files[0];
       // Note: isSupportedProjectFileName should be imported if not already
-      if (typeof isSupportedProjectFileName === "function" && isSupportedProjectFileName(file.name)) {
+      if (
+        typeof isSupportedProjectFileName === "function" &&
+        isSupportedProjectFileName(file.name)
+      ) {
         isMacroDrop = true;
       }
     }
@@ -1424,7 +1427,8 @@
                   <ColorPicker
                     bind:color={line.color}
                     oninput={function (e: Event) {
-                      const target = (e.target || e.currentTarget) as HTMLInputElement;
+                      const target = (e.target ||
+                        e.currentTarget) as HTMLInputElement;
                       if (target && line.id) {
                         updateLineColor(line.id, target.value);
                       }
@@ -1437,8 +1441,13 @@
                       class="w-full px-2 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs pr-6"
                       class:text-blue-500={hoveredLinkId === line.id}
                       value={line.name}
-                      oninput={function (e: Event & { currentTarget: EventTarget & HTMLInputElement }) {
-                        const target = (e.currentTarget || e.target) as HTMLInputElement;
+                      oninput={function (
+                        e: Event & {
+                          currentTarget: EventTarget & HTMLInputElement;
+                        },
+                      ) {
+                        const target = (e.currentTarget ||
+                          e.target) as HTMLInputElement;
                         if (target instanceof HTMLInputElement) {
                           updateLineName(item.lineId, target.value);
                         }
@@ -1557,7 +1566,8 @@
                 <button
                   title={line.hidden ? "Show Path" : "Hide Path"}
                   aria-label={line.hidden ? "Show Path" : "Hide Path"}
-                  onclick={(e) => { e.stopPropagation();
+                  onclick={(e) => {
+                    e.stopPropagation();
                     line.hidden = !line.hidden;
                     lines = [...lines];
                     if (recordChange) recordChange();
@@ -1575,7 +1585,8 @@
                 <button
                   title={line.locked ? "Unlock Path" : "Lock Path"}
                   aria-label={line.locked ? "Unlock Path" : "Lock Path"}
-                  onclick={(e) => { e.stopPropagation();
+                  onclick={(e) => {
+                    e.stopPropagation();
                     line.locked = !line.locked;
                     lines = [...lines];
                     if (recordChange) recordChange();
@@ -1593,7 +1604,8 @@
                 <!-- Right slot: delete or placeholder -->
                 {#if lines.length > 1 && !line.locked}
                   <button
-                    onclick={(e) => { e.stopPropagation();
+                    onclick={(e) => {
+                      e.stopPropagation();
                       if (line.id) deleteLine(line.id);
                     }}
                     title="Delete path"
@@ -1672,8 +1684,10 @@
                   {:else}
                     <span class="h-6 w-6" aria-hidden="true"></span>
                     <button
-                      onclick={(e) => { e.stopPropagation();
-                        deleteControlPoint(line, j); }}
+                      onclick={(e) => {
+                        e.stopPropagation();
+                        deleteControlPoint(line, j);
+                      }}
                       title="Delete control point"
                       aria-label="Delete control point"
                       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"

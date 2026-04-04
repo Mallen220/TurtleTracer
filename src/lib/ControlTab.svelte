@@ -98,10 +98,7 @@
   export async function openAndStartOptimization() {
     focusOptimizationTab();
     const optimizerController = getOptimizationController();
-    if (
-      optimizerController &&
-      optimizerController.openAndStartOptimization
-    ) {
+    if (optimizerController && optimizerController.openAndStartOptimization) {
       return await optimizerController.openAndStartOptimization();
     }
   }

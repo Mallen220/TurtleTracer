@@ -246,7 +246,8 @@
     <div class="flex items-center gap-1">
       <ColorPicker
         color={line.color}
-        onchange={(e) => (line.color = (e.currentTarget as HTMLInputElement).value)}
+        onchange={(e) =>
+          (line.color = (e.currentTarget as HTMLInputElement).value)}
         title="Change Path Color"
         disabled={line.locked}
       />

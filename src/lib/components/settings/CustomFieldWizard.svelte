@@ -13,7 +13,8 @@
     currentConfig?: CustomFieldConfig | undefined;
   }
 
-  let { isOpen = $bindable(false), currentConfig = undefined }: Props = $props();
+  let { isOpen = $bindable(false), currentConfig = undefined }: Props =
+    $props();
 
   const dispatch = createEventDispatcher();
 
@@ -364,7 +365,10 @@
                       role="button"
                       tabindex="0"
                       aria-label="Resize North"
-                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "n"); }}
+                      onpointerdown={(e: PointerEvent) => {
+                        e.stopPropagation();
+                        handlePointerDown(e, "n");
+                      }}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
                       onpointercancel={handlePointerUp}
@@ -376,7 +380,10 @@
                       role="button"
                       tabindex="0"
                       aria-label="Resize South"
-                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "s"); }}
+                      onpointerdown={(e: PointerEvent) => {
+                        e.stopPropagation();
+                        handlePointerDown(e, "s");
+                      }}
                       onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
@@ -388,7 +395,10 @@
                       role="button"
                       tabindex="0"
                       aria-label="Resize West"
-                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "w"); }}
+                      onpointerdown={(e: PointerEvent) => {
+                        e.stopPropagation();
+                        handlePointerDown(e, "w");
+                      }}
                       onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
@@ -400,7 +410,10 @@
                       role="button"
                       tabindex="0"
                       aria-label="Resize East"
-                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "e"); }}
+                      onpointerdown={(e: PointerEvent) => {
+                        e.stopPropagation();
+                        handlePointerDown(e, "e");
+                      }}
                       onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
@@ -412,7 +425,10 @@
                       role="button"
                       tabindex="0"
                       aria-label="Resize North West"
-                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "nw"); }}
+                      onpointerdown={(e: PointerEvent) => {
+                        e.stopPropagation();
+                        handlePointerDown(e, "nw");
+                      }}
                       onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
@@ -424,7 +440,10 @@
                       role="button"
                       tabindex="0"
                       aria-label="Resize North East"
-                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "ne"); }}
+                      onpointerdown={(e: PointerEvent) => {
+                        e.stopPropagation();
+                        handlePointerDown(e, "ne");
+                      }}
                       onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
@@ -436,7 +455,10 @@
                       role="button"
                       tabindex="0"
                       aria-label="Resize South West"
-                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "sw"); }}
+                      onpointerdown={(e: PointerEvent) => {
+                        e.stopPropagation();
+                        handlePointerDown(e, "sw");
+                      }}
                       onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}
@@ -448,7 +470,10 @@
                       role="button"
                       tabindex="0"
                       aria-label="Resize South East"
-                      onpointerdown={(e: PointerEvent) => { e.stopPropagation(); handlePointerDown(e, "se"); }}
+                      onpointerdown={(e: PointerEvent) => {
+                        e.stopPropagation();
+                        handlePointerDown(e, "se");
+                      }}
                       onkeydown={() => {}}
                       onpointermove={handlePointerMove}
                       onpointerup={handlePointerUp}

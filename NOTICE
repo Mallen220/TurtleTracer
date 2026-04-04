@@ -422,3 +422,9 @@ src/lib/components/tools/SimpleChart.svelte
 src/tests/canvasMocks.ts
 src/tests/exportMocks.ts
 src/tests/localStorageMock.ts
+.codacy/codacy.yaml
+.prettierignore
+scripts/update-lighthouse-readme-badges.js
+src/setupTests.ts
+src/tests/ExportGifDialogWrapper.svelte
+tsconfig.json

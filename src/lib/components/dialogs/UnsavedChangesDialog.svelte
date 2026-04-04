@@ -7,7 +7,12 @@
     onCancel: () => void;
   }
 
-  let { show = $bindable(false), onSave, onDiscard, onCancel }: Props = $props();
+  let {
+    show = $bindable(false),
+    onSave,
+    onDiscard,
+    onCancel,
+  }: Props = $props();
 
   function handleKeydown(e: KeyboardEvent) {
     if (show && e.key === "Escape") onCancel();
