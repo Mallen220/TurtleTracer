@@ -1435,7 +1435,8 @@
               disabled: currentHeading === "tangential",
               onClick: () => {
                 linesStore.update((l) => {
-                  const line = l[lineIndex];
+                  const newLines = [...l];
+                  const line = { ...newLines[lineIndex] };
                   if (!line) return l;
                   const ep = line.endPoint;
                   const base = {
@@ -1448,9 +1449,11 @@
                   };
                   line.endPoint = {
                     ...base,
-                    heading: "tangential", reverse: (ep as any).reverse ?? false
+                    heading: "tangential",
+                    reverse: (ep as any).reverse ?? false,
                   };
-                  return l;
+                  newLines[lineIndex] = line;
+                  return newLines;
                 });
                 onRecordChange("Set Heading Tangential");
               },
@@ -1460,7 +1463,8 @@
               disabled: currentHeading === "constant",
               onClick: () => {
                 linesStore.update((l) => {
-                  const line = l[lineIndex];
+                  const newLines = [...l];
+                  const line = { ...newLines[lineIndex] };
                   if (!line) return l;
                   const ep = line.endPoint;
                   const base = {
@@ -1476,8 +1480,8 @@
                     heading: "constant",
                     degrees: (ep as any).degrees ?? 0,
                   };
-                  l[lineIndex] = { ...line };
-                  return [...l];
+                  newLines[lineIndex] = line;
+                  return newLines;
                 });
                 onRecordChange("Set Heading Constant");
               },
@@ -1487,7 +1491,8 @@
               disabled: currentHeading === "linear",
               onClick: () => {
                 linesStore.update((l) => {
-                  const line = l[lineIndex];
+                  const newLines = [...l];
+                  const line = { ...newLines[lineIndex] };
                   if (!line) return l;
                   const ep = line.endPoint;
                   const base = {
@@ -1504,8 +1509,8 @@
                     startDeg: (ep as any).startDeg ?? 0,
                     endDeg: (ep as any).endDeg ?? 0,
                   };
-                  l[lineIndex] = { ...line };
-                  return [...l];
+                  newLines[lineIndex] = line;
+                  return newLines;
                 });
                 onRecordChange("Set Heading Linear");
               },
