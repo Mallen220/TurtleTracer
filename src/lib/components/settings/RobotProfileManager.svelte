@@ -421,7 +421,7 @@
 
             <!-- Delete Button -->
             <DeleteButtonWithConfirm
-              on:click={handleDeleteProfile}
+              onclick={handleDeleteProfile}
               title="Delete Profile"
             />
           </div>

@@ -318,7 +318,7 @@
       </div>
 
       <DeleteButtonWithConfirm
-        on:click={() => !line.locked && onRemove && onRemove()}
+        onclick={() => !line.locked && onRemove && onRemove()}
         disabled={line.locked}
         title="Delete Path"
         className="ml-1"

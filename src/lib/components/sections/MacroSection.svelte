@@ -231,7 +231,7 @@
       {/if}
 
       <DeleteButtonWithConfirm
-        on:click={() => {
+        onclick={() => {
           if (!macro.locked && onRemove) onRemove();
         }}
         disabled={macro.locked}

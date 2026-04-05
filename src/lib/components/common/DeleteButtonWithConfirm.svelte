@@ -1,7 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import TrashIcon from "../icons/TrashIcon.svelte";
-  import { createEventDispatcher, onDestroy } from "svelte";
+  import { onDestroy } from "svelte";
   import { fade } from "svelte/transition";
 
   interface Props {
@@ -20,8 +20,6 @@
     ...rest
   }: Props = $props();
 
-  const dispatch = createEventDispatcher();
-
   let confirming = $state(false);
   let timeout: ReturnType<typeof setTimeout>;
 
@@ -38,7 +36,6 @@
     } else {
       clearTimeout(timeout);
       confirming = false;
-      dispatch("click");
       onclick?.();
     }
   }

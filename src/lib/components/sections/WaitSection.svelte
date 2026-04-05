@@ -262,7 +262,7 @@
       </div>
 
       <DeleteButtonWithConfirm
-        on:click={() => {
+        onclick={() => {
           if (!wait.locked && onRemove) onRemove();
         }}
         disabled={wait.locked}

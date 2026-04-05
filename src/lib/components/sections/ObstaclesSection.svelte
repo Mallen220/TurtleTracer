@@ -344,7 +344,7 @@
                 </button>
                 <DeleteButtonWithConfirm
                   title="Remove Shape"
-                  on:click={() => {
+                  onclick={() => {
                     shapes.splice(shapeIdx, 1);
                     shapes = shapes;
                     // Also remove the collapsed state for this obstacle
@@ -466,7 +466,7 @@
                         {#if shape.vertices.length > 3}
                           <DeleteButtonWithConfirm
                             title="Remove Vertex"
-                            on:click={() => {
+                            onclick={() => {
                               shape.vertices.splice(vertexIdx, 1);
                               shape.vertices = shape.vertices;
                             }}

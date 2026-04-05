@@ -270,7 +270,7 @@
 
               <!-- Delete Button -->
               <DeleteButtonWithConfirm
-                on:click={() => {
+                onclick={() => {
                   let _pts = line.controlPoints;
                   _pts.splice(idx, 1);
                   line.controlPoints = _pts;

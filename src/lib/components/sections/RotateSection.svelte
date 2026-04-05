@@ -260,7 +260,7 @@
       </div>
 
       <DeleteButtonWithConfirm
-        on:click={() => {
+        onclick={() => {
           if (!rotate.locked && onRemove) onRemove();
         }}
         disabled={rotate.locked}
