@@ -439,3 +439,4 @@ src/tests/components/whats-new/features.test.ts
 src/tests/fieldRendererHeading.test.ts
 src/utils/platform.test.ts
 src/utils/platform.ts
+src/tests/stores.test.ts
