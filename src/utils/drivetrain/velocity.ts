@@ -95,3 +95,21 @@ export function calculateDrivetrainSpeeds(
     );
   }
 }
+
+export function fieldToRobotCentric(
+  vxField: number,
+  vyField: number,
+  robotAngle: number,
+): { vxRobot: number; vyRobot: number } {
+  // Convert angle to radians
+  const theta = (robotAngle * Math.PI) / 180;
+
+  // To convert field-centric to robot-centric, we rotate the vector by -theta
+  const cos = Math.cos(-theta);
+  const sin = Math.sin(-theta);
+
+  const vxRobot = vxField * cos - vyField * sin;
+  const vyRobot = vxField * sin + vyField * cos;
+
+  return { vxRobot, vyRobot };
+}
