@@ -1,6 +1,70 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
-import { calculateSwerveDriveAngles } from "../../../utils/drivetrain/swerve";
+import {
+  calculateSwerveDriveAngles,
+  calculateSwerveStates,
+} from "../../../utils/drivetrain/swerve";
+
+describe("calculateSwerveStates", () => {
+  const trackWidth = 10;
+  const wheelBase = 10;
+
+  it("should return 0 speed and angle when not moving", () => {
+    const states = calculateSwerveStates(0, 0, 0, trackWidth, wheelBase);
+    states.forEach((state) => {
+      expect(state.velocity).toBeCloseTo(0);
+      expect(state.angle).toBeCloseTo(0);
+    });
+  });
+
+  it("should calculate correct states when moving forward", () => {
+    // vx = 0, vy = 1, omega = 0
+    const states = calculateSwerveStates(0, 1, 0, trackWidth, wheelBase);
+    states.forEach((state) => {
+      expect(state.velocity).toBeCloseTo(1);
+      expect(state.angle).toBeCloseTo(90); // Forward is +y, so atan2(1, 0) = 90 deg
+    });
+  });
+
+  it("should calculate correct states when strafing right", () => {
+    // vx = 1, vy = 0, omega = 0
+    const states = calculateSwerveStates(1, 0, 0, trackWidth, wheelBase);
+    states.forEach((state) => {
+      expect(state.velocity).toBeCloseTo(1);
+      expect(state.angle).toBeCloseTo(0); // Right is +x, so atan2(0, 1) = 0 deg
+    });
+  });
+
+  it("should calculate correct states when strafing left", () => {
+    // vx = -1, vy = 0, omega = 0
+    const states = calculateSwerveStates(-1, 0, 0, trackWidth, wheelBase);
+    states.forEach((state) => {
+      expect(state.velocity).toBeCloseTo(1);
+      expect(state.angle).toBeCloseTo(180); // Left is -x, so atan2(0, -1) = 180 deg
+    });
+  });
+
+  it("should calculate correct states when turning in place", () => {
+    // vx = 0, vy = 0, omega = 1
+    const states = calculateSwerveStates(0, 0, 1, trackWidth, wheelBase);
+    // Based on standard implementation:
+    // FL: rx = -5, ry = 5. vx = -5, vy = -5 -> angle = -135 (or 225)
+    // FR: rx = 5, ry = 5. vx = -5, vy = 5 -> angle = 135
+    // BL: rx = -5, ry = -5. vx = 5, vy = -5 -> angle = -45
+    // BR: rx = 5, ry = -5. vx = 5, vy = 5 -> angle = 45
+
+    const expectedVel = Math.hypot(5, 5);
+    states.forEach((state) => {
+      expect(state.velocity).toBeCloseTo(expectedVel);
+    });
+
+    // Angle of velocity vector for each module when rotating CCW
+    expect(states[0].angle).toBeCloseTo(-135); // FL
+    expect(states[1].angle).toBeCloseTo(135); // FR
+    expect(states[2].angle).toBeCloseTo(-45); // BL
+    expect(states[3].angle).toBeCloseTo(45); // BR
+  });
+});
 
 describe("calculateSwerveDriveAngles", () => {
   const rWidth = 10;
