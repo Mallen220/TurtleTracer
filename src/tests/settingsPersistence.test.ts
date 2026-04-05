@@ -76,6 +76,18 @@ describe("Settings Persistence", () => {
     expect(JSON.parse(callArgs[1]).settings).toEqual(DEFAULT_SETTINGS);
   });
 
+  it("saveSettings handles write failure gracefully", async () => {
+    mockElectronAPI.getAppDataPath.mockResolvedValue("/app/data");
+    const testError = new Error("Disk full");
+    mockElectronAPI.writeFile.mockRejectedValue(testError);
+
+    const result = await saveSettings(DEFAULT_SETTINGS);
+
+    expect(result).toBe(false);
+    expect(mockElectronAPI.writeFile).toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith("Error saving settings:", testError);
+  });
+
   it("resetSettings saves default settings", async () => {
     mockElectronAPI.getAppDataPath.mockResolvedValue("/app/data");
 
