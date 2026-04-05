@@ -1,7 +1,59 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { diskEventNamesStore } from "../stores";
-import type { Line, SequenceItem } from "../types";
+import type { Line, SequenceItem, EventMarker, Point } from "../types";
 import { isSupportedProjectFileName } from "./fileExtensions";
+
+export interface EventMatch {
+  marker: EventMarker;
+  point: Point;
+  distance: number;
+}
+
+export function scanForEvents(
+  path: Point[],
+  markers: EventMarker[]
+): EventMatch[] {
+  if (!path || path.length === 0 || !markers || markers.length === 0) {
+    return [];
+  }
+
+  const distances: number[] = [0];
+  let totalDistance = 0;
+  for (let i = 1; i < path.length; i++) {
+    const p1 = path[i - 1];
+    const p2 = path[i];
+    const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    totalDistance += dist;
+    distances.push(totalDistance);
+  }
+
+  const matches: EventMatch[] = [];
+
+  for (const marker of markers) {
+    const targetDistance = totalDistance * Math.max(0, Math.min(1, marker.position));
+
+    let closestPoint = path[0];
+    let closestPointDistance = distances[0];
+    let minDiff = Math.abs(distances[0] - targetDistance);
+
+    for (let i = 1; i < path.length; i++) {
+      const diff = Math.abs(distances[i] - targetDistance);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestPoint = path[i];
+        closestPointDistance = distances[i];
+      }
+    }
+
+    matches.push({
+      marker,
+      point: closestPoint,
+      distance: closestPointDistance,
+    });
+  }
+
+  return matches;
+}
 
 export async function scanEventsInDirectory(directory: string) {
   const electronAPI = (window as any).electronAPI;
