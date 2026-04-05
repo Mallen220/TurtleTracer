@@ -444,3 +444,9 @@ src/tests/utils/shortcutFormatter.test.ts
 src/tests/utils/drivetrain/velocity.test.ts
 src/tests/utils/eventScanner.test.ts
 src/tests/utils/shortcuts.test.ts
+src/tests/components/DialogHost.test.ts
+src/tests/components/KeyboardShortcuts.test.ts
+src/tests/components/LeftSidebar.test.ts
+src/tests/components/NotificationToast.test.ts
+src/tests/components/OnboardingTutorial.test.ts
+src/tests/components/sections/WaitMarkersSection.test.ts
