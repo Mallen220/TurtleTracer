@@ -2,6 +2,8 @@
 <script lang="ts">
   import type { Component, ComponentType } from "svelte";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
+  import DeleteButtonWithConfirm from "../../common/DeleteButtonWithConfirm.svelte";
+  import { menuNavigation } from "../../../actions/menuNavigation";
   import { DEFAULT_SETTINGS } from "../../../../config/defaults";
   import type {
     CommandPaletteCommand,
@@ -476,13 +478,11 @@
               >
             </button>
             {#if available.id && available.id.startsWith("custom_")}
-              <button
+              <DeleteButtonWithConfirm
                 onclick={() => deleteCustomItem(available.id)}
-                class="px-3 py-2 text-neutral-400 hover:text-red-500 border-l border-neutral-200 dark:border-neutral-700 hover:bg-red-50 dark:hover:bg-red-900/40 transition-colors"
+                className="rounded-none border-l border-neutral-200 dark:border-neutral-700 h-full"
                 title="Permanently Delete Custom Item"
-              >
-                ×
-              </button>
+              />
             {/if}
           </div>
         {/each}
@@ -680,6 +680,9 @@
                       {#if isIconMenuOpen}
                         <div
                           class="absolute z-20 top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl overflow-hidden"
+                          use:menuNavigation
+                          tabindex="-1"
+                          onclose={() => (isIconMenuOpen = false)}
                         >
                           <div
                             class="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80"
