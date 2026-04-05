@@ -5,6 +5,6 @@ import DialogHost from "../../lib/components/DialogHost.svelte";
 describe("DialogHost", () => {
   it("renders correctly", () => {
     const { container } = render(DialogHost);
-    expect(container).toBeTruthy();
+    expect(container.innerHTML).not.toBe("");
   });
 });
