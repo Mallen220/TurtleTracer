@@ -89,6 +89,8 @@ export function getDistance(p1: Point2D, p2: Point2D) {
 export function getCurvePoint(t: number, points: Point2D[]): Point2D {
   const len = points.length;
 
+  if (len === 1) return points[0];
+
   if (len === 2) {
     return lerp2d(t, points[0], points[1]);
   } else if (len === 3) {
@@ -123,8 +125,6 @@ export function getCurvePoint(t: number, points: Point2D[]): Point2D {
       y: a * p0.y + b * p1.y + c * p2.y + d * p3.y,
     };
   }
-
-  if (len === 1) return points[0];
 
   const work = points.slice();
   let n = len;
@@ -248,18 +248,19 @@ export function getLineEndHeading(
   );
 }
 
+function getViewportDimension(
+  percent: number,
+  clientProp: "clientHeight" | "clientWidth",
+  innerProp: "innerHeight" | "innerWidth",
+) {
+  const val = Math.max(document.documentElement[clientProp], window[innerProp] || 0);
+  return (percent * val) / 100;
+}
+
 export function vh(percent: number) {
-  const h = Math.max(
-    document.documentElement.clientHeight,
-    window.innerHeight || 0,
-  );
-  return (percent * h) / 100;
+  return getViewportDimension(percent, "clientHeight", "innerHeight");
 }
 
 export function vw(percent: number) {
-  const w = Math.max(
-    document.documentElement.clientWidth,
-    window.innerWidth || 0,
-  );
-  return (percent * w) / 100;
+  return getViewportDimension(percent, "clientWidth", "innerWidth");
 }
