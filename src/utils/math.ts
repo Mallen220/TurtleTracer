@@ -89,6 +89,7 @@ export function getDistance(p1: Point2D, p2: Point2D) {
 export function getCurvePoint(t: number, points: Point2D[]): Point2D {
   const len = points.length;
 
+  if (len === 0) throw new Error("getCurvePoint: points array must not be empty");
   if (len === 1) return points[0];
 
   if (len === 2) {
