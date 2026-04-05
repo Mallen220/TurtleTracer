@@ -44,6 +44,19 @@ export async function saveDirectorySettings(
   }
 }
 
+// Parse directory settings safely
+export function parseDirectorySettings(json: string): DirectorySettings {
+  try {
+    const parsed = JSON.parse(json);
+    if (typeof parsed === "object" && parsed !== null) {
+      return { ...DEFAULT_DIRECTORY_SETTINGS, ...parsed };
+    }
+  } catch (error) {
+    console.error("Error parsing directory settings:", error);
+  }
+  return DEFAULT_DIRECTORY_SETTINGS;
+}
+
 // Load directory settings
 export async function loadDirectorySettings(): Promise<DirectorySettings> {
   try {
@@ -53,8 +66,7 @@ export async function loadDirectorySettings(): Promise<DirectorySettings> {
     if (!electronAPI || electronAPI.isVirtual) {
       const local = localStorage.getItem("turtle-tracer-directory-settings");
       if (local) {
-        const savedSettings = JSON.parse(local) as Partial<DirectorySettings>;
-        return { ...DEFAULT_DIRECTORY_SETTINGS, ...savedSettings };
+        return parseDirectorySettings(local);
       }
       return DEFAULT_DIRECTORY_SETTINGS;
     }
@@ -64,8 +76,7 @@ export async function loadDirectorySettings(): Promise<DirectorySettings> {
       const exists = await electronAPI.fileExists(settingsPath);
       if (exists) {
         const content = await electronAPI.readFile(settingsPath);
-        const savedSettings = JSON.parse(content) as Partial<DirectorySettings>;
-        return { ...DEFAULT_DIRECTORY_SETTINGS, ...savedSettings };
+        return parseDirectorySettings(content);
       }
     }
   } catch (error) {

@@ -5,6 +5,7 @@ import {
   loadDirectorySettings,
   getSavedAutoPathsDirectory,
   saveAutoPathsDirectory,
+  parseDirectorySettings,
 } from "../utils/directorySettings";
 
 describe("Directory Settings", () => {
@@ -28,6 +29,42 @@ describe("Directory Settings", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  describe("parseDirectorySettings", () => {
+    it("parses valid JSON string with partial settings", () => {
+      const json = JSON.stringify({ autoPathsDirectory: "/partial/path" });
+      const parsed = parseDirectorySettings(json);
+      expect(parsed).toEqual({ autoPathsDirectory: "/partial/path" });
+    });
+
+    it("parses valid JSON string with full settings", () => {
+      const json = JSON.stringify({ autoPathsDirectory: "/full/path" });
+      const parsed = parseDirectorySettings(json);
+      expect(parsed).toEqual({ autoPathsDirectory: "/full/path" });
+    });
+
+    it("returns defaults for an empty JSON string", () => {
+      const parsed = parseDirectorySettings("");
+      expect(parsed).toEqual(DEFAULT_DIRECTORY_SETTINGS);
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    it("returns defaults for invalid JSON string", () => {
+      const parsed = parseDirectorySettings("{ invalid_json }");
+      expect(parsed).toEqual(DEFAULT_DIRECTORY_SETTINGS);
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    it("returns defaults for valid JSON string that is not an object", () => {
+      const parsed = parseDirectorySettings("[]");
+      expect(parsed).toEqual(DEFAULT_DIRECTORY_SETTINGS);
+    });
+
+    it("returns defaults for null input string", () => {
+      const parsed = parseDirectorySettings(JSON.stringify(null));
+      expect(parsed).toEqual(DEFAULT_DIRECTORY_SETTINGS);
+    });
   });
 
   describe("loadDirectorySettings", () => {
