@@ -1,8 +1,16 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi } from "vitest";
-import { POTATO_THEME_CSS, firePotatoConfetti } from "../../utils/potatoTheme";
+import { POTATO_THEME_CSS, firePotatoConfetti, getThemeColors, darkColors, lightColors } from "../../utils/potatoTheme";
 
 describe("potatoTheme", () => {
+  it("should return correct theme colors for dark mode", () => {
+    expect(getThemeColors(true)).toEqual(darkColors);
+  });
+
+  it("should return correct theme colors for light mode", () => {
+    expect(getThemeColors(false)).toEqual(lightColors);
+  });
+
   it("should export CSS string", () => {
     expect(POTATO_THEME_CSS).toContain("--potato-flesh");
   });

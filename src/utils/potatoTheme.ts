@@ -1,4 +1,35 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+export type ThemeColors = {
+  flesh: string;
+  skin: string;
+  dark: string;
+  shadow: string;
+  accent: string;
+  textDark: string;
+};
+
+export const lightColors: ThemeColors = {
+  flesh: "#F9F3D8",
+  skin: "#D4B483",
+  dark: "#6D4C41",
+  shadow: "#8D6E63",
+  accent: "#8B4513",
+  textDark: "#3E2723",
+};
+
+export const darkColors: ThemeColors = {
+  flesh: "#3E2723",
+  skin: "#5D4037",
+  dark: "#4E342E",
+  shadow: "#3E2723",
+  accent: "#D4B483",
+  textDark: "#F9F3D8",
+};
+
+export function getThemeColors(isDark: boolean): ThemeColors {
+  return isDark ? darkColors : lightColors;
+}
+
 export const POTATO_THEME_CSS = `
 :root {
   --potato-flesh: #F9F3D8;
