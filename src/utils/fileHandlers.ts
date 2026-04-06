@@ -814,12 +814,17 @@ export async function handleAutoExport(
           packageName: settings.javaPackageName,
           telemetryImpl: settings.telemetryImplementation,
           hardcodeValues: settings.autoExportEmbedPoseData,
-          targetLibrary: settings.autoExportTargetLibrary ?? "SolversLib"
+          targetLibrary: settings.autoExportTargetLibrary ?? "SolversLib",
         };
-        content = await exporter.exportCode({startPoint, lines, shapes: projectData.shapes, sequence}, settingsObj);
+        content = await exporter.exportCode(
+          { startPoint, lines, shapes: projectData.shapes, sequence },
+          settingsObj,
+        );
         extension = settings.autoExportFormat === "points" ? "txt" : "java"; // Default guess, plugins might need UI config for this later
       } else {
-        throw new Error(`Auto export format ${settings.autoExportFormat} not found.`);
+        throw new Error(
+          `Auto export format ${settings.autoExportFormat} not found.`,
+        );
       }
     }
 

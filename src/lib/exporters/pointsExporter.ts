@@ -46,6 +46,10 @@ exporterRegistry.register({
   name: "Export Points",
   description: "Export the path points array for basic usage.",
   exportCode: (data: TurtleData, settings: any) => {
-    return generatePointsArray(data.startPoint, data.lines, settings.codeUnits ?? "imperial");
-  }
+    return generatePointsArray(
+      data.startPoint,
+      data.lines,
+      settings.codeUnits ?? "imperial",
+    );
+  },
 });

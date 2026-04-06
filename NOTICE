@@ -450,3 +450,12 @@ src/tests/components/LeftSidebar.test.ts
 src/tests/components/NotificationToast.test.ts
 src/tests/components/OnboardingTutorial.test.ts
 src/tests/components/sections/WaitMarkersSection.test.ts
+README_Content/lighthouse-badges/lighthouse_best-practices.svg
+README_Content/lighthouse-badges/lighthouse_performance.svg
+index.html
+public/index.html
+public/robots.txt
+src/lib/exporters/javaExporter.ts
+src/lib/exporters/pointsExporter.ts
+src/lib/exporters/sequentialExporter.ts
+src/tests/lib/components/shortcuts/utils.test.ts

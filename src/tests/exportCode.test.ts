@@ -18,38 +18,38 @@ vi.mock("../lib/exporters", async (importOriginal) => {
       subscribe: vi.fn((fn) => {
         fn({
           points: {
-            id: 'points',
-            name: 'Points',
-            exportCode: vi.fn(() => "apple\nbanana\napple\ncherry\napple")
-          }
+            id: "points",
+            name: "Points",
+            exportCode: vi.fn(() => "apple\nbanana\napple\ncherry\napple"),
+          },
         });
         return () => {};
       }),
-      register: vi.fn()
-    }
+      register: vi.fn(),
+    },
   };
 });
 
 vi.mock("svelte/store", async (importOriginal) => {
-    const actual: any = await importOriginal();
-    return {
-        ...actual,
-        get: vi.fn((store) => {
-           if (store.subscribe) {
-              if (store.subscribe.toString().includes('points')) {
-                  // This relies on exporterRegistry being mocked
-                  return {
-                      points: {
-                          id: 'points',
-                          name: 'Points',
-                          exportCode: vi.fn(() => "apple\nbanana\napple\ncherry\napple")
-                      }
-                  }
-              }
-           }
-           return actual.get(store);
-        })
-    }
+  const actual: any = await importOriginal();
+  return {
+    ...actual,
+    get: vi.fn((store) => {
+      if (store.subscribe) {
+        if (store.subscribe.toString().includes("points")) {
+          // This relies on exporterRegistry being mocked
+          return {
+            points: {
+              id: "points",
+              name: "Points",
+              exportCode: vi.fn(() => "apple\nbanana\napple\ncherry\napple"),
+            },
+          };
+        }
+      }
+      return actual.get(store);
+    }),
+  };
 });
 
 describe("ExportCodeDialog search behavior", () => {
