@@ -245,7 +245,7 @@
   >
     <div
       transition:fly={{ y: 20, duration: 300, easing: cubicInOut }}
-      class="bg-white dark:bg-neutral-900 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
+      class="bg-white dark:bg-neutral-900 rounded-lg shadow-sm w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
     >
       <!-- Header -->
       <div

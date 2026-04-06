@@ -74,12 +74,12 @@
 
 {#if show}
   <div
-    class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
     role="dialog"
     aria-modal="true"
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-700"
+      class="bg-white dark:bg-neutral-800 rounded-lg shadow-sm w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-700"
     >
       <h2 class="text-xl font-bold mb-4 text-neutral-900 dark:text-white">
         {title}

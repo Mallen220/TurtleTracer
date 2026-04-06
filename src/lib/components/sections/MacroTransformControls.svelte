@@ -91,9 +91,7 @@
   class="space-y-4 p-3 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg border border-neutral-200 dark:border-neutral-700/50"
 >
   <div class="flex items-center justify-between">
-    <h4 class="text-xs font-bold text-neutral-500 uppercase tracking-wide">
-      Transformations
-    </h4>
+    <h4 class="text-xs font-bold text-neutral-500">Transformations</h4>
     {#if macro.transformations && macro.transformations.length > 0}
       <span
         class="text-[10px] bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 px-1.5 py-0.5 rounded-full"

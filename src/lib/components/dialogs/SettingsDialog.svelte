@@ -268,14 +268,14 @@
 {#if isOpen}
   <div
     transition:fade={{ duration: 300, easing: cubicInOut }}
-    class="bg-black bg-opacity-40 flex flex-col justify-center items-center fixed top-0 left-0 w-full h-full z-[1005] backdrop-blur-sm"
+    class="bg-black bg-opacity-40 flex flex-col justify-center items-center fixed top-0 left-0 w-full h-full z-[1005]"
     role="dialog"
     aria-modal="true"
     aria-labelledby="settings-title"
   >
     <div
       transition:fly={{ duration: 300, easing: cubicInOut, y: 20 }}
-      class="flex flex-col bg-white dark:bg-neutral-900 rounded-xl w-full max-w-4xl h-[85vh] shadow-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800"
+      class="flex flex-col bg-white dark:bg-neutral-900 rounded-lg w-full max-w-4xl h-[85vh] shadow-md overflow-hidden border border-neutral-200 dark:border-neutral-800"
     >
       <!-- Main Layout -->
       <div class="flex h-full">

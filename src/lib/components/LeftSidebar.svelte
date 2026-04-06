@@ -568,10 +568,10 @@
                   bind:this={historyDropdownRef}
                   use:menuNavigation
                   onclose={() => showHistory.set(false)}
-                  class="absolute left-full ml-2 mt-0 w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
+                  class="absolute left-full ml-2 mt-0 w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-sm py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
                 >
                   <div
-                    class="px-4 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider border-b border-neutral-200 dark:border-neutral-700 mb-1"
+                    class="px-4 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700 mb-1"
                   >
                     History
                   </div>
@@ -874,8 +874,7 @@
                   </select>
                 </div>
                 {#if sidebarExpanded}
-                  <span
-                    class="ml-3 text-[10px] text-neutral-400 uppercase tracking-tight"
+                  <span class="ml-3 text-[10px] text-neutral-400"
                     >Grid Size</span
                   >
                 {/if}

@@ -191,7 +191,7 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     role="presentation"
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
     onclick={() => handleClickOutside()}
     transition:fade={{ duration: 150 }}
   >
@@ -203,7 +203,7 @@
       tabindex="-1"
       bind:this={dialogContainer}
       onclick={stopPropagation(bubble("click"))}
-      class="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border border-neutral-200 dark:border-neutral-700"
+      class="bg-white dark:bg-neutral-800 rounded-lg shadow-md w-full max-w-2xl overflow-hidden border border-neutral-200 dark:border-neutral-700"
       in:fly={{ y: 20, duration: 200, delay: 50 }}
       out:fly={{ y: 20, duration: 150 }}
     >

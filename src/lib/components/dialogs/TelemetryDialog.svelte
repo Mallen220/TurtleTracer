@@ -135,13 +135,13 @@
   <!-- Dialog UI similar to ExportCodeDialog -->
   <div
     transition:fade={{ duration: 200 }}
-    class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+    class="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4 sm:p-6"
     role="presentation"
     onclick={self(() => (isOpen = false))}
   >
     <div
       transition:fly={{ y: 20, duration: 300 }}
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-lg flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none"
+      class="bg-white dark:bg-neutral-900 rounded-lg shadow-md w-full max-w-lg flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none"
     >
       <div
         class="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800"

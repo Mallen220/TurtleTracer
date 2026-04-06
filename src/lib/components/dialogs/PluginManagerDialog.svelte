@@ -56,7 +56,7 @@
 {#if isOpen}
   <div
     transition:fade={{ duration: 300, easing: cubicInOut }}
-    class="fixed inset-0 z-[1005] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+    class="fixed inset-0 z-[1005] flex items-center justify-center p-4 bg-black/40"
     role="dialog"
     aria-modal="true"
     aria-labelledby="plugin-manager-title"
@@ -64,7 +64,7 @@
     <!-- Modal Container -->
     <div
       transition:fly={{ duration: 300, y: 20, easing: cubicInOut }}
-      class="flex flex-col w-full max-w-4xl max-h-[85vh] bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden relative"
+      class="flex flex-col w-full max-w-4xl max-h-[85vh] bg-white dark:bg-neutral-900 rounded-lg shadow-md border border-neutral-200 dark:border-neutral-800 overflow-hidden relative"
     >
       <!-- Header -->
       <div
@@ -73,7 +73,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div
-              class="flex items-center justify-center w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+              class="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
             >
               <PuzzleIcon className="size-6" />
             </div>
@@ -110,7 +110,7 @@
             type="text"
             bind:value={searchQuery}
             placeholder="Search installed plugins..."
-            class="w-full pl-10 pr-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:bg-white dark:focus:bg-neutral-900 focus:border-purple-500 rounded-xl text-neutral-900 dark:text-white placeholder-neutral-500 transition-all outline-none"
+            class="w-full pl-10 pr-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:bg-white dark:focus:bg-neutral-900 focus:border-purple-500 rounded-lg text-neutral-900 dark:text-white placeholder-neutral-500 transition-all outline-none"
           />
         </div>
       </div>
@@ -141,7 +141,7 @@
             </p>
             <button
               onclick={() => PluginManager.openPluginsFolder()}
-              class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-all font-medium shadow-lg hover:shadow-purple-500/25 flex items-center gap-2"
+              class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all font-medium shadow-lg hover:shadow-purple-500/25 flex items-center gap-2"
             >
               <FolderIcon className="size-5" />
               Open Plugins Folder
@@ -181,13 +181,13 @@
                   opacity: 0,
                   easing: cubicInOut,
                 }}
-                class="group flex flex-col p-4 bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md dark:hover:shadow-neutral-900/50 transition-all duration-200"
+                class="group flex flex-col p-4 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-md dark:hover:shadow-neutral-900/50 transition-all duration-200"
               >
                 <div class="flex items-start justify-between gap-4 mb-3">
                   <div class="flex items-center gap-3 min-w-0">
                     <div
                       class="flex-shrink-0 p-2.5 rounded-lg {plugin.enabled
-                        ? 'bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-600 dark:text-green-400'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
                         : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-400 dark:text-neutral-500'}"
                     >
                       <PuzzleIcon className="size-5" />
@@ -274,7 +274,7 @@
                   opacity: 0,
                   easing: cubicInOut,
                 }}
-                class="flex flex-col p-4 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-200 dark:border-red-800/50"
+                class="flex flex-col p-4 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-800/50"
               >
                 <div class="flex items-start gap-3 mb-2">
                   <div
@@ -344,11 +344,11 @@
       {#if pluginToDelete}
         <div
           transition:fade={{ duration: 150 }}
-          class="absolute inset-0 bg-white/60 dark:bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          class="absolute inset-0 bg-white/60 dark:bg-neutral-900/60 z-50 flex items-center justify-center p-4"
         >
           <div
             transition:scale={{ duration: 200, start: 0.95 }}
-            class="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-700 p-6 max-w-sm w-full text-center"
+            class="bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 p-6 max-w-sm w-full text-center"
           >
             <div
               class="mx-auto w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4"
@@ -367,13 +367,13 @@
             <div class="flex gap-3">
               <button
                 onclick={() => (pluginToDelete = null)}
-                class="flex-1 px-4 py-2 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors font-medium text-sm"
+                class="flex-1 px-4 py-2 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors font-medium text-sm"
               >
                 Cancel
               </button>
               <button
                 onclick={confirmDelete}
-                class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors font-medium text-sm shadow-sm"
+                class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium text-sm shadow-sm"
               >
                 Delete
               </button>

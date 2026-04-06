@@ -60,7 +60,7 @@
 </script>
 
 <div
-  class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-4 space-y-4"
+  class="bg-white dark:bg-neutral-800 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 p-4 space-y-4"
 >
   <div class="flex items-center justify-between">
     <div class="flex items-center gap-2">
@@ -173,9 +173,7 @@
 
   {#if lines.length === 0}
     <div class="space-y-2">
-      <span
-        class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-      >
+      <span class="text-xs font-semibold text-neutral-500 block">
         Initial Heading
       </span>
       <HeadingControls

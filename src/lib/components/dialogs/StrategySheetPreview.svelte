@@ -488,7 +488,7 @@
   <!-- Backdrop (Hidden on Print) -->
   <div
     transition:fade={{ duration: 200 }}
-    class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 print:hidden"
+    class="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4 sm:p-6 print:hidden"
     role="presentation"
     onclick={self(handleClose)}
   >
@@ -496,7 +496,7 @@
     <div
       bind:this={dialogRef}
       transition:fly={{ y: 20, duration: 300 }}
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none overflow-hidden"
+      class="bg-white dark:bg-neutral-900 rounded-lg shadow-md w-full max-w-4xl h-[90vh] flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="strategy-sheet-title"
@@ -540,14 +540,14 @@
       <div class="flex-1 overflow-auto bg-neutral-100 dark:bg-neutral-900 p-8">
         <!-- Printable Sheet -->
         <div
-          class="bg-white text-black max-w-[210mm] mx-auto shadow-xl p-[10mm] min-h-[297mm] flex flex-col gap-6 print:shadow-none print:p-0 print:max-w-none print:min-h-0 print:h-auto"
+          class="bg-white text-black max-w-[210mm] mx-auto shadow-sm p-[10mm] min-h-[297mm] flex flex-col gap-6 print:shadow-none print:p-0 print:max-w-none print:min-h-0 print:h-auto"
         >
           <!-- Sheet Header -->
           <div
             class="flex items-start justify-between border-b-2 border-black pb-4"
           >
             <div>
-              <h1 class="text-3xl font-bold uppercase tracking-tight">
+              <h1 class="text-3xl font-bold">
                 {projectName}
               </h1>
               <div class="text-sm text-gray-600 mt-1">

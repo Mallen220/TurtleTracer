@@ -304,7 +304,7 @@
 <div class="section-container mb-8">
   {#if searchQuery}
     <h4
-      class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
+      class="text-xs font-bold text-neutral-500 mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
     >
       Sidebar
     </h4>
@@ -528,7 +528,7 @@
           {@const SvelteComponent_2 = ICON_COMPONENT_MAP[customActionIconKey]}
           {@const SvelteComponent_3 = ICON_COMPONENT_MAP[customActionIconKey]}
           <div
-            class="p-5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl mt-3 shadow-sm transition-all"
+            class="p-5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg mt-3 shadow-sm transition-all"
           >
             <div
               class="flex items-center justify-between mb-5 border-b border-neutral-200 dark:border-neutral-700 pb-3"
@@ -550,9 +550,7 @@
             <div class="space-y-6">
               <!-- Step 1: Action -->
               <div class="space-y-3">
-                <div
-                  class="block text-xs font-bold text-neutral-500 uppercase tracking-widest"
-                >
+                <div class="block text-xs font-bold text-neutral-500">
                   1. Choose Action
                 </div>
 
@@ -565,8 +563,7 @@
                         class="text-sm font-semibold text-neutral-900 dark:text-white"
                         >{selectedCommand.label}</span
                       >
-                      <span
-                        class="text-[10px] text-neutral-400 font-mono uppercase tracking-tighter"
+                      <span class="text-[10px] text-neutral-400 font-mono tracking-tighter"
                         >{selectedCommand.id}</span
                       >
                     </div>
@@ -625,9 +622,7 @@
 
               <!-- Step 2: Appearance -->
               <div class="space-y-4 pt-2">
-                <div
-                  class="block text-xs font-bold text-neutral-500 uppercase tracking-widest"
-                >
+                <div class="block text-xs font-bold text-neutral-500">
                   2. Customize Appearance
                 </div>
 
@@ -679,7 +674,7 @@
                       </button>
                       {#if isIconMenuOpen}
                         <div
-                          class="absolute z-20 top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl overflow-hidden"
+                          class="absolute z-20 top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-sm overflow-hidden"
                           use:menuNavigation
                           tabindex="-1"
                           onclose={() => (isIconMenuOpen = false)}
@@ -693,9 +688,7 @@
                               placeholder="Search icons by name..."
                               class="w-full px-3 py-2 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
-                            <div
-                              class="mt-1 text-[10px] uppercase tracking-wider text-neutral-400"
-                            >
+                            <div class="mt-1 text-[10px] text-neutral-400">
                               {filteredCustomIcons.length} result{filteredCustomIcons.length ===
                               1
                                 ? ""
@@ -740,11 +733,11 @@
 
                 <!-- Live Preview Card -->
                 <div
-                  class="p-4 bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-xl flex items-center gap-5"
+                  class="p-4 bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-lg flex items-center gap-5"
                 >
                   <div class="flex flex-col items-center gap-1">
                     <span
-                      class="text-[10px] text-neutral-400 uppercase font-bold tracking-tighter"
+                      class="text-[10px] text-neutral-400 font-bold tracking-tighter"
                       >Preview</span
                     >
                     <div

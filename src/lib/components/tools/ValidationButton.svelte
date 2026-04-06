@@ -93,7 +93,7 @@
 
   {#if isHovering}
     <div
-      class="absolute top-full right-0 mt-2 w-max bg-white dark:bg-neutral-800 rounded-lg shadow-xl p-3 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100"
+      class="absolute top-full right-0 mt-2 w-max bg-white dark:bg-neutral-800 rounded-lg shadow-sm p-3 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100"
     >
       {#if $settingsStore.validationDisabled}
         <p class="text-sm text-neutral-700 dark:text-neutral-300 font-medium">

@@ -178,13 +178,13 @@
 
 {#if show}
   <div
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-0 md:p-4"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-0 md:p-4"
     role="dialog"
     aria-modal="true"
     aria-labelledby="whats-new-title"
   >
     <div
-      class="bg-white dark:bg-neutral-800 md:rounded-xl shadow-2xl w-full h-full md:h-auto md:w-full md:max-w-5xl md:max-h-[70vh] flex overflow-hidden border-0 md:border border-neutral-200 dark:border-neutral-700 transition-all duration-200"
+      class="bg-white dark:bg-neutral-800 md:rounded-lg shadow-md w-full h-full md:h-auto md:w-full md:max-w-5xl md:max-h-[70vh] flex overflow-hidden border-0 md:border border-neutral-200 dark:border-neutral-700 transition-all duration-200"
     >
       <!-- Adobe Style Split View -->
       <!-- Left Sidebar / Menu -->
@@ -225,9 +225,7 @@
 
         <div class="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
           {#if viewMode === "features"}
-            <div
-              class="mb-3 px-2 text-xs font-bold text-neutral-500 uppercase tracking-wider"
-            >
+            <div class="mb-3 px-2 text-xs font-bold text-neutral-500">
               Version {currentRelease?.id.replace(/^v/, "")}
             </div>
             {#each parsedFeatures as feature}

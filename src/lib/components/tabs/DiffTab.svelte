@@ -40,10 +40,10 @@
       <!-- Stats Overview -->
       <div class="grid grid-cols-2 gap-4">
         <div
-          class="bg-white dark:bg-neutral-800 p-4 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700"
+          class="bg-white dark:bg-neutral-800 p-4 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700"
         >
           <p
-            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1"
+            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1"
           >
             Total Time
           </p>
@@ -64,10 +64,10 @@
         </div>
 
         <div
-          class="bg-white dark:bg-neutral-800 p-4 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700"
+          class="bg-white dark:bg-neutral-800 p-4 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700"
         >
           <p
-            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1"
+            class="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1"
           >
             Total Distance
           </p>
@@ -108,7 +108,7 @@
 
         {#if addedEvents.length === 0 && removedEvents.length === 0 && changedEvents.length === 0}
           <div
-            class="p-8 text-center bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 border-dashed"
+            class="p-8 text-center bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 border-dashed"
           >
             <p class="text-neutral-500 dark:text-neutral-400 text-sm">
               No changes detected compared to the last commit.
@@ -116,7 +116,7 @@
           </div>
         {:else}
           <div
-            class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-100 dark:divide-neutral-700/50 overflow-hidden"
+            class="bg-white dark:bg-neutral-800 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-100 dark:divide-neutral-700/50 overflow-hidden"
           >
             {#each addedEvents as item}
               <div

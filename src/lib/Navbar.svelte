@@ -226,7 +226,7 @@
           bind:this={saveDropdownRef}
           use:menuNavigation
           onclose={() => (saveDropdownOpen = false)}
-          class="absolute top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)] {saveDropdownSide ===
+          class="absolute top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-lg shadow-sm py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)] {saveDropdownSide ===
           'left'
             ? 'right-full'
             : 'left-full'}"
@@ -266,7 +266,7 @@
             href="https://github.com/Mallen220/TurtleTracer/releases"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-200 bg-purple-100 text-purple-700 hover:bg-purple-200 hover:border-purple-300 dark:border-purple-800 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 dark:hover:border-purple-700 transition-colors whitespace-nowrap uppercase tracking-wider"
+            class="text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-200 bg-purple-100 text-purple-700 hover:bg-purple-200 hover:border-purple-300 dark:border-purple-800 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 dark:hover:border-purple-700 transition-colors whitespace-nowrap"
             title="Faster, more stable, and better support/features"
           >
             Download Desktop App
@@ -335,10 +335,7 @@
   {#if true}
     <div class="flex items-center gap-6 text-sm hidden md:flex">
       <div class="flex flex-col items-center">
-        <span
-          class="text-xs text-neutral-400 font-medium uppercase tracking-wider"
-          >Est. Time</span
-        >
+        <span class="text-xs text-neutral-400 font-medium">Est. Time</span>
         <span class="font-semibold text-neutral-800 dark:text-neutral-200"
           >{formatEstimatedTime(timePrediction.totalTime)}</span
         >
@@ -349,10 +346,7 @@
         aria-hidden="true"
       ></div>
       <div class="flex flex-col items-center">
-        <span
-          class="text-xs text-neutral-400 font-medium uppercase tracking-wider"
-          >Distance</span
-        >
+        <span class="text-xs text-neutral-400 font-medium">Distance</span>
         <span class="font-semibold text-neutral-800 dark:text-neutral-200"
           >{formatDisplayDistance(
             timePrediction?.totalDistance ?? 0,
@@ -413,7 +407,7 @@
           bind:this={exportMenuRef}
           use:menuNavigation
           onclose={() => (exportMenuOpen = false)}
-          class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)]"
+          class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-sm py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)]"
         >
           <button
             onclick={() => handleExport("java")}
@@ -469,9 +463,7 @@
 
           {#if $customExportersStore.length > 0}
             <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
-            <div
-              class="px-4 py-1 text-xs font-semibold text-neutral-500 uppercase tracking-wider"
-            >
+            <div class="px-4 py-1 text-xs font-semibold text-neutral-500">
               Plugins
             </div>
             {#each $customExportersStore as exporter}

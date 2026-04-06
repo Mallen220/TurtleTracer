@@ -1184,7 +1184,7 @@
   {#if isOpen}
     <div
       transition:fade={{ duration: 200 }}
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm"
+      class="fixed inset-0 bg-black/50"
       onclick={() => (isOpen = false)}
       role="button"
       tabindex="0"
@@ -1198,11 +1198,11 @@
   <!-- Drop Zone (Right Area) -->
   {#if isOpen && isDraggingPath}
     <div
-      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-purple-500/10 backdrop-blur-[2px] z-[1015]"
+      class="fixed inset-0 pointer-events-none flex items-center justify-center bg-purple-500/10 z-[1015]"
       style="left: {sidebarWidth}px;"
     >
       <div
-        class="bg-white dark:bg-neutral-800 p-8 rounded-xl shadow-2xl flex flex-col items-center border-4 border-dashed border-purple-500 animate-pulse"
+        class="bg-white dark:bg-neutral-800 p-8 rounded-lg shadow-md flex flex-col items-center border-4 border-dashed border-purple-500 animate-pulse"
       >
         <CloudArrowDownIcon
           className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
@@ -1219,7 +1219,7 @@
 
   <!-- Sidebar -->
   <div
-    class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-2xl transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 pointer-events-auto"
+    class="relative flex flex-col h-full bg-white dark:bg-neutral-900 shadow-md transform transition-transform duration-300 ease-in-out border-r border-neutral-200 dark:border-neutral-800 pointer-events-auto"
     style="width: {isOpen ? sidebarWidth : 384}px"
     class:translate-x-0={isOpen}
     class:-translate-x-full={!isOpen}
@@ -1384,7 +1384,7 @@
 
         {#if showAddMenu}
           <div
-            class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-xl border border-neutral-200 dark:border-neutral-700 py-1 flex flex-col overflow-hidden"
+            class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 py-1 flex flex-col overflow-hidden"
           >
             <button
               onclick={() => {

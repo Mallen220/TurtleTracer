@@ -283,7 +283,7 @@
                 className="size-3 transition-transform group-open:rotate-90 text-neutral-500 dark:text-neutral-400"
               />
               <span
-                class="text-xs font-semibold uppercase text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+                class="text-xs font-semibold text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
                 >Paths to Optimize</span
               >
             </div>

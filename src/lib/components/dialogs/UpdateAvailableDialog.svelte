@@ -160,11 +160,11 @@
 
 {#if show && updateData}
   <div
-    class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm"
+    class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-neutral-900/60"
     transition:fade={{ duration: 200 }}
   >
     <div
-      class="relative bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl w-full max-w-[520px] overflow-hidden border border-neutral-100 dark:border-neutral-800"
+      class="relative bg-white dark:bg-neutral-900 rounded-lg shadow-md w-full max-w-[520px] overflow-hidden border border-neutral-100 dark:border-neutral-800"
       transition:scale={{
         start: 0.95,
         duration: 300,
@@ -195,7 +195,7 @@
         <!-- Top Section -->
         <div class="text-center space-y-2">
           <div
-            class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-600 dark:text-purple-400 mb-2 shadow-sm ring-1 ring-purple-100 dark:ring-purple-900/50"
+            class="inline-flex items-center justify-center w-16 h-16 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 mb-2 shadow-sm ring-1 ring-purple-100 dark:ring-purple-900/50"
           >
             <RocketIcon className="w-8 h-8" />
           </div>
@@ -215,11 +215,9 @@
 
         <!-- MS Store Recommendation (Friendly Card) -->
         {#if isWindows && !isStore}
-          <div
-            class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-1 rounded-2xl"
-          >
+          <div class="bg-blue-50 dark:bg-blue-900/40 p-1 rounded-lg">
             <div
-              class="bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-blue-100 dark:border-blue-900/50 rounded-xl p-4 flex items-start gap-4"
+              class="bg-white/60 dark:bg-white/5 border border-blue-100 dark:border-blue-900/50 rounded-lg p-4 flex items-start gap-4"
             >
               <div
                 class="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-600 dark:text-blue-400 shrink-0"
@@ -262,7 +260,7 @@
             Release Notes
           </div>
           <div
-            class="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800 rounded-xl p-4 max-h-40 overflow-y-auto custom-scrollbar"
+            class="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800 rounded-lg p-4 max-h-40 overflow-y-auto custom-scrollbar"
           >
             {#if isLoadingNotes}
               <div class="flex items-center justify-center h-20">
@@ -280,7 +278,7 @@
         <div class="flex flex-col gap-3 pt-2">
           <button
             onclick={handleDownload}
-            class="w-full py-3 px-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-semibold rounded-xl transition-all transform active:scale-[0.98] shadow-lg shadow-neutral-500/20 dark:shadow-none flex justify-center items-center gap-2"
+            class="w-full py-3 px-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-semibold rounded-lg transition-all transform active:scale-[0.98] shadow-lg shadow-neutral-500/20 dark:shadow-none flex justify-center items-center gap-2"
           >
             <ArrowDownTrayIcon className="w-5 h-5" />
             Download & Install

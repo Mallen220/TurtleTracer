@@ -87,7 +87,7 @@
   role="button"
   tabindex="0"
   aria-pressed={isSelected}
-  class={`bg-white dark:bg-neutral-800 rounded-xl shadow-sm border transition-all duration-200 ${
+  class={`bg-white dark:bg-neutral-800 rounded-lg shadow-sm border transition-all duration-200 ${
     isSelected
       ? "border-teal-400 ring-1 ring-teal-400/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
@@ -125,8 +125,7 @@
             ? 'rotate-0'
             : 'rotate-90'}"
         />
-        <span
-          class="text-xs font-bold uppercase tracking-wider text-teal-500 whitespace-nowrap"
+        <span class="text-xs font-bold text-teal-500 whitespace-nowrap"
           >Macro</span
         >
       </button>
@@ -244,11 +243,7 @@
     <div class="px-3 pb-3 space-y-4">
       <!-- File Path Display -->
       <div class="space-y-1">
-        <div
-          class="text-xs font-semibold text-neutral-500 uppercase tracking-wide"
-        >
-          File Path
-        </div>
+        <div class="text-xs font-semibold text-neutral-500">File Path</div>
         <div
           class="text-xs text-neutral-700 dark:text-neutral-300 break-all bg-neutral-100 dark:bg-neutral-900/50 p-2 rounded border border-neutral-200 dark:border-neutral-700/50"
         >

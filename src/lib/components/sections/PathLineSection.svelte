@@ -166,7 +166,7 @@
   role="button"
   tabindex="0"
   aria-pressed={isSelected}
-  class={`bg-white dark:bg-neutral-800 rounded-xl shadow-sm border transition-all duration-200 ${
+  class={`bg-white dark:bg-neutral-800 rounded-lg shadow-sm border transition-all duration-200 ${
     isSelected
       ? "border-purple-500 ring-1 ring-purple-500/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
@@ -198,7 +198,7 @@
             : 'rotate-90'}"
         />
         <span
-          class="text-xs font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 whitespace-nowrap"
+          class="text-xs font-bold text-neutral-400 dark:text-neutral-500 whitespace-nowrap"
           >Path {idx + 1}</span
         >
       </button>
@@ -337,9 +337,7 @@
       >
         <!-- Target Position -->
         <div class="space-y-2">
-          <span
-            class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-          >
+          <span class="text-xs font-semibold text-neutral-500 block">
             Target Position
           </span>
           <div class="flex items-center gap-2">
@@ -414,9 +412,7 @@
 
         <!-- Heading Control -->
         <div class="space-y-2" class:col-span-2={!isNarrow}>
-          <span
-            class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-          >
+          <span class="text-xs font-semibold text-neutral-500 block">
             Heading
           </span>
           <HeadingControls

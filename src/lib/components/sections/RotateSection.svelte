@@ -109,7 +109,7 @@
   role="button"
   tabindex="0"
   aria-pressed={isSelected}
-  class={`bg-white dark:bg-neutral-800 rounded-xl shadow-sm border transition-all duration-200 ${
+  class={`bg-white dark:bg-neutral-800 rounded-lg shadow-sm border transition-all duration-200 ${
     isSelected
       ? "border-pink-500 ring-1 ring-pink-500/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
@@ -147,8 +147,7 @@
             ? 'rotate-0'
             : 'rotate-90'}"
         />
-        <span
-          class="text-xs font-bold uppercase tracking-wider text-pink-500 whitespace-nowrap"
+        <span class="text-xs font-bold text-pink-500 whitespace-nowrap"
           >Rotate</span
         >
       </button>
@@ -275,7 +274,7 @@
       <div class="space-y-2">
         <label
           for="rotate-heading-{rotate.id}"
-          class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
+          class="text-xs font-semibold text-neutral-500 block"
         >
           Heading (deg)
         </label>

@@ -149,14 +149,14 @@
 {#if isOpen}
   <div
     transition:fade={{ duration: 200, easing: cubicInOut }}
-    class="fixed inset-0 z-[2000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+    class="fixed inset-0 z-[2000] bg-black/40 flex items-center justify-center p-4"
     role="dialog"
     aria-modal="true"
     aria-labelledby="transform-dialog-title"
   >
     <div
       transition:fly={{ duration: 200, y: 20, easing: cubicInOut }}
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-neutral-200 dark:border-neutral-800"
+      class="bg-white dark:bg-neutral-900 rounded-lg shadow-md w-full max-w-md overflow-hidden border border-neutral-200 dark:border-neutral-800"
     >
       <div
         class="flex justify-between items-center p-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50"
@@ -317,7 +317,7 @@
               >
                 <label
                   for="pivot-mode"
-                  class="block text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-2"
+                  class="block text-xs font-bold text-neutral-500 dark:text-neutral-400 mb-2"
                 >
                   Pivot Point
                 </label>

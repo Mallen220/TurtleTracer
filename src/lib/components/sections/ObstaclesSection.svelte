@@ -169,7 +169,7 @@
       class="p-2 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50 flex flex-row gap-2 items-center"
     >
       <div
-        class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider shrink-0"
+        class="text-xs font-medium text-neutral-500 dark:text-neutral-400 shrink-0"
       >
         Presets
       </div>

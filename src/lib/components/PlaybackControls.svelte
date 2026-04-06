@@ -712,7 +712,7 @@
             loopRangeStore.set([Math.floor(percent), 100]);
           }
         }}
-        class="px-2 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="px-2 py-1 text-[10px] font-bold rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         class:bg-purple-100={loopRangeActive}
         class:text-purple-700={loopRangeActive}
         class:dark:bg-purple-900={loopRangeActive}

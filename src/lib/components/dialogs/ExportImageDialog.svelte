@@ -231,11 +231,11 @@
 
 {#if show}
   <div
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
     transition:scale={{ duration: 200, start: 0.95 }}
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]"
+      class="bg-white dark:bg-neutral-800 rounded-lg shadow-sm w-full max-w-2xl flex flex-col max-h-[90vh]"
     >
       <!-- Header -->
       <div

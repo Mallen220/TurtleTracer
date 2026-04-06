@@ -8,7 +8,9 @@ import { settingsStore } from "../../lib/projectStore";
 describe("LeftSidebar", () => {
   it("renders correctly", () => {
     settingsStore.set({} as any);
-    const { container } = render(LeftSidebar, { props: { settings: {} } });
+    const { container } = render(LeftSidebar, {
+      props: { settings: {} as any } as any,
+    });
     expect(container).toBeTruthy();
   });
 });

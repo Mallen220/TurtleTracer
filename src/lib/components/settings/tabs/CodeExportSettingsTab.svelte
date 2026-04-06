@@ -78,7 +78,7 @@
   {#if !isBrowser}
     {#if searchQuery}
       <h4
-        class="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
+        class="text-xs font-bold text-neutral-500 mb-4 border-b border-neutral-100 dark:border-neutral-800 pb-1"
       >
         Code Export
       </h4>

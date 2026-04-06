@@ -83,7 +83,7 @@ button:not(.bg-transparent) svg {
 }
 
 /* Make things look a bit organic/lumpy */
-.rounded-lg, .rounded-md, .rounded-xl {
+.rounded-lg, .rounded-md, .rounded-lg {
   border-radius: 15px 25px 22px 18px / 20px 15px 25px 22px !important;
 }
 

@@ -152,7 +152,7 @@
   <div
     role="presentation"
     transition:fade={{ duration: 150, easing: cubicInOut }}
-    class="fixed inset-0 z-[2000] flex items-start justify-center pt-[15vh] bg-black bg-opacity-60 backdrop-blur-sm"
+    class="fixed inset-0 z-[2000] flex items-start justify-center pt-[15vh] bg-black bg-opacity-60"
     onclick={self(onClose)}
     onkeydown={(e) => {
       if (e.key === "Escape") onClose();
@@ -168,7 +168,7 @@
     >
       <!-- Search Bar -->
       <div
-        class="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl flex items-center px-5 py-4 border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
+        class="bg-white dark:bg-neutral-900 rounded-lg shadow-sm flex items-center px-5 py-4 border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
       >
         <SearchIcon
           className="size-6 text-neutral-400 mr-4 flex-shrink-0"
@@ -201,7 +201,7 @@
 
       <!-- Results List -->
       <div
-        class="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl overflow-hidden flex flex-col border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
+        class="bg-white dark:bg-neutral-900 rounded-lg shadow-sm overflow-hidden flex flex-col border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
       >
         <div
           id="command-results"
@@ -233,8 +233,7 @@
                     <span class="text-base font-semibold">{command.label}</span>
                     {#if command.category}
                       <span
-                        class="text-xs font-medium uppercase tracking-wider mt-1 {index ===
-                        selectedIndex
+                        class="text-xs font-medium mt-1 {index === selectedIndex
                           ? 'text-indigo-200'
                           : 'text-neutral-400 dark:text-neutral-500'}"
                         >{command.category}</span

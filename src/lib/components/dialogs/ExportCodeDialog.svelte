@@ -427,7 +427,7 @@
   <!-- Backdrop -->
   <div
     transition:fade={{ duration: 200 }}
-    class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+    class="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4 sm:p-6"
     role="presentation"
     onclick={self(() => (isOpen = false))}
   >
@@ -435,7 +435,7 @@
     <div
       bind:this={dialogRef}
       transition:fly={{ y: 20, duration: 300 }}
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-5xl flex flex-col h-[85vh] border border-neutral-200 dark:border-neutral-800 outline-none"
+      class="bg-white dark:bg-neutral-900 rounded-lg shadow-md w-full max-w-5xl flex flex-col h-[85vh] border border-neutral-200 dark:border-neutral-800 outline-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby="export-dialog-title"
@@ -567,7 +567,7 @@
           <div class="flex flex-col gap-1.5 grow max-w-xl">
             <label
               for="package-name-input"
-              class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+              class="text-[10px] font-bold text-neutral-500 dark:text-neutral-400"
             >
               Package Name
             </label>
@@ -587,7 +587,7 @@
             <!-- Target Library Selector -->
             <div class="flex flex-col gap-1.5">
               <span
-                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+                class="text-[10px] font-bold text-neutral-500 dark:text-neutral-400"
               >
                 Target Library
               </span>
@@ -632,7 +632,7 @@
             <div class="flex flex-col gap-1.5">
               <label
                 for="class-name-input"
-                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+                class="text-[10px] font-bold text-neutral-500 dark:text-neutral-400"
               >
                 Class Name
               </label>
@@ -649,7 +649,7 @@
             <!-- Embed Pose Data -->
             <div class="flex flex-col gap-1.5">
               <span
-                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 opacity-0"
+                class="text-[10px] font-bold text-neutral-500 dark:text-neutral-400 opacity-0"
               >
                 Embed Poses
               </span>
@@ -714,7 +714,7 @@
           {#if exportFormat === "java" || exportFormat === "sequential" || exportFormat === "points"}
             <div class="flex flex-col gap-1.5 mt-2">
               <span
-                class="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+                class="text-[10px] font-bold text-neutral-500 dark:text-neutral-400"
               >
                 Code Units
               </span>

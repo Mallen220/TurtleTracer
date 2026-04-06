@@ -615,7 +615,7 @@
   <!-- Non-modal floating panel to allow field to remain visible -->
 
   <div
-    class="z-50 flex flex-col overflow-hidden bg-white dark:bg-neutral-800 rounded-xl shadow-xl border border-neutral-200 dark:border-neutral-700"
+    class="z-50 flex flex-col overflow-hidden bg-white dark:bg-neutral-800 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700"
     style={panelStyle}
     transition:slide={{ duration: 200 }}
     role="dialog"
@@ -691,8 +691,7 @@
           <div
             class="bg-neutral-100 dark:bg-neutral-700/50 p-3 rounded-lg flex flex-col items-center justify-center text-center"
           >
-            <span
-              class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
+            <span class="text-xs text-neutral-500 dark:text-neutral-400"
               >Total Time</span
             >
             <span
@@ -704,8 +703,7 @@
           <div
             class="bg-neutral-100 dark:bg-neutral-700/50 p-3 rounded-lg flex flex-col items-center justify-center text-center"
           >
-            <span
-              class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
+            <span class="text-xs text-neutral-500 dark:text-neutral-400"
               >Distance</span
             >
             <span
@@ -717,8 +715,7 @@
           <div
             class="bg-neutral-100 dark:bg-neutral-700/50 p-3 rounded-lg flex flex-col items-center justify-center text-center"
           >
-            <span
-              class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
+            <span class="text-xs text-neutral-500 dark:text-neutral-400"
               >Max Vel</span
             >
             <span
@@ -730,8 +727,7 @@
           <div
             class="bg-neutral-100 dark:bg-neutral-700/50 p-3 rounded-lg flex flex-col items-center justify-center text-center"
           >
-            <span
-              class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
+            <span class="text-xs text-neutral-500 dark:text-neutral-400"
               >Max Ang Vel</span
             >
             <span
@@ -744,7 +740,7 @@
 
         <!-- Table Header (desktop only) -->
         <div
-          class="hidden sm:grid grid-cols-12 gap-2 px-6 py-2 bg-neutral-100 dark:bg-neutral-900/30 border-y border-neutral-200 dark:border-neutral-700 text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider flex-shrink-0"
+          class="hidden sm:grid grid-cols-12 gap-2 px-6 py-2 bg-neutral-100 dark:bg-neutral-900/30 border-y border-neutral-200 dark:border-neutral-700 text-xs font-medium text-neutral-500 dark:text-neutral-400 flex-shrink-0"
         >
           <div class="col-span-3">Segment</div>
           <div class="col-span-2 text-right">Length</div>
