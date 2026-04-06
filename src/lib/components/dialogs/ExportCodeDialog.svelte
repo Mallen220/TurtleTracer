@@ -3,7 +3,6 @@
   import { run, self } from "svelte/legacy";
 
   import type { Point, Line, SequenceItem, Shape } from "../../../types/index";
-  import { copy } from "svelte-copy";
   import Highlight from "svelte-highlight";
   import { java } from "svelte-highlight/languages";
   import json from "svelte-highlight/languages/json";
@@ -20,7 +19,7 @@
     SuccessIcon,
     ClipboardIcon,
   } from "../icons/index";
-  import { currentFilePath } from "../../../stores";
+  import { currentFilePath, notification } from "../../../stores";
   import { exporterRegistry } from "../../exporters";
   import { tick } from "svelte";
   import { get } from "svelte/store";
@@ -248,11 +247,22 @@
     }
   }
 
-  function handleCopy() {
+  function markCopied() {
     copied = true;
+    notification.set({ message: "Code copied to clipboard!", type: "success" });
     setTimeout(() => {
       copied = false;
     }, 2000);
+  }
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(exportedCode);
+      markCopied();
+    } catch (error) {
+      console.error("Failed to copy code:", error);
+      notification.set({ message: "Failed to copy code.", type: "error" });
+    }
   }
 
   async function handleSaveFile() {
@@ -802,8 +812,7 @@
           {/if}
           <button
             class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
-            use:copy={exportedCode}
-            {...{ "onsvelte-copy": handleCopy }}
+            onclick={handleCopy}
             disabled={copied}
           >
             {#if copied}
