@@ -179,13 +179,21 @@
             packageName: packageName,
             telemetryImpl: telemetryImplementation,
             hardcodeValues: embedPoseData,
-            targetLibrary: targetLibrary
+            targetLibrary: targetLibrary,
           };
-          exportedCode = await exporter.exportCode({startPoint, lines, shapes, sequence}, settingsObj);
-          currentLanguage = (exportFormat === "java" || exportFormat === "sequential") ? java : plaintext;
+          exportedCode = await exporter.exportCode(
+            { startPoint, lines, shapes, sequence },
+            settingsObj,
+          );
+          currentLanguage =
+            exportFormat === "java" || exportFormat === "sequential"
+              ? java
+              : plaintext;
         } else if (exportFormat === "custom" && customExporterName) {
           const exporters = get(customExportersStore);
-          const customExporter = exporters.find((e) => e.name === customExporterName);
+          const customExporter = exporters.find(
+            (e) => e.name === customExporterName,
+          );
           if (customExporter) {
             try {
               const data = { startPoint, lines, shapes, sequence };

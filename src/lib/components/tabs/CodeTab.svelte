@@ -145,9 +145,12 @@
             packageName: settings.javaPackageName,
             telemetryImpl: settings.telemetryImplementation,
             hardcodeValues: settings.autoExportEmbedPoseData,
-            targetLibrary: targetLibrary
+            targetLibrary: targetLibrary,
           };
-          newCode = await exporter.exportCode({startPoint, lines, shapes, sequence}, settingsObj);
+          newCode = await exporter.exportCode(
+            { startPoint, lines, shapes, sequence },
+            settingsObj,
+          );
         } else if (format === "custom") {
           const exporters = get(customExportersStore);
           if (exporters.length > 0) {
