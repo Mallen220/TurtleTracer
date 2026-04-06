@@ -20,11 +20,7 @@ import {
   loadProjectData,
 } from "../lib/projectStore";
 import { loadTrajectoryFromFile, downloadTrajectory } from "./index";
-import {
-  generateJavaCode,
-  generatePointsArray,
-  generateSequentialCommandCode,
-} from "./codeExporter";
+import { exporterRegistry } from "../lib/exporters";
 import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
 import { makeId } from "./nameGenerator";
 import { getLineStartHeading, getLineEndHeading } from "./math";
@@ -804,42 +800,27 @@ export async function handleAutoExport(
       stripProjectExtension(targetPath.split(/[\\/]/).pop() || "") ||
       "AutoPath";
 
-    switch (settings.autoExportFormat) {
-      case "java":
-        content = await generateJavaCode(
-          startPoint,
-          lines,
-          settings.autoExportFullClass ?? true,
-          sequence,
-          settings.javaPackageName,
-          settings.telemetryImplementation,
-          settings.coordinateSystem,
-          settings.codeUnits,
-        );
-        extension = "java";
-        break;
-      case "sequential":
-        content = await generateSequentialCommandCode(
-          startPoint,
-          lines,
-          baseName,
-          sequence,
-          settings.autoExportTargetLibrary ?? "SolversLib",
-          settings.javaPackageName,
-          settings.autoExportEmbedPoseData,
-          settings.coordinateSystem,
-          settings.codeUnits,
-        );
-        extension = "java";
-        break;
-      case "points":
-        content = generatePointsArray(startPoint, lines, settings.codeUnits);
-        extension = "txt";
-        break;
-      case "json":
-        content = JSON.stringify(projectData, null, 2);
-        extension = "json";
-        break;
+    if (settings.autoExportFormat === "json") {
+      content = JSON.stringify(projectData, null, 2);
+      extension = "json";
+    } else {
+      const registry = get(exporterRegistry);
+      const exporter = registry[settings.autoExportFormat as string];
+      if (exporter) {
+        const settingsObj = {
+          ...settings,
+          fileName: baseName,
+          exportFullCode: settings.autoExportFullClass ?? true,
+          packageName: settings.javaPackageName,
+          telemetryImpl: settings.telemetryImplementation,
+          hardcodeValues: settings.autoExportEmbedPoseData,
+          targetLibrary: settings.autoExportTargetLibrary ?? "SolversLib"
+        };
+        content = await exporter.exportCode({startPoint, lines, shapes: projectData.shapes, sequence}, settingsObj);
+        extension = settings.autoExportFormat === "points" ? "txt" : "java"; // Default guess, plugins might need UI config for this later
+      } else {
+        throw new Error(`Auto export format ${settings.autoExportFormat} not found.`);
+      }
     }
 
     // Determine filename

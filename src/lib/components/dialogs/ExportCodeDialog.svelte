@@ -20,11 +20,7 @@
     ClipboardIcon,
   } from "../icons/index";
   import { currentFilePath, notification } from "../../../stores";
-  import {
-    generateJavaCode,
-    generatePointsArray,
-    generateSequentialCommandCode,
-  } from "../../../utils";
+  import { exporterRegistry } from "../../exporters";
   import { tick } from "svelte";
   import { get } from "svelte/store";
 
@@ -135,35 +131,7 @@
       const telemetryImplementation =
         $settingsStore?.telemetryImplementation || "Panels";
 
-      if (exportFormat === "java") {
-        exportedCode = await generateJavaCode(
-          startPoint,
-          lines,
-          exportFullCode,
-          sequence,
-          packageName,
-          telemetryImplementation,
-          $settingsStore?.coordinateSystem,
-          codeUnits,
-        );
-        currentLanguage = java;
-      } else if (exportFormat === "points") {
-        exportedCode = generatePointsArray(startPoint, lines, codeUnits);
-        currentLanguage = plaintext;
-      } else if (exportFormat === "sequential") {
-        exportedCode = await generateSequentialCommandCode(
-          startPoint,
-          lines,
-          sequentialClassName,
-          sequence,
-          targetLibrary,
-          packageName,
-          embedPoseData,
-          $settingsStore?.coordinateSystem,
-          codeUnits,
-        );
-        currentLanguage = java;
-      } else if (exportFormat === "json") {
+      if (exportFormat === "json") {
         let loadedFromFile = false;
         const filePath = get(currentFilePath);
 
@@ -200,21 +168,37 @@
           );
         }
         currentLanguage = json;
-      } else if (exportFormat === "custom" && customExporterName) {
-        const exporters = get(customExportersStore);
-        const exporter = exporters.find((e) => e.name === customExporterName);
+      } else {
+        const registry = get(exporterRegistry);
+        const exporter = registry[exportFormat as string];
         if (exporter) {
-          try {
-            const data = { startPoint, lines, shapes, sequence };
-            exportedCode = exporter.handler(data);
-            currentLanguage = plaintext;
-          } catch (e) {
-            exportedCode = `Error in plugin: ${e}`;
+          const settingsObj = {
+            ...$settingsStore,
+            fileName: sequentialClassName,
+            exportFullCode: exportFullCode,
+            packageName: packageName,
+            telemetryImpl: telemetryImplementation,
+            hardcodeValues: embedPoseData,
+            targetLibrary: targetLibrary
+          };
+          exportedCode = await exporter.exportCode({startPoint, lines, shapes, sequence}, settingsObj);
+          currentLanguage = (exportFormat === "java" || exportFormat === "sequential") ? java : plaintext;
+        } else if (exportFormat === "custom" && customExporterName) {
+          const exporters = get(customExportersStore);
+          const customExporter = exporters.find((e) => e.name === customExporterName);
+          if (customExporter) {
+            try {
+              const data = { startPoint, lines, shapes, sequence };
+              exportedCode = customExporter.handler(data);
+              currentLanguage = plaintext;
+            } catch (e) {
+              exportedCode = `Error in plugin: ${e}`;
+              currentLanguage = plaintext;
+            }
+          } else {
+            exportedCode = "Exporter not found.";
             currentLanguage = plaintext;
           }
-        } else {
-          exportedCode = "Exporter not found.";
-          currentLanguage = plaintext;
         }
       }
 

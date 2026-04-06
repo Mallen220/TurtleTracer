@@ -1,6 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 export * from "./animation";
-export * from "./codeExporter";
 export * from "./draw";
 export * from "./file";
 export * from "./geometry";

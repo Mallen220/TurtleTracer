@@ -6,11 +6,50 @@ import ExportCodeDialog from "../lib/components/dialogs/ExportCodeDialog.svelte"
 vi.mock("../utils", () => {
   return {
     getRandomColor: vi.fn(() => "#ffffff"),
-    generateJavaCode: vi.fn(),
-    generatePointsArray: vi.fn(() => "apple\nbanana\napple\ncherry\napple"),
-    generateSequentialCommandCode: vi.fn(),
     downloadTrajectory: vi.fn(),
   };
+});
+
+vi.mock("../lib/exporters", async (importOriginal) => {
+  const actual: any = await importOriginal();
+  return {
+    ...actual,
+    exporterRegistry: {
+      subscribe: vi.fn((fn) => {
+        fn({
+          points: {
+            id: 'points',
+            name: 'Points',
+            exportCode: vi.fn(() => "apple\nbanana\napple\ncherry\napple")
+          }
+        });
+        return () => {};
+      }),
+      register: vi.fn()
+    }
+  };
+});
+
+vi.mock("svelte/store", async (importOriginal) => {
+    const actual: any = await importOriginal();
+    return {
+        ...actual,
+        get: vi.fn((store) => {
+           if (store.subscribe) {
+              if (store.subscribe.toString().includes('points')) {
+                  // This relies on exporterRegistry being mocked
+                  return {
+                      points: {
+                          id: 'points',
+                          name: 'Points',
+                          exportCode: vi.fn(() => "apple\nbanana\napple\ncherry\napple")
+                      }
+                  }
+              }
+           }
+           return actual.get(store);
+        })
+    }
 });
 
 describe("ExportCodeDialog search behavior", () => {

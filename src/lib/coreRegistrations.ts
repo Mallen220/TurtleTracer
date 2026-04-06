@@ -9,6 +9,11 @@ import { RotateAction } from "./actions/RotateAction";
 import { MacroAction } from "./actions/MacroAction";
 import { PathAction } from "./actions/PathAction";
 
+// Import built-in exporters to register them
+import "./exporters/javaExporter";
+import "./exporters/pointsExporter";
+import "./exporters/sequentialExporter";
+
 // Registers built-in components and tabs. Safe to call multiple times; registries dedupe by id.
 export const registerCoreUI = () => {
   componentRegistry.register("Navbar", Navbar);

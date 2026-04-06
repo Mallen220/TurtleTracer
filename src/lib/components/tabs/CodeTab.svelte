@@ -9,11 +9,7 @@
     Settings,
     Shape,
   } from "../../../types/index";
-  import {
-    generateJavaCode,
-    generateSequentialCommandCode,
-    generatePointsArray,
-  } from "../../../utils/codeExporter";
+  import { exporterRegistry } from "../../exporters";
   import {
     notification,
     showSettings,
@@ -119,32 +115,7 @@
     isGenerating = true;
     try {
       let newCode = "";
-      if (format === "java") {
-        newCode = await generateJavaCode(
-          startPoint,
-          lines,
-          settings.autoExportFullClass ?? true,
-          sequence,
-          settings.javaPackageName,
-          settings.telemetryImplementation,
-          settings.coordinateSystem,
-          settings.codeUnits,
-        );
-      } else if (format === "sequential") {
-        newCode = await generateSequentialCommandCode(
-          startPoint,
-          lines,
-          null,
-          sequence,
-          targetLibrary,
-          settings.javaPackageName,
-          settings.autoExportEmbedPoseData,
-          settings.coordinateSystem,
-          settings.codeUnits,
-        );
-      } else if (format === "points") {
-        newCode = generatePointsArray(startPoint, lines, settings.codeUnits);
-      } else if (format === "json") {
+      if (format === "json") {
         const relativeSequence = await relativizeSequenceForPreview(sequence);
         newCode = JSON.stringify(
           {
@@ -163,13 +134,28 @@
           null,
           2,
         );
-      } else if (format === "custom") {
-        const exporters = get(customExportersStore);
-        if (exporters.length > 0) {
-          newCode =
-            "// Select a custom exporter in Auto Export settings to preview its code.";
-        } else {
-          newCode = "// No custom exporters available.";
+      } else {
+        const registry = get(exporterRegistry);
+        const exporter = registry[format];
+        if (exporter) {
+          const settingsObj = {
+            ...settings,
+            fileName: null,
+            exportFullCode: settings.autoExportFullClass ?? true,
+            packageName: settings.javaPackageName,
+            telemetryImpl: settings.telemetryImplementation,
+            hardcodeValues: settings.autoExportEmbedPoseData,
+            targetLibrary: targetLibrary
+          };
+          newCode = await exporter.exportCode({startPoint, lines, shapes, sequence}, settingsObj);
+        } else if (format === "custom") {
+          const exporters = get(customExportersStore);
+          if (exporters.length > 0) {
+            newCode =
+              "// Select a custom exporter in Auto Export settings to preview its code.";
+          } else {
+            newCode = "// No custom exporters available.";
+          }
         }
       }
 

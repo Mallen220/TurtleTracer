@@ -4,14 +4,25 @@ import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import ExportCodeDialog from "../lib/components/dialogs/ExportCodeDialog.svelte";
 import { currentFilePath } from "../stores";
 
-// Mock the utils module
 vi.mock("../utils", () => {
   return {
-    generateJavaCode: vi.fn(),
-    generatePointsArray: vi.fn(() => "mocked points"),
-    generateSequentialCommandCode: vi.fn(),
     relativizeSequenceForPreview: vi.fn((seq) => seq),
     getRandomColor: vi.fn(() => "#ffffff"),
+  };
+});
+
+// Mock the exporters module
+vi.mock("../lib/exporters", async (importOriginal) => {
+  const actual: any = await importOriginal();
+  return {
+    ...actual,
+    exporterRegistry: {
+      subscribe: vi.fn((fn) => {
+        fn({});
+        return () => {};
+      }),
+      register: vi.fn()
+    }
   };
 });
 

@@ -21,6 +21,7 @@ import {
   fieldRenderRegistry,
 } from "./registries";
 import { actionRegistry } from "./actionRegistry";
+import { exporterRegistry } from "./exporters";
 import { registerCoreUI } from "./coreRegistrations";
 import PluginPromptDialog from "./components/dialogs/PluginPromptDialog.svelte";
 import PluginConfirmDialog from "./components/dialogs/PluginConfirmDialog.svelte";
@@ -192,9 +193,17 @@ export class PluginManager {
         metadata = meta;
       },
       registerExporter: (name: string, handler: (data: any) => string) => {
-        // Add to internal list
+        // Add to internal list for legacy plugin UI
         this.allExporters = this.allExporters.filter((e) => e.name !== name); // unique by name
         this.allExporters.push({ name, handler, pluginName: filename });
+
+        // Register dynamically with new system
+        exporterRegistry.register({
+          id: `custom-${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+          name: name,
+          description: `Custom exporter provided by plugin ${filename}`,
+          exportCode: (data: any, settings: any) => handler(data)
+        });
       },
       registerTheme: (name: string, css: string) => {
         this.allThemes = this.allThemes.filter((t) => t.name !== name);

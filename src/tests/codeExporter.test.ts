@@ -1,10 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi } from "vitest";
-import {
-  generateJavaCode,
-  generatePointsArray,
-  generateSequentialCommandCode,
-} from "../utils/codeExporter";
+import { generateJavaCode } from "../lib/exporters/javaExporter";
+import { generatePointsArray } from "../lib/exporters/pointsExporter";
+import { generateSequentialCommandCode } from "../lib/exporters/sequentialExporter";
 import type { Point, Line, SequenceItem } from "../types";
 import { registerCoreUI } from "../lib/coreRegistrations";
 

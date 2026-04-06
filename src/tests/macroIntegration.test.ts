@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, beforeEach } from "vitest";
 import { expandMacro, regenerateProjectMacros } from "../lib/macroUtils";
-import { generateJavaCode } from "../utils/codeExporter";
+import { generateJavaCode } from "../lib/exporters/javaExporter";
 import type {
   Line,
   Point,
