@@ -63,6 +63,12 @@ describe("shortcuts utils", () => {
       expect(
         !!shouldBlockShortcut({} as KeyboardEvent, "toggle-command-palette"),
       ).toBe(false);
+      expect(
+        !!shouldBlockShortcut({} as KeyboardEvent, "save-project"),
+      ).toBe(false);
+      expect(
+        !!shouldBlockShortcut({} as KeyboardEvent, "undo"),
+      ).toBe(false);
     });
   });
 });

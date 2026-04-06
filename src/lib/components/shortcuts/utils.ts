@@ -37,7 +37,14 @@ export function shouldBlockShortcut(
     actionId === "select-code-tab" ||
     actionId === "select-paths-tab" ||
     actionId === "select-field-tab" ||
-    actionId === "select-table-tab"
+    actionId === "select-table-tab" ||
+    actionId === "save-project" ||
+    actionId === "save-file-as" ||
+    actionId === "undo" ||
+    actionId === "redo" ||
+    actionId === "play-pause" ||
+    actionId === "open-settings" ||
+    actionId === "toggle-sidebar"
   )
     return false;
   if (e.key === "Escape") return false;
