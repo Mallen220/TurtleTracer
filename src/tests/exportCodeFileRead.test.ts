@@ -21,8 +21,8 @@ vi.mock("../lib/exporters", async (importOriginal) => {
         fn({});
         return () => {};
       }),
-      register: vi.fn()
-    }
+      register: vi.fn(),
+    },
   };
 });
 

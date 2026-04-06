@@ -1,11 +1,21 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import prettier from "prettier";
 import prettierJavaPlugin from "prettier-plugin-java";
-import type { Point, Line, BasePoint, SequenceItem, TurtleData } from "../../types";
+import type {
+  Point,
+  Line,
+  BasePoint,
+  SequenceItem,
+  TurtleData,
+} from "../../types";
 import { getLineStartHeading } from "../../utils/math";
 import pkg from "../../../package.json";
 import { actionRegistry } from "../../lib/actionRegistry";
-import { toUser, toUserHeading, type CoordinateSystem } from "../../utils/coordinates";
+import {
+  toUser,
+  toUserHeading,
+  type CoordinateSystem,
+} from "../../utils/coordinates";
 import {
   DEFAULT_PROJECT_EXTENSION,
   getProjectExtensionFromPath,
@@ -649,10 +659,11 @@ exporterRegistry.register({
       data.lines,
       settings.exportFullCode ?? true,
       data.sequence,
-      settings.packageName ?? "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+      settings.packageName ??
+        "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
       settings.telemetryImpl ?? "Panels",
       settings.coordinateSystem ?? "Pedro",
-      settings.codeUnits ?? "imperial"
+      settings.codeUnits ?? "imperial",
     );
-  }
+  },
 });
