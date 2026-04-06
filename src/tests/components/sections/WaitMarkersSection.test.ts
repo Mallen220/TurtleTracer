@@ -10,9 +10,9 @@ describe("WaitMarkersSection", () => {
           type: "wait",
           id: "1",
           time: 0,
-          eventMarkers: []
-        }
-      }
+          eventMarkers: [],
+        },
+      },
     });
     expect(container).toBeTruthy();
   });
