@@ -200,7 +200,10 @@
     bind:isRunning={optIsRunning}
     bind:optimizedLines={optOptimizedLines}
     bind:optimizationFailed={optFailed}
-    bind:isOpen={() => !collapsedSections.optimizerSection, (v) => collapsedSections.optimizerSection = !v}
+    bind:isOpen={
+      () => !collapsedSections.optimizerSection,
+      (v) => (collapsedSections.optimizerSection = !v)
+    }
     {startPoint}
     {lines}
     {settings}
