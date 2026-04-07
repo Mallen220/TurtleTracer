@@ -71,6 +71,8 @@ export const DEFAULT_SETTINGS: Settings = {
   optimizationPopulationSize: 100,
   optimizationMutationRate: 0.4,
   optimizationMutationStrength: 6.0,
+  drawToolTolerance: 5,
+  drawToolTension: 0.38,
   validationDisabled: false,
   validateFieldBoundaries: true,
   continuousValidation: false,

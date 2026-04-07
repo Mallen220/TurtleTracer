@@ -67,6 +67,24 @@
       true,
     );
   }
+  function handleToleranceInput(e: Event) {
+    handleNumberInput(
+      (e.target as HTMLInputElement).value,
+      "drawToolTolerance",
+      1,
+      60,
+      true,
+    );
+  }
+  function handleTensionInput(e: Event) {
+    handleNumberInput(
+      (e.target as HTMLInputElement).value,
+      "drawToolTension",
+      0,
+      1,
+      true,
+    );
+  }
 </script>
 
 <div class="section-container mb-8">
@@ -97,79 +115,55 @@
     />
   </SettingsItem>
 
-  <SettingsItem
-    label="Robot Onion Layers"
-    isModified={settings.showOnionLayers !== DEFAULT_SETTINGS.showOnionLayers}
-    onReset={() => {
-      settings.showOnionLayers = DEFAULT_SETTINGS.showOnionLayers;
-      settings = { ...settings };
-    }}
-    description="Show robot body at intervals along the path"
-    {searchQuery}
-    layout="row"
-  >
-    <input
-      type="checkbox"
-      bind:checked={settings.showOnionLayers}
-      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-indigo-500 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-    />
-  </SettingsItem>
-
-  {#if settings.showOnionLayers}
-    <div
-      class="pl-4 border-l-2 border-neutral-100 dark:border-neutral-800 ml-2 mt-2"
-    >
-      <SettingsItem
-        label="Show Only on Current Path"
-        isModified={settings.onionSkinCurrentPathOnly !==
-          DEFAULT_SETTINGS.onionSkinCurrentPathOnly}
-        onReset={() => {
-          settings.onionSkinCurrentPathOnly =
-            DEFAULT_SETTINGS.onionSkinCurrentPathOnly;
-          settings = { ...settings };
-        }}
-        description="Only show onion layers for the selected path"
-        {searchQuery}
-        layout="row"
-      >
-        <input
-          type="checkbox"
-          bind:checked={settings.onionSkinCurrentPathOnly}
-          class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-indigo-500 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-        />
-      </SettingsItem>
-
-      <SettingsItem
-        label="Onion Layer Spacing"
-        isModified={settings.onionLayerSpacing !==
-          DEFAULT_SETTINGS.onionLayerSpacing}
-        onReset={() => {
-          settings.onionLayerSpacing = DEFAULT_SETTINGS.onionLayerSpacing;
-          settings = { ...settings };
-        }}
-        description="Distance in inches between each robot body trace"
-        {searchQuery}
-      >
-        <div class="flex items-center gap-2">
-          <input
-            type="range"
-            min="2"
-            max="20"
-            step="1"
-            bind:value={settings.onionLayerSpacing}
-            class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-          />
-          <span
-            class="text-sm font-medium text-neutral-700 dark:text-neutral-300 min-w-[3rem] text-right"
-          >
-            {settings.onionLayerSpacing || 6}"
-          </span>
-        </div>
-      </SettingsItem>
-    </div>
-  {/if}
-
   <div class="mt-6 space-y-4">
+    <SettingsItem
+      label="Draw Tool Tolerance"
+      isModified={settings.drawToolTolerance !== DEFAULT_SETTINGS.drawToolTolerance}
+      onReset={() => {
+        settings.drawToolTolerance = DEFAULT_SETTINGS.drawToolTolerance;
+        settings = { ...settings };
+      }}
+      description="Path simplification aggressiveness"
+      {searchQuery}
+      layout="col"
+    >
+      <div class="flex items-center gap-2">
+        <input
+          type="number"
+          min="1"
+          max="60"
+          step="1"
+          bind:value={settings.drawToolTolerance}
+          onchange={handleToleranceInput}
+          class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-teal-700 dark:text-teal-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-teal-500"
+        />
+      </div>
+    </SettingsItem>
+
+    <SettingsItem
+      label="Draw Tool Tension"
+      isModified={settings.drawToolTension !== DEFAULT_SETTINGS.drawToolTension}
+      onReset={() => {
+        settings.drawToolTension = DEFAULT_SETTINGS.drawToolTension;
+        settings = { ...settings };
+      }}
+      description="Curve tightness for drawn paths"
+      {searchQuery}
+      layout="col"
+    >
+      <div class="flex items-center gap-2">
+        <input
+          type="number"
+          min="0"
+          max="1"
+          step="0.01"
+          bind:value={settings.drawToolTension}
+          onchange={handleTensionInput}
+          class="w-32 px-2 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 text-cyan-700 dark:text-cyan-300 bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-cyan-500"
+        />
+      </div>
+    </SettingsItem>
+
     <SettingsItem
       label="Optimization Iterations"
       isModified={settings.optimizationIterations !==
