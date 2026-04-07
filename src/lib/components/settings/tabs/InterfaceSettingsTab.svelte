@@ -88,7 +88,11 @@
   >
     <select
       id="theme-select"
-      bind:value={settings.theme}
+      value={settings.theme}
+      onchange={(e) => {
+        settings.theme = e.currentTarget.value as any;
+        settings = { ...settings };
+      }}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="auto">Auto (System Preference)</option>
@@ -128,7 +132,11 @@
         min="75"
         max="150"
         step="5"
-        bind:value={settings.programFontSize}
+        value={settings.programFontSize}
+        oninput={(e) => {
+          settings.programFontSize = parseInt(e.currentTarget.value);
+          settings = { ...settings };
+        }}
         class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
       />
       <span
