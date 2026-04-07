@@ -213,6 +213,10 @@
       <button
         onclick={stopPropagation(() => {
           rotate.locked = !rotate.locked;
+          rotate = { ...rotate };
+          const idx = sequence.findIndex((s) => (s as any).id === rotate.id);
+          if (idx !== -1) sequence[idx] = rotate;
+          sequence = [...sequence];
           if (recordChange) recordChange();
         })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"

@@ -276,6 +276,8 @@
       <button
         onclick={stopPropagation(() => {
           line.locked = !line.locked;
+          line = { ...line };
+          lines[idx] = line;
           lines = [...lines];
         })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"

@@ -172,6 +172,10 @@
         aria-label={macro.locked ? "Unlock Macro" : "Lock Macro"}
         onclick={stopPropagation(() => {
           macro.locked = !macro.locked;
+          macro = { ...macro };
+          const idx = sequence.findIndex((s) => (s as any).id === macro.id);
+          if (idx !== -1) sequence[idx] = macro;
+          sequence = [...sequence];
           if (recordChange) recordChange();
         })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
