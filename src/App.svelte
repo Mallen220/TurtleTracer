@@ -266,11 +266,14 @@
 
     const settings = get(settingsStore);
 
-    // If they already rated THIS version, or chose Not Interested, don't show.
-    if (
-      settings.submittedRatings?.[pkg.version] ||
-      settings.dismissedRatings?.[pkg.version]
-    ) {
+    // If they already rated ANY version, or dismissed the current version, or chose to never be asked again, don't show.
+    const hasRatedAnyVersion =
+      settings.submittedRatings &&
+      Object.keys(settings.submittedRatings).length > 0;
+    const hasDismissedCurrentVersion = settings.dismissedRatings?.[pkg.version];
+    const hasDismissedAll = settings.dismissedRatings?.["all"];
+
+    if (hasRatedAnyVersion || hasDismissedCurrentVersion || hasDismissedAll) {
       return;
     }
 
