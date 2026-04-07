@@ -225,6 +225,8 @@ interface Settings {
   optimizationPopulationSize?: number; // Population size for optimizer
   optimizationMutationRate?: number; // Mutation rate for optimizer
   optimizationMutationStrength?: number; // Mutation strength for optimizer
+  drawToolTolerance?: number;
+  drawToolTension?: number;
   validationDisabled?: boolean; // Completely disable all path validation
   validateFieldBoundaries?: boolean; // Check if robot goes out of bounds
   continuousValidation?: boolean; // Run validation continuously

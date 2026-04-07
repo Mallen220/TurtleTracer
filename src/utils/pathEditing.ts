@@ -280,12 +280,13 @@ export function generateLinesFromDrawing(
   startPoint: Point,
   lines: Line[],
   sequence: SequenceItem[],
+  settings?: any
 ): { startPoint: Point; lines: Line[]; sequence: SequenceItem[] } | null {
   if (drawnPoints.length < 2) return null;
 
   // 1. Simplify points using Douglas-Peucker.
   // Start with a moderate tolerance to capture general curves but ignore minor jitters.
-  let epsilon = 5;
+  let epsilon = settings?.drawToolTolerance ?? 5;
   let simplified = douglasPeucker(drawnPoints, epsilon);
 
   // Force simplification to be at most 4 points to aggressively prevent excessive paths being generated
@@ -417,7 +418,7 @@ export function generateLinesFromDrawing(
 
     // Default tension factor for control points.
     // Set to 0.38 for a balanced curve that accurately tracks points without overshooting.
-    const tension = 0.38;
+    const tension = settings?.drawToolTension ?? 0.38;
 
     // Calculate tangent at the starting point of this segment
     let startTangent = { dx: pt.x - prevPt.x, dy: pt.y - prevPt.y };

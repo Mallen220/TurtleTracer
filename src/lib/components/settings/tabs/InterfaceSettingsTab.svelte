@@ -257,6 +257,78 @@
   </SettingsItem>
 
   <SettingsItem
+    label="Robot Onion Layers"
+    isModified={settings.showOnionLayers !== DEFAULT_SETTINGS.showOnionLayers}
+    onReset={() => {
+      settings.showOnionLayers = DEFAULT_SETTINGS.showOnionLayers;
+      settings = { ...settings };
+    }}
+    description="Show robot body at intervals along the path"
+    {searchQuery}
+    layout="row"
+  >
+    <input
+      type="checkbox"
+      bind:checked={settings.showOnionLayers}
+      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-indigo-500 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+    />
+  </SettingsItem>
+
+  {#if settings.showOnionLayers}
+    <div
+      class="pl-4 border-l-2 border-neutral-100 dark:border-neutral-800 ml-2 mt-2 mb-4"
+    >
+      <SettingsItem
+        label="Show Only on Current Path"
+        isModified={settings.onionSkinCurrentPathOnly !==
+          DEFAULT_SETTINGS.onionSkinCurrentPathOnly}
+        onReset={() => {
+          settings.onionSkinCurrentPathOnly =
+            DEFAULT_SETTINGS.onionSkinCurrentPathOnly;
+          settings = { ...settings };
+        }}
+        description="Only show onion layers for the selected path"
+        {searchQuery}
+        layout="row"
+      >
+        <input
+          type="checkbox"
+          bind:checked={settings.onionSkinCurrentPathOnly}
+          class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-indigo-500 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+        />
+      </SettingsItem>
+
+      <SettingsItem
+        label="Onion Layer Spacing"
+        isModified={settings.onionLayerSpacing !==
+          DEFAULT_SETTINGS.onionLayerSpacing}
+        onReset={() => {
+          settings.onionLayerSpacing = DEFAULT_SETTINGS.onionLayerSpacing;
+          settings = { ...settings };
+        }}
+        description="Distance in inches between each robot body trace"
+        {searchQuery}
+      >
+        <div class="flex items-center gap-2">
+          <input
+            type="range"
+            min="2"
+            max="20"
+            step="1"
+            bind:value={settings.onionLayerSpacing}
+            class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+          />
+          <span
+            class="text-sm font-medium text-neutral-700 dark:text-neutral-300 min-w-[3rem] text-right"
+          >
+            {settings.onionLayerSpacing || 6}"
+          </span>
+        </div>
+      </SettingsItem>
+    </div>
+  {/if}
+
+  <SettingsItem
     label="Smart Object Snapping"
     isModified={settings.smartSnapping !== DEFAULT_SETTINGS.smartSnapping}
     onReset={() => {
