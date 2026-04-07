@@ -1248,7 +1248,7 @@
 
   let settings = $derived($settingsStore);
   // Manage Time-based Autosave
-  run(() => {
+  $effect(() => {
     if (autosaveIntervalId) {
       clearInterval(autosaveIntervalId);
       autosaveIntervalId = null;
@@ -1262,7 +1262,7 @@
   let effectiveShowSidebar = $derived(
     $isPresentationMode ? false : showSidebar,
   );
-  run(() => {
+  $effect(() => {
     if (controlTabContainer && _controlTabObserver) {
       try {
         _controlTabObserver.observe(controlTabContainer);
@@ -1270,7 +1270,7 @@
       } catch (e) {}
     }
   });
-  run(() => {
+  $effect(() => {
     if (!effectiveShowSidebar && statsOpen) statsOpen = false;
   });
   let isLargeScreen = $derived(innerWidth >= 1024);
@@ -1285,7 +1285,7 @@
   let playbackSpeed = $derived($playbackSpeedStore);
   let loopRange = $derived($loopRangeStore);
   let loopRangeActive = $derived($loopRangeActiveStore);
-  run(() => {
+  $effect(() => {
     if (
       userFieldHeightLimit === null &&
       mainContentHeight > 0 &&
@@ -1294,7 +1294,7 @@
       userFieldHeightLimit = mainContentHeight * 0.6;
     }
   });
-  run(() => {
+  $effect(() => {
     if (userFieldLimit === null && mainContentWidth > 0 && isLargeScreen) {
       userFieldLimit = mainContentWidth * 0.49;
     }
@@ -1340,7 +1340,7 @@
   let canUndo = $derived($canUndoStore);
   let canRedo = $derived($canRedoStore);
   // --- Animation Logic ---
-  run(() => {
+  $effect(() => {
     if (!$isDraggingStore) {
       timePrediction = calculatePathTime(
         startPoint,
@@ -1352,7 +1352,7 @@
     }
   });
   // Continuous validation when path/settings change
-  run(() => {
+  $effect(() => {
     // depend on timePrediction to ensure validation with the latest timeline
     if (
       $startPointStore &&
@@ -1380,7 +1380,7 @@
       collisionMarkers.set([]);
     }
   });
-  run(() => {
+  $effect(() => {
     if (settings) debouncedSaveSettings(settings);
   });
   // Diff Mode Animation Logic
@@ -1410,7 +1410,7 @@
   let animationDuration = $derived(
     getAnimationDuration(effectiveDuration, playbackSpeed),
   );
-  run(() => {
+  $effect(() => {
     if (animationController) {
       animationController.setDuration(animationDuration);
       animationController.setLoop(loopAnimation);
@@ -1424,7 +1424,7 @@
     }
   });
   // Sync playing store -> controller
-  run(() => {
+  $effect(() => {
     if (animationController) {
       if (playing && !animationController.isPlaying())
         animationController.play();
@@ -1432,7 +1432,7 @@
         animationController.pause();
     }
   });
-  run(() => {
+  $effect(() => {
     if (
       timePrediction &&
       timePrediction.timeline &&
@@ -1496,7 +1496,7 @@
       committedRobotState = null;
     }
   });
-  run(() => {
+  $effect(() => {
     if (!isLargeScreen) {
       // On small screens, when sidebar is closed, wait for animation then hide
       if (!effectiveShowSidebar) {
@@ -1542,7 +1542,7 @@
       }
     })(),
   );
-  run(() => {
+  $effect(() => {
     if ($exportDialogState.isOpen && exportDialog) {
       exportDialog.openWithFormat(
         $exportDialogState.format,
@@ -1553,7 +1553,7 @@
     }
   });
   // --- Apply Theme ---
-  run(() => {
+  $effect(() => {
     // Depend on themesStore so re-run when plugins load
     const registeredThemes = $themesStore;
     if (settings) {
@@ -1630,7 +1630,7 @@
     }
   });
   // --- Apply Program Font Size ---
-  run(() => {
+  $effect(() => {
     if (settings && settings.programFontSize) {
       document.documentElement.style.fontSize = `${settings.programFontSize}%`;
     } else {
