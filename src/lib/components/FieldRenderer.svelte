@@ -148,8 +148,6 @@
 
   // Local state
   let two: Two | undefined = $state();
-  let ghostRobotState: { x: number; y: number; heading: number } | null =
-    $state(null);
 
   let twoElement: HTMLDivElement | undefined = $state();
   let wrapperDiv: HTMLDivElement | undefined = $state();
@@ -1781,29 +1779,31 @@
   let isTelemetryVisible = $derived($showTelemetry);
   let isTelemetryGhostVisible = $derived($showTelemetryGhost);
   // compute ghost robot based on imported telemetry data and offset
-  run(() => {
-    if (
-      $telemetryData &&
-      $telemetryData.length > 0 &&
-      isTelemetryGhostVisible
-    ) {
-      const pts = $telemetryData;
-      const baseTime = pts[0].time;
-      const offset = $telemetryOffset || 0;
-      const targetTime = baseTime + offset;
-      // find first point at or after targetTime
-      let target = pts[0];
-      for (const pt of pts) {
-        if (pt.time >= targetTime) {
-          target = pt;
-          break;
+  let ghostRobotState = $derived(
+    (() => {
+      if (
+        $telemetryData &&
+        $telemetryData.length > 0 &&
+        isTelemetryGhostVisible
+      ) {
+        const pts = $telemetryData;
+        const baseTime = pts[0].time;
+        const offset = $telemetryOffset || 0;
+        const targetTime = baseTime + offset;
+        // find first point at or after targetTime
+        let target = pts[0];
+        for (const pt of pts) {
+          if (pt.time >= targetTime) {
+            target = pt;
+            break;
+          }
         }
+        return { x: target.x, y: target.y, heading: target.heading };
+      } else {
+        return null;
       }
-      ghostRobotState = { x: target.x, y: target.y, heading: target.heading };
-    } else {
-      ghostRobotState = null;
-    }
-  });
+    })(),
+  );
   // Diff Mode State
   let isDiffMode = $derived($diffMode);
   let diffData = $derived($diffResult);

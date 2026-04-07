@@ -94,15 +94,20 @@
       );
     }
 
+    const maxRequiredIdx = Math.max(timeIdx, xIdx, yIdx);
+
     for (let i = startIdx; i < lines.length; i++) {
       const parts = lines[i].split(",").map((p) => p.trim());
-      if (parts.length < 3) continue; // Skip invalid lines
+      if (parts.length <= maxRequiredIdx) continue; // Skip invalid lines
 
       const t = Number(parts[timeIdx]);
       const x = Number(parts[xIdx]);
       const y = Number(parts[yIdx]);
       // Optional heading
-      const h = hIdx >= 0 && parts[hIdx] ? Number(parts[hIdx]) : 0;
+      const h =
+        hIdx >= 0 && parts.length > hIdx && parts[hIdx]
+          ? Number(parts[hIdx])
+          : 0;
 
       if (!isNaN(t) && !isNaN(x) && !isNaN(y)) {
         points.push({ time: t, x, y, heading: h });
@@ -213,7 +218,7 @@
           >
             <input
               type="checkbox"
-              bind:checked={$showTelemetry}
+              bind:checked={() => $showTelemetry, (v) => showTelemetry.set(v)}
               class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
             />
             Show Telemetry Path
@@ -224,7 +229,9 @@
           >
             <input
               type="checkbox"
-              bind:checked={$showTelemetryGhost}
+              bind:checked={
+                () => $showTelemetryGhost, (v) => showTelemetryGhost.set(v)
+              }
               class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
             />
             Show Ghost Robot
