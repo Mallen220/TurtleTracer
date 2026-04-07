@@ -192,7 +192,7 @@ export class PluginManager {
       registerMetadata: (meta: PluginMetadata) => {
         metadata = meta;
       },
-      registerExporter: (name: string, handler: (data: any) => string) => {
+      registerExporter: (name: string, handler: (data: any) => string | Promise<string>) => {
         // Add to internal list for legacy plugin UI
         this.allExporters = this.allExporters.filter((e) => e.name !== name); // unique by name
         this.allExporters.push({ name, handler, pluginName: filename });

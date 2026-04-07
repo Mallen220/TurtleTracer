@@ -197,7 +197,7 @@
           if (customExporter) {
             try {
               const data = { startPoint, lines, shapes, sequence };
-              exportedCode = customExporter.handler(data);
+              exportedCode = await customExporter.handler(data);
               currentLanguage = plaintext;
             } catch (e) {
               exportedCode = `Error in plugin: ${e}`;

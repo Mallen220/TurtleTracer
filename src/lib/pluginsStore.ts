@@ -11,7 +11,7 @@ export interface PluginInfo {
 
 export interface CustomExporter {
   name: string;
-  handler: (data: any) => string;
+  handler: (data: any) => string | Promise<string>;
   pluginName?: string;
 }
 
