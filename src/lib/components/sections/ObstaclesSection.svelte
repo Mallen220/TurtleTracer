@@ -18,6 +18,7 @@
   import SaveIcon from "../icons/SaveIcon.svelte";
   import SectionHeader from "../common/SectionHeader.svelte";
   import EmptyState from "../common/EmptyState.svelte";
+  import ColorPicker from "../tools/ColorPicker.svelte";
   import SaveNameDialog from "../dialogs/SaveNameDialog.svelte";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
   import type { Shape, ObstaclePreset } from "../../../types/index";
@@ -37,6 +38,7 @@
     collapsedObstacles: boolean[];
     collapsed?: boolean;
     isActive?: boolean;
+    recordChange: (action?: string) => void;
   }
 
   let {
@@ -44,6 +46,7 @@
     collapsedObstacles = $bindable(),
     collapsed = $bindable(false),
     isActive = true,
+    recordChange,
   }: Props = $props();
 
   let selectedPresetId: string = $state("");
@@ -99,6 +102,7 @@
       newPreset,
     ];
     selectedPresetId = newPreset.id;
+    recordChange?.("Save Obstacle Preset");
   }
 
   function loadPreset() {
@@ -116,6 +120,7 @@
     shapes = structuredClone(preset.shapes); // Deep copy
     // Reset collapsed states
     collapsedObstacles = new Array(shapes.length).fill(false);
+    recordChange?.("Load Obstacle Preset");
   }
 
   function deletePreset() {
@@ -126,6 +131,7 @@
       $settingsStore.obstaclePresets || []
     ).filter((p) => p.id !== selectedPresetId);
     selectedPresetId = "";
+    recordChange?.("Delete Obstacle Preset");
   }
 
   function toggleObstacle(index: number) {
@@ -139,6 +145,7 @@
     collapsedObstacles = [...collapsedObstacles, false];
     // Expand the section if it was collapsed
     if (collapsed) collapsed = false;
+    recordChange?.("Add Obstacle");
   }
 
   // React to external additions to shapes (e.g. from keybindings)
@@ -278,29 +285,37 @@
                     : 'Obstacle'} {shapeIdx + 1}"
                   class="pl-1.5 rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm font-medium h-7"
                   disabled={shape.locked ?? false}
+                  onblur={() => {
+                    shapes = [...shapes];
+                    recordChange?.("Rename Obstacle");
+                  }}
                 />
 
                 <select
                   bind:value={shape.type}
                   class="h-7 text-xs rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
                   disabled={shape.locked ?? false}
+                  onchange={() => {
+                    shapes = [...shapes];
+                    recordChange?.("Change Obstacle Type");
+                  }}
                 >
                   <option value="obstacle">Obstacle</option>
                   <option value="keep-in">Keep-In</option>
                 </select>
 
-                <div
-                  class="relative size-6 rounded-full overflow-hidden shadow-sm border border-neutral-300 dark:border-neutral-600 shrink-0"
-                  style="background-color: {shape.color}"
-                >
-                  <input
-                    type="color"
-                    bind:value={shape.color}
-                    class="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                    title="Change Obstacle Color"
-                    disabled={shape.locked ?? false}
-                  />
-                </div>
+                <ColorPicker
+                  bind:color={shape.color}
+                  oninput={() => {
+                    shapes = [...shapes];
+                  }}
+                  onchange={() => {
+                    shapes = [...shapes];
+                    recordChange?.("Change Obstacle Color");
+                  }}
+                  title="Change Obstacle Color"
+                  disabled={shape.locked ?? false}
+                />
               </div>
 
               <div class="flex flex-row gap-1">
@@ -312,6 +327,9 @@
                   onclick={() => {
                     shape.visible = !(shape.visible !== false);
                     shapes = [...shapes];
+                    recordChange?.(
+                      shape.visible ? "Show Obstacle" : "Hide Obstacle",
+                    );
                   }}
                   class="p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
                 >
@@ -333,6 +351,9 @@
                   onclick={() => {
                     shape.locked = !(shape.locked ?? false);
                     shapes = [...shapes];
+                    recordChange?.(
+                      shape.locked ? "Lock Obstacle" : "Unlock Obstacle",
+                    );
                   }}
                   class="p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
                 >
@@ -350,6 +371,7 @@
                     // Also remove the collapsed state for this obstacle
                     collapsedObstacles.splice(shapeIdx, 1);
                     collapsedObstacles = [...collapsedObstacles];
+                    recordChange?.("Remove Obstacle");
                   }}
                   disabled={shape.locked ?? false}
                 />
@@ -388,6 +410,7 @@
                               shapes = [...shapes];
                             }
                           }}
+                          onblur={() => recordChange?.("Move Obstacle Vertex")}
                           type="number"
                           min={$settingsStore.coordinateSystem === "FTC"
                             ? "-72"
@@ -425,6 +448,7 @@
                               shapes = [...shapes];
                             }
                           }}
+                          onblur={() => recordChange?.("Move Obstacle Vertex")}
                           type="number"
                           min={$settingsStore.coordinateSystem === "FTC"
                             ? "-72"
@@ -458,6 +482,8 @@
                             const newVertex = { ...vertex };
                             shape.vertices.splice(vertexIdx + 1, 0, newVertex);
                             shape.vertices = shape.vertices;
+                            shapes = [...shapes];
+                            recordChange?.("Add Obstacle Vertex");
                           }}
                           disabled={shape.locked ?? false}
                         >
@@ -469,6 +495,8 @@
                             onclick={() => {
                               shape.vertices.splice(vertexIdx, 1);
                               shape.vertices = shape.vertices;
+                              shapes = [...shapes];
+                              recordChange?.("Remove Obstacle Vertex");
                             }}
                             disabled={shape.locked ?? false}
                           />

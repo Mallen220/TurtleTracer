@@ -85,7 +85,7 @@
     startPoint: Point;
     lines: Line[];
     sequence: SequenceItem[];
-    recordChange: () => void;
+    recordChange: (description?: string) => void;
     settings?: import("../../types/index").Settings | undefined;
     shapes: import("../../types/index").Shape[];
     collapsedObstacles: boolean[];
@@ -1460,12 +1460,12 @@
                 <div class="flex flex-row items-center gap-2">
                   <ColorPicker
                     bind:color={line.color}
-                    oninput={function (e: Event) {
-                      const target = (e.target ||
-                        e.currentTarget) as HTMLInputElement;
-                      if (target && line.id) {
-                        updateLineColor(line.id, target.value);
-                      }
+                    oninput={() => {
+                      lines = [...lines];
+                    }}
+                    onchange={() => {
+                      lines = [...lines];
+                      if (recordChange) recordChange("Change Path Color");
                     }}
                     disabled={line.locked}
                     title="Path Color"

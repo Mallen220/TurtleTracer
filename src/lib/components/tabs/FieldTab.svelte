@@ -25,7 +25,7 @@
     sequence: SequenceItem[];
     shapes: Shape[];
     settings: Settings;
-    recordChange: () => void;
+    recordChange: (description?: string) => void;
     onPreviewChange?: ((lines: Line[] | null) => void) | null;
     isActive?: boolean;
   }
@@ -213,10 +213,11 @@
     bind:collapsedMarkers={collapsedSections.globalMarkers}
   />
 
-  <ObstaclesSection
-    bind:shapes
-    bind:collapsedObstacles={collapsedSections.obstacles}
-    bind:collapsed={collapsedSections.obstaclesSection}
-    {isActive}
-  />
+    <ObstaclesSection
+      bind:shapes
+      bind:collapsedObstacles={collapsedSections.obstacles}
+      bind:collapsed={collapsedSections.obstaclesSection}
+      {isActive}
+      {recordChange}
+    />
 </div>
