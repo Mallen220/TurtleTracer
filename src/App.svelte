@@ -1397,7 +1397,7 @@
         )
       : null,
   );
-  let currentTotalTime = $derived(timePrediction.totalTime / 1000);
+  let currentTotalTime = $derived(timePrediction ? timePrediction.totalTime / 1000 : 0);
   let committedTotalTime = $derived(
     committedTimePrediction ? committedTimePrediction.totalTime / 1000 : 0,
   );
@@ -1716,7 +1716,7 @@
     robotLengthPx={x(robotLength)}
     robotWidthPx={x(robotWidth)}
     robotStateFunction={(p) =>
-      calculateRobotState(p, timePrediction.timeline, lines, startPoint, x, y)}
+      timePrediction ? calculateRobotState(p, timePrediction.timeline, lines, startPoint, x, y) : { x: startPoint.x, y: startPoint.y, heading: 0 }}
     {electronAPI}
     on:close={() => showExportGif.set(false)}
   />
@@ -1734,14 +1734,14 @@
     robotState={{
       x: $startPointStore.x,
       y: $startPointStore.y,
-      heading: calculateRobotState(
+      heading: timePrediction ? calculateRobotState(
         0,
         timePrediction.timeline,
         lines,
         startPoint,
         IDENTITY_SCALE,
         IDENTITY_SCALE,
-      ).heading,
+      ).heading : 0,
     }}
     {electronAPI}
     on:close={() => showExportImage.set(false)}
