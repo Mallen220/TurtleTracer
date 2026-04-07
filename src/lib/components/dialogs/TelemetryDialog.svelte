@@ -40,6 +40,10 @@
         telemetryData.set(null);
         summary = "";
       }
+
+      if (e.target) {
+        (e.target as HTMLInputElement).value = "";
+      }
     };
     reader.readAsText(file);
   }
@@ -96,7 +100,7 @@
 
     for (let i = startIdx; i < lines.length; i++) {
       const parts = lines[i].split(",").map((p) => p.trim());
-      if (parts.length < 3) continue; // Skip invalid lines
+      if (parts.length <= Math.max(timeIdx, xIdx, yIdx)) continue; // Skip invalid lines
 
       const t = Number(parts[timeIdx]);
       const x = Number(parts[xIdx]);
@@ -213,7 +217,7 @@
           >
             <input
               type="checkbox"
-              bind:checked={$showTelemetry}
+              bind:checked={() => $showTelemetry, (v) => $showTelemetry = v}
               class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
             />
             Show Telemetry Path
@@ -224,7 +228,7 @@
           >
             <input
               type="checkbox"
-              bind:checked={$showTelemetryGhost}
+              bind:checked={() => $showTelemetryGhost, (v) => $showTelemetryGhost = v}
               class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
             />
             Show Ghost Robot
@@ -242,7 +246,7 @@
               id="telemetry-offset"
               type="number"
               step="0.1"
-              bind:value={$telemetryOffset}
+              bind:value={() => $telemetryOffset, (v) => $telemetryOffset = v}
               class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
             <button
