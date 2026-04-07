@@ -31,6 +31,7 @@ export function normalizeLines(input: Line[]): Line[] {
     eventMarkers: line.eventMarkers || [],
     color: line.color || getRandomColor(),
     name: line.name || "",
+    hidden: line.hidden ?? false,
     waitBeforeMs: Math.max(
       0,
       Number(line.waitBeforeMs ?? line.waitBefore?.durationMs ?? 0),

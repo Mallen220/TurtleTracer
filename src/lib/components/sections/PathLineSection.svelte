@@ -258,7 +258,7 @@
 
       <button
         onclick={stopPropagation(() => {
-          line.hidden = !isHidden;
+          lines[idx] = { ...line, hidden: !isHidden };
           lines = [...lines];
           if (recordChange) recordChange();
         })}
