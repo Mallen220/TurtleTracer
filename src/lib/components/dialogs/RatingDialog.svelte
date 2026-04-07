@@ -66,6 +66,18 @@
   });
 
   function closeDialog() {
+    if ($ratingDialogAutoOpened) {
+      settingsStore.update((s) => {
+        const newDismissals = { ...(s.dismissedRatings || {}) };
+        newDismissals[pkg.version] = true;
+        return { ...s, dismissedRatings: newDismissals };
+      });
+      saveSettings($settingsStore).catch((e) =>
+        console.error("Failed to save dismissed ratings", e),
+      );
+      ratingDialogAutoOpened.set(false);
+    }
+
     showRatingDialog.set(false);
     // Reset state after transition completes
     setTimeout(() => {
@@ -165,12 +177,13 @@
   function dismissRating() {
     settingsStore.update((s) => {
       const newDismissals = { ...(s.dismissedRatings || {}) };
-      newDismissals[pkg.version] = true;
+      newDismissals["all"] = true;
       return { ...s, dismissedRatings: newDismissals };
     });
     saveSettings($settingsStore).catch((e) =>
       console.error("Failed to save dismissed ratings", e),
     );
+    ratingDialogAutoOpened.set(false);
     closeDialog();
   }
 </script>
@@ -296,7 +309,7 @@
               disabled={isSubmitting}
               class="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500/50 disabled:opacity-50"
             >
-              Not interested
+              Never ask again
             </button>
           </div>
         {/if}
