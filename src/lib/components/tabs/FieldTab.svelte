@@ -55,6 +55,7 @@
     obstacles: shapes.map(() => true),
     obstaclesSection: false,
     globalMarkers: false,
+    optimizerSection: false,
   });
 
   run(() => {
@@ -92,7 +93,8 @@
 
   let allCollapsed = $derived(
     collapsedSections.obstacles.every((v) => v) &&
-      collapsedSections.globalMarkers,
+      collapsedSections.globalMarkers &&
+      collapsedSections.optimizerSection,
   );
 
   function toggleCollapseAll() {
@@ -100,10 +102,12 @@
       collapsedSections.obstacles = shapes.map(() => false);
       collapsedSections.obstaclesSection = false;
       collapsedSections.globalMarkers = false;
+      collapsedSections.optimizerSection = false;
     } else {
       collapsedSections.obstacles = shapes.map(() => true);
       collapsedSections.obstaclesSection = true;
       collapsedSections.globalMarkers = true;
+      collapsedSections.optimizerSection = true;
     }
     collapsedSections = { ...collapsedSections };
   }
@@ -196,7 +200,7 @@
     bind:isRunning={optIsRunning}
     bind:optimizedLines={optOptimizedLines}
     bind:optimizationFailed={optFailed}
-    isOpen={true}
+    bind:isOpen={() => !collapsedSections.optimizerSection, (v) => collapsedSections.optimizerSection = !v}
     {startPoint}
     {lines}
     {settings}
