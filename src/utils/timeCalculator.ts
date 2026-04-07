@@ -629,7 +629,6 @@ export function calculatePathTime(
     recursionDepth: number = 0,
   ) => {
     if (recursionDepth > 10) {
-      console.warn("Max recursion depth reached for macro expansion");
       return;
     }
 
