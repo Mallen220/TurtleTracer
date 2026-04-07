@@ -58,8 +58,24 @@
     optimizedLines = $bindable(null),
     optimizationFailed = $bindable(false),
     optimizationError = $bindable(""),
-    collapsed = $bindable(false),
   }: Props = $props();
+
+  let _lastIsOpen = $state(isOpen);
+  let internalCollapsed = $state(!isOpen);
+
+  run(() => {
+    if (isOpen !== _lastIsOpen) {
+      _lastIsOpen = isOpen;
+      internalCollapsed = !isOpen;
+    }
+  });
+
+  run(() => {
+    if (internalCollapsed === isOpen) {
+      isOpen = !internalCollapsed;
+      _lastIsOpen = isOpen;
+    }
+  });
 
   let selectionState: Record<string, boolean> = $state({});
 
@@ -246,9 +262,12 @@
 <div
   class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden mb-4"
 >
-  <SectionHeader title="Path Optimization" bind:collapsed />
+  <SectionHeader
+    title="Path Optimization"
+    bind:collapsed={internalCollapsed}
+  />
 
-  {#if !collapsed}
+  {#if isOpen}
     <div
       class="p-4 space-y-4 border-t border-neutral-200 dark:border-neutral-700"
     >
