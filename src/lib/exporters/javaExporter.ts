@@ -28,6 +28,8 @@ import { notification } from "../../stores";
  * Generate Java code from path data
  */
 
+let hasWarnedAboutEventMarkers = false;
+
 const AUTO_GENERATED_FILE_WARNING_MESSAGE: string = `
 /* ============================================================= *
  *                 Turtle Tracer — Auto-Generated                *
@@ -87,13 +89,14 @@ export async function generateJavaCode(
     });
   }
 
-  if (eventMarkerNames.size > 0) {
+  if (eventMarkerNames.size > 0 && !hasWarnedAboutEventMarkers) {
     notification.set({
       message:
         "Event markers are not supported in basic Java export yet. They have been omitted from the generated code.",
       type: "warning",
       timeout: 5000,
     });
+    hasWarnedAboutEventMarkers = true;
   }
 
   const pathChainNames: string[] = [];
