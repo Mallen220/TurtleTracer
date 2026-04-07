@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { onMount } from "svelte";
   import * as d3 from "d3";
 
@@ -251,12 +249,12 @@
     return () => ro.disconnect();
   });
   // Make reactive to data/dimensions/time
-  run(() => {
+  $effect(() => {
     if (container && data.length > 0 && width > 0) {
       draw();
     }
   });
-  run(() => {
+  $effect(() => {
     if (currentTime !== null && width > 0) {
       updatePlayhead();
     }

@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import {
     collisionMarkers,
     notification,
@@ -16,7 +14,7 @@
 
   let isHovering = $state(false);
 
-  run(() => {
+  $effect(() => {
     $forceShowValidation = isHovering;
   });
 
