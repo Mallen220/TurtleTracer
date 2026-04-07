@@ -213,11 +213,11 @@
     bind:collapsedMarkers={collapsedSections.globalMarkers}
   />
 
-    <ObstaclesSection
-      bind:shapes
-      bind:collapsedObstacles={collapsedSections.obstacles}
-      bind:collapsed={collapsedSections.obstaclesSection}
-      {isActive}
-      {recordChange}
-    />
+  <ObstaclesSection
+    bind:shapes
+    bind:collapsedObstacles={collapsedSections.obstacles}
+    bind:collapsed={collapsedSections.obstaclesSection}
+    {isActive}
+    {recordChange}
+  />
 </div>
