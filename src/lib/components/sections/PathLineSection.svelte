@@ -258,8 +258,11 @@
 
       <button
         onclick={stopPropagation(() => {
-          line.hidden = !isHidden;
+          const currentLine = lines[idx];
+          const newLine = { ...currentLine, hidden: !isHidden };
+          lines[idx] = newLine;
           lines = [...lines];
+          line = newLine;
           if (recordChange) recordChange();
         })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
@@ -275,10 +278,11 @@
 
       <button
         onclick={stopPropagation(() => {
-          line.locked = !line.locked;
-          line = { ...line };
-          lines[idx] = line;
+          const currentLine = lines[idx];
+          const newLine = { ...currentLine, locked: !currentLine.locked };
+          lines[idx] = newLine;
           lines = [...lines];
+          line = newLine;
         })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title={line.locked ? "Unlock Path" : "Lock Path"}

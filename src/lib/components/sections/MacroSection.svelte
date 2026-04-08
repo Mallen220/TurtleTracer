@@ -152,8 +152,14 @@
     <div class="flex items-center gap-1">
       <button
         onclick={stopPropagation(() => {
-          macro.hidden = !isHidden;
-          sequence = [...sequence];
+          const idx = sequence.findIndex((s) => (s as any).id === macro.id);
+          if (idx !== -1) {
+            const currentMacro = sequence[idx] as any;
+            const newMacro = { ...currentMacro, hidden: !isHidden };
+            sequence[idx] = newMacro;
+            sequence = [...sequence];
+            macro = newMacro;
+          }
           if (recordChange) recordChange();
         })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
@@ -171,11 +177,14 @@
         title={macro.locked ? "Unlock Macro" : "Lock Macro"}
         aria-label={macro.locked ? "Unlock Macro" : "Lock Macro"}
         onclick={stopPropagation(() => {
-          macro.locked = !macro.locked;
-          macro = { ...macro };
           const idx = sequence.findIndex((s) => (s as any).id === macro.id);
-          if (idx !== -1) sequence[idx] = macro;
-          sequence = [...sequence];
+          if (idx !== -1) {
+            const currentMacro = sequence[idx] as any;
+            const newMacro = { ...currentMacro, locked: !currentMacro.locked };
+            sequence[idx] = newMacro;
+            sequence = [...sequence];
+            macro = newMacro;
+          }
           if (recordChange) recordChange();
         })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
