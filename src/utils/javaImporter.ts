@@ -1,6 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { parse } from "java-parser";
 import { getRandomColor } from "./draw";
+import { makeId } from "./nameGenerator";
+import { walkAST, extractTokens } from "./javaImporter/visitor";
 import type {
   TurtleData,
   Point,
@@ -9,56 +11,8 @@ import type {
   Shape,
   ControlPoint,
 } from "../types";
-// Helper to generate IDs
-const generateId = () => `id_${Math.random().toString(36).slice(2, 11)}`;
 
 const toDegrees = (rad: number) => (rad * 180) / Math.PI;
-
-export function walkAST(
-  node: any,
-  visitors: Record<string, (node: any, context?: any) => void>,
-  context: any = {},
-) {
-  if (!node || typeof node !== "object") return;
-
-  if (node.name && visitors[node.name]) {
-    visitors[node.name](node, context);
-  }
-
-  if (node.children) {
-    for (const key in node.children) {
-      const child = node.children[key];
-      if (Array.isArray(child)) {
-        child.forEach((c: any) => walkAST(c, visitors, context));
-      } else {
-        walkAST(child, visitors, context);
-      }
-    }
-  }
-}
-
-export function extractTokens(node: any): string[] {
-  const tokens: string[] = [];
-  if (!node || typeof node !== "object") return tokens;
-
-  if (node.image) {
-    tokens.push(node.image);
-  }
-
-  if (node.children) {
-    for (const key in node.children) {
-      const child = node.children[key];
-      if (Array.isArray(child)) {
-        for (const c of child) {
-          tokens.push(...extractTokens(c));
-        }
-      } else {
-        tokens.push(...extractTokens(child));
-      }
-    }
-  }
-  return tokens;
-}
 
 function parsePoseCreation(tokens: string[]): Partial<Point> | null {
   const argsStart = tokens.indexOf("(");
@@ -434,7 +388,7 @@ export function importJavaProject(javaCode: string): TurtleData {
                 }
               }
 
-              const lineId = generateId();
+              const lineId = makeId();
               const line: Line = {
                 id: lineId,
                 name: pointName,
@@ -574,7 +528,7 @@ export function importJavaProject(javaCode: string): TurtleData {
 
                 if (numStr && strTok) {
                   line.eventMarkers!.push({
-                    id: generateId(),
+                    id: makeId(),
                     name: strTok.replace(/"/g, ""),
                     position: parseFloat(numStr),
                   });
@@ -629,7 +583,7 @@ export function importJavaProject(javaCode: string): TurtleData {
             tempSequence.push({
               kind: "wait",
               durationMs: Math.round(time),
-              id: generateId(),
+              id: makeId(),
             } as any);
           }
         }
@@ -665,7 +619,7 @@ export function importJavaProject(javaCode: string): TurtleData {
           tempSequence.push({
             kind: "rotate",
             degrees: Math.round(targetHeading),
-            id: generateId(),
+            id: makeId(),
             name: "Rotate",
           } as any);
           ctx.justProcessedRotate = targetHeading; // Set context flag to avoid inner lambda processing it again
@@ -712,7 +666,7 @@ export function importJavaProject(javaCode: string): TurtleData {
           tempSequence.push({
             kind: "rotate",
             degrees: Math.round(targetHeading),
-            id: generateId(),
+            id: makeId(),
             name: "Rotate",
           } as any);
         }
