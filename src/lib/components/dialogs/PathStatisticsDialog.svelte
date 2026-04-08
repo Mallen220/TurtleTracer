@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import {
     analyzePathSegment,
     formatTime,
@@ -599,12 +597,12 @@
         })()
       : `position:fixed; left:36px; right:36px; bottom:36px; height:calc(50vh - 72px); z-index:50;`,
   );
-  run(() => {
+  $effect(() => {
     if (isOpen && lines && sequence && settings) {
       calculateStats();
     }
   });
-  run(() => {
+  $effect(() => {
     if (pathStats) {
       currentTime = (percent / 100) * pathStats.totalTime;
     }

@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { onMount } from "svelte";
   import { fade, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
@@ -147,11 +145,11 @@
       window.open(updateData.url, "_blank", "noopener");
     }
   }
-  run(() => {
+  $effect(() => {
     updateData = $updateDataStore;
   });
   // Fetch release notes when updateData changes or show becomes true
-  run(() => {
+  $effect(() => {
     if (show && updateData) {
       fetchReleaseNotes(updateData.version, updateData.releaseNotes);
     }

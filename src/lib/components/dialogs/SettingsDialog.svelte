@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { onMount } from "svelte";
   import { cubicInOut } from "svelte/easing";
   import {
@@ -195,7 +193,7 @@
   }
 
   // Sync active tab from store when opening
-  run(() => {
+  $effect(() => {
     if (isOpen) {
       const savedTab = ($settingsActiveTab as TabId) || "general";
       if (isBrowser && savedTab === "code-export") {
@@ -206,7 +204,7 @@
     }
   });
   // Reset tab when closed so it's fresh on next open
-  run(() => {
+  $effect(() => {
     if (!isOpen) {
       searchQuery = "";
     }
