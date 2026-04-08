@@ -979,6 +979,7 @@
             ? 'text-green-500 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
             : 'text-neutral-400 dark:text-neutral-500'}"
           title={isChain ? "Unchain paths" : "Chain paths"}
+          aria-label={isChain ? "Unchain paths" : "Chain paths"}
           onclick={() => {
             const newIsChain = !(item as any).isChain;
             // Need to create a new object to trigger reactivity in Svelte 5 for the `isChain` derived value
