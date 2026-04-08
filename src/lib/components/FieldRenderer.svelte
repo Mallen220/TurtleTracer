@@ -1789,7 +1789,7 @@
         const pts = $telemetryData;
         const baseTime = pts[0].time;
         const offset = $telemetryOffset || 0;
-        const currentSimTime = $percentStore * (effectiveTimePrediction?.totalTime || 0);
+        const currentSimTime = ($percentStore / 100) * ((effectiveTimePrediction?.totalTime || 0) / 1000);
         const targetTime = baseTime + offset + currentSimTime;
         // find last point at or before targetTime to hold position
         let target = pts[0];
