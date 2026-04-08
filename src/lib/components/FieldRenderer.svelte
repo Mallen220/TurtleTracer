@@ -1791,8 +1791,12 @@
     ) {
       const pts = $importedTelemetryData;
       const baseTime = pts[0].time;
+      const playbackTime =
+        effectiveTimePrediction && effectiveTimePrediction.totalTime > 0
+          ? ($percentStore / 100) * effectiveTimePrediction.totalTime
+          : 0;
       const offset = $telemetryOffset || 0;
-      const targetTime = baseTime + offset;
+      const targetTime = baseTime + playbackTime + offset;
       // find first point at or after targetTime
       let target = pts[0];
       for (const pt of pts) {
