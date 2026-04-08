@@ -518,7 +518,10 @@ export interface TurtleAPI {
    * @param name The display name of the exporter.
    * @param handler A function that takes the current project data and returns a string (code) or a Promise that resolves to a string.
    */
-  registerExporter(name: string, handler: (data: TurtleData) => string | Promise<string>): void;
+  registerExporter(
+    name: string,
+    handler: (data: TurtleData) => string | Promise<string>,
+  ): void;
 
   /**
    * Register a custom theme.
