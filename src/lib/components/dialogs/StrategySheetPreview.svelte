@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run, self } from "svelte/legacy";
-
   import { tick } from "svelte";
   import type { Point, Line, SequenceItem, Settings } from "../../../types";
   import { fade, fly } from "svelte/transition";
@@ -352,7 +350,7 @@
     fieldContainer.appendChild(svg);
   }
 
-  run(() => {
+  $effect(() => {
     if (isOpen) {
       tick().then(() => {
         renderField();
@@ -490,7 +488,7 @@
     transition:fade={{ duration: 200 }}
     class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 print:hidden"
     role="presentation"
-    onclick={self(handleClose)}
+    onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
   >
     <!-- Dialog Panel -->
     <div

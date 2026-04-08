@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run, preventDefault, stopPropagation } from "svelte/legacy";
-
   import type {
     Line,
     Point,
@@ -63,14 +61,14 @@
   let _lastIsOpen = $state(isOpen);
   let internalCollapsed = $state(!isOpen);
 
-  run(() => {
+  $effect(() => {
     if (isOpen !== _lastIsOpen) {
       _lastIsOpen = isOpen;
       internalCollapsed = !isOpen;
     }
   });
 
-  run(() => {
+  $effect(() => {
     if (internalCollapsed === isOpen) {
       isOpen = !internalCollapsed;
       _lastIsOpen = isOpen;
@@ -79,7 +77,7 @@
 
   let selectionState: Record<string, boolean> = $state({});
 
-  run(() => {
+  $effect(() => {
     lines.forEach((l, idx) => {
       const id = l.id || `idx-${idx}`;
       if (selectionState[id] === undefined) {
@@ -88,7 +86,7 @@
     });
   });
 
-  run(() => {
+  $effect(() => {
     const unselectedIds = lines
       .filter((l, idx) => {
         const id = l.id || `idx-${idx}`;
@@ -251,7 +249,7 @@
     }
   }
 
-  run(() => {
+  $effect(() => {
     if (optimizationFailed && showPreview) {
       showPreview = false;
       if (onPreviewChange) onPreviewChange(null);
@@ -305,12 +303,12 @@
             </div>
             <div class="flex gap-2 items-center">
               <button
-                onclick={stopPropagation(preventDefault(selectAll))}
+                onclick={(e) => { e.preventDefault(); e.stopPropagation(); selectAll(); }}
                 class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >All</button
               >
               <button
-                onclick={stopPropagation(preventDefault(deselectAll))}
+                onclick={(e) => { e.preventDefault(); e.stopPropagation(); deselectAll(); }}
                 class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >None</button
               >

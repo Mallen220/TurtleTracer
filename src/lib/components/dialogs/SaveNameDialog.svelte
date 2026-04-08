@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { tick } from "svelte";
 
   interface Props {
@@ -23,7 +21,7 @@
   }: Props = $props();
 
   let name = $state("");
-  run(() => {
+  $effect(() => {
     if (show && !wasShown) {
       name = defaultName;
     }
@@ -53,7 +51,7 @@
   }
 
   let wasShown = $state(false);
-  run(() => {
+  $effect(() => {
     if (show && !wasShown) {
       name = defaultName;
       wasShown = true;
@@ -65,7 +63,7 @@
       });
     }
   });
-  run(() => {
+  $effect(() => {
     if (!show) {
       wasShown = false;
     }
