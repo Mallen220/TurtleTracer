@@ -221,7 +221,10 @@
           const idx = sequence.findIndex((s) => (s as any).id === rotate.id);
           if (idx !== -1) {
             const currentRotate = sequence[idx] as any;
-            const newRotate = { ...currentRotate, locked: !currentRotate.locked };
+            const newRotate = {
+              ...currentRotate,
+              locked: !currentRotate.locked,
+            };
             sequence[idx] = newRotate;
             sequence = [...sequence];
             rotate = newRotate;
