@@ -195,8 +195,14 @@
     <div class="flex items-center gap-1">
       <button
         onclick={stopPropagation(() => {
-          rotate.hidden = !isHidden;
-          sequence = [...sequence];
+          const idx = sequence.findIndex((s) => (s as any).id === rotate.id);
+          if (idx !== -1) {
+            const currentRotate = sequence[idx] as any;
+            const newRotate = { ...currentRotate, hidden: !isHidden };
+            sequence[idx] = newRotate;
+            sequence = [...sequence];
+            rotate = newRotate;
+          }
           if (recordChange) recordChange();
         })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
@@ -212,7 +218,14 @@
 
       <button
         onclick={stopPropagation(() => {
-          rotate.locked = !rotate.locked;
+          const idx = sequence.findIndex((s) => (s as any).id === rotate.id);
+          if (idx !== -1) {
+            const currentRotate = sequence[idx] as any;
+            const newRotate = { ...currentRotate, locked: !currentRotate.locked };
+            sequence[idx] = newRotate;
+            sequence = [...sequence];
+            rotate = newRotate;
+          }
           if (recordChange) recordChange();
         })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"

@@ -197,8 +197,14 @@
     <div class="flex items-center gap-1">
       <button
         onclick={stopPropagation(() => {
-          wait.hidden = !isHidden;
-          sequence = [...sequence];
+          const idx = sequence.findIndex((s) => (s as any).id === wait.id);
+          if (idx !== -1) {
+            const currentWait = sequence[idx] as any;
+            const newWait = { ...currentWait, hidden: !isHidden };
+            sequence[idx] = newWait;
+            sequence = [...sequence];
+            wait = newWait;
+          }
           if (recordChange) recordChange();
         })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
@@ -216,7 +222,14 @@
         title={wait.locked ? "Unlock Wait" : "Lock Wait"}
         aria-label={wait.locked ? "Unlock Wait" : "Lock Wait"}
         onclick={stopPropagation(() => {
-          wait.locked = !wait.locked;
+          const idx = sequence.findIndex((s) => (s as any).id === wait.id);
+          if (idx !== -1) {
+            const currentWait = sequence[idx] as any;
+            const newWait = { ...currentWait, locked: !currentWait.locked };
+            sequence[idx] = newWait;
+            sequence = [...sequence];
+            wait = newWait;
+          }
           if (recordChange) recordChange();
         })}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
