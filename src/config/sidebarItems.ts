@@ -215,7 +215,7 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
   },
   {
     id: "showTelemetryTab",
-    label: "Show Telemetry Tab",
+    label: "Show Live Telemetry Tab",
     type: "setting",
     settingKey: "showTelemetryTab",
     iconComponent: ShowTelemetryTabIcon,

@@ -22,21 +22,8 @@
 
   let pose = $derived(overridePose || $robotPose);
 
-  // Convert Heading from Radians to Degrees and negate for CSS/SVG rotation (CCW -> CW)
-  // If overridePose is used (from logs/history), heading might already be in degrees or radians?
-  // TelemetryPoint in store has heading.
-  // My update to `processTelemetryMessage` converted live heading (rad) to degrees for `telemetryData`.
-  // `TelemetryDialog` parses CSV/JSON which likely has degrees (standard legacy).
-  // So `telemetryData` store has DEGREES.
-  // `$robotPose` (live) has RADIANS.
-  // This is a unit mismatch.
-  // I should standardize.
-  // If `pose` comes from `$robotPose`, convert.
-  // If `pose` comes from `overridePose` (from FieldRenderer -> ghostRobotState -> telemetryData), it is DEGREES.
-
-  // Logic:
-  // If overridePose, assume degrees (legacy).
-  // If $robotPose, assume radians (new).
+  // `$robotPose` is live telemetry in radians.
+  // `overridePose` (imported/ghost contexts) is expected in degrees.
 
   let rotation = $derived(
     (() => {

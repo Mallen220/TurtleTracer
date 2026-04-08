@@ -254,8 +254,8 @@
 
   {#if !(isBrowser && isOnline)}
     <SettingsItem
-      label="Show Telemetry Tab"
-      description="Toggle visibility of the telemetry control tab"
+      label="Show Live Telemetry Tab"
+      description="Toggle visibility of the live telemetry control tab"
       {searchQuery}
       layout="row"
     >

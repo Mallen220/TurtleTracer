@@ -59,7 +59,7 @@
   import {
     showTelemetry,
     showTelemetryGhost,
-    telemetryData,
+    importedTelemetryData,
     telemetryOffset,
   } from "../telemetryStore";
   import LiveRobotLayer from "./telemetry/LiveRobotLayer.svelte";
@@ -1777,17 +1777,19 @@
       }
     }
   });
-  // Telemetry State
-  let isTelemetryVisible = $derived($showTelemetry);
-  let isTelemetryGhostVisible = $derived($showTelemetryGhost);
-  // compute ghost robot based on imported telemetry data and offset
+  // Telemetry state:
+  // - showTelemetry controls the live telemetry overlay from the Telemetry tab.
+  // - showTelemetryGhost controls only the imported ghost robot from Telemetry Import.
+  let isLiveTelemetryVisible = $derived($showTelemetry);
+  let isImportedGhostVisible = $derived($showTelemetryGhost);
+  // Compute imported ghost robot from imported telemetry data and time offset.
   run(() => {
     if (
-      $telemetryData &&
-      $telemetryData.length > 0 &&
-      isTelemetryGhostVisible
+      $importedTelemetryData &&
+      $importedTelemetryData.length > 0 &&
+      isImportedGhostVisible
     ) {
-      const pts = $telemetryData;
+      const pts = $importedTelemetryData;
       const baseTime = pts[0].time;
       const offset = $telemetryOffset || 0;
       const targetTime = baseTime + offset;
@@ -2141,14 +2143,12 @@
       class="absolute inset-0 pointer-events-none z-30"
     ></div>
 
-    {#if isTelemetryVisible}
+    {#if isLiveTelemetryVisible}
       <LiveFieldLayer {x} {y} {width} {height} />
       <svg
         style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20;"
       >
-        {#if isTelemetryGhostVisible}
-          <LiveRobotLayer {x} {y} />
-        {/if}
+        <LiveRobotLayer {x} {y} />
       </svg>
     {/if}
     <!-- SVG Overlay for animated paths/layers -->

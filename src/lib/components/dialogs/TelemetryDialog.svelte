@@ -2,7 +2,7 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
   import {
-    telemetryData,
+    importedTelemetryData,
     showTelemetry,
     showTelemetryGhost,
     telemetryOffset,
@@ -35,7 +35,7 @@
         }
       } catch (err) {
         errorMsg = "Failed to parse file: " + (err as Error).message;
-        telemetryData.set(null);
+        importedTelemetryData.set(null);
         summary = "";
       }
     };
@@ -57,7 +57,7 @@
     }));
 
     points.sort((a, b) => a.time - b.time);
-    telemetryData.set(points);
+    importedTelemetryData.set(points);
     generateSummary(points);
   }
 
@@ -110,19 +110,18 @@
     if (points.length === 0) throw new Error("No valid points found");
 
     points.sort((a, b) => a.time - b.time);
-    telemetryData.set(points);
+    importedTelemetryData.set(points);
     generateSummary(points);
   }
 
   function generateSummary(points: TelemetryPoint[]) {
     const duration = points[points.length - 1].time - points[0].time;
-    summary = `Loaded ${points.length} points. Duration: ${duration.toFixed(2)}s.`;
+    summary = `Loaded ${points.length} imported points. Duration: ${duration.toFixed(2)}s.`;
     errorMsg = "";
-    showTelemetry.set(true);
   }
 
   function handleClear() {
-    telemetryData.set(null);
+    importedTelemetryData.set(null);
     summary = "";
     errorMsg = "";
     if (fileInput) fileInput.value = "";
@@ -214,7 +213,7 @@
               bind:checked={$showTelemetry}
               class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
             />
-            Show Telemetry Path
+            Show Live Telemetry Overlay
           </label>
 
           <label
@@ -225,7 +224,7 @@
               bind:checked={$showTelemetryGhost}
               class="rounded border-neutral-300 text-blue-600 focus:ring-blue-500"
             />
-            Show Ghost Robot
+            Show Imported Ghost Robot
           </label>
         </div>
 

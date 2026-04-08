@@ -100,7 +100,7 @@ export function processTelemetryMessage(raw: string) {
       packet,
     }));
 
-    // Update history
+    // Update live stream history (used by live telemetry features only)
     if (packet.robotPose) {
       const pt: TelemetryPoint = {
         time: packet.timestamp / 1000,
@@ -108,7 +108,7 @@ export function processTelemetryMessage(raw: string) {
         y: packet.robotPose.y,
         heading: (packet.robotPose.heading * 180) / Math.PI,
       };
-      telemetryData.update((current) => {
+      liveTelemetryData.update((current) => {
         if (!current) return [pt];
         // Limit history size?
         if (current.length > 5000) return [...current.slice(1), pt];
@@ -130,4 +130,8 @@ export function setStatus(status: TelemetryState["status"]) {
 export const showTelemetry = writable<boolean>(true);
 export const showTelemetryGhost = writable<boolean>(true);
 export const telemetryOffset = writable<number>(0);
-export const telemetryData = writable<TelemetryPoint[] | null>(null);
+export const liveTelemetryData = writable<TelemetryPoint[] | null>(null);
+export const importedTelemetryData = writable<TelemetryPoint[] | null>(null);
+
+// Backward-compatible alias for older references. Prefer importedTelemetryData.
+export const telemetryData = importedTelemetryData;
