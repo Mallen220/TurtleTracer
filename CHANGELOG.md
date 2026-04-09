@@ -1,6 +1,6 @@
 ## 2.1.1 (2026-04-08)
 
-- Added chaining feature to create path chains! Corrected field image to match 141.5x141.5 real size. Included field walls in image to maintain 144x144 compatibility. Added new config settings to the advanced tab for users wanting to modify the draw tool. Moved onion skin to the interface section. Make rating dialog less intrusive (Sorry). Remove false event markers from basic Java exports. Fixed broken code exporting for certain features. Added Google Analytics for browser users. Major backend updates for Svelte 5. Fixed lag when opening dialogs on certain browsers. Added new developer tests. Bug fixes for several edge cases. Optimize path collision checking. Context Menus show keybinds. Several minor browser fixes. Several general bugfixes. 
+- Added chaining feature to create path chains! Corrected field image to match 141.5x141.5 real size. Included field walls in image to maintain 144x144 compatibility. Added new config settings to the advanced tab for users wanting to modify the draw tool. Moved onion skin to the interface section. Make rating dialog less intrusive (Sorry). Remove false event markers from basic Java exports. Fixed broken code exporting for certain features. Added Google Analytics for browser users. Major backend updates for Svelte 5. Fixed lag when opening dialogs on certain browsers. Added new developer tests. Bug fixes for several edge cases. Optimize path collision checking. Context Menus show keybinds. Several minor browser fixes. Several general bugfixes.
 
 ## 2.1.0 (2026-04-03)
 

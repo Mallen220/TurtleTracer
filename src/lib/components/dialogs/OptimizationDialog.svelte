@@ -303,12 +303,20 @@
             </div>
             <div class="flex gap-2 items-center">
               <button
-                onclick={(e) => { e.preventDefault(); e.stopPropagation(); selectAll(); }}
+                onclick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  selectAll();
+                }}
                 class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >All</button
               >
               <button
-                onclick={(e) => { e.preventDefault(); e.stopPropagation(); deselectAll(); }}
+                onclick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  deselectAll();
+                }}
                 class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >None</button
               >

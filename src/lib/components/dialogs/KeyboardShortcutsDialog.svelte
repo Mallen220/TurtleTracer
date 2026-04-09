@@ -306,7 +306,9 @@
     transition:fade={{ duration: 200, easing: cubicInOut }}
     class="fixed inset-0 z-[1006] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
     role="presentation"
-    onclick={(e) => { if (e.target === e.currentTarget) isOpen = false; }}
+    onclick={(e) => {
+      if (e.target === e.currentTarget) isOpen = false;
+    }}
   >
     <div
       role="dialog"

@@ -488,7 +488,9 @@
     transition:fade={{ duration: 200 }}
     class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 print:hidden"
     role="presentation"
-    onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+    onclick={(e) => {
+      if (e.target === e.currentTarget) handleClose();
+    }}
   >
     <!-- Dialog Panel -->
     <div
