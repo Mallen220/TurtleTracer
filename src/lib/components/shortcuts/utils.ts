@@ -30,23 +30,34 @@ export function shouldBlockShortcut(
   actionId?: string,
 ): boolean {
   // Whitelist specific actions that should work even when input is focused
-  if (
-    actionId === "toggle-command-palette" ||
-    actionId === "cycle-tabs-next" ||
-    actionId === "cycle-tabs-prev" ||
-    actionId === "select-code-tab" ||
-    actionId === "select-paths-tab" ||
-    actionId === "select-field-tab" ||
-    actionId === "select-table-tab" ||
-    actionId === "save-project" ||
-    actionId === "save-file-as" ||
-    actionId === "undo" ||
-    actionId === "redo" ||
-    actionId === "play-pause" ||
-    actionId === "open-settings" ||
-    actionId === "toggle-sidebar"
-  )
+  const whitelist = [
+    "toggle-command-palette",
+    "cycle-tabs-next",
+    "cycle-tabs-prev",
+    "select-code-tab",
+    "select-paths-tab",
+    "select-field-tab",
+    "select-table-tab",
+    "save-project",
+    "save-file-as",
+    "undo",
+    "redo",
+    "play-pause",
+    "open-settings",
+    "toggle-sidebar",
+    "zoom-in",
+    "zoom-out",
+    "zoom-reset",
+    "pan-view-up",
+    "pan-view-down",
+    "pan-view-left",
+    "pan-view-right",
+    "pan-start",
+    "pan-end",
+  ];
+  if (actionId && whitelist.includes(actionId)) {
     return false;
+  }
   if (e.key === "Escape") return false;
   if (isInputFocused()) return true;
   if (isButtonFocused()) {
