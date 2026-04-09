@@ -665,25 +665,73 @@ export function calculatePathTime(
   const segmentTimes: number[] = [];
   const timeline: TimelineEvent[] = [];
 
+  const globalChainMeta = sequence
+    ? calculateGlobalChainMeta(sequence, lines, startPoint)
+    : new Map();
+
   let currentTime = 0;
   let currentHeading = 0;
   let isFirstPathItem = true;
 
   // Initialize heading based on start point settings
+  // But OVERRIDE if the first path in the sequence has a global chain override
+  let startOverrideFound = false;
+  if (sequence && sequence.length > 0) {
+    const firstPathItem = sequence.find((it) => it.kind === "path");
+    if (firstPathItem) {
+      const lineId = (firstPathItem as any).lineId;
+      const line = lines.find((l) => l.id === lineId);
+      if (line) {
+        const meta = globalChainMeta.get(line.id!);
+        const rootLine = meta?.rootLine;
+        if (rootLine?.globalHeading && rootLine.globalHeading !== "none") {
+          const effectiveHeading = rootLine.globalHeading;
+          if (effectiveHeading === "tangential") {
+            const nextP =
+              line.controlPoints.length > 0
+                ? line.controlPoints[0]
+                : line.endPoint;
+            currentHeading = getInitialTangentialHeading(startPoint, nextP);
+            startOverrideFound = true;
+          } else if (effectiveHeading === "constant") {
+            const deg = rootLine.globalDegrees || 0;
+            const rev = rootLine.globalReverse;
+            currentHeading = rev ? deg + 180 : deg;
+            startOverrideFound = true;
+          } else if (effectiveHeading === "linear") {
+            const deg = rootLine.globalStartDeg || 0;
+            const rev = rootLine.globalReverse;
+            currentHeading = rev ? deg + 180 : deg;
+            startOverrideFound = true;
+          } else if (effectiveHeading === "facingPoint") {
+            const tx = rootLine.globalTargetX || 0;
+            const ty = rootLine.globalTargetY || 0;
+            const rev = rootLine.globalReverse;
+            let angle = Math.atan2(ty - startPoint.y, tx - startPoint.x) * (180 / Math.PI);
+            if (rev) angle += 180;
+            currentHeading = angle;
+            startOverrideFound = true;
+          }
+        }
+      }
+    }
+  }
 
-  if (startPoint.heading === "linear") currentHeading = startPoint.startDeg;
-  else if (startPoint.heading === "constant")
-    currentHeading = startPoint.degrees;
-  else if (startPoint.heading === "tangential") {
-    if (lines.length > 0) {
-      const firstLine = lines[0];
-      const nextP =
-        firstLine.controlPoints.length > 0
-          ? firstLine.controlPoints[0]
-          : firstLine.endPoint;
-      currentHeading = getInitialTangentialHeading(startPoint, nextP);
-    } else {
-      currentHeading = 0;
+  if (!startOverrideFound) {
+    if (startPoint.heading === "linear") currentHeading = startPoint.startDeg;
+    else if (startPoint.heading === "constant")
+      currentHeading = startPoint.degrees;
+    else if (startPoint.heading === "tangential") {
+      if (lines.length > 0) {
+        const firstLine = lines[0];
+        const nextP =
+          firstLine.controlPoints.length > 0
+            ? firstLine.controlPoints[0]
+            : firstLine.endPoint;
+        currentHeading = getInitialTangentialHeading(startPoint, nextP);
+      } else {
+        currentHeading = 0;
+      }
     }
   }
 

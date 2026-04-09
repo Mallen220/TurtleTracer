@@ -655,10 +655,22 @@
                 const isPiecewise = parts.length > 2 && parts[2] === "piecewise";
                 const segIdx = isPiecewise ? Number(parts[3]) : -1;
                 
-                // If this line has global heading def, update global values
-                if (line.globalHeading !== undefined) {
+                // Find the effective global source line (always the root of the chain)
+                let rootIdx = lineIdx;
+                if (lines[lineIdx].isChain) {
+                  for (let i = lineIdx; i >= 0; i--) {
+                    if (!lines[i].isChain) {
+                      rootIdx = i;
+                      break;
+                    }
+                  }
+                }
+                const targetLine = lines[rootIdx];
+
+                // If this chain has global heading def, update global values on the root line
+                if (targetLine.globalHeading !== undefined) {
                   if (isPiecewise) {
-                    const segments = line.globalSegments || [];
+                    const segments = targetLine.globalSegments || [];
                     const seg = segments[segIdx];
                     if (seg && seg.heading === "facingPoint") {
                       const newSegs = [...segments] as any[];
@@ -667,19 +679,22 @@
                         targetX: inchX,
                         targetY: inchY,
                       };
-                      lines[lineIdx] = { ...line, globalSegments: newSegs };
+                      lines[rootIdx] = {
+                        ...targetLine,
+                        globalSegments: newSegs,
+                      };
                       linesChanged = true;
                     }
                   } else {
-                    lines[lineIdx] = {
-                      ...line,
+                    lines[rootIdx] = {
+                      ...targetLine,
                       globalTargetX: inchX,
                       globalTargetY: inchY,
                     };
                     linesChanged = true;
                   }
                 } else {
-                  // Fallback to local endpoint if no global heading def
+                  // Fallback to local endpoint if no global heading def anywhere in the chain
                   if (isPiecewise) {
                     const segments = line.endPoint.segments || [];
                     const seg = segments[segIdx];

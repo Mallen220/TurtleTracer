@@ -14,6 +14,7 @@
     selectedPointId,
     focusRequest,
   } from "../../../stores";
+  import { startPointStore } from "../../projectStore";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
   import {
     handleWaypointRename,
@@ -247,17 +248,44 @@
   });
 
   function handleGlobalChange() {
-     if (isSyncingToPseudo) return;
-     line.globalHeading = pseudoGlobalEndPoint.heading as any;
-     line.globalReverse = pseudoGlobalEndPoint.reverse;
-     line.globalDegrees = pseudoGlobalEndPoint.degrees;
-     line.globalStartDeg = pseudoGlobalEndPoint.startDeg;
-     line.globalEndDeg = pseudoGlobalEndPoint.endDeg;
-     line.globalTargetX = pseudoGlobalEndPoint.targetX;
-     line.globalTargetY = pseudoGlobalEndPoint.targetY;
-     line.globalSegments = $state.snapshot(pseudoGlobalEndPoint.segments);
-     lines[idx] = {...line};
-     lines = [...lines];
+    if (isSyncingToPseudo) return;
+
+    const targetIdx = chainRootIndex !== -1 ? chainRootIndex : idx;
+    const targetLine = lines[targetIdx];
+
+    targetLine.globalHeading = pseudoGlobalEndPoint.heading as any;
+    targetLine.globalReverse = pseudoGlobalEndPoint.reverse;
+    targetLine.globalDegrees = pseudoGlobalEndPoint.degrees;
+    targetLine.globalStartDeg = pseudoGlobalEndPoint.startDeg;
+    targetLine.globalEndDeg = pseudoGlobalEndPoint.endDeg;
+    targetLine.globalTargetX = pseudoGlobalEndPoint.targetX;
+    targetLine.globalTargetY = pseudoGlobalEndPoint.targetY;
+    targetLine.globalSegments = $state.snapshot(pseudoGlobalEndPoint.segments);
+
+    lines[targetIdx] = { ...targetLine };
+    lines = [...lines];
+
+    // If this is the first path in the project, sync the project start point heading
+    if (targetIdx === 0) {
+      startPointStore.update((s) => {
+        const h = pseudoGlobalEndPoint.heading;
+        if (h === "constant" || h === "linear") {
+          s.heading = h;
+          if (h === "constant") s.degrees = pseudoGlobalEndPoint.degrees;
+          else {
+            s.startDeg = pseudoGlobalEndPoint.startDeg;
+            s.endDeg = pseudoGlobalEndPoint.endDeg;
+          }
+        } else if (h === "tangential" || h === "facingPoint") {
+          s.heading = h;
+          if (h === "facingPoint") {
+            s.targetX = pseudoGlobalEndPoint.targetX;
+            s.targetY = pseudoGlobalEndPoint.targetY;
+          }
+        }
+        return { ...s };
+      });
+    }
   }
 
   function handleLinkHoverEnter(e: MouseEvent, id: string | null) {
@@ -594,21 +622,54 @@
                 type="checkbox" 
                 checked={hasGlobalHeadingDef}
                 onchange={(e) => {
+                  const targetIdx =
+                    chainRootIndex !== -1 ? chainRootIndex : idx;
+                  const targetLine = lines[targetIdx];
                   if (e.currentTarget.checked) {
-                     line.globalHeading = line.endPoint.heading;
-                     if (line.endPoint.degrees !== undefined) line.globalDegrees = line.endPoint.degrees;
-                     if (line.endPoint.targetX !== undefined) line.globalTargetX = line.endPoint.targetX;
-                     if (line.endPoint.targetY !== undefined) line.globalTargetY = line.endPoint.targetY;
-                     if (line.endPoint.reverse !== undefined) line.globalReverse = line.endPoint.reverse;
-                     if (line.endPoint.startDeg !== undefined) line.globalStartDeg = line.endPoint.startDeg;
-                     if (line.endPoint.endDeg !== undefined) line.globalEndDeg = line.endPoint.endDeg;
-                     if (line.endPoint.segments !== undefined) line.globalSegments = $state.snapshot(line.endPoint.segments);
+                    targetLine.globalHeading = line.endPoint.heading;
+                    if (line.endPoint.degrees !== undefined)
+                      targetLine.globalDegrees = line.endPoint.degrees;
+                    if (line.endPoint.targetX !== undefined)
+                      targetLine.globalTargetX = line.endPoint.targetX;
+                    if (line.endPoint.targetY !== undefined)
+                      targetLine.globalTargetY = line.endPoint.targetY;
+                    if (line.endPoint.reverse !== undefined)
+                      targetLine.globalReverse = line.endPoint.reverse;
+                    if (line.endPoint.startDeg !== undefined)
+                      targetLine.globalStartDeg = line.endPoint.startDeg;
+                    if (line.endPoint.endDeg !== undefined)
+                      targetLine.globalEndDeg = line.endPoint.endDeg;
+                    if (line.endPoint.segments !== undefined)
+                      targetLine.globalSegments = $state.snapshot(
+                        line.endPoint.segments,
+                      );
                   } else {
-                     line.globalHeading = undefined;
+                    targetLine.globalHeading = undefined;
                   }
-                  lines[idx] = {...line};
+                  if (targetIdx === 0) {
+                    startPointStore.update((s) => {
+                      const h = targetLine.globalHeading;
+                      if (h === "constant" || h === "linear") {
+                        s.heading = h;
+                        if (h === "constant")
+                          s.degrees = targetLine.globalDegrees || 0;
+                        else {
+                          s.startDeg = targetLine.globalStartDeg || 0;
+                          s.endDeg = targetLine.globalEndDeg || 0;
+                        }
+                      } else if (h === "tangential" || h === "facingPoint") {
+                        s.heading = h;
+                        if (h === "facingPoint") {
+                          s.targetX = targetLine.globalTargetX || 0;
+                          s.targetY = targetLine.globalTargetY || 0;
+                        }
+                      }
+                      return { ...s };
+                    });
+                  }
+                  lines[targetIdx] = { ...targetLine };
                   lines = [...lines];
-                  if(recordChange) recordChange("Toggle Global Heading");
+                  if (recordChange) recordChange("Toggle Global Heading");
                 }}
                 disabled={line.locked}
                 class="rounded text-purple-500 focus:ring-purple-500 bg-neutral-100 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700"
