@@ -203,54 +203,83 @@ export function getLineStartHeading(
   line: Line | undefined,
   previousPoint: Point,
   globalOverride?: Line,
+  totalChainDistance?: number,
+  distanceBefore?: number,
 ): number {
   if (!line || !line.endPoint) return 0;
 
-  const effectiveSource =
+  const isGlobal =
     globalOverride &&
     globalOverride.globalHeading &&
-    globalOverride.globalHeading !== "none"
-      ? {
-          heading: globalOverride.globalHeading,
-          degrees: globalOverride.globalDegrees,
-          startDeg: globalOverride.globalStartDeg,
-          endDeg: globalOverride.globalEndDeg,
-          targetX: globalOverride.globalTargetX,
-          targetY: globalOverride.globalTargetY,
-          reverse: globalOverride.globalReverse,
-          segments: globalOverride.globalSegments,
-        }
-      : line.endPoint;
+    globalOverride.globalHeading !== "none";
 
-  if (effectiveSource.heading === "linear") return (effectiveSource as any).startDeg;
+  const effectiveSource = isGlobal
+    ? {
+        heading: globalOverride!.globalHeading,
+        degrees: globalOverride!.globalDegrees,
+        startDeg: globalOverride!.globalStartDeg,
+        endDeg: globalOverride!.globalEndDeg,
+        targetX: globalOverride!.globalTargetX,
+        targetY: globalOverride!.globalTargetY,
+        reverse: globalOverride!.globalReverse,
+        segments: globalOverride!.globalSegments,
+      }
+    : line.endPoint;
+
+  if (effectiveSource.heading === "linear")
+    return (effectiveSource as any).startDeg;
 
   if (effectiveSource.heading === "piecewise") {
     const segments = (effectiveSource as any).segments || [];
-    let firstSeg = null;
+    const t =
+      isGlobal && totalChainDistance && totalChainDistance > 0
+        ? (distanceBefore || 0) / totalChainDistance
+        : 0;
+
+    let activeSeg = null;
     for (const seg of segments) {
-      if (0 >= seg.tStart && 0 <= seg.tEnd) {
-        firstSeg = seg;
+      if (t >= seg.tStart && t <= seg.tEnd) {
+        activeSeg = seg;
         break;
       }
     }
-    if (!firstSeg && segments.length > 0) firstSeg = segments[0];
+    if (!activeSeg && segments.length > 0) activeSeg = segments[0];
 
-    if (firstSeg) {
-      if (firstSeg.heading === "linear") return firstSeg.startDeg ?? 0;
-      if (firstSeg.heading === "constant")
+    if (activeSeg) {
+      if (activeSeg.heading === "linear") {
+        const sDeg = activeSeg.startDeg ?? 0;
+        const eDeg = activeSeg.endDeg ?? 0;
+        let localT = 0;
+        if (activeSeg.tEnd > activeSeg.tStart) {
+          localT = (t - activeSeg.tStart) / (activeSeg.tEnd - activeSeg.tStart);
+        }
+
+        const diff = eDeg - sDeg;
+        const normalized = ((diff % 360) + 360) % 360;
+        const shortest = normalized > 180 ? normalized - 360 : normalized;
+        const longest = shortest > 0 ? shortest - 360 : shortest + 360;
+
+        return transformAngle(sDeg + (activeSeg.reverse ? longest : shortest) * localT);
+      }
+      if (activeSeg.heading === "constant")
         return transformAngle(
-          (firstSeg.degrees ?? 0) + (firstSeg.reverse ? 180 : 0),
+          (activeSeg.degrees ?? 0) + (activeSeg.reverse ? 180 : 0),
         );
 
       let nextP: Point2D = line.endPoint;
-      if (
-        firstSeg.heading === "tangential" &&
-        line.controlPoints?.length > 0
-      ) {
+      if (activeSeg.heading === "tangential" && line.controlPoints?.length > 0) {
         nextP =
           getFirstValidControlPoint(line.controlPoints, previousPoint) || nextP;
+      } else if (activeSeg.heading === "facingPoint") {
+        const tx = activeSeg.targetX || 0;
+        const ty = activeSeg.targetY || 0;
+        // Piecewise start always uses t=0 for geometry lookup
+        const pos = previousPoint;
+        let angle = Math.atan2(ty - pos.y, tx - pos.x) * (180 / Math.PI);
+        if (activeSeg.reverse) angle += 180;
+        return transformAngle(angle);
       }
-      return getHeadingBase(firstSeg as any, previousPoint, nextP);
+      return getHeadingBase(activeSeg as any, previousPoint, nextP);
     }
     return 0;
   }
@@ -279,33 +308,42 @@ export function getLineEndHeading(
   line: Line | undefined,
   previousPoint: Point,
   globalOverride?: Line,
+  totalChainDistance?: number,
+  distanceAtEnd?: number,
 ): number {
   if (!line || !line.endPoint) return 0;
 
-  const effectiveSource =
+  const isGlobal =
     globalOverride &&
     globalOverride.globalHeading &&
-    globalOverride.globalHeading !== "none"
-      ? {
-          heading: globalOverride.globalHeading,
-          degrees: globalOverride.globalDegrees,
-          startDeg: globalOverride.globalStartDeg,
-          endDeg: globalOverride.globalEndDeg,
-          targetX: globalOverride.globalTargetX,
-          targetY: globalOverride.globalTargetY,
-          reverse: globalOverride.globalReverse,
-          segments: globalOverride.globalSegments,
-        }
-      : line.endPoint;
+    globalOverride.globalHeading !== "none";
+
+  const effectiveSource = isGlobal
+    ? {
+        heading: globalOverride!.globalHeading,
+        degrees: globalOverride!.globalDegrees,
+        startDeg: globalOverride!.globalStartDeg,
+        endDeg: globalOverride!.globalEndDeg,
+        targetX: globalOverride!.globalTargetX,
+        targetY: globalOverride!.globalTargetY,
+        reverse: globalOverride!.globalReverse,
+        segments: globalOverride!.globalSegments,
+      }
+    : line.endPoint;
 
   if (effectiveSource.heading === "linear")
     return (effectiveSource as any).endDeg;
 
   if (effectiveSource.heading === "piecewise") {
     const segments = (effectiveSource as any).segments || [];
+    const t =
+      isGlobal && totalChainDistance && totalChainDistance > 0
+        ? (distanceAtEnd || 0) / totalChainDistance
+        : 1.0;
+
     let lastSeg = null;
     for (const seg of segments) {
-      if (1 >= seg.tStart && 1 <= seg.tEnd) {
+      if (t >= seg.tStart && t <= seg.tEnd) {
         lastSeg = seg;
         break;
       }
@@ -317,14 +355,17 @@ export function getLineEndHeading(
       if (lastSeg.heading === "linear") {
         const sDeg = lastSeg.startDeg ?? 0;
         const eDeg = lastSeg.endDeg ?? 0;
-        if (lastSeg.reverse) {
-          const shortDiff = eDeg - sDeg;
-          const normalizedShort = ((shortDiff % 360) + 360) % 360;
-          const longDiff =
-            normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
-          return sDeg + longDiff;
+        let localT = 0;
+        if (lastSeg.tEnd > lastSeg.tStart) {
+          localT = (t - lastSeg.tStart) / (lastSeg.tEnd - lastSeg.tStart);
         }
-        return eDeg;
+
+        const diff = eDeg - sDeg;
+        const normalized = ((diff % 360) + 360) % 360;
+        const shortest = normalized > 180 ? normalized - 360 : normalized;
+        const longest = shortest > 0 ? shortest - 360 : shortest + 360;
+
+        return transformAngle(sDeg + (lastSeg.reverse ? longest : shortest) * localT);
       }
       if (lastSeg.heading === "constant")
         return transformAngle(
@@ -336,6 +377,13 @@ export function getLineEndHeading(
         prevP =
           getFirstValidControlPoint(line.controlPoints, line.endPoint, true) ||
           prevP;
+      } else if (lastSeg.heading === "facingPoint") {
+        const tx = lastSeg.targetX || 0;
+        const ty = lastSeg.targetY || 0;
+        const pos = line.endPoint;
+        let angle = Math.atan2(ty - pos.y, tx - pos.x) * (180 / Math.PI);
+        if (lastSeg.reverse) angle += 180;
+        return transformAngle(angle);
       }
       return getHeadingBase(
         lastSeg as any,

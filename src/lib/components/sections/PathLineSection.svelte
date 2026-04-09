@@ -182,11 +182,9 @@
      segments: [] as any[]
   });
 
-  // Track if we are syncing so we don't trigger circular updates
-  let isSyncingToPseudo = false;
+  // Watch STORE -> SIDEBAR (Sync only when store changes externally)
   $effect(() => {
-    // SYNC STORE -> SIDEBAR
-    // Only watch global props
+    // Watch these from the line prop (store)
     const gh = line.globalHeading;
     const gr = line.globalReverse;
     const gd = line.globalDegrees;
@@ -197,22 +195,8 @@
     const gsegs = line.globalSegments;
 
     untrack(() => {
-      if (gh !== undefined && !isSyncingToPseudo) {
-        // Equal check to prevent depth-exceeded
-        const areEqual =
-          pseudoGlobalEndPoint.heading === gh &&
-          pseudoGlobalEndPoint.reverse === (gr ?? false) &&
-          pseudoGlobalEndPoint.degrees === (gd ?? 0) &&
-          pseudoGlobalEndPoint.startDeg === (gsd ?? 0) &&
-          pseudoGlobalEndPoint.endDeg === (ged ?? 0) &&
-          pseudoGlobalEndPoint.targetX === (gtx ?? 72) &&
-          pseudoGlobalEndPoint.targetY === (gty ?? 72) &&
-          JSON.stringify($state.snapshot(pseudoGlobalEndPoint.segments)) ===
-            JSON.stringify(gsegs || []);
-
-        if (areEqual) return;
-
-        isSyncingToPseudo = true;
+      // Apply to our local pseudo-object for the UI
+      if (gh !== undefined) {
         pseudoGlobalEndPoint.heading = gh;
         pseudoGlobalEndPoint.reverse = gr ?? false;
         pseudoGlobalEndPoint.degrees = gd ?? 0;
@@ -220,36 +204,18 @@
         pseudoGlobalEndPoint.endDeg = ged ?? 0;
         pseudoGlobalEndPoint.targetX = gtx ?? 72;
         pseudoGlobalEndPoint.targetY = gty ?? 72;
-        pseudoGlobalEndPoint.segments = (gsegs
-          ? $state.snapshot(gsegs)
-          : []) as any;
-        isSyncingToPseudo = false;
-      }
-    });
-  });
-
-  // Watch pseudo state and sync back to line (SIDEBAR -> STORE)
-  $effect(() => {
-    // Manually track pseudo props
-    pseudoGlobalEndPoint.heading;
-    pseudoGlobalEndPoint.reverse;
-    pseudoGlobalEndPoint.degrees;
-    pseudoGlobalEndPoint.startDeg;
-    pseudoGlobalEndPoint.endDeg;
-    pseudoGlobalEndPoint.targetX;
-    pseudoGlobalEndPoint.targetY;
-    pseudoGlobalEndPoint.segments;
-
-    untrack(() => {
-      if (!isSyncingToPseudo && line.globalHeading !== undefined) {
-        handleGlobalChange();
+        
+        // Initialize segments if Piecewise is active but list is empty
+        let nextSegs = gsegs ? $state.snapshot(gsegs) : [];
+        if (gh === "piecewise" && nextSegs.length === 0) {
+          nextSegs = [{ tStart: 0, tEnd: 1, heading: "tangential", reverse: gr ?? false }];
+        }
+        pseudoGlobalEndPoint.segments = nextSegs;
       }
     });
   });
 
   function handleGlobalChange() {
-    if (isSyncingToPseudo) return;
-
     const targetIdx = chainRootIndex !== -1 ? chainRootIndex : idx;
     const targetLine = lines[targetIdx];
 
@@ -639,10 +605,13 @@
                       targetLine.globalStartDeg = line.endPoint.startDeg;
                     if (line.endPoint.endDeg !== undefined)
                       targetLine.globalEndDeg = line.endPoint.endDeg;
-                    if (line.endPoint.segments !== undefined)
+                    if (line.endPoint.segments && line.endPoint.segments.length > 0)
                       targetLine.globalSegments = $state.snapshot(
                         line.endPoint.segments,
                       );
+                    else if (line.endPoint.heading === "piecewise") {
+                      targetLine.globalSegments = [{ tStart: 0, tEnd: 1, heading: "tangential", reverse: line.endPoint.reverse ?? false }];
+                    }
                   } else {
                     targetLine.globalHeading = undefined;
                   }
@@ -680,7 +649,7 @@
             {#if hasGlobalHeadingDef}
               <div class="pl-2 mt-2 ml-1 border-l-2 border-purple-500/30">
                  <HeadingControls
-                    bind:endPoint={pseudoGlobalEndPoint}
+                    endPoint={pseudoGlobalEndPoint}
                     locked={line.locked}
                     on:change={handleGlobalChange}
                     on:commit={() => {

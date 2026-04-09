@@ -64,7 +64,7 @@ export function duplicate(recordChange: (action?: string) => void) {
     ) as any;
     if (!waitItem) return;
 
-    const newWait = structuredClone(waitItem);
+    const newWait = JSON.parse(JSON.stringify(waitItem));
     newWait.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
     const existingWaitNames = sequence
@@ -97,7 +97,7 @@ export function duplicate(recordChange: (action?: string) => void) {
     ) as any;
     if (!rotateItem) return;
 
-    const newRotate = structuredClone(rotateItem);
+    const newRotate = JSON.parse(JSON.stringify(rotateItem));
     newRotate.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const existingRotateNames = sequence
       .filter((s) => actionRegistry.get(s.kind)?.isRotate)
@@ -148,7 +148,7 @@ export function duplicate(recordChange: (action?: string) => void) {
     const deltaX = originalLine.endPoint.x - prevPoint.x;
     const deltaY = originalLine.endPoint.y - prevPoint.y;
 
-    const newLine = structuredClone(originalLine);
+    const newLine = JSON.parse(JSON.stringify(originalLine));
     newLine.id = `line-${Math.random().toString(36).slice(2)}`;
 
     // Update name (preserve empty name if original was unnamed)
@@ -231,7 +231,7 @@ export function copy(activeControlTab: string, controlTabRef: any) {
       (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
     ) as any;
     if (waitItem) {
-      clipboard = structuredClone(waitItem);
+      clipboard = JSON.parse(JSON.stringify(waitItem));
     }
     return;
   }
@@ -242,7 +242,7 @@ export function copy(activeControlTab: string, controlTabRef: any) {
       (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
     ) as any;
     if (rotateItem) {
-      clipboard = structuredClone(rotateItem);
+      clipboard = JSON.parse(JSON.stringify(rotateItem));
     }
     return;
   }
@@ -260,7 +260,7 @@ export function copy(activeControlTab: string, controlTabRef: any) {
   if (targetLineId) {
     const line = lines.find((l) => l.id === targetLineId);
     if (line) {
-      clipboard = structuredClone(line);
+      clipboard = JSON.parse(JSON.stringify(line));
     }
   }
 
@@ -302,7 +302,7 @@ export function paste(recordChange: (action?: string) => void) {
   // Handle Wait
   if (clipDef?.isWait) {
     const waitItem = clipboard as SequenceItem;
-    const newWait = structuredClone(waitItem) as any;
+    const newWait = JSON.parse(JSON.stringify(waitItem)) as any;
     newWait.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
     // Generate unique name
@@ -338,7 +338,7 @@ export function paste(recordChange: (action?: string) => void) {
   // Handle Rotate
   if (clipDef?.isRotate) {
     const rotateItem = clipboard as SequenceItem;
-    const newRotate = structuredClone(rotateItem) as any;
+    const newRotate = JSON.parse(JSON.stringify(rotateItem)) as any;
     newRotate.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
     // Generate unique name
@@ -400,7 +400,7 @@ export function paste(recordChange: (action?: string) => void) {
 
     // Clone originalLine; the placement above accounts for insertion index.
 
-    const newLine = structuredClone(originalLine);
+    const newLine = JSON.parse(JSON.stringify(originalLine));
     newLine.id = `line-${Math.random().toString(36).slice(2)}`;
 
     const existingLineNames = lines.map((l) => l.name || "");

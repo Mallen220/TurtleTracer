@@ -267,6 +267,33 @@ describe("Math Utils", () => {
       // Should skip (0,0) and use (5,5), angle 45
       expect(getLineStartHeading(line, prev)).toBe(45);
     });
+
+    it("interpolates piecewise linear headings across a global chain", () => {
+      const p1 = { x: 0, y: 0 } as Point;
+      const globalOverride = {
+        id: "root-line",
+        globalHeading: "piecewise",
+        globalSegments: [
+          {
+            tStart: 0,
+            tEnd: 1,
+            heading: "linear",
+            startDeg: 0,
+            endDeg: 180,
+          },
+        ],
+      } as any;
+
+      const res = getLineStartHeading(
+        { id: "line-2", endPoint: {} } as any,
+        p1,
+        globalOverride,
+        20, // totalChainDistance
+        10, // distanceBefore
+      );
+
+      expect(res).toBe(90);
+    });
   });
 
   describe("splitBezier", () => {
@@ -411,6 +438,33 @@ describe("Math Utils", () => {
       // Should skip (10,10) and use (5,5) as prev point for tangent
       // Tangent from (5,5) to (10,10) is 45 degrees
       expect(getLineEndHeading(line, prev)).toBe(45);
+    });
+
+    it("interpolates piecewise linear headings across a global chain", () => {
+      const p1 = { x: 0, y: 0 } as Point;
+      const globalOverride = {
+        id: "root-line",
+        globalHeading: "piecewise",
+        globalSegments: [
+          {
+            tStart: 0,
+            tEnd: 1,
+            heading: "linear",
+            startDeg: 0,
+            endDeg: 180,
+          },
+        ],
+      } as any;
+
+      const res = getLineEndHeading(
+        { id: "line-2", endPoint: {} } as any,
+        p1,
+        globalOverride,
+        20, // totalChainDistance
+        15, // distanceAtEnd
+      );
+
+      expect(res).toBe(135);
     });
   });
 

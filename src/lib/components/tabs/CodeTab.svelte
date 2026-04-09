@@ -59,7 +59,7 @@
   const electronAPI = (window as any).electronAPI;
 
   async function relativizeSequenceForPreview(seq: SequenceItem[]) {
-    const cloned = structuredClone(seq);
+    const cloned = $state.snapshot(seq);
 
     const base = get(currentFilePath);
     if (!electronAPI?.makeRelativePath || !base) return cloned;

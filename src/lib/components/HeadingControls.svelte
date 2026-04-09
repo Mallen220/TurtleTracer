@@ -120,7 +120,7 @@
     lastSeg.tEnd = midp;
 
     endPoint.segments.push({
-      ...structuredClone(lastSeg),
+      ...$state.snapshot(lastSeg),
       tStart: midp,
       tEnd: originalEnd,
     });

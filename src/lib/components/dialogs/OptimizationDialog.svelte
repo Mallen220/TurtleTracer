@@ -145,7 +145,7 @@
     isStopping = false;
 
     if (settings) {
-      const linesToOptimize = structuredClone(lines).map((l, idx) => {
+      const linesToOptimize = $state.snapshot(lines).map((l, idx) => {
         const id = l.id || `idx-${idx}`;
         if (!selectionState[id]) {
           l.locked = true;
@@ -176,7 +176,7 @@
         currentBestTime = result.bestTime;
 
         if (showPreview && onPreviewChange && result.bestLines) {
-          const previewLines = structuredClone(result.bestLines);
+          const previewLines = $state.snapshot(result.bestLines);
           restoreUnselectedLocks(previewLines);
           onPreviewChange(previewLines);
         }

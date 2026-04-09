@@ -94,7 +94,7 @@
     const newPreset: ObstaclePreset = {
       id: `preset-${Math.random().toString(36).slice(2)}`,
       name: name,
-      shapes: structuredClone(shapes), // Deep copy
+      shapes: $state.snapshot(shapes), // Deep copy
     };
 
     $settingsStore.obstaclePresets = [
@@ -117,7 +117,7 @@
       if (!confirm("This will replace current obstacles. Continue?")) return;
     }
 
-    shapes = structuredClone(preset.shapes); // Deep copy
+    shapes = $state.snapshot(preset.shapes); // Deep copy
     // Reset collapsed states
     collapsedObstacles = new Array(shapes.length).fill(false);
     recordChange?.("Load Obstacle Preset");

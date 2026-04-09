@@ -639,7 +639,7 @@
       }
     },
     resetSettings: () => {
-      settingsStore.set(structuredClone(DEFAULT_SETTINGS));
+      settingsStore.set($state.snapshot(DEFAULT_SETTINGS));
     },
     cycleTheme: () => {
       settingsStore.update((s) => {
