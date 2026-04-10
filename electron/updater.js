@@ -2,7 +2,9 @@
 import { app, shell } from "electron";
 import * as fs from "fs";
 import * as path from "path";
-import { spawn, spawnSync } from "child_process";
+import { spawn } from "child_process";
+
+const SAFE_PATH = "/usr/bin:/bin:/usr/sbin:/sbin";
 
 class AppUpdater {
   constructor(mainWindow) {
@@ -145,13 +147,19 @@ class AppUpdater {
         shell.openExternal(downloadUrl);
       } else if (process.platform === "darwin") {
         const command =
-          "curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash";
+          "/usr/bin/curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | /bin/bash";
         const appleScript = `tell application "Terminal" to do script "${command}"`;
-        spawn("osascript", ["-e", appleScript]);
-        spawn("osascript", ["-e", 'tell application "Terminal" to activate']);
+        spawn("/usr/bin/osascript", ["-e", appleScript], {
+          env: { ...process.env, PATH: SAFE_PATH },
+        });
+        spawn(
+          "/usr/bin/osascript",
+          ["-e", 'tell application "Terminal" to activate'],
+          { env: { ...process.env, PATH: SAFE_PATH } },
+        );
       } else if (process.platform === "linux") {
         const command =
-          "curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash";
+          "/usr/bin/curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | /bin/bash";
         if (!this.openTerminalLinux(command)) {
           // Fallback
           shell.openExternal(releasesUrl);
@@ -170,20 +178,20 @@ class AppUpdater {
     // Try to find a terminal emulator and run the command
     const terminals = [
       {
-        cmd: "gnome-terminal",
-        args: ["--", "bash", "-c", command],
+        cmd: "/usr/bin/gnome-terminal",
+        args: ["--", "/bin/bash", "-c", command],
       },
       {
-        cmd: "x-terminal-emulator",
-        args: ["-e", "bash", "-c", command],
+        cmd: "/usr/bin/x-terminal-emulator",
+        args: ["-e", "/bin/bash", "-c", command],
       },
       {
-        cmd: "konsole",
-        args: ["-e", "bash", "-c", command],
+        cmd: "/usr/bin/konsole",
+        args: ["-e", "/bin/bash", "-c", command],
       },
       {
-        cmd: "xterm",
-        args: ["-e", "bash", "-c", command],
+        cmd: "/usr/bin/xterm",
+        args: ["-e", "/bin/bash", "-c", command],
       },
     ];
 
@@ -197,13 +205,16 @@ class AppUpdater {
 
   trySpawnLinux(terminal, args) {
     try {
-      // Check if the terminal executable exists
-      if (spawnSync("which", [terminal]).status === 0) {
-        spawn(terminal, args, { detached: true, stdio: "ignore" }).unref();
+      // Check if the terminal executable exists and can be executed.
+      fs.accessSync(terminal, fs.constants.X_OK);
+      spawn(terminal, args, {
+        detached: true,
+        stdio: "ignore",
+        env: { ...process.env, PATH: SAFE_PATH },
+      }).unref();
         return true;
-      }
     } catch (e) {
-      // Ignore errors (e.g. if 'which' fails)
+      // Ignore errors (e.g. terminal missing or not executable)
     }
     return false;
   }
