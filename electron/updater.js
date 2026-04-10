@@ -39,7 +39,7 @@ class AppUpdater {
       }
 
       const releaseData = await response.json();
-      const latestVersion = releaseData.tag_name.replace("v", "");
+      const latestVersion = releaseData.tag_name.replaceAll("v", "");
 
       console.log(`Current: ${this.currentVersion}, Latest: ${latestVersion}`);
 
@@ -120,7 +120,7 @@ class AppUpdater {
   async showUpdateAvailableDialog(releaseData, delay = 3000) {
     // Wait a bit for the main window to be fully ready
     setTimeout(() => {
-      const version = releaseData.tag_name.replace("v", "");
+      const version = releaseData.tag_name.replaceAll("v", "");
       if (this.mainWindow && this.mainWindow.webContents) {
         this.mainWindow.webContents.send("update-available", {
           version: version,

@@ -90,7 +90,7 @@ function replaceBetweenMarkers(content, replacement) {
     );
   }
 
-  return content.replace(pattern, `\n${replacement}`);
+  return content.replaceAll(pattern, `\n${replacement}`);
 }
 
 async function ensureOutputDirectory() {

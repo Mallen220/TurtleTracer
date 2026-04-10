@@ -208,7 +208,7 @@
 
         if (svgViewBox) {
           const parts = svgViewBox.split(/\s+/).map(Number);
-          if (parts.length === 4 && parts.every((n) => !Number.Number.isNaN(n))) {
+          if (parts.length === 4 && parts.every((n) => !Number.isNaN(n))) {
             bx = parts[0];
             by = parts[1];
             bwidth = parts[2];

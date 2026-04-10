@@ -18,11 +18,11 @@ async function generate() {
 
     // Remove imports/exports to make types global
     // 1. Remove import statements (they should be at the top)
-    content = content.replace(/^import .*$/gm, "");
+    content = content.replaceAll(/^import .*$/gm, "");
 
     // 2. Remove 'export' keyword from declarations
     // Matches "export interface", "export type", "export const" etc.
-    content = content.replace(/^export /gm, "");
+    content = content.replaceAll(/^export /gm, "");
 
     const finalContent = `// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /**

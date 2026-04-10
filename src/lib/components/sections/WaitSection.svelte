@@ -92,7 +92,7 @@
   function handleDurationChange(e: Event) {
     const target = e.currentTarget as HTMLInputElement;
     const val = Number.parseFloat(target.value);
-    if (!Number.Number.isNaN(val) && val >= 0) {
+    if (!Number.isNaN(val) && val >= 0) {
       wait.durationMs = val;
     } else {
       wait.durationMs = 0;

@@ -121,7 +121,7 @@ async function renderFrameToCanvas(
           state = options.getRobotState(percent);
         }
 
-        if (state && !Number.Number.isNaN(state.x) && !Number.Number.isNaN(state.y)) {
+        if (state && !Number.isNaN(state.x) && !Number.isNaN(state.y)) {
           ctx.save();
           // Translate to robot center (scaled)
           ctx.translate(state.x * scale, state.y * scale);

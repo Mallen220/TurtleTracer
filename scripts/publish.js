@@ -78,7 +78,7 @@ Download and install via the  \`.exe\` installer below.
       new RegExp(`## ${version}[\\s\\S]*?(?=## |$)`),
     );
     if (versionSection) {
-      notes += `\n${versionSection[0].replace(`## ${version}`, "")}`;
+      notes += `\n${versionSection[0].replaceAll(`## ${version}`, "")}`;
     } else {
       notes += `\n- Bug fixes and improvements`;
     }

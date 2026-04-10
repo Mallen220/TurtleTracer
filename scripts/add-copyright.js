@@ -61,7 +61,7 @@ function traverse(dir) {
         continue;
       traverse(filePath);
     } else {
-      const relativePath = path.relative(".", filePath).replace(/\\/g, "/");
+      const relativePath = path.relative(".", filePath).replaceAll(/\\/g, "/");
       if (IGNORED_FILES.has(relativePath)) continue;
 
       const ext = path.extname(file);
@@ -116,7 +116,7 @@ function processFile(filePath, styleType) {
   const multiLineBlockRegex =
     /^\s*\/\*[\s\S]*?Copyright[\s\S]*?Matthew Allen[\s\S]*?\*\/\s*/;
   if (multiLineBlockRegex.test(body)) {
-    body = body.replace(multiLineBlockRegex, "");
+    body = body.replaceAll(multiLineBlockRegex, "");
   }
 
   // 2. Remove HTML Comments (<!-- ... -->)
@@ -124,7 +124,7 @@ function processFile(filePath, styleType) {
   const htmlCommentRegex =
     /^\s*<!--[\s\S]*?Copyright[\s\S]*?Matthew Allen[\s\S]*?-->\s*/;
   if (htmlCommentRegex.test(body)) {
-    body = body.replace(htmlCommentRegex, "");
+    body = body.replaceAll(htmlCommentRegex, "");
   }
 
   // 3. Remove Hash Comments (# ...)
@@ -138,11 +138,11 @@ function processFile(filePath, styleType) {
   // Matches lines starting with // containing Copyright and Matthew Allen at the very top.
   const lineCommentRegex = /^\s*\/\/.*?Copyright.*?Matthew Allen.*?\n/;
   if (lineCommentRegex.test(body)) {
-    body = body.replace(lineCommentRegex, "");
+    body = body.replaceAll(lineCommentRegex, "");
   }
 
   // Trim leading newlines from body to avoid gaps
-  body = body.replace(/^\n+/, "");
+  body = body.replaceAll(/^\n+/, "");
 
   const finalContent = shebang + newHeader + body;
 

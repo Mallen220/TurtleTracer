@@ -93,7 +93,7 @@
   function handleDegreesChange(e: Event) {
     const target = e.currentTarget as HTMLInputElement;
     const val = Number.parseFloat(target.value);
-    if (!Number.Number.isNaN(val)) {
+    if (!Number.isNaN(val)) {
       rotate.degrees = val;
       if (linked) {
         sequence = updateLinkedRotations(sequence, rotate.id);

@@ -79,7 +79,7 @@ app.on("open-file", (event, path) => {
 if (process.windowsStore) {
   const oldUserDataPath = app.getPath("userData");
   if (oldUserDataPath.includes("LocalCache")) {
-    const newUserDataPath = oldUserDataPath.replace(
+    const newUserDataPath = oldUserDataPath.replaceAll(
       /LocalCache[\\/]Roaming/,
       "LocalState",
     );

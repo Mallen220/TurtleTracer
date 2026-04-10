@@ -500,7 +500,7 @@ interface StickyNote {
 
   function darkenColor(hex: string, percent: number) {
     // Simple hex darken
-    let num = Number.parseInt(hex.replace("#", ""), 16),
+    let num = Number.parseInt(hex.replaceAll("#", ""), 16),
       amt = Math.round(2.55 * percent),
       R = (num >> 16) - amt,
       B = ((num >> 8) & 0x00ff) - amt,
