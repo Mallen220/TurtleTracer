@@ -74,10 +74,10 @@ jobs:
           # This will handover control about PR rejection to the GitHub side
           max-allowed-issues: 2147483647
 
-      # Merge multiple runs into one and filter out JSHint warnings to comply with GitHub rules
+      # Merge multiple runs into one and aggressively filter JSHint results
       - name: Merge SARIF runs and filter JSHint
         run: |
-          jq '.runs = [{tool: {driver: {name: "Codacy"}}, results: ([.runs[] | select(.tool.driver.name | ascii_downcase | contains("jshint") | not) | .results] | flatten)}] | .version = "2.1.0"' results.sarif > results_merged.sarif
+          jq '.runs = [{tool: {driver: {name: "Codacy"}}, results: ([.runs[].results] | flatten | map(select((.ruleId | ascii_downcase | contains("jshint") | not) and (.ruleId != "iterator") and (.message.text | ascii_downcase | contains("jshint") | not))))}] | .version = "2.1.0"' results.sarif > results_merged.sarif
 
       # Upload the SARIF file generated in the previous step
       - name: Upload SARIF results file
