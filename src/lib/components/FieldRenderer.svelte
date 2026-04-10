@@ -1107,18 +1107,22 @@
             }
           } else if (currentElem.startsWith("targetpoint-")) {
             const parts = currentElem.split("-");
-            const line = Number(parts[1]) - 1;
-            if (lines[line] && lines[line].endPoint) {
+            const lineIdx = Number(parts[1]) - 1;
+            if (lines[lineIdx] && lines[lineIdx].endPoint) {
+              const targetLine = lines[lineIdx];
+              // Check for Global Heading override
+              const isGlobal = targetLine.globalHeading !== undefined && targetLine.globalHeading !== "none";
+              
               if (parts.length > 2 && parts[2] === "piecewise") {
                  const segIdx = Number(parts[3]);
-                 const segments = lines[line].endPoint.segments || [];
+                 const segments = isGlobal ? (targetLine.globalSegments || []) : (targetLine.endPoint.segments || []);
                  if (segments[segIdx]) {
                     objectX = segments[segIdx].targetX || 0;
                     objectY = segments[segIdx].targetY || 0;
                  }
               } else {
-                 objectX = lines[line].endPoint.targetX || 0;
-                 objectY = lines[line].endPoint.targetY || 0;
+                 objectX = (isGlobal ? targetLine.globalTargetX : targetLine.endPoint.targetX) || 0;
+                 objectY = (isGlobal ? targetLine.globalTargetY : targetLine.endPoint.targetY) || 0;
               }
             }
           } else if (currentElem.startsWith("point-")) {
@@ -1153,18 +1157,21 @@
               }
             } else if (id.startsWith("targetpoint-")) {
               const parts = id.split("-");
-              const line = Number(parts[1]) - 1;
-              if (lines[line] && lines[line].endPoint) {
+              const lineIdx = Number(parts[1]) - 1;
+              if (lines[lineIdx] && lines[lineIdx].endPoint) {
+                const targetLine = lines[lineIdx];
+                const isGlobal = targetLine.globalHeading !== undefined && targetLine.globalHeading !== "none";
+                
                 if (parts.length > 2 && parts[2] === "piecewise") {
                    const segIdx = Number(parts[3]);
-                   const segments = lines[line].endPoint.segments || [];
+                   const segments = isGlobal ? (targetLine.globalSegments || []) : (targetLine.endPoint.segments || []);
                    if (segments[segIdx]) {
                       ox = segments[segIdx].targetX || 0;
                       oy = segments[segIdx].targetY || 0;
                    }
                 } else {
-                   ox = lines[line].endPoint.targetX || 0;
-                   oy = lines[line].endPoint.targetY || 0;
+                   ox = (isGlobal ? targetLine.globalTargetX : targetLine.endPoint.targetX) || 0;
+                   oy = (isGlobal ? targetLine.globalTargetY : targetLine.endPoint.targetY) || 0;
                 }
               }
             } else if (id.startsWith("point-")) {
