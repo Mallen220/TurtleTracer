@@ -1009,17 +1009,22 @@ export function calculatePathTime(
         const rev = isGlobalOverride
           ? rootLine.globalReverse
           : (line.endPoint as any).reverse;
+
         if (rev) {
+          // Pedro Pathing reversed linear forces shortest path in opposite direction
           const shortDiff = endDeg - startDeg;
           const normalizedShort = ((shortDiff % 360) + 360) % 360;
           const longDiff =
             normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
-          endHeading = unwrapAngle(startDeg + longDiff, currentHeading);
+          const startUnwound = unwrapAngle(startDeg, currentHeading);
+          endHeading = startUnwound + longDiff;
           rotationRequired = Math.abs(longDiff);
         } else {
-          endHeading = unwrapAngle(endDeg, currentHeading);
+          // Support multi-revolution: preserve the user's start-to-end difference
           const startUnwound = unwrapAngle(startDeg, currentHeading);
-          rotationRequired = Math.abs(endHeading - startUnwound);
+          const totalDiff = endDeg - startDeg;
+          endHeading = startUnwound + totalDiff;
+          rotationRequired = Math.abs(totalDiff);
         }
       } else if (effectiveHeading === "facingPoint") {
         const targetX = isGlobalOverride
@@ -1325,16 +1330,17 @@ export function calculatePathTime(
                if (localT < 0) localT = 0;
                if (localT > 1) localT = 1;
                
+               const startUnwound = unwrapAngle(sDeg, simHeading);
                if (activeSeg.reverse) {
+                  // Shortest path in long direction logic
                   const shortDiff = eDeg - sDeg;
                   const normalizedShort = ((shortDiff % 360) + 360) % 360;
                   const longDiff = normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
-                  const startUnwound = unwrapAngle(sDeg, simHeading);
                   targetHeading = startUnwound + longDiff * localT;
                } else {
-                  let endUnwound = unwrapAngle(eDeg, simHeading);
-                  let startUnwound = unwrapAngle(sDeg, simHeading);
-                  targetHeading = startUnwound + (endUnwound - startUnwound) * localT;
+                  // Support multi-revolution: preserve actual range
+                  const totalDiff = eDeg - sDeg;
+                  targetHeading = startUnwound + totalDiff * localT;
                }
             } else if (activeSeg.heading === "facingPoint") {
                const targetX = activeSeg.targetX || 0;

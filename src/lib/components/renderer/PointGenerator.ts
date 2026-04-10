@@ -97,16 +97,10 @@ export function generatePointElements(
     let segments: any[] | undefined;
 
     if (isGlobalOverride) {
-      // Only the ROOT line shows the global target point
-      if (line.id === rootLine?.id) {
-        headingType = rootLine.globalHeading;
-        targetX = rootLine.globalTargetX;
-        targetY = rootLine.globalTargetY;
-        segments = rootLine.globalSegments;
-      } else {
-        // This line is in a chain but overriden, so it shows NO individual targets
-        headingType = undefined;
-      }
+      headingType = rootLine!.globalHeading;
+      targetX = rootLine!.globalTargetX;
+      targetY = rootLine!.globalTargetY;
+      segments = rootLine!.globalSegments;
     } else {
       // Standard local heading
       headingType = line.endPoint.heading;

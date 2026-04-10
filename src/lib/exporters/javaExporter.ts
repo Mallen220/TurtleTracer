@@ -304,7 +304,11 @@ export async function generateJavaCode(
 
           const constructHeadingMethod = (targetConfig: any) => {
              if (targetConfig.heading === "piecewise") {
-                const segmentsStr = (targetConfig.segments || []).map((seg: any) => {
+                const segs = targetConfig.segments || [];
+                if (segs.length === 0) {
+                   return ".setTangentHeadingInterpolation()";
+                }
+                const segmentsStr = segs.map((seg: any) => {
                    const interpStr = generateInterpolatorString(seg);
                    return `\n          new HeadingInterpolator.PiecewiseNode(${seg.tStart}, ${seg.tEnd}, ${interpStr})`;
                 }).join(",");
