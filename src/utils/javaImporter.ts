@@ -63,7 +63,7 @@ function parsePoseCreation(tokens: string[]): Partial<Point> | null {
         const numStr = currentGroup.slice(parenStart + 1, parenEnd).join("");
         const num = Number.parseFloat(numStr);
         parsedArgs.push({ value: num, isRadians: true });
-        i = parenEnd; // skip
+        i += parenEnd - i; // skip ahead
       }
     } else {
       // Check if it's a number
@@ -315,7 +315,7 @@ export function importJavaProject(javaCode: string): TurtleData {
                     args.push([...currentArgTokens]);
                     currentArgTokens = [];
                     inNewPose = false;
-                    i = j;
+                    i += j - i; // skip ahead to the end of the pose
                     break;
                   }
                 }
