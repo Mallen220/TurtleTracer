@@ -982,6 +982,42 @@
           aria-label={isChain ? "Unchain paths" : "Chain paths"}
           onclick={() => {
             const newIsChain = !(item as any).isChain;
+
+            if (!newIsChain) {
+              // Find the root of the former chain
+              let rootIdx = sIdx;
+              while (
+                rootIdx > 0 &&
+                sequence[rootIdx - 1].kind === "path" &&
+                (sequence[rootIdx] as any).isChain
+              ) {
+                rootIdx--;
+              }
+
+              // Find the end of the former chain
+              let endIdx = sIdx;
+              while (
+                endIdx + 1 < sequence.length &&
+                sequence[endIdx + 1].kind === "path" &&
+                (sequence[endIdx + 1] as any).isChain
+              ) {
+                endIdx++;
+              }
+
+              // Reset globalHeading for all paths in the former chain island
+              for (let i = rootIdx; i <= endIdx; i++) {
+                const sItem = sequence[i];
+                if (sItem.kind === "path") {
+                  const lIdx = lines.findIndex(
+                    (l) => l.id === (sItem as any).lineId,
+                  );
+                  if (lIdx !== -1 && lines[lIdx].globalHeading !== undefined) {
+                    lines[lIdx] = { ...lines[lIdx], globalHeading: undefined };
+                  }
+                }
+              }
+            }
+
             // Need to create a new object to trigger reactivity in Svelte 5 for the `isChain` derived value
             sequence[sIdx] = { ...item, isChain: newIsChain };
 
