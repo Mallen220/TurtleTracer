@@ -309,6 +309,7 @@ export interface Settings {
   autoExportEmbedPoseData?: boolean; // Embed pose data in the generated code
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
   followRobot?: boolean;
+  lockFieldView?: boolean;
   coordinateSystem?: "Pedro" | "FTC";
   visualizerUnits?: "imperial" | "metric";
   codeUnits?: "imperial" | "metric";

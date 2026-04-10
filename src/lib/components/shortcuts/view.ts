@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { get } from "svelte/store";
-import { startPointStore, linesStore } from "../../projectStore";
+import { startPointStore, linesStore, settingsStore } from "../../projectStore";
 import {
   gridSize,
   fieldZoom,
@@ -29,7 +29,7 @@ export function cycleGridSizeReverse() {
 }
 
 export function modifyZoom(delta: number) {
-  if (isUIElementFocused()) return;
+  if (isUIElementFocused() || get(settingsStore).lockFieldView) return;
   fieldZoom.update((z) => {
     // Use adaptive step: when zooming in past 1x, speed up
     const step = computeZoomStep(z, Math.sign(delta));
@@ -39,7 +39,7 @@ export function modifyZoom(delta: number) {
 }
 
 export function resetZoom() {
-  if (isUIElementFocused()) return;
+  if (isUIElementFocused() || get(settingsStore).lockFieldView) return;
   fieldZoom.set(1.0);
   fieldPan.set({ x: 0, y: 0 });
 }
@@ -133,6 +133,6 @@ export function panToEnd(fieldRenderer: any) {
 }
 
 export function panView(dx: number, dy: number) {
-  if (isUIElementFocused()) return;
+  if (isUIElementFocused() || get(settingsStore).lockFieldView) return;
   fieldPan.update((p) => ({ x: p.x + dx, y: p.y + dy }));
 }

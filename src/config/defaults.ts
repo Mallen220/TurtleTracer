@@ -88,6 +88,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dismissedRatings: {},
   hasSeenOnboarding: false,
   gitIntegration: true,
+  lockFieldView: false,
   obstaclePresets: [
     {
       id: "preset-decode-2025",
