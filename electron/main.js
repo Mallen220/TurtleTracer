@@ -207,29 +207,11 @@ const startServer = async () => {
 
   let distPath;
 
-  if (app.isPackaged) {
-    // In production: files are in app.asar at root
-    // But since dist/ is inside app.asar (which is mounted as a file system),
-    // and __dirname is inside app.asar/electron,
-    // path.join(__dirname, "../dist") should resolve to app.asar/dist.
-    // Using process.resourcesPath + "app.asar" works but can be brittle if asar name changes.
-    // However, the issue might be that express.static expects a directory.
-    // Electron's patched fs allows treating app.asar/dist as a directory.
-    // But check if the path is correct.
-    // If __dirname is /.../resources/app.asar/electron
-    // Then ../dist is /.../resources/app.asar/dist.
-
-    // Use the relative path approach as it's more standard for ASAR.
-    distPath = path.join(__dirname, "../dist");
-  } else {
-    // In development
-    distPath = path.join(__dirname, "../dist");
-  }
+  distPath = path.join(__dirname, "../dist");
 
   console.log("Serving static files from:", distPath);
   console.log("__dirname:", __dirname);
   try {
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     const files = await fs.readdir(distPath);
     console.log("Files in distPath:", files);
   } catch (e) {
