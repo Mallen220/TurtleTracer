@@ -39,7 +39,7 @@
   function handleConstantInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = Number.parseFloat(target.value);
-    if (!isNaN(value)) {
+    if (!Number.isNaN(value)) {
       endPoint.degrees = value;
     }
     dispatch("change");
@@ -47,7 +47,7 @@
 
   function handleConstantBlur(e: Event) {
     const target = e.target as HTMLInputElement;
-    if (target.value === "" || isNaN(parseFloat(target.value))) {
+    if (target.value === "" || Number.isNaN(Number.parseFloat(target.value))) {
       endPoint.degrees = 0;
       target.value = "0";
     }
@@ -99,7 +99,7 @@
 
   function updateTransition(i: number, valStr: string) {
     const val = Number.parseFloat(valStr);
-    if (!isNaN(val)) {
+    if (!Number.isNaN(val)) {
       endPoint.segments[i].tStart = val;
       endPoint.segments[i - 1].tEnd = val;
       dispatch("change");
@@ -158,7 +158,7 @@
     if (!target) return;
 
     const index = Number.parseInt(target.element.getAttribute("data-seg-index") || "");
-    if (isNaN(index)) return;
+    if (Number.isNaN(index)) return;
 
     if (dragOverIndex !== index || dragPosition !== target.position) {
       dragOverIndex = index;
@@ -344,7 +344,7 @@
           value={endPoint.startDeg}
           oninput={(e) => {
             const val = Number.parseFloat(e.currentTarget.value);
-            if (!isNaN(val)) endPoint.startDeg = val;
+            if (!Number.isNaN(val)) endPoint.startDeg = val;
             dispatch("change");
           }}
           onblur={() => dispatch("commit")}
@@ -386,7 +386,7 @@
           value={endPoint.endDeg}
           oninput={(e) => {
             const val = Number.parseFloat(e.currentTarget.value);
-            if (!isNaN(val)) endPoint.endDeg = val;
+            if (!Number.isNaN(val)) endPoint.endDeg = val;
             dispatch("change");
           }}
           onblur={() => dispatch("commit")}
@@ -476,7 +476,7 @@
           value={endPoint.targetX}
           oninput={(e) => {
             const val = Number.parseFloat(e.currentTarget.value);
-            if (!isNaN(val)) endPoint.targetX = val;
+            if (!Number.isNaN(val)) endPoint.targetX = val;
             dispatch("change");
           }}
           onblur={() => dispatch("commit")}
@@ -498,7 +498,7 @@
           value={endPoint.targetY}
           oninput={(e) => {
             const val = Number.parseFloat(e.currentTarget.value);
-            if (!isNaN(val)) endPoint.targetY = val;
+            if (!Number.isNaN(val)) endPoint.targetY = val;
             dispatch("change");
           }}
           onblur={() => dispatch("commit")}

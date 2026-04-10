@@ -321,13 +321,13 @@
       // point-0-0 is start point
       const lineNum = Number(parts[1]);
       const pointIdx = Number(parts[2]);
-      if (isNaN(lineNum) || isNaN(pointIdx)) return null;
+      if (Number.isNaN(lineNum) || Number.isNaN(pointIdx)) return null;
       return { type: "point", lineIndex: lineNum - 1, pointIndex: pointIdx };
     } else if (type === "obstacle") {
       // obstacle-{shapeIndex}-{vertexIndex}
       const shapeIdx = Number(parts[1]);
       const vertexIdx = Number(parts[2]);
-      if (isNaN(shapeIdx) || isNaN(vertexIdx)) return null;
+      if (Number.isNaN(shapeIdx) || Number.isNaN(vertexIdx)) return null;
       return {
         type: "obstacle",
         shapeIndex: shapeIdx,
@@ -337,7 +337,7 @@
       // event-{lineIndex}-{eventIndex}
       const lineIdx = Number(parts[1]);
       const evIdx = Number(parts[2]);
-      if (isNaN(lineIdx) || isNaN(evIdx)) return null;
+      if (Number.isNaN(lineIdx) || Number.isNaN(evIdx)) return null;
       return { type: "event", lineIndex: lineIdx, eventIndex: evIdx };
     } else if (type === "wait" && parts[1] === "event") {
       // wait-event-{waitId}-{eventIndex}
@@ -1029,7 +1029,7 @@
             const lineNum = Number(parts[1]);
             const pointIdx = Number(parts[2]);
             let lId = null;
-            if (!isNaN(lineNum) && lineNum > 0) {
+            if (!Number.isNaN(lineNum) && lineNum > 0) {
               const lineIndex = lineNum - 1;
               const line = lines[lineIndex];
               if (line && line.id) {
@@ -1058,14 +1058,14 @@
           } else if (currentElem.startsWith("targetpoint-")) {
             const parts = currentElem.split("-");
             const lineIdx = Number(parts[1]) - 1;
-            if (!isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            if (!Number.isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
               selectedLineId.set(lines[lineIdx].id as string);
               selectedPointId.set(currentElem);
             }
           } else if (currentElem.startsWith("event-")) {
             const parts = currentElem.split("-");
             const lineIdx = Number(parts[1]);
-            if (!isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            if (!Number.isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
               selectedLineId.set(lines[lineIdx].id as string);
               selectedPointId.set(currentElem);
             }

@@ -495,7 +495,7 @@
                 value={formatDisplayCoordinate(userPoint.x, $settingsStore)}
                 oninput={(e) => {
                   let val = Number.parseFloat(e.currentTarget.value);
-                  if (!isNaN(val)) {
+                  if (!Number.isNaN(val)) {
                     if ($settingsStore.visualizerUnits === "metric") {
                       val = cmToInch(val);
                     }
@@ -530,7 +530,7 @@
                 value={formatDisplayCoordinate(userPoint.y, $settingsStore)}
                 oninput={(e) => {
                   let val = Number.parseFloat(e.currentTarget.value);
-                  if (!isNaN(val)) {
+                  if (!Number.isNaN(val)) {
                     if ($settingsStore.visualizerUnits === "metric") {
                       val = cmToInch(val);
                     }

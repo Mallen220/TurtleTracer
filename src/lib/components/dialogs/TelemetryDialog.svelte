@@ -102,7 +102,7 @@
       // Optional heading
       const h = hIdx >= 0 && parts[hIdx] ? Number(parts[hIdx]) : 0;
 
-      if (!isNaN(t) && !isNaN(x) && !isNaN(y)) {
+      if (!Number.isNaN(t) && !Number.isNaN(x) && !Number.isNaN(y)) {
         points.push({ time: t, x, y, heading: h });
       }
     }

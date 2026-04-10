@@ -244,7 +244,7 @@
   ) {
     const input = e.target as HTMLInputElement;
     let val = Number.parseFloat(input.value);
-    if (!isNaN(val)) {
+    if (!Number.isNaN(val)) {
       if (
         settings?.visualizerUnits === "metric" &&
         (field === "x" || field === "y")
@@ -429,7 +429,7 @@
     if (!target) return;
 
     const index = Number.parseInt(target.element.getAttribute("data-seq-index") || "");
-    if (isNaN(index)) return;
+    if (Number.isNaN(index)) return;
 
     // Start Point special case: cannot drop before it (index -1, top)
     if (index === -1 && target.position === "top") return;
@@ -499,7 +499,7 @@
         const idx = Number.parseInt(
           target.element.getAttribute("data-seq-index") || "",
         );
-        if (!isNaN(idx)) {
+        if (!Number.isNaN(idx)) {
           dropIndex = target.position === "bottom" ? idx + 1 : idx;
         }
       }

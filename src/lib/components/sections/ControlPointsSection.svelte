@@ -99,7 +99,7 @@
     if (!target) return;
 
     const index = Number.parseInt(target.element.getAttribute("data-cp-index") || "");
-    if (isNaN(index)) return;
+    if (Number.isNaN(index)) return;
 
     if (dragOverIndex !== index || dragPosition !== target.position) {
       dragOverIndex = index;
@@ -302,7 +302,7 @@
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} X"
                   oninput={(e) => {
                     const val = Number.parseFloat(e.currentTarget.value);
-                    if (!isNaN(val)) {
+                    if (!Number.isNaN(val)) {
                       const userPt = toUser(
                         point,
                         $settingsStore.coordinateSystem || "Pedro",
@@ -339,7 +339,7 @@
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} Y"
                   oninput={(e) => {
                     const val = Number.parseFloat(e.currentTarget.value);
-                    if (!isNaN(val)) {
+                    if (!Number.isNaN(val)) {
                       const userPt = toUser(
                         point,
                         $settingsStore.coordinateSystem || "Pedro",

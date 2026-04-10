@@ -259,7 +259,7 @@
 
   function commitTime() {
     const t = parseTime(timeInputValue);
-    if (!isNaN(t) && totalSeconds > 0) {
+    if (!Number.isNaN(t) && totalSeconds > 0) {
       const pct = (t / totalSeconds) * 100;
       handleSeek(Math.max(0, Math.min(100, pct)));
     }

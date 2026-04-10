@@ -42,7 +42,7 @@
       return;
     }
     let num = Number.parseFloat(value);
-    if (isNaN(num)) num = 0;
+    if (Number.isNaN(num)) num = 0;
     if (min !== undefined) num = Math.max(min, num);
     if (max !== undefined) num = Math.min(max, num);
     (settings as any)[property] = num;
@@ -107,7 +107,7 @@
   function handleAngularVelocityInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const val = Number.parseFloat(target.value);
-    if (isNaN(val)) return;
+    if (Number.isNaN(val)) return;
 
     if (angularVelocityUnit === "rad") {
       settings.aVelocity = val * Math.PI;
@@ -130,7 +130,7 @@
   function handleMaxAngularAccelerationInput(e: Event) {
     const target = e.target as HTMLInputElement;
     let val = Number.parseFloat(target.value);
-    if (isNaN(val)) val = 0;
+    if (Number.isNaN(val)) val = 0;
     if (val < 0) val = 0;
 
     if (angularVelocityUnit === "rad") {
