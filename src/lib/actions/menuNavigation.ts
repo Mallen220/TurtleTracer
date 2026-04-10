@@ -6,8 +6,10 @@
  */
 export function menuNavigation(
   node: HTMLElement,
-  options: { focusOnMount?: boolean } = { focusOnMount: true },
+  options?: { focusOnMount?: boolean },
 ) {
+  const { focusOnMount = true } = options ?? {};
+
   const getFocusableItems = () =>
     Array.from(
       node.querySelectorAll<HTMLElement>(
@@ -15,7 +17,7 @@ export function menuNavigation(
       ),
     ).filter((el) => el.offsetParent !== null); // Visible only
 
-  if (options.focusOnMount) {
+  if (focusOnMount) {
     // Small timeout to allow DOM to settle if needed
     requestAnimationFrame(() => {
       const items = getFocusableItems();
