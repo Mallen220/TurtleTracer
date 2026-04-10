@@ -228,7 +228,7 @@
   }
 
   function handleWheel(e: WheelEvent) {
-    if (!wrapperDiv) return;
+    if (!wrapperDiv || settings.lockFieldView) return;
     if (e.ctrlKey || e.metaKey) {
       followRobotStore.set(false);
       e.preventDefault();
@@ -1213,7 +1213,7 @@
             }
             multiDragOffsets.set(id, { x: ox - mouseX, y: oy - mouseY });
           });
-        } else {
+        } else if (!settings.lockFieldView) {
           // Start Panning
           isPanning = true;
           startPan = { x: evt.clientX, y: evt.clientY };
@@ -2484,73 +2484,79 @@
       isObstructed={isObstructingHUD}
     />
 
-    <!-- Zoom Controls -->
-    <div
-      class="absolute bottom-2 right-2 flex flex-col gap-1 z-30 bg-white/80 dark:bg-neutral-800/80 p-1 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
-    >
-      {#if isDirty}
-        <button
-          class="w-7 h-7 flex items-center justify-center rounded transition-colors {isDiffMode
-            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
-            : 'hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200'}"
-          onclick={toggleDiff}
-          aria-label={isDiffMode ? "Exit Visual Diff" : "Toggle Visual Diff"}
-          title={isDiffMode ? "Exit Diff Mode" : "Compare with Saved"}
-        >
-          {#if $isLoadingDiff}
-            <SpinnerIcon className="animate-spin w-4 h-4" />
-          {:else}
-            <!-- Diff Icon -->
-            <DocumentIcon className="w-4 h-4" />
+    {#if isDirty || !settings.lockFieldView}
+      <!-- Zoom Controls -->
+      <div
+        class="absolute bottom-2 right-2 flex flex-col gap-1 z-30 bg-white/80 dark:bg-neutral-800/80 p-1 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
+      >
+        {#if isDirty}
+          <button
+            class="w-7 h-7 flex items-center justify-center rounded transition-colors {isDiffMode
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+              : 'hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200'}"
+            onclick={toggleDiff}
+            aria-label={isDiffMode ? "Exit Visual Diff" : "Toggle Visual Diff"}
+            title={isDiffMode ? "Exit Diff Mode" : "Compare with Saved"}
+          >
+            {#if $isLoadingDiff}
+              <SpinnerIcon className="animate-spin w-4 h-4" />
+            {:else}
+              <!-- Diff Icon -->
+              <DocumentIcon className="w-4 h-4" />
+            {/if}
+          </button>
+          {#if !settings.lockFieldView}
+            <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
           {/if}
-        </button>
-        <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
-      {/if}
-      <button
-        class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-        onclick={() => {
-          followRobotStore.set(false);
-          const step = computeZoomStep(zoom, 1);
-          const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
-          const focus = isMouseOverField
-            ? { x: x(currentMouseX), y: y(currentMouseY) }
-            : { x: width / 2, y: height / 2 };
-          zoomTo(newZoom, focus);
-        }}
-        aria-label="Zoom in"
-        title="Zoom In (Cmd/Ctrl + +)"
-      >
-        <PlusIcon className="w-4 h-4" />
-      </button>
-      <button
-        class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-        onclick={() => {
-          followRobotStore.set(false);
-          const step = computeZoomStep(zoom, -1);
-          const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
-          const focus = isMouseOverField
-            ? { x: x(currentMouseX), y: y(currentMouseY) }
-            : { x: width / 2, y: height / 2 };
-          zoomTo(newZoom, focus);
-        }}
-        aria-label="Zoom out"
-        title="Zoom Out (Cmd/Ctrl + -)"
-      >
-        <MinusIcon className="w-4 h-4" />
-      </button>
-      <button
-        class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-        onclick={() => {
-          followRobotStore.set(false);
-          fieldZoom.set(1.0);
-          fieldPan.set({ x: 0, y: 0 });
-        }}
-        aria-label="Reset zoom"
-        title="Reset Zoom (Cmd/Ctrl + 0)"
-      >
-        <ResetZoomIcon className="w-4 h-4" />
-      </button>
-    </div>
+        {/if}
+        {#if !settings.lockFieldView}
+          <button
+            class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              const step = computeZoomStep(zoom, 1);
+              const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
+              const focus = isMouseOverField
+                ? { x: x(currentMouseX), y: y(currentMouseY) }
+                : { x: width / 2, y: height / 2 };
+              zoomTo(newZoom, focus);
+            }}
+            aria-label="Zoom in"
+            title="Zoom In (Cmd/Ctrl + +)"
+          >
+            <PlusIcon className="w-4 h-4" />
+          </button>
+          <button
+            class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              const step = computeZoomStep(zoom, -1);
+              const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
+              const focus = isMouseOverField
+                ? { x: x(currentMouseX), y: y(currentMouseY) }
+                : { x: width / 2, y: height / 2 };
+              zoomTo(newZoom, focus);
+            }}
+            aria-label="Zoom out"
+            title="Zoom Out (Cmd/Ctrl + -)"
+          >
+            <MinusIcon className="w-4 h-4" />
+          </button>
+          <button
+            class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              fieldZoom.set(1.0);
+              fieldPan.set({ x: 0, y: 0 });
+            }}
+            aria-label="Reset zoom"
+            title="Reset Zoom (Cmd/Ctrl + 0)"
+          >
+            <ResetZoomIcon className="w-4 h-4" />
+          </button>
+        {/if}
+      </div>
+    {/if}
   {/if}
 
   {#if $isPresentationMode}
@@ -2561,51 +2567,53 @@
       <div
         class="flex flex-col gap-1 bg-white/90 dark:bg-neutral-800/90 p-1.5 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
       >
-        <button
-          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-          onclick={() => {
-            followRobotStore.set(false);
-            const step = computeZoomStep(zoom, 1);
-            const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
-            const focus = isMouseOverField
-              ? { x: x(currentMouseX), y: y(currentMouseY) }
-              : { x: width / 2, y: height / 2 };
-            zoomTo(newZoom, focus);
-          }}
-          aria-label="Zoom in"
-          title="Zoom In"
-        >
-          <PlusIcon className="w-5 h-5" />
-        </button>
-        <button
-          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-          onclick={() => {
-            followRobotStore.set(false);
-            const step = computeZoomStep(zoom, -1);
-            const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
-            const focus = isMouseOverField
-              ? { x: x(currentMouseX), y: y(currentMouseY) }
-              : { x: width / 2, y: height / 2 };
-            zoomTo(newZoom, focus);
-          }}
-          aria-label="Zoom out"
-          title="Zoom Out"
-        >
-          <MinusIcon className="w-5 h-5" />
-        </button>
-        <button
-          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-          onclick={() => {
-            followRobotStore.set(false);
-            fieldZoom.set(1.0);
-            fieldPan.set({ x: 0, y: 0 });
-          }}
-          aria-label="Reset zoom"
-          title="Reset Zoom"
-        >
-          <ResetZoomIcon className="w-5 h-5" />
-        </button>
-        <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
+        {#if !settings.lockFieldView}
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              const step = computeZoomStep(zoom, 1);
+              const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
+              const focus = isMouseOverField
+                ? { x: x(currentMouseX), y: y(currentMouseY) }
+                : { x: width / 2, y: height / 2 };
+              zoomTo(newZoom, focus);
+            }}
+            aria-label="Zoom in"
+            title="Zoom In"
+          >
+            <PlusIcon className="w-5 h-5" />
+          </button>
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              const step = computeZoomStep(zoom, -1);
+              const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
+              const focus = isMouseOverField
+                ? { x: x(currentMouseX), y: y(currentMouseY) }
+                : { x: width / 2, y: height / 2 };
+              zoomTo(newZoom, focus);
+            }}
+            aria-label="Zoom out"
+            title="Zoom Out"
+          >
+            <MinusIcon className="w-5 h-5" />
+          </button>
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              fieldZoom.set(1.0);
+              fieldPan.set({ x: 0, y: 0 });
+            }}
+            aria-label="Reset zoom"
+            title="Reset Zoom"
+          >
+            <ResetZoomIcon className="w-5 h-5" />
+          </button>
+          <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
+        {/if}
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
           onclick={() => isPresentationMode.set(false)}
