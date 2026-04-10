@@ -200,7 +200,7 @@ function transformMacroData(
  */
 export function normalizePath(p: string): string {
   if (!p) return "";
-  return p.replaceAll(/\\/g, "/").toLowerCase();
+  return p.replaceAll(`\\`, "/").toLowerCase();
 }
 
 export function updateCurrentHeading(

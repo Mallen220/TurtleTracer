@@ -46,7 +46,9 @@ function resolveMacExecutable(releaseDir: string): string {
     ]);
     if (binary) return binary;
 
-    throw new Error(`Could not find macOS binary inside ${appPath}/Contents/MacOS`);
+    throw new Error(
+      `Could not find macOS binary inside ${appPath}/Contents/MacOS`,
+    );
   }
 
   throw new Error(`Could not find .app in ${releaseDir}`);
@@ -58,9 +60,7 @@ function resolveWindowsExecutable(releaseDir: string): string {
     throw new Error(`Could not find executable in ${releaseDir}/win-unpacked`);
   }
 
-  const exePath = findFirstExisting([
-    path.join(fullDir, "Turtle Tracer.exe"),
-  ]);
+  const exePath = findFirstExisting([path.join(fullDir, "Turtle Tracer.exe")]);
 
   if (exePath) return exePath;
   throw new Error(`Could not find executable in ${releaseDir}/win-unpacked`);
@@ -69,7 +69,9 @@ function resolveWindowsExecutable(releaseDir: string): string {
 function resolveLinuxExecutable(releaseDir: string): string {
   const fullDir = path.join(releaseDir, "linux-unpacked");
   if (!fs.existsSync(fullDir)) {
-    throw new Error(`Could not find executable in ${releaseDir}/linux-unpacked`);
+    throw new Error(
+      `Could not find executable in ${releaseDir}/linux-unpacked`,
+    );
   }
 
   const binaryPath = findFirstExisting([
