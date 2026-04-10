@@ -145,11 +145,11 @@ describe("scanEventsInDirectory", () => {
     let storeVal: string[] = [];
     diskEventNamesStore.subscribe((v) => (storeVal = v))();
 
-    expect([
-      ...storeVal,
-    ].sort((a, b) =>
-      a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
-    )).toEqual(["Event1", "Event2", "SeqEvent"]);
+    expect(
+      [...storeVal].sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
+      ),
+    ).toEqual(["Event1", "Event2", "SeqEvent"]);
   });
 
   it("should handle parsing errors gracefully", async () => {

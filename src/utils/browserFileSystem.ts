@@ -32,7 +32,7 @@ function getDB(): Promise<IDBDatabase> {
 
 async function initCache(): Promise<void> {
   if (cacheInitialized) return;
-  if (initPromise) return initPromise;
+  if (initPromise !== null) return initPromise;
 
   initPromise = (async () => {
     const db = await getDB();
