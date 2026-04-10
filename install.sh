@@ -30,7 +30,7 @@ print_logo() {
 RENAME_NOTICE_SHOWN=0
 
 show_rename_notice() {
-    if [ "$RENAME_NOTICE_SHOWN" -eq 0 ]; then
+    if [[ "$RENAME_NOTICE_SHOWN" -eq 0 ]]; then
         echo -e "${YELLOW}"
         echo "===================================================================="
         echo "IMPORTANT: PROJECT RENAMED"
@@ -60,9 +60,9 @@ migrate_settings() {
     local migrated=0
 
     for old_path in "${old_paths[@]}"; do
-        if [ -d "$old_path" ]; then
+        if [[ -d "$old_path" ]]; then
             show_rename_notice
-            if [ ! -d "$new_path" ]; then
+            if [[ ! -d "$new_path" ]]; then
                 print_info "Migrating settings from \"$old_path\" to \"$new_path\"..."
                 mkdir -p "$(dirname "$new_path")"
                 if mv "$old_path" "$new_path"; then
@@ -86,7 +86,7 @@ migrate_settings() {
         fi
     done
 
-    if [ "$migrated" -eq 1 ]; then
+    if [[ "$migrated" -eq 1 ]]; then
         print_status "Settings migration complete."
     fi
 }
@@ -122,7 +122,7 @@ remove_legacy_mac_apps() {
     )
     local found=0
     for app_path in "${legacy_apps[@]}"; do
-        if [ -d "$app_path" ]; then
+        if [[ -d "$app_path" ]]; then
             show_rename_notice
             print_status "Removing legacy app: $app_path"
             sudo rm -rf "$app_path"
@@ -144,11 +144,11 @@ remove_legacy_appimages() {
         -iname "PedroPathingVisualizer*.AppImage" \
     \) 2>/dev/null)
 
-    if [ -n "$old_appimages" ]; then
+    if [[ -n "$old_appimages" ]]; then
         show_rename_notice
         print_info "Removing legacy AppImage(s)..."
         while IFS= read -r old; do
-            [ -z "$old" ] && continue
+            [[ -z "$old" ]] && continue
             rm -f "$old"
         done <<< "$old_appimages"
     fi
@@ -162,7 +162,7 @@ cleanup_legacy_desktop_entries() {
     )
 
     for entry in "${entries[@]}"; do
-        if [ -f "$entry" ]; then
+        if [[ -f "$entry" ]]; then
             show_rename_notice
             print_info "Removing legacy desktop entry: $entry"
             rm -f "$entry"
@@ -171,11 +171,11 @@ cleanup_legacy_desktop_entries() {
 
     # System-wide legacy desktop entries (best-effort cleanup)
     legacy_system_files=$(grep -l -E "Pedro Pathing Plus Visualizer|Pedro Pathing Visualizer|pedro-pathing-plus-visualizer|pedro-pathing-visualizer" /usr/share/applications/*.desktop 2>/dev/null || true)
-    if [ -n "$legacy_system_files" ]; then
+    if [[ -n "$legacy_system_files" ]]; then
         show_rename_notice
         print_info "Removing legacy system desktop entries..."
         while IFS= read -r entry; do
-            [ -z "$entry" ] && continue
+            [[ -z "$entry" ]] && continue
             sudo rm -f "$entry" || true
         done <<< "$legacy_system_files"
     fi
@@ -191,7 +191,7 @@ get_download_urls() {
     local pattern=$1
     local api_url
     
-    if [ -n "$SELECTED_VERSION" ]; then
+    if [[ -n "$SELECTED_VERSION" ]]; then
         api_url="https://api.github.com/repos/Mallen220/TurtleTracer/releases/tags/v${SELECTED_VERSION}"
     else
         api_url="https://api.github.com/repos/Mallen220/TurtleTracer/releases/latest"
@@ -226,21 +226,21 @@ select_asset_by_pattern() {
     # Read output into an array in a portable way
     urls=()
     url_output=$(get_download_urls "$pattern")
-    if [ -z "$url_output" ]; then
+    if [[ -z "$url_output" ]]; then
         echo ""; return
     fi
     while IFS= read -r line; do
         # skip empty lines and trim whitespace
         line=$(echo "$line" | xargs)
-        [ -z "$line" ] && continue
+        [[ -z "$line" ]] && continue
         urls+=("$line")
     done <<< "$url_output"
 
-    if [ ${#urls[@]} -eq 0 ]; then
+    if [[ ${#urls[@]} -eq 0 ]]; then
         echo ""; return
     fi
 
-    if [ ${#urls[@]} -eq 1 ]; then
+    if [[ ${#urls[@]} -eq 1 ]]; then
         echo "${urls[0]}" | xargs
         return
     fi
@@ -272,7 +272,7 @@ select_asset_by_pattern() {
     done
     
     # If on x86_64/amd64 and no explicit match, exclude arm/aarch variants
-    if [ -z "$auto_match_url" ] && [[ "$arch" != "arm64" && "$arch" != "aarch64" ]]; then
+    if [[ -z "$auto_match_url" ]] && [[ "$arch" != "arm64" && "$arch" != "aarch64" ]]; then
         for u in "${urls[@]}"; do
             fname=$(basename "$u")
             if ! echo "$fname" | grep -Eiq "(arm64|aarch64|arm)"; then
@@ -288,7 +288,7 @@ select_asset_by_pattern() {
     echo "Multiple assets found for pattern: $pattern" >&2
     echo "" >&2
     
-    if [ -n "$auto_match_url" ]; then
+    if [[ -n "$auto_match_url" ]]; then
         printf "  [A] Auto-detect for %s → %s (recommended)\n" "$arch_display" "$auto_match_name" >&2
     else
         printf "  [A] Auto-detect for %s (no match found)\n" "$arch_display" >&2
@@ -307,13 +307,13 @@ select_asset_by_pattern() {
         read -p "Select an asset [A/1-$((i-1))/0] (Default: A): " sel < /dev/tty
         
         # Default to auto if empty
-        if [ -z "$sel" ]; then
+        if [[ -z "$sel" ]]; then
             sel="A"
         fi
         
         # Handle auto-detect
         if [[ "$sel" == "A" || "$sel" == "a" ]]; then
-            if [ -n "$auto_match_url" ]; then
+            if [[ -n "$auto_match_url" ]]; then
                 print_status "Auto-selected: $auto_match_name" >&2
                 echo "$auto_match_url" | xargs
                 return
@@ -324,11 +324,11 @@ select_asset_by_pattern() {
         fi
         
         if printf "%s" "$sel" | grep -Eq "^[0-9]+$"; then
-            if [ "$sel" -eq 0 ]; then
+            if [[ "$sel" -eq 0 ]]; then
                 read -p "Enter full download URL: " manual < /dev/tty
                 echo "$manual" | xargs
                 return
-            elif [ "$sel" -ge 1 ] && [ "$sel" -lt "$i" ]; then
+            elif [[ "$sel" -ge 1 ]] && [[ "$sel" -lt "$i" ]]; then
                 echo "${urls[$((sel-1))]}" | xargs
                 return
             fi
@@ -353,7 +353,7 @@ install_dependencies() {
             deps+=("zlib1g")
         fi
         
-        if [ ${#deps[@]} -gt 0 ]; then
+        if [[ ${#deps[@]} -gt 0 ]]; then
             print_warning "Missing dependencies: ${deps[*]}"
             print_status "Installing missing dependencies (requires sudo)..."
             sudo apt-get update
@@ -395,7 +395,7 @@ patch_deb_desktop_file() {
     # usually in /usr/share/applications/turtle-tracer.desktop
     DESKTOP_FILE=$(grep -l -E "Turtle Tracer|Pedro Pathing Plus Visualizer|Pedro Pathing Visualizer" /usr/share/applications/*.desktop 2>/dev/null | head -n 1)
     
-    if [ -f "$DESKTOP_FILE" ]; then
+    if [[ -f "$DESKTOP_FILE" ]]; then
         print_status "Found desktop file at $DESKTOP_FILE"
         
         # Read the current Exec line
@@ -467,10 +467,10 @@ install_mac() {
     DOWNLOAD_URL=$(select_asset_by_pattern "\.dmg")
 
     # Fallback for Intel macs: if no DMG found via the general selector, try explicit conventional names
-    if [ -z "$DOWNLOAD_URL" ] && [[ "$(uname -m)" == "x86_64" || "$(uname -m)" == "i386" ]]; then
+    if [[ -z "$DOWNLOAD_URL" ]] && [[ "$(uname -m)" == "x86_64" || "$(uname -m)" == "i386" ]]; then
         print_info "No DMG auto-selected; attempting Intel mac fallback filenames..."
         version=$(get_latest_version)
-        if [ -n "$version" ]; then
+        if [[ -n "$version" ]]; then
             # Candidate filename patterns to try (covers common naming conventions and the requested variant)
             candidates=(
                 "Turtle-Tracer-${version}.dmg"
@@ -486,7 +486,7 @@ install_mac() {
                 # Escape dots for regex, search by basename match
                 pattern="$(echo "$c" | sed 's/\./\\./g')$"
                 url=$(get_download_urls "$pattern")
-                if [ -n "$url" ]; then
+                if [[ -n "$url" ]]; then
                     DOWNLOAD_URL="$url"
                     print_status "Found DMG via fallback: $(basename "$url")"
                     break
@@ -495,10 +495,10 @@ install_mac() {
         fi
     fi
 
-    if [ -z "$DOWNLOAD_URL" ]; then
+    if [[ -z "$DOWNLOAD_URL" ]]; then
         print_error "No DMG found in latest release. You can manually provide a direct download URL."
         read -p "Enter a direct .dmg download URL: " DOWNLOAD_URL < /dev/tty
-        if [ -z "$DOWNLOAD_URL" ]; then
+        if [[ -z "$DOWNLOAD_URL" ]]; then
             print_error "No URL provided. Aborting."
             exit 1
         fi
@@ -521,7 +521,7 @@ install_mac() {
     fi
     
     APP_SOURCE=$(find "$TEMP_MOUNT" -name "*.app" -type d -maxdepth 2 | head -1)
-    if [ -z "$APP_SOURCE" ]; then
+    if [[ -z "$APP_SOURCE" ]]; then
         print_error "App not found in DMG"
         hdiutil detach "$TEMP_MOUNT" -quiet
         rm "$DMG_PATH"
@@ -531,7 +531,7 @@ install_mac() {
     
     # Cleanup old version only after successful download and mount
     remove_legacy_mac_apps
-    if [ -d "/Applications/Turtle Tracer.app" ]; then
+    if [[ -d "/Applications/Turtle Tracer.app" ]]; then
         print_status "Removing existing Turtle Tracer app..."
         sudo rm -rf "/Applications/Turtle Tracer.app"
     fi
@@ -570,7 +570,7 @@ install_linux() {
         candidate_url=$(select_asset_by_pattern "\.AppImage|\.deb|\.tar\.gz")
     fi
 
-    if [ -z "$candidate_url" ]; then
+    if [[ -z "$candidate_url" ]]; then
         # This should rarely happen now since the selector shows all options
         print_error "No Linux assets found in latest release."
         print_info "Available assets for this platform:"
@@ -579,7 +579,7 @@ install_linux() {
         done
         echo "" >&2
         read -p "Enter a direct download URL (AppImage, .deb, or .tar.gz): " candidate_url < /dev/tty
-        if [ -z "$candidate_url" ]; then
+        if [[ -z "$candidate_url" ]]; then
             print_error "No URL provided. Aborting."
             exit 1
         fi
@@ -598,10 +598,10 @@ install_linux() {
 
         # Remove any previously installed AppImages to avoid stale versions
         old_appimages=$(find "$INSTALL_DIR" -maxdepth 1 -type f \( -iname "Turtle-Tracer*.AppImage" -o -iname "turtle-tracer*.appimage" \) 2>/dev/null)
-        if [ -n "$old_appimages" ]; then
+        if [[ -n "$old_appimages" ]]; then
             print_info "Removing old AppImage(s)..."
             while IFS= read -r old; do
-                [ -z "$old" ] && continue
+                [[ -z "$old" ]] && continue
                 rm -f "$old"
             done <<< "$old_appimages"
         fi
@@ -621,7 +621,7 @@ install_linux() {
         install_icon
 
         # Optional: Create Desktop Entry
-        if [ -d "$HOME/.local/share/applications" ]; then
+        if [[ -d "$HOME/.local/share/applications" ]]; then
             print_info "Creating desktop entry..."
             cat > "$HOME/.local/share/applications/turtle-tracer.desktop" << EOL
 [Desktop Entry]
@@ -669,7 +669,7 @@ EOL
         DEST_DIR="$INSTALL_DIR/turtle-tracer"
 
         # Clean previous extracted version so the new one replaces it
-        if [ -d "$DEST_DIR" ]; then
+        if [[ -d "$DEST_DIR" ]]; then
             print_info "Removing previous install at $DEST_DIR..."
             rm -rf "$DEST_DIR"
         fi
@@ -711,7 +711,7 @@ echo "3) Windows (Info)"
 echo ""
 read -p "Enter choice [1-3] (Default: Auto-detect): " CHOICE < /dev/tty
 
-if [ -z "$CHOICE" ]; then
+if [[ -z "$CHOICE" ]]; then
     case "$DETECTED_OS" in
         "macOS") CHOICE=1 ;;
         "Linux") CHOICE=2 ;;
@@ -725,7 +725,7 @@ print_info "Checking for available versions..."
 LATEST_VERSION=$(get_latest_version)
 PRERELEASE_VERSION=$(get_prerelease_version)
 
-if [ -n "$PRERELEASE_VERSION" ] && [ "$PRERELEASE_VERSION" != "$LATEST_VERSION" ]; then
+if [[ -n "$PRERELEASE_VERSION" ]] && [[ "$PRERELEASE_VERSION" != "$LATEST_VERSION" ]]; then
     echo ""
     print_info "Pre-release version available!"
     echo ""
@@ -735,7 +735,7 @@ if [ -n "$PRERELEASE_VERSION" ] && [ "$PRERELEASE_VERSION" != "$LATEST_VERSION" 
     echo ""
     read -p "Enter choice [1-2] (Default: 1): " VERSION_CHOICE < /dev/tty
     
-    if [ -z "$VERSION_CHOICE" ]; then
+    if [[ -z "$VERSION_CHOICE" ]]; then
         VERSION_CHOICE=1
     fi
     
@@ -755,7 +755,7 @@ if [ -n "$PRERELEASE_VERSION" ] && [ "$PRERELEASE_VERSION" != "$LATEST_VERSION" 
     esac
     echo ""
 else
-    if [ -n "$LATEST_VERSION" ]; then
+    if [[ -n "$LATEST_VERSION" ]]; then
         SELECTED_VERSION="$LATEST_VERSION"
         print_status "Using latest release: v$LATEST_VERSION"
         echo ""
