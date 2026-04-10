@@ -1602,7 +1602,7 @@
           // Add a theme-specific class so we can scope CSS for multiple custom themes
           const themeClass = `theme-${t
             .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")}`;
+            .replaceAll(/[^a-z0-9]+/g, "-")}`;
           if (
             currentCustomThemeClass &&
             currentCustomThemeClass !== themeClass

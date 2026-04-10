@@ -626,8 +626,8 @@ export async function handleExternalFileOpen(filePath: string) {
     }
 
     // 3. Check if file is already in the working directory
-    const normFilePath = filePath.replace(/\\/g, "/").toLowerCase();
-    let normSavedDir = savedDir.replace(/\\/g, "/").toLowerCase();
+    const normFilePath = filePath.replaceAll(/\\/g, "/").toLowerCase();
+    let normSavedDir = savedDir.replaceAll(/\\/g, "/").toLowerCase();
     if (!normSavedDir.endsWith("/")) normSavedDir += "/";
 
     if (normFilePath.startsWith(normSavedDir)) {

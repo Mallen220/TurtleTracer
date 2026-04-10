@@ -210,7 +210,7 @@ export class PluginManager {
 
         // Register dynamically with new system
         exporterRegistry.register({
-          id: `custom-${name.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
+          id: `custom-${name.toLowerCase().replaceAll(/[^a-z0-9]/g, "-")}`,
           name: name,
           description: `Custom exporter provided by plugin ${filename}`,
           exportCode: (data: any, settings: any) => handler(data),

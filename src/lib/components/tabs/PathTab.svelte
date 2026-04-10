@@ -275,7 +275,7 @@
     const macroId = makeId();
     // Default name from filename
     let name = filePath.split(/[\\/]/).pop() || "Macro";
-    name = name.replace(/\.(pp|turt)$/i, "");
+    name = name.replaceAll(/\.(pp|turt)$/gi, "");
 
     const newItem: SequenceMacroItem = {
       kind: "macro",

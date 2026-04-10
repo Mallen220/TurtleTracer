@@ -475,7 +475,7 @@
       ? $currentFilePath
           .split(/[\\/]/)
           .pop()
-          ?.replace(/\.(pp|turt)$/i, "")
+          ?.replaceAll(/\.(pp|turt)$/gi, "")
       : "Untitled Project",
   );
 </script>

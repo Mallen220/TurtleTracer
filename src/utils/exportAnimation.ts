@@ -73,7 +73,7 @@ async function renderFrameToCanvas(
   const hasNs = svgString.indexOf("xmlns=") >= 0;
   const svgWithNs = hasNs
     ? svgString
-    : svgString.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+    : svgString.replaceAll("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
   const data =
     "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgWithNs);
 

@@ -86,7 +86,7 @@
                     Math.abs(result.statsDiff.distance.diff),
                     settings,
                     2,
-                  ).replace("-", "")}
+                  ).replaceAll("-", "")}
               </span>
             {/if}
           </div>

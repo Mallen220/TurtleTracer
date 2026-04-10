@@ -378,7 +378,7 @@
   run(() => {
     if (renamingFile) {
       if (renamingFile.path !== lastRenamingPath) {
-        renameInput = renamingFile.name.replace(/\.(pp|turt)$/i, "");
+        renameInput = renamingFile.name.replaceAll(/\.(pp|turt)$/gi, "");
         lastRenamingPath = renamingFile.path;
       }
     } else {
@@ -505,7 +505,7 @@
                   class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate"
                   title={file.name}
                 >
-                  {file.name.replace(/\.(pp|turt)$/i, "")}
+                  {file.name.replaceAll(/\.(pp|turt)$/gi, "")}
                 </span>
                 <div class="flex items-center gap-1">
                   {#if showGitStatus && file.gitStatus && file.gitStatus !== "clean"}

@@ -89,7 +89,7 @@
 
     // Gradient
     const defs = svg.append("defs");
-    const gradientId = `gradient-${label.replace(/\s+/g, "-")}`;
+    const gradientId = `gradient-${label.replaceAll(/\s+/g, "-")}`;
     const gradient = defs
       .append("linearGradient")
       .attr("id", gradientId)

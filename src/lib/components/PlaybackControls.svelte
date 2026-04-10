@@ -245,11 +245,11 @@
 
   function handleTimeFocus() {
     isEditingTime = true;
-    timeInputValue = timeInputValue.replace("s", "");
+    timeInputValue = timeInputValue.replaceAll("s", "");
   }
 
   function parseTime(str: string): number {
-    str = str.replace("s", "").trim();
+    str = str.replaceAll("s", "").trim();
     const parts = str.split(":");
     if (parts.length === 2) {
       return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);

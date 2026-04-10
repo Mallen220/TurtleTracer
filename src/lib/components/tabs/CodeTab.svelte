@@ -191,7 +191,7 @@
 
         diffs.forEach((part, partIdx) => {
           // Get line count for this part (matching old behavior of ignoring trailing newline)
-          const partLinesRaw = part.value.replace(/\n$/, "").split("\n");
+          const partLinesRaw = part.value.replaceAll(/\n$/g, "").split("\n");
           const count = partLinesRaw.length;
 
           if (part.added) {
@@ -313,7 +313,7 @@
     let defaultName = `AutoPath.${ext}`;
     if (currentPath) {
       const baseName = currentPath.split(/[\\\/]/).pop() || "";
-      const short = baseName.replace(/\.(pp|turt)$/i, "") || "trajectory";
+      const short = baseName.replaceAll(/\.(pp|turt)$/gi, "") || "trajectory";
       defaultName = `${short}.${ext}`;
     } else if (format === "java" || format === "sequential") {
       const match = code.match(/class\s+(\w+)/);

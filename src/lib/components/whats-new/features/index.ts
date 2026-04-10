@@ -16,7 +16,7 @@ const modules = import.meta.glob<string>("./*.md", {
 function compareVersions(a: string, b: string): number {
   const parse = (v: string) =>
     v
-      .replace(/^v/, "")
+      .replaceAll(/^v/g, "")
       .split(".")
       .map((n) => parseInt(n, 10) || 0);
   const pa = parse(a);
@@ -63,8 +63,8 @@ if (import.meta.env.DEV) {
 export const features: FeatureHighlight[] = Object.entries(modules)
   .map(([path, content]) => {
     const fileName = path.split("/").pop()!;
-    const id = fileName.replace(/\.md$/, "");
-    const title = `Version ${id.replace(/^v/, "")} Highlights`;
+    const id = fileName.replaceAll(/\.md$/g, "");
+    const title = `Version ${id.replaceAll(/^v/g, "")} Highlights`;
     return { id, title, content };
   })
   .filter((f) => f.id !== "newest")

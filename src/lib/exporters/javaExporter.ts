@@ -105,7 +105,7 @@ export async function generateJavaCode(
   // First pass: generate unique variable names for all lines
   lines.forEach((line, idx) => {
     let baseName = line.name
-      ? line.name.replace(/[^a-zA-Z0-9]/g, "")
+      ? line.name.replaceAll(/[^a-zA-Z0-9]/g, "")
       : `line${idx + 1}`;
 
     if (usedPathNames.has(baseName)) {
@@ -390,8 +390,8 @@ export async function generateJavaCode(
               };
               const globalInterpStr = constructHeadingMethod(
                 globalConfig,
-              ).replace(
-                /set(Constant|Linear|Tangent|Heading)Interpolation\(/,
+              ).replaceAll(
+                /set(Constant|Linear|Tangent|Heading)Interpolation\(/g,
                 "setGlobalHeadingInterpolation(",
               );
               globalHeadingCode = `\n        ${globalInterpStr}`;

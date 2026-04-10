@@ -826,7 +826,7 @@
 
       // Optionally save it as a new .turt file right away if in desktop mode
       if (electronAPI && currentDirectory) {
-        const newFileName = file.name.replace(".java", ".turt");
+        const newFileName = file.name.replaceAll(".java", ".turt");
         const destPath = path.join(currentDirectory, newFileName);
 
         const savedDataStr = JSON.stringify(
@@ -847,7 +847,7 @@
         currentFilePath.set(destPath);
         isUnsaved.set(false);
       } else {
-        currentFilePath.set(file.name.replace(".java", ".turt"));
+        currentFilePath.set(file.name.replaceAll(".java", ".turt"));
         isUnsaved.set(false);
       }
 
@@ -1105,7 +1105,7 @@
 
   // Mock path utils
   const path = {
-    join: (...parts: string[]) => parts.join("/").replace(/\/\//g, "/"),
+    join: (...parts: string[]) => parts.join("/").replaceAll(/\/\//g, "/"),
     basename: (p: string) => p.split(/[\\/]/).pop() || "",
     extname: (p: string) => {
       const m = p.match(/\.[^/.]+$/);

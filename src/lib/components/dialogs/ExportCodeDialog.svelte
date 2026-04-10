@@ -96,8 +96,8 @@
       const fileName = $currentFilePath.split(/[\\/]/).pop();
       if (fileName) {
         const baseName = fileName
-          .replace(/\.(pp|turt)$/i, "")
-          .replace(/[^a-zA-Z0-9]/g, "_");
+          .replaceAll(/\.(pp|turt)$/gi, "")
+          .replaceAll(/[^a-zA-Z0-9]/g, "_");
         if (
           sequentialClassName === "AutoPath" ||
           sequentialClassName === baseName
@@ -241,8 +241,8 @@
       const fileName = $currentFilePath.split(/[\\/]/).pop();
       if (fileName) {
         sequentialClassName = fileName
-          .replace(/\.(pp|turt)$/i, "")
-          .replace(/[^a-zA-Z0-9]/g, "_");
+          .replaceAll(/\.(pp|turt)$/gi, "")
+          .replaceAll(/[^a-zA-Z0-9]/g, "_");
       }
     }
 

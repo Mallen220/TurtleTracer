@@ -254,8 +254,8 @@
                       >
                         {key
                           .trim()
-                          .replace("Command", "Cmd")
-                          .replace("Control", "Ctrl")}
+                          .replaceAll("Command", "Cmd")
+                          .replaceAll("Control", "Ctrl")}
                       </kbd>
                     {/each}
                   </div>

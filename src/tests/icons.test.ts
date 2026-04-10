@@ -48,7 +48,7 @@ describe("Icon System Integration", () => {
     .join("\n");
 
   iconFiles.forEach((file) => {
-    const iconName = file.replace(".svelte", "");
+    const iconName = file.replaceAll(".svelte", "");
     const filePath = path.join(iconsDir, file);
 
     describe(`Icon: ${iconName}`, () => {

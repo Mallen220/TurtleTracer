@@ -54,10 +54,10 @@
             const content =
               typeof res === "string" ? res : (res?.default ?? "");
             const fileName = path.split("/").pop()!;
-            const id = fileName.replace(/\.md$/, "");
+            const id = fileName.replaceAll(/\.md$/g, "");
             out.push({
               id,
-              title: `Version ${id.replace(/^v/, "")} Highlights`,
+              title: `Version ${id.replaceAll(/^v/g, "")} Highlights`,
               content,
             });
           } catch (e) {}
@@ -65,11 +65,11 @@
 
         out.sort((a, b) => {
           const pa = a.id
-            .replace(/^v/, "")
+            .replaceAll(/^v/g, "")
             .split(".")
             .map((n) => parseInt(n, 10) || 0);
           const pb = b.id
-            .replace(/^v/, "")
+            .replaceAll(/^v/g, "")
             .split(".")
             .map((n) => parseInt(n, 10) || 0);
           for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
@@ -107,8 +107,8 @@
           // Skip adding sections if they have no real text content
           if (text.length > 0) {
             extracted.push({
-              id: currentTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-              title: currentTitle.replace(/:$/, ""),
+              id: currentTitle.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-"),
+              title: currentTitle.replaceAll(/:$/g, ""),
               content: text,
             });
           }
@@ -121,8 +121,8 @@
       const finalText = currentContent.join("\n").trim();
       if (finalText.length > 0) {
         extracted.push({
-          id: currentTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-          title: currentTitle.replace(/:$/, ""),
+          id: currentTitle.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-"),
+          title: currentTitle.replaceAll(/:$/g, ""),
           content: finalText,
         });
       }
@@ -221,7 +221,7 @@
             <div
               class="mb-3 px-2 text-xs font-bold text-neutral-500 uppercase tracking-wider"
             >
-              Version {currentRelease?.id.replace(/^v/, "")}
+              Version {currentRelease?.id.replaceAll(/^v/g, "")}
             </div>
             {#each parsedFeatures as feature}
               <button

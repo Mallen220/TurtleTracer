@@ -50,7 +50,7 @@ export async function generateSequentialCommandCode(
   let className = "AutoPath";
   if (fileName) {
     const baseName = fileName.split(/[\\/]/).pop() || "";
-    className = stripProjectExtension(baseName).replace(/[^a-zA-Z0-9]/g, "_");
+    className = stripProjectExtension(baseName).replaceAll(/[^a-zA-Z0-9]/g, "_");
     if (!className) className = "AutoPath";
   }
 
@@ -141,7 +141,7 @@ export async function generateSequentialCommandCode(
   // Process each line
   lines.forEach((line, lineIdx) => {
     const endPointName = line.name
-      ? line.name.replace(/[^a-zA-Z0-9]/g, "")
+      ? line.name.replaceAll(/[^a-zA-Z0-9]/g, "")
       : `point${lineIdx + 1}`;
 
     // Determine end degrees
@@ -197,10 +197,10 @@ export async function generateSequentialCommandCode(
         idx === 0
           ? "startPoint"
           : lines[idx - 1]?.name
-            ? lines[idx - 1]!.name!.replace(/[^a-zA-Z0-9]/g, "")
+            ? lines[idx - 1]!.name!.replaceAll(/[^a-zA-Z0-9]/g, "")
             : `point${idx}`;
       const endPoseName = lines[idx].name
-        ? lines[idx].name.replace(/[^a-zA-Z0-9]/g, "")
+        ? lines[idx].name.replaceAll(/[^a-zA-Z0-9]/g, "")
         : `point${idx + 1}`;
 
       let pathName = `${startPoseName}TO${endPoseName}`;
@@ -376,7 +376,7 @@ export async function generateSequentialCommandCode(
     const actualStartPose = startPoseVar || "startPoint";
 
     const endPoseName = line.name
-      ? line.name.replace(/[^a-zA-Z0-9]/g, "")
+      ? line.name.replaceAll(/[^a-zA-Z0-9]/g, "")
       : `point${idx + 1}`;
 
     const endPoseVar = endPoseName;
@@ -556,8 +556,8 @@ export async function generateSequentialCommandCode(
           targetY: rootLine.globalTargetY,
           segments: rootLine.globalSegments,
         };
-        const globalInterpStr = constructHeadingMethod(globalConfig).replace(
-          /set(Constant|Linear|Tangent|Heading)Interpolation\(/,
+        const globalInterpStr = constructHeadingMethod(globalConfig).replaceAll(
+          /set(Constant|Linear|Tangent|Heading)Interpolation\(/g,
           "setGlobalHeadingInterpolation(",
         );
         globalHeadingCode = `\n            ${globalInterpStr}`;
