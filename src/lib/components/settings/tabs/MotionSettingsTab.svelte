@@ -310,7 +310,8 @@
         type="number"
         value={settings.maxAcceleration}
         oninput={(e) => {
-          settings.maxAcceleration = Number.parseFloat(e.currentTarget.value) || 0;
+          settings.maxAcceleration =
+            Number.parseFloat(e.currentTarget.value) || 0;
           settings = { ...settings };
         }}
         min="0"
@@ -334,7 +335,8 @@
         type="number"
         value={settings.maxDeceleration}
         oninput={(e) => {
-          settings.maxDeceleration = Number.parseFloat(e.currentTarget.value) || 0;
+          settings.maxDeceleration =
+            Number.parseFloat(e.currentTarget.value) || 0;
           settings = { ...settings };
         }}
         min="0"

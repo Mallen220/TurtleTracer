@@ -171,15 +171,33 @@ export class PluginManager {
     const proxyAPI = new Proxy(() => {}, handler);
 
     const shadowGlobals = [
-      "window", "document", "location", "top", "parent", "self", "globalThis",
-      "electronAPI", "localStorage", "sessionStorage", "indexedDB", 
-      "fetch", "XMLHttpRequest", "WebSocket", "process", "require"
+      "window",
+      "document",
+      "location",
+      "top",
+      "parent",
+      "self",
+      "globalThis",
+      "electronAPI",
+      "localStorage",
+      "sessionStorage",
+      "indexedDB",
+      "fetch",
+      "XMLHttpRequest",
+      "WebSocket",
+      "process",
+      "require",
     ];
     const shadowValues = shadowGlobals.map(() => undefined);
 
     try {
       // Force strict mode and shadow sensitive globals
-      const fn = new Function("turtle", "pedro", ...shadowGlobals, `"use strict";\n${code}`);
+      const fn = new Function(
+        "turtle",
+        "pedro",
+        ...shadowGlobals,
+        `"use strict";\n${code}`,
+      );
       fn(proxyAPI, proxyAPI, ...shadowValues);
     } catch (e) {
       // Ignore errors during metadata extraction
@@ -489,14 +507,32 @@ export class PluginManager {
     // Execute safely-ish by shadowing sensitive globals and enforcing strict mode
     try {
       const shadowGlobals = [
-        "window", "document", "location", "top", "parent", "self", "globalThis",
-        "electronAPI", "localStorage", "sessionStorage", "indexedDB", 
-        "fetch", "XMLHttpRequest", "WebSocket", "process", "require"
+        "window",
+        "document",
+        "location",
+        "top",
+        "parent",
+        "self",
+        "globalThis",
+        "electronAPI",
+        "localStorage",
+        "sessionStorage",
+        "indexedDB",
+        "fetch",
+        "XMLHttpRequest",
+        "WebSocket",
+        "process",
+        "require",
       ];
       const shadowValues = shadowGlobals.map(() => undefined);
 
       // pass 'turtle' (and legacy 'pedro') as the argument names
-      const fn = new Function("turtle", "pedro", ...shadowGlobals, `"use strict";\n${codeToExecute}`);
+      const fn = new Function(
+        "turtle",
+        "pedro",
+        ...shadowGlobals,
+        `"use strict";\n${codeToExecute}`,
+      );
       fn(turtleAPI, turtleAPI, ...shadowValues);
     } catch (e) {
       throw new Error(`Execution failed: ${e}`);

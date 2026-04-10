@@ -428,7 +428,9 @@
 
     if (!target) return;
 
-    const index = Number.parseInt(target.element.getAttribute("data-seq-index") || "");
+    const index = Number.parseInt(
+      target.element.getAttribute("data-seq-index") || "",
+    );
     if (Number.isNaN(index)) return;
 
     // Start Point special case: cannot drop before it (index -1, top)

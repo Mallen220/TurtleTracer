@@ -523,7 +523,9 @@ export function importJavaProject(javaCode: string): TurtleData {
 
                 const mToks = pathTokens.slice(tStart + 1, tEnd);
                 // mToks should look like [ '1.000', '"ShootCenter"', ',' ] or similar
-                const numStr = mToks.find((t) => !Number.isNaN(Number.parseFloat(t)));
+                const numStr = mToks.find(
+                  (t) => !Number.isNaN(Number.parseFloat(t)),
+                );
                 const strTok = mToks.find((t) => t.includes('"'));
 
                 if (numStr && strTok) {

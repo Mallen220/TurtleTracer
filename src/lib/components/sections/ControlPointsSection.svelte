@@ -98,7 +98,9 @@
 
     if (!target) return;
 
-    const index = Number.parseInt(target.element.getAttribute("data-cp-index") || "");
+    const index = Number.parseInt(
+      target.element.getAttribute("data-cp-index") || "",
+    );
     if (Number.isNaN(index)) return;
 
     if (dragOverIndex !== index || dragPosition !== target.position) {

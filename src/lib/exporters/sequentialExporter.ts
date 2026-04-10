@@ -50,7 +50,10 @@ export async function generateSequentialCommandCode(
   let className = "AutoPath";
   if (fileName) {
     const baseName = fileName.split(/[\\/]/).pop() || "";
-    className = stripProjectExtension(baseName).replaceAll(/[^a-zA-Z0-9]/g, "_");
+    className = stripProjectExtension(baseName).replaceAll(
+      /[^a-zA-Z0-9]/g,
+      "_",
+    );
     if (!className) className = "AutoPath";
   }
 
@@ -234,9 +237,7 @@ export async function generateSequentialCommandCode(
   const SequentialGroupClass = isNextFTC
     ? "SequentialGroup"
     : "SequentialCommandGroup";
-  const ParallelRaceClass = isNextFTC
-    ? "ParallelRaceGroup"
-    : "ParallelRaceGroup";
+  const ParallelRaceClass = "ParallelRaceGroup"; // Same for NextFTC and SolversLib
   const WaitCmdClass = isNextFTC ? "Delay" : "WaitCommand";
   const InstantCmdClass = "InstantCommand";
   const WaitUntilCmdClass = isNextFTC ? "WaitUntil" : "WaitUntilCommand"; // NextFTC has similar or user maps it

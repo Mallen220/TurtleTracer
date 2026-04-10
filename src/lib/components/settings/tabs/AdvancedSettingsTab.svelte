@@ -140,7 +140,8 @@
           step="1"
           value={settings.drawToolTolerance}
           oninput={(e) => {
-            settings.drawToolTolerance = Number.parseFloat(e.currentTarget.value) || 0;
+            settings.drawToolTolerance =
+              Number.parseFloat(e.currentTarget.value) || 0;
             settings = { ...settings };
           }}
           onchange={handleToleranceInput}
@@ -168,7 +169,8 @@
           step="0.01"
           value={settings.drawToolTension}
           oninput={(e) => {
-            settings.drawToolTension = Number.parseFloat(e.currentTarget.value) || 0;
+            settings.drawToolTension =
+              Number.parseFloat(e.currentTarget.value) || 0;
             settings = { ...settings };
           }}
           onchange={handleTensionInput}

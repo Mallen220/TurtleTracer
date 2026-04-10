@@ -246,7 +246,9 @@
       const url = URL.createObjectURL(blob);
       const downloadAnchorNode = document.createElement("a");
       downloadAnchorNode.setAttribute("href", url);
-      const safeName = profile.name.replaceAll(/[^a-z0-9]/gi, "_").toLowerCase();
+      const safeName = profile.name
+        .replaceAll(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
       downloadAnchorNode.setAttribute(
         "download",
         `robot-profile-${safeName}.json`,

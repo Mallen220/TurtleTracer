@@ -212,7 +212,7 @@ class AppUpdater {
         stdio: "ignore",
         env: { ...process.env, PATH: SAFE_PATH },
       }).unref();
-        return true;
+      return true;
     } catch (e) {
       // Ignore errors (e.g. terminal missing or not executable)
     }

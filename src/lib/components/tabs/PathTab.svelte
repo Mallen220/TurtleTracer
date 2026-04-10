@@ -144,7 +144,9 @@
 
     if (!target) return;
 
-    const index = Number.parseInt(target.element.getAttribute("data-index") || "-1");
+    const index = Number.parseInt(
+      target.element.getAttribute("data-index") || "-1",
+    );
     if (index === -1) return;
 
     if (dragOverIndex !== index || dragPosition !== target.position) {

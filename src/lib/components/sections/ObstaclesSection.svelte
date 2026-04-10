@@ -418,7 +418,9 @@
                             $settingsStore.coordinateSystem || "Pedro",
                           )}
                           oninput={(e) => {
-                            const val = Number.parseFloat(e.currentTarget.value);
+                            const val = Number.parseFloat(
+                              e.currentTarget.value,
+                            );
                             if (!Number.isNaN(val)) {
                               vertex.x = toFieldCoordinate(
                                 val,
@@ -457,7 +459,9 @@
                             $settingsStore.coordinateSystem || "Pedro",
                           )}
                           oninput={(e) => {
-                            const val = Number.parseFloat(e.currentTarget.value);
+                            const val = Number.parseFloat(
+                              e.currentTarget.value,
+                            );
                             if (!Number.isNaN(val)) {
                               vertex.y = toFieldCoordinate(
                                 val,

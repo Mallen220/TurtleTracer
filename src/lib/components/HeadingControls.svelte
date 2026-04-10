@@ -157,7 +157,9 @@
     const target = getClosestTarget(e, "div[data-seg-index]", containerRef);
     if (!target) return;
 
-    const index = Number.parseInt(target.element.getAttribute("data-seg-index") || "");
+    const index = Number.parseInt(
+      target.element.getAttribute("data-seg-index") || "",
+    );
     if (Number.isNaN(index)) return;
 
     if (dragOverIndex !== index || dragPosition !== target.position) {

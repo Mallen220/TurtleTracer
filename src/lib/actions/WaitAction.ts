@@ -148,9 +148,7 @@ export const WaitAction: ActionDefinition = {
     // Define classes based on library
     const WaitCmdClass = isNextFTC ? "Delay" : "WaitCommand";
     const InstantCmdClass = "InstantCommand";
-    const ParallelRaceClass = isNextFTC
-      ? "ParallelRaceGroup"
-      : "ParallelRaceGroup";
+    const ParallelRaceClass = "ParallelRaceGroup"; // Same for NextFTC and SolversLib
     const SequentialGroupClass = isNextFTC
       ? "SequentialGroup"
       : "SequentialCommandGroup";
