@@ -15,6 +15,7 @@
     CodeIcon,
     DocumentIcon,
     StatsIcon,
+    LockIcon,
   } from "./components/icons";
 
   // Register default tabs; callable so plugin reloads can restore baseline tabs
@@ -691,6 +692,25 @@
       >
         <StatsIcon className="size-4" />
         Stats
+      </button>
+      <button
+        id="lock-btn"
+        onclick={() => {
+          settings.lockFieldView = !settings.lockFieldView;
+          settings = { ...settings };
+          if (settings.lockFieldView) {
+            import("../stores").then(({ fieldZoom, fieldPan }) => {
+              fieldZoom.set(1.0);
+              fieldPan.set({ x: 0, y: 0 });
+            });
+          }
+        }}
+        class="flex-none flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 gap-2 shadow-sm {settings.lockFieldView ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800' : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:text-neutral-900 dark:hover:text-neutral-200'}"
+        title={settings.lockFieldView ? "Unlock Field View" : "Lock Field View"}
+        aria-label={settings.lockFieldView ? "Unlock Field View" : "Lock Field View"}
+      >
+        <LockIcon className="size-4 {settings.lockFieldView ? '' : 'opacity-50'}" />
+        Lock
       </button>
     </div>
 
