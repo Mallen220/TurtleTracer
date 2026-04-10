@@ -645,7 +645,7 @@
       }
     },
     resetSettings: () => {
-      settingsStore.set($state.snapshot(DEFAULT_SETTINGS));
+      settingsStore.set({ ...DEFAULT_SETTINGS });
     },
     cycleTheme: () => {
       settingsStore.update((s) => {

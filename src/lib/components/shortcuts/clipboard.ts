@@ -164,7 +164,7 @@ export function duplicate(recordChange: (action?: string) => void) {
     newLine.endPoint.y += deltaY;
 
     // Apply offset to control points
-    newLine.controlPoints.forEach((cp) => {
+    newLine.controlPoints.forEach((cp: any) => {
       cp.x += deltaX;
       cp.y += deltaY;
     });
