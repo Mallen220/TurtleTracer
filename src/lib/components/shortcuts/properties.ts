@@ -67,9 +67,7 @@ export function modifyValue(
     if (itemIdx !== -1) {
       const item = sequence[itemIdx] as any;
       if (
-        item &&
-        item.eventMarkers &&
-        item.eventMarkers[info.evIdx] &&
+        item?.eventMarkers?.[info.evIdx] &&
         !item.locked
       ) {
         const newPos = updateEventMarkerPosition(
@@ -91,9 +89,7 @@ export function modifyValue(
   if (info.type === "event-line") {
     const line = lines[info.lineIdx];
     if (
-      line &&
-      line.eventMarkers &&
-      line.eventMarkers[info.evIdx] &&
+      line?.eventMarkers?.[info.evIdx] &&
       !line.locked
     ) {
       const newPos = updateEventMarkerPosition(
@@ -114,9 +110,8 @@ export function modifyValue(
     if (lineIdx !== -1) {
       const line = lines[lineIdx];
       if (
-        line &&
-        line.eventMarkers &&
-        line.eventMarkers.length > 0 &&
+        line?.eventMarkers &&
+        line.eventMarkers?.length > 0 &&
         !line.locked
       ) {
         const lastIdx = line.eventMarkers.length - 1;

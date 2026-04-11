@@ -160,9 +160,7 @@ export function removeSelected(recordChange: (action?: string) => void) {
     if (itemType === "wait" || itemType === "rotate") {
       const item = findSequenceItem(sequence, itemId, itemType);
       if (
-        item &&
-        item.eventMarkers &&
-        item.eventMarkers[evIdx] &&
+        item?.eventMarkers?.[evIdx] &&
         !item.locked
       ) {
         const itemIdx = findSequenceItemIndex(sequence, itemId, itemType);
