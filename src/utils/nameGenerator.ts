@@ -45,7 +45,7 @@ export function generateName(
   if (match) {
     // It already has the suffix
     const subMatch = duplicateRegex.exec(baseName);
-    coreName = baseName.replace(duplicateRegex, "");
+    coreName = baseName.replaceAll(duplicateRegex, "");
     // Extract number
     if (subMatch?.[1]) {
       currentNum = Number.parseInt(subMatch[1], 10);
