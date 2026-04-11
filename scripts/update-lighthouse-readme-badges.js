@@ -1,8 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /* eslint-env node */
 /* global URL, process, console */
-import fs from "fs/promises";
-import { fileURLToPath } from "url";
+import fs from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { spawn } from "child_process";
 
 const repoRoot = new URL("../", import.meta.url);

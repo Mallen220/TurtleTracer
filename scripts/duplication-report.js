@@ -1,8 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import { execSync } from "child_process";
-import { fileURLToPath } from "url";
+import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");

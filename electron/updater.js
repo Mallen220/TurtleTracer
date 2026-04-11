@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { app, shell } from "electron";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { spawn } from "child_process";
 
 const SAFE_PATH = "/usr/bin:/bin:/usr/sbin:/sbin";

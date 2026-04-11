@@ -1,9 +1,9 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import fs from "fs/promises";
-import path from "path";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { fileURLToPath } from "url";
+import { fileURLToPath } from "node:url";
 import readline from "readline";
 
 const __filename = fileURLToPath(import.meta.url);

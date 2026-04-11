@@ -2,12 +2,12 @@
 import { isProjectFilePath, getPluginsDirectory } from "./utils.js";
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { app, BrowserWindow, dialog, Menu, shell } from "electron";
-import path from "path";
+import path from "node:path";
 import express from "express";
-import http from "http";
-import { fileURLToPath } from "url";
-import fs from "fs/promises";
-import fsSync from "fs";
+import http from "node:http";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import AppUpdater from "./updater.js";
 import rateLimit from "express-rate-limit";
 

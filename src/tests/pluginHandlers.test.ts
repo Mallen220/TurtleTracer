@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import path from "path";
+import path from "node:path";
 
 const handlerRegistry: Record<string, (...args: any[]) => Promise<any>> = {};
 

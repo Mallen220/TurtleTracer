@@ -2,8 +2,8 @@
 import { describe, it, expect } from "vitest";
 
 import { createRequire } from "module";
-import { existsSync } from "fs";
-import path from "path";
+import { existsSync } from "node:fs";
+import path from "node:path";
 
 const fastCheckInstalled = existsSync(
   path.join(process.cwd(), "node_modules", "fast-check"),

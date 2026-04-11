@@ -9,8 +9,8 @@
  * output PNG is fully opaque, which prevents macOS icon compositing artifacts.
  */
 
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import sharp from "sharp";
 
 const SRC = path.resolve(process.cwd(), "public", "icon.png");
