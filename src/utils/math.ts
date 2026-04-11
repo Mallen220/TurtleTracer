@@ -218,8 +218,7 @@ export function getLineStartHeading(
   if (!line || !line.endPoint) return 0;
 
   const isGlobal =
-    globalOverride &&
-    globalOverride.globalHeading &&
+    globalOverride?.globalHeading &&
     globalOverride.globalHeading !== "none";
 
   const effectiveSource = isGlobal
@@ -328,8 +327,7 @@ export function getLineEndHeading(
   if (!line || !line.endPoint) return 0;
 
   const isGlobal =
-    globalOverride &&
-    globalOverride.globalHeading &&
+    globalOverride?.globalHeading &&
     globalOverride.globalHeading !== "none";
 
   const effectiveSource = isGlobal

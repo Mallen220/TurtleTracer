@@ -235,7 +235,7 @@
     cut: () =>
       cut(activeControlTab, controlTabRef, () => removeSelected(recordChange)),
     paste: () => paste(recordChange),
-    splitPath: () => splitPath && splitPath(),
+    splitPath: () => splitPath?.(),
     removeSelected: () => removeSelected(recordChange),
     undo: () => undoAction(),
     redo: () => redoAction(),
@@ -275,22 +275,21 @@
     resetPlaybackSpeed: () => resetPlaybackSpeed(),
     toggleProtractor: () => showProtractor.update((v) => !v),
     optimizeStart: () => {
-      if (controlTabRef?.openAndStartOptimization)
-        controlTabRef.openAndStartOptimization();
+      controlTabRef?.openAndStartOptimization?.();
     },
     optimizeStop: () => {
       if (controlTabRef?.getOptimizationStatus?.().isRunning)
-        controlTabRef.stopOptimization();
+        controlTabRef?.stopOptimization?.();
     },
     optimizeApply: () => {
       const status = controlTabRef?.getOptimizationStatus?.();
       if (status?.optimizedLines && !status.optimizationFailed)
-        controlTabRef.applyOptimization();
+        controlTabRef?.applyOptimization?.();
     },
     optimizeDiscard: () => {
       const status = controlTabRef?.getOptimizationStatus?.();
       if (status?.optimizedLines || status?.optimizationFailed)
-        controlTabRef.discardOptimization();
+        controlTabRef?.discardOptimization?.();
     },
     optimizeRetry: () => {
       const status = controlTabRef?.getOptimizationStatus?.();
@@ -298,7 +297,7 @@
         !status?.isRunning &&
         (status?.optimizedLines || status?.optimizationFailed)
       )
-        controlTabRef.retryOptimization();
+        controlTabRef?.retryOptimization?.();
     },
     selectTabPaths: () => (activeControlTab = "path"),
     selectTabField: () => (activeControlTab = "field"),
@@ -335,26 +334,24 @@
     toggleCollapseAll: () => toggleCollapseAllTrigger.update((v) => v + 1),
     toggleCollapseSelected: () => {
       if (isUIElementFocused()) return;
-      if (controlTabRef && controlTabRef.toggleCollapseSelected) {
-        controlTabRef.toggleCollapseSelected();
-      }
+      controlTabRef?.toggleCollapseSelected?.();
     },
     showHelp: () => showShortcuts.update((v) => !v),
     openSettings: () => showSettings.update((v) => !v),
     openWhatsNew: () => {
-      if (openWhatsNew) openWhatsNew();
+      openWhatsNew?.();
     },
     toggleCommandPalette: () => {
       showCommandPalette = !showCommandPalette;
     },
     toggleStats: () => {
-      if (toggleStats) toggleStats();
+      toggleStats?.();
     },
     toggleSidebar: () => {
-      if (toggleSidebar) toggleSidebar();
+      toggleSidebar?.();
     },
     toggleControlTab: () => {
-      if (toggleControlTab) toggleControlTab();
+      toggleControlTab?.();
     },
     toggleDraw: () => {
       isDrawingMode.update((v) => !v);
@@ -489,27 +486,24 @@
     // New Actions
     moveItemUp: () => {
       const idx = getSelectedSequenceIndex();
-      if (idx !== null && controlTabRef && controlTabRef.moveSequenceItem) {
-        controlTabRef.moveSequenceItem(idx, -1);
+      if (idx !== null) {
+        controlTabRef?.moveSequenceItem?.(idx, -1);
       }
     },
     moveItemDown: () => {
       const idx = getSelectedSequenceIndex();
-      if (idx !== null && controlTabRef && controlTabRef.moveSequenceItem) {
-        controlTabRef.moveSequenceItem(idx, 1);
+      if (idx !== null) {
+        controlTabRef?.moveSequenceItem?.(idx, 1);
       }
     },
     addPathAtStart: () => {
-      if (controlTabRef && controlTabRef.addPathAtStart)
-        controlTabRef.addPathAtStart();
+      controlTabRef?.addPathAtStart?.();
     },
     addWaitAtStart: () => {
-      if (controlTabRef && controlTabRef.addWaitAtStart)
-        controlTabRef.addWaitAtStart();
+      controlTabRef?.addWaitAtStart?.();
     },
     addRotateAtStart: () => {
-      if (controlTabRef && controlTabRef.addRotateAtStart)
-        controlTabRef.addRotateAtStart();
+      controlTabRef?.addRotateAtStart?.();
     },
     validatePath: () => {
       validatePath(startPoint, lines, settings, sequence, shapes);
@@ -682,19 +676,13 @@
         showRobotArrows: !s.showRobotArrows,
       })),
     copyCode: () => {
-      if (controlTabRef && controlTabRef.copyCode) {
-        controlTabRef.copyCode();
-      }
+      controlTabRef?.copyCode?.();
     },
     copyTable: () => {
-      if (controlTabRef && controlTabRef.copyTable) {
-        controlTabRef.copyTable();
-      }
+      controlTabRef?.copyTable?.();
     },
     downloadJava: () => {
-      if (controlTabRef && controlTabRef.downloadJava) {
-        controlTabRef.downloadJava();
-      }
+      controlTabRef?.downloadJava?.();
     },
     cycleRobotProfile: () => {
       const profiles = get(robotProfilesStore);
@@ -811,9 +799,7 @@
         action: () => {
           selectedPointId.set(`wait-${s.id}`);
           selectedLineId.set(null);
-          if (controlTabRef && controlTabRef.scrollToItem) {
-            controlTabRef.scrollToItem("wait", s.id);
-          }
+          controlTabRef?.scrollToItem?.("wait", s.id);
         },
       })),
   );
@@ -828,9 +814,7 @@
         action: () => {
           selectedPointId.set(`rotate-${s.id}`);
           selectedLineId.set(null);
-          if (controlTabRef && controlTabRef.scrollToItem) {
-            controlTabRef.scrollToItem("rotate", s.id);
-          }
+          controlTabRef?.scrollToItem?.("rotate", s.id);
         },
       })),
   );
@@ -847,9 +831,7 @@
               label: m.name ? `Event: ${m.name}` : `Event (Path ${lIdx + 1})`,
               category: "Event Marker",
               action: () => {
-                if (controlTabRef && controlTabRef.scrollToItem) {
-                  controlTabRef.scrollToItem("event", m.id);
-                }
+                controlTabRef?.scrollToItem?.("event", m.id);
               },
             });
           });
@@ -867,9 +849,7 @@
                 label: m.name ? `Event: ${m.name}` : `Event (${def.label})`,
                 category: "Event Marker",
                 action: () => {
-                  if (controlTabRef && controlTabRef.scrollToItem) {
-                    controlTabRef.scrollToItem("event", m.id);
-                  }
+                  controlTabRef?.scrollToItem?.("event", m.id);
                 },
               });
             });
@@ -907,14 +887,12 @@
       const cmdId = $executeCommandBus;
       executeCommandBus.set(null);
       const cmd = paletteCommands.find((c) => c.id === cmdId);
-      if (cmd && cmd.action) {
-        cmd.action();
-      }
+      cmd?.action?.();
     }
   });
 
   run(() => {
-    if (settings && settings.keyBindings) {
+    if (settings?.keyBindings) {
       hotkeys.unbind();
 
       // Bind all actions defined in settings
@@ -954,8 +932,7 @@
     const target = e.currentTarget || e.target;
     if (
       target instanceof HTMLInputElement &&
-      target.files &&
-      target.files.length > 0
+      target.files && target.files.length > 0
     ) {
       loadFile(e);
       target.value = "";

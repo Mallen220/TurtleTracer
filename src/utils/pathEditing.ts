@@ -31,7 +31,7 @@ export function splitPathAtPercent(
   lines: Line[],
   sequence: SequenceItem[],
 ): PathSplitResult | null {
-  if (!timePrediction || timePrediction.totalTime <= 0) return null;
+  if (!(timePrediction?.totalTime > 0)) return null;
 
   const totalTime = timePrediction.totalTime;
   const globalTime = (percent / 100) * totalTime;

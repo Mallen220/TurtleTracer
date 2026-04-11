@@ -98,64 +98,48 @@
   export async function openAndStartOptimization() {
     focusOptimizationTab();
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.openAndStartOptimization) {
-      return await optimizerController.openAndStartOptimization();
-    }
+    return await optimizerController?.openAndStartOptimization?.();
   }
 
   export function stopOptimization() {
     focusOptimizationTab();
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.stopOptimization) {
-      optimizerController.stopOptimization();
-    }
+    optimizerController?.stopOptimization?.();
   }
 
   export function applyOptimization() {
     focusOptimizationTab();
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.applyOptimization) {
-      optimizerController.applyOptimization();
-    }
+    optimizerController?.applyOptimization?.();
   }
 
   export function discardOptimization() {
     focusOptimizationTab();
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.discardOptimization) {
-      optimizerController.discardOptimization();
-    }
+    optimizerController?.discardOptimization?.();
   }
 
   export function retryOptimization() {
     focusOptimizationTab();
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.retryOptimization) {
-      optimizerController.retryOptimization();
-    }
+    optimizerController?.retryOptimization?.();
   }
 
   export function copyCode() {
-    if (activeTabInstance && activeTabInstance.copyCode) {
-      activeTabInstance.copyCode();
-    }
+    activeTabInstance?.copyCode?.();
   }
 
   export function downloadJava() {
-    if (activeTabInstance && activeTabInstance.downloadJava) {
-      activeTabInstance.downloadJava();
-    }
+    activeTabInstance?.downloadJava?.();
   }
 
   export function copyTable() {
-    if (activeTabInstance && activeTabInstance.copyTable) {
-      activeTabInstance.copyTable();
-    }
+    activeTabInstance?.copyTable?.();
   }
 
   export function getOptimizationStatus() {
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.getOptimizationStatus) {
+    if (optimizerController?.getOptimizationStatus) {
       return optimizerController.getOptimizationStatus();
     }
     return {
@@ -168,48 +152,34 @@
 
   // --- Methods delegating to PathTab ---
   export function addPathAtStart() {
-    if (tabInstances["path"] && tabInstances["path"].addPathAtStart) {
-      tabInstances["path"].addPathAtStart();
-    }
+    tabInstances["path"]?.addPathAtStart?.();
   }
 
   export function addWaitAtStart() {
-    if (tabInstances["path"] && tabInstances["path"].addWaitAtStart) {
-      tabInstances["path"].addWaitAtStart();
-    }
+    tabInstances["path"]?.addWaitAtStart?.();
   }
 
   export function addRotateAtStart() {
-    if (tabInstances["path"] && tabInstances["path"].addRotateAtStart) {
-      tabInstances["path"].addRotateAtStart();
-    }
+    tabInstances["path"]?.addRotateAtStart?.();
   }
 
   export function moveSequenceItem(seqIndex: number, delta: number) {
-    if (tabInstances["path"] && tabInstances["path"].moveSequenceItem) {
-      tabInstances["path"].moveSequenceItem(seqIndex, delta);
-    }
+    tabInstances["path"]?.moveSequenceItem?.(seqIndex, delta);
   }
 
   export function toggleCollapseSelected() {
-    if (activeTabInstance && activeTabInstance.toggleCollapseSelected) {
-      activeTabInstance.toggleCollapseSelected();
-    }
+    activeTabInstance?.toggleCollapseSelected?.();
   }
 
   export async function scrollToItem(type: string, id: string) {
     if (type === "path" || type === "wait" || type === "rotate") {
       activeTab = "path";
       await tick();
-      if (tabInstances["path"] && tabInstances["path"].scrollToItem) {
-        tabInstances["path"].scrollToItem(id);
-      }
+      tabInstances["path"]?.scrollToItem?.(id);
     } else if (type === "event") {
       activeTab = "field";
       await tick();
-      if (tabInstances["field"] && tabInstances["field"].scrollToMarker) {
-        tabInstances["field"].scrollToMarker(id);
-      }
+      tabInstances["field"]?.scrollToMarker?.(id);
     }
   }
 
@@ -261,7 +231,7 @@
     let localPos = 0;
     if (targetEvent.duration > 0) {
       if (targetLine && targetEvent.motionProfile) {
-        const profile = targetEvent.motionProfile as number[];
+        const profile = targetEvent.motionProfile;
         const steps = profile.length - 1;
         const relTime = globalTime - targetEvent.startTime;
 
@@ -443,7 +413,7 @@
   );
   // If code tab is active but setting is disabled, switch to path
   run(() => {
-    if (activeTab === "code" && settings && settings.autoExportCode === false) {
+    if (activeTab === "code" && settings?.autoExportCode === false) {
       activeTab = "path";
     }
   });
@@ -451,8 +421,7 @@
   run(() => {
     if (
       activeTab === "telemetry" &&
-      settings &&
-      settings.showTelemetryTab === false
+      settings?.showTelemetryTab === false
     ) {
       activeTab = "path";
     }
@@ -550,8 +519,8 @@
       timeline.forEach((ev) => {
         if (ev.type === "travel") {
           const line = (ev as any).line || lines[ev.lineIndex as number];
-          if (line && line.eventMarkers) {
-            line.eventMarkers.forEach((m: any) => {
+        if (line?.eventMarkers) {
+          line.eventMarkers.forEach((m: any) => {
               let timeOffset = 0;
               if (ev.motionProfile) {
                 const steps = ev.motionProfile.length - 1;
@@ -581,8 +550,7 @@
           const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
           const def = seqItem ? actionRegistry.get(seqItem.kind) : null;
           if (
-            seqItem &&
-            (seqItem.kind === "wait" || seqItem.kind === "rotate") &&
+            (seqItem?.kind === "wait" || seqItem?.kind === "rotate") &&
             seqItem.eventMarkers
           ) {
             seqItem.eventMarkers.forEach((m: any) => {

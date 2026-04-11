@@ -44,11 +44,10 @@ export function generateName(
 
   if (match) {
     // It already has the suffix
-    coreName = baseName.replaceAll(duplicateRegex, "");
-    // Extract number from the first match using a non-global regex for exec/match compatibility if needed
-    // or just re-match since we know it matches
-    const subMatch = baseName.match(/ duplicate(?: (\d+))?$/);
-    if (subMatch && subMatch[1]) {
+    const subMatch = duplicateRegex.exec(baseName);
+    coreName = baseName.replace(duplicateRegex, "");
+    // Extract number
+    if (subMatch?.[1]) {
       currentNum = Number.parseInt(subMatch[1], 10);
     } else {
       // " duplicate" implies number 0 (conceptually, next is 1)

@@ -63,9 +63,17 @@ export function createPathAnchors(
     ];
     for (let i = 1; i <= samples; ++i) {
       const point = getCurvePoint(i / samples, cps);
-      points.push(
-        new Two.Anchor(x(point.x), y(point.y), 0, 0, 0, 0, Two.Commands.line),
+      const anchor = new Two.Anchor(
+        x(point.x),
+        y(point.y),
+        0,
+        0,
+        0,
+        0,
+        Two.Commands.line,
       );
+      anchor.relative = false;
+      points.push(anchor);
     }
     return points;
   } else if (line.controlPoints.length > 0) {
@@ -75,26 +83,27 @@ export function createPathAnchors(
     let cp2 =
       line.controlPoints[1] ??
       quadraticToCubic(startPoint, line.controlPoints[0], line.endPoint).Q2;
-    return [
-      new Two.Anchor(
-        x(startPoint.x),
-        y(startPoint.y),
-        x(startPoint.x),
-        y(startPoint.y),
-        x(cp1.x),
-        y(cp1.y),
-        Two.Commands.move,
-      ),
-      new Two.Anchor(
-        x(line.endPoint.x),
-        y(line.endPoint.y),
-        x(cp2.x),
-        y(cp2.y),
-        x(line.endPoint.x),
-        y(line.endPoint.y),
-        Two.Commands.curve,
-      ),
-    ];
+    const a1 = new Two.Anchor(
+      x(startPoint.x),
+      y(startPoint.y),
+      x(startPoint.x),
+      y(startPoint.y),
+      x(cp1.x),
+      y(cp1.y),
+      Two.Commands.move,
+    );
+    const a2 = new Two.Anchor(
+      x(line.endPoint.x),
+      y(line.endPoint.y),
+      x(cp2.x),
+      y(cp2.y),
+      x(line.endPoint.x),
+      y(line.endPoint.y),
+      Two.Commands.curve,
+    );
+    a1.relative = false;
+    a2.relative = false;
+    return [a1, a2];
   } else {
     return [
       new Two.Anchor(

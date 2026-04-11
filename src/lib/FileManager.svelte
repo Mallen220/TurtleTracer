@@ -138,7 +138,7 @@
 
   function onImportFileSelect(e: Event) {
     const target = e.target as HTMLInputElement;
-    if (target.files && target.files[0]) {
+    if (target.files?.[0]) {
       handleImportFile({ detail: target.files[0] } as CustomEvent<File>);
       target.value = "";
     }
@@ -146,7 +146,7 @@
 
   function onImportJavaSelect(e: Event) {
     const target = e.target as HTMLInputElement;
-    if (target.files && target.files[0]) {
+    if (target.files?.[0]) {
       handleImportJava({ detail: target.files[0] } as CustomEvent<File>);
       target.value = "";
     }
@@ -394,17 +394,11 @@
       await refreshDirectory();
 
       // After directory is refreshed, request previews to refresh for both list and grid
-      if (fileList && typeof fileList.refreshAllFailed === "function") {
-        fileList.refreshAllFailed();
-      } else if (fileList && typeof fileList.refreshAll === "function") {
-        fileList.refreshAll();
-      }
+      fileList?.refreshAllFailed?.();
+      fileList?.refreshAll?.();
 
-      if (fileGrid && typeof fileGrid.refreshAllFailed === "function") {
-        fileGrid.refreshAllFailed();
-      } else if (fileGrid && typeof fileGrid.refreshAll === "function") {
-        fileGrid.refreshAll();
-      }
+      fileGrid?.refreshAllFailed?.();
+      fileGrid?.refreshAll?.();
 
       showToast("Refreshed files and previews", "success");
     } catch (err) {
@@ -417,7 +411,7 @@
       return; // Cannot go up beyond the base directory
     }
     try {
-      if (electronAPI.resolvePath) {
+      if (electronAPI?.resolvePath) {
         // electronAPI.resolvePath(base, relative) calls path.resolve(path.dirname(base), relative).
         // Since currentDirectory is a directory and not a file, passing it directly as `base`
         // would drop the last directory segment and then apply "..", going up TWO levels.
@@ -518,8 +512,7 @@
 
         // Check overwrite
         if (
-          electronAPI.fileExists &&
-          (await electronAPI.fileExists(destPath))
+          await electronAPI?.fileExists?.(destPath)
         ) {
           if (
             !confirm(
@@ -672,7 +665,7 @@
     const newFilePath = path.join(currentDirectory, fileName);
 
     try {
-      if (await electronAPI.fileExists(newFilePath)) {
+      if (await electronAPI?.fileExists?.(newFilePath)) {
         showToast(`File "${fileName}" already exists`, "error");
         return;
       }
@@ -769,7 +762,7 @@
     }
 
     try {
-      const content = await electronAPI.readFile(file.path);
+      const content = await electronAPI?.readFile?.(file.path);
       const data = JSON.parse(content);
 
       if (!data.startPoint || !data.lines)
@@ -882,10 +875,10 @@
       loadMacro(targetFile.path, true);
 
       // Updated saved file — refresh its preview
-      if (fileGrid && targetFile && targetFile.path)
-        fileGrid.refreshPreview(targetFile.path);
-      if (fileList && targetFile && targetFile.path)
-        fileList.refreshPreview(targetFile.path);
+      if (targetFile?.path) {
+        fileGrid?.refreshPreview?.(targetFile.path);
+        fileList?.refreshPreview?.(targetFile.path);
+      }
     } catch (error) {
       showToast(`Failed to save: ${getErrorMessage(error)}`, "error");
     }
@@ -896,7 +889,7 @@
 
     const dirPath = path.join(currentDirectory, name.trim());
     try {
-      if (await electronAPI.fileExists(dirPath)) {
+      if (await electronAPI?.fileExists?.(dirPath)) {
         showToast(`Folder "${name}" already exists.`, "error");
         return;
       }
@@ -937,7 +930,7 @@
     }
 
     try {
-      if (await electronAPI.fileExists(filePath)) {
+      if (await electronAPI?.fileExists?.(filePath)) {
         if (!confirm(`File "${fileName}" already exists. Overwrite?`)) return;
       }
 
@@ -966,7 +959,7 @@
         showToast(`Created: ${fileName}`, "success");
 
         // New file created — ensure preview is generated
-        if (fileGrid && newFile.path) fileGrid.refreshPreview(newFile.path);
+        if (newFile.path) fileGrid?.refreshPreview?.(newFile.path);
       }
     } catch (error) {
       showToast(`Failed to create: ${getErrorMessage(error)}`, "error");
@@ -976,7 +969,7 @@
   async function deleteFile(file: FileInfo) {
     if (!confirm(`Are you sure you want to delete "${file.name}"?`)) return;
     try {
-      await electronAPI.deleteFile(file.path);
+      await electronAPI?.deleteFile?.(file.path);
       if (selectedFile?.path === file.path) {
         selectedFile = null;
         currentFilePath.set(null);
@@ -993,7 +986,7 @@
     mode: "copy" | "mirror" | "reverse" = "copy",
   ) {
     try {
-      const content = await electronAPI.readFile(file.path);
+      const content = await electronAPI?.readFile?.(file.path);
       let data = JSON.parse(content);
 
       let suffix = "_copy";
@@ -1010,7 +1003,7 @@
       let counter = 1;
 
       while (
-        await electronAPI.fileExists(path.join(currentDirectory, newName))
+        await electronAPI?.fileExists?.(path.join(currentDirectory, newName))
       ) {
         newName = `${baseName}${suffix}${counter}${DEFAULT_PROJECT_EXTENSION}`;
         counter++;
@@ -1032,9 +1025,9 @@
 
       // Refresh preview for the newly created copy/mirror
       const newFile = files.find((f) => f.name === newName);
-      if (newFile) {
-        if (fileGrid && newFile.path) fileGrid.refreshPreview(newFile.path);
-        if (fileList && newFile.path) fileList.refreshPreview(newFile.path);
+      if (newFile?.path) {
+        fileGrid?.refreshPreview?.(newFile.path);
+        fileList?.refreshPreview?.(newFile.path);
       }
     } catch (error) {
       showToast(`Failed to duplicate: ${getErrorMessage(error)}`, "error");
@@ -1268,18 +1261,11 @@
           viewMode = e.detail;
           // If switching to list/grid view, retry any previously failed previews so icons repopulate reliably
           if (viewMode === "list") {
-            if (fileList && typeof fileList.refreshAllFailed === "function") {
-              fileList.refreshAllFailed();
-            } else if (fileList && typeof fileList.refreshAll === "function") {
-              // fallback: refresh everything
-              fileList.refreshAll();
-            }
+            fileList?.refreshAllFailed?.();
+            fileList?.refreshAll?.();
           } else if (viewMode === "grid") {
-            if (fileGrid && typeof fileGrid.refreshAllFailed === "function") {
-              fileGrid.refreshAllFailed();
-            } else if (fileGrid && typeof fileGrid.refreshAll === "function") {
-              fileGrid.refreshAll();
-            }
+            fileGrid?.refreshAllFailed?.();
+            fileGrid?.refreshAll?.();
           }
         }}
       />

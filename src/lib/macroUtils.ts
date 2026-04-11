@@ -115,7 +115,7 @@ function transformMacroData(
   const newData: TurtleData = structuredClone(data);
   const resolvedTransforms: Transformation[] = [];
 
-  if (!transforms || transforms.length === 0) {
+  if (!transforms?.length) {
     return { data: newData, resolvedTransforms: [] };
   }
 
@@ -363,7 +363,7 @@ export function expandMacro(
   });
 
   const sourceSeq =
-    transformedData.sequence && transformedData.sequence.length > 0
+    transformedData.sequence?.length > 0
       ? transformedData.sequence
       : transformedData.lines.map(
           (l) => ({ kind: "path", lineId: l.id! }) as SequenceItem,
@@ -510,7 +510,7 @@ export function wouldCreateCycle(
       }
     }
 
-    if (data && data.sequence) {
+    if (data?.sequence) {
       for (const item of data.sequence) {
         if (item.kind === "macro") {
           const childPath = (item as any).filePath;
@@ -646,7 +646,7 @@ export function regenerateProjectMacros(
           newLines.push(...preservedLines);
 
           // Reconstruct sequence if missing
-          if (!item.sequence || item.sequence.length === 0) {
+          if (!item.sequence?.length) {
             const reconstructedSeq: SequenceItem[] = preservedLines.map(
               (l) => ({
                 kind: "path",

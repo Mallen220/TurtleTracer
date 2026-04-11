@@ -168,7 +168,7 @@
   const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
 
   async function checkMsStoreTracking() {
-    if (!electronAPI || !electronAPI.isWindowsStore) return;
+    if (!electronAPI?.isWindowsStore) return;
     try {
       const isStore = await electronAPI.isWindowsStore();
       if (isStore) {
@@ -213,7 +213,7 @@
     const href = anchor.href;
     const isExternal =
       href.startsWith("http://") || href.startsWith("https://");
-    if (isExternal && electronAPI && electronAPI.openExternal) {
+    if (isExternal && electronAPI?.openExternal) {
       e.preventDefault();
       electronAPI
         .openExternal(href)
@@ -227,7 +227,7 @@
     const currentSettings = get(settingsStore);
     if (!currentSettings.gitIntegration) return;
 
-    if (electronAPI && (electronAPI as any).gitStatus) {
+    if ((electronAPI as any)?.gitStatus) {
       try {
         const statuses = await (electronAPI as any).gitStatus(dir);
         gitStatusStore.set(statuses);
@@ -391,7 +391,7 @@
 
     if (success) {
       if (pendingAction === "close") {
-        if (api && api.sendCloseApproved) {
+        if (api?.sendCloseApproved) {
           api.sendCloseApproved();
         }
       } else {
@@ -405,7 +405,7 @@
     showUnsavedChangesDialog = false;
     if (pendingAction === "close") {
       const api = (window as any).electronAPI;
-      if (api && api.sendCloseApproved) {
+      if (api?.sendCloseApproved) {
         api.sendCloseApproved();
       }
     } else {
@@ -434,11 +434,7 @@
   function handleDragEnter(e: DragEvent) {
     e.preventDefault();
     // Check if dragging files
-    if (
-      e.dataTransfer &&
-      e.dataTransfer.types &&
-      e.dataTransfer.types.includes("Files")
-    ) {
+    if (e.dataTransfer?.types?.includes("Files")) {
       dragCounter++;
       isDraggingFile = true;
     }
@@ -463,11 +459,7 @@
     isDraggingFile = false;
 
     // Only intercept if it's an OS file drop we care about (avoids blocking internal drags)
-    if (
-      e.dataTransfer &&
-      e.dataTransfer.types &&
-      e.dataTransfer.types.includes("Files")
-    ) {
+    if (e.dataTransfer?.types?.includes("Files")) {
       e.preventDefault();
       e.stopPropagation();
 
@@ -615,7 +607,7 @@
       const path = get(currentFilePath);
       if (path && unsaved) {
         await saveProject();
-        if (electronAPI && electronAPI.sendCloseApproved) {
+        if (electronAPI?.sendCloseApproved) {
           electronAPI.sendCloseApproved();
         }
         return;
@@ -633,7 +625,7 @@
       pendingAction = "close";
       showUnsavedChangesDialog = true;
     } else {
-      if (electronAPI && electronAPI.sendCloseApproved) {
+      if (electronAPI?.sendCloseApproved) {
         electronAPI.sendCloseApproved();
       }
     }
@@ -738,7 +730,7 @@
     previewOptimizedLines = null;
     history.record(getAppState(), description);
     if (isLoaded) isUnsaved.set(true);
-    if (isLoaded && animationController) animationController.seekToPercent(0);
+    if (isLoaded) animationController?.seekToPercent(0);
 
     // Autosave on change
     if (isLoaded && settings?.autosaveMode === "change") {
@@ -926,7 +918,7 @@
 
       // Check for directory setup FIRST
       let needsSetup = false;
-      if (electronAPI && electronAPI.getSavedDirectory) {
+      if (electronAPI?.getSavedDirectory) {
         try {
           const dir = await electronAPI.getSavedDirectory();
           if (!dir || dir.trim() === "") {
@@ -1071,11 +1063,11 @@
     playingStore.set(false);
   }
   function resetAnimation() {
-    if (animationController) animationController.reset();
+    animationController?.reset();
     playingStore.set(false);
   }
   function handleSeek(val: number) {
-    if (animationController) animationController.seekToPercent(val);
+    animationController?.seekToPercent(val);
   }
 
   function handlePreviewChange(newLines: any) {
@@ -1112,7 +1104,7 @@
   }
 
   function handleSplitPath() {
-    if (!timePrediction || timePrediction.totalTime <= 0) return;
+    if (!(timePrediction?.totalTime > 0)) return;
     const currentLines = get(linesStore);
     const currentSequence = get(sequenceStore);
     const currentPercent = get(percentStore);
@@ -1131,7 +1123,7 @@
 
       // Select the split point
       const splitLine = res.lines[res.splitIndex];
-      if (splitLine && splitLine.id) {
+      if (splitLine?.id) {
         selectedLineId.set(splitLine.id);
         selectedPointId.set(`point-${res.splitIndex + 1}-0`);
       }
@@ -1219,10 +1211,9 @@
     if (!sel || !sel.startsWith("wait-")) return;
     let el = e.target as Element | null;
     while (el) {
-      if (el.classList && el.classList.contains("wait-row")) return;
+      if (el.classList?.contains("wait-row")) return;
       if (
-        el.id &&
-        (el.id.startsWith("wait-") || el.id.startsWith("wait-event-"))
+        el.id?.startsWith("wait-") || el.id?.startsWith("wait-event-")
       )
         return;
       el = el.parentElement;
@@ -1430,7 +1421,7 @@
   // Sync playing store -> controller
   run(() => {
     if (animationController) {
-      if (playing && !animationController.isPlaying())
+      if (playing && animationController.isPlaying() === false)
         animationController.play();
       if (!playing && animationController.isPlaying())
         animationController.pause();
@@ -1438,8 +1429,7 @@
   });
   run(() => {
     if (
-      timePrediction &&
-      timePrediction.timeline &&
+      timePrediction?.timeline &&
       (lines.length > 0 || sequence.length > 0)
     ) {
       // Calculate Global Time based on effective duration
@@ -1635,7 +1625,7 @@
   });
   // --- Apply Program Font Size ---
   run(() => {
-    if (settings && settings.programFontSize) {
+    if (settings?.programFontSize) {
       document.documentElement.style.fontSize = `${settings.programFontSize}%`;
     } else {
       document.documentElement.style.fontSize = "100%";

@@ -601,8 +601,7 @@ export function calculateGlobalChainMeta(
 
     const prevItem = idx > 0 ? seq[idx - 1] : null;
     const isChained = !!(
-      prevItem &&
-      prevItem.kind === "path" &&
+      prevItem?.kind === "path" &&
       ((item as any).isChain === true || line.isChain === true)
     );
 
@@ -681,7 +680,7 @@ export function calculatePathTime(
     if (firstPathItem) {
       const lineId = (firstPathItem as any).lineId;
       const line = lines.find((l) => l.id === lineId);
-      if (line) {
+      if (line && sequence) {
         const meta = globalChainMeta.get(line.id!);
         const rootLine = meta?.rootLine;
         if (rootLine?.globalHeading && rootLine.globalHeading !== "none") {
@@ -766,7 +765,7 @@ export function calculatePathTime(
     seq.forEach((item, idx) => {
       // Registry Check
       const action = actionRegistry.get(item.kind);
-      if (action && action.calculateTime) {
+      if (action?.calculateTime) {
         const res = action.calculateTime(item, {
           currentTime,
           currentHeading,
@@ -817,8 +816,7 @@ export function calculatePathTime(
 
       const prevItem = idx > 0 ? seq[idx - 1] : null;
       const isChained = !!(
-        prevItem &&
-        prevItem.kind === "path" &&
+        prevItem?.kind === "path" &&
         ((item as any).isChain === true || line.isChain === true)
       );
 
@@ -892,8 +890,7 @@ export function calculatePathTime(
 
       const nextItem = seq[idx + 1];
       const isChainedToNext =
-        nextItem &&
-        nextItem.kind === "path" &&
+        nextItem?.kind === "path" &&
         ((nextItem as any).isChain === true ||
           (lineById.get((nextItem as any).lineId) as any)?.isChain === true);
 
@@ -1426,7 +1423,7 @@ export function calculatePathTime(
 
         // Re-unwrap the heading profile so no two adjacent entries differ by > 180°.
         // This prevents teleport snaps both within a segment and across segment boundaries.
-        if (headingProfile && headingProfile.length > 1) {
+        if (headingProfile?.length > 1) {
           for (let k = 1; k < headingProfile.length; k++) {
             const prev = headingProfile[k - 1];
             let curr = headingProfile[k];
@@ -1474,7 +1471,7 @@ export function calculatePathTime(
   };
 
   const initialSeq =
-    sequence && sequence.length
+    sequence?.length
       ? sequence
       : lines.map((ln) => ({ kind: "path", lineId: ln.id! }) as SequenceItem);
 

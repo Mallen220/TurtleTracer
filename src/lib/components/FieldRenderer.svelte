@@ -506,7 +506,7 @@
               // Include start point, line endpoints, field boundaries, and obstacle vertices
               const targets: Point[] = [startPoint];
               lines.forEach((l) => {
-                if (l.endPoint) targets.push(l.endPoint);
+                if (l?.endPoint) targets.push(l.endPoint);
               });
 
               // Add field boundaries (corners)
@@ -653,7 +653,7 @@
               const parts = id.split("-");
               const lineIdx = Number(parts[1]) - 1;
               const line = lines[lineIdx];
-              if (line && line.endPoint) {
+              if (line?.endPoint) {
                 const isPiecewise =
                   parts.length > 2 && parts[2] === "piecewise";
                 const segIdx = isPiecewise ? Number(parts[3]) : -1;
@@ -740,7 +740,7 @@
                   startPointChanged = true;
                 }
               } else if (lines[line]) {
-                if (point === 0 && lines[line].endPoint) {
+                if (point === 0 && lines[line]?.endPoint) {
                   lines[line] = {
                     ...lines[line],
                     endPoint: { ...lines[line].endPoint, x: inchX, y: inchY },
@@ -886,7 +886,7 @@
                 const waitItem = sequence.find(
                   (s) => s.kind === "wait" && (s as any).id === waitId,
                 );
-                if (waitItem && (waitItem as any).eventMarkers?.[eIdx]) {
+                if ((waitItem as any)?.eventMarkers?.[eIdx]) {
                   actualHoverId = (waitItem as any).eventMarkers[eIdx].id;
                 }
               }
@@ -899,7 +899,7 @@
                 const rotateItem = sequence.find(
                   (s) => s.kind === "rotate" && (s as any).id === rotateId,
                 );
-                if (rotateItem && (rotateItem as any).eventMarkers?.[eIdx]) {
+                if ((rotateItem as any)?.eventMarkers?.[eIdx]) {
                   actualHoverId = (rotateItem as any).eventMarkers[eIdx].id;
                 }
               }
@@ -1033,7 +1033,7 @@
             if (!Number.isNaN(lineNum) && lineNum > 0) {
               const lineIndex = lineNum - 1;
               const line = lines[lineIndex];
-              if (line && line.id) {
+              if (line?.id) {
                 lId = line.id;
                 selectedLineId.set(line.id);
                 selectedPointId.set(currentElem);
@@ -1059,14 +1059,14 @@
           } else if (currentElem.startsWith("targetpoint-")) {
             const parts = currentElem.split("-");
             const lineIdx = Number(parts[1]) - 1;
-            if (!Number.isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            if (!Number.isNaN(lineIdx) && lines[lineIdx]?.id) {
               selectedLineId.set(lines[lineIdx].id as string);
               selectedPointId.set(currentElem);
             }
           } else if (currentElem.startsWith("event-")) {
             const parts = currentElem.split("-");
             const lineIdx = Number(parts[1]);
-            if (!Number.isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            if (!Number.isNaN(lineIdx) && lines[lineIdx]?.id) {
               selectedLineId.set(lines[lineIdx].id as string);
               selectedPointId.set(currentElem);
             }
@@ -1103,14 +1103,14 @@
               return;
             }
             const vertexIdx = Number(parts[2]);
-            if (shapes[shapeIdx]?.vertices[vertexIdx]) {
+            if (shapes[shapeIdx]?.vertices?.[vertexIdx]) {
               objectX = shapes[shapeIdx].vertices[vertexIdx].x;
               objectY = shapes[shapeIdx].vertices[vertexIdx].y;
             }
           } else if (currentElem.startsWith("targetpoint-")) {
             const parts = currentElem.split("-");
             const lineIdx = Number(parts[1]) - 1;
-            if (lines[lineIdx] && lines[lineIdx].endPoint) {
+            if (lines[lineIdx]?.endPoint) {
               const targetLine = lines[lineIdx];
               // Check for Global Heading override
               const isGlobal =
@@ -1144,10 +1144,10 @@
               objectX = startPoint.x;
               objectY = startPoint.y;
             } else if (lines[line]) {
-              if (point === 0 && lines[line].endPoint) {
+              if (point === 0 && lines[line]?.endPoint) {
                 objectX = lines[line].endPoint.x;
                 objectY = lines[line].endPoint.y;
-              } else if (lines[line].controlPoints[point - 1]) {
+              } else if (lines[line]?.controlPoints?.[point - 1]) {
                 objectX = lines[line].controlPoints[point - 1].x;
                 objectY = lines[line].controlPoints[point - 1].y;
               }
@@ -1163,14 +1163,14 @@
               const parts = id.split("-");
               const shapeIdx = Number(parts[1]);
               const vertexIdx = Number(parts[2]);
-              if (shapes[shapeIdx]?.vertices[vertexIdx]) {
+              if (shapes[shapeIdx]?.vertices?.[vertexIdx]) {
                 ox = shapes[shapeIdx].vertices[vertexIdx].x;
                 oy = shapes[shapeIdx].vertices[vertexIdx].y;
               }
             } else if (id.startsWith("targetpoint-")) {
               const parts = id.split("-");
               const lineIdx = Number(parts[1]) - 1;
-              if (lines[lineIdx] && lines[lineIdx].endPoint) {
+              if (lines[lineIdx]?.endPoint) {
                 const targetLine = lines[lineIdx];
                 const isGlobal =
                   targetLine.globalHeading !== undefined &&
@@ -1203,10 +1203,10 @@
                 ox = startPoint.x;
                 oy = startPoint.y;
               } else if (lines[line]) {
-                if (point === 0 && lines[line].endPoint) {
+                if (point === 0 && lines[line]?.endPoint) {
                   ox = lines[line].endPoint.x;
                   oy = lines[line].endPoint.y;
-                } else if (lines[line].controlPoints[point - 1]) {
+                } else if (lines[line]?.controlPoints?.[point - 1]) {
                   ox = lines[line].controlPoints[point - 1].x;
                   oy = lines[line].controlPoints[point - 1].y;
                 }
@@ -1314,7 +1314,7 @@
       const existingLines = get(linesStore);
       const prevEndPoint =
         existingLines.length > 0
-          ? existingLines[existingLines.length - 1].endPoint
+          ? existingLines[existingLines.length - 1]?.endPoint
           : null;
 
       let endPoint: Point;
@@ -1746,7 +1746,7 @@
     // Get items from registry (Empty Space or Append)
     if (menuItems.length === 0) {
       const registryItems = get(fieldContextMenuRegistry);
-      if (registryItems && registryItems.length > 0) {
+      if (registryItems?.length > 0) {
         const validItems = registryItems.filter((item) => {
           if (item.condition) {
             return item.condition({ x: fieldX, y: fieldY });
@@ -1986,7 +1986,7 @@
 
       // Start with standard lines for the basic "lines" array.
       // To include macro/bridge lines, iterate timeline travel events directly when available.
-      if (effectiveTimePrediction && effectiveTimePrediction.timeline) {
+      if (effectiveTimePrediction?.timeline) {
         const paths: any[] = [];
 
         // Filter travel events
