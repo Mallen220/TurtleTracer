@@ -18,6 +18,11 @@ interface StickyNote {
   const PLUGIN_ID = "sticky-notes-plugin";
   const CONTAINER_ID = "sticky-notes-root";
 
+  const isDomAvailable = () =>
+    typeof window !== "undefined" &&
+    typeof document !== "undefined" &&
+    typeof document.createElement === "function";
+
   // State
   let noteElements = new Map<string, HTMLElement>();
   let isDragging = false;
@@ -32,6 +37,13 @@ interface StickyNote {
   // Initialization
   function init() {
     try {
+      if (!isDomAvailable()) {
+        if (typeof setTimeout !== "undefined") {
+          setTimeout(init, 500);
+        }
+        return;
+      }
+
       console.log("[StickyNotes] Initializing plugin...");
 
       // 1. Mount Container (Try immediately)
@@ -129,6 +141,8 @@ interface StickyNote {
 
   function mountContainer(parent?: HTMLElement) {
     try {
+      if (!isDomAvailable()) return;
+
       // Cleanup existing
       const existing = document.getElementById(CONTAINER_ID);
       if (existing) {
