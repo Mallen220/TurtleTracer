@@ -1,7 +1,4 @@
-import { 
-  type RenderContext, 
-  findActiveEvent 
-} from "./GeneratorUtils";
+import { type RenderContext, findActiveEvent } from "./GeneratorUtils";
 import type { Line, Point } from "../../../types";
 import { generateOnionLayers } from "../../../utils";
 

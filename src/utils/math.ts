@@ -208,6 +208,70 @@ function getHeadingBase(
   return 0;
 }
 
+function evaluatePiecewiseSegment(
+  seg: any,
+  t: number,
+  line: Line,
+  previousPoint: Point,
+  isStart: boolean,
+): number {
+  if (seg.heading === "linear") {
+    const sDeg = seg.startDeg ?? 0;
+    const eDeg = seg.endDeg ?? 0;
+    let localT = 0;
+    if (seg.tEnd > seg.tStart) {
+      localT = (t - seg.tStart) / (seg.tEnd - seg.tStart);
+    }
+
+    const diff = eDeg - sDeg;
+    const normalized = ((diff % 360) + 360) % 360;
+    const shortest = normalized > 180 ? normalized - 360 : normalized;
+    const longest = shortest > 0 ? shortest - 360 : shortest + 360;
+
+    return transformAngle(sDeg + (seg.reverse ? longest : shortest) * localT);
+  }
+
+  if (seg.heading === "constant")
+    return transformAngle((seg.degrees ?? 0) + (seg.reverse ? 180 : 0));
+
+  let ref1: Point2D = previousPoint;
+  let ref2: Point2D = line.endPoint;
+
+  if (isStart) {
+    if (seg.heading === "tangential" && line.controlPoints?.length > 0) {
+      ref2 =
+        getFirstValidControlPoint(line.controlPoints, previousPoint) || ref2;
+    } else if (seg.heading === "facingPoint") {
+      const tx = seg.targetX || 0;
+      const ty = seg.targetY || 0;
+      // Piecewise start always uses t=0 for geometry lookup
+      const pos = previousPoint;
+      let angle = Math.atan2(ty - pos.y, tx - pos.x) * (180 / Math.PI);
+      if (seg.reverse) angle += 180;
+      return transformAngle(angle);
+    }
+    return getHeadingBase(seg, previousPoint, ref2);
+  } else {
+    if (seg.heading === "tangential" && line.controlPoints?.length > 0) {
+      ref1 =
+        getFirstValidControlPoint(line.controlPoints, line.endPoint, true) ||
+        ref1;
+    } else if (seg.heading === "facingPoint") {
+      const tx = seg.targetX || 0;
+      const ty = seg.targetY || 0;
+      const pos = line.endPoint;
+      let angle = Math.atan2(ty - pos.y, tx - pos.x) * (180 / Math.PI);
+      if (seg.reverse) angle += 180;
+      return transformAngle(angle);
+    }
+    return getHeadingBase(
+      seg,
+      seg.heading === "facingPoint" ? line.endPoint : ref1,
+      line.endPoint,
+    );
+  }
+}
+
 export function getLineStartHeading(
   line: Line | undefined,
   previousPoint: Point,
@@ -218,8 +282,7 @@ export function getLineStartHeading(
   if (!line || !line.endPoint) return 0;
 
   const isGlobal =
-    globalOverride?.globalHeading &&
-    globalOverride.globalHeading !== "none";
+    globalOverride?.globalHeading && globalOverride.globalHeading !== "none";
 
   const effectiveSource = isGlobal
     ? {
@@ -254,45 +317,7 @@ export function getLineStartHeading(
     if (!activeSeg && segments.length > 0) activeSeg = segments[0];
 
     if (activeSeg) {
-      if (activeSeg.heading === "linear") {
-        const sDeg = activeSeg.startDeg ?? 0;
-        const eDeg = activeSeg.endDeg ?? 0;
-        let localT = 0;
-        if (activeSeg.tEnd > activeSeg.tStart) {
-          localT = (t - activeSeg.tStart) / (activeSeg.tEnd - activeSeg.tStart);
-        }
-
-        const diff = eDeg - sDeg;
-        const normalized = ((diff % 360) + 360) % 360;
-        const shortest = normalized > 180 ? normalized - 360 : normalized;
-        const longest = shortest > 0 ? shortest - 360 : shortest + 360;
-
-        return transformAngle(
-          sDeg + (activeSeg.reverse ? longest : shortest) * localT,
-        );
-      }
-      if (activeSeg.heading === "constant")
-        return transformAngle(
-          (activeSeg.degrees ?? 0) + (activeSeg.reverse ? 180 : 0),
-        );
-
-      let nextP: Point2D = line.endPoint;
-      if (
-        activeSeg.heading === "tangential" &&
-        line.controlPoints?.length > 0
-      ) {
-        nextP =
-          getFirstValidControlPoint(line.controlPoints, previousPoint) || nextP;
-      } else if (activeSeg.heading === "facingPoint") {
-        const tx = activeSeg.targetX || 0;
-        const ty = activeSeg.targetY || 0;
-        // Piecewise start always uses t=0 for geometry lookup
-        const pos = previousPoint;
-        let angle = Math.atan2(ty - pos.y, tx - pos.x) * (180 / Math.PI);
-        if (activeSeg.reverse) angle += 180;
-        return transformAngle(angle);
-      }
-      return getHeadingBase(activeSeg as any, previousPoint, nextP);
+      return evaluatePiecewiseSegment(activeSeg, t, line, previousPoint, true);
     }
     return 0;
   }
@@ -327,8 +352,7 @@ export function getLineEndHeading(
   if (!line || !line.endPoint) return 0;
 
   const isGlobal =
-    globalOverride?.globalHeading &&
-    globalOverride.globalHeading !== "none";
+    globalOverride?.globalHeading && globalOverride.globalHeading !== "none";
 
   const effectiveSource = isGlobal
     ? {
@@ -364,46 +388,7 @@ export function getLineEndHeading(
       lastSeg = segments[segments.length - 1];
 
     if (lastSeg) {
-      if (lastSeg.heading === "linear") {
-        const sDeg = lastSeg.startDeg ?? 0;
-        const eDeg = lastSeg.endDeg ?? 0;
-        let localT = 0;
-        if (lastSeg.tEnd > lastSeg.tStart) {
-          localT = (t - lastSeg.tStart) / (lastSeg.tEnd - lastSeg.tStart);
-        }
-
-        const diff = eDeg - sDeg;
-        const normalized = ((diff % 360) + 360) % 360;
-        const shortest = normalized > 180 ? normalized - 360 : normalized;
-        const longest = shortest > 0 ? shortest - 360 : shortest + 360;
-
-        return transformAngle(
-          sDeg + (lastSeg.reverse ? longest : shortest) * localT,
-        );
-      }
-      if (lastSeg.heading === "constant")
-        return transformAngle(
-          (lastSeg.degrees ?? 0) + (lastSeg.reverse ? 180 : 0),
-        );
-
-      let prevP: Point2D = previousPoint;
-      if (lastSeg.heading === "tangential" && line.controlPoints?.length > 0) {
-        prevP =
-          getFirstValidControlPoint(line.controlPoints, line.endPoint, true) ||
-          prevP;
-      } else if (lastSeg.heading === "facingPoint") {
-        const tx = lastSeg.targetX || 0;
-        const ty = lastSeg.targetY || 0;
-        const pos = line.endPoint;
-        let angle = Math.atan2(ty - pos.y, tx - pos.x) * (180 / Math.PI);
-        if (lastSeg.reverse) angle += 180;
-        return transformAngle(angle);
-      }
-      return getHeadingBase(
-        lastSeg as any,
-        lastSeg.heading === "facingPoint" ? line.endPoint : prevP,
-        line.endPoint,
-      );
+      return evaluatePiecewiseSegment(lastSeg, t, line, previousPoint, false);
     }
     return 0;
   }

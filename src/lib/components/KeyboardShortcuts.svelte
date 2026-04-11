@@ -932,7 +932,8 @@
     const target = e.currentTarget || e.target;
     if (
       target instanceof HTMLInputElement &&
-      target.files && target.files.length > 0
+      target.files &&
+      target.files.length > 0
     ) {
       loadFile(e);
       target.value = "";

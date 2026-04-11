@@ -17,11 +17,11 @@ import { actionRegistry } from "../../actionRegistry";
 import { updateLinkedWaypoints } from "../../../utils/pointLinking";
 import { FIELD_SIZE } from "../../../config";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
-import { 
-  parseSelectionId, 
-  findSequenceItem, 
-  findSequenceItemIndex, 
-  updateEventMarkerPosition 
+import {
+  parseSelectionId,
+  findSequenceItem,
+  findSequenceItemIndex,
+  updateEventMarkerPosition,
 } from "./itemUtils";
 
 export function removeSelected(recordChange: (action?: string) => void) {
@@ -60,13 +60,13 @@ export function removeSelected(recordChange: (action?: string) => void) {
       eventMarkersToDelete.push({
         itemType: info.type === "event-wait" ? "wait" : "rotate",
         evIdx: info.evIdx,
-        itemId: info.id
+        itemId: info.id,
       });
     } else if (info.type === "event-line") {
       eventMarkersToDelete.push({
         itemType: "line",
         evIdx: info.evIdx,
-        itemId: String(info.lineIdx)
+        itemId: String(info.lineIdx),
       });
     }
   });
@@ -159,12 +159,17 @@ export function removeSelected(recordChange: (action?: string) => void) {
   eventMarkersToDelete.forEach(({ itemType, itemId, evIdx }) => {
     if (itemType === "wait" || itemType === "rotate") {
       const item = findSequenceItem(sequence, itemId, itemType);
-      if (item && item.eventMarkers && item.eventMarkers[evIdx] && !item.locked) {
+      if (
+        item?.eventMarkers?.[evIdx] &&
+        !item.locked
+      ) {
         const itemIdx = findSequenceItemIndex(sequence, itemId, itemType);
         if (itemIdx !== -1) {
           sequence[itemIdx] = {
             ...item,
-            eventMarkers: item.eventMarkers.filter((_: any, i: number) => i !== evIdx),
+            eventMarkers: item.eventMarkers.filter(
+              (_: any, i: number) => i !== evIdx,
+            ),
           };
           sequenceChanged = true;
         }
@@ -172,10 +177,17 @@ export function removeSelected(recordChange: (action?: string) => void) {
     } else if (itemType === "line") {
       const lineIdx = Number(itemId);
       const line = lines[lineIdx];
-      if (line && line.eventMarkers && line.eventMarkers[evIdx] && !line.locked) {
+      if (
+        line &&
+        line.eventMarkers &&
+        line.eventMarkers[evIdx] &&
+        !line.locked
+      ) {
         lines[lineIdx] = {
           ...line,
-          eventMarkers: line.eventMarkers.filter((_: any, i: number) => i !== evIdx),
+          eventMarkers: line.eventMarkers.filter(
+            (_: any, i: number) => i !== evIdx,
+          ),
         };
         linesChanged = true;
       }
@@ -341,9 +353,15 @@ export function movePoint(
       if (itemIdx !== -1) {
         const item = sequence[itemIdx] as any;
         if (item && item.eventMarkers && item.eventMarkers[info.evIdx]) {
-          const newPos = updateEventMarkerPosition(item.eventMarkers[info.evIdx], 0.01 * (dx + dy));
+          const newPos = updateEventMarkerPosition(
+            item.eventMarkers[info.evIdx],
+            0.01 * (dx + dy),
+          );
           const newMarkers = [...item.eventMarkers];
-          newMarkers[info.evIdx] = { ...newMarkers[info.evIdx], position: newPos };
+          newMarkers[info.evIdx] = {
+            ...newMarkers[info.evIdx],
+            position: newPos,
+          };
           sequence[itemIdx] = { ...item, eventMarkers: newMarkers };
           sequenceChanged = true;
         }
@@ -351,9 +369,15 @@ export function movePoint(
     } else if (info.type === "event-line") {
       const line = lines[info.lineIdx];
       if (line && line.eventMarkers && line.eventMarkers[info.evIdx]) {
-        const newPos = updateEventMarkerPosition(line.eventMarkers[info.evIdx], 0.01 * (dx + dy));
+        const newPos = updateEventMarkerPosition(
+          line.eventMarkers[info.evIdx],
+          0.01 * (dx + dy),
+        );
         const newMarkers = [...line.eventMarkers];
-        newMarkers[info.evIdx] = { ...newMarkers[info.evIdx], position: newPos };
+        newMarkers[info.evIdx] = {
+          ...newMarkers[info.evIdx],
+          position: newPos,
+        };
         lines[info.lineIdx] = { ...line, eventMarkers: newMarkers };
         linesChanged = true;
       }

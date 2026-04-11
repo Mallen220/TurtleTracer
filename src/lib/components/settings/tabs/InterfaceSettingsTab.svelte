@@ -7,7 +7,9 @@
   } from "../../../../config/defaults";
   import type { Settings, CustomFieldConfig } from "../../../../types/index";
   import { themesStore } from "../../../pluginsStore";
-  import { followRobotStore } from "../../../projectStore";  import { fieldZoom, fieldPan } from "../../../../stores";  import * as ICONS from "../../icons";
+  import { followRobotStore } from "../../../projectStore";
+  import { fieldZoom, fieldPan } from "../../../../stores";
+  import * as ICONS from "../../icons";
   import CustomFieldWizard from "../../settings/CustomFieldWizard.svelte";
 
   interface Props {

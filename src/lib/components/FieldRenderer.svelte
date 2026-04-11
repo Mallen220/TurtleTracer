@@ -1944,7 +1944,7 @@
       (currentFile && $isUnsaved),
   );
   let dimmedIds = $derived($dimmedLinesStore);
-  
+
   let ctx = $derived<RenderContext>({
     x,
     y,
@@ -1965,9 +1965,7 @@
   // Animated facing-point line: drawn from current robot position to the facing target.
   // Only shown when the robot is actively driving on that facingPoint segment.
   // Rendered as SVG overlay to avoid clearing Two.js scene.
-  let facingLineElements = $derived(
-    generateFacingLineElements(lines, ctx),
-  );
+  let facingLineElements = $derived(generateFacingLineElements(lines, ctx));
   // Paths (Lines) - Standard
   let path = $derived(
     (() => {
@@ -2092,9 +2090,7 @@
     ),
   );
   // Shapes (Obstacles)
-  let shapeElements = $derived(
-    generateShapeElements(shapes, ctx),
-  );
+  let shapeElements = $derived(generateShapeElements(shapes, ctx));
   // Onion Layers
   // Rendered as SVG overlay to avoid clearing Two.js scene.
   let onionLayerElements = $derived(
@@ -2234,7 +2230,9 @@
     >
       {#each onionLayerElements as layer}
         <polygon
-          points={layer.corners.map((c: any) => `${x(c.x)},${y(c.y)}`).join(" ")}
+          points={layer.corners
+            .map((c: any) => `${x(c.x)},${y(c.y)}`)
+            .join(" ")}
           fill="none"
           stroke="#818cf8"
           stroke-width={uiLength(0.5)}

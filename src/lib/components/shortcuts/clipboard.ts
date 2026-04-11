@@ -10,10 +10,10 @@ import { selectedLineId, selectedPointId, notification } from "../../../stores";
 import { actionRegistry } from "../../actionRegistry";
 import type { Line, SequenceItem } from "../../../types/index";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
-import { 
-  parseSelectionId, 
-  findSequenceItem, 
-  findSequenceItemIndex 
+import {
+  parseSelectionId,
+  findSequenceItem,
+  findSequenceItemIndex,
 } from "./itemUtils";
 
 // Internal clipboard state for shortcuts
@@ -55,17 +55,20 @@ export const generateName = (baseName: string, existingNames: string[]) => {
 
 function duplicateSequenceItem(
   item: any,
-  kind: 'wait' | 'rotate',
+  kind: "wait" | "rotate",
   sequence: SequenceItem[],
-  recordChange: (action?: string) => void
+  recordChange: (action?: string) => void,
 ) {
   const newItem = JSON.parse(JSON.stringify(item));
   newItem.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
   const existingNames = sequence
-    .filter((s) => actionRegistry.get(s.kind)?.[kind === 'wait' ? 'isWait' : 'isRotate'])
+    .filter(
+      (s) =>
+        actionRegistry.get(s.kind)?.[kind === "wait" ? "isWait" : "isRotate"],
+    )
     .map((s) => (s as any).name || "");
-  
+
   if (item.name && item.name.trim() !== "") {
     newItem.name = generateName(item.name, existingNames);
   } else {
@@ -283,9 +286,12 @@ export function paste(recordChange: (action?: string) => void) {
     newItem.id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
     const existingNames = sequence
-      .filter((s) => actionRegistry.get(s.kind)?.[kind === 'wait' ? 'isWait' : 'isRotate'])
+      .filter(
+        (s) =>
+          actionRegistry.get(s.kind)?.[kind === "wait" ? "isWait" : "isRotate"],
+      )
       .map((s) => (s as any).name || "");
-    
+
     if (newItem.name && newItem.name.trim() !== "") {
       newItem.name = generateName(newItem.name, existingNames);
     } else {

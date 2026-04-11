@@ -26,11 +26,11 @@ export interface RenderContext {
  */
 export function findActiveEvent(timePrediction: any, percentStore: number) {
   if (!timePrediction?.timeline?.length) return null;
-  
+
   const totalDuration =
     timePrediction.timeline[timePrediction.timeline.length - 1]?.endTime || 0;
   const currentSeconds = (percentStore / 100) * totalDuration;
-  
+
   return (
     timePrediction.timeline.find(
       (e: any) => currentSeconds >= e.startTime && currentSeconds <= e.endTime,

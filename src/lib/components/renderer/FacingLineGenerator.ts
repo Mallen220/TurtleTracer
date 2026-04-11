@@ -1,8 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { 
-  type RenderContext, 
-  findActiveEvent 
-} from "./GeneratorUtils";
+import { type RenderContext, findActiveEvent } from "./GeneratorUtils";
 import type { Line } from "../../../types";
 
 export function generateFacingLineElements(lines: Line[], ctx: RenderContext) {

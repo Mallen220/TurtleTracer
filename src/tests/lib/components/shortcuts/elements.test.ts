@@ -43,7 +43,7 @@ describe("elements", () => {
   const testSequenceAddition = (
     addFn: (cb: any) => void,
     actionName: string,
-    kind: string
+    kind: string,
   ) => {
     const cb = vi.fn();
     addFn(cb);

@@ -419,10 +419,7 @@
   });
   // collapse telemetry tab if user disabled it
   run(() => {
-    if (
-      activeTab === "telemetry" &&
-      settings?.showTelemetryTab === false
-    ) {
+    if (activeTab === "telemetry" && settings?.showTelemetryTab === false) {
       activeTab = "path";
     }
   });
@@ -519,8 +516,8 @@
       timeline.forEach((ev) => {
         if (ev.type === "travel") {
           const line = (ev as any).line || lines[ev.lineIndex as number];
-        if (line?.eventMarkers) {
-          line.eventMarkers.forEach((m: any) => {
+          if (line?.eventMarkers) {
+            line.eventMarkers.forEach((m: any) => {
               let timeOffset = 0;
               if (ev.motionProfile) {
                 const steps = ev.motionProfile.length - 1;

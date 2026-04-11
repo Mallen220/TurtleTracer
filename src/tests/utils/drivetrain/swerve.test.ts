@@ -16,7 +16,13 @@ describe("calculateSwerveDriveAngles", () => {
     });
   });
 
-  const expectAngles = (angles: any, fl: number, bl: number, fr: number, br: number) => {
+  const expectAngles = (
+    angles: any,
+    fl: number,
+    bl: number,
+    fr: number,
+    br: number,
+  ) => {
     expect(angles.frontLeft).toBeCloseTo(fl);
     expect(angles.backLeft).toBeCloseTo(bl);
     expect(angles.frontRight).toBeCloseTo(fr);

@@ -511,9 +511,7 @@
         const destPath = path.join(currentDirectory, fileName);
 
         // Check overwrite
-        if (
-          await electronAPI?.fileExists?.(destPath)
-        ) {
+        if (await electronAPI?.fileExists?.(destPath)) {
           if (
             !confirm(
               `File "${fileName}" already exists in "${path.basename(currentDirectory)}". Overwrite?`,

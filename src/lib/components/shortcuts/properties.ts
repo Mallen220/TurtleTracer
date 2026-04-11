@@ -9,11 +9,11 @@ import {
 } from "../../../utils/pointLinking";
 import type { Point } from "../../../types/index";
 import { isUIElementFocused } from "./utils";
-import { 
-  parseSelectionId, 
-  findSequenceItem, 
-  findSequenceItemIndex, 
-  updateEventMarkerPosition 
+import {
+  parseSelectionId,
+  findSequenceItem,
+  findSequenceItemIndex,
+  updateEventMarkerPosition,
 } from "./itemUtils";
 
 export function modifyValue(
@@ -66,10 +66,19 @@ export function modifyValue(
     const itemIdx = findSequenceItemIndex(sequence, info.id, kind);
     if (itemIdx !== -1) {
       const item = sequence[itemIdx] as any;
-      if (item && item.eventMarkers && item.eventMarkers[info.evIdx] && !item.locked) {
-        const newPos = updateEventMarkerPosition(item.eventMarkers[info.evIdx], 0.01 * delta);
+      if (
+        item?.eventMarkers?.[info.evIdx] &&
+        !item.locked
+      ) {
+        const newPos = updateEventMarkerPosition(
+          item.eventMarkers[info.evIdx],
+          0.01 * delta,
+        );
         const newMarkers = [...item.eventMarkers];
-        newMarkers[info.evIdx] = { ...newMarkers[info.evIdx], position: newPos };
+        newMarkers[info.evIdx] = {
+          ...newMarkers[info.evIdx],
+          position: newPos,
+        };
         sequence[itemIdx] = { ...item, eventMarkers: newMarkers };
         sequenceStore.set([...sequence]);
         recordChange("Move Event Marker");
@@ -79,8 +88,14 @@ export function modifyValue(
   }
   if (info.type === "event-line") {
     const line = lines[info.lineIdx];
-    if (line && line.eventMarkers && line.eventMarkers[info.evIdx] && !line.locked) {
-      const newPos = updateEventMarkerPosition(line.eventMarkers[info.evIdx], 0.01 * delta);
+    if (
+      line?.eventMarkers?.[info.evIdx] &&
+      !line.locked
+    ) {
+      const newPos = updateEventMarkerPosition(
+        line.eventMarkers[info.evIdx],
+        0.01 * delta,
+      );
       const newMarkers = [...line.eventMarkers];
       newMarkers[info.evIdx] = { ...newMarkers[info.evIdx], position: newPos };
       lines[info.lineIdx] = { ...line, eventMarkers: newMarkers };
@@ -94,9 +109,16 @@ export function modifyValue(
     const lineIdx = lines.findIndex((l) => l.id === get(selectedLineId));
     if (lineIdx !== -1) {
       const line = lines[lineIdx];
-      if (line && line.eventMarkers && line.eventMarkers.length > 0 && !line.locked) {
+      if (
+        line?.eventMarkers &&
+        line.eventMarkers?.length > 0 &&
+        !line.locked
+      ) {
         const lastIdx = line.eventMarkers.length - 1;
-        const newPos = updateEventMarkerPosition(line.eventMarkers[lastIdx], 0.01 * delta);
+        const newPos = updateEventMarkerPosition(
+          line.eventMarkers[lastIdx],
+          0.01 * delta,
+        );
         const newMarkers = [...line.eventMarkers];
         newMarkers[lastIdx] = { ...newMarkers[lastIdx], position: newPos };
         lines[lineIdx] = { ...line, eventMarkers: newMarkers };
@@ -266,7 +288,12 @@ export function toggleLock(recordChange: (action?: string) => void) {
     const kind = info.type === "wait" ? "wait" : "rotate";
     sequenceStore.update((seq) =>
       seq.map((s) => {
-        if (actionRegistry.get(s.kind)?.[kind === 'wait' ? 'isWait' : 'isRotate'] && (s as any).id === info.id) {
+        if (
+          actionRegistry.get(s.kind)?.[
+            kind === "wait" ? "isWait" : "isRotate"
+          ] &&
+          (s as any).id === info.id
+        ) {
           return { ...s, locked: !(s as any).locked };
         }
         return s;

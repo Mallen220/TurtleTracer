@@ -4,10 +4,7 @@ import type { Line as PathLine } from "two.js/src/shapes/line";
 import type { Line, Point } from "../../../types";
 import { getCurvePoint } from "../../../utils/math";
 import { LINE_WIDTH } from "../../../config";
-import { 
-  type RenderContext, 
-  createPathAnchors 
-} from "./GeneratorUtils";
+import { type RenderContext, createPathAnchors } from "./GeneratorUtils";
 
 export function generatePathElements(
   targetLines: Line[],

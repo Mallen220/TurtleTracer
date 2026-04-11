@@ -1470,10 +1470,9 @@ export function calculatePathTime(
     });
   };
 
-  const initialSeq =
-    sequence?.length
-      ? sequence
-      : lines.map((ln) => ({ kind: "path", lineId: ln.id! }) as SequenceItem);
+  const initialSeq = sequence?.length
+    ? sequence
+    : lines.map((ln) => ({ kind: "path", lineId: ln.id! }) as SequenceItem);
 
   processSequence(initialSeq, lines);
 

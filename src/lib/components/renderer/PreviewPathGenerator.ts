@@ -2,10 +2,7 @@ import Two from "two.js";
 import type { Path } from "two.js/src/path";
 import type { Line as PathLine } from "two.js/src/shapes/line";
 import type { Line, Point } from "../../../types";
-import { 
-  type RenderContext, 
-  createPathAnchors 
-} from "./GeneratorUtils";
+import { type RenderContext, createPathAnchors } from "./GeneratorUtils";
 import { LINE_WIDTH } from "../../../config";
 
 export function generatePreviewPathElements(

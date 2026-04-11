@@ -1212,9 +1212,7 @@
     let el = e.target as Element | null;
     while (el) {
       if (el.classList?.contains("wait-row")) return;
-      if (
-        el.id?.startsWith("wait-") || el.id?.startsWith("wait-event-")
-      )
+      if (el.id?.startsWith("wait-") || el.id?.startsWith("wait-event-"))
         return;
       el = el.parentElement;
     }
@@ -1428,10 +1426,7 @@
     }
   });
   run(() => {
-    if (
-      timePrediction?.timeline &&
-      (lines.length > 0 || sequence.length > 0)
-    ) {
+    if (timePrediction?.timeline && (lines.length > 0 || sequence.length > 0)) {
       // Calculate Global Time based on effective duration
       const globalTime = (percent / 100) * effectiveDuration;
 

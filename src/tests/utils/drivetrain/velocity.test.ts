@@ -65,7 +65,7 @@ describe("calculateDrivetrainSpeeds", () => {
 
   const mockRobotStates = (
     state1: { x: number; y: number; heading: number },
-    state2: { x: number; y: number; heading: number }
+    state2: { x: number; y: number; heading: number },
   ) => {
     vi.mocked(animation.calculateRobotState).mockReset();
     vi.mocked(animation.calculateRobotState)

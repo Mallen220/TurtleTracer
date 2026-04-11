@@ -1,8 +1,5 @@
 import Two from "two.js";
-import { 
-  type RenderContext, 
-  setupTextLabel 
-} from "./GeneratorUtils";
+import { type RenderContext, setupTextLabel } from "./GeneratorUtils";
 import type { Line, Point, Shape, SequenceItem } from "../../../types";
 import { POINT_RADIUS } from "../../../config";
 import { calculateGlobalChainMeta } from "../../../utils/timeCalculator";
@@ -57,7 +54,11 @@ export function generatePointElements(
           x(point.x),
           y(point.y) - uiLength(0.15),
         );
-        setupTextLabel(pointText, `point-${idx + 1}-${idx1}-text`, uiLength(1.55));
+        setupTextLabel(
+          pointText,
+          `point-${idx + 1}-${idx1}-text`,
+          uiLength(1.55),
+        );
         pointGroup.add(pointElem, pointText);
         _points.push(pointGroup);
       } else {
@@ -118,7 +119,12 @@ export function generatePointElements(
         x(targetX || 72),
         y(targetY || 72) - uiLength(0.05),
       );
-      setupTextLabel(pointText, `targetpoint-${idx + 1}-text`, uiLength(1.4), 700);
+      setupTextLabel(
+        pointText,
+        `targetpoint-${idx + 1}-text`,
+        uiLength(1.4),
+        700,
+      );
       pointGroup.add(pointElem, pointText);
       _points.push(pointGroup);
     } else if (headingType === "piecewise") {
@@ -141,7 +147,12 @@ export function generatePointElements(
             x(seg.targetX || 72),
             y(seg.targetY || 72) - uiLength(0.05),
           );
-          setupTextLabel(pointText, `targetpoint-${idx + 1}-piecewise-${segIdx}-text`, uiLength(1.4), 700);
+          setupTextLabel(
+            pointText,
+            `targetpoint-${idx + 1}-piecewise-${segIdx}-text`,
+            uiLength(1.4),
+            700,
+          );
           pointGroup.add(pointElem, pointText);
           _points.push(pointGroup);
         }
@@ -166,7 +177,11 @@ export function generatePointElements(
         x(vertex.x),
         y(vertex.y) - uiLength(0.15),
       );
-      setupTextLabel(pointText, `obstacle-${shapeIdx}-${vertexIdx}-text`, uiLength(1.55));
+      setupTextLabel(
+        pointText,
+        `obstacle-${shapeIdx}-${vertexIdx}-text`,
+        uiLength(1.55),
+      );
       pointGroup.add(pointElem, pointText);
       _points.push(pointGroup);
     });
