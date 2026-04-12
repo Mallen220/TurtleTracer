@@ -42,6 +42,7 @@
     availableCommands,
     isDrawingMode,
   } from "../../stores";
+  import type { FileInfo } from "../../types";
   // keep a local binding for the update-available store
   const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import {
@@ -190,15 +191,19 @@
   }[] = $state([]);
 
   async function fetchFiles() {
-    if (!window.electronAPI) return;
+    if (!(globalThis as any).electronAPI) return;
     try {
-      let dir: string | null = await window.electronAPI.getSavedDirectory();
-      if (!dir) dir = await window.electronAPI.getDirectory();
+      let dir: string | null = await (
+        globalThis as any
+      ).electronAPI.getSavedDirectory();
+      if (!dir) dir = await (globalThis as any).electronAPI.getDirectory();
       if (dir) {
-        const files = await window.electronAPI.listFiles(dir);
+        const files: FileInfo[] = await (
+          globalThis as any
+        ).electronAPI.listFiles(dir);
         fileCommands = files
-          .filter((f) => isSupportedProjectFileName(f.name))
-          .map((f) => ({
+          .filter((f: FileInfo) => isSupportedProjectFileName(f.name))
+          .map((f: FileInfo) => ({
             id: `file-${f.name}`,
             label: `Open File: ${f.name}`,
             action: () => loadRecentFile(f.path),
@@ -310,12 +315,10 @@
         const idx = tabs.indexOf(current);
         const next = tabs[(idx + 1) % tabs.length];
         settingsActiveTab.set(next);
-      } else {
-        if (activeControlTab === "path") activeControlTab = "field";
-        else if (activeControlTab === "field") activeControlTab = "table";
-        else if (activeControlTab === "table") activeControlTab = "code";
-        else activeControlTab = "path";
-      }
+      } else if (activeControlTab === "path") activeControlTab = "field";
+      else if (activeControlTab === "field") activeControlTab = "table";
+      else if (activeControlTab === "table") activeControlTab = "code";
+      else activeControlTab = "path";
     },
     cycleTabPrev: () => {
       if ($showSettings) {
@@ -324,12 +327,10 @@
         const idx = tabs.indexOf(current);
         const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
         settingsActiveTab.set(prev);
-      } else {
-        if (activeControlTab === "path") activeControlTab = "code";
-        else if (activeControlTab === "code") activeControlTab = "table";
-        else if (activeControlTab === "table") activeControlTab = "field";
-        else activeControlTab = "path";
-      }
+      } else if (activeControlTab === "path") activeControlTab = "code";
+      else if (activeControlTab === "code") activeControlTab = "table";
+      else if (activeControlTab === "table") activeControlTab = "field";
+      else activeControlTab = "path";
     },
     toggleCollapseAll: () => toggleCollapseAllTrigger.update((v) => v + 1),
     toggleCollapseSelected: () => {
@@ -590,7 +591,7 @@
       const url =
         "https://www.turtletracer.com/turtle-tracer-lib/installation/";
 
-      const api = (window as any).electronAPI;
+      const api = (globalThis as any).electronAPI;
       if (api && api.openExternal) {
         api.openExternal(url);
       } else {
@@ -600,7 +601,7 @@
     reportIssue: () => {
       const url = "https://github.com/Mallen220/TurtleTracer/issues";
 
-      const api = (window as any).electronAPI;
+      const api = (globalThis as any).electronAPI;
       if (api && api.openExternal) {
         api.openExternal(url);
       } else {
@@ -608,7 +609,7 @@
       }
     },
     checkForUpdates: () => {
-      const api = (window as any).electronAPI;
+      const api = (globalThis as any).electronAPI;
       if (api && api.checkForUpdates) {
         api
           .checkForUpdates()
@@ -620,8 +621,11 @@
       }
     },
     setFileManagerDirectory: async () => {
-      if (window.electronAPI && window.electronAPI.setDirectory) {
-        await window.electronAPI.setDirectory();
+      if (
+        (globalThis as any).electronAPI &&
+        (globalThis as any).electronAPI.setDirectory
+      ) {
+        await (globalThis as any).electronAPI.setDirectory();
         // Optionally refresh files after setting directory
         fetchFiles();
       }

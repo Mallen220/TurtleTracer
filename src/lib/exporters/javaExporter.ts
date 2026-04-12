@@ -273,22 +273,20 @@ export async function generateJavaCode(
                 );
                 config = `new Pose(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)})`;
               }
-            } else {
-              if (pointDef.heading === "constant") {
-                config = `Math.toRadians(${pointDef.degrees || 0})`;
-              } else if (pointDef.heading === "linear") {
-                config = `Math.toRadians(${pointDef.startDeg || 0}), Math.toRadians(${pointDef.endDeg || 0})`;
-              } else if (pointDef.heading === "facingPoint") {
-                const hx =
-                  codeUnits === "metric"
-                    ? `cmToInches(${((pointDef.targetX || 0) * 2.54).toFixed(3)})`
-                    : (pointDef.targetX || 0).toFixed(3);
-                const hy =
-                  codeUnits === "metric"
-                    ? `cmToInches(${((pointDef.targetY || 0) * 2.54).toFixed(3)})`
-                    : (pointDef.targetY || 0).toFixed(3);
-                config = `new Pose(${hx}, ${hy})`;
-              }
+            } else if (pointDef.heading === "constant") {
+              config = `Math.toRadians(${pointDef.degrees || 0})`;
+            } else if (pointDef.heading === "linear") {
+              config = `Math.toRadians(${pointDef.startDeg || 0}), Math.toRadians(${pointDef.endDeg || 0})`;
+            } else if (pointDef.heading === "facingPoint") {
+              const hx =
+                codeUnits === "metric"
+                  ? `cmToInches(${((pointDef.targetX || 0) * 2.54).toFixed(3)})`
+                  : (pointDef.targetX || 0).toFixed(3);
+              const hy =
+                codeUnits === "metric"
+                  ? `cmToInches(${((pointDef.targetY || 0) * 2.54).toFixed(3)})`
+                  : (pointDef.targetY || 0).toFixed(3);
+              config = `new Pose(${hx}, ${hy})`;
             }
 
             let baseName = "";
@@ -332,8 +330,8 @@ export async function generateJavaCode(
 
             let hConfig = generateInterpolatorString(targetConfig);
             let args = "";
-            if (hConfig.indexOf("(") !== -1) {
-              args = hConfig.substring(
+            if (hConfig.includes("(")) {
+              args = hConfig.slice(
                 hConfig.indexOf("(") + 1,
                 hConfig.lastIndexOf(")"),
               );
@@ -349,16 +347,14 @@ export async function generateJavaCode(
               } else if (targetConfig.heading === "facingPoint") {
                 return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))\n        .setReversed()`;
               }
-            } else {
-              if (targetConfig.heading === "constant") {
-                return `.setConstantHeadingInterpolation(${args})`;
-              } else if (targetConfig.heading === "linear") {
-                return `.setLinearHeadingInterpolation(${args})`;
-              } else if (targetConfig.heading === "tangential") {
-                return `.setTangentHeadingInterpolation()`;
-              } else if (targetConfig.heading === "facingPoint") {
-                return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))`;
-              }
+            } else if (targetConfig.heading === "constant") {
+              return `.setConstantHeadingInterpolation(${args})`;
+            } else if (targetConfig.heading === "linear") {
+              return `.setLinearHeadingInterpolation(${args})`;
+            } else if (targetConfig.heading === "tangential") {
+              return `.setTangentHeadingInterpolation()`;
+            } else if (targetConfig.heading === "facingPoint") {
+              return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))`;
             }
             return "";
           };

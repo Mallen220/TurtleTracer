@@ -6,7 +6,7 @@ import "fake-indexeddb/auto";
 describe("browserFileSystem", () => {
   beforeEach(async () => {});
 
-  const uniqueId = () => Math.random().toString(36).substring(7);
+  const uniqueId = () => Math.random().toString(36).slice(7);
 
   it("should return true for isVirtual", () => {
     expect(browserFileSystem.isVirtual).toBe(true);

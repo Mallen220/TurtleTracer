@@ -34,7 +34,7 @@
   );
 
   async function handleCheckForUpdates() {
-    const electronAPI = (window as any).electronAPI;
+    const electronAPI = (globalThis as any).electronAPI;
     if (electronAPI && electronAPI.checkForUpdates) {
       isCheckingForUpdates = true;
       try {
@@ -47,18 +47,16 @@
               type: "info",
               timeout: 4000,
             });
+          } else if (result.reason === "store") {
+            notification.set({
+              message: "Updates are managed by the Microsoft Store.",
+              type: "info",
+            });
           } else {
-            if (result.reason === "store") {
-              notification.set({
-                message: "Updates are managed by the Microsoft Store.",
-                type: "info",
-              });
-            } else {
-              notification.set({
-                message: "You are on the newest version.",
-                type: "success",
-              });
-            }
+            notification.set({
+              message: "You are on the newest version.",
+              type: "success",
+            });
           }
         } else {
           notification.set({

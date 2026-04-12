@@ -169,7 +169,7 @@
     const def = actionRegistry.get(item.kind);
 
     const newMarker: EventMarker = {
-      id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       name: "",
       position: 0.5,
     };

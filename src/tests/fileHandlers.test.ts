@@ -53,7 +53,7 @@ describe("fileHandlers", () => {
     registerCoreUI();
 
     // Don't replace the entire window object, just extend it
-    (window as any).electronAPI = mockElectronAPI;
+    (globalThis as any).electronAPI = mockElectronAPI;
 
     vi.stubGlobal("alert", vi.fn());
     vi.stubGlobal("confirm", vi.fn());
@@ -148,9 +148,11 @@ describe("fileHandlers", () => {
 
   describe("loadRecentFile", () => {
     it("should alert if electronAPI is missing", async () => {
-      delete (window as any).electronAPI;
+      delete (globalThis as any).electronAPI;
       const { loadRecentFile } = await import("../utils/fileHandlers");
-      const alertMock = vi.spyOn(window, "alert").mockImplementation(() => {});
+      const alertMock = vi
+        .spyOn(globalThis, "alert")
+        .mockImplementation(() => {});
 
       await loadRecentFile("test.pp");
       expect(alertMock).toHaveBeenCalledWith(
@@ -341,7 +343,7 @@ describe("fileHandlers", () => {
       mockElectronAPI.readFile.mockResolvedValue(JSON.stringify({}));
       mockElectronAPI.getSavedDirectory.mockResolvedValue("/my/projects");
       mockElectronAPI.fileExists.mockResolvedValue(false); // Dest doesn't exist
-      (global.confirm as any).mockReturnValue(true); // User says yes to copy
+      (globalThis.confirm as any).mockReturnValue(true); // User says yes to copy
 
       await fileHandlers.handleExternalFileOpen("/external/file.pp");
 

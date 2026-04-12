@@ -9,7 +9,7 @@ module.exports = {
     ecmaVersion: "latest",
     sourceType: "module",
   },
-  plugins: ["@typescript-eslint"],
+  plugins: ["@typescript-eslint", "unicorn"],
   ignorePatterns: [
     "node_modules/",
     "dist/",
@@ -19,6 +19,15 @@ module.exports = {
     "test-results/",
   ],
   extends: ["plugin:prettier/recommended"],
+  rules: {
+    "no-lonely-if": "error",
+    "unicorn/prefer-global-this": "error",
+    "unicorn/prefer-array-find": "error",
+    "unicorn/prefer-includes": "error",
+    "unicorn/prefer-string-starts-ends-with": "error",
+    "unicorn/prefer-string-slice": "error",
+    "unicorn/prefer-modern-dom-apis": "error",
+  },
   overrides: [
     {
       files: ["**/*.ts"],

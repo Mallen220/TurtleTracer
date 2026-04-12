@@ -13,7 +13,7 @@ export function validateSafePath(inputPath, basePath) {
   if (typeof inputPath !== "string") {
     throw new TypeError("Invalid path: must be a string");
   }
-  if (inputPath.indexOf("\0") !== -1) {
+  if (inputPath.includes("\0")) {
     throw new Error("Invalid path: contains null bytes");
   }
   const normalized = path.normalize(inputPath);
@@ -38,7 +38,7 @@ export function validateArbitraryPath(inputPath) {
   if (typeof inputPath !== "string") {
     throw new TypeError("Invalid path: must be a string");
   }
-  if (inputPath.indexOf("\0") !== -1) {
+  if (inputPath.includes("\0")) {
     throw new Error("Invalid path: contains null bytes");
   }
   if (inputPath.includes("..")) {

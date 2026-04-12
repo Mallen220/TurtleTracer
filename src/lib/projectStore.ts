@@ -45,6 +45,14 @@ export function normalizeLines(input: Line[]): Line[] {
   }));
 }
 
+function getElectronAPI() {
+  const globalAny = globalThis as any;
+  if (globalAny.electronAPI) return globalAny.electronAPI;
+  if (typeof window !== "undefined" && (window as any).electronAPI)
+    return (window as any).electronAPI;
+  return undefined;
+}
+
 // Helper: sanitize sequence to remove references to non-existent lines and append any missing lines
 export function sanitizeSequence(
   lines: Line[],
@@ -267,7 +275,7 @@ export async function loadMacro(filePath: string, force = false) {
   loadingMacros.add(filePath);
 
   // Use electronAPI to read file
-  const api = (window as any).electronAPI;
+  const api = getElectronAPI();
   if (api?.readFile) {
     try {
       const content = await api.readFile(filePath);
@@ -381,7 +389,7 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
   extraDataStore.set(data.extraData || {});
 
   // Load referenced macros
-  const api = (window as any).electronAPI;
+  const api = getElectronAPI();
   const promises: Promise<void>[] = [];
   for (const item of sanitized) {
     if (item.kind === "macro") {
@@ -460,7 +468,7 @@ export async function updateAllMacroReferences(
   oldPath: string,
   newPath: string,
 ): Promise<{ totalUpdated: number; mainSequenceChanged: boolean }> {
-  const api = (window as any).electronAPI;
+  const api = getElectronAPI();
   if (!api?.writeFile || !api?.listFiles || !api?.readFile)
     return { totalUpdated: 0, mainSequenceChanged: false };
 

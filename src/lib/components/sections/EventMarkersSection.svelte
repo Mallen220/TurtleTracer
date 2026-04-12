@@ -33,7 +33,7 @@
       line.eventMarkers = [];
     }
     line.eventMarkers.push({
-      id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       name: `Event_${lineIdx + 1}_${line.eventMarkers.length + 1}`,
       position: 0.5,
       lineIndex: lineIdx,

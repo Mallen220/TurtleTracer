@@ -78,7 +78,7 @@ export async function toggleDiff() {
       return;
     }
 
-    const api = (window as any).electronAPI;
+    const api = (globalThis as any).electronAPI;
     if (!api?.gitShow) {
       console.warn("Git integration not available");
       return;
@@ -194,12 +194,10 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
     const oldLine = oldLinesMap.get(line.id);
     if (!oldLine) {
       result.addedLines.push(line);
+    } else if (areLinesEqual(line, oldLine)) {
+      result.sameLines.push(line);
     } else {
-      if (areLinesEqual(line, oldLine)) {
-        result.sameLines.push(line);
-      } else {
-        result.changedLines.push({ old: oldLine, new: line });
-      }
+      result.changedLines.push({ old: oldLine, new: line });
     }
   });
 

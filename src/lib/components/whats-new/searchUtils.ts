@@ -89,7 +89,7 @@ export function highlightText(root: Element, query: string): void {
     const lowerText = text.toLowerCase();
 
     // Check if match exists
-    if (lowerText.indexOf(q) === -1) continue;
+    if (!lowerText.includes(q)) continue;
 
     const fragment = document.createDocumentFragment();
     let lastIndex = 0;

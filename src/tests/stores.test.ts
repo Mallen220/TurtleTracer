@@ -121,7 +121,7 @@ describe("Global Stores", () => {
       vi.resetModules();
 
       const dynamicStores = await import("../stores");
-      const windowMock = global.window as any;
+      const windowMock = globalThis.window as any;
 
       expect(windowMock.showUpdateAvailableDialog).toBeDefined();
       expect(windowMock.showUpdateAvailableDialog).toBe(

@@ -574,11 +574,9 @@ export class PathOptimizer {
             segmentEndIndex: currentSegmentIndex,
           };
         }
-      } else {
-        if (currentCollision) {
-          markers.push(currentCollision);
-          currentCollision = null;
-        }
+      } else if (currentCollision) {
+        markers.push(currentCollision);
+        currentCollision = null;
       }
     }
 

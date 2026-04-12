@@ -37,7 +37,7 @@
   function addEventMarker() {
     const list = wait.eventMarkers ?? [];
     const newMarker: EventMarker = {
-      id: `wait-event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `wait-event-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       name: `WaitEvent_${(wait.eventMarkers?.length ?? 0) + 1}`,
       position: 0.5,
       waitId: wait.id,

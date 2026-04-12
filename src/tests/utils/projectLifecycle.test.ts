@@ -42,23 +42,23 @@ describe("projectLifecycle", () => {
 
   it("should handleResetPathWithConfirmation and reset if user confirms", async () => {
     isUnsaved.set(true);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.spyOn(globalThis, "confirm").mockReturnValue(true);
     const cb = vi.fn();
 
     await handleResetPathWithConfirmation(cb);
 
-    expect(window.confirm).toHaveBeenCalled();
+    expect(globalThis.confirm).toHaveBeenCalled();
     expect(cb).toHaveBeenCalled();
   });
 
   it("should handleResetPathWithConfirmation and NOT reset if user denies", async () => {
     isUnsaved.set(true);
-    vi.spyOn(window, "confirm").mockReturnValue(false);
+    vi.spyOn(globalThis, "confirm").mockReturnValue(false);
     const cb = vi.fn();
 
     await handleResetPathWithConfirmation(cb);
 
-    expect(window.confirm).toHaveBeenCalled();
+    expect(globalThis.confirm).toHaveBeenCalled();
     expect(cb).not.toHaveBeenCalled();
   });
 });

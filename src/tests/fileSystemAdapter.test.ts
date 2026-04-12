@@ -53,14 +53,14 @@ describe("Directory Settings & File Handlers", () => {
   beforeEach(() => {
     vi.resetModules(); // Reset modules to ensure top-level code re-runs
     vi.resetAllMocks();
-    (window as any).electronAPI = mockElectronAPI;
+    (globalThis as any).electronAPI = mockElectronAPI;
 
     // Reset store mocks default behavior
     (get as any).mockImplementation((store: any) => store.value);
   });
 
   afterEach(() => {
-    delete (window as any).electronAPI;
+    delete (globalThis as any).electronAPI;
   });
 
   describe("directorySettings", () => {
@@ -94,7 +94,7 @@ describe("Directory Settings & File Handlers", () => {
     });
 
     it("should return default settings if electronAPI is missing", async () => {
-      delete (window as any).electronAPI;
+      delete (globalThis as any).electronAPI;
       const { loadDirectorySettings } =
         await import("../utils/directorySettings");
       const settings = await loadDirectorySettings();
@@ -148,10 +148,10 @@ describe("Directory Settings & File Handlers", () => {
   describe("fileHandlers", () => {
     describe("loadRecentFile", () => {
       it("should alert if electronAPI is missing", async () => {
-        delete (window as any).electronAPI;
+        delete (globalThis as any).electronAPI;
         const { loadRecentFile } = await import("../utils/fileHandlers");
         const alertMock = vi
-          .spyOn(window, "alert")
+          .spyOn(globalThis, "alert")
           .mockImplementation(() => {});
 
         await loadRecentFile("test.pp");
@@ -163,7 +163,9 @@ describe("Directory Settings & File Handlers", () => {
       it("should prompt to remove if file does not exist", async () => {
         mockElectronAPI.fileExists.mockResolvedValue(false);
         const { loadRecentFile } = await import("../utils/fileHandlers");
-        const confirmMock = vi.spyOn(window, "confirm").mockReturnValue(true);
+        const confirmMock = vi
+          .spyOn(globalThis, "confirm")
+          .mockReturnValue(true);
 
         await loadRecentFile("test.pp");
 
@@ -192,7 +194,9 @@ describe("Directory Settings & File Handlers", () => {
 
         const { handleExternalFileOpen } =
           await import("../utils/fileHandlers");
-        const confirmMock = vi.spyOn(window, "confirm").mockReturnValue(true);
+        const confirmMock = vi
+          .spyOn(globalThis, "confirm")
+          .mockReturnValue(true);
 
         await handleExternalFileOpen("/downloads/external.pp");
 

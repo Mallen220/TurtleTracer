@@ -49,7 +49,7 @@ const NEW_ABS = `${BASE}/macro.turt`; // moved to root
 function simulateResolve(contextFile: string, relative: string): string {
   // contextFile is the file that contains the reference.
   // We resolve relative against its directory.
-  const dir = contextFile.substring(0, contextFile.lastIndexOf("/"));
+  const dir = contextFile.slice(0, Math.max(0, contextFile.lastIndexOf("/")));
   if (relative.startsWith("/")) return relative; // already absolute
   const parts = (dir + "/" + relative).split("/");
   const resolved: string[] = [];
@@ -63,7 +63,9 @@ function simulateResolve(contextFile: string, relative: string): string {
 /** Simulate path.relative(from, to) — makeRelativePath(fromFile, toFile) returns
  *  the path from fromFile's directory to toFile. */
 function simulateMakeRelative(fromFile: string, toFile: string): string {
-  const fromDir = fromFile.substring(0, fromFile.lastIndexOf("/")).split("/");
+  const fromDir = fromFile
+    .slice(0, Math.max(0, fromFile.lastIndexOf("/")))
+    .split("/");
   const toDir = toFile.split("/");
 
   let common = 0;
@@ -143,7 +145,7 @@ describe("updateAllMacroReferences", () => {
       },
     };
     const writes: Record<string, string> = {};
-    (window as any).electronAPI = setupElectronAPI(diskFiles, writes);
+    (globalThis as any).electronAPI = setupElectronAPI(diskFiles, writes);
 
     const result = await updateAllMacroReferences(OLD_ABS, NEW_ABS);
 
@@ -156,7 +158,7 @@ describe("updateAllMacroReferences", () => {
     sequenceStore.set([makeMacroItem(OLD_ABS)]);
 
     const diskFiles = {}; // no files on disk need scanning
-    (window as any).electronAPI = setupElectronAPI(diskFiles);
+    (globalThis as any).electronAPI = setupElectronAPI(diskFiles);
 
     const result = await updateAllMacroReferences(OLD_ABS, NEW_ABS);
 
@@ -177,7 +179,7 @@ describe("updateAllMacroReferences", () => {
       },
     };
     const writes: Record<string, string> = {};
-    (window as any).electronAPI = setupElectronAPI(diskFiles, writes);
+    (globalThis as any).electronAPI = setupElectronAPI(diskFiles, writes);
 
     const result = await updateAllMacroReferences(OLD_ABS, NEW_ABS);
 
@@ -203,7 +205,7 @@ describe("updateAllMacroReferences", () => {
       },
     };
     const writes: Record<string, string> = {};
-    (window as any).electronAPI = setupElectronAPI(diskFiles, writes);
+    (globalThis as any).electronAPI = setupElectronAPI(diskFiles, writes);
 
     await updateAllMacroReferences(OLD_ABS, NEW_ABS);
 
@@ -218,7 +220,7 @@ describe("updateAllMacroReferences", () => {
     const macroData: TurtleData = { ...makeEmptyData() };
     macrosStore.set(new Map([[OLD_ABS, macroData]]));
 
-    (window as any).electronAPI = setupElectronAPI({});
+    (globalThis as any).electronAPI = setupElectronAPI({});
 
     await updateAllMacroReferences(OLD_ABS, NEW_ABS);
 
@@ -243,7 +245,7 @@ describe("updateAllMacroReferences", () => {
       },
     };
     const writes: Record<string, string> = {};
-    (window as any).electronAPI = setupElectronAPI(diskFiles, writes);
+    (globalThis as any).electronAPI = setupElectronAPI(diskFiles, writes);
 
     await updateAllMacroReferences(OLD_FOLDER, NEW_FOLDER);
 

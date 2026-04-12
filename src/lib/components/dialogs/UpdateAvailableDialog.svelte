@@ -49,11 +49,11 @@
   let currentVersion: string | null = $state(null);
 
   onMount(async () => {
-    const api = (window as any).electronAPI;
+    const api = (globalThis as any).electronAPI;
     if (api) {
       // Check platform
-      const userAgent = window.navigator.userAgent;
-      isWindows = userAgent.indexOf("Windows") !== -1;
+      const userAgent = globalThis.navigator.userAgent;
+      isWindows = userAgent.includes("Windows");
 
       if (api.isWindowsStore) {
         isStore = await api.isWindowsStore();
@@ -104,7 +104,7 @@
   }
 
   function handleDownload() {
-    const api = (window as any).electronAPI;
+    const api = (globalThis as any).electronAPI;
     if (api && updateData) {
       if (api.downloadUpdate) {
         // Pass version and url
@@ -118,7 +118,7 @@
   }
 
   function handleSkip() {
-    const api = (window as any).electronAPI;
+    const api = (globalThis as any).electronAPI;
     if (api && updateData && api.skipUpdate) {
       api.skipUpdate(updateData.version);
     }
@@ -126,7 +126,7 @@
   }
 
   function handleSwitchToStore() {
-    const api = (window as any).electronAPI;
+    const api = (globalThis as any).electronAPI;
     if (api && api.openExternal) {
       // URL from README
       api.openExternal(
@@ -138,7 +138,7 @@
 
   // Open the GitHub releases page for this release (keeps dialog open)
   function handleOpenReleases(): void {
-    const api = (window as any).electronAPI;
+    const api = (globalThis as any).electronAPI;
     if (api && api.openExternal && updateData?.url) {
       api.openExternal(updateData.url);
     } else if (updateData?.url) {

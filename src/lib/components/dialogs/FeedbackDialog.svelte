@@ -112,7 +112,7 @@
             color: 16753920, // Orange
             description:
               description.length > 4000
-                ? description.substring(0, 4000) + "..."
+                ? description.slice(0, 4000) + "..."
                 : description,
             fields: [
               {

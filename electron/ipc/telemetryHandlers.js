@@ -84,8 +84,8 @@ export function registerTelemetryHandlers() {
             buffer += data;
             let boundary = buffer.indexOf("\n");
             while (boundary !== -1) {
-              const line = buffer.substring(0, boundary);
-              buffer = buffer.substring(boundary + 1);
+              const line = buffer.slice(0, Math.max(0, boundary));
+              buffer = buffer.slice(Math.max(0, boundary + 1));
               if (line.trim().length > 0) {
                 if (!event.sender.isDestroyed()) {
                   event.sender.send("telemetry:data", line);

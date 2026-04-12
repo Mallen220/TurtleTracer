@@ -19,7 +19,7 @@ interface StickyNote {
   const CONTAINER_ID = "sticky-notes-root";
 
   const isDomAvailable = () =>
-    typeof window !== "undefined" &&
+    typeof globalThis !== "undefined" &&
     typeof document !== "undefined" &&
     typeof document.createElement === "function";
 
@@ -80,7 +80,7 @@ interface StickyNote {
       });
 
       // 5. Global Keybind (Alt+N)
-      window.addEventListener("keydown", (e) => {
+      globalThis.addEventListener("keydown", (e) => {
         // Block if typing in input
         const target = e.target as HTMLElement;
         if (

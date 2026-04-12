@@ -755,19 +755,17 @@
                       lines = updated;
                     }
                   }
-                } else {
-                  if (!lines[line]?.locked) {
-                    const newControlPoints = [...lines[line].controlPoints];
-                    newControlPoints[point - 1] = {
-                      ...newControlPoints[point - 1],
-                      x: inchX,
-                      y: inchY,
-                    };
-                    lines[line] = {
-                      ...lines[line],
-                      controlPoints: newControlPoints,
-                    };
-                  }
+                } else if (!lines[line]?.locked) {
+                  const newControlPoints = [...lines[line].controlPoints];
+                  newControlPoints[point - 1] = {
+                    ...newControlPoints[point - 1],
+                    x: inchX,
+                    y: inchY,
+                  };
+                  lines[line] = {
+                    ...lines[line],
+                    controlPoints: newControlPoints,
+                  };
                 }
                 linesChanged = true;
               }
@@ -847,14 +845,12 @@
               } else {
                 currentElem = target.id;
               }
+            } else if (idParts.length >= 3) {
+              const lineIdx = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              currentElem = `event-${lineIdx}-${evIdx}`;
             } else {
-              if (idParts.length >= 3) {
-                const lineIdx = idParts[idParts.length - 2];
-                const evIdx = idParts[idParts.length - 1];
-                currentElem = `event-${lineIdx}-${evIdx}`;
-              } else {
-                currentElem = target.id;
-              }
+              currentElem = target.id;
             }
             // Lookup actual event ID for hover highlighting
             let actualHoverId = null;
@@ -985,13 +981,11 @@
                 const evIdx = idParts[idParts.length - 1];
                 clickedElem = `wait-event-${waitId}-${evIdx}`;
               } else clickedElem = el.id;
-            } else {
-              if (idParts.length >= 3) {
-                const lineIdx = idParts[idParts.length - 2];
-                const evIdx = idParts[idParts.length - 1];
-                clickedElem = `event-${lineIdx}-${evIdx}`;
-              } else clickedElem = el.id;
-            }
+            } else if (idParts.length >= 3) {
+              const lineIdx = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              clickedElem = `event-${lineIdx}-${evIdx}`;
+            } else clickedElem = el.id;
           }
         }
 
@@ -1038,14 +1032,12 @@
                 selectedLineId.set(line.id);
                 selectedPointId.set(currentElem);
               }
+            } else if (currentElem === "point-0-0") {
+              selectedLineId.set(null);
+              selectedPointId.set(currentElem);
             } else {
-              if (currentElem === "point-0-0") {
-                selectedLineId.set(null);
-                selectedPointId.set(currentElem);
-              } else {
-                selectedLineId.set(null);
-                selectedPointId.set(null);
-              }
+              selectedLineId.set(null);
+              selectedPointId.set(null);
             }
             if (lId) {
               if (evt.shiftKey || evt.ctrlKey || evt.metaKey) {
@@ -1792,7 +1784,7 @@
   }
 
   onDestroy(() => {
-    if (typeof window !== "undefined") {
+    if (typeof globalThis !== "undefined") {
       window.removeEventListener("resize", updateRects);
       window.removeEventListener("scroll", updateRects, true);
     }

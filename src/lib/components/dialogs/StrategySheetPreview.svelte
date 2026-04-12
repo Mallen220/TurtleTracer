@@ -362,7 +362,7 @@
   });
 
   function handlePrint() {
-    window.print();
+    globalThis.print();
   }
 
   async function handleDownloadPdf() {

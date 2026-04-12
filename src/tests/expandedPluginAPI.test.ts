@@ -49,7 +49,7 @@ describe("Expanded Plugin API", () => {
       });
     `);
 
-    (window as any).electronAPI = {
+    (globalThis as any).electronAPI = {
       listPlugins: mockListPlugins,
       readPlugin: mockReadPlugin,
     };
@@ -82,7 +82,7 @@ describe("Expanded Plugin API", () => {
       });
     `);
 
-    (window as any).electronAPI = {
+    (globalThis as any).electronAPI = {
       listPlugins: mockListPlugins,
       readPlugin: mockReadPlugin,
       transpilePlugin: vi.fn((code) => code),

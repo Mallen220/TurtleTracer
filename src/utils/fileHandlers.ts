@@ -60,7 +60,7 @@ interface ExtendedElectronAPI {
 
 // Access electronAPI dynamically to allow mocking/runtime changes
 function getElectronAPI(): ExtendedElectronAPI | undefined {
-  return (window as any).electronAPI as ExtendedElectronAPI | undefined;
+  return (globalThis as any).electronAPI as ExtendedElectronAPI | undefined;
 }
 
 // Helper to update startPoint headings based on path geometry
@@ -638,66 +638,60 @@ export async function handleExternalFileOpen(filePath: string) {
 
       // If auto-export is enabled, regenerate exported code for the newly loaded file
       await triggerAutoExportWithStores(data, filePath);
-    } else {
-      // Not in directory. Prompt copy,
-      if (
-        confirm(
-          `The file "${fileName}" is not in your configured AutoPaths directory.\nWould you like to copy it there?`,
-        )
-      ) {
-        const separator = savedDir.includes("\\") ? "\\" : "/";
-        const cleanSavedDir = savedDir.endsWith(separator)
-          ? savedDir.slice(0, -1)
-          : savedDir;
-        const destPath = cleanSavedDir + separator + fileName;
+    } else if (
+      confirm(
+        `The file "${fileName}" is not in your configured AutoPaths directory.\nWould you like to copy it there?`,
+      )
+    ) {
+      const separator = savedDir.includes("\\") ? "\\" : "/";
+      const cleanSavedDir = savedDir.endsWith(separator)
+        ? savedDir.slice(0, -1)
+        : savedDir;
+      const destPath = cleanSavedDir + separator + fileName;
 
-        // Check if overwrite
+      // Check if overwrite
+      if (electronAPI.fileExists && (await electronAPI.fileExists(destPath))) {
         if (
-          electronAPI.fileExists &&
-          (await electronAPI.fileExists(destPath))
+          !confirm(
+            `File "${fileName}" already exists in the destination. Overwrite?`,
+          )
         ) {
-          if (
-            !confirm(
-              `File "${fileName}" already exists in the destination. Overwrite?`,
-            )
-          ) {
-            // User cancelled overwrite, just load original
-            await loadProjectData(data, filePath);
-            currentFilePath.set(filePath);
-            addToRecentFiles(filePath);
-            return;
-          }
+          // User cancelled overwrite, just load original
+          await loadProjectData(data, filePath);
+          currentFilePath.set(filePath);
+          addToRecentFiles(filePath);
+          return;
         }
-
-        // Perform Copy
-        if (electronAPI.copyFile) {
-          await electronAPI.copyFile(filePath, destPath);
-          // Load the NEW path
-          await loadProjectData(data, destPath); // data is same
-          currentFilePath.set(destPath);
-          addToRecentFiles(destPath);
-
-          // Trigger auto-export for the copied/loaded file too
-          await triggerAutoExportWithStores(data, destPath);
-        } else {
-          // Fallback if copyFile not available (should be)
-          await electronAPI.writeFile(destPath, content);
-          await loadProjectData(data, destPath);
-          currentFilePath.set(destPath);
-          addToRecentFiles(destPath);
-
-          // Trigger auto-export for the loaded file
-          await triggerAutoExportWithStores(data, destPath);
-        }
-      } else {
-        // User said no to copy
-        await loadProjectData(data, filePath);
-        currentFilePath.set(filePath);
-        addToRecentFiles(filePath);
-
-        // Auto-export the file that was loaded externally as well
-        await triggerAutoExportWithStores(data, filePath);
       }
+
+      // Perform Copy
+      if (electronAPI.copyFile) {
+        await electronAPI.copyFile(filePath, destPath);
+        // Load the NEW path
+        await loadProjectData(data, destPath); // data is same
+        currentFilePath.set(destPath);
+        addToRecentFiles(destPath);
+
+        // Trigger auto-export for the copied/loaded file too
+        await triggerAutoExportWithStores(data, destPath);
+      } else {
+        // Fallback if copyFile not available (should be)
+        await electronAPI.writeFile(destPath, content);
+        await loadProjectData(data, destPath);
+        currentFilePath.set(destPath);
+        addToRecentFiles(destPath);
+
+        // Trigger auto-export for the loaded file
+        await triggerAutoExportWithStores(data, destPath);
+      }
+    } else {
+      // User said no to copy
+      await loadProjectData(data, filePath);
+      currentFilePath.set(filePath);
+      addToRecentFiles(filePath);
+
+      // Auto-export the file that was loaded externally as well
+      await triggerAutoExportWithStores(data, filePath);
     }
   } catch (err) {
     console.error("Error handling external file open:", err);
@@ -728,7 +722,10 @@ export async function loadFile(evt: Event) {
       reader.onload = async (e) => {
         const content = e.target?.result as string;
         const data = JSON.parse(content);
-        const currentDir = currPath.substring(0, currPath.lastIndexOf("/"));
+        const currentDir = currPath.slice(
+          0,
+          Math.max(0, currPath.lastIndexOf("/")),
+        );
         const destPath = currentDir + "/" + file.name;
 
         const exists = await electronAPI.fileExists?.(destPath);

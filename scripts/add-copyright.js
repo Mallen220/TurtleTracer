@@ -132,7 +132,7 @@ function processFile(filePath, styleType) {
   const hashBlockRegex = /^(\s*#[^\n]*\n)+/;
   const m = body.match(hashBlockRegex);
   if (m?.[0].includes("Copyright") && m[0].includes("Matthew Allen")) {
-    body = body.substring(m[0].length);
+    body = body.slice(m[0].length);
   }
 
   // 4. Remove Single Line Comments (// ...) if present (e.g. if re-running this script)

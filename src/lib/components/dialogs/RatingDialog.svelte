@@ -136,7 +136,7 @@
           name: "Additional Feedback",
           value:
             description.length > 1000
-              ? description.substring(0, 1000) + "..."
+              ? description.slice(0, 1000) + "..."
               : description,
           inline: false,
         });

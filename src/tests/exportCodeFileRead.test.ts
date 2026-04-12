@@ -27,10 +27,10 @@ vi.mock("../lib/exporters", async (importOriginal) => {
 });
 
 describe("ExportCodeDialog file reading", () => {
-  const originalElectronAPI = (window as any).electronAPI;
+  const originalElectronAPI = (globalThis as any).electronAPI;
 
   beforeEach(() => {
-    (window as any).electronAPI = {
+    (globalThis as any).electronAPI = {
       readFile: vi
         .fn()
         .mockResolvedValue('{"mocked": "json content from file"}'),
@@ -42,7 +42,7 @@ describe("ExportCodeDialog file reading", () => {
   });
 
   afterEach(() => {
-    (window as any).electronAPI = originalElectronAPI;
+    (globalThis as any).electronAPI = originalElectronAPI;
   });
 
   const createDialog = () =>
@@ -63,7 +63,7 @@ describe("ExportCodeDialog file reading", () => {
 
     // Wait for the async operation
     await waitFor(() => {
-      expect((window as any).electronAPI.readFile).toHaveBeenCalledWith(
+      expect((globalThis as any).electronAPI.readFile).toHaveBeenCalledWith(
         "/path/to/project.pp",
       );
     });
@@ -86,9 +86,9 @@ describe("ExportCodeDialog file reading", () => {
 
     await waitFor(() => {
       if (expectReadFileCall) {
-        expect((window as any).electronAPI.readFile).toHaveBeenCalled();
+        expect((globalThis as any).electronAPI.readFile).toHaveBeenCalled();
       } else {
-        expect((window as any).electronAPI.readFile).not.toHaveBeenCalled();
+        expect((globalThis as any).electronAPI.readFile).not.toHaveBeenCalled();
       }
     });
 
@@ -103,7 +103,7 @@ describe("ExportCodeDialog file reading", () => {
 
     await testFallbackGeneration(() => {
       currentFilePath.set("/path/to/project.pp");
-      (window as any).electronAPI.readFile.mockRejectedValue(
+      (globalThis as any).electronAPI.readFile.mockRejectedValue(
         new Error("File not found"),
       );
     }, true);

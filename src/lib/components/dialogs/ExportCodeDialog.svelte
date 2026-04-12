@@ -66,7 +66,7 @@
   let currentMatchIndex = $state(-1);
   let searchInputRef: HTMLInputElement | undefined = $state();
 
-  const electronAPI = (window as any).electronAPI;
+  const electronAPI = (globalThis as any).electronAPI;
 
   async function relativizeSequenceForPreview(seq: SequenceItem[]) {
     const cloned = structuredClone(seq);

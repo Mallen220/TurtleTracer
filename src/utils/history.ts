@@ -85,7 +85,7 @@ export function createHistory(maxSize = 200) {
       return;
     }
     const item: HistoryItem = {
-      id: Math.random().toString(36).substring(2, 11),
+      id: Math.random().toString(36).slice(2, 11),
       state: snapshot,
       description,
       timestamp: Date.now(),

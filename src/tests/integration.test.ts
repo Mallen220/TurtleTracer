@@ -16,7 +16,7 @@ import { loadTrajectoryFromFile } from "../utils/file";
 import { getRandomColor } from "../utils/draw";
 
 // Mock resize observer for Two.js/FieldRenderer
-global.ResizeObserver = class ResizeObserver {
+globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
@@ -148,7 +148,7 @@ describe("Field Logic and Visibility Integration", () => {
       loadProjectData(data);
     });
 
-    const originalFileReader = global.FileReader;
+    const originalFileReader = globalThis.FileReader;
     class MockFileReader {
       onload: any;
       readAsText(file: File) {
@@ -157,7 +157,7 @@ describe("Field Logic and Visibility Integration", () => {
         }, 10);
       }
     }
-    global.FileReader = MockFileReader as any;
+    globalThis.FileReader = MockFileReader as any;
 
     loadTrajectoryFromFile(event, onSuccess);
 
@@ -166,6 +166,6 @@ describe("Field Logic and Visibility Integration", () => {
     expect(onSuccess).toHaveBeenCalled();
     expect(get(startPointStore).x).toBe(10);
 
-    global.FileReader = originalFileReader;
+    globalThis.FileReader = originalFileReader;
   });
 });

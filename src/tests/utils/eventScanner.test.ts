@@ -100,14 +100,14 @@ describe("scanEventsInDirectory", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     diskEventNamesStore.set([]);
-    (window as any).electronAPI = {
+    (globalThis as any).electronAPI = {
       listFiles: vi.fn(),
       readFile: vi.fn(),
     };
   });
 
   it("should do nothing if electronAPI is missing", async () => {
-    (window as any).electronAPI = null;
+    (globalThis as any).electronAPI = null;
     await scanEventsInDirectory("/test");
     let storeVal;
     diskEventNamesStore.subscribe((v) => (storeVal = v))();
@@ -115,7 +115,7 @@ describe("scanEventsInDirectory", () => {
   });
 
   it("should scan directory and extract event names from valid files", async () => {
-    (window as any).electronAPI.listFiles.mockResolvedValue([
+    (globalThis as any).electronAPI.listFiles.mockResolvedValue([
       { name: "test.turt", path: "/test/test.turt" },
       { name: "other.txt", path: "/test/other.txt" },
     ]);
@@ -136,7 +136,7 @@ describe("scanEventsInDirectory", () => {
       ],
     };
 
-    (window as any).electronAPI.readFile.mockResolvedValue(
+    (globalThis as any).electronAPI.readFile.mockResolvedValue(
       JSON.stringify(mockData),
     );
 
@@ -153,10 +153,10 @@ describe("scanEventsInDirectory", () => {
   });
 
   it("should handle parsing errors gracefully", async () => {
-    (window as any).electronAPI.listFiles.mockResolvedValue([
+    (globalThis as any).electronAPI.listFiles.mockResolvedValue([
       { name: "test.turt", path: "/test/test.turt" },
     ]);
-    (window as any).electronAPI.readFile.mockRejectedValue(
+    (globalThis as any).electronAPI.readFile.mockRejectedValue(
       new Error("Parse fail"),
     );
 

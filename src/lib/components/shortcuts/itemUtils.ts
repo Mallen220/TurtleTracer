@@ -16,10 +16,10 @@ export function parseSelectionId(sel: string): SelectionInfo {
   if (!sel) return { type: "unknown", raw: "" };
 
   if (sel.startsWith("wait-")) {
-    return { type: "wait", id: sel.substring(5) };
+    return { type: "wait", id: sel.slice(5) };
   }
   if (sel.startsWith("rotate-")) {
-    return { type: "rotate", id: sel.substring(7) };
+    return { type: "rotate", id: sel.slice(7) };
   }
   if (sel.startsWith("point-")) {
     const parts = sel.split("-");

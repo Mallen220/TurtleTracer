@@ -311,56 +311,54 @@ export async function generateSequentialCommandCode(
 
     if (isNextFTC) {
       commands.push(followPathInstance);
-    } else {
-      if (allEventMarkers && allEventMarkers.length > 0) {
-        // Path has event markers
+    } else if (allEventMarkers && allEventMarkers.length > 0) {
+      // Path has event markers
 
-        // First: InstantCommand to set up tracker
-        commands.push(
-          `                new ${InstantCmdClass}(
+      // First: InstantCommand to set up tracker
+      commands.push(
+        `                new ${InstantCmdClass}(
                     () -> {
                         progressTracker.setCurrentChain(${pathName});
                         progressTracker.setCurrentPathName("${pathDisplayName}");`,
-        );
+      );
 
-        // Add event registrations
-        allEventMarkers.forEach((event) => {
-          commands[commands.length - 1] += `
-                        progressTracker.registerEvent("${event.name}", ${event.position.toFixed(3)});`;
-        });
-
+      // Add event registrations
+      allEventMarkers.forEach((event) => {
         commands[commands.length - 1] += `
+                        progressTracker.registerEvent("${event.name}", ${event.position.toFixed(3)});`;
+      });
+
+      commands[commands.length - 1] += `
                     })`;
 
-        // Second: ParallelRaceGroup for following path with event handling
-        commands.push(`                new ${ParallelRaceClass}(
+      // Second: ParallelRaceGroup for following path with event handling
+      commands.push(`                new ${ParallelRaceClass}(
                     ${followPathInstance},
                     new ${SequentialGroupClass}(`);
 
-        // Add WaitUntilCommand for each event
-        allEventMarkers.forEach((event, eventIdx) => {
-          if (eventIdx > 0) commands[commands.length - 1] += ",";
-          commands[commands.length - 1] += `
+      // Add WaitUntilCommand for each event
+      allEventMarkers.forEach((event, eventIdx) => {
+        if (eventIdx > 0) commands[commands.length - 1] += ",";
+        commands[commands.length - 1] += `
                         new ${WaitUntilCmdClass}(() -> progressTracker.shouldTriggerEvent("${event.name}")),
                         new ${InstantCmdClass}(
                             () -> {
                                 progressTracker.executeEvent("${event.name}");
                             })`;
-        });
+      });
 
-        commands[commands.length - 1] += `
+      commands[commands.length - 1] += `
                     ))`;
-      } else {
-        // No event markers - simple InstantCommand + FollowPathCommand
-        commands.push(
-          `                new ${InstantCmdClass}(
+    } else {
+      // No event markers - simple InstantCommand + FollowPathCommand
+      commands.push(
+        `                new ${InstantCmdClass}(
                     () -> {
                         progressTracker.setCurrentChain(${pathName});
                         progressTracker.setCurrentPathName("${pathDisplayName}");
                     }),
                 ${followPathInstance}`,
-        );
-      }
+      );
     }
   });
 
@@ -425,32 +423,30 @@ export async function generateSequentialCommandCode(
           );
           config = `new Pose(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)})`;
         }
-      } else {
-        if (pointDef.heading === "constant") {
-          if (hardcodeValues || pointDef.degrees !== undefined)
-            config = `Math.toRadians(${pointDef.degrees || 0})`;
-          else config = `${endPoseVarInner}.getHeading()`;
-        } else if (pointDef.heading === "linear") {
-          if (
-            hardcodeValues ||
-            (pointDef.startDeg !== undefined && pointDef.endDeg !== undefined)
-          )
-            config = `Math.toRadians(${pointDef.startDeg || 0}), Math.toRadians(${pointDef.endDeg || 0})`;
-          else
-            config = `${startPoseVarInner}.getHeading(), ${endPoseVarInner}.getHeading()`;
-        } else if (pointDef.heading === "facingPoint") {
-          const targetX = pointDef.targetX || 0;
-          const targetY = pointDef.targetY || 0;
-          const hx =
-            codeUnits === "metric"
-              ? `cmToInches(${(targetX * 2.54).toFixed(3)})`
-              : targetX.toFixed(3);
-          const hy =
-            codeUnits === "metric"
-              ? `cmToInches(${(targetY * 2.54).toFixed(3)})`
-              : targetY.toFixed(3);
-          config = `new Pose(${hx}, ${hy})`;
-        }
+      } else if (pointDef.heading === "constant") {
+        if (hardcodeValues || pointDef.degrees !== undefined)
+          config = `Math.toRadians(${pointDef.degrees || 0})`;
+        else config = `${endPoseVarInner}.getHeading()`;
+      } else if (pointDef.heading === "linear") {
+        if (
+          hardcodeValues ||
+          (pointDef.startDeg !== undefined && pointDef.endDeg !== undefined)
+        )
+          config = `Math.toRadians(${pointDef.startDeg || 0}), Math.toRadians(${pointDef.endDeg || 0})`;
+        else
+          config = `${startPoseVarInner}.getHeading(), ${endPoseVarInner}.getHeading()`;
+      } else if (pointDef.heading === "facingPoint") {
+        const targetX = pointDef.targetX || 0;
+        const targetY = pointDef.targetY || 0;
+        const hx =
+          codeUnits === "metric"
+            ? `cmToInches(${(targetX * 2.54).toFixed(3)})`
+            : targetX.toFixed(3);
+        const hy =
+          codeUnits === "metric"
+            ? `cmToInches(${(targetY * 2.54).toFixed(3)})`
+            : targetY.toFixed(3);
+        config = `new Pose(${hx}, ${hy})`;
       }
 
       let baseName = "";
@@ -501,8 +497,8 @@ export async function generateSequentialCommandCode(
         endPoseVar,
       );
       let args = "";
-      if (hConfig.indexOf("(") !== -1) {
-        args = hConfig.substring(
+      if (hConfig.includes("(")) {
+        args = hConfig.slice(
           hConfig.indexOf("(") + 1,
           hConfig.lastIndexOf(")"),
         );
@@ -518,16 +514,14 @@ export async function generateSequentialCommandCode(
         } else if (targetConfig.heading === "facingPoint") {
           return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))\n            .setReversed()`;
         }
-      } else {
-        if (targetConfig.heading === "constant") {
-          return `.setConstantHeadingInterpolation(${args})`;
-        } else if (targetConfig.heading === "linear") {
-          return `.setLinearHeadingInterpolation(${args})`;
-        } else if (targetConfig.heading === "tangential") {
-          return `.setTangentHeadingInterpolation()`;
-        } else if (targetConfig.heading === "facingPoint") {
-          return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))`;
-        }
+      } else if (targetConfig.heading === "constant") {
+        return `.setConstantHeadingInterpolation(${args})`;
+      } else if (targetConfig.heading === "linear") {
+        return `.setLinearHeadingInterpolation(${args})`;
+      } else if (targetConfig.heading === "tangential") {
+        return `.setTangentHeadingInterpolation()`;
+      } else if (targetConfig.heading === "facingPoint") {
+        return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))`;
       }
       return "";
     };

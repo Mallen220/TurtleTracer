@@ -50,7 +50,7 @@ export class PluginManager {
   private static allThemes: CustomTheme[] = [];
 
   static async init() {
-    const electronAPI = (window as any).electronAPI;
+    const electronAPI = (globalThis as any).electronAPI;
     if (!electronAPI?.listPlugins) return;
 
     // Reset internal lists
@@ -542,14 +542,14 @@ export class PluginManager {
   }
 
   static async openPluginsFolder() {
-    const electronAPI = (window as any).electronAPI;
+    const electronAPI = (globalThis as any).electronAPI;
     if (electronAPI?.openPluginsFolder) {
       await electronAPI.openPluginsFolder();
     }
   }
 
   static async deletePlugin(name: string) {
-    const electronAPI = (window as any).electronAPI;
+    const electronAPI = (globalThis as any).electronAPI;
     if (electronAPI?.deletePlugin) {
       await electronAPI.deletePlugin(name);
       await this.reloadPlugins();

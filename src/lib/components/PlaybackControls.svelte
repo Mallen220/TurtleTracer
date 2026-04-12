@@ -110,8 +110,8 @@
     if (playing) pause();
     if (timelineContainer)
       timelineRect = timelineContainer.getBoundingClientRect();
-    window.addEventListener("mousemove", handleLoopDragMove);
-    window.addEventListener("mouseup", handleLoopDragEnd);
+    globalThis.addEventListener("mousemove", handleLoopDragMove);
+    globalThis.addEventListener("mouseup", handleLoopDragEnd);
   }
 
   function handleLoopDragMove(e: MouseEvent) {
@@ -133,8 +133,8 @@
       setTimeout(() => (ignoreClick = false), 50);
     }
     draggingLoopHandle = null;
-    window.removeEventListener("mousemove", handleLoopDragMove);
-    window.removeEventListener("mouseup", handleLoopDragEnd);
+    globalThis.removeEventListener("mousemove", handleLoopDragMove);
+    globalThis.removeEventListener("mouseup", handleLoopDragEnd);
     if (wasPlayingBeforeDrag) play();
   }
 
@@ -302,8 +302,8 @@
     }
 
     // Add window listeners
-    window.addEventListener("mousemove", handleWindowMouseMove);
-    window.addEventListener("mouseup", handleWindowMouseUp);
+    globalThis.addEventListener("mousemove", handleWindowMouseMove);
+    globalThis.addEventListener("mouseup", handleWindowMouseUp);
   }
 
   function handleWindowMouseMove(e: MouseEvent) {
@@ -332,8 +332,8 @@
 
     draggingMarkerIndex = null;
     draggingMarkerId = null;
-    window.removeEventListener("mousemove", handleWindowMouseMove);
-    window.removeEventListener("mouseup", handleWindowMouseUp);
+    globalThis.removeEventListener("mousemove", handleWindowMouseMove);
+    globalThis.removeEventListener("mouseup", handleWindowMouseUp);
   }
 
   function handleContextMenu(e: MouseEvent, id: string | undefined) {

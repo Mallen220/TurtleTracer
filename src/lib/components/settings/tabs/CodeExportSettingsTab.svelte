@@ -26,7 +26,7 @@
   }
 
   async function handleBrowse() {
-    const electronAPI = (window as any).electronAPI;
+    const electronAPI = (globalThis as any).electronAPI;
     if (!electronAPI || !electronAPI.selectDirectory) return;
 
     const path = await electronAPI.selectDirectory();
@@ -44,7 +44,7 @@
   }
 
   async function handleModeChange(newMode: "relative" | "absolute") {
-    const electronAPI = (window as any).electronAPI;
+    const electronAPI = (globalThis as any).electronAPI;
     const currentMode = settings.autoExportPathMode || "relative";
 
     if (currentMode === newMode) return;

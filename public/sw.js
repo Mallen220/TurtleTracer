@@ -18,7 +18,7 @@ const APP_STATIC_RESOURCES = [
 ];
 
 // On install, cache the static resources
-self.addEventListener("install", (event) => {
+globalThis.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
@@ -28,7 +28,7 @@ self.addEventListener("install", (event) => {
 });
 
 // delete old caches on activate
-self.addEventListener("activate", (event) => {
+globalThis.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const names = await caches.keys();
@@ -46,7 +46,7 @@ self.addEventListener("activate", (event) => {
 });
 
 // On fetch, intercept server requests
-self.addEventListener("fetch", (event) => {
+globalThis.addEventListener("fetch", (event) => {
   // Only handle GET requests
   if (event.request.method !== "GET") return;
 

@@ -56,7 +56,7 @@
     isActive = false,
   }: Props = $props();
 
-  const electronAPI = (window as any).electronAPI;
+  const electronAPI = (globalThis as any).electronAPI;
 
   async function relativizeSequenceForPreview(seq: SequenceItem[]) {
     const cloned = $state.snapshot(seq);

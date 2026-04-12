@@ -94,7 +94,9 @@
             return;
 
           try {
-            const content = await window.electronAPI.readFile(filePath);
+            const content = await (globalThis as any).electronAPI.readFile(
+              filePath,
+            );
             const data = JSON.parse(content);
             if (data.startPoint && Array.isArray(data.lines)) {
               previews[filePath] = {

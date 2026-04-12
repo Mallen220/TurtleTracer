@@ -17,7 +17,7 @@ import {
 
 // Helper to make unique IDs
 function makeId() {
-  return Math.random().toString(36).substring(2, 9);
+  return Math.random().toString(36).slice(2, 9);
 }
 
 function unwrapAngle(target: number, reference: number): number {

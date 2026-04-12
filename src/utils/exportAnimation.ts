@@ -70,7 +70,7 @@ async function renderFrameToCanvas(
   // Serialize the SVG
   const svgString = new XMLSerializer().serializeToString(svgEl);
   // Ensure xmlns is present
-  const hasNs = svgString.indexOf("xmlns=") >= 0;
+  const hasNs = svgString.includes("xmlns=");
   const svgWithNs = hasNs
     ? svgString
     : svgString.replaceAll("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');

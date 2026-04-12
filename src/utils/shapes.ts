@@ -80,7 +80,7 @@ export function createEventMarker(
   position: number = 0.5,
 ): EventMarker {
   return {
-    id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
     name: `Event_${lineIndex + 1}`,
     position: Math.max(0, Math.min(1, position)), // Clamp between 0-1
     lineIndex,

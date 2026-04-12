@@ -110,8 +110,8 @@
     </select>
     <div class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
       {#if settings.theme === "auto"}
-        Current: {window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
+        Current: {globalThis.matchMedia &&
+        globalThis.matchMedia("(prefers-color-scheme: dark)").matches
           ? "Dark"
           : "Light"} (System)
       {:else}

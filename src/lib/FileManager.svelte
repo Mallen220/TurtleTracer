@@ -1,26 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts" module>
-  declare global {
-    interface Window {
-      electronAPI: {
-        getDirectory: () => Promise<string | null>;
-        setDirectory: (path?: string) => Promise<string | null>;
-        listFiles: (directory: string) => Promise<FileInfo[]>;
-        readFile: (filePath: string) => Promise<string>;
-        writeFile: (filePath: string, content: string) => Promise<boolean>;
-        deleteFile: (filePath: string) => Promise<boolean>;
-        fileExists: (filePath: string) => Promise<boolean>;
-        getSavedDirectory: () => Promise<string>;
-        createDirectory: (dirPath: string) => Promise<boolean>;
-        getDirectoryStats: (dirPath: string) => Promise<any>;
-        renameFile: (
-          oldPath: string,
-          newPath: string,
-        ) => Promise<{ success: boolean; newPath: string }>;
-        resolvePath?: (base: string, relative: string) => Promise<string>;
-      };
-    }
-  }
 </script>
 
 <script lang="ts">
@@ -153,7 +132,7 @@
   }
 
   const supportedFileTypes = [...SUPPORTED_PROJECT_EXTENSIONS];
-  const electronAPI = window.electronAPI;
+  const electronAPI = (globalThis as any).electronAPI;
 
   function getErrorMessage(error: unknown): string {
     if (error instanceof Error) return error.message;
@@ -179,8 +158,8 @@
 
   function startResize(e: MouseEvent) {
     isResizing = true;
-    window.addEventListener("mousemove", handleResize);
-    window.addEventListener("mouseup", stopResize);
+    globalThis.addEventListener("mousemove", handleResize);
+    globalThis.addEventListener("mouseup", stopResize);
   }
 
   function handleResize(e: MouseEvent) {
@@ -193,8 +172,8 @@
 
   function stopResize() {
     isResizing = false;
-    window.removeEventListener("mousemove", handleResize);
-    window.removeEventListener("mouseup", stopResize);
+    globalThis.removeEventListener("mousemove", handleResize);
+    globalThis.removeEventListener("mouseup", stopResize);
   }
 
   import { saveSettings } from "../utils/settingsPersistence";
@@ -300,7 +279,7 @@
       // Update Git Status Store
       if (settings.gitIntegration) {
         const statusMap: Record<string, string> = {};
-        allFiles.forEach((f) => {
+        allFiles.forEach((f: FileInfo) => {
           if (f.gitStatus && f.gitStatus !== "clean") {
             statusMap[f.path] = f.gitStatus;
           }
@@ -308,7 +287,7 @@
         gitStatusStore.update((store) => {
           const newStore = { ...store };
           // Remove entries that are in the current directory but are now clean
-          allFiles.forEach((f) => {
+          allFiles.forEach((f: FileInfo) => {
             if (newStore[f.path] && !statusMap[f.path]) {
               delete newStore[f.path];
             }
@@ -320,7 +299,7 @@
       }
 
       files = allFiles
-        .map((file) => ({
+        .map((file: FileInfo) => ({
           ...file,
           error:
             file.isDirectory || isSupportedProjectFileName(file.name)
@@ -328,7 +307,8 @@
               : `Unsupported type`,
         }))
         .filter(
-          (file) => file.isDirectory || isSupportedProjectFileName(file.name),
+          (file: FileInfo) =>
+            file.isDirectory || isSupportedProjectFileName(file.name),
         );
 
       if (currentDirectory !== baseDirectory) {

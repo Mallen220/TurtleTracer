@@ -27,7 +27,7 @@
     if (!pathStr) return "";
 
     if (pathStr.startsWith("/browser_fs")) {
-      pathStr = pathStr.substring("/browser_fs".length);
+      pathStr = pathStr.slice("/browser_fs".length);
       if (pathStr === "") {
         pathStr = "/";
       }
@@ -36,7 +36,7 @@
     // Handle home directory alias
     const home = process.env.HOME || "~";
     if (pathStr.startsWith(home)) {
-      pathStr = "~" + pathStr.substring(home.length);
+      pathStr = "~" + pathStr.slice(home.length);
     }
 
     // Handle specific project markers like "AutoPaths" or "GitHub"
@@ -46,7 +46,7 @@
       const idx = pathStr.indexOf(marker);
       if (idx !== -1) {
         // Keep the marker and everything after
-        return "..." + pathStr.substring(idx - 1); // include the slash before marker
+        return "..." + pathStr.slice(Math.max(0, idx - 1)); // include the slash before marker
       }
     }
 

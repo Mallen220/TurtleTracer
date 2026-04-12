@@ -57,7 +57,7 @@ export function scanForEvents(
 }
 
 export async function scanEventsInDirectory(directory: string) {
-  const electronAPI = (window as any).electronAPI;
+  const electronAPI = (globalThis as any).electronAPI;
   if (!electronAPI?.listFiles || !electronAPI.readFile) return;
 
   try {

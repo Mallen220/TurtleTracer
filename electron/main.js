@@ -389,7 +389,7 @@ const createWindow = async () => {
 
 const updateDockMenu = () => {
   if (process.platform === "darwin") {
-    global.dockMenu = Menu.buildFromTemplate([
+    globalThis.dockMenu = Menu.buildFromTemplate([
       {
         label: "New Window",
         click() {
@@ -397,7 +397,7 @@ const updateDockMenu = () => {
         },
       },
     ]);
-    app.dock.setMenu(global.dockMenu);
+    app.dock.setMenu(globalThis.dockMenu);
   }
 };
 
@@ -602,8 +602,8 @@ const createMenu = () => {
     },
   ];
 
-  global.appMenu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(global.appMenu);
+  globalThis.appMenu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(globalThis.appMenu);
 };
 
 // CRITICAL: Satisfies "when the project closes it should auto close"

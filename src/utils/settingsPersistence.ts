@@ -17,7 +17,7 @@ interface StoredSettings {
 
 // Helper to get electronAPI safely (allows mocking in tests)
 function getElectronAPI() {
-  const api = (window as any).electronAPI as {
+  const api = (globalThis as any).electronAPI as {
     getAppDataPath: () => Promise<string>;
     readFile: (filePath: string) => Promise<string>;
     writeFile: (filePath: string, content: string) => Promise<boolean>;

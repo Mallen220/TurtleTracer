@@ -811,7 +811,7 @@
         collapsedSections.lines[lineIdx] = !collapsedSections.lines[lineIdx];
       }
     } else if (parts.length >= 2) {
-      const id = sel.substring(parts[0].length + 1);
+      const id = sel.slice(Math.max(0, parts[0].length + 1));
       collapsedSections.items[id] = !collapsedSections.items[id];
     }
     collapsedSections = { ...collapsedSections };

@@ -13,7 +13,7 @@ vi.mock("gif.js", () => {
       constructor(options: any) {
         this.options = options;
         // Expose last instance for tests to inspect frame count
-        (global as any).__lastGifInstance = this;
+        (globalThis as any).__lastGifInstance = this;
       }
       addFrame(image: any, options: any) {
         this.frames.push({ image, options });
@@ -105,7 +105,7 @@ describe("exportAnimation", () => {
       const fps = 30;
       const calculatedFrames = Math.ceil(duration * fps);
       await exportPathToGif({ ...options, durationSec: duration, fps });
-      const inst = (global as any).__lastGifInstance;
+      const inst = (globalThis as any).__lastGifInstance;
       expect(inst).toBeDefined();
       expect(inst.frames.length).toBe(calculatedFrames);
 

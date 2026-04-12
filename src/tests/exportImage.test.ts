@@ -8,7 +8,7 @@ import { setupCanvasMocks } from "./canvasMocks";
 setupImageMocks();
 
 // Mock DOMParser
-global.DOMParser = class {
+globalThis.DOMParser = class {
   parseFromString(str: string, type: string) {
     return {
       documentElement: {
@@ -23,7 +23,7 @@ global.DOMParser = class {
 } as any;
 
 // Mock FileReader
-global.FileReader = class {
+globalThis.FileReader = class {
   readAsDataURL() {
     setTimeout(() => this.onloadend(), 5);
   }
@@ -105,8 +105,10 @@ describe("exportPathToImage", () => {
 
     await exportPathToImage(options);
 
-    expect(global.fetch).toHaveBeenCalledWith("http://example.com/bg.png");
-    expect(global.fetch).toHaveBeenCalledWith("http://example.com/robot.png");
+    expect(globalThis.fetch).toHaveBeenCalledWith("http://example.com/bg.png");
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "http://example.com/robot.png",
+    );
   });
 
   it("should not fetch a robot image when none is provided", async () => {
@@ -116,8 +118,8 @@ describe("exportPathToImage", () => {
 
     await exportPathToImage(options);
 
-    expect(global.fetch).toHaveBeenCalledWith("http://example.com/bg.png");
+    expect(globalThis.fetch).toHaveBeenCalledWith("http://example.com/bg.png");
     // should not trigger a second fetch for robot
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 });

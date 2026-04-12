@@ -165,7 +165,9 @@
     downloadUpdate?: (version: string, url: string) => void;
     skipUpdate?: (version: string) => void;
   }
-  const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
+  const electronAPI = (globalThis as any).electronAPI as
+    | ElectronAPI
+    | undefined;
 
   async function checkMsStoreTracking() {
     if (!electronAPI?.isWindowsStore) return;
@@ -354,7 +356,7 @@
   // --- Unsaved Changes Dialog Logic ---
   async function handleUnsavedSave() {
     showUnsavedChangesDialog = false;
-    const api = (window as any).electronAPI;
+    const api = (globalThis as any).electronAPI;
     const currentPath = get(currentFilePath);
     let success = false;
 
@@ -404,7 +406,7 @@
   function handleUnsavedDiscard() {
     showUnsavedChangesDialog = false;
     if (pendingAction === "close") {
-      const api = (window as any).electronAPI;
+      const api = (globalThis as any).electronAPI;
       if (api?.sendCloseApproved) {
         api.sendCloseApproved();
       }
@@ -466,7 +468,7 @@
       if (e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0];
         // Refresh electronAPI reference from window to ensure it's available
-        const api = (window as any).electronAPI;
+        const api = (globalThis as any).electronAPI;
 
         if (!api) return;
 
@@ -534,14 +536,12 @@
               }
 
               if (!success) return; // Save failed or cancelled
-            } else {
-              if (
-                !confirm(
-                  "This will discard your unsaved changes. Are you sure you want to open the new file?",
-                )
-              ) {
-                return;
-              }
+            } else if (
+              !confirm(
+                "This will discard your unsaved changes. Are you sure you want to open the new file?",
+              )
+            ) {
+              return;
             }
           }
 
@@ -624,10 +624,8 @@
     if (unsaved) {
       pendingAction = "close";
       showUnsavedChangesDialog = true;
-    } else {
-      if (electronAPI?.sendCloseApproved) {
-        electronAPI.sendCloseApproved();
-      }
+    } else if (electronAPI?.sendCloseApproved) {
+      electronAPI.sendCloseApproved();
     }
   }
 
@@ -959,7 +957,7 @@
     }, 500);
 
     // Expose debug trigger for testing setup dialog
-    (window as any).triggerSetupDialog = () => {
+    (globalThis as any).triggerSetupDialog = () => {
       setupMode = true;
     };
 
@@ -1608,7 +1606,7 @@
           }
 
           if (t === "auto") {
-            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+            t = globalThis.matchMedia("(prefers-color-scheme: dark)").matches
               ? "dark"
               : "light";
           }

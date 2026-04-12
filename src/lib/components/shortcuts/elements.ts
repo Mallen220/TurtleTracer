@@ -104,7 +104,7 @@ export function addEventMarker(recordChange: (action?: string) => void) {
   const sequence = get(sequenceStore);
 
   if (selPoint?.startsWith("wait-")) {
-    const waitId = selPoint.substring(5);
+    const waitId = selPoint.slice(5);
     const waitItem = sequence.find(
       (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
     ) as any;
@@ -131,7 +131,7 @@ export function addEventMarker(recordChange: (action?: string) => void) {
   }
 
   if (selPoint?.startsWith("rotate-")) {
-    const rotateId = selPoint.substring(7);
+    const rotateId = selPoint.slice(7);
     const rotateItem = sequence.find(
       (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
     ) as any;

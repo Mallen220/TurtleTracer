@@ -50,7 +50,7 @@ describe("WaypointTable Drop Handling", () => {
         effectAllowed: "move",
       },
     });
-    window.dispatchEvent(dropEvent);
+    globalThis.dispatchEvent(dropEvent);
   };
 
   it("handles macro drop when isActive is true (default)", async () => {

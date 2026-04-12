@@ -70,7 +70,7 @@
       if (typeof value === "function") return undefined;
 
       if (value && typeof value === "object") {
-        if (typeof window !== "undefined" && value === window) {
+        if (typeof globalThis !== "undefined" && value === globalThis) {
           return undefined;
         }
 

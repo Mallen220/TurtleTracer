@@ -28,7 +28,7 @@ describe("PluginManager", () => {
       });
     `);
 
-    (window as any).electronAPI = {
+    (globalThis as any).electronAPI = {
       listPlugins: mockListPlugins,
       readPlugin: mockReadPlugin,
     };
@@ -62,7 +62,7 @@ describe("PluginManager", () => {
       throw new Error("Boom");
     `);
 
-    (window as any).electronAPI = {
+    (globalThis as any).electronAPI = {
       listPlugins: mockListPlugins,
       readPlugin: mockReadPlugin,
     };
@@ -88,7 +88,7 @@ describe("PluginManager", () => {
       turtle.registerTheme("Pink Plugin Theme", ".bg-blue { color: pink; }");
     `);
 
-    (window as any).electronAPI = {
+    (globalThis as any).electronAPI = {
       listPlugins: mockListPlugins,
       readPlugin: mockReadPlugin,
     };
@@ -112,7 +112,7 @@ describe("PluginManager", () => {
       turtle.registerExporter("TS Exporter", handler);
     `);
 
-    (window as any).electronAPI = {
+    (globalThis as any).electronAPI = {
       listPlugins: mockListPlugins,
       readPlugin: mockReadPlugin,
       transpilePlugin: vi.fn().mockReturnValue(`
@@ -145,7 +145,7 @@ describe("PluginManager", () => {
 
     const mockReadPlugin = vi.fn().mockResolvedValue("");
 
-    (window as any).electronAPI = {
+    (globalThis as any).electronAPI = {
       listPlugins: mockListPlugins,
       readPlugin: mockReadPlugin,
       deletePlugin: mockDeletePlugin,

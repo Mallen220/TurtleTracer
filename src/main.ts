@@ -9,8 +9,8 @@ if (isBrowser) {
   document.body.classList.add("is-browser");
 }
 
-if (typeof window !== "undefined" && !window.electronAPI) {
-  (window as any).electronAPI = browserFileSystem;
+if (typeof globalThis !== "undefined" && !(globalThis as any).electronAPI) {
+  (globalThis as any).electronAPI = browserFileSystem;
 }
 
 const app = mount(App, {
