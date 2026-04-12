@@ -525,12 +525,19 @@ interface FieldView {
 
 interface AppStore {
   fieldViewStore: Writable<FieldView>;
+  isUnsaved: Writable<boolean>;
 }
 
 interface DialogDefinition {
   id: string;
   component: any;
   props?: any;
+}
+
+interface PluginMetadata {
+  description?: string;
+  author?: string;
+  version?: string;
 }
 
 interface PluginGraphicsOptions {
@@ -590,6 +597,8 @@ interface TurtleAPI {
    * @param name The display name of the exporter.
    * @param handler A function that takes the current project data and returns a string (code) or a Promise that resolves to a string.
    */
+  registerMetadata(meta: PluginMetadata): void;
+
   registerExporter(
     name: string,
     handler: (data: TurtleData) => string | Promise<string>,

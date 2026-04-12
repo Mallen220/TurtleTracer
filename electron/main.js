@@ -55,7 +55,7 @@ const waitForServerReady = async (timeoutMs = 5000) => {
         });
       });
       return;
-    } catch (_) {
+    } catch {
       // Ignore and retry
     }
 
@@ -238,7 +238,7 @@ const startServer = async () => {
         const candidate = http.createServer(expressApp);
 
         candidate.once("error", (err) => {
-          if (err && err.code === "EADDRINUSE" && attempt < maxAttempts) {
+          if (err?.code === "EADDRINUSE" && attempt < maxAttempts) {
             console.warn(`Port ${port} in use, trying ${port + 1}`);
             port += 1;
             // Give a tiny delay to avoid busy-looping
