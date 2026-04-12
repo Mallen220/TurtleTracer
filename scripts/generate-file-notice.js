@@ -128,11 +128,11 @@ async function appendToNotice() {
     let updatedContent = noticeContent.trimEnd();
 
     // Add header if this is the first time
-    if (!updatedContent.includes("These files have been edited")) {
+    if (updatedContent.includes("These files have been edited")) {
+      updatedContent += "\n";
+    } else {
       updatedContent +=
         "\n\nThese files have been edited, deleted, or created by Matthew Allen:\n";
-    } else {
-      updatedContent += "\n";
     }
 
     // Add new files

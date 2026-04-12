@@ -45,7 +45,7 @@ async function run() {
         `npx jscpd src --reporters json --output tmp/jscpd --threshold 0 --min-tokens 40 --format typescript,javascript`,
         { stdio: "pipe" },
       );
-    } catch (e) {
+    } catch {
       // jscpd returns exit code 1 if duplicates are found, which is expected
     }
 
