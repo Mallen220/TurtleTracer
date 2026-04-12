@@ -58,7 +58,7 @@ export function registerFileHandlers() {
       console.warn(
         "Directory not accessible in file:list:",
         resolvedDir,
-        err && err.code,
+        err?.code,
       );
       return [];
     }

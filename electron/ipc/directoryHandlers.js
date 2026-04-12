@@ -19,7 +19,7 @@ export function registerDirectoryHandlers() {
       try {
         await fs.access(settings.autoPathsDirectory);
         return settings.autoPathsDirectory;
-      } catch (error) {
+      } catch {
         console.log(
           "Saved directory no longer accessible, falling back to default",
         );
@@ -102,7 +102,8 @@ export function registerDirectoryHandlers() {
     let resolvedPath;
     try {
       resolvedPath = validateArbitraryPath(dirPath);
-    } catch (e) {
+    } catch {
+      // Catch for not a valid path
       return {
         totalFiles: 0,
         totalSize: 0,
@@ -115,7 +116,7 @@ export function registerDirectoryHandlers() {
       console.warn(
         "Directory not accessible in file:get-directory-stats:",
         resolvedPath,
-        err && err.code,
+        err?.code,
       );
       return {
         totalFiles: 0,

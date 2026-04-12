@@ -21,7 +21,7 @@ function getSafePluginsDirectory() {
  */
 async function resolvePluginFilePath(basePath, filename) {
   if (typeof filename !== "string") {
-    throw new Error("Invalid plugin filename");
+    throw new TypeError("Invalid plugin filename");
   }
 
   const safeFilename = path.basename(filename);

@@ -11,7 +11,7 @@ import { app } from "electron";
  */
 export function validateSafePath(inputPath, basePath) {
   if (typeof inputPath !== "string") {
-    throw new Error("Invalid path: must be a string");
+    throw new TypeError("Invalid path: must be a string");
   }
   if (inputPath.indexOf("\0") !== -1) {
     throw new Error("Invalid path: contains null bytes");
@@ -36,7 +36,7 @@ export function validateSafePath(inputPath, basePath) {
  */
 export function validateArbitraryPath(inputPath) {
   if (typeof inputPath !== "string") {
-    throw new Error("Invalid path: must be a string");
+    throw new TypeError("Invalid path: must be a string");
   }
   if (inputPath.indexOf("\0") !== -1) {
     throw new Error("Invalid path: contains null bytes");
@@ -75,7 +75,7 @@ export const loadDirectorySettings = async () => {
   try {
     const data = await fs.readFile(settingsPath, "utf-8");
     return JSON.parse(data);
-  } catch (error) {
+  } catch {
     // Return default settings if file doesn't exist
     return {
       autoPathsDirectory: "",

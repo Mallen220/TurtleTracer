@@ -22,8 +22,8 @@ let serverPort = 17218;
 let appUpdater;
 
 // Global references to prevent Electron Menu garbage collection (macOS WeakPtr bug)
-global.appMenu = null;
-global.dockMenu = null;
+globalThis.appMenu = null;
+globalThis.dockMenu = null;
 
 // Track if we've already cleared the default session storage/cache once
 let sessionCleared = false;

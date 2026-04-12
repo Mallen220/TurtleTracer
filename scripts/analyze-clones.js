@@ -1,6 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import fs from "node:fs";
-import path from "node:path";
 
 const report = JSON.parse(
   fs.readFileSync("tmp/jscpd/jscpd-report.json", "utf-8"),

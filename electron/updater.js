@@ -2,7 +2,7 @@
 import { app, shell } from "electron";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { spawn } from "child_process";
+import { spawn } from "node:child_process";
 
 const SAFE_PATH = "/usr/bin:/bin:/usr/sbin:/sbin";
 
@@ -119,7 +119,7 @@ class AppUpdater {
     // Wait a bit for the main window to be fully ready
     setTimeout(() => {
       const version = releaseData.tag_name.replaceAll("v", "");
-      if (this.mainWindow && this.mainWindow.webContents) {
+      if (this?.mainWindow?.webContents) {
         this.mainWindow.webContents.send("update-available", {
           version: version,
           releaseNotes: releaseData.body,
@@ -211,8 +211,9 @@ class AppUpdater {
         env: { ...process.env, PATH: SAFE_PATH },
       }).unref();
       return true;
-    } catch (e) {
+    } catch {
       // Ignore errors (e.g. terminal missing or not executable)
+      console.log("e.g. terminal missing or not executable")
     }
     return false;
   }

@@ -122,7 +122,7 @@ export function modifyValue(
 export function toggleHeadingMode(recordChange: (action?: string) => void) {
   if (isUIElementFocused()) return;
   const sel = get(selectedPointId);
-  if (!sel || !sel.startsWith("point-")) return;
+  if (!sel?.startsWith("point-")) return;
 
   const startPoint = get(startPointStore);
   const lines = get(linesStore);
@@ -228,7 +228,7 @@ export function toggleReverse(recordChange: (action?: string) => void) {
   const sel = get(selectedPointId);
   const startPoint = get(startPointStore);
   const lines = get(linesStore);
-  if (!sel || !sel.startsWith("point-")) return;
+  if (!sel?.startsWith("point-")) return;
 
   const parts = sel.split("-");
   const lineNum = Number(parts[1]);
@@ -268,7 +268,6 @@ export function toggleReverse(recordChange: (action?: string) => void) {
 export function toggleLock(recordChange: (action?: string) => void) {
   if (isUIElementFocused()) return;
   const sel = get(selectedPointId);
-  const lines = get(linesStore);
   const selLineId = get(selectedLineId);
 
   if (!sel) return;
@@ -397,7 +396,7 @@ export function togglePathChain(recordChange: (action?: string) => void) {
 export function togglePiecewise(recordChange: (action?: string) => void) {
   if (isUIElementFocused()) return;
   const sel = get(selectedPointId);
-  if (!sel || !sel.startsWith("point-")) return;
+  if (!sel?.startsWith("point-")) return;
 
   const lines = [...get(linesStore)];
   const parts = sel.split("-");
@@ -443,7 +442,7 @@ export function togglePiecewise(recordChange: (action?: string) => void) {
     recordChange("Toggle Piecewise Heading");
 
     notification.set({
-      message: `Piecewise heading ${!isPiecewise ? "enabled" : "disabled"}`,
+      message: `Piecewise heading ${isPiecewise ? "disabled" : "enabled"}`,
       type: "success",
       timeout: 2000,
     });
@@ -456,7 +455,6 @@ export function toggleGlobalHeading(recordChange: (action?: string) => void) {
   if (!selId) return;
 
   const lines = [...get(linesStore)];
-  const sequence = get(sequenceStore);
   const idx = lines.findIndex((l) => l.id === selId);
   if (idx === -1) return;
 
@@ -548,7 +546,7 @@ export function toggleGlobalHeading(recordChange: (action?: string) => void) {
   recordChange("Toggle Global Heading");
 
   notification.set({
-    message: `Global chain heading ${!hasGlobalHeading ? "enabled" : "disabled"}`,
+    message: `Global chain heading ${hasGlobalHeading ? "disabled" : "enabled"}`,
     type: "success",
     timeout: 2000,
   });

@@ -2,9 +2,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import readline from "readline";
-import { exec } from "child_process";
-import { promisify } from "util";
+import readline from "node:readline";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

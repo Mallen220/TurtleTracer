@@ -3,7 +3,7 @@
 /* global URL, process, console */
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { spawn } from "child_process";
+import { spawn } from "node:child_process";
 
 const repoRoot = new URL("../", import.meta.url);
 const repoRootPath = fileURLToPath(repoRoot);

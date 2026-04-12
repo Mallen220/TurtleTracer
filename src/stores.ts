@@ -19,7 +19,7 @@ export const gridSize = writable(12);
 export const currentFilePath = writable<string | null>(null);
 export const isUnsaved = writable(false);
 export const snapToGrid = writable(true);
-export const fieldZoom = writable(1.0);
+export const fieldZoom = writable(1);
 export const fieldPan = writable({ x: 0, y: 0 });
 export const showShortcuts = writable(false);
 export const showSettings = writable(false);
@@ -51,9 +51,9 @@ export const showUpdateAvailableDialog = writable(false);
 export const updateDataStore = writable<UpdateData | null>(null);
 
 // expose some stores globally (fallback for bundler issues)
-if (typeof window !== "undefined") {
+if (typeof globalThis.window !== globalThis.undefined) {
   // these names are intentionally global to support legacy references in compiled code
-  (window as any).showUpdateAvailableDialog = showUpdateAvailableDialog;
+  (globalThis.window as any).showUpdateAvailableDialog = showUpdateAvailableDialog;
 }
 
 // File Manager Stores

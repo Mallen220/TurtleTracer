@@ -10,14 +10,14 @@ const fastCheckInstalled = existsSync(
 );
 const require = createRequire(import.meta.url);
 let fc: any;
-if (!fastCheckInstalled) {
+if (fastCheckInstalled) {
+  fc = require("fast-check");
+} else {
   describe("Geometry Utils Property Tests (skipped)", () => {
     it("skipped because fast-check is not installed", () => {
       expect(true).toBe(true);
     });
   });
-} else {
-  fc = require("fast-check");
 }
 
 import { pointToLineDistance } from "../../utils/geometry";
