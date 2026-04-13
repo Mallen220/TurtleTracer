@@ -2,6 +2,7 @@ name: Build
 # SonarCloud is configured for Automatic Analysis via the GitHub app.
 # Running manual CI analysis on push/pull_request causes a conflict and will fail.
 on:
+  push:
   workflow_dispatch:
 jobs:
   sonarqube:
