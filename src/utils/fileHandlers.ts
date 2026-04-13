@@ -719,7 +719,13 @@ export async function loadFile(evt: Event) {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const content = e.target?.result as string;
-        const data = JSON.parse(content);
+        let data;
+        try {
+          data = JSON.parse(content);
+        } catch (parseError) {
+          alert("Error parsing file: " + (parseError as Error).message);
+          return;
+        }
         const currentDir = currPath.slice(
           0,
           Math.max(0, currPath.lastIndexOf("/")),
