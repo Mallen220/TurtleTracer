@@ -135,7 +135,7 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Build Web Bundle
         env:
           VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
@@ -180,7 +180,7 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Build Web Bundle
         env:
           VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
@@ -260,7 +260,7 @@ jobs:
             zlib1g-dev \
             libzstd-dev
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Build Web Bundle
         env:
           VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
