@@ -34,7 +34,8 @@ jobs:
           name: vitest-coverage
           path: coverage/
 
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      # SonarQube is currently disabled to prevent conflict with GitHub App Automatic Analysis
+      # - name: SonarQube Scan
+      #   uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
