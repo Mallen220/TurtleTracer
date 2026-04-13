@@ -375,7 +375,7 @@ install_icon() {
     ICON_URL="https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/build/icon.png"
     
     print_info "Downloading icon..."
-    if curl -L -s -o "$ICON_PATH" "$ICON_URL"; then
+    if curl --proto "=https" -L -s -o "$ICON_PATH" "$ICON_URL"; then
         print_status "Icon installed to $ICON_PATH"
         # Try to update icon cache if possible
         if command -v gtk-update-icon-cache &> /dev/null; then
@@ -457,7 +457,7 @@ install_mac() {
     # Homebrew Check
     if ! command -v brew &> /dev/null; then
         print_warning "Homebrew not found. Installing..."
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        /bin/bash -c "$(curl --proto "=https" -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         if [[ $(uname -m) == 'arm64' ]]; then
             eval "$(/opt/homebrew/bin/brew shellenv)"
         fi
