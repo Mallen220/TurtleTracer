@@ -15,16 +15,16 @@ let initPromise: Promise<void> | null = null;
 
 function getDB(): Promise<IDBDatabase> {
   dbPromise ??= new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-      request.onerror = () => reject(new Error(request.error?.message));
-      request.onsuccess = () => resolve(request.result);
-      request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME);
-        }
-      };
-    });
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(new Error(request.error?.message));
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+  });
   return dbPromise;
 }
 

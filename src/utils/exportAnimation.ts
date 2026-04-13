@@ -483,6 +483,9 @@ export async function exportPathToGif(
   const p = new Promise<Blob>((resolve, reject) => {
     let encodeStarted = false;
 
+    const rejectError = (reason: unknown) =>
+      reject(reason instanceof Error ? reason : new Error(String(reason)));
+
     const onAbort = () => {
       try {
         (gif as any).abort?.();
@@ -532,10 +535,10 @@ export async function exportPathToGif(
             });
           }
           gif2.on("finished", (blobObj: Blob) => resolve(blobObj));
-          gif2.on("error", (err: any) => reject(err));
+          gif2.on("error", (err: any) => rejectError(err));
           gif2.render();
         } catch (err) {
-          reject(err);
+          rejectError(err);
         }
       }
     }, 3000);
@@ -548,7 +551,7 @@ export async function exportPathToGif(
     gif.on("error", (err: any) => {
       if (options.signal) options.signal.removeEventListener("abort", onAbort);
       clearTimeout(fallbackTimeout);
-      reject(err);
+      rejectError(err);
     });
     gif.on("progress", () => {
       encodeStarted = true;
@@ -558,7 +561,7 @@ export async function exportPathToGif(
       gif.render();
     } catch (err) {
       clearTimeout(fallbackTimeout);
-      reject(err);
+      rejectError(err);
     }
   });
 
