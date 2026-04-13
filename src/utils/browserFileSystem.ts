@@ -70,7 +70,7 @@ async function set(key: string, value: any): Promise<void> {
     const store = tx.objectStore(STORE_NAME);
     const req = store.put(value, key);
     req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(new Error(req.error?.message));
   });
 }
 
@@ -83,7 +83,7 @@ async function del(key: string): Promise<void> {
     const store = tx.objectStore(STORE_NAME);
     const req = store.delete(key);
     req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(new Error(req.error?.message));
   });
 }
 
