@@ -1,9 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run, stopPropagation, createBubbler } from "svelte/legacy";
-
-  const bubble = createBubbler();
-
   import type { Settings } from "../../types";
   import { fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
@@ -232,7 +228,7 @@
   let isEditingTime = $state(false);
   let timeInputValue = $state("");
 
-  run(() => {
+  $effect(() => {
     if (!isEditingTime) {
       timeInputValue = formatTime(currentTime);
     }
@@ -574,7 +570,7 @@
         aria-label={`Playback speed options, current speed ${(playbackSpeed ?? 1).toFixed(2)}x`}
         aria-haspopup="menu"
         aria-expanded={showSpeedMenu}
-        onclick={stopPropagation(toggleSpeedMenu)}
+        onclick={(e) => { e.stopPropagation(); toggleSpeedMenu(); }}
         class="flex items-center gap-2 px-3 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-sm text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
         tabindex="0"
       >
@@ -592,8 +588,8 @@
           role="menu"
           aria-label="Playback speeds"
           class="absolute left-0 bottom-full mb-2 w-36 rounded-md bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 shadow-lg z-50 overflow-hidden"
-          onclick={stopPropagation(bubble("click"))}
-          onkeydown={stopPropagation(bubble("keydown"))}
+          onclick={(e) => e.stopPropagation()}
+          onkeydown={(e) => e.stopPropagation()}
           use:menuNavigation
           onclose={() => (showSpeedMenu = false)}
           in:fly={{ y: 8, duration: 160, easing: cubicInOut }}
