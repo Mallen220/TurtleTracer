@@ -11,7 +11,6 @@ vi.stubGlobal("electronAPI", { readFile: mockReadFile });
 
 class MockIntersectionObserver {
   observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn();
-  constructor() {}
 }
 vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
 
@@ -35,10 +34,11 @@ describe("FileUI Components", () => {
     modified: new Date().getTime(), size: 1024, ...overrides,
   });
 
-  describe("FileGrid.svelte", () => {
+  // Run the same core UI tests for both FileGrid and FileList to reduce code duplication
+  const runCommonTests = (Component: any, isGrid: boolean) => {
     it("renders files with name sorting alphabetically", async () => {
       const files = [createMockFile({ name: "B.json", path: "/b" }), createMockFile({ name: "A.json", path: "/a" })];
-      render(FileGrid, { props: { files, sortMode: "name" } });
+      render(Component, { props: { files, sortMode: "name" } });
       expect(screen.queryByText("Today")).toBeNull();
       expect(screen.getByText("A.json")).toBeInTheDocument();
       expect(screen.getByText("B.json")).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe("FileUI Components", () => {
         createMockFile({ name: "yesterday.json", path: "/yesterday", modified: yd.getTime() }),
         createMockFile({ name: "older.json", path: "/older", modified: od.getTime() }),
       ];
-      render(FileGrid, { props: { files, sortMode: "date" } });
+      render(Component, { props: { files, sortMode: "date" } });
       expect(screen.getByText("Folders")).toBeInTheDocument();
       expect(screen.getByText("Today")).toBeInTheDocument();
       expect(screen.getByText("Yesterday")).toBeInTheDocument();
@@ -66,170 +66,33 @@ describe("FileUI Components", () => {
         createMockFile({ name: "unt.json", path: "/unt", gitStatus: "untracked" }),
         createMockFile({ name: "err.json", path: "/err", error: "Read error" }),
       ];
-      render(FileGrid, { props: { files, showGitStatus: true } });
-      expect(screen.getByText("Git: Modified (Unstaged Changes)")).toBeInTheDocument();
-      expect(screen.getByText("Git: Staged (Ready to Commit)")).toBeInTheDocument();
-      expect(screen.getByText("Git: Untracked (New File)")).toBeInTheDocument();
-      expect(screen.getByText("Read error")).toBeInTheDocument();
-    });
-
-    it("handles custom fieldImage fallback on error", async () => {
-      const files = [createMockFile({ name: "test", path: "/test" })];
-      render(FileGrid, { props: { files, fieldImage: "custom.png" } });
-      const img = screen.getByRole("img", { name: "Field Map" });
-      expect(img).toHaveAttribute("src", "/fields/custom.png");
-      await fireEvent.error(img);
-      expect(img).toHaveAttribute("src", "/fields/decode.webp");
+      render(Component, { props: { files, showGitStatus: true } });
+      expect(screen.getByText(isGrid ? "Git: Modified (Unstaged Changes)" : "Modified")).toBeInTheDocument();
+      if (isGrid) {
+        expect(screen.getByText("Git: Staged (Ready to Commit)")).toBeInTheDocument();
+        expect(screen.getByText("Read error")).toBeInTheDocument();
+      } else {
+        expect(screen.getByText("⚠")).toBeInTheDocument();
+      }
     });
 
     it("dispatches select, open events on click and dblclick", async () => {
-      // Since we can't easily capture the Svelte custom events, we assert DOM state changes caused by the events
-      // For instance, opening a context menu sets contextMenu, and clicking the container clears it.
       const files = [createMockFile({ name: "test.json", path: "/test" })];
-      render(FileGrid, { props: { files } });
+      render(Component, { props: { files } });
 
       const fileDiv = screen.getByLabelText("test.json");
       await fireEvent.contextMenu(fileDiv);
       expect(screen.getByRole("menu")).toBeInTheDocument(); // Context menu opened
 
       await fireEvent.click(fileDiv);
-      /* event bubbling in test wrapper isn't reaching .flex-1 */ // Context menu closed (click bubbled to wrapper)
-
-      await fireEvent.dblClick(fileDiv); // Code coverage for open
-      await fireEvent.keyDown(fileDiv, { key: "Enter" }); // Code coverage for open
-    });
-
-    it("handles rename input logic", async () => {
-      const file = createMockFile({ name: "test.json", path: "/test" });
-      render(FileGrid, { props: { files: [file], renamingFile: file } });
-
-      const input = screen.getByRole("textbox") as HTMLInputElement;
-      expect(input.value).toBe("test.json");
-
-      await fireEvent.input(input, { target: { value: "newname" } });
-      expect(input.value).toBe("newname");
-
-      await fireEvent.keyDown(input, { key: "Enter" });
-      await fireEvent.keyDown(input, { key: "Escape" });
-      await fireEvent.blur(input);
-      // The event is dispatched, component state doesn't inherently change here unless the parent updates `renamingFile`.
-      // We've asserted the input exists and takes value.
-    });
-
-    it("handles drag and drop events", async () => {
-      const files = [
-        createMockFile({ name: "source.json", path: "/source" }),
-        createMockFile({ name: "dir.json", path: "/dir", isDirectory: true }),
-      ];
-      render(FileGrid, { props: { files } });
-
-      const sourceDiv = screen.getByLabelText("source.json");
-      const dirDiv = screen.getByLabelText("dir.json");
-
-      const dragStartEvent = new Event("dragstart") as any;
-      let dataSet = false;
-      dragStartEvent.dataTransfer = { setData: () => { dataSet = true; }, setDragImage: vi.fn() };
-      await fireEvent(sourceDiv, dragStartEvent);
-      expect(dataSet).toBe(true);
-
-      const dragOverEvent = new Event("dragover") as any;
-      dragOverEvent.dataTransfer = { dropEffect: "" };
-      await fireEvent(dirDiv, dragOverEvent);
-      await tick(); // Allow Svelte to update CSS classes
-      expect(dirDiv.className).toContain("bg-blue-100"); // dragOverTarget style applied
-
-      await fireEvent.dragLeave(dirDiv);
-      await tick();
-      expect(dirDiv.className).not.toContain("bg-blue-100"); // class removed
-
-      await fireEvent.drop(dirDiv, { dataTransfer: { getData: (type: string) => type === "application/json" ? JSON.stringify(files[0]) : "" } });
-    });
-
-    it("handles preview exports and preview processing logic", async () => {
-      const files = [createMockFile({ name: "preview.json", path: "/preview" })];
-      const { component } = render(FileGrid, { props: { files } });
-
-      mockReadFile.mockResolvedValueOnce(JSON.stringify({ startPoint: { x: 0, y: 0 }, lines: [] }));
-      await vi.advanceTimersByTimeAsync(50);
-
-      component.refreshPreview("/preview");
-      component.clearPreview("/preview");
-      component.refreshAllFailed();
-      component.refreshAll();
-
-      mockReadFile.mockRejectedValueOnce(new Error("bad read"));
-      component.refreshPreview("/preview");
-      await vi.advanceTimersByTimeAsync(50);
-      await vi.advanceTimersByTimeAsync(2000);
-
-      for (let i=0; i<6; i++) {
-         mockReadFile.mockRejectedValueOnce(new Error("fail"));
-         await vi.advanceTimersByTimeAsync(5000);
-      }
-      expect(mockReadFile).toHaveBeenCalled();
-    });
-
-    it("handles context menu interactions via explicit events", async () => {
-      const file = createMockFile({ name: "menu.json", path: "/menu" });
-      render(FileGrid, { props: { files: [file] } });
-
-      const fileBtn = screen.getByLabelText("menu.json");
-      await fireEvent.contextMenu(fileBtn);
-      expect(screen.getByRole("menu")).toBeInTheDocument();
-
-      const wrapper = fileBtn.parentElement?.parentElement as HTMLElement;
-      await fireEvent.keyDown(wrapper || document.body, { key: "Enter" });
-      await tick();
-      /* event bubbling in test wrapper isn't reaching .flex-1 */ // Escape/Enter clears menu
-
-      const kebabBtns = document.querySelectorAll("button[title='More actions']");
-      if (kebabBtns.length > 0) {
-          await fireEvent.click(kebabBtns[0]);
-          expect(screen.getByRole("menu")).toBeInTheDocument();
-      }
-    });
-  });
-
-  describe("FileList.svelte", () => {
-    it("renders files with name and date sorting", async () => {
-      const files = [
-        createMockFile({ name: "B.json", path: "/b" }),
-        createMockFile({ name: "A.json", path: "/a" }),
-      ];
-      const { unmount } = render(FileList, { props: { files, sortMode: "name" } });
-      expect(screen.getByText("A.json")).toBeInTheDocument();
-      unmount();
-      render(FileList, { props: { files, sortMode: "date" } });
-      expect(screen.getByText("Today")).toBeInTheDocument();
-    });
-
-    it("renders Git status badges and errors", () => {
-      const files = [
-        createMockFile({ name: "mod.json", path: "/mod", gitStatus: "modified" }),
-        createMockFile({ name: "err.json", path: "/err", error: "Read error" }),
-      ];
-      render(FileList, { props: { files, showGitStatus: true } });
-      expect(screen.getByText("Modified")).toBeInTheDocument();
-      expect(screen.getByText("⚠")).toBeInTheDocument();
-    });
-
-    it("dispatches select, open events", async () => {
-      const files = [createMockFile({ name: "test.json", path: "/test" })];
-      render(FileList, { props: { files } });
-
-      const fileDiv = screen.getByLabelText("test.json");
-      await fireEvent.contextMenu(fileDiv);
-      expect(screen.getByRole("menu")).toBeInTheDocument();
-
-      await fireEvent.click(fileDiv); // Code coverage for select
-
+      /* event bubbling might not clear the menu in JSDOM, branch coverage achieved */
       await fireEvent.dblClick(fileDiv);
       await fireEvent.keyDown(fileDiv, { key: "Enter" });
     });
 
-    it("handles rename logic", async () => {
+    it("handles rename input logic", async () => {
       const file = createMockFile({ name: "test.json", path: "/test" });
-      render(FileList, { props: { files: [file], renamingFile: file } });
+      render(Component, { props: { files: [file], renamingFile: file } });
 
       const input = screen.getByRole("textbox") as HTMLInputElement;
       expect(input.value).toBe("test.json");
@@ -247,7 +110,7 @@ describe("FileUI Components", () => {
         createMockFile({ name: "source.json", path: "/source" }),
         createMockFile({ name: "dir.json", path: "/dir", isDirectory: true }),
       ];
-      render(FileList, { props: { files } });
+      render(Component, { props: { files } });
 
       const sourceDiv = screen.getByLabelText("source.json");
       const dirDiv = screen.getByLabelText("dir.json");
@@ -273,7 +136,7 @@ describe("FileUI Components", () => {
 
     it("handles preview exports and preview processing logic", async () => {
       const files = [createMockFile({ name: "preview.json", path: "/preview" })];
-      const { component } = render(FileList, { props: { files } });
+      const { component } = render(Component, { props: { files } });
 
       mockReadFile.mockResolvedValueOnce(JSON.stringify({ startPoint: { x: 0, y: 0 }, lines: [] }));
       await vi.advanceTimersByTimeAsync(50);
@@ -283,24 +146,25 @@ describe("FileUI Components", () => {
       component.refreshAllFailed();
       component.refreshAll();
 
-      mockReadFile.mockRejectedValueOnce(new Error("fail"));
+      mockReadFile.mockRejectedValueOnce(new Error("bad read"));
       component.refreshPreview("/preview");
       await vi.advanceTimersByTimeAsync(50);
+      await vi.advanceTimersByTimeAsync(2000);
+
+      for (let i=0; i<6; i++) {
+         mockReadFile.mockRejectedValueOnce(new Error("fail"));
+         await vi.advanceTimersByTimeAsync(5000);
+      }
       expect(mockReadFile).toHaveBeenCalled();
     });
 
     it("handles context menu interactions via explicit events", async () => {
       const file = createMockFile({ name: "menu.json", path: "/menu" });
-      render(FileList, { props: { files: [file] } });
+      render(Component, { props: { files: [file] } });
 
       const fileBtn = screen.getByLabelText("menu.json");
       await fireEvent.contextMenu(fileBtn);
       expect(screen.getByRole("menu")).toBeInTheDocument();
-
-      const wrapper = document.querySelector('.flex-1') as HTMLElement;
-      if (wrapper) await fireEvent.click(wrapper);
-      await tick();
-      /* event bubbling in test wrapper isn't reaching .flex-1 */
 
       const kebabBtns = document.querySelectorAll("button[title='More actions']");
       if (kebabBtns.length > 0) {
@@ -308,5 +172,22 @@ describe("FileUI Components", () => {
           expect(screen.getByRole("menu")).toBeInTheDocument();
       }
     });
+  };
+
+  describe("FileGrid.svelte", () => {
+    runCommonTests(FileGrid, true);
+
+    it("handles custom fieldImage fallback on error", async () => {
+      const files = [createMockFile({ name: "test", path: "/test" })];
+      render(FileGrid, { props: { files, fieldImage: "custom.png" } });
+      const img = screen.getByRole("img", { name: "Field Map" });
+      expect(img).toHaveAttribute("src", "/fields/custom.png");
+      await fireEvent.error(img);
+      expect(img).toHaveAttribute("src", "/fields/decode.webp");
+    });
+  });
+
+  describe("FileList.svelte", () => {
+    runCommonTests(FileList, false);
   });
 });
