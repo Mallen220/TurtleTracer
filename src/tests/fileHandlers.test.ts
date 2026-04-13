@@ -532,7 +532,27 @@ describe("fileHandlers", () => {
     });
   });
 
+
   describe("loadFile", () => {
+    function setupMockFileReaderAndEvent(fileName = "newfile.turt") {
+      const evt = {
+        target: {
+          files: [{ name: fileName }],
+          value: "somepath",
+        },
+      } as unknown as Event;
+
+      let onloadHandler: any;
+      const mockFileReader = {
+        readAsText: vi.fn(function(this: any, file) {
+          onloadHandler = this.onload;
+        }),
+      };
+      vi.stubGlobal("FileReader", vi.fn(() => mockFileReader));
+
+      return { evt, mockFileReader, getOnloadHandler: () => onloadHandler };
+    }
+
     it("returns early if no file is selected", async () => {
       const evt = { target: { files: [] } } as unknown as Event;
       await fileHandlers.loadFile(evt);
@@ -548,24 +568,9 @@ describe("fileHandlers", () => {
 
     it("uses electronAPI copy logic if available and currentFilePath is set", async () => {
       currentFilePath.set("/project/dir/current.turt");
-      const evt = {
-        target: {
-          files: [{ name: "newfile.turt" }],
-          value: "somepath",
-        },
-      } as unknown as Event;
-
+      const { evt, mockFileReader, getOnloadHandler } = setupMockFileReaderAndEvent("newfile.turt");
       const fileData = { lines: [], sequence: [] };
       const fileContent = JSON.stringify(fileData);
-
-      // Mock FileReader
-      let onloadHandler: any;
-      const mockFileReader = {
-        readAsText: vi.fn(function(this: any, file) {
-          onloadHandler = this.onload;
-        }),
-      };
-      vi.stubGlobal("FileReader", vi.fn(() => mockFileReader));
 
       mockElectronAPI.fileExists.mockResolvedValue(false);
       mockElectronAPI.writeFile.mockResolvedValue(true);
@@ -575,7 +580,7 @@ describe("fileHandlers", () => {
       expect(mockFileReader.readAsText).toHaveBeenCalled();
 
       // Now execute the onload handler and wait for it
-      await onloadHandler({ target: { result: fileContent } });
+      await getOnloadHandler()({ target: { result: fileContent } });
 
       expect(mockElectronAPI.writeFile).toHaveBeenCalledWith(
         "/project/dir/newfile.turt",
@@ -586,28 +591,15 @@ describe("fileHandlers", () => {
 
     it("prompts for overwrite if file exists during electronAPI copy", async () => {
       currentFilePath.set("/project/dir/current.turt");
-      const evt = {
-        target: {
-          files: [{ name: "existing.turt" }],
-          value: "somepath",
-        },
-      } as unknown as Event;
-
+      const { evt, getOnloadHandler } = setupMockFileReaderAndEvent("existing.turt");
       const fileContent = JSON.stringify({ lines: [], sequence: [] });
-      let onloadHandler: any;
-      const mockFileReader = {
-        readAsText: vi.fn(function(this: any, file) {
-          onloadHandler = this.onload;
-        }),
-      };
-      vi.stubGlobal("FileReader", vi.fn(() => mockFileReader));
 
       mockElectronAPI.fileExists.mockResolvedValue(true); // File exists!
       const confirmMock = vi.fn().mockReturnValue(false); // User declines overwrite
       vi.stubGlobal("confirm", confirmMock);
 
       await fileHandlers.loadFile(evt);
-      await onloadHandler({ target: { result: fileContent } });
+      await getOnloadHandler()({ target: { result: fileContent } });
 
       expect(confirmMock).toHaveBeenCalled();
       // Write file should not be called because user declined
@@ -616,24 +608,11 @@ describe("fileHandlers", () => {
 
     it("alerts when JSON parsing fails (corrupt file)", async () => {
       currentFilePath.set("/project/dir/current.turt");
-      const evt = {
-        target: {
-          files: [{ name: "corrupt.turt" }],
-          value: "somepath",
-        },
-      } as unknown as Event;
-
-      let onloadHandler: any;
-      const mockFileReader = {
-        readAsText: vi.fn(function(this: any, file) {
-          onloadHandler = this.onload;
-        }),
-      };
-      vi.stubGlobal("FileReader", vi.fn(() => mockFileReader));
+      const { evt, getOnloadHandler } = setupMockFileReaderAndEvent("corrupt.turt");
 
       await fileHandlers.loadFile(evt);
 
-      await onloadHandler({ target: { result: "invalid-json" } });
+      await getOnloadHandler()({ target: { result: "invalid-json" } });
 
       expect(globalThis.alert).toHaveBeenCalledWith(expect.stringContaining("Error parsing file: Unexpected token"));
     });
@@ -645,25 +624,12 @@ describe("fileHandlers", () => {
       // But wait, loadTrajectoryFromFile is exported from "./index.ts" and imported into fileHandlers
       // Let's just mock the FileReader that loadTrajectoryFromFile creates!
 
-      const evt = {
-        target: {
-          files: [{ name: "web.turt" }],
-          value: "somepath",
-        },
-      } as unknown as Event;
-
-      let onloadHandler: any;
-      const mockFileReader = {
-        readAsText: vi.fn(function(this: any, file) {
-          onloadHandler = this.onload;
-        }),
-      };
-      vi.stubGlobal("FileReader", vi.fn(() => mockFileReader));
+      const { evt, getOnloadHandler } = setupMockFileReaderAndEvent("web.turt");
 
       await fileHandlers.loadFile(evt);
 
       const fileData = { lines: [], sequence: [] };
-      onloadHandler({ target: { result: JSON.stringify(fileData) } }); // sync call
+      getOnloadHandler()({ target: { result: JSON.stringify(fileData) } }); // sync call
 
       // wait a tick for the async success callback
       await new Promise(r => setTimeout(r, 0));
