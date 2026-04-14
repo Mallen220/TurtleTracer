@@ -27,7 +27,7 @@ describe("Generator Utilities", () => {
       percentStore: 0,
       dimmedIds: [],
       multiSelectedPointIds: [],
-    } as any;
+    } as unknown as any;
 
     const startPoint: Point = { x: 0, y: 0 } as Point;
     const endPoint: Point = { x: 10, y: 10 } as Point;
@@ -132,7 +132,7 @@ describe("Generator Utilities", () => {
   });
 });
 
-  describe("generatePathElements", () => {
+describe("generatePathElements", () => {
     const mockCtx = {
       x: (val: number) => val * 10,
       y: (val: number) => val * 10,
@@ -146,7 +146,7 @@ describe("Generator Utilities", () => {
       percentStore: 0,
       dimmedIds: ["line-dimmed"],
       multiSelectedPointIds: [],
-    } as any;
+    } as unknown as any;
 
     const startPoint: Point = { x: 0, y: 0 } as Point;
     const endPoint: Point = { x: 10, y: 10 } as Point;
@@ -227,19 +227,11 @@ describe("Generator Utilities", () => {
       y: (val: number) => val * 10,
       uiLength: (val: number) => val * 2,
       settings: {},
-    } as any;
+    } as unknown as any;
 
     const startPoint: Point = { x: 0, y: 0 } as Point;
 
     it("should render preview paths correctly", () => {
-      const lines: Line[] = [
-        { endPoint: { x: 10, y: 10 } as Point, controlPoints: [], color: "#ff0000" }, // standard
-        { endPoint: null as unknown as Point, controlPoints: [], color: "#00ff00" }, // missing endpoint
-        { endPoint: { x: 30, y: 30 } as Point, controlPoints: [], color: "#0000ff" }, // standard, should skip prior missing
-      ];
-
-      // For preview paths, it uses the previous valid line's endpoint. If previous is invalid, it skips.
-      // Let's make them sequential properly to test.
       const sequentialLines: Line[] = [
         { endPoint: { x: 10, y: 10 } as Point, controlPoints: [], color: "#ff0000" },
         { endPoint: { x: 20, y: 20 } as Point, controlPoints: [], color: "#00ff00" },

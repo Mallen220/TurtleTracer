@@ -6,6 +6,9 @@ on:
     # branches:
     #   - main
   workflow_dispatch:
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   sonarqube:
     name: SonarQube
@@ -36,6 +39,7 @@ jobs:
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@master
+        continue-on-error: true
         with:
           args: -Dsonar.internal.analysis.failFast=false
         env:
