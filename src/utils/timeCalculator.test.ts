@@ -1,4 +1,4 @@
-import { expect, test, describe } from 'vitest';
+import { expect, test, describe } from "vitest";
 import {
   analyzePathSegment,
   unwrapAngle,
@@ -6,11 +6,26 @@ import {
   calculateGlobalChainMeta,
   calculatePathTime,
   formatTime,
-  getAnimationDuration
-} from './timeCalculator';
+  getAnimationDuration,
+} from "./timeCalculator";
 
-describe('unwrapAngle', () => {
-  test('unwraps angle correctly', () => {
+const defaultSettings = {
+  xVelocity: 0,
+  yVelocity: 0,
+  aVelocity: 1.5,
+  kFriction: 0,
+  rLength: 10,
+  rWidth: 10,
+  safetyMargin: 0,
+  maxVelocity: 50,
+  maxAcceleration: 30,
+  maxAngularAcceleration: 3,
+  fieldMap: "none",
+  theme: "auto",
+};
+
+describe("unwrapAngle", () => {
+  test("unwraps angle correctly", () => {
     expect(unwrapAngle(10, 0)).toBe(10);
     expect(unwrapAngle(350, 0)).toBe(-10);
     expect(unwrapAngle(10, 360)).toBe(370);
@@ -19,41 +34,41 @@ describe('unwrapAngle', () => {
   });
 });
 
-describe('formatTime', () => {
-  test('formats simple seconds', () => {
-    expect(formatTime(12.345)).toBe('12.345s');
-    expect(formatTime(0.5)).toBe('0.500s');
+describe("formatTime", () => {
+  test("formats simple seconds", () => {
+    expect(formatTime(12.345)).toBe("12.345s");
+    expect(formatTime(0.5)).toBe("0.500s");
   });
 
-  test('formats minutes and seconds', () => {
-    expect(formatTime(65.123)).toBe('1:05.123s');
-    expect(formatTime(120)).toBe('2:00.000s');
+  test("formats minutes and seconds", () => {
+    expect(formatTime(65.123)).toBe("1:05.123s");
+    expect(formatTime(120)).toBe("2:00.000s");
   });
 
-  test('handles edge cases', () => {
-    expect(formatTime(0)).toBe('0.000s');
-    expect(formatTime(-5)).toBe('0.000s');
-    expect(formatTime(Infinity)).toBe('Infinite');
-    expect(formatTime(NaN)).toBe('Infinite');
+  test("handles edge cases", () => {
+    expect(formatTime(0)).toBe("0.000s");
+    expect(formatTime(-5)).toBe("0.000s");
+    expect(formatTime(Infinity)).toBe("Infinite");
+    expect(formatTime(NaN)).toBe("Infinite");
   });
 });
 
-describe('getAnimationDuration', () => {
-  test('returns base duration', () => {
+describe("getAnimationDuration", () => {
+  test("returns base duration", () => {
     expect(getAnimationDuration(5)).toBe(5000);
   });
 
-  test('applies speed factor', () => {
+  test("applies speed factor", () => {
     expect(getAnimationDuration(5, 2)).toBe(2500);
     expect(getAnimationDuration(5, 0.5)).toBe(10000);
   });
 });
 
-describe('analyzePathSegment', () => {
-  test('analyzes straight line segment', () => {
+describe("analyzePathSegment", () => {
+  test("analyzes straight line segment", () => {
     const start = { x: 0, y: 0 };
     const end = { x: 10, y: 0 };
-    const controlPoints: {x: number, y: number}[] = [];
+    const controlPoints: { x: number; y: number }[] = [];
 
     const analysis = analyzePathSegment(start, controlPoints, end, 50, 0);
 
@@ -63,7 +78,7 @@ describe('analyzePathSegment', () => {
     expect(analysis.steps.length).toBeGreaterThan(0);
   });
 
-  test('analyzes quadratic bezier segment', () => {
+  test("analyzes quadratic bezier segment", () => {
     const start = { x: 0, y: 0 };
     const controlPoints = [{ x: 5, y: 5 }];
     const end = { x: 10, y: 0 };
@@ -74,9 +89,12 @@ describe('analyzePathSegment', () => {
     expect(analysis.steps.length).toBeGreaterThan(0);
   });
 
-  test('analyzes cubic bezier segment', () => {
+  test("analyzes cubic bezier segment", () => {
     const start = { x: 0, y: 0 };
-    const controlPoints = [{ x: 3, y: 5 }, { x: 7, y: -5 }];
+    const controlPoints = [
+      { x: 3, y: 5 },
+      { x: 7, y: -5 },
+    ];
     const end = { x: 10, y: 0 };
 
     const analysis = analyzePathSegment(start, controlPoints, end, 50, 0);
@@ -85,7 +103,7 @@ describe('analyzePathSegment', () => {
     expect(analysis.steps.length).toBeGreaterThan(0);
   });
 
-  test('handles zero length segment', () => {
+  test("handles zero length segment", () => {
     const start = { x: 0, y: 0 };
     const end = { x: 0, y: 0 };
 
@@ -95,7 +113,7 @@ describe('analyzePathSegment', () => {
     expect(analysis.steps.length).toBeGreaterThan(0);
   });
 
-  test('adaptive sampling for very short linear segment', () => {
+  test("adaptive sampling for very short linear segment", () => {
     const startL = { x: 0, y: 0 };
     const endL = { x: 10, y: 10 };
     // This calls analyzePathSegment
@@ -110,7 +128,7 @@ describe('analyzePathSegment', () => {
     expect(analysisL.steps.length).toBe(10);
   });
 
-  test('adaptive sampling for short quadratic segment', () => {
+  test("adaptive sampling for short quadratic segment", () => {
     const startQ = { x: 0, y: 0 };
     const endQ = { x: 10, y: 0 };
     const cpsQ = [{ x: 5, y: 10 }];
@@ -120,7 +138,7 @@ describe('analyzePathSegment', () => {
     expect(analysisQ.steps.length).toBe(23);
   });
 
-  test('adaptive sampling for long complex segment clamps to max samples', () => {
+  test("adaptive sampling for long complex segment clamps to max samples", () => {
     const startC = { x: 0, y: 0 };
     const endC = { x: 100, y: 0 };
     const cpsC = [{ x: 50, y: 100 }];
@@ -130,28 +148,13 @@ describe('analyzePathSegment', () => {
   });
 });
 
-describe('calculateRotationTime', () => {
-  const defaultSettings = {
-    xVelocity: 0,
-    yVelocity: 0,
-    aVelocity: 1.5,
-    kFriction: 0,
-    rLength: 10,
-    rWidth: 10,
-    safetyMargin: 0,
-    maxVelocity: 50,
-    maxAcceleration: 30,
-    maxAngularAcceleration: 3,
-    fieldMap: 'none',
-    theme: 'auto'
-  };
-
-  test('returns 0 for tiny angle diffs', () => {
+describe("calculateRotationTime", () => {
+  test("returns 0 for tiny angle diffs", () => {
     expect(calculateRotationTime(0, defaultSettings)).toBe(0);
     expect(calculateRotationTime(0.001, defaultSettings)).toBe(0);
   });
 
-  test('calculates trapezoidal profile with constant velocity phase', () => {
+  test("calculates trapezoidal profile with constant velocity phase", () => {
     // Large angle difference where it reaches max velocity
     const time = calculateRotationTime(180, defaultSettings);
 
@@ -165,7 +168,7 @@ describe('calculateRotationTime', () => {
     expect(time).toBeCloseTo(2.59, 1);
   });
 
-  test('calculates triangular profile (does not reach max velocity)', () => {
+  test("calculates triangular profile (does not reach max velocity)", () => {
     // Small angle diff that doesn't reach max velocity
     // 30 degrees = approx 0.52 rad
     // accDist needed for max vel = 0.375, so total distance 0.75 rad to reach max
@@ -175,10 +178,10 @@ describe('calculateRotationTime', () => {
     expect(time).toBeGreaterThan(0);
   });
 
-  test('calculates using fallback maxAngularAcceleration when missing or zero', () => {
+  test("calculates using fallback maxAngularAcceleration when missing or zero", () => {
     const settingsNoAngAccel = {
       ...defaultSettings,
-      maxAngularAcceleration: 0
+      maxAngularAcceleration: 0,
     };
 
     // Fallback logic: leverArm = max(rWidth/2, 1) = 5
@@ -187,12 +190,12 @@ describe('calculateRotationTime', () => {
     expect(time).toBeGreaterThan(0);
   });
 
-  test('protects against division by zero in fallback logic', () => {
+  test("protects against division by zero in fallback logic", () => {
     const settingsZeroWidth = {
       ...defaultSettings,
       maxAngularAcceleration: undefined,
       rWidth: 0,
-      maxAcceleration: 30
+      maxAcceleration: 30,
     };
 
     // leverArm will be clamped to 1, maxAngAccel = 30 / 1 = 30 rad/s^2
@@ -201,84 +204,88 @@ describe('calculateRotationTime', () => {
   });
 });
 
-describe('calculateGlobalChainMeta', () => {
-  test('calculates correct chain meta for single valid path', () => {
-    const startPoint = { x: 0, y: 0 };
+describe("calculateGlobalChainMeta", () => {
+  test("calculates correct chain meta for single valid path", () => {
+    const startPoint = { x: 0, y: 0 } as any;
     const lines = [
-      { id: 'l1', endPoint: { x: 10, y: 0 }, controlPoints: [], isChain: false }
+      {
+        id: "l1",
+        endPoint: { x: 10, y: 0 },
+        controlPoints: [],
+        isChain: false,
+      },
     ] as any[];
 
-    const seq = [{ kind: 'path', lineId: 'l1' }] as any[];
+    const seq = [{ kind: "path", lineId: "l1" }] as any[];
 
     const metaMap = calculateGlobalChainMeta(seq, lines, startPoint);
-    const meta = metaMap.get('l1');
+    const meta = metaMap.get("l1");
 
     expect(meta).toBeDefined();
-    expect(meta?.rootLine.id).toBe('l1');
+    expect(meta?.rootLine.id).toBe("l1");
     expect(meta?.distanceBefore).toBe(0);
     // distance is 10
     expect(meta?.chainTotalLength).toBeCloseTo(10);
   });
 
-  test('calculates correct chain meta for chained paths', () => {
-    const startPoint = { x: 0, y: 0 };
+  test("calculates correct chain meta for chained paths", () => {
+    const startPoint = { x: 0, y: 0 } as any;
     // L1: 0,0 -> 10,0
     // L2: 10,0 -> 10,10 (chained to L1)
     const lines = [
-      { id: 'l1', endPoint: { x: 10, y: 0 }, controlPoints: [], isChain: true },
-      { id: 'l2', endPoint: { x: 10, y: 10 }, controlPoints: [], isChain: false }
+      { id: "l1", endPoint: { x: 10, y: 0 }, controlPoints: [], isChain: true },
+      {
+        id: "l2",
+        endPoint: { x: 10, y: 10 },
+        controlPoints: [],
+        isChain: false,
+      },
     ] as any[];
 
     const seq = [
-      { kind: 'path', lineId: 'l1', isChain: true },
-      { kind: 'path', lineId: 'l2', isChain: true },
-      { kind: 'action' }
+      { kind: "path", lineId: "l1", isChain: true },
+      { kind: "path", lineId: "l2", isChain: true },
+      { kind: "action" },
     ] as any[];
 
     const metaMap = calculateGlobalChainMeta(seq, lines, startPoint);
 
-    const meta1 = metaMap.get('l1');
-    expect(meta1?.rootLine.id).toBe('l1');
+    const meta1 = metaMap.get("l1");
+    expect(meta1?.rootLine.id).toBe("l1");
     expect(meta1?.distanceBefore).toBe(0);
     expect(meta1?.chainTotalLength).toBeCloseTo(20); // 10 + 10
 
-    const meta2 = metaMap.get('l2');
-    expect(meta2?.rootLine.id).toBe('l1'); // L2 roots to L1
+    const meta2 = metaMap.get("l2");
+    expect(meta2?.rootLine.id).toBe("l1"); // L2 roots to L1
     expect(meta2?.distanceBefore).toBeCloseTo(10);
     expect(meta2?.chainTotalLength).toBeCloseTo(20);
   });
 
-  test('ignores unknown sequences or missing endpoints', () => {
-    const startPoint = { x: 0, y: 0 };
+  test("ignores unknown sequences or missing endpoints", () => {
+    const startPoint = { x: 0, y: 0 } as any;
     const lines = [
-      { id: 'l1', controlPoints: [] } // no endpoint
+      { id: "l1", controlPoints: [] }, // no endpoint
     ] as any[];
-    const seq = [{ kind: 'path', lineId: 'l1' }, { kind: 'path', lineId: 'missing' }] as any[];
+    const seq = [
+      { kind: "path", lineId: "l1" },
+      { kind: "path", lineId: "missing" },
+    ] as any[];
 
     const metaMap = calculateGlobalChainMeta(seq, lines, startPoint);
     expect(metaMap.size).toBe(0);
   });
 });
 
-describe('calculatePathTime', () => {
-  const defaultSettings = {
-    xVelocity: 0,
-    yVelocity: 0,
-    aVelocity: 1.5,
-    kFriction: 0,
-    rLength: 10,
-    rWidth: 10,
-    safetyMargin: 0,
-    maxVelocity: 50,
-    maxAcceleration: 30,
-    fieldMap: 'none',
-    theme: 'auto'
-  };
-
-  test('calculates time for a simple path without motion profile', () => {
-    const startPoint = { x: 0, y: 0, heading: 'linear', startDeg: 0 } as any;
+describe("calculatePathTime", () => {
+  test("calculates time for a simple path without motion profile", () => {
+    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
     const lines = [
-      { id: 'l1', endPoint: { x: 100, y: 0 }, controlPoints: [], isChain: false }
+      {
+        id: "l1",
+        endPoint: { x: 100, y: 0 },
+        controlPoints: [],
+        isChain: false,
+      },
     ] as any[];
 
     // Disable motion profile by omitting maxAcceleration/maxVelocity
@@ -293,10 +300,15 @@ describe('calculatePathTime', () => {
     expect(time.timeline.length).toBeGreaterThan(0);
   });
 
-  test('calculates time using motion profile', () => {
-    const startPoint = { x: 0, y: 0, heading: 'linear', startDeg: 0 } as any;
+  test("calculates time using motion profile", () => {
+    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
     const lines = [
-      { id: 'l1', endPoint: { x: 100, y: 0 }, controlPoints: [], isChain: false }
+      {
+        id: "l1",
+        endPoint: { x: 100, y: 0 },
+        controlPoints: [],
+        isChain: false,
+      },
     ] as any[];
 
     const time = calculatePathTime(startPoint, lines, defaultSettings as any);
@@ -310,112 +322,97 @@ describe('calculatePathTime', () => {
     expect(time.timeline.length).toBeGreaterThan(0);
   });
 
-  test('handles chained paths with proper velocity tracking', () => {
-    const startPoint = { x: 0, y: 0, heading: 'linear', startDeg: 0 } as any;
+  test("handles chained paths with proper velocity tracking", () => {
+    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
     const lines = [
-      { id: 'l1', endPoint: { x: 50, y: 0 }, controlPoints: [], isChain: true },
-      { id: 'l2', endPoint: { x: 100, y: 0 }, controlPoints: [], isChain: false }
+      { id: "l1", endPoint: { x: 50, y: 0 }, controlPoints: [], isChain: true },
+      {
+        id: "l2",
+        endPoint: { x: 100, y: 0 },
+        controlPoints: [],
+        isChain: false,
+      },
     ] as any[];
 
     const sequence = [
-      { kind: 'path', lineId: 'l1' },
-      { kind: 'path', lineId: 'l2' }
+      { kind: "path", lineId: "l1" },
+      { kind: "path", lineId: "l2" },
     ] as any[];
 
-    const time = calculatePathTime(startPoint, lines, {
-    xVelocity: 0,
-    yVelocity: 0,
-    aVelocity: 1.5,
-    kFriction: 0,
-    rLength: 10,
-    rWidth: 10,
-    safetyMargin: 0,
-    maxVelocity: 50,
-    maxAcceleration: 30,
-    fieldMap: 'none',
-    theme: 'auto'
-  } as any, sequence);
+    const time = calculatePathTime(
+      startPoint,
+      lines,
+      defaultSettings as any,
+      sequence,
+    );
 
     expect(time.totalDistance).toBeCloseTo(100);
     expect(time.totalTime).toBeGreaterThan(0);
     expect(time.segmentTimes.length).toBe(2);
   });
 
-  test('handles initial heading overrides from global sequence', () => {
-    const startPoint = { x: 0, y: 0, heading: 'linear', startDeg: 0 } as any;
+  test("handles initial heading overrides from global sequence", () => {
+    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
     const lines = [
       {
-        id: 'l1',
+        id: "l1",
         endPoint: { x: 100, y: 0 },
         controlPoints: [],
         isChain: false,
-        globalHeading: 'constant',
-        globalDegrees: 90
-      }
+        globalHeading: "constant",
+        globalDegrees: 90,
+      },
     ] as any[];
 
-    const sequence = [
-      { kind: 'path', lineId: 'l1' }
-    ] as any[];
+    const sequence = [{ kind: "path", lineId: "l1" }] as any[];
 
-    const time = calculatePathTime(startPoint, lines, {
-    xVelocity: 0,
-    yVelocity: 0,
-    aVelocity: 1.5,
-    kFriction: 0,
-    rLength: 10,
-    rWidth: 10,
-    safetyMargin: 0,
-    maxVelocity: 50,
-    maxAcceleration: 30,
-    fieldMap: 'none',
-    theme: 'auto'
-  } as any, sequence);
+    const time = calculatePathTime(
+      startPoint,
+      lines,
+      defaultSettings as any,
+      sequence,
+    );
 
     expect(time.totalDistance).toBeCloseTo(100);
     expect(time.totalTime).toBeGreaterThan(0);
   });
 
-  test('handles tangent and facing heading overrides', () => {
-    const startPoint = { x: 0, y: 0, heading: 'linear', startDeg: 0 } as any;
+  test("handles tangent and facing heading overrides", () => {
+    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
     const lines = [
       {
-        id: 'l1',
+        id: "l1",
         endPoint: { x: 100, y: 0 },
         controlPoints: [],
         isChain: false,
-        globalHeading: 'facingPoint',
+        globalHeading: "facingPoint",
         globalTargetX: 50,
-        globalTargetY: 50
-      }
+        globalTargetY: 50,
+      },
     ] as any[];
 
-    const sequence = [
-      { kind: 'path', lineId: 'l1' }
-    ] as any[];
+    const sequence = [{ kind: "path", lineId: "l1" }] as any[];
 
-    const time = calculatePathTime(startPoint, lines, {
-    xVelocity: 0,
-    yVelocity: 0,
-    aVelocity: 1.5,
-    kFriction: 0,
-    rLength: 10,
-    rWidth: 10,
-    safetyMargin: 0,
-    maxVelocity: 50,
-    maxAcceleration: 30,
-    fieldMap: 'none',
-    theme: 'auto'
-  } as any, sequence);
+    const time = calculatePathTime(
+      startPoint,
+      lines,
+      defaultSettings as any,
+      sequence,
+    );
 
     expect(time.totalDistance).toBeCloseTo(100);
     expect(time.totalTime).toBeGreaterThan(0);
   });
 
-  test('guards against extremely small aVelocity', () => {
-    const startPoint = { x: 0, y: 0, heading: 'linear', startDeg: 0 } as any;
+  test("guards against extremely small aVelocity", () => {
+    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
     const lines = [
-      { id: 'l1', endPoint: { x: 10, y: 0 }, controlPoints: [], isChain: false }
+      {
+        id: "l1",
+        endPoint: { x: 10, y: 0 },
+        controlPoints: [],
+        isChain: false,
+      },
     ] as any[];
 
     const settings = { ...defaultSettings, aVelocity: 0 } as any;
@@ -428,83 +425,59 @@ describe('calculatePathTime', () => {
   });
 });
 
-  test('calculatePathTime processes heading loops and handles macros gracefully', () => {
-    const startPoint = { x: 0, y: 0, heading: 'constant', degrees: 0 } as any;
+test("calculatePathTime processes heading loops and handles macros gracefully", () => {
+  const startPoint = { x: 0, y: 0, heading: "constant", degrees: 0 } as any;
+  const lines = [
+    { id: "l1", endPoint: { x: 50, y: 0 }, controlPoints: [], isChain: false },
+  ] as any[];
+
+  const sequence = [{ kind: "path", lineId: "l1" }] as any[];
+
+  const macros = new Map<string, any>();
+
+  // Just trigger the loop
+  const time = calculatePathTime(
+    startPoint,
+    lines,
+    defaultSettings as any,
+    sequence,
+    macros,
+  );
+  expect(time.totalTime).toBeGreaterThan(0);
+});
+
+test("calculatePathTime handles action sequences gracefully", () => {
+  const startPoint = { x: 0, y: 0, heading: "tangential" } as any;
+  const lines = [
+    { id: "l1", endPoint: { x: 50, y: 0 }, controlPoints: [], isChain: false },
+  ] as any[];
+
+  const sequence = [
+    { kind: "path", lineId: "l1" },
+    { kind: "action", waitTime: 2000 },
+  ] as any[];
+
+  const time = calculatePathTime(
+    startPoint,
+    lines,
+    defaultSettings as any,
+    sequence,
+  );
+
+  expect(time.timeline.length).toBeGreaterThan(0); // Timeline gets populated for actions
+});
+
+describe("calculatePathTime extra edge cases", () => {
+  test("calculatePathTime handles reverse motion", () => {
+    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
     const lines = [
-      { id: 'l1', endPoint: { x: 50, y: 0 }, controlPoints: [], isChain: false }
-    ] as any[];
-
-    const sequence = [
-      { kind: 'path', lineId: 'l1' }
-    ] as any[];
-
-    const macros = new Map<string, any>();
-
-    // Just trigger the loop
-    const time = calculatePathTime(startPoint, lines, {
-    xVelocity: 0,
-    yVelocity: 0,
-    aVelocity: 1.5,
-    kFriction: 0,
-    rLength: 10,
-    rWidth: 10,
-    safetyMargin: 0,
-    maxVelocity: 50,
-    maxAcceleration: 30,
-    fieldMap: 'none',
-    theme: 'auto'
-  } as any, sequence, macros);
-    expect(time.totalTime).toBeGreaterThan(0);
-  });
-
-  test('calculatePathTime handles action sequences gracefully', () => {
-    const startPoint = { x: 0, y: 0, heading: 'tangential' } as any;
-    const lines = [
-      { id: 'l1', endPoint: { x: 50, y: 0 }, controlPoints: [], isChain: false }
-    ] as any[];
-
-    const sequence = [
-      { kind: 'path', lineId: 'l1' },
-      { kind: 'action', waitTime: 2000 }
-    ] as any[];
-
-    const time = calculatePathTime(startPoint, lines, {
-    xVelocity: 0,
-    yVelocity: 0,
-    aVelocity: 1.5,
-    kFriction: 0,
-    rLength: 10,
-    rWidth: 10,
-    safetyMargin: 0,
-    maxVelocity: 50,
-    maxAcceleration: 30,
-    fieldMap: 'none',
-    theme: 'auto'
-  } as any, sequence);
-
-    expect(time.timeline.length).toBeGreaterThan(0); // Timeline gets populated for actions
-  });
-
-describe('calculatePathTime extra edge cases', () => {
-  const defaultSettings = {
-    xVelocity: 0,
-    yVelocity: 0,
-    aVelocity: 1.5,
-    kFriction: 0,
-    rLength: 10,
-    rWidth: 10,
-    safetyMargin: 0,
-    maxVelocity: 50,
-    maxAcceleration: 30,
-    maxAngularAcceleration: 3,
-    fieldMap: 'none',
-    theme: 'auto'
-  };
-
-  test('calculatePathTime handles reverse motion', () => {
-    const startPoint = { x: 0, y: 0, heading: 'linear', startDeg: 0 } as any;
-    const lines = [
-      { id: 'l1', endPoint: { x: -100, y: 0 }, controlPoints: [], isChain: false, robotReversed: true }
+      {
+        id: "l1",
+        endPoint: { x: -100, y: 0 },
+        controlPoints: [],
+        isChain: false,
+        robotReversed: true,
+      },
     ] as any[];
 
     const time = calculatePathTime(startPoint, lines, defaultSettings as any);
