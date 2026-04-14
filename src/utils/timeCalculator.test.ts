@@ -204,19 +204,48 @@ describe("calculateRotationTime", () => {
   });
 });
 
+function createPathData(
+  overrides: any = {},
+  seqType: string = "none",
+  seqLines: any[] = [],
+) {
+  const startPoint = {
+    x: 0,
+    y: 0,
+    heading: overrides.heading || "linear",
+    startDeg: 0,
+    ...overrides.startOverrides,
+  } as any;
+  const lines = overrides.lines || [
+    {
+      id: "l1",
+      endPoint: { x: 100, y: 0 },
+      controlPoints: [],
+      isChain: false,
+      ...overrides.lineOverrides,
+    },
+  ];
+
+  let sequence;
+  if (seqType === "simple")
+    sequence = [{ kind: "path", lineId: "l1" }] as any[];
+  else if (seqType === "custom") sequence = seqLines;
+
+  return { startPoint, lines, sequence };
+}
+
 describe("calculateGlobalChainMeta", () => {
   test("calculates correct chain meta for single valid path", () => {
-    const startPoint = { x: 0, y: 0 } as any;
-    const lines = [
+    const {
+      startPoint,
+      lines,
+      sequence: seq,
+    } = createPathData(
       {
-        id: "l1",
-        endPoint: { x: 10, y: 0 },
-        controlPoints: [],
-        isChain: false,
+        lineOverrides: { endPoint: { x: 10, y: 0 } },
       },
-    ] as any[];
-
-    const seq = [{ kind: "path", lineId: "l1" }] as any[];
+      "simple",
+    );
 
     const metaMap = calculateGlobalChainMeta(seq, lines, startPoint);
     const meta = metaMap.get("l1");
@@ -229,24 +258,34 @@ describe("calculateGlobalChainMeta", () => {
   });
 
   test("calculates correct chain meta for chained paths", () => {
-    const startPoint = { x: 0, y: 0 } as any;
-    // L1: 0,0 -> 10,0
-    // L2: 10,0 -> 10,10 (chained to L1)
-    const lines = [
-      { id: "l1", endPoint: { x: 10, y: 0 }, controlPoints: [], isChain: true },
+    const {
+      startPoint,
+      lines,
+      sequence: seq,
+    } = createPathData(
       {
-        id: "l2",
-        endPoint: { x: 10, y: 10 },
-        controlPoints: [],
-        isChain: false,
+        lines: [
+          {
+            id: "l1",
+            endPoint: { x: 10, y: 0 },
+            controlPoints: [],
+            isChain: true,
+          },
+          {
+            id: "l2",
+            endPoint: { x: 10, y: 10 },
+            controlPoints: [],
+            isChain: false,
+          },
+        ],
       },
-    ] as any[];
-
-    const seq = [
-      { kind: "path", lineId: "l1", isChain: true },
-      { kind: "path", lineId: "l2", isChain: true },
-      { kind: "action" },
-    ] as any[];
+      "custom",
+      [
+        { kind: "path", lineId: "l1", isChain: true },
+        { kind: "path", lineId: "l2", isChain: true },
+        { kind: "action" },
+      ],
+    );
 
     const metaMap = calculateGlobalChainMeta(seq, lines, startPoint);
 
@@ -262,14 +301,20 @@ describe("calculateGlobalChainMeta", () => {
   });
 
   test("ignores unknown sequences or missing endpoints", () => {
-    const startPoint = { x: 0, y: 0 } as any;
-    const lines = [
-      { id: "l1", controlPoints: [] }, // no endpoint
-    ] as any[];
-    const seq = [
-      { kind: "path", lineId: "l1" },
-      { kind: "path", lineId: "missing" },
-    ] as any[];
+    const {
+      startPoint,
+      lines,
+      sequence: seq,
+    } = createPathData(
+      {
+        lines: [{ id: "l1", controlPoints: [] }],
+      },
+      "custom",
+      [
+        { kind: "path", lineId: "l1" },
+        { kind: "path", lineId: "missing" },
+      ],
+    );
 
     const metaMap = calculateGlobalChainMeta(seq, lines, startPoint);
     expect(metaMap.size).toBe(0);
@@ -278,17 +323,7 @@ describe("calculateGlobalChainMeta", () => {
 
 describe("calculatePathTime", () => {
   test("calculates time for a simple path without motion profile", () => {
-    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
-    const lines = [
-      {
-        id: "l1",
-        endPoint: { x: 100, y: 0 },
-        controlPoints: [],
-        isChain: false,
-      },
-    ] as any[];
-
-    // Disable motion profile by omitting maxAcceleration/maxVelocity
+    const { startPoint, lines } = createPathData();
     const settings = { ...defaultSettings, maxAcceleration: undefined } as any;
 
     const time = calculatePathTime(startPoint, lines, settings);
@@ -301,16 +336,7 @@ describe("calculatePathTime", () => {
   });
 
   test("calculates time using motion profile", () => {
-    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
-    const lines = [
-      {
-        id: "l1",
-        endPoint: { x: 100, y: 0 },
-        controlPoints: [],
-        isChain: false,
-      },
-    ] as any[];
-
+    const { startPoint, lines } = createPathData();
     const time = calculatePathTime(startPoint, lines, defaultSettings as any);
 
     expect(time.totalDistance).toBeCloseTo(100);
@@ -323,21 +349,29 @@ describe("calculatePathTime", () => {
   });
 
   test("handles chained paths with proper velocity tracking", () => {
-    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
-    const lines = [
-      { id: "l1", endPoint: { x: 50, y: 0 }, controlPoints: [], isChain: true },
+    const { startPoint, lines, sequence } = createPathData(
       {
-        id: "l2",
-        endPoint: { x: 100, y: 0 },
-        controlPoints: [],
-        isChain: false,
+        lines: [
+          {
+            id: "l1",
+            endPoint: { x: 50, y: 0 },
+            controlPoints: [],
+            isChain: true,
+          },
+          {
+            id: "l2",
+            endPoint: { x: 100, y: 0 },
+            controlPoints: [],
+            isChain: false,
+          },
+        ],
       },
-    ] as any[];
-
-    const sequence = [
-      { kind: "path", lineId: "l1" },
-      { kind: "path", lineId: "l2" },
-    ] as any[];
+      "custom",
+      [
+        { kind: "path", lineId: "l1" },
+        { kind: "path", lineId: "l2" },
+      ],
+    );
 
     const time = calculatePathTime(
       startPoint,
@@ -352,19 +386,12 @@ describe("calculatePathTime", () => {
   });
 
   test("handles initial heading overrides from global sequence", () => {
-    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
-    const lines = [
+    const { startPoint, lines, sequence } = createPathData(
       {
-        id: "l1",
-        endPoint: { x: 100, y: 0 },
-        controlPoints: [],
-        isChain: false,
-        globalHeading: "constant",
-        globalDegrees: 90,
+        lineOverrides: { globalHeading: "constant", globalDegrees: 90 },
       },
-    ] as any[];
-
-    const sequence = [{ kind: "path", lineId: "l1" }] as any[];
+      "simple",
+    );
 
     const time = calculatePathTime(
       startPoint,
@@ -378,20 +405,16 @@ describe("calculatePathTime", () => {
   });
 
   test("handles tangent and facing heading overrides", () => {
-    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
-    const lines = [
+    const { startPoint, lines, sequence } = createPathData(
       {
-        id: "l1",
-        endPoint: { x: 100, y: 0 },
-        controlPoints: [],
-        isChain: false,
-        globalHeading: "facingPoint",
-        globalTargetX: 50,
-        globalTargetY: 50,
+        lineOverrides: {
+          globalHeading: "facingPoint",
+          globalTargetX: 50,
+          globalTargetY: 50,
+        },
       },
-    ] as any[];
-
-    const sequence = [{ kind: "path", lineId: "l1" }] as any[];
+      "simple",
+    );
 
     const time = calculatePathTime(
       startPoint,
@@ -405,15 +428,9 @@ describe("calculatePathTime", () => {
   });
 
   test("guards against extremely small aVelocity", () => {
-    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
-    const lines = [
-      {
-        id: "l1",
-        endPoint: { x: 10, y: 0 },
-        controlPoints: [],
-        isChain: false,
-      },
-    ] as any[];
+    const { startPoint, lines } = createPathData({
+      lineOverrides: { endPoint: { x: 10, y: 0 } },
+    });
 
     const settings = { ...defaultSettings, aVelocity: 0 } as any;
 
@@ -426,12 +443,14 @@ describe("calculatePathTime", () => {
 });
 
 test("calculatePathTime processes heading loops and handles macros gracefully", () => {
-  const startPoint = { x: 0, y: 0, heading: "constant", degrees: 0 } as any;
-  const lines = [
-    { id: "l1", endPoint: { x: 50, y: 0 }, controlPoints: [], isChain: false },
-  ] as any[];
-
-  const sequence = [{ kind: "path", lineId: "l1" }] as any[];
+  const { startPoint, lines, sequence } = createPathData(
+    {
+      heading: "constant",
+      startOverrides: { degrees: 0 },
+      lineOverrides: { endPoint: { x: 50, y: 0 } },
+    },
+    "simple",
+  );
 
   const macros = new Map<string, any>();
 
@@ -447,15 +466,17 @@ test("calculatePathTime processes heading loops and handles macros gracefully", 
 });
 
 test("calculatePathTime handles action sequences gracefully", () => {
-  const startPoint = { x: 0, y: 0, heading: "tangential" } as any;
-  const lines = [
-    { id: "l1", endPoint: { x: 50, y: 0 }, controlPoints: [], isChain: false },
-  ] as any[];
-
-  const sequence = [
-    { kind: "path", lineId: "l1" },
-    { kind: "action", waitTime: 2000 },
-  ] as any[];
+  const { startPoint, lines, sequence } = createPathData(
+    {
+      heading: "tangential",
+      lineOverrides: { endPoint: { x: 50, y: 0 } },
+    },
+    "custom",
+    [
+      { kind: "path", lineId: "l1" },
+      { kind: "action", waitTime: 2000 },
+    ],
+  );
 
   const time = calculatePathTime(
     startPoint,
@@ -469,16 +490,9 @@ test("calculatePathTime handles action sequences gracefully", () => {
 
 describe("calculatePathTime extra edge cases", () => {
   test("calculatePathTime handles reverse motion", () => {
-    const startPoint = { x: 0, y: 0, heading: "linear", startDeg: 0 } as any;
-    const lines = [
-      {
-        id: "l1",
-        endPoint: { x: -100, y: 0 },
-        controlPoints: [],
-        isChain: false,
-        robotReversed: true,
-      },
-    ] as any[];
+    const { startPoint, lines } = createPathData({
+      lineOverrides: { endPoint: { x: -100, y: 0 }, robotReversed: true },
+    });
 
     const time = calculatePathTime(startPoint, lines, defaultSettings as any);
 
