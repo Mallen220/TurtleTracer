@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-
-
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import * as d3 from "d3";
@@ -1388,7 +1386,9 @@
         )
       : null,
   );
-  let currentTotalTime = $derived(timePrediction.totalTime / 1000);
+  let currentTotalTime = $derived(
+    timePrediction?.totalTime ? timePrediction.totalTime / 1000 : 0,
+  );
   let committedTotalTime = $derived(
     committedTimePrediction ? committedTimePrediction.totalTime / 1000 : 0,
   );
