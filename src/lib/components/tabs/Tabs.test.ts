@@ -15,7 +15,7 @@ const defaultSettings: Settings = {
   telemetryFormat: 'none',
 } as any;
 
-const defaultStartPoint: Point = { id: 'start', x: 0, y: 0, locked: false, controlPoints: [] };
+const defaultStartPoint: Point = { x: 0, y: 0, heading: 'linear', startDeg: 0, endDeg: 0, locked: false };
 
 // Mock htmlHighlighter
 vi.mock('../../../utils/htmlHighlighter', () => ({
@@ -227,7 +227,8 @@ describe('CodeTab Persistence', () => {
 
     const sequentialSettings = {
       ...defaultSettings,
-      exportType: 'sequential', autoExportTargetLibrary: 'SolversLib'
+      exportType: 'sequential' as const,
+      autoExportTargetLibrary: 'SolversLib' as const,
     };
 
     await tick();
