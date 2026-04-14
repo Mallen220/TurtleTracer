@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import type { Point, Line, Settings, SequenceItem } from "../types";
   import { onMount, onDestroy } from "svelte";
   import {
@@ -97,10 +95,16 @@
     exportDialogState.set({ isOpen: true, format, exporterName });
   }
 
-  run(() => {
-    if (settings) {
-      settings.rWidth = robotWidth;
-      settings.rLength = robotLength;
+  $effect(() => {
+    if (
+      settings &&
+      (settings.rWidth !== robotWidth || settings.rLength !== robotLength)
+    ) {
+      settings = {
+        ...settings,
+        rWidth: robotWidth,
+        rLength: robotLength,
+      };
     }
   });
 
@@ -340,7 +344,7 @@
           >Est. Time</span
         >
         <span class="font-semibold text-neutral-800 dark:text-neutral-200"
-          >{formatEstimatedTime(timePrediction.totalTime)}</span
+          >{formatEstimatedTime(timePrediction?.totalTime ?? 0)}</span
         >
       </div>
       <div
