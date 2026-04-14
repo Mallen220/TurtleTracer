@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { generatePathElements } from "./PathGenerator";
 import { generatePreviewPathElements } from "./PreviewPathGenerator";
-import type { Line, Point, ControlPoint } from "../../../types";
+import type { Line, Point } from "../../../types";
 import { createPathAnchors } from "./GeneratorUtils";
 import Two from "two.js";
 
