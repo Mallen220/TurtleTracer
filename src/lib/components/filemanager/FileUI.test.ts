@@ -1,4 +1,4 @@
-
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/svelte";
 import FileGrid from "./FileGrid.svelte";
@@ -10,34 +10,43 @@ const mockReadFile = vi.fn();
 vi.stubGlobal("electronAPI", { readFile: mockReadFile });
 
 class MockIntersectionObserver {
-  observe = vi.fn(); unobserve = vi.fn(); disconnect = vi.fn();
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
 }
 vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
 
-vi.spyOn(console, 'debug').mockImplementation(() => {});
-vi.spyOn(console, 'warn').mockImplementation(() => {});
-vi.spyOn(console, 'error').mockImplementation(() => {});
+vi.spyOn(console, "debug").mockImplementation(() => {});
+vi.spyOn(console, "warn").mockImplementation(() => {});
+vi.spyOn(console, "error").mockImplementation(() => {});
 
 describe("FileUI Components", () => {
   beforeEach(() => {
-      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
-      mockReadFile.mockReset();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    mockReadFile.mockReset();
   });
   afterEach(() => {
-      vi.useRealTimers();
-      document.body.innerHTML = '';
-      vi.clearAllMocks();
+    vi.useRealTimers();
+    document.body.innerHTML = "";
+    vi.clearAllMocks();
   });
 
   const createMockFile = (overrides: Partial<FileInfo> = {}): FileInfo => ({
-    name: "test.json", path: "/path/to/test.json", isDirectory: false,
-    modified: new Date(), size: 1024, ...overrides,
+    name: "test.json",
+    path: "/path/to/test.json",
+    isDirectory: false,
+    modified: new Date(),
+    size: 1024,
+    ...overrides,
   });
 
   // Run the same core UI tests for both FileGrid and FileList to reduce code duplication
   const runCommonTests = (Component: any, isGrid: boolean) => {
     it("renders files with name sorting alphabetically", async () => {
-      const files = [createMockFile({ name: "B.json", path: "/b" }), createMockFile({ name: "A.json", path: "/a" })];
+      const files = [
+        createMockFile({ name: "B.json", path: "/b" }),
+        createMockFile({ name: "A.json", path: "/a" }),
+      ];
       render(Component, { props: { files, sortMode: "name" } });
       expect(screen.queryByText("Today")).toBeNull();
       expect(screen.getByText("A.json")).toBeInTheDocument();
@@ -45,11 +54,19 @@ describe("FileUI Components", () => {
     });
 
     it("renders files with date sorting and groups correctly", async () => {
-      const td = new Date(); const yd = new Date(td); yd.setDate(yd.getDate() - 1); const od = new Date(td); od.setDate(od.getDate() - 5);
+      const td = new Date();
+      const yd = new Date(td);
+      yd.setDate(yd.getDate() - 1);
+      const od = new Date(td);
+      od.setDate(od.getDate() - 5);
       const files = [
         createMockFile({ name: "dir", path: "/dir", isDirectory: true }),
         createMockFile({ name: "today.json", path: "/today", modified: td }),
-        createMockFile({ name: "yesterday.json", path: "/yesterday", modified: yd }),
+        createMockFile({
+          name: "yesterday.json",
+          path: "/yesterday",
+          modified: yd,
+        }),
         createMockFile({ name: "older.json", path: "/older", modified: od }),
       ];
       render(Component, { props: { files, sortMode: "date" } });
@@ -61,15 +78,29 @@ describe("FileUI Components", () => {
 
     it("renders Git status badges and errors", () => {
       const files = [
-        createMockFile({ name: "mod.json", path: "/mod", gitStatus: "modified" }),
+        createMockFile({
+          name: "mod.json",
+          path: "/mod",
+          gitStatus: "modified",
+        }),
         createMockFile({ name: "stg.json", path: "/stg", gitStatus: "staged" }),
-        createMockFile({ name: "unt.json", path: "/unt", gitStatus: "untracked" }),
+        createMockFile({
+          name: "unt.json",
+          path: "/unt",
+          gitStatus: "untracked",
+        }),
         createMockFile({ name: "err.json", path: "/err", error: "Read error" }),
       ];
       render(Component, { props: { files, showGitStatus: true } });
-      expect(screen.getByText(isGrid ? "Git: Modified (Unstaged Changes)" : "Modified")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          isGrid ? "Git: Modified (Unstaged Changes)" : "Modified",
+        ),
+      ).toBeInTheDocument();
       if (isGrid) {
-        expect(screen.getByText("Git: Staged (Ready to Commit)")).toBeInTheDocument();
+        expect(
+          screen.getByText("Git: Staged (Ready to Commit)"),
+        ).toBeInTheDocument();
         expect(screen.getByText("Read error")).toBeInTheDocument();
       } else {
         expect(screen.getByText("⚠")).toBeInTheDocument();
@@ -117,7 +148,12 @@ describe("FileUI Components", () => {
 
       const dragStartEvent = new Event("dragstart") as any;
       let dataSet = false;
-      dragStartEvent.dataTransfer = { setData: () => { dataSet = true; }, setDragImage: vi.fn() };
+      dragStartEvent.dataTransfer = {
+        setData: () => {
+          dataSet = true;
+        },
+        setDragImage: vi.fn(),
+      };
       await fireEvent(sourceDiv, dragStartEvent);
       expect(dataSet).toBe(true);
 
@@ -131,14 +167,20 @@ describe("FileUI Components", () => {
       await tick();
       expect(dirDiv.className).not.toContain("bg-blue-100");
 
-      await fireEvent.drop(dirDiv, { dataTransfer: { getData: () => JSON.stringify(files[0]) } });
+      await fireEvent.drop(dirDiv, {
+        dataTransfer: { getData: () => JSON.stringify(files[0]) },
+      });
     });
 
     it("handles preview exports and preview processing logic", async () => {
-      const files = [createMockFile({ name: "preview.json", path: "/preview" })];
+      const files = [
+        createMockFile({ name: "preview.json", path: "/preview" }),
+      ];
       const { component } = render(Component, { props: { files } });
 
-      mockReadFile.mockResolvedValueOnce(JSON.stringify({ startPoint: { x: 0, y: 0 }, lines: [] }));
+      mockReadFile.mockResolvedValueOnce(
+        JSON.stringify({ startPoint: { x: 0, y: 0 }, lines: [] }),
+      );
       await vi.advanceTimersByTimeAsync(50);
 
       component.refreshPreview("/preview");
@@ -152,7 +194,7 @@ describe("FileUI Components", () => {
       await vi.advanceTimersByTimeAsync(2000);
 
       for (let i = 0; i < 6; i++) {
-         mockReadFile.mockRejectedValueOnce(new Error("fail"));
+        mockReadFile.mockRejectedValueOnce(new Error("fail"));
       }
       await vi.advanceTimersByTimeAsync(5000 * 6);
       expect(mockReadFile).toHaveBeenCalled();
@@ -166,10 +208,12 @@ describe("FileUI Components", () => {
       await fireEvent.contextMenu(fileBtn);
       expect(screen.getByRole("menu")).toBeInTheDocument();
 
-      const kebabBtns = document.querySelectorAll("button[title='More actions']");
+      const kebabBtns = document.querySelectorAll(
+        "button[title='More actions']",
+      );
       if (kebabBtns.length > 0) {
-          await fireEvent.click(kebabBtns[0]);
-          expect(screen.getByRole("menu")).toBeInTheDocument();
+        await fireEvent.click(kebabBtns[0]);
+        expect(screen.getByRole("menu")).toBeInTheDocument();
       }
     });
   };

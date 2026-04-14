@@ -466,3 +466,13 @@ src/lib/components/renderer/PathGenerator.ts
 src/lib/components/renderer/PreviewPathGenerator.ts
 src/utils/drivetrain/swerve.ts
 src/utils/javaImporter/visitor.ts
+scripts/update-coverage-badge.js
+src/lib/components/dialogs/StrategySheetPreview.test.ts
+src/lib/components/FieldRenderer.test.ts
+src/lib/components/filemanager/FileUI.test.ts
+src/lib/components/renderer/generators.test.ts
+src/lib/components/shortcuts/shortcutsLogic.test.ts
+src/lib/components/tabs/Tabs.test.ts
+src/lib/stores.test.ts
+src/utils/timeCalculator.test.ts
+tests/components/dialogs/TestWrapper.svelte

@@ -451,17 +451,19 @@ describe("fileHandlers", () => {
       mockElectronAPI.readFile.mockResolvedValue("invalid-json");
       mockElectronAPI.getSavedDirectory.mockResolvedValue("/project/dir");
 
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       await fileHandlers.handleExternalFileOpen("/external/file.pp");
 
-      expect(globalThis.alert).toHaveBeenCalledWith(expect.stringContaining("Failed to load file: Unexpected token"));
+      expect(globalThis.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to load file: Unexpected token"),
+      );
 
       consoleSpy.mockRestore();
     });
-
   });
-
 
   describe("exportAsProjectFile", () => {
     it("includes header information in exported file", async () => {
@@ -532,7 +534,6 @@ describe("fileHandlers", () => {
     });
   });
 
-
   describe("loadFile", () => {
     function setupMockFileReaderAndEvent(fileName = "newfile.turt") {
       const evt = {
@@ -544,11 +545,14 @@ describe("fileHandlers", () => {
 
       let onloadHandler: any;
       const mockFileReader = {
-        readAsText: vi.fn(function(this: any, file) {
+        readAsText: vi.fn(function (this: any, file) {
           onloadHandler = this.onload;
         }),
       };
-      vi.stubGlobal("FileReader", vi.fn(() => mockFileReader));
+      vi.stubGlobal(
+        "FileReader",
+        vi.fn(() => mockFileReader),
+      );
 
       return { evt, mockFileReader, getOnloadHandler: () => onloadHandler };
     }
@@ -560,15 +564,20 @@ describe("fileHandlers", () => {
     });
 
     it("alerts and clears input if an unsupported file extension is used", async () => {
-      const evt = { target: { files: [{ name: "wrong.txt" }], value: "somepath" } } as unknown as Event;
+      const evt = {
+        target: { files: [{ name: "wrong.txt" }], value: "somepath" },
+      } as unknown as Event;
       await fileHandlers.loadFile(evt);
-      expect(globalThis.alert).toHaveBeenCalledWith("Please select a .turt or .pp file");
+      expect(globalThis.alert).toHaveBeenCalledWith(
+        "Please select a .turt or .pp file",
+      );
       expect((evt.target as any).value).toBe("");
     });
 
     it("uses electronAPI copy logic if available and currentFilePath is set", async () => {
       currentFilePath.set("/project/dir/current.turt");
-      const { evt, mockFileReader, getOnloadHandler } = setupMockFileReaderAndEvent("newfile.turt");
+      const { evt, mockFileReader, getOnloadHandler } =
+        setupMockFileReaderAndEvent("newfile.turt");
       const fileData = { lines: [], sequence: [] };
       const fileContent = JSON.stringify(fileData);
 
@@ -584,14 +593,15 @@ describe("fileHandlers", () => {
 
       expect(mockElectronAPI.writeFile).toHaveBeenCalledWith(
         "/project/dir/newfile.turt",
-        fileContent
+        fileContent,
       );
       expect(get(currentFilePath)).toBe("/project/dir/newfile.turt");
     });
 
     it("prompts for overwrite if file exists during electronAPI copy", async () => {
       currentFilePath.set("/project/dir/current.turt");
-      const { evt, getOnloadHandler } = setupMockFileReaderAndEvent("existing.turt");
+      const { evt, getOnloadHandler } =
+        setupMockFileReaderAndEvent("existing.turt");
       const fileContent = JSON.stringify({ lines: [], sequence: [] });
 
       mockElectronAPI.fileExists.mockResolvedValue(true); // File exists!
@@ -608,13 +618,16 @@ describe("fileHandlers", () => {
 
     it("alerts when JSON parsing fails (corrupt file)", async () => {
       currentFilePath.set("/project/dir/current.turt");
-      const { evt, getOnloadHandler } = setupMockFileReaderAndEvent("corrupt.turt");
+      const { evt, getOnloadHandler } =
+        setupMockFileReaderAndEvent("corrupt.turt");
 
       await fileHandlers.loadFile(evt);
 
       await getOnloadHandler()({ target: { result: "invalid-json" } });
 
-      expect(globalThis.alert).toHaveBeenCalledWith(expect.stringContaining("Error parsing file: Unexpected token"));
+      expect(globalThis.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Error parsing file: Unexpected token"),
+      );
     });
 
     it("falls back to loadTrajectoryFromFile when electronAPI is absent or currentFilePath is empty", async () => {
@@ -632,10 +645,9 @@ describe("fileHandlers", () => {
       getOnloadHandler()({ target: { result: JSON.stringify(fileData) } }); // sync call
 
       // wait a tick for the async success callback
-      await new Promise(r => setTimeout(r, 0));
+      await new Promise((r) => setTimeout(r, 0));
 
       expect(get(isUnsaved)).toBe(false);
     });
   });
-
 });

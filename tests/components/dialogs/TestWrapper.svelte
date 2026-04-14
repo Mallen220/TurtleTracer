@@ -1,3 +1,4 @@
+<!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import StrategySheetPreview from "../../../src/lib/components/dialogs/StrategySheetPreview.svelte";
   import type { Point, Line, SequenceItem, Settings } from "../../../src/types";

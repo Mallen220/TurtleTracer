@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { expect, test, describe } from "vitest";
 import {
   analyzePathSegment,
@@ -148,11 +149,17 @@ describe("analyzePathSegment", () => {
   });
 });
 
-
-  function assertRotationTime(diff: number, overrides: any = {}, assertCallback: (time: number) => void) {
-    const time = calculateRotationTime(diff, { ...defaultSettings, ...overrides });
-    assertCallback(time);
-  }
+function assertRotationTime(
+  diff: number,
+  overrides: any = {},
+  assertCallback: (time: number) => void,
+) {
+  const time = calculateRotationTime(diff, {
+    ...defaultSettings,
+    ...overrides,
+  });
+  assertCallback(time);
+}
 
 describe("calculateRotationTime", () => {
   test("returns 0 for tiny angle diffs", () => {
@@ -191,9 +198,13 @@ describe("calculateRotationTime", () => {
   });
 
   test("protects against division by zero in fallback logic", () => {
-    assertRotationTime(90, { maxAngularAcceleration: undefined, rWidth: 0, maxAcceleration: 30 }, (time) => {
-      expect(time).toBeGreaterThan(0);
-    });
+    assertRotationTime(
+      90,
+      { maxAngularAcceleration: undefined, rWidth: 0, maxAcceleration: 30 },
+      (time) => {
+        expect(time).toBeGreaterThan(0);
+      },
+    );
   });
 });
 
