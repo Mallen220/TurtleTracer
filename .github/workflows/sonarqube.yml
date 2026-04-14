@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: "npm"
 
       - name: Install Dependencies
@@ -35,6 +35,8 @@ jobs:
           path: coverage/
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602
+        uses: SonarSource/sonarqube-scan-action@master
+        with:
+          args: -Dsonar.internal.analysis.failFast=false
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
