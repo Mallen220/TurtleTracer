@@ -8,7 +8,7 @@ import type { Point, Line, SequenceItem, Settings } from "../../../types";
 vi.mock("../../../stores", () => ({
   currentFilePath: {
     subscribe: vi.fn((fn) => {
-      fn("C:\\test\\my_project.turt");
+      fn(String.raw`C:\test\my_project.turt`);
       return () => {};
     }),
   },
@@ -40,18 +40,20 @@ vi.mock("html2pdf.js", () => {
 });
 
 describe("StrategySheetPreview Component", () => {
-  const mockStartPoint: Point = { x: 10, y: 20, heading: 0 };
+  const mockStartPoint: Point = {
+    x: 10,
+    y: 20,
+    heading: "constant",
+    degrees: 0,
+  };
   const mockLines: Line[] = [
     {
       id: "line1",
       name: "Test Path 1",
-      type: "bezier",
-      points: [
-        { x: 10, y: 20 },
-        { x: 30, y: 40 },
-      ],
-      endPoint: { x: 30, y: 40, heading: 90 },
-      eventMarkers: [{ name: "Drop Marker", position: 0.5, t: 0.5 }],
+      controlPoints: [],
+      color: "#3b82f6",
+      endPoint: { x: 30, y: 40, heading: "constant", degrees: 90 },
+      eventMarkers: [{ id: "m1", name: "Drop Marker", position: 0.5 }],
     },
   ];
   const mockSequence: SequenceItem[] = [
@@ -210,7 +212,10 @@ describe("StrategySheetPreview Component", () => {
     });
 
     const closeButton = container.querySelector("button:last-child");
-    await fireEvent.click(closeButton!);
+    if (!closeButton) {
+      throw new Error("Close button not found");
+    }
+    await fireEvent.click(closeButton);
 
     // the wrapper exposes getIsOpen() method
     expect(component.getIsOpen()).toBe(false);
