@@ -11,7 +11,7 @@ export default defineConfig({
     setupFiles: ["./src/setupTests.ts"],
     include: ["src/**/*.{test,spec}.{js,ts}"],
     coverage: {
-      reporter: ["text", "json", "html", "lcov"],
+      reporter: ["text", "json", "json-summary", "html", "lcov"],
       exclude: ["src/setupTests.ts", "src/tests/**", "src/**/*.d.ts"],
     },
   },

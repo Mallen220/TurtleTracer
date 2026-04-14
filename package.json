@@ -11,7 +11,7 @@
   "scripts": {
     "fix:notice": "node scripts/generate-file-notice.js",
     "fix:headers": "node scripts/add-copyright.js",
-    "version:bump": "node scripts/bump-version.js && npm run lighthouse",
+    "version:bump": "npm run coverage && node scripts/bump-version.js && npm run lighthouse",
     "lighthouse": "npm run build && start-server-and-test preview http://localhost:4173 'node scripts/update-lighthouse-readme-badges.js --url http://localhost:4173'",
     "generate:types": "node scripts/generate-plugin-types.js",
     "generate:icons": "node scripts/generate-windows-icons.cjs",
@@ -20,7 +20,8 @@
     "build": "npm run generate:types && npm run generate:icons && npm run copy:icon && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "coverage": "vitest run --coverage",
+    "coverage": "vitest run --coverage && npm run badges:coverage",
+    "badges:coverage": "node scripts/update-coverage-badge.js",
     "tests": "vitest run",
     "check": "npm run generate:types && npm run generate:icons && npm run check:tiles && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
     "test:e2e": "playwright test",

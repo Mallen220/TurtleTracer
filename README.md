@@ -29,6 +29,13 @@
     <img src="https://sonarcloud.io/api/project_badges/measure?project=Mallen220_TurtleTracer&metric=vulnerabilities"/>
     <img src="https://sonarcloud.io/api/project_badges/measure?project=Mallen220_TurtleTracer&metric=bugs"/>
 </p>
+<p>
+  <!-- COVERAGE_BADGE_START -->
+  <a href="coverage/index.html">
+    <img src="README_Content/coverage-badge.svg" alt="Function Coverage: 46.16%" height="20">
+  </a>
+  <!-- COVERAGE_BADGE_END -->
+</p>
   <!-- LIGHTHOUSE_BADGES_START -->
   <p>
     <a href="https://github.com/GoogleChrome/lighthouse">
