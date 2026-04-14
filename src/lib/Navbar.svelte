@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
+
 
   import type { Point, Line, Settings, SequenceItem } from "../types";
   import { onMount, onDestroy } from "svelte";
@@ -97,7 +97,7 @@
     exportDialogState.set({ isOpen: true, format, exporterName });
   }
 
-  run(() => {
+  $effect(() => {
     if (settings) {
       settings.rWidth = robotWidth;
       settings.rLength = robotLength;
