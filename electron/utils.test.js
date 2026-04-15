@@ -1,8 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { validateSafePath, validateArbitraryPath, isProjectFilePath, getDirectorySettingsPath, loadDirectorySettings, saveDirectorySettings, getPluginsDirectory } from './utils.js';
-import path from 'node:path';
 import fs from 'node:fs/promises';
-import { app } from 'electron';
 
 vi.mock('electron', () => ({
   app: {

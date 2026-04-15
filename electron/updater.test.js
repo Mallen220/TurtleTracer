@@ -1,6 +1,7 @@
+import { shell } from "electron";
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import AppUpdater from './updater.js';
-import { app, shell } from 'electron';
+
 import fs from 'node:fs';
 
 vi.mock('electron', () => ({
