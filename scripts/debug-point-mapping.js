@@ -1,9 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Simple simulation to reproduce mapping logic between App and WaypointTable
 function runScenario() {
-  function rand(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
   // Create two lines like in the app
   const lineA = { id: "line-a", endPoint: { x: 10, y: 10 }, controlPoints: [] };
   const lineB = { id: "line-b", endPoint: { x: 20, y: 20 }, controlPoints: [] };
@@ -26,9 +23,9 @@ function runScenario() {
   console.log("[scenario] selectedLineId:", selectedLineId);
 
   // addControlPoint logic
-  const targetId = selectedLineId || lines[lines.length - 1].id;
+  const targetId = selectedLineId || lines.at(-1).id;
   const targetLine =
-    lines.find((l) => l.id === targetId) || lines[lines.length - 1];
+    lines.find((l) => l.id === targetId) || lines.at(-1);
   console.log(
     "[addControlPoint] targetId, targetLineId, lineIndex:",
     targetId,

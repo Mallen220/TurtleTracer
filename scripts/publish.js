@@ -75,7 +75,7 @@ Download and install via the  \`.exe\` installer below.
       "utf8",
     );
     const versionSection = changelog.match(
-      new RegExp(`## ${version}[\\s\\S]*?(?=## |$)`),
+      new RegExp(String.raw`## ${version}[\s\S]*?(?=## |$)`),
     );
     if (versionSection) {
       notes += `\n${versionSection[0].replaceAll(`## ${version}`, "")}`;

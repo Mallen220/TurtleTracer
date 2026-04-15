@@ -19,7 +19,7 @@ export function generateOnionLayerElements(
     // If "Current Path Only" is enabled, filter the lines based on animation time
     if (settings.onionSkinCurrentPathOnly) {
       if (timePrediction?.timeline) {
-        const activeEvent = findActiveEvent(timePrediction, percentStore!);
+        const activeEvent = findActiveEvent(timePrediction, percentStore ?? 0);
 
         if (
           activeEvent?.type === "travel" &&

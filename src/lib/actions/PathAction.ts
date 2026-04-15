@@ -46,11 +46,7 @@ export const PathAction: ActionDefinition = {
     // Inherit heading type from refPoint
     let endPoint: import("../../types").Point;
     if (refPoint.heading === "linear") {
-      const linRef = refPoint as Extract<
-        import("../../types").Point,
-        { heading: "linear" }
-      >;
-      const deg = linRef.endDeg ?? linRef.startDeg ?? 0;
+      const deg = refPoint.endDeg ?? refPoint.startDeg ?? 0;
       endPoint = {
         x: Math.max(0, Math.min(144, refPoint.x + 10)),
         y: Math.max(0, Math.min(144, refPoint.y + 10)),
@@ -59,22 +55,18 @@ export const PathAction: ActionDefinition = {
         endDeg: deg,
       };
     } else if (refPoint.heading === "constant") {
-      const constRef = refPoint as Extract<
-        import("../../types").Point,
-        { heading: "constant" }
-      >;
       endPoint = {
         x: Math.max(0, Math.min(144, refPoint.x + 10)),
         y: Math.max(0, Math.min(144, refPoint.y + 10)),
         heading: "constant",
-        degrees: constRef.degrees ?? 0,
+        degrees: refPoint.degrees ?? 0,
       };
     } else {
       endPoint = {
         x: Math.max(0, Math.min(144, refPoint.x + 10)),
         y: Math.max(0, Math.min(144, refPoint.y + 10)),
         heading: "tangential",
-        reverse: (refPoint as any).reverse ?? false,
+        reverse: ("reverse" in refPoint ? refPoint.reverse : false) ?? false,
       };
     }
 

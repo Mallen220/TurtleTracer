@@ -7,7 +7,7 @@ turtle.registerMetadata({
 
 turtle.registerTheme(
   "Pink Plugin Theme",
-  `
+  String.raw`
 /* Global Backgrounds */
 html.dark body,
 html.dark .bg-neutral-900,

@@ -10,7 +10,7 @@ function hasPackage(name) {
   try {
     require.resolve(name);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }

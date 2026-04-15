@@ -65,12 +65,12 @@ export function generateFacingLineElements(lines: Line[], ctx: RenderContext) {
   const targetX =
     isGlobal && rootLine
       ? (rootLine.globalTargetX ?? 72)
-      : ((activeLine.endPoint as any).targetX ?? 72);
+      : (("targetX" in activeLine.endPoint ? activeLine.endPoint.targetX : null) ?? 72);
 
   const targetY =
     isGlobal && rootLine
       ? (rootLine.globalTargetY ?? 72)
-      : ((activeLine.endPoint as any).targetY ?? 72);
+      : (("targetY" in activeLine.endPoint ? activeLine.endPoint.targetY : null) ?? 72);
 
   const pathColor = activeLine.color || "#60a5fa";
   return [
