@@ -8,7 +8,7 @@
       src="https://www.googletagmanager.com/gtag/js?id=G-K1JVSHJY5B"
     ></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
+      globalThis.dataLayer = globalThis.dataLayer || [];
       function gtag() {
         dataLayer.push(arguments);
       }
@@ -126,24 +126,22 @@
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
-    <script>
+    <script type="module">
       // Load app version dynamically
-      if (window.electronAPI && window.electronAPI.getAppVersion) {
-        window.electronAPI
-          .getAppVersion()
-          .then((version) => {
-            const versionElement = document.getElementById("app-version");
-            if (versionElement) {
-              versionElement.textContent = `v${version}`;
-            }
-          })
-          .catch((error) => {
-            console.error("Failed to load app version:", error);
-            const versionElement = document.getElementById("app-version");
-            if (versionElement) {
-              versionElement.textContent = "";
-            }
-          });
+      if (globalThis.electronAPI && globalThis.electronAPI.getAppVersion) {
+        try {
+          const version = await globalThis.electronAPI.getAppVersion();
+          const versionElement = document.getElementById("app-version");
+          if (versionElement) {
+            versionElement.textContent = `v${version}`;
+          }
+        } catch (error) {
+          console.error("Failed to load app version:", error);
+          const versionElement = document.getElementById("app-version");
+          if (versionElement) {
+            versionElement.textContent = "";
+          }
+        }
       } else {
         // If not in Electron, hide the version text
         const versionElement = document.getElementById("app-version");
@@ -154,17 +152,15 @@
 
       // Register the service worker to allow the app to work offline
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js").then(
-          (registration) => {
-            console.log(
-              "Service worker registration successful:",
-              registration,
-            );
-          },
-          (error) => {
-            console.error(`Service worker registration failed: ${error}`);
-          },
-        );
+        try {
+          const registration = await navigator.serviceWorker.register("sw.js");
+          console.log(
+            "Service worker registration successful:",
+            registration,
+          );
+        } catch (error) {
+          console.error(`Service worker registration failed: ${error}`);
+        }
       } else {
         console.error("Service workers are not supported.");
       }

@@ -7,13 +7,14 @@ BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
+DOWNLOAD_FAILED_MSG="Download failed. Aborting."
 
 # Helper Functions
-print_status() { echo -e "${GREEN}[✓]${NC} $1"; }
-print_error() { echo -e "${RED}[✗]${NC} $1"; }
-print_warning() { echo -e "${YELLOW}[!]${NC} $1"; }
-print_info() { echo -e "${BLUE}[i]${NC} $1"; }
-print_header() { echo -e "${CYAN}$1${NC}"; }
+print_status() { local msg=$1; echo -e "${GREEN}[✓]${NC} $msg"; return 0; }
+print_error() { local msg=$1; echo -e "${RED}[✗]${NC} $msg"; return 0; }
+print_warning() { local msg=$1; echo -e "${YELLOW}[!]${NC} $msg"; return 0; }
+print_info() { local msg=$1; echo -e "${BLUE}[i]${NC} $msg"; return 0; }
+print_header() { local msg=$1; echo -e "${CYAN}$msg${NC}"; return 0; }
 
 print_logo() {
     echo -e "${PURPLE}"
@@ -24,6 +25,7 @@ print_logo() {
     echo '║                                                              ║'
     echo '╚══════════════════════════════════════════════════════════════╝'
     echo -e "${NC}"
+    return 0
 }
 
 # Rename notice flag
@@ -40,6 +42,7 @@ show_rename_notice() {
         echo -e "${NC}"
         RENAME_NOTICE_SHOWN=1
     fi
+    return 0
 }
 
 merge_settings_dir() {
@@ -51,6 +54,7 @@ merge_settings_dir() {
     else
         cp -R "$old_path"/. "$new_path"/
     fi
+    return 0
 }
 
 migrate_settings() {
@@ -89,6 +93,7 @@ migrate_settings() {
     if [[ "$migrated" -eq 1 ]]; then
         print_status "Settings migration complete."
     fi
+    return 0
 }
 
 migrate_settings_mac() {
@@ -100,6 +105,7 @@ migrate_settings_mac() {
         "$HOME/Library/Application Support/PedroPathingVisualizer"
     )
     migrate_settings "$new_path" "${old_paths[@]}"
+    return 0
 }
 
 migrate_settings_linux() {
@@ -113,6 +119,7 @@ migrate_settings_linux() {
         "$HOME/.config/PedroPathingVisualizer"
     )
     migrate_settings "$new_path" "${old_paths[@]}"
+    return 0
 }
 
 remove_legacy_mac_apps() {
@@ -152,6 +159,7 @@ remove_legacy_appimages() {
             rm -f "$old"
         done <<< "$old_appimages"
     fi
+    return 0
 }
 
 cleanup_legacy_desktop_entries() {
@@ -179,6 +187,7 @@ cleanup_legacy_desktop_entries() {
             sudo rm -f "$entry" || true
         done <<< "$legacy_system_files"
     fi
+    return 0
 }
 
 # Global variable to store selected version (set by user choice)
@@ -201,6 +210,7 @@ get_download_urls() {
     grep -o '"browser_download_url": "[^"]*"' | \
     cut -d'"' -f4 | \
     grep -Ei "$pattern" || true
+    return 0
 }
 
 # Return the latest release version (tag_name) without leading 'v'
@@ -208,6 +218,7 @@ get_latest_version() {
     curl -s "https://api.github.com/repos/Mallen220/TurtleTracer/releases/latest" | \
     grep -o '"tag_name": "[^"]*"' | \
     head -1 | cut -d'"' -f4 | sed 's/^v//' || true
+    return 0
 }
 
 # Return the latest pre-release version if one exists, empty string otherwise
@@ -216,6 +227,7 @@ get_prerelease_version() {
     grep -B 5 '"prerelease": true' | \
     grep '"tag_name"' | \
     head -1 | cut -d'"' -f4 | sed 's/^v//' || true
+    return 0
 }
 
 # Interactive asset selector: prefers local machine architecture if possible
@@ -335,6 +347,7 @@ select_asset_by_pattern() {
         fi
         echo "Invalid selection." >&2
     done
+    return 0
 }
 
 install_dependencies() {
@@ -364,6 +377,7 @@ install_dependencies() {
     else
         print_warning "Package manager not detected or supported for auto-dependency installation. Ensure libfuse2 and zlib1g are installed."
     fi
+    return 0
 }
 
 install_icon() {
@@ -384,6 +398,7 @@ install_icon() {
     else
         print_warning "Failed to download icon. Desktop entry might be missing the icon."
     fi
+    return 0
 }
 
 patch_deb_desktop_file() {
@@ -448,6 +463,7 @@ patch_deb_desktop_file() {
     else
         print_warning "Could not find installed .desktop file to patch. You may need to launch with --no-sandbox manually."
     fi
+    return 0
 }
 
 install_mac() {
@@ -507,7 +523,7 @@ install_mac() {
     DMG_PATH="/tmp/turtle-tracer-installer.dmg"
     print_status "Downloading $(basename "$DOWNLOAD_URL")..."
     if ! curl -L -o "$DMG_PATH" "$DOWNLOAD_URL" --fail; then
-        print_error "Download failed. Aborting."
+        print_error "$DOWNLOAD_FAILED_MSG"
         exit 1
     fi
     
@@ -548,6 +564,7 @@ install_mac() {
     print_status "Installation Complete! Look in your Applications folder."
     
     print_status "Installation Complete! Look in your Applications folder."
+    return 0
 }
 
 install_linux() {
@@ -609,7 +626,7 @@ install_linux() {
 
         print_info "Downloading AppImage to $TMP_APP_PATH..."
         if ! curl -L -o "$TMP_APP_PATH" "$candidate_url" --fail; then
-            print_error "Download failed. Aborting."
+            print_error "$DOWNLOAD_FAILED_MSG"
             exit 1
         fi
 
@@ -645,7 +662,7 @@ EOL
         TMP_DEB="/tmp/$fname"
         print_info "Downloading .deb to $TMP_DEB..."
         if ! curl -L -o "$TMP_DEB" "$candidate_url" --fail; then
-            print_error "Download failed. Aborting."
+            print_error "$DOWNLOAD_FAILED_MSG"
             exit 1
         fi
         
@@ -676,7 +693,7 @@ EOL
 
         print_info "Downloading tarball to $TMP_TAR..."
         if ! curl -L -o "$TMP_TAR" "$candidate_url" --fail; then
-            print_error "Download failed. Aborting."
+            print_error "$DOWNLOAD_FAILED_MSG"
             exit 1
         fi
         mkdir -p "$DEST_DIR"
@@ -688,6 +705,7 @@ EOL
         print_error "Unknown or unsupported asset type: $fname"
         exit 1
     fi
+    return 0
 }
 
 # Main Script Execution

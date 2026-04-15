@@ -112,7 +112,7 @@ if (gotTheLock) {
         focused.focus();
       } else if (windows.size > 0) {
         const arr = Array.from(windows);
-        const last = arr[arr.length - 1];
+        const last = arr.at(-1);
         if (last) {
           if (last.isMinimized()) last.restore();
           last.focus();
@@ -232,28 +232,31 @@ const startServer = async () => {
       let attempt = 0;
       let port = startPort;
 
+      const handleError = (err) => {
+        if (err?.code === "EADDRINUSE" && attempt < maxAttempts) {
+          console.warn(`Port ${port} in use, trying ${port + 1}`);
+          port += 1;
+          // Give a tiny delay to avoid busy-looping
+          setTimeout(attemptListen, 10);
+        } else {
+          reject(err);
+        }
+      };
+
+      const handleListening = (candidate) => {
+        server = candidate;
+        serverPort = port;
+        console.log(`Local server running on port ${serverPort}`);
+        resolve();
+      };
+
       const attemptListen = () => {
         attempt += 1;
         // Create a new server instance for each attempt so errors don't persist
         const candidate = http.createServer(expressApp);
 
-        candidate.once("error", (err) => {
-          if (err?.code === "EADDRINUSE" && attempt < maxAttempts) {
-            console.warn(`Port ${port} in use, trying ${port + 1}`);
-            port += 1;
-            // Give a tiny delay to avoid busy-looping
-            setTimeout(attemptListen, 10);
-          } else {
-            reject(err);
-          }
-        });
-
-        candidate.once("listening", () => {
-          server = candidate;
-          serverPort = port;
-          console.log(`Local server running on port ${serverPort}`);
-          resolve();
-        });
+        candidate.once("error", handleError);
+        candidate.once("listening", () => handleListening(candidate));
 
         candidate.listen(port, "127.0.0.1");
       };
@@ -421,15 +424,13 @@ const sendToFocusedWindow = (channel, ...args) => {
   const win = BrowserWindow.getFocusedWindow();
   if (win) {
     win.webContents.send(channel, ...args);
-  } else {
+  } else if (windows.size === 1) {
     // Fallback: if only one window, send to it?
     // Or if no window is focused (rare when clicking menu), send to most recently created?
     // Usually Menu click focuses the app, so a window should be focused or last active.
     // Try to find the last active one if getFocusedWindow is null.
-    if (windows.size === 1) {
-      const first = windows.values().next().value;
-      if (first) first.webContents.send(channel, ...args);
-    }
+    const first = windows.values().next().value;
+    if (first) first.webContents.send(channel, ...args);
   }
 };
 
