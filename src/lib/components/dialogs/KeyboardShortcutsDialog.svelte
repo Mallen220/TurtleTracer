@@ -250,10 +250,7 @@
         // If the binding wasn't present in user settings, add the default back
         settings = {
           ...settings,
-          keyBindings: [
-            ...(settings.keyBindings || []),
-            { ...defaultBinding },
-          ],
+          keyBindings: [...(settings.keyBindings || []), { ...defaultBinding }],
         };
       }
       return;
