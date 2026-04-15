@@ -2,19 +2,33 @@
 /* eslint-env node */
 /* global URL, process, console */
 import fs from "node:fs/promises";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 
-const repoRoot = new URL("../", import.meta.url);
-const repoRootPath = fileURLToPath(repoRoot);
-const readmePath = new URL("../README.md", import.meta.url);
-const outputDir = new URL(
-  "../README_Content/lighthouse-badges/",
-  import.meta.url,
-);
-const outputDirPath = fileURLToPath(outputDir);
+const isFileModuleUrl = import.meta.url.startsWith("file:");
 const relativeOutputDir = "README_Content/lighthouse-badges";
 const defaultBadgeUrl = "http://localhost:4173/";
+
+function getRepoRootPath() {
+  return isFileModuleUrl
+    ? fileURLToPath(new URL("../", import.meta.url))
+    : path.resolve(process.cwd());
+}
+
+function getReadmePath() {
+  return isFileModuleUrl
+    ? new URL("../README.md", import.meta.url)
+    : path.resolve(process.cwd(), "README.md");
+}
+
+function getOutputDirPath() {
+  return isFileModuleUrl
+    ? fileURLToPath(
+        new URL("../README_Content/lighthouse-badges/", import.meta.url),
+      )
+    : path.resolve(process.cwd(), "README_Content/lighthouse-badges");
+}
 
 function getArgValue(flagNames) {
   for (let i = 0; i < process.argv.length; i += 1) {
@@ -27,6 +41,8 @@ function getArgValue(flagNames) {
 
 function runLighthouseBadges(url) {
   const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
+  const repoRootPath = getRepoRootPath();
+  const outputDirPath = getOutputDirPath();
   const args = [
     "--yes",
     "lighthouse-badges",
@@ -80,7 +96,7 @@ function buildReadmeBadgeBlock(version) {
   ].join("\n");
 }
 
-function replaceBetweenMarkers(content, replacement) {
+export function replaceBetweenMarkers(content, replacement) {
   const pattern =
     /\s*<!-- LIGHTHOUSE_BADGES_START -->[\s\S]*?<!-- LIGHTHOUSE_BADGES_END -->/;
 
@@ -90,15 +106,17 @@ function replaceBetweenMarkers(content, replacement) {
     );
   }
 
-  return content.replaceAll(pattern, `\n${replacement}`);
+  return content.replace(pattern, `\n${replacement}`);
 }
 
 async function ensureOutputDirectory() {
+  const outputDirPath = getOutputDirPath();
   // nosemgrep
-  await fs.mkdir(outputDir, { recursive: true });
+  await fs.mkdir(outputDirPath, { recursive: true });
 }
 
 async function verifyArtifacts() {
+  const outputDirPath = getOutputDirPath();
   const expectedFiles = [
     "lighthouse_accessibility.svg",
     "lighthouse_best-practices.svg",
@@ -107,8 +125,7 @@ async function verifyArtifacts() {
   ];
 
   for (const file of expectedFiles) {
-    const fullPath = new URL(file, outputDir);
-    await fs.access(fullPath);
+    await fs.access(path.join(outputDirPath, file));
   }
 }
 
@@ -140,17 +157,20 @@ async function main() {
   );
   const { version } = JSON.parse(packageJsonContent);
 
-  const readme = await fs.readFile(readmePath, "utf8");
+  const readmePathValue = getReadmePath();
+  const readme = await fs.readFile(readmePathValue, "utf8");
   const updatedBlock = buildReadmeBadgeBlock(version);
   const nextReadme = replaceBetweenMarkers(readme, updatedBlock);
 
   // nosemgrep
-  await fs.writeFile(readmePath, nextReadme, "utf8");
+  await fs.writeFile(readmePathValue, nextReadme, "utf8");
 
   console.log("README Lighthouse badge section updated.");
 }
 
-main().catch((error) => {
-  console.error("Failed to update Lighthouse badges:", error.message);
-  process.exit(1);
-});
+if (isFileModuleUrl && process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error("Failed to update Lighthouse badges:", error.message);
+    process.exit(1);
+  });
+}
