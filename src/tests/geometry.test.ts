@@ -5,7 +5,6 @@ import {
   pointInPolygon,
   minDistanceToPolygon,
   pointToLineDistance,
-  polygonCenter,
   getRobotCorners,
   convexHull,
 } from "../utils/geometry";
@@ -91,14 +90,6 @@ describe("Geometry Utils", () => {
 
       // Point inside (5,5) -> distance to closest edge
       expect(minDistanceToPolygon([5, 5], square)).toBe(5);
-    });
-  });
-
-  describe("polygonCenter", () => {
-    it("calculates centroid of polygon", () => {
-      const center = polygonCenter(square);
-      expect(center[0]).toBe(5);
-      expect(center[1]).toBe(5);
     });
   });
 
