@@ -311,6 +311,20 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "resetAnimation",
     category: "Playback",
   },
+  {
+    id: "toggle-loop",
+    key: "l",
+    description: "Toggle Animation Loop",
+    action: "toggleLoop",
+    category: "Playback",
+  },
+  {
+    id: "toggle-section-loop",
+    key: "shift+l",
+    description: "Toggle Section Looping",
+    action: "toggleSectionLoop",
+    category: "Playback",
+  },
 
   // View
   {
