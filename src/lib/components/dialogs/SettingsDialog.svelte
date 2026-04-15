@@ -48,7 +48,7 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && isOpen) {
-      isOpen = false;
+      handleSave();
     }
   }
 
@@ -265,6 +265,13 @@
 
 {#if isOpen}
   <div
+    onclick={(e) => {
+      if (e.target === e.currentTarget) {
+        handleSave();
+      }
+    }}
+    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (e.target === e.currentTarget) handleSave(); } }}
+    tabindex="-1"
     transition:fade={{ duration: 300, easing: cubicInOut }}
     class="bg-black bg-opacity-40 flex flex-col justify-center items-center fixed top-0 left-0 w-full h-full z-[1005] backdrop-blur-sm"
     role="dialog"
