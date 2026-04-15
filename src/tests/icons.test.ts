@@ -1,8 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
+import { render } from "@testing-library/svelte";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import * as Icons from "../lib/components/icons";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const iconsDir = path.resolve(__dirname, "../lib/components/icons");
@@ -71,6 +73,14 @@ describe("Icon System Integration", () => {
         expect(isExported, `Icon ${file} is not exported in index.ts`).toBe(
           true,
         );
+      });
+
+      it("should render successfully", () => {
+        const IconComponent = (Icons as Record<string, any>)[iconName];
+        expect(IconComponent).toBeTruthy();
+
+        const rendered = render(IconComponent);
+        expect(rendered.container.querySelector("svg")).not.toBeNull();
       });
 
       it("should be used in the codebase", () => {

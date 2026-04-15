@@ -185,8 +185,12 @@
 
     // If Escape is pressed, set binding to unbound ("") and stop recording
     if (event.key === "Escape") {
-      settings.keyBindings[bindingIndex].key = "";
-      settings = { ...settings }; // Force reactivity
+      settings = {
+        ...settings,
+        keyBindings: settings.keyBindings!.map((b, idx) =>
+          idx === bindingIndex ? { ...b, key: "" } : b,
+        ),
+      };
       recordingKeyFor = null;
       return;
     }
@@ -219,9 +223,13 @@
       key += keyName;
     }
 
-    // Update the binding
-    settings.keyBindings![bindingIndex].key = key;
-    settings = { ...settings }; // Force reactivity
+    // Update the binding by creating a fresh keyBindings array so reactivity picks up the change.
+    settings = {
+      ...settings,
+      keyBindings: settings.keyBindings!.map((b, idx) =>
+        idx === bindingIndex ? { ...b, key } : b,
+      ),
+    };
     recordingKeyFor = null;
   }
 
@@ -232,22 +240,33 @@
     // If there's a default, prefer that
     if (defaultBinding) {
       if (bindingIndex !== undefined && bindingIndex !== -1) {
-        settings.keyBindings![bindingIndex].key = defaultBinding.key;
+        settings = {
+          ...settings,
+          keyBindings: settings.keyBindings!.map((b, idx) =>
+            idx === bindingIndex ? { ...b, key: defaultBinding.key } : b,
+          ),
+        };
       } else {
         // If the binding wasn't present in user settings, add the default back
-        settings.keyBindings = [
-          ...(settings.keyBindings || []),
-          { ...defaultBinding },
-        ];
+        settings = {
+          ...settings,
+          keyBindings: [
+            ...(settings.keyBindings || []),
+            { ...defaultBinding },
+          ],
+        };
       }
-      settings = { ...settings };
       return;
     }
 
     // Fallback: if no default exists but binding exists in settings, clear it
     if (bindingIndex !== undefined && bindingIndex !== -1) {
-      settings.keyBindings![bindingIndex].key = "";
-      settings = { ...settings };
+      settings = {
+        ...settings,
+        keyBindings: settings.keyBindings!.map((b, idx) =>
+          idx === bindingIndex ? { ...b, key: "" } : b,
+        ),
+      };
     }
   }
 

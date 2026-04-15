@@ -269,7 +269,12 @@
 
   // Force update on mount
   onMount(() => {
-    if (isActive) updateCode();
+    if (isActive) {
+      updateCode();
+      if (typeof (updateCode as any).flush === "function") {
+        (updateCode as any).flush();
+      }
+    }
   });
 
   export function copyCode() {

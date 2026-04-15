@@ -54,6 +54,10 @@
     playingStore,
     playbackSpeedStore,
     robotProfilesStore,
+    loopAnimationStore,
+    loopRangeActiveStore,
+    loopRangeStore,
+    percentStore,
   } from "../projectStore";
 
   import { loadFile, loadRecentFile } from "../../utils/fileHandlers";
@@ -278,6 +282,18 @@
     increasePlaybackSpeed: () => changePlaybackSpeedBy(0.25, play),
     decreasePlaybackSpeed: () => changePlaybackSpeedBy(-0.25, play),
     resetPlaybackSpeed: () => resetPlaybackSpeed(),
+    toggleLoop: () => loopAnimationStore.update(v => !v),
+    toggleSectionLoop: () => {
+      let currentActive = false;
+      loopRangeActiveStore.subscribe(v => currentActive = v)();
+      const newVal = !currentActive;
+      loopRangeActiveStore.set(newVal);
+      if (newVal) {
+        let currentPercent = 0;
+        percentStore.subscribe(v => currentPercent = v)();
+        loopRangeStore.set([Math.floor(currentPercent), 100]);
+      }
+    },
     toggleProtractor: () => showProtractor.update((v) => !v),
     optimizeStart: () => {
       controlTabRef?.openAndStartOptimization?.();
