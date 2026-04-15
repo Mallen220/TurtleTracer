@@ -23,7 +23,7 @@ const solarized = {
   green: "#859900",
 };
 
-const solarizedLightCss = String.raw`
+const solarizedLightCss = `
 /* Solarized Light Theme */
 html.theme-solarized-light,
 html.theme-solarized-light body {
@@ -94,7 +94,7 @@ html.theme-solarized-light ::selection {
 }
 `;
 
-const solarizedDarkCss = String.raw`
+const solarizedDarkCss = `
 /* Solarized Dark Theme */
 html.theme-solarized-dark,
 html.theme-solarized-dark body {

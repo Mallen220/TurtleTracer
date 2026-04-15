@@ -54,7 +54,7 @@ export function menuNavigation(
       items[0]?.focus();
     } else if (event.key === "End") {
       event.preventDefault();
-      items.at(-1)?.focus();
+      items[items.length - 1]?.focus();
     } else if (event.key === "Tab") {
       // Default Tab behavior
     } else if (

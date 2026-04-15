@@ -2,6 +2,7 @@
 /* eslint-env node */
 /* global process, console */
 import fs from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
 const readmePath = new URL("../README.md", import.meta.url);
 const coverageSummaryPath = new URL(
@@ -23,7 +24,7 @@ async function main() {
   let summaryContent;
   try {
     summaryContent = await fs.readFile(coverageSummaryPath, "utf8");
-  } catch {
+  } catch (err) {
     console.error(
       "Could not read coverage-summary.json. Did you run vitest with coverage?",
     );

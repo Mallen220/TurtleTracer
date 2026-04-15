@@ -85,12 +85,6 @@ globalThis.addEventListener("fetch", (event) => {
           statusText: "Service Unavailable",
         });
       }
-    })().catch((err) => {
-      console.error("Service Worker fetch failed:", err);
-      return new Response("Service Worker Error", {
-        status: 500,
-        statusText: "Internal Server Error",
-      });
-    }),
+    })(),
   );
 });

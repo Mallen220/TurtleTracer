@@ -83,7 +83,7 @@ export function generateEventMarkerElements(
   if (timePrediction?.timeline && sequence && sequence.length > 0) {
     // Use Registry for registered actions (e.g. Wait)
     sequence.forEach((item) => {
-      if ("hidden" in item && item.hidden) return;
+      if ((item as any).hidden) return;
       const action = actionRegistry.get(item.kind);
       if (action?.renderField) {
         const elems = action.renderField(item, {

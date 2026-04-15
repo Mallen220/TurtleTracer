@@ -24,9 +24,8 @@ export function tooltipPortal(node: HTMLElement, anchor: HTMLElement | null) {
 
     // Small timeout to ensure DOM has laid out and tooltip has size
     requestAnimationFrame(() => {
-      const aRect = currentAnchor?.getBoundingClientRect();
+      const aRect = currentAnchor!.getBoundingClientRect();
       const tRect = node.getBoundingClientRect();
-      if (!aRect) return;
 
       // By default align right edge of tooltip with right edge of anchor (like right-0)
       let left = aRect.right - tRect.width;

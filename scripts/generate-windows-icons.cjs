@@ -11,7 +11,7 @@ function hasPackage(name) {
   try {
     require.resolve(name);
     return true;
-  } catch {
+  } catch (e) {
     return false;
   }
 }

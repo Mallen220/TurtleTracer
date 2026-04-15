@@ -443,11 +443,11 @@ interface StickyNote {
 
     // Calculate offset from mouse to element top-left
     const rect = el.getBoundingClientRect();
-    const parentRect = el.parentElement?.getBoundingClientRect();
+    const parentRect = el.parentElement!.getBoundingClientRect();
 
     // pixels relative to parent
-    const startLeft = rect.left - (parentRect?.left ?? 0);
-    const startTop = rect.top - (parentRect?.top ?? 0);
+    const startLeft = rect.left - parentRect.left;
+    const startTop = rect.top - parentRect.top;
 
     const mouseStartX = e.clientX;
     const mouseStartY = e.clientY;

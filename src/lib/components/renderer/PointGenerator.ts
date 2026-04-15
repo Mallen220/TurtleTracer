@@ -78,7 +78,7 @@ export function generatePointElements(
       }
     });
 
-    const meta = line.id ? chainMeta.get(line.id) : undefined;
+    const meta = chainMeta.get(line.id!);
     const rootLine = meta?.rootLine;
     const isGlobalOverride = !!(
       rootLine?.globalHeading && rootLine.globalHeading !== "none"
@@ -90,17 +90,17 @@ export function generatePointElements(
     let headingType: string | undefined;
     let segments: any[] | undefined;
 
-    if (isGlobalOverride && rootLine) {
-      headingType = rootLine.globalHeading;
-      targetX = rootLine.globalTargetX;
-      targetY = rootLine.globalTargetY;
-      segments = rootLine.globalSegments;
+    if (isGlobalOverride) {
+      headingType = rootLine!.globalHeading;
+      targetX = rootLine!.globalTargetX;
+      targetY = rootLine!.globalTargetY;
+      segments = rootLine!.globalSegments;
     } else {
       // Standard local heading
-      headingType = line.endPoint?.heading;
-      targetX = "targetX" in line.endPoint ? line.endPoint.targetX : undefined;
-      targetY = "targetY" in line.endPoint ? line.endPoint.targetY : undefined;
-      segments = "segments" in line.endPoint ? line.endPoint.segments : undefined;
+      headingType = line.endPoint!.heading;
+      targetX = (line.endPoint as any).targetX;
+      targetY = (line.endPoint as any).targetY;
+      segments = line.endPoint!.segments;
     }
 
     if (headingType === "facingPoint") {
