@@ -476,3 +476,9 @@ src/lib/components/tabs/Tabs.test.ts
 src/lib/stores.test.ts
 src/utils/timeCalculator.test.ts
 tests/components/dialogs/TestWrapper.svelte
+electron/main.test.js
+electron/preload.test.js
+electron/updater.test.js
+electron/utils.test.js
+README_Content/coverage-badge.svg
+vitest.config.ts

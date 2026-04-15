@@ -1,12 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { describe, it, expect, vi } from "vitest";
 
 // Main process side effects are heavy and difficult to mock fully here
 // We are testing that the file imports correctly without crashing.
 
-vi.mock('electron', () => ({
+vi.mock("electron", () => ({
   app: {
-    getPath: vi.fn(() => '/mock/userData'),
-    getVersion: vi.fn(() => '1.0.0'),
+    getPath: vi.fn(() => "/mock/userData"),
+    getVersion: vi.fn(() => "1.0.0"),
     on: vi.fn(),
     whenReady: vi.fn().mockResolvedValue(),
     setPath: vi.fn(),
@@ -33,7 +34,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-vi.mock('express', () => {
+vi.mock("express", () => {
   const expressFn = vi.fn(() => ({
     use: vi.fn(),
     get: vi.fn(),
@@ -43,11 +44,11 @@ vi.mock('express', () => {
   return { default: expressFn };
 });
 
-vi.mock('express-rate-limit', () => ({
+vi.mock("express-rate-limit", () => ({
   default: vi.fn(),
 }));
 
-vi.mock('node:http', () => ({
+vi.mock("node:http", () => ({
   default: {
     createServer: vi.fn(() => ({
       listen: vi.fn(),
@@ -57,9 +58,9 @@ vi.mock('node:http', () => ({
   },
 }));
 
-vi.mock('node:fs/promises', () => ({
+vi.mock("node:fs/promises", () => ({
   default: {
-    readFile: vi.fn().mockResolvedValue(''),
+    readFile: vi.fn().mockResolvedValue(""),
     writeFile: vi.fn().mockResolvedValue(),
     mkdir: vi.fn().mockResolvedValue(),
     stat: vi.fn().mockResolvedValue({ isDirectory: () => true }),
@@ -70,17 +71,17 @@ vi.mock('node:fs/promises', () => ({
   },
 }));
 
-vi.mock('node:fs', () => ({
+vi.mock("node:fs", () => ({
   default: {
     existsSync: vi.fn(() => false),
     cpSync: vi.fn(),
   },
 }));
 
-describe('main.js structure', () => {
-  it('imports without executing side effects', async () => {
+describe("main.js structure", () => {
+  it("imports without executing side effects", async () => {
     // Dynamic import to allow mocks to run first
-    await import('./main.js');
+    await import("./main.js");
     expect(true).toBe(true);
   });
 });
