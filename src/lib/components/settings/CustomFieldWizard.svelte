@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run, stopPropagation } from "svelte/legacy";
-
   import { createEventDispatcher } from "svelte";
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
@@ -34,7 +32,7 @@
   let imageContainer: HTMLDivElement | undefined = $state();
 
   let wasOpen = $state(false);
-  run(() => {
+  $effect(() => {
     if (isOpen && !wasOpen) {
       wasOpen = true;
       // Reset state on open
