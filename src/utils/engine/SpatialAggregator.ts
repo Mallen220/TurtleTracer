@@ -50,7 +50,7 @@ export class SpatialAggregator {
           );
           if (analysis.length < 0.001) continue;
           const clusterStart = currentCluster ? currentCluster.startPoint : localStartPoint;
-          if (!currentCluster || !(item as any).isChain) {
+          if (!currentCluster || (!(item as any).isChain && !line.isChain)) {
             if (currentCluster) clusters.push(currentCluster);
             currentCluster = { lines: [], startPoint: localStartPoint, totalLength: 0, steps: [], events: [] };
           }

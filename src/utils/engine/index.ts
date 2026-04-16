@@ -18,7 +18,7 @@ export function calculatePipelineTimePrediction(
   sequence?: SequenceItem[],
   macros?: Map<string, TurtleData>
 ): any {
-  const activeSequence = sequence || (lines.length > 0 ? [{ type: "travel", lineIndices: lines.map((_, i) => i) } as any] : []);
+  const activeSequence = (sequence && sequence.length > 0) ? sequence : lines.map((l, i) => ({ type: "travel", lineIndices: [i], isChain: l.isChain } as any));
   const preprocessor = new SequencePreprocessor(macros);
   const items = preprocessor.process(activeSequence, false);
   const aggregator = new SpatialAggregator();
