@@ -42,6 +42,33 @@ export class TimelineGenerator {
             type: "travel", startTime: startTime + eventTime, duration: 0, endTime: startTime + eventTime, startHeading: 0
          } as any);
       }
+      // Create travel events for each line in the cluster
+      let currentLineStart = startTime;
+      let lastLineIdx = -1;
+      for (const st of cluster.states) {
+         if (st.lineIndex !== lastLineIdx) {
+            if (lastLineIdx !== -1) {
+               timeline.events.push({
+                 type: "travel",
+                 startTime: currentLineStart,
+                 endTime: startTime + st.time,
+                 duration: (startTime + st.time) - currentLineStart,
+                 lineIndex: lastLineIdx
+               } as any);
+            }
+            lastLineIdx = st.lineIndex;
+            currentLineStart = startTime + st.time;
+         }
+      }
+      if (lastLineIdx !== -1) {
+         timeline.events.push({
+           type: "travel",
+           startTime: currentLineStart,
+           endTime: startTime + clusterDuration,
+           duration: (startTime + clusterDuration) - currentLineStart,
+           lineIndex: lastLineIdx
+         } as any);
+      }
       globalTime += clusterDuration;
     }
     for (const item of waitRotateItems) {
@@ -64,6 +91,7 @@ export class TimelineGenerator {
           globalTime = end;
        }
     }
+    timeline.events.sort((a, b) => (a as any).startTime - (b as any).startTime);
     return timeline;
   }
 }
