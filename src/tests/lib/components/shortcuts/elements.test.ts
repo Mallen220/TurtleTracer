@@ -13,6 +13,7 @@ import { selectedLineId, selectedPointId } from "../../../../stores";
 
 vi.mock("../../../../lib/components/shortcuts/utils", () => ({
   getSelectedSequenceIndex: vi.fn(() => null),
+  isUIElementFocused: vi.fn(() => false),
 }));
 
 describe("elements", () => {
