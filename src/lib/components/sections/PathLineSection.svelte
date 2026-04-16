@@ -121,6 +121,49 @@
     toUser(line.endPoint, $settingsStore.coordinateSystem || "Pedro"),
   );
 
+  let xDraft = $state("");
+  let yDraft = $state("");
+  let isEditingX = $state(false);
+  let isEditingY = $state(false);
+
+  $effect(() => {
+    if (!isEditingX) {
+      xDraft = formatDisplayCoordinate(userPoint.x, $settingsStore);
+    }
+    if (!isEditingY) {
+      yDraft = formatDisplayCoordinate(userPoint.y, $settingsStore);
+    }
+  });
+
+  function commitEndpointInput(axis: "x" | "y") {
+    let parsed = Number.parseFloat(axis === "x" ? xDraft : yDraft);
+    if (Number.isNaN(parsed)) {
+      xDraft = formatDisplayCoordinate(userPoint.x, $settingsStore);
+      yDraft = formatDisplayCoordinate(userPoint.y, $settingsStore);
+      return;
+    }
+
+    if ($settingsStore.visualizerUnits === "metric") {
+      parsed = cmToInch(parsed);
+    }
+
+    const newPt =
+      axis === "x"
+        ? toField(
+            { x: parsed, y: userPoint.y },
+            $settingsStore.coordinateSystem || "Pedro",
+          )
+        : toField(
+            { x: userPoint.x, y: parsed },
+            $settingsStore.coordinateSystem || "Pedro",
+          );
+
+    line.endPoint.x = newPt.x;
+    line.endPoint.y = newPt.y;
+    lines[idx] = { ...line, endPoint: { ...line.endPoint } };
+    lines = [...lines];
+  }
+
   // Listen for focus requests
   run(() => {
     if ($focusRequest) {
@@ -492,22 +535,16 @@
                 type="number"
                 min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
                 max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
-                value={formatDisplayCoordinate(userPoint.x, $settingsStore)}
+                value={xDraft}
                 oninput={(e) => {
-                  let val = Number.parseFloat(e.currentTarget.value);
-                  if (!Number.isNaN(val)) {
-                    if ($settingsStore.visualizerUnits === "metric") {
-                      val = cmToInch(val);
-                    }
-                    const newPt = toField(
-                      { x: val, y: userPoint.y },
-                      $settingsStore.coordinateSystem || "Pedro",
-                    );
-                    line.endPoint.x = newPt.x;
-                    line.endPoint.y = newPt.y;
-                    lines[idx] = { ...line, endPoint: { ...line.endPoint } };
-                    lines = [...lines];
-                  }
+                  xDraft = e.currentTarget.value;
+                }}
+                onfocus={() => {
+                  isEditingX = true;
+                }}
+                onblur={() => {
+                  isEditingX = false;
+                  commitEndpointInput("x");
                 }}
                 disabled={line.locked}
                 title={snapToGridTitle}
@@ -527,22 +564,16 @@
                 min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
                 max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
                 type="number"
-                value={formatDisplayCoordinate(userPoint.y, $settingsStore)}
+                value={yDraft}
                 oninput={(e) => {
-                  let val = Number.parseFloat(e.currentTarget.value);
-                  if (!Number.isNaN(val)) {
-                    if ($settingsStore.visualizerUnits === "metric") {
-                      val = cmToInch(val);
-                    }
-                    const newPt = toField(
-                      { x: userPoint.x, y: val },
-                      $settingsStore.coordinateSystem || "Pedro",
-                    );
-                    line.endPoint.x = newPt.x;
-                    line.endPoint.y = newPt.y;
-                    lines[idx] = { ...line, endPoint: { ...line.endPoint } };
-                    lines = [...lines];
-                  }
+                  yDraft = e.currentTarget.value;
+                }}
+                onfocus={() => {
+                  isEditingY = true;
+                }}
+                onblur={() => {
+                  isEditingY = false;
+                  commitEndpointInput("y");
                 }}
                 disabled={line.locked}
                 title={snapToGridTitle}
