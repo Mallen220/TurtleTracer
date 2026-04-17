@@ -12,18 +12,14 @@ describe("ExportGifDialog", () => {
       show: true,
       twoInstance: { update: vi.fn() },
       settings: {
-        export: {
-          format: "png",
-          quality: 1,
-          includeBackground: true,
-          drawRobot: true,
-        },
-        robot: { length: 18, width: 18 },
+        export: { format: "png", quality: 1, includeBackground: true, drawRobot: true },
+        robot: { length: 18, width: 18 }
       },
       robotLengthPx: 10,
       robotWidthPx: 10,
-      robotState: { x: 0, y: 0, heading: 0 },
       electronAPI: {},
+      animationController: { time: 0, setTime: vi.fn() },
+      robotStateFunction: vi.fn()
     });
 
     expect(getByText("Export Animation")).toBeInTheDocument();
@@ -34,18 +30,14 @@ describe("ExportGifDialog", () => {
       show: true,
       twoInstance: { update: vi.fn() },
       settings: {
-        export: {
-          format: "png",
-          quality: 1,
-          includeBackground: true,
-          drawRobot: true,
-        },
-        robot: { length: 18, width: 18 },
+        export: { format: "png", quality: 1, includeBackground: true, drawRobot: true },
+        robot: { length: 18, width: 18 }
       },
       robotLengthPx: 10,
       robotWidthPx: 10,
-      robotState: { x: 0, y: 0, heading: 0 },
       electronAPI: {},
+      animationController: { time: 0, setTime: vi.fn() },
+      robotStateFunction: vi.fn()
     });
 
     const formatSelect = getByLabelText("Format");
@@ -56,23 +48,16 @@ describe("ExportGifDialog", () => {
   it("can interact with action buttons", async () => {
     const { getByRole } = render(ExportGifDialog, {
       show: true,
-      twoInstance: {
-        update: vi.fn(),
-        renderer: { domElement: document.createElement("canvas") },
-      },
+      twoInstance: { update: vi.fn(), renderer: { domElement: document.createElement("canvas") } },
       settings: {
-        export: {
-          format: "png",
-          quality: 1,
-          includeBackground: true,
-          drawRobot: true,
-        },
-        robot: { length: 18, width: 18 },
+        export: { format: "png", quality: 1, includeBackground: true, drawRobot: true },
+        robot: { length: 18, width: 18 }
       },
       robotLengthPx: 10,
       robotWidthPx: 10,
-      robotState: { x: 0, y: 0, heading: 0 },
       electronAPI: {},
+      animationController: { time: 0, setTime: vi.fn() },
+      robotStateFunction: vi.fn()
     });
 
     const saveBtn = getByRole("button", { name: /Generate & Save/i });

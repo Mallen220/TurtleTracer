@@ -9,14 +9,14 @@ vi.mock("../../../utils/directorySettings", () => ({
 describe("SetupDialog", () => {
   afterEach(() => {
     // Teardown the global mutation to avoid leaking test state
-    if (globalThis.electronAPI) {
+    if ((globalThis as any).electronAPI) {
       delete (globalThis as any).electronAPI;
     }
   });
 
   it("renders when show is true", () => {
     const { getByRole } = render(SetupDialog, {
-      show: true,
+      show: true
     });
 
     expect(getByRole("dialog")).toBeInTheDocument();
@@ -24,12 +24,12 @@ describe("SetupDialog", () => {
 
   it("calls electron API when select directory button clicked", async () => {
     const mockSetDirectory = vi.fn().mockResolvedValue("some-path");
-    globalThis.electronAPI = {
-      setDirectory: mockSetDirectory,
-    } as any;
+    (globalThis as any).electronAPI = {
+      setDirectory: mockSetDirectory
+    };
 
     const { getByText } = render(SetupDialog, {
-      show: true,
+      show: true
     });
 
     const button = getByText(/Select Directory/i);
