@@ -120,4 +120,46 @@ describe("platform", () => {
     const { platform } = await import("./platform");
     expect(platform()).toBe("unknown");
   });
+
+  it("returns navigator.platform if process is undefined", async () => {
+    const origProcess = globalThis.process;
+    const origNavigator = globalThis.navigator;
+    try {
+      // @ts-ignore
+      delete globalThis.process;
+
+      if (!globalThis.navigator) {
+        // @ts-ignore
+        globalThis.navigator = {};
+      }
+
+      Object.defineProperty(globalThis.navigator, "platform", {
+        value: "Win32",
+        writable: true,
+        configurable: true,
+      });
+      const { platform } = await import("./platform");
+      expect(platform()).toBe("Win32");
+    } finally {
+      globalThis.process = origProcess;
+      globalThis.navigator = origNavigator;
+    }
+  });
+
+  it("returns unknown if process and navigator are undefined", async () => {
+    const origProcess = globalThis.process;
+    const origNavigator = globalThis.navigator;
+    try {
+      // @ts-ignore
+      delete globalThis.process;
+      // @ts-ignore
+      delete globalThis.navigator;
+
+      const { platform } = await import("./platform");
+      expect(platform()).toBe("unknown");
+    } finally {
+      globalThis.process = origProcess;
+      globalThis.navigator = origNavigator;
+    }
+  });
 });
