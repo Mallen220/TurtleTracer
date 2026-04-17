@@ -3,16 +3,9 @@ import Two from "two.js";
 import type { Path } from "two.js/src/path";
 import type { Line as PathLine } from "two.js/src/shapes/line";
 import type { Line, Point } from "../../../types";
-import { getCurvePoint, quadraticToCubic } from "../../../utils/math";
-
-interface RenderContext {
-  x: d3.ScaleLinear<number, number>;
-  y: d3.ScaleLinear<number, number>;
-  uiLength: (inches: number) => number;
-  settings: any;
-  timePrediction: any;
-  dimmedIds: string[];
-}
+import { getCurvePoint } from "../../../utils/math";
+import { LINE_WIDTH } from "../../../config";
+import { type RenderContext, createPathAnchors } from "./GeneratorUtils";
 
 export function generatePathElements(
   targetLines: Line[],
@@ -27,7 +20,7 @@ export function generatePathElements(
   const { x, y, uiLength, settings, timePrediction, dimmedIds } = ctx;
 
   targetLines.forEach((line, idx) => {
-    if (!line || !line.endPoint || line.hidden) return;
+    if (!line?.endPoint || line.hidden) return;
     let _startPoint =
       idx === 0 ? targetStartPoint : targetLines[idx - 1]?.endPoint || null;
     if (!_startPoint) return;
@@ -44,7 +37,7 @@ export function generatePathElements(
         (e: any) => e.type === "travel" && e.lineIndex === idx,
       );
 
-      if (event && event.velocityProfile && event.velocityProfile.length > 0) {
+      if (event?.velocityProfile && event.velocityProfile.length > 0) {
         const vProfile = event.velocityProfile as number[];
         const maxVel = Math.max(1, settings.maxVelocity);
 
@@ -67,7 +60,7 @@ export function generatePathElements(
           path.linewidth = getWidth(line);
           path.id = `${idPrefix}-line-${idx + 1}-heatmap-${segIdx}`;
 
-          const isDimmed = line.id && dimmedIds.includes(line.id);
+          const isDimmed = line.id && dimmedIds!.includes(line.id);
           path.stroke = isDimmed ? "#9ca3af" : color;
 
           if (line.locked) {
@@ -98,7 +91,20 @@ export function generatePathElements(
           const hue = 120 - ratio * 120;
           const color = `hsl(${hue}, 100%, 40%)`;
 
-          if (color !== currentColor) {
+          if (color === currentColor) {
+            // Extend current path
+            currentAnchors.push(
+              new Two.Anchor(
+                x(currPt.x),
+                y(currPt.y),
+                0,
+                0,
+                0,
+                0,
+                Two.Commands.line,
+              ),
+            );
+          } else {
             if (currentAnchors.length > 0) {
               heatmapSegments.push(
                 createHeatmapSegment(
@@ -131,19 +137,6 @@ export function generatePathElements(
               ),
             ];
             currentColor = color;
-          } else {
-            // Extend current path
-            currentAnchors.push(
-              new Two.Anchor(
-                x(currPt.x),
-                y(currPt.y),
-                0,
-                0,
-                0,
-                0,
-                Two.Commands.line,
-              ),
-            );
           }
 
           prevPt = currPt;
@@ -169,67 +162,17 @@ export function generatePathElements(
 
     // Fallback: Standard Line Rendering
     let lineElem: Path | PathLine;
-    if (line.controlPoints.length > 2) {
-      const samples = 100;
-      const cps = [_startPoint, ...line.controlPoints, line.endPoint];
-      let points = [
-        new Two.Anchor(
-          x(_startPoint.x),
-          y(_startPoint.y),
-          0,
-          0,
-          0,
-          0,
-          Two.Commands.move,
-        ),
-      ];
-      for (let i = 1; i <= samples; ++i) {
-        const point = getCurvePoint(i / samples, cps);
-        points.push(
-          new Two.Anchor(x(point.x), y(point.y), 0, 0, 0, 0, Two.Commands.line),
-        );
-      }
-      points.forEach((point) => (point.relative = false));
-      lineElem = new Two.Path(points);
-      lineElem.automatic = false;
-    } else if (line.controlPoints.length > 0) {
-      let cp1 = line.controlPoints[1]
-        ? line.controlPoints[0]
-        : quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint)
-            .Q1;
-      let cp2 =
-        line.controlPoints[1] ??
-        quadraticToCubic(_startPoint, line.controlPoints[0], line.endPoint).Q2;
-      let points = [
-        new Two.Anchor(
-          x(_startPoint.x),
-          y(_startPoint.y),
-          x(_startPoint.x),
-          y(_startPoint.y),
-          x(cp1.x),
-          y(cp1.y),
-          Two.Commands.move,
-        ),
-        new Two.Anchor(
-          x(line.endPoint.x),
-          y(line.endPoint.y),
-          x(cp2.x),
-          y(cp2.y),
-          x(line.endPoint.x),
-          y(line.endPoint.y),
-          Two.Commands.curve,
-        ),
-      ];
-      points.forEach((point) => (point.relative = false));
-      lineElem = new Two.Path(points);
-      lineElem.automatic = false;
-    } else {
+    const anchors = createPathAnchors(line, _startPoint, ctx);
+    if (line.controlPoints.length === 0) {
       lineElem = new Two.Line(
-        x(_startPoint.x),
-        y(_startPoint.y),
-        x(line.endPoint.x),
-        y(line.endPoint.y),
+        anchors[0].x,
+        anchors[0].y,
+        anchors[1].x,
+        anchors[1].y,
       );
+    } else {
+      lineElem = new Two.Path(anchors);
+      lineElem.automatic = false;
     }
     lineElem.id = `${idPrefix}-line-${idx + 1}`;
 

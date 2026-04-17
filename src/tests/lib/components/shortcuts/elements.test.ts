@@ -40,29 +40,30 @@ describe("elements", () => {
     });
   });
 
+  const testSequenceAddition = (
+    addFn: (cb: any) => void,
+    actionName: string,
+    kind: string,
+  ) => {
+    const cb = vi.fn();
+    addFn(cb);
+    expect(cb).toHaveBeenCalledWith(actionName);
+
+    let seq: any;
+    sequenceStore.subscribe((v) => (seq = v))();
+    expect(seq.length).toBe(1);
+    expect(seq[0].kind).toBe(kind);
+  };
+
   describe("addWait", () => {
     it("should append a new wait sequence item", () => {
-      const cb = vi.fn();
-      addWait(cb);
-      expect(cb).toHaveBeenCalledWith("Add Wait");
-
-      let seq: any;
-      sequenceStore.subscribe((v) => (seq = v))();
-      expect(seq.length).toBe(1);
-      expect(seq[0].kind).toBe("wait");
+      testSequenceAddition(addWait, "Add Wait", "wait");
     });
   });
 
   describe("addRotate", () => {
     it("should append a new rotate sequence item", () => {
-      const cb = vi.fn();
-      addRotate(cb);
-      expect(cb).toHaveBeenCalledWith("Add Rotate");
-
-      let seq: any;
-      sequenceStore.subscribe((v) => (seq = v))();
-      expect(seq.length).toBe(1);
-      expect(seq[0].kind).toBe("rotate");
+      testSequenceAddition(addRotate, "Add Rotate", "rotate");
     });
   });
 });

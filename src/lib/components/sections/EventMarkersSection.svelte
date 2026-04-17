@@ -33,7 +33,7 @@
       line.eventMarkers = [];
     }
     line.eventMarkers.push({
-      id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       name: `Event_${lineIdx + 1}_${line.eventMarkers.length + 1}`,
       position: 0.5,
       lineIndex: lineIdx,
@@ -50,8 +50,8 @@
 
   function handleInput(e: Event, event: any) {
     const target = e.target as HTMLInputElement;
-    const value = parseFloat(target.value);
-    if (!isNaN(value)) {
+    const value = Number.parseFloat(target.value);
+    if (!Number.isNaN(value)) {
       event.position = value;
       line.eventMarkers = [...line.eventMarkers!];
     }
@@ -59,8 +59,8 @@
 
   function handleBlur(e: Event, event: any) {
     const target = e.target as HTMLInputElement;
-    const value = parseFloat(target.value);
-    if (isNaN(value) || value < 0 || value > 1) {
+    const value = Number.parseFloat(target.value);
+    if (Number.isNaN(value) || value < 0 || value > 1) {
       // Invalid - revert to current value
       target.value = event.position.toString();
       return;
@@ -73,8 +73,8 @@
   function handleKeydown(e: KeyboardEvent, event: any) {
     if (e.key === "Enter") {
       const target = e.target as HTMLInputElement;
-      const value = parseFloat(target.value);
-      if (isNaN(value) || value < 0 || value > 1) {
+      const value = Number.parseFloat(target.value);
+      if (Number.isNaN(value) || value < 0 || value > 1) {
         // Invalid - revert
         target.value = event.position.toString();
         e.preventDefault();

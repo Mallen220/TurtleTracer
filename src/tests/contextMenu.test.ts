@@ -6,12 +6,12 @@ import { tick } from "svelte";
 
 describe("ContextMenu", () => {
   beforeEach(() => {
-    Object.defineProperty(window, "innerWidth", {
+    Object.defineProperty(globalThis, "innerWidth", {
       writable: true,
       configurable: true,
       value: 1000,
     });
-    Object.defineProperty(window, "innerHeight", {
+    Object.defineProperty(globalThis, "innerHeight", {
       writable: true,
       configurable: true,
       value: 1000,

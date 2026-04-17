@@ -1,23 +1,23 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
-import { createRequire } from "module";
+import { createRequire } from "node:module";
 
-import { existsSync } from "fs";
-import path from "path";
+import { existsSync } from "node:fs";
+import path from "node:path";
 
 const fastCheckInstalled = existsSync(
   path.join(process.cwd(), "node_modules", "fast-check"),
 );
 const require = createRequire(import.meta.url);
 let fc: any;
-if (!fastCheckInstalled) {
+if (fastCheckInstalled) {
+  fc = require("fast-check");
+} else {
   describe("Math Utils Property Tests (skipped)", () => {
     it("skipped because fast-check is not installed", () => {
       expect(true).toBe(true);
     });
   });
-} else {
-  fc = require("fast-check");
 }
 
 import {

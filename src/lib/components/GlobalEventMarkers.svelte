@@ -169,7 +169,7 @@
     const def = actionRegistry.get(item.kind);
 
     const newMarker: EventMarker = {
-      id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       name: "",
       position: 0.5,
     };
@@ -249,13 +249,24 @@
 
     if (newMarkerIdx >= count) {
       newMarkerIdx = count - 1;
-      newLocalPos = 1.0;
+      newLocalPos = 1;
     }
 
     const newIndex = map[newMarkerIdx];
 
     // Check if parent changed
-    if (newIndex !== marker.parentIndex) {
+    if (newIndex === marker.parentIndex) {
+      // Parent is same, just update local position
+      if (clampLocal) {
+        if (newLocalPos < 0) newLocalPos = 0;
+        if (newLocalPos > 1) newLocalPos = 1;
+      }
+
+      marker.ref.position = newLocalPos;
+      // Trigger reactivity
+      if (marker.parentType === "path") lines = [...lines];
+      else sequence = [...sequence];
+    } else {
       // Remove from old parent
       removeMarker(marker);
 
@@ -301,17 +312,6 @@
         rotate.eventMarkers = [...rotate.eventMarkers, newMarkerData];
         sequence = [...sequence];
       }
-    } else {
-      // Parent is same, just update local position
-      if (clampLocal) {
-        if (newLocalPos < 0) newLocalPos = 0;
-        if (newLocalPos > 1) newLocalPos = 1;
-      }
-
-      marker.ref.position = newLocalPos;
-      // Trigger reactivity
-      if (marker.parentType === "path") lines = [...lines];
-      else sequence = [...sequence];
     }
   }
 
@@ -445,12 +445,12 @@
                 oninput={(e) =>
                   handleGlobalPositionInput(
                     marker,
-                    parseFloat(e.currentTarget.value),
+                    Number.parseFloat(e.currentTarget.value),
                   )}
                 onchange={(e) =>
                   handleGlobalPositionCommit(
                     marker,
-                    parseFloat(e.currentTarget.value),
+                    Number.parseFloat(e.currentTarget.value),
                   )}
               />
               <input
@@ -459,12 +459,12 @@
                 min="0"
                 max={nonMacroCount}
                 step="0.01"
-                value={parseFloat(marker.globalPosition.toFixed(2))}
+                value={Number.parseFloat(marker.globalPosition.toFixed(2))}
                 class="w-16 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-center"
                 onchange={(e) =>
                   handleGlobalPositionCommit(
                     marker,
-                    parseFloat(e.currentTarget.value),
+                    Number.parseFloat(e.currentTarget.value),
                   )}
               />
             </div>

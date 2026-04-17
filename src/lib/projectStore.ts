@@ -45,6 +45,13 @@ export function normalizeLines(input: Line[]): Line[] {
   }));
 }
 
+function getElectronAPI() {
+  const globalAny = globalThis as any;
+  if (globalAny.electronAPI) return globalAny.electronAPI;
+  if (globalAny.window?.electronAPI) return globalAny.window.electronAPI;
+  return undefined;
+}
+
 // Helper: sanitize sequence to remove references to non-existent lines and append any missing lines
 export function sanitizeSequence(
   lines: Line[],
@@ -129,7 +136,7 @@ const loadingMacros = new Set<string>();
 // Animation state
 export const percentStore = writable(0);
 export const playingStore = writable(false);
-export const playbackSpeedStore = writable(1.0);
+export const playbackSpeedStore = writable(1);
 export const loopAnimationStore = writable(true);
 export const loopRangeActiveStore = writable(true);
 export const loopRangeStore = writable<[number, number]>([0, 100]);
@@ -267,8 +274,8 @@ export async function loadMacro(filePath: string, force = false) {
   loadingMacros.add(filePath);
 
   // Use electronAPI to read file
-  const api = (window as any).electronAPI;
-  if (api && api.readFile) {
+  const api = getElectronAPI();
+  if (api?.readFile) {
     try {
       const content = await api.readFile(filePath);
       const data = JSON.parse(content);
@@ -284,10 +291,10 @@ export async function loadMacro(filePath: string, force = false) {
 
         // Recursively load any macros nested within this macro
         const promises: Promise<void>[] = [];
-        if (data.sequence && data.sequence.length > 0) {
+        if (data.sequence?.length > 0) {
           for (const item of data.sequence) {
             if (actionRegistry.get(item.kind)?.isMacro) {
-              if (api.resolvePath) {
+              if (api?.resolvePath) {
                 // Resolve potential relative paths against the current macro file path
                 promises.push(
                   (async () => {
@@ -355,7 +362,7 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
 
   // Sanitize sequence with respect to normalized lines and set both stores
   const seqCandidate = (
-    data.sequence && data.sequence.length
+    data.sequence?.length
       ? data.sequence
       : normLines.map((ln) => ({ kind: "path", lineId: ln.id! }))
   ) as SequenceItem[];
@@ -381,11 +388,11 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
   extraDataStore.set(data.extraData || {});
 
   // Load referenced macros
-  const api = (window as any).electronAPI;
+  const api = getElectronAPI();
   const promises: Promise<void>[] = [];
   for (const item of sanitized) {
     if (item.kind === "macro") {
-      if (projectFilePath && api && api.resolvePath) {
+      if (projectFilePath && api?.resolvePath) {
         promises.push(
           (async () => {
             try {
@@ -460,8 +467,8 @@ export async function updateAllMacroReferences(
   oldPath: string,
   newPath: string,
 ): Promise<{ totalUpdated: number; mainSequenceChanged: boolean }> {
-  const api = (window as any).electronAPI;
-  if (!api || !api.writeFile || !api.listFiles || !api.readFile)
+  const api = getElectronAPI();
+  if (!api?.writeFile || !api?.listFiles || !api?.readFile)
     return { totalUpdated: 0, mainSequenceChanged: false };
 
   let totalUpdated = 0;
@@ -514,7 +521,7 @@ export async function updateAllMacroReferences(
     if (processedFiles.has(actualFilePath)) return;
     processedFiles.add(actualFilePath);
 
-    if (!data.sequence || data.sequence.length === 0) return;
+    if (!data.sequence?.length) return;
 
     let fileChanged = false;
 
@@ -527,7 +534,7 @@ export async function updateAllMacroReferences(
 
         // Resolve relative → absolute so getUpdatedPath works correctly.
         let absoluteItemPath = item.filePath;
-        if (!dataHasAbsolutePaths && api.resolvePath) {
+        if (!dataHasAbsolutePaths && api?.resolvePath) {
           try {
             absoluteItemPath = await api.resolvePath(
               actualFilePath,
@@ -547,7 +554,7 @@ export async function updateAllMacroReferences(
 
         // Re-relativize for on-disk storage (mirrors what performSave / makeRelativePath does).
         let diskPath = updatedAbsPath;
-        if (!dataHasAbsolutePaths && api.makeRelativePath) {
+        if (!dataHasAbsolutePaths && api?.makeRelativePath) {
           try {
             diskPath = await api.makeRelativePath(
               actualFilePath,
@@ -577,7 +584,7 @@ export async function updateAllMacroReferences(
     const currentMacros = get(macrosStore);
     if (currentMacros.has(originalFilePath)) {
       macrosStoreChanged = true;
-      if (!dataHasAbsolutePaths && api.resolvePath) {
+      if (!dataHasAbsolutePaths && api?.resolvePath) {
         // Build an absolute-path version of the updated sequence for macrosStore.
         const absoluteSeq = await Promise.all(
           newSeq.map(async (item) => {

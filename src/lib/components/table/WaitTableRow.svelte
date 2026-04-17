@@ -89,7 +89,7 @@
 
   function handleDurationInput(e: Event) {
     const target = e.target as HTMLInputElement;
-    (item as any).durationMs = parseFloat(target.value);
+    (item as any).durationMs = Number.parseFloat(target.value);
     onUpdate(item);
   }
 </script>

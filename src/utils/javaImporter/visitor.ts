@@ -1,4 +1,23 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+/**
+ * Shared helper to iterate over node children.
+ */
+function walkChildren(node: any, callback: (child: any) => void | boolean) {
+  if (node.children) {
+    for (const key in node.children) {
+      const children = node.children[key];
+      if (Array.isArray(children)) {
+        for (const child of children) {
+          if (callback(child) === true) return true;
+        }
+      } else if (callback(children) === true) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function walkAST(
   node: any,
   visitors: Record<string, (node: any, context?: any) => void>,
@@ -10,37 +29,23 @@ export function walkAST(
     visitors[node.name](node, context);
   }
 
-  if (node.children) {
-    for (const key in node.children) {
-      const child = node.children[key];
-      if (Array.isArray(child)) {
-        child.forEach((c: any) => walkAST(c, visitors, context));
-      } else {
-        walkAST(child, visitors, context);
-      }
-    }
-  }
+  walkChildren(node, (c) => walkAST(c, visitors, context));
 }
 
 export function findFirst(node: any, test: (node: any) => boolean): any {
   if (!node || typeof node !== "object") return null;
   if (test(node)) return node;
 
-  if (node.children) {
-    for (const key in node.children) {
-      const child = node.children[key];
-      if (Array.isArray(child)) {
-        for (const c of child) {
-          const res = findFirst(c, test);
-          if (res) return res;
-        }
-      } else {
-        const res = findFirst(child, test);
-        if (res) return res;
-      }
+  let result = null;
+  walkChildren(node, (c) => {
+    const res = findFirst(c, test);
+    if (res) {
+      result = res;
+      return true; // stop iteration
     }
-  }
-  return null;
+    return false;
+  });
+  return result;
 }
 
 export function findAll(node: any, test: (node: any) => boolean): any[] {
@@ -48,18 +53,9 @@ export function findAll(node: any, test: (node: any) => boolean): any[] {
   if (!node || typeof node !== "object") return results;
   if (test(node)) results.push(node);
 
-  if (node.children) {
-    for (const key in node.children) {
-      const child = node.children[key];
-      if (Array.isArray(child)) {
-        for (const c of child) {
-          results.push(...findAll(c, test));
-        }
-      } else {
-        results.push(...findAll(child, test));
-      }
-    }
-  }
+  walkChildren(node, (c) => {
+    results.push(...findAll(c, test));
+  });
   return results;
 }
 
@@ -71,17 +67,8 @@ export function extractTokens(node: any): string[] {
     tokens.push(node.image);
   }
 
-  if (node.children) {
-    for (const key in node.children) {
-      const child = node.children[key];
-      if (Array.isArray(child)) {
-        for (const c of child) {
-          tokens.push(...extractTokens(c));
-        }
-      } else {
-        tokens.push(...extractTokens(child));
-      }
-    }
-  }
+  walkChildren(node, (c) => {
+    tokens.push(...extractTokens(c));
+  });
   return tokens;
 }

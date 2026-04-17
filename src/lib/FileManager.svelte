@@ -1,26 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts" module>
-  declare global {
-    interface Window {
-      electronAPI: {
-        getDirectory: () => Promise<string | null>;
-        setDirectory: (path?: string) => Promise<string | null>;
-        listFiles: (directory: string) => Promise<FileInfo[]>;
-        readFile: (filePath: string) => Promise<string>;
-        writeFile: (filePath: string, content: string) => Promise<boolean>;
-        deleteFile: (filePath: string) => Promise<boolean>;
-        fileExists: (filePath: string) => Promise<boolean>;
-        getSavedDirectory: () => Promise<string>;
-        createDirectory: (dirPath: string) => Promise<boolean>;
-        getDirectoryStats: (dirPath: string) => Promise<any>;
-        renameFile: (
-          oldPath: string,
-          newPath: string,
-        ) => Promise<{ success: boolean; newPath: string }>;
-        resolvePath?: (base: string, relative: string) => Promise<string>;
-      };
-    }
-  }
 </script>
 
 <script lang="ts">
@@ -138,7 +117,7 @@
 
   function onImportFileSelect(e: Event) {
     const target = e.target as HTMLInputElement;
-    if (target.files && target.files[0]) {
+    if (target.files?.[0]) {
       handleImportFile({ detail: target.files[0] } as CustomEvent<File>);
       target.value = "";
     }
@@ -146,14 +125,14 @@
 
   function onImportJavaSelect(e: Event) {
     const target = e.target as HTMLInputElement;
-    if (target.files && target.files[0]) {
+    if (target.files?.[0]) {
       handleImportJava({ detail: target.files[0] } as CustomEvent<File>);
       target.value = "";
     }
   }
 
   const supportedFileTypes = [...SUPPORTED_PROJECT_EXTENSIONS];
-  const electronAPI = window.electronAPI;
+  const electronAPI = (globalThis as any).electronAPI;
 
   function getErrorMessage(error: unknown): string {
     if (error instanceof Error) return error.message;
@@ -179,8 +158,8 @@
 
   function startResize(e: MouseEvent) {
     isResizing = true;
-    window.addEventListener("mousemove", handleResize);
-    window.addEventListener("mouseup", stopResize);
+    globalThis.addEventListener("mousemove", handleResize);
+    globalThis.addEventListener("mouseup", stopResize);
   }
 
   function handleResize(e: MouseEvent) {
@@ -193,8 +172,8 @@
 
   function stopResize() {
     isResizing = false;
-    window.removeEventListener("mousemove", handleResize);
-    window.removeEventListener("mouseup", stopResize);
+    globalThis.removeEventListener("mousemove", handleResize);
+    globalThis.removeEventListener("mouseup", stopResize);
   }
 
   import { saveSettings } from "../utils/settingsPersistence";
@@ -300,7 +279,7 @@
       // Update Git Status Store
       if (settings.gitIntegration) {
         const statusMap: Record<string, string> = {};
-        allFiles.forEach((f) => {
+        allFiles.forEach((f: FileInfo) => {
           if (f.gitStatus && f.gitStatus !== "clean") {
             statusMap[f.path] = f.gitStatus;
           }
@@ -308,7 +287,7 @@
         gitStatusStore.update((store) => {
           const newStore = { ...store };
           // Remove entries that are in the current directory but are now clean
-          allFiles.forEach((f) => {
+          allFiles.forEach((f: FileInfo) => {
             if (newStore[f.path] && !statusMap[f.path]) {
               delete newStore[f.path];
             }
@@ -320,7 +299,7 @@
       }
 
       files = allFiles
-        .map((file) => ({
+        .map((file: FileInfo) => ({
           ...file,
           error:
             file.isDirectory || isSupportedProjectFileName(file.name)
@@ -328,7 +307,8 @@
               : `Unsupported type`,
         }))
         .filter(
-          (file) => file.isDirectory || isSupportedProjectFileName(file.name),
+          (file: FileInfo) =>
+            file.isDirectory || isSupportedProjectFileName(file.name),
         );
 
       if (currentDirectory !== baseDirectory) {
@@ -394,17 +374,11 @@
       await refreshDirectory();
 
       // After directory is refreshed, request previews to refresh for both list and grid
-      if (fileList && typeof fileList.refreshAllFailed === "function") {
-        fileList.refreshAllFailed();
-      } else if (fileList && typeof fileList.refreshAll === "function") {
-        fileList.refreshAll();
-      }
+      fileList?.refreshAllFailed?.();
+      fileList?.refreshAll?.();
 
-      if (fileGrid && typeof fileGrid.refreshAllFailed === "function") {
-        fileGrid.refreshAllFailed();
-      } else if (fileGrid && typeof fileGrid.refreshAll === "function") {
-        fileGrid.refreshAll();
-      }
+      fileGrid?.refreshAllFailed?.();
+      fileGrid?.refreshAll?.();
 
       showToast("Refreshed files and previews", "success");
     } catch (err) {
@@ -417,7 +391,7 @@
       return; // Cannot go up beyond the base directory
     }
     try {
-      if (electronAPI.resolvePath) {
+      if (electronAPI?.resolvePath) {
         // electronAPI.resolvePath(base, relative) calls path.resolve(path.dirname(base), relative).
         // Since currentDirectory is a directory and not a file, passing it directly as `base`
         // would drop the last directory segment and then apply "..", going up TWO levels.
@@ -517,10 +491,7 @@
         const destPath = path.join(currentDirectory, fileName);
 
         // Check overwrite
-        if (
-          electronAPI.fileExists &&
-          (await electronAPI.fileExists(destPath))
-        ) {
+        if (await electronAPI?.fileExists?.(destPath)) {
           if (
             !confirm(
               `File "${fileName}" already exists in "${path.basename(currentDirectory)}". Overwrite?`,
@@ -672,7 +643,7 @@
     const newFilePath = path.join(currentDirectory, fileName);
 
     try {
-      if (await electronAPI.fileExists(newFilePath)) {
+      if (await electronAPI?.fileExists?.(newFilePath)) {
         showToast(`File "${fileName}" already exists`, "error");
         return;
       }
@@ -769,7 +740,7 @@
     }
 
     try {
-      const content = await electronAPI.readFile(file.path);
+      const content = await electronAPI?.readFile?.(file.path);
       const data = JSON.parse(content);
 
       if (!data.startPoint || !data.lines)
@@ -826,7 +797,7 @@
 
       // Optionally save it as a new .turt file right away if in desktop mode
       if (electronAPI && currentDirectory) {
-        const newFileName = file.name.replace(".java", ".turt");
+        const newFileName = file.name.replaceAll(".java", ".turt");
         const destPath = path.join(currentDirectory, newFileName);
 
         const savedDataStr = JSON.stringify(
@@ -847,7 +818,7 @@
         currentFilePath.set(destPath);
         isUnsaved.set(false);
       } else {
-        currentFilePath.set(file.name.replace(".java", ".turt"));
+        currentFilePath.set(file.name.replaceAll(".java", ".turt"));
         isUnsaved.set(false);
       }
 
@@ -882,10 +853,10 @@
       loadMacro(targetFile.path, true);
 
       // Updated saved file — refresh its preview
-      if (fileGrid && targetFile && targetFile.path)
-        fileGrid.refreshPreview(targetFile.path);
-      if (fileList && targetFile && targetFile.path)
-        fileList.refreshPreview(targetFile.path);
+      if (targetFile?.path) {
+        fileGrid?.refreshPreview?.(targetFile.path);
+        fileList?.refreshPreview?.(targetFile.path);
+      }
     } catch (error) {
       showToast(`Failed to save: ${getErrorMessage(error)}`, "error");
     }
@@ -896,7 +867,7 @@
 
     const dirPath = path.join(currentDirectory, name.trim());
     try {
-      if (await electronAPI.fileExists(dirPath)) {
+      if (await electronAPI?.fileExists?.(dirPath)) {
         showToast(`Folder "${name}" already exists.`, "error");
         return;
       }
@@ -937,7 +908,7 @@
     }
 
     try {
-      if (await electronAPI.fileExists(filePath)) {
+      if (await electronAPI?.fileExists?.(filePath)) {
         if (!confirm(`File "${fileName}" already exists. Overwrite?`)) return;
       }
 
@@ -966,7 +937,7 @@
         showToast(`Created: ${fileName}`, "success");
 
         // New file created — ensure preview is generated
-        if (fileGrid && newFile.path) fileGrid.refreshPreview(newFile.path);
+        if (newFile.path) fileGrid?.refreshPreview?.(newFile.path);
       }
     } catch (error) {
       showToast(`Failed to create: ${getErrorMessage(error)}`, "error");
@@ -976,7 +947,7 @@
   async function deleteFile(file: FileInfo) {
     if (!confirm(`Are you sure you want to delete "${file.name}"?`)) return;
     try {
-      await electronAPI.deleteFile(file.path);
+      await electronAPI?.deleteFile?.(file.path);
       if (selectedFile?.path === file.path) {
         selectedFile = null;
         currentFilePath.set(null);
@@ -993,7 +964,7 @@
     mode: "copy" | "mirror" | "reverse" = "copy",
   ) {
     try {
-      const content = await electronAPI.readFile(file.path);
+      const content = await electronAPI?.readFile?.(file.path);
       let data = JSON.parse(content);
 
       let suffix = "_copy";
@@ -1010,7 +981,7 @@
       let counter = 1;
 
       while (
-        await electronAPI.fileExists(path.join(currentDirectory, newName))
+        await electronAPI?.fileExists?.(path.join(currentDirectory, newName))
       ) {
         newName = `${baseName}${suffix}${counter}${DEFAULT_PROJECT_EXTENSION}`;
         counter++;
@@ -1032,9 +1003,9 @@
 
       // Refresh preview for the newly created copy/mirror
       const newFile = files.find((f) => f.name === newName);
-      if (newFile) {
-        if (fileGrid && newFile.path) fileGrid.refreshPreview(newFile.path);
-        if (fileList && newFile.path) fileList.refreshPreview(newFile.path);
+      if (newFile?.path) {
+        fileGrid?.refreshPreview?.(newFile.path);
+        fileList?.refreshPreview?.(newFile.path);
       }
     } catch (error) {
       showToast(`Failed to duplicate: ${getErrorMessage(error)}`, "error");
@@ -1105,7 +1076,7 @@
 
   // Mock path utils
   const path = {
-    join: (...parts: string[]) => parts.join("/").replace(/\/\//g, "/"),
+    join: (...parts: string[]) => parts.join("/").replaceAll(/\/\//g, "/"),
     basename: (p: string) => p.split(/[\\/]/).pop() || "",
     extname: (p: string) => {
       const m = p.match(/\.[^/.]+$/);
@@ -1163,11 +1134,11 @@
   });
   // Update filtered files whenever files or searchQuery changes
   run(() => {
-    if (!searchQuery) {
-      filteredFiles = [...files];
-    } else {
+    if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filteredFiles = files.filter((f) => f.name.toLowerCase().includes(q));
+    } else {
+      filteredFiles = [...files];
     }
   });
   run(() => {
@@ -1268,18 +1239,11 @@
           viewMode = e.detail;
           // If switching to list/grid view, retry any previously failed previews so icons repopulate reliably
           if (viewMode === "list") {
-            if (fileList && typeof fileList.refreshAllFailed === "function") {
-              fileList.refreshAllFailed();
-            } else if (fileList && typeof fileList.refreshAll === "function") {
-              // fallback: refresh everything
-              fileList.refreshAll();
-            }
+            fileList?.refreshAllFailed?.();
+            fileList?.refreshAll?.();
           } else if (viewMode === "grid") {
-            if (fileGrid && typeof fileGrid.refreshAllFailed === "function") {
-              fileGrid.refreshAllFailed();
-            } else if (fileGrid && typeof fileGrid.refreshAll === "function") {
-              fileGrid.refreshAll();
-            }
+            fileGrid?.refreshAllFailed?.();
+            fileGrid?.refreshAll?.();
           }
         }}
       />
@@ -1546,9 +1510,9 @@
           <ArrowCircleIcon className="size-4" />
         </button>
         <span
-          >{filteredFiles.length} file{filteredFiles.length !== 1
-            ? "s"
-            : ""}</span
+          >{filteredFiles.length} file{filteredFiles.length === 1
+            ? ""
+            : "s"}</span
         >
       </div>
       {#if selectedFile}

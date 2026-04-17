@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
 const OWNER = "Matthew Allen";
 const CURRENT_YEAR = new Date().getFullYear();
@@ -41,11 +41,11 @@ function getHeader(yearRange, styleType) {
 }
 
 function traverse(dir) {
-  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+  // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   const files = fs.readdirSync(dir);
   for (const file of files) {
     const filePath = path.join(dir, file);
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     const stat = fs.statSync(filePath);
 
     if (stat.isDirectory()) {
@@ -55,13 +55,14 @@ function traverse(dir) {
         file === "dist" ||
         file === "build" ||
         file === "release" ||
+        file === "coverage" ||
         file === ".jules" ||
         file === ".vscode"
       )
         continue;
       traverse(filePath);
     } else {
-      const relativePath = path.relative(".", filePath).replace(/\\/g, "/");
+      const relativePath = path.relative(".", filePath).replaceAll(`\\`, "/");
       if (IGNORED_FILES.has(relativePath)) continue;
 
       const ext = path.extname(file);
@@ -73,21 +74,21 @@ function traverse(dir) {
 }
 
 function processFile(filePath, styleType) {
-  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+  // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   const originalContent = fs.readFileSync(filePath, "utf8");
   let content = originalContent;
 
   // Regex to detect existing copyright info to preserve years
-  const copyrightRegex = /Copyright (\d{4})(?:-(\d{4}))? (.*?)(?:\.|,|\n)/i;
+  const copyrightRegex = /Copyright (\d{4})(?:-(\d{4}))? (.*?)[.,\n]/i;
   const match = content.match(copyrightRegex);
 
   let startYear = CURRENT_YEAR;
   let endYear = CURRENT_YEAR;
 
   if (match) {
-    startYear = parseInt(match[1]);
+    startYear = Number.parseInt(match[1]);
     if (match[2]) {
-      endYear = parseInt(match[2]);
+      endYear = Number.parseInt(match[2]);
     }
     if (endYear < CURRENT_YEAR) {
       endYear = CURRENT_YEAR;
@@ -130,8 +131,8 @@ function processFile(filePath, styleType) {
   // 3. Remove Hash Comments (# ...)
   const hashBlockRegex = /^(\s*#[^\n]*\n)+/;
   const m = body.match(hashBlockRegex);
-  if (m && m[0].includes("Copyright") && m[0].includes("Matthew Allen")) {
-    body = body.substring(m[0].length);
+  if (m?.[0].includes("Copyright") && m[0].includes("Matthew Allen")) {
+    body = body.slice(m[0].length);
   }
 
   // 4. Remove Single Line Comments (// ...) if present (e.g. if re-running this script)
@@ -142,12 +143,12 @@ function processFile(filePath, styleType) {
   }
 
   // Trim leading newlines from body to avoid gaps
-  body = body.replace(/^\n+/, "");
+  body = body.replace(/^[\n\r]+/, "");
 
   const finalContent = shebang + newHeader + body;
 
   if (finalContent !== originalContent) {
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     fs.writeFileSync(filePath, finalContent);
     console.log(`Updated ${filePath}`);
   }

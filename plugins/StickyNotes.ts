@@ -18,6 +18,11 @@ interface StickyNote {
   const PLUGIN_ID = "sticky-notes-plugin";
   const CONTAINER_ID = "sticky-notes-root";
 
+  const isDomAvailable = () =>
+    typeof globalThis !== "undefined" &&
+    typeof document !== "undefined" &&
+    typeof document.createElement === "function";
+
   // State
   let noteElements = new Map<string, HTMLElement>();
   let isDragging = false;
@@ -32,6 +37,13 @@ interface StickyNote {
   // Initialization
   function init() {
     try {
+      if (!isDomAvailable()) {
+        if (typeof setTimeout !== "undefined") {
+          setTimeout(init, 500);
+        }
+        return;
+      }
+
       console.log("[StickyNotes] Initializing plugin...");
 
       // 1. Mount Container (Try immediately)
@@ -68,7 +80,7 @@ interface StickyNote {
       });
 
       // 5. Global Keybind (Alt+N)
-      window.addEventListener("keydown", (e) => {
+      globalThis.addEventListener("keydown", (e) => {
         // Block if typing in input
         const target = e.target as HTMLElement;
         if (
@@ -129,14 +141,16 @@ interface StickyNote {
 
   function mountContainer(parent?: HTMLElement) {
     try {
+      if (!isDomAvailable()) return;
+
       // Cleanup existing
       const existing = document.getElementById(CONTAINER_ID);
       if (existing) {
         // Check if it's still attached to DOM
-        if (!document.contains(existing)) {
-          existing.remove(); // Remove detached node
-        } else {
+        if (document.contains(existing)) {
           return; // Already mounted correctly
+        } else {
+          existing.remove(); // Remove detached node
         }
       }
 
@@ -192,7 +206,7 @@ interface StickyNote {
   function addNoteAtCenter() {
     const { fieldViewStore } = turtle.stores.app;
     const view = turtle.stores.get(fieldViewStore);
-    if (!view || !view.xScale || !view.yScale) return;
+    if (!view?.xScale || !view.yScale) return;
 
     // Center of viewport
     const cx = view.width / 2;
@@ -236,7 +250,7 @@ interface StickyNote {
   }
 
   function render(notes: StickyNote[], fieldView: any) {
-    if (!fieldView || !fieldView.xScale) return;
+    if (!fieldView?.xScale) return;
 
     const container = document.getElementById(CONTAINER_ID);
     if (!container) return; // Wait for mount
@@ -463,8 +477,8 @@ interface StickyNote {
       const fieldView = turtle.stores.get(fieldViewStore);
 
       // Parse px values from style
-      const finalPxX = parseFloat(el.style.left);
-      const finalPxY = parseFloat(el.style.top);
+      const finalPxX = Number.parseFloat(el.style.left);
+      const finalPxY = Number.parseFloat(el.style.top);
 
       const inchX = fieldView.xScale.invert(finalPxX);
       const inchY = fieldView.yScale.invert(finalPxY);
@@ -500,7 +514,7 @@ interface StickyNote {
 
   function darkenColor(hex: string, percent: number) {
     // Simple hex darken
-    let num = parseInt(hex.replace("#", ""), 16),
+    let num = Number.parseInt(hex.replaceAll("#", ""), 16),
       amt = Math.round(2.55 * percent),
       R = (num >> 16) - amt,
       B = ((num >> 8) & 0x00ff) - amt,

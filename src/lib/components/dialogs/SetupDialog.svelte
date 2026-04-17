@@ -14,7 +14,7 @@
   const dispatch = createEventDispatcher();
 
   async function selectDirectory() {
-    const electronAPI = (window as any).electronAPI;
+    const electronAPI = (globalThis as any).electronAPI;
     if (electronAPI && electronAPI.setDirectory) {
       try {
         const selected = await electronAPI.setDirectory();

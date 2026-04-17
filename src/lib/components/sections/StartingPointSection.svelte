@@ -44,6 +44,51 @@
   let yInput: HTMLInputElement | undefined = $state();
   let headingControls: HeadingControls | undefined = $state();
 
+  let xDraft = $state("");
+  let yDraft = $state("");
+  let isEditingX = $state(false);
+  let isEditingY = $state(false);
+
+  $effect(() => {
+    const user = toUser(startPoint, settings?.coordinateSystem || "Pedro");
+    if (!isEditingX) {
+      xDraft = formatDisplayCoordinate(user.x, settings);
+    }
+    if (!isEditingY) {
+      yDraft = formatDisplayCoordinate(user.y, settings);
+    }
+  });
+
+  function commitStartPointInput(axis: "x" | "y") {
+    let parsed = Number.parseFloat(axis === "x" ? xDraft : yDraft);
+    if (Number.isNaN(parsed)) {
+      const user = toUser(startPoint, settings?.coordinateSystem || "Pedro");
+      xDraft = formatDisplayCoordinate(user.x, settings);
+      yDraft = formatDisplayCoordinate(user.y, settings);
+      return;
+    }
+
+    if (settings?.visualizerUnits === "metric") {
+      parsed = cmToInch(parsed);
+    }
+
+    const user = toUser(startPoint, settings?.coordinateSystem || "Pedro");
+    const newPt =
+      axis === "x"
+        ? toField(
+            { x: parsed, y: user.y },
+            settings?.coordinateSystem || "Pedro",
+          )
+        : toField(
+            { x: user.x, y: parsed },
+            settings?.coordinateSystem || "Pedro",
+          );
+
+    startPoint.x = newPt.x;
+    startPoint.y = newPt.y;
+    startPoint = { ...startPoint };
+  }
+
   let lines = $derived($linesStore);
 
   // Subscribe to focus requests
@@ -104,25 +149,16 @@
         >
         <input
           bind:this={xInput}
-          value={formatDisplayCoordinate(
-            toUser(startPoint, settings?.coordinateSystem || "Pedro").x,
-            settings,
-          )}
+          value={xDraft}
           oninput={(e) => {
-            let val = parseFloat(e.currentTarget.value);
-            if (!isNaN(val)) {
-              if (settings?.visualizerUnits === "metric") val = cmToInch(val);
-              const newPt = toField(
-                {
-                  x: val,
-                  y: toUser(startPoint, settings?.coordinateSystem || "Pedro")
-                    .y,
-                },
-                settings?.coordinateSystem || "Pedro",
-              );
-              startPoint.x = newPt.x;
-              startPoint = { ...startPoint };
-            }
+            xDraft = e.currentTarget.value;
+          }}
+          onfocus={() => {
+            isEditingX = true;
+          }}
+          onblur={() => {
+            isEditingX = false;
+            commitStartPointInput("x");
           }}
           min="0"
           max="144"
@@ -141,25 +177,16 @@
         >
         <input
           bind:this={yInput}
-          value={formatDisplayCoordinate(
-            toUser(startPoint, settings?.coordinateSystem || "Pedro").y,
-            settings,
-          )}
+          value={yDraft}
           oninput={(e) => {
-            let val = parseFloat(e.currentTarget.value);
-            if (!isNaN(val)) {
-              if (settings?.visualizerUnits === "metric") val = cmToInch(val);
-              const newPt = toField(
-                {
-                  x: toUser(startPoint, settings?.coordinateSystem || "Pedro")
-                    .x,
-                  y: val,
-                },
-                settings?.coordinateSystem || "Pedro",
-              );
-              startPoint.y = newPt.y;
-              startPoint = { ...startPoint };
-            }
+            yDraft = e.currentTarget.value;
+          }}
+          onfocus={() => {
+            isEditingY = true;
+          }}
+          onblur={() => {
+            isEditingY = false;
+            commitStartPointInput("y");
           }}
           min="0"
           max="144"
@@ -185,8 +212,8 @@
         bind:this={headingControls}
         endPoint={startPoint}
         locked={startPoint.locked}
-        on:change={() => (startPoint = { ...startPoint })}
-        on:commit={() => (startPoint = { ...startPoint })}
+        onchange={() => (startPoint = { ...startPoint })}
+        oncommit={() => (startPoint = { ...startPoint })}
       />
     </div>
   {/if}

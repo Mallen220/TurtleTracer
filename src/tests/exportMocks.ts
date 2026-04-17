@@ -1,6 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 export function setupImageMocks() {
-  const OriginalImage = global.Image;
   class MockImage {
     _src = "";
     width = 100;
@@ -15,19 +14,18 @@ export function setupImageMocks() {
 
     set src(val: string) {
       this._src = val;
-      // Simulate async load
+      // Keep asynchronous semantics with a small delay so abort tests remain meaningful
+      // while still keeping high-frame tests within timeout budgets.
       setTimeout(() => {
         if (val === "error") {
           if (this.onerror) this.onerror(new Error("Failed to load"));
-        } else {
-          if (this.onload) this.onload();
-        }
-      }, 5);
+        } else if (this.onload) this.onload();
+      }, 2);
     }
   }
-  global.Image = MockImage as any;
+  globalThis.Image = MockImage as any;
 
-  global.XMLSerializer = class {
+  globalThis.XMLSerializer = class {
     serializeToString(node: Node) {
       return "<svg></svg>";
     }

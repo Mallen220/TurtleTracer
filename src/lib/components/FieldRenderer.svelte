@@ -82,6 +82,7 @@
     getRandomColor,
     updateRobotImageDisplay,
     getLineStartHeading,
+    getInitialTangentialHeading,
   } from "../../utils";
   import { getAlignmentMenuItems } from "../../utils/alignmentMenu";
   import { toUser } from "../../utils/coordinates";
@@ -98,6 +99,7 @@
   import { generateCollisionElements } from "./renderer/CollisionMarkerGenerator";
   import { generateOnionLayerElements } from "./renderer/OnionLayerGenerator";
   import { generateFacingLineElements } from "./renderer/FacingLineGenerator";
+  import { type RenderContext } from "./renderer/GeneratorUtils";
 
   import { updateLinkedWaypoints } from "../../utils/pointLinking";
   import type { Line, Point, BasePoint } from "../../types/index";
@@ -227,7 +229,7 @@
   }
 
   function handleWheel(e: WheelEvent) {
-    if (!wrapperDiv) return;
+    if (!wrapperDiv || settings.lockFieldView) return;
     if (e.ctrlKey || e.metaKey) {
       followRobotStore.set(false);
       e.preventDefault();
@@ -243,7 +245,7 @@
       const deltaSign = e.deltaY < 0 ? 1 : -1; // wheel up -> zoom in
       const step = computeZoomStep(zoom, deltaSign);
       const newZoom = Math.min(
-        5.0,
+        5,
         Math.max(0.1, Number((zoom + deltaSign * step).toFixed(2))),
       );
       zoomTo(newZoom, { x: lx, y: ly });
@@ -320,13 +322,13 @@
       // point-0-0 is start point
       const lineNum = Number(parts[1]);
       const pointIdx = Number(parts[2]);
-      if (isNaN(lineNum) || isNaN(pointIdx)) return null;
+      if (Number.isNaN(lineNum) || Number.isNaN(pointIdx)) return null;
       return { type: "point", lineIndex: lineNum - 1, pointIndex: pointIdx };
     } else if (type === "obstacle") {
       // obstacle-{shapeIndex}-{vertexIndex}
       const shapeIdx = Number(parts[1]);
       const vertexIdx = Number(parts[2]);
-      if (isNaN(shapeIdx) || isNaN(vertexIdx)) return null;
+      if (Number.isNaN(shapeIdx) || Number.isNaN(vertexIdx)) return null;
       return {
         type: "obstacle",
         shapeIndex: shapeIdx,
@@ -336,7 +338,7 @@
       // event-{lineIndex}-{eventIndex}
       const lineIdx = Number(parts[1]);
       const evIdx = Number(parts[2]);
-      if (isNaN(lineIdx) || isNaN(evIdx)) return null;
+      if (Number.isNaN(lineIdx) || Number.isNaN(evIdx)) return null;
       return { type: "event", lineIndex: lineIdx, eventIndex: evIdx };
     } else if (type === "wait" && parts[1] === "event") {
       // wait-event-{waitId}-{eventIndex}
@@ -442,7 +444,7 @@
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           // Add a new point if it moved at least 2 inches
-          if (dist >= 2.0) {
+          if (dist >= 2) {
             drawPoints.push({ x: inchX, y: inchY });
 
             // Re-render path preview
@@ -493,7 +495,7 @@
             }
 
             // Smart Object Snapping
-            const SNAP_THRESHOLD = 1.0; // inches
+            const SNAP_THRESHOLD = 1; // inches
             const isSnappingEnabled = settings.smartSnapping !== false; // Enabled by default
             const shouldSnap = evt.altKey
               ? !isSnappingEnabled
@@ -504,7 +506,7 @@
               // Include start point, line endpoints, field boundaries, and obstacle vertices
               const targets: Point[] = [startPoint];
               lines.forEach((l) => {
-                if (l.endPoint) targets.push(l.endPoint);
+                if (l?.endPoint) targets.push(l.endPoint);
               });
 
               // Add field boundaries (corners)
@@ -648,17 +650,83 @@
               shapes[shapeIdx] = { ...shapes[shapeIdx], vertices: newVertices };
               shapesChanged = true;
             } else if (id.startsWith("targetpoint-")) {
-              const line = Number(id.split("-")[1]) - 1;
-              if (lines[line] && lines[line].endPoint) {
-                lines[line] = {
-                  ...lines[line],
-                  endPoint: {
-                    ...lines[line].endPoint,
-                    targetX: inchX,
-                    targetY: inchY,
-                  } as Point,
-                };
-                linesChanged = true;
+              const parts = id.split("-");
+              const lineIdx = Number(parts[1]) - 1;
+              const line = lines[lineIdx];
+              if (line?.endPoint) {
+                const isPiecewise =
+                  parts.length > 2 && parts[2] === "piecewise";
+                const segIdx = isPiecewise ? Number(parts[3]) : -1;
+
+                // Find the effective global source line (always the root of the chain)
+                let rootIdx = lineIdx;
+                if (lines[lineIdx].isChain) {
+                  for (let i = lineIdx; i >= 0; i--) {
+                    if (!lines[i].isChain) {
+                      rootIdx = i;
+                      break;
+                    }
+                  }
+                }
+                const targetLine = lines[rootIdx];
+
+                // If this chain has global heading def, update global values on the root line
+                if (targetLine.globalHeading === undefined) {
+                  // Fallback to local endpoint if no global heading def anywhere in the chain
+                  if (isPiecewise) {
+                    const segments = line.endPoint.segments || [];
+                    const seg = segments[segIdx];
+                    if (seg && seg.heading === "facingPoint") {
+                      const newSegs = [...segments] as any[];
+                      newSegs[segIdx] = {
+                        ...seg,
+                        targetX: inchX,
+                        targetY: inchY,
+                      };
+                      lines[lineIdx] = {
+                        ...line,
+                        endPoint: {
+                          ...line.endPoint,
+                          segments: newSegs,
+                        } as Point,
+                      };
+                      linesChanged = true;
+                    }
+                  } else {
+                    lines[lineIdx] = {
+                      ...line,
+                      endPoint: {
+                        ...line.endPoint,
+                        targetX: inchX,
+                        targetY: inchY,
+                      } as Point,
+                    };
+                    linesChanged = true;
+                  }
+                } else if (isPiecewise) {
+                  const segments = targetLine.globalSegments || [];
+                  const seg = segments[segIdx];
+                  if (seg && seg.heading === "facingPoint") {
+                    const newSegs = [...segments] as any[];
+                    newSegs[segIdx] = {
+                      ...seg,
+                      targetX: inchX,
+                      targetY: inchY,
+                    };
+                    lines[rootIdx] = {
+                      ...targetLine,
+                      globalSegments: newSegs,
+                    };
+                    linesChanged = true;
+                  }
+                } else {
+                  lines[rootIdx] = {
+                    ...targetLine,
+                    globalTargetX: inchX,
+                    globalTargetY: inchY,
+                  };
+                  linesChanged = true;
+                }
               }
             } else {
               const line = Number(id.split("-")[1]) - 1;
@@ -670,7 +738,7 @@
                   startPointChanged = true;
                 }
               } else if (lines[line]) {
-                if (point === 0 && lines[line].endPoint) {
+                if (point === 0 && lines[line]?.endPoint) {
                   lines[line] = {
                     ...lines[line],
                     endPoint: { ...lines[line].endPoint, x: inchX, y: inchY },
@@ -685,19 +753,17 @@
                       lines = updated;
                     }
                   }
-                } else {
-                  if (!lines[line]?.locked) {
-                    const newControlPoints = [...lines[line].controlPoints];
-                    newControlPoints[point - 1] = {
-                      ...newControlPoints[point - 1],
-                      x: inchX,
-                      y: inchY,
-                    };
-                    lines[line] = {
-                      ...lines[line],
-                      controlPoints: newControlPoints,
-                    };
-                  }
+                } else if (!lines[line]?.locked) {
+                  const newControlPoints = [...lines[line].controlPoints];
+                  newControlPoints[point - 1] = {
+                    ...newControlPoints[point - 1],
+                    x: inchX,
+                    y: inchY,
+                  };
+                  lines[line] = {
+                    ...lines[line],
+                    controlPoints: newControlPoints,
+                  };
                 }
                 linesChanged = true;
               }
@@ -777,14 +843,12 @@
               } else {
                 currentElem = target.id;
               }
+            } else if (idParts.length >= 3) {
+              const lineIdx = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              currentElem = `event-${lineIdx}-${evIdx}`;
             } else {
-              if (idParts.length >= 3) {
-                const lineIdx = idParts[idParts.length - 2];
-                const evIdx = idParts[idParts.length - 1];
-                currentElem = `event-${lineIdx}-${evIdx}`;
-              } else {
-                currentElem = target.id;
-              }
+              currentElem = target.id;
             }
             // Lookup actual event ID for hover highlighting
             let actualHoverId = null;
@@ -816,7 +880,7 @@
                 const waitItem = sequence.find(
                   (s) => s.kind === "wait" && (s as any).id === waitId,
                 );
-                if (waitItem && (waitItem as any).eventMarkers?.[eIdx]) {
+                if ((waitItem as any)?.eventMarkers?.[eIdx]) {
                   actualHoverId = (waitItem as any).eventMarkers[eIdx].id;
                 }
               }
@@ -829,7 +893,7 @@
                 const rotateItem = sequence.find(
                   (s) => s.kind === "rotate" && (s as any).id === rotateId,
                 );
-                if (rotateItem && (rotateItem as any).eventMarkers?.[eIdx]) {
+                if ((rotateItem as any)?.eventMarkers?.[eIdx]) {
                   actualHoverId = (rotateItem as any).eventMarkers[eIdx].id;
                 }
               }
@@ -915,13 +979,11 @@
                 const evIdx = idParts[idParts.length - 1];
                 clickedElem = `wait-event-${waitId}-${evIdx}`;
               } else clickedElem = el.id;
-            } else {
-              if (idParts.length >= 3) {
-                const lineIdx = idParts[idParts.length - 2];
-                const evIdx = idParts[idParts.length - 1];
-                clickedElem = `event-${lineIdx}-${evIdx}`;
-              } else clickedElem = el.id;
-            }
+            } else if (idParts.length >= 3) {
+              const lineIdx = idParts[idParts.length - 2];
+              const evIdx = idParts[idParts.length - 1];
+              clickedElem = `event-${lineIdx}-${evIdx}`;
+            } else clickedElem = el.id;
           }
         }
 
@@ -960,22 +1022,20 @@
             const lineNum = Number(parts[1]);
             const pointIdx = Number(parts[2]);
             let lId = null;
-            if (!isNaN(lineNum) && lineNum > 0) {
+            if (!Number.isNaN(lineNum) && lineNum > 0) {
               const lineIndex = lineNum - 1;
               const line = lines[lineIndex];
-              if (line && line.id) {
+              if (line?.id) {
                 lId = line.id;
                 selectedLineId.set(line.id);
                 selectedPointId.set(currentElem);
               }
+            } else if (currentElem === "point-0-0") {
+              selectedLineId.set(null);
+              selectedPointId.set(currentElem);
             } else {
-              if (currentElem === "point-0-0") {
-                selectedLineId.set(null);
-                selectedPointId.set(currentElem);
-              } else {
-                selectedLineId.set(null);
-                selectedPointId.set(null);
-              }
+              selectedLineId.set(null);
+              selectedPointId.set(null);
             }
             if (lId) {
               if (evt.shiftKey || evt.ctrlKey || evt.metaKey) {
@@ -989,14 +1049,14 @@
           } else if (currentElem.startsWith("targetpoint-")) {
             const parts = currentElem.split("-");
             const lineIdx = Number(parts[1]) - 1;
-            if (!isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            if (!Number.isNaN(lineIdx) && lines[lineIdx]?.id) {
               selectedLineId.set(lines[lineIdx].id as string);
               selectedPointId.set(currentElem);
             }
           } else if (currentElem.startsWith("event-")) {
             const parts = currentElem.split("-");
             const lineIdx = Number(parts[1]);
-            if (!isNaN(lineIdx) && lines[lineIdx] && lines[lineIdx].id) {
+            if (!Number.isNaN(lineIdx) && lines[lineIdx]?.id) {
               selectedLineId.set(lines[lineIdx].id as string);
               selectedPointId.set(currentElem);
             }
@@ -1033,15 +1093,39 @@
               return;
             }
             const vertexIdx = Number(parts[2]);
-            if (shapes[shapeIdx]?.vertices[vertexIdx]) {
+            if (shapes[shapeIdx]?.vertices?.[vertexIdx]) {
               objectX = shapes[shapeIdx].vertices[vertexIdx].x;
               objectY = shapes[shapeIdx].vertices[vertexIdx].y;
             }
           } else if (currentElem.startsWith("targetpoint-")) {
-            const line = Number(currentElem.split("-")[1]) - 1;
-            if (lines[line] && lines[line].endPoint) {
-              objectX = lines[line].endPoint.targetX || 0;
-              objectY = lines[line].endPoint.targetY || 0;
+            const parts = currentElem.split("-");
+            const lineIdx = Number(parts[1]) - 1;
+            if (lines[lineIdx]?.endPoint) {
+              const targetLine = lines[lineIdx];
+              // Check for Global Heading override
+              const isGlobal =
+                targetLine.globalHeading !== undefined &&
+                targetLine.globalHeading !== "none";
+
+              if (parts.length > 2 && parts[2] === "piecewise") {
+                const segIdx = Number(parts[3]);
+                const segments = isGlobal
+                  ? targetLine.globalSegments || []
+                  : targetLine.endPoint.segments || [];
+                if (segments[segIdx]) {
+                  objectX = segments[segIdx].targetX || 0;
+                  objectY = segments[segIdx].targetY || 0;
+                }
+              } else {
+                objectX =
+                  (isGlobal
+                    ? targetLine.globalTargetX
+                    : targetLine.endPoint.targetX) || 0;
+                objectY =
+                  (isGlobal
+                    ? targetLine.globalTargetY
+                    : targetLine.endPoint.targetY) || 0;
+              }
             }
           } else if (currentElem.startsWith("point-")) {
             const line = Number(currentElem.split("-")[1]) - 1;
@@ -1050,10 +1134,10 @@
               objectX = startPoint.x;
               objectY = startPoint.y;
             } else if (lines[line]) {
-              if (point === 0 && lines[line].endPoint) {
+              if (point === 0 && lines[line]?.endPoint) {
                 objectX = lines[line].endPoint.x;
                 objectY = lines[line].endPoint.y;
-              } else if (lines[line].controlPoints[point - 1]) {
+              } else if (lines[line]?.controlPoints?.[point - 1]) {
                 objectX = lines[line].controlPoints[point - 1].x;
                 objectY = lines[line].controlPoints[point - 1].y;
               }
@@ -1069,15 +1153,38 @@
               const parts = id.split("-");
               const shapeIdx = Number(parts[1]);
               const vertexIdx = Number(parts[2]);
-              if (shapes[shapeIdx]?.vertices[vertexIdx]) {
+              if (shapes[shapeIdx]?.vertices?.[vertexIdx]) {
                 ox = shapes[shapeIdx].vertices[vertexIdx].x;
                 oy = shapes[shapeIdx].vertices[vertexIdx].y;
               }
             } else if (id.startsWith("targetpoint-")) {
-              const line = Number(id.split("-")[1]) - 1;
-              if (lines[line] && lines[line].endPoint) {
-                ox = lines[line].endPoint.targetX || 0;
-                oy = lines[line].endPoint.targetY || 0;
+              const parts = id.split("-");
+              const lineIdx = Number(parts[1]) - 1;
+              if (lines[lineIdx]?.endPoint) {
+                const targetLine = lines[lineIdx];
+                const isGlobal =
+                  targetLine.globalHeading !== undefined &&
+                  targetLine.globalHeading !== "none";
+
+                if (parts.length > 2 && parts[2] === "piecewise") {
+                  const segIdx = Number(parts[3]);
+                  const segments = isGlobal
+                    ? targetLine.globalSegments || []
+                    : targetLine.endPoint.segments || [];
+                  if (segments[segIdx]) {
+                    ox = segments[segIdx].targetX || 0;
+                    oy = segments[segIdx].targetY || 0;
+                  }
+                } else {
+                  ox =
+                    (isGlobal
+                      ? targetLine.globalTargetX
+                      : targetLine.endPoint.targetX) || 0;
+                  oy =
+                    (isGlobal
+                      ? targetLine.globalTargetY
+                      : targetLine.endPoint.targetY) || 0;
+                }
               }
             } else if (id.startsWith("point-")) {
               const line = Number(id.split("-")[1]) - 1;
@@ -1086,10 +1193,10 @@
                 ox = startPoint.x;
                 oy = startPoint.y;
               } else if (lines[line]) {
-                if (point === 0 && lines[line].endPoint) {
+                if (point === 0 && lines[line]?.endPoint) {
                   ox = lines[line].endPoint.x;
                   oy = lines[line].endPoint.y;
-                } else if (lines[line].controlPoints[point - 1]) {
+                } else if (lines[line]?.controlPoints?.[point - 1]) {
                   ox = lines[line].controlPoints[point - 1].x;
                   oy = lines[line].controlPoints[point - 1].y;
                 }
@@ -1097,7 +1204,7 @@
             }
             multiDragOffsets.set(id, { x: ox - mouseX, y: oy - mouseY });
           });
-        } else {
+        } else if (!settings.lockFieldView) {
           // Start Panning
           isPanning = true;
           startPan = { x: evt.clientX, y: evt.clientY };
@@ -1197,7 +1304,7 @@
       const existingLines = get(linesStore);
       const prevEndPoint =
         existingLines.length > 0
-          ? existingLines[existingLines.length - 1].endPoint
+          ? existingLines[existingLines.length - 1]?.endPoint
           : null;
 
       let endPoint: Point;
@@ -1629,7 +1736,7 @@
     // Get items from registry (Empty Space or Append)
     if (menuItems.length === 0) {
       const registryItems = get(fieldContextMenuRegistry);
-      if (registryItems && registryItems.length > 0) {
+      if (registryItems?.length > 0) {
         const validItems = registryItems.filter((item) => {
           if (item.condition) {
             return item.condition({ x: fieldX, y: fieldY });
@@ -1675,7 +1782,7 @@
   }
 
   onDestroy(() => {
-    if (typeof window !== "undefined") {
+    if (typeof globalThis !== "undefined") {
       window.removeEventListener("resize", updateRects);
       window.removeEventListener("scroll", updateRects, true);
     }
@@ -1767,7 +1874,8 @@
       lines &&
       lines.length > 0
     ) {
-      const derived = getLineStartHeading(lines[0], startPoint);
+      const derived = getLineStartHeading(lines[0], startPoint, lines[0]);
+
       if (
         typeof startPoint.startDeg !== "number" ||
         Math.abs(startPoint.startDeg - derived) > 1e-6
@@ -1826,29 +1934,28 @@
       (currentFile && $isUnsaved),
   );
   let dimmedIds = $derived($dimmedLinesStore);
+
+  let ctx = $derived<RenderContext>({
+    x,
+    y,
+    uiLength,
+    settings,
+    timePrediction: effectiveTimePrediction,
+    percentStore: $percentStore,
+    dimmedIds,
+    multiSelectedPointIds: $multiSelectedPointIds,
+    robotXY,
+  });
   // --- Two.js Object Creation Logic (moved from App.svelte) ---
 
-  // Points (Start, Control, End, Obstacle Vertices)
+  // Paths (Lines) - Standard
   let points = $derived(
-    generatePointElements(startPoint, lines, shapes, {
-      x,
-      y,
-      uiLength,
-      multiSelectedPointIds: $multiSelectedPointIds,
-    }),
+    generatePointElements(startPoint, lines, shapes, sequence, ctx),
   );
   // Animated facing-point line: drawn from current robot position to the facing target.
   // Only shown when the robot is actively driving on that facingPoint segment.
   // Rendered as SVG overlay to avoid clearing Two.js scene.
-  let facingLineElements = $derived(
-    generateFacingLineElements(lines, {
-      x,
-      y,
-      robotXY,
-      timePrediction: effectiveTimePrediction,
-      percentStore: $percentStore,
-    }),
-  );
+  let facingLineElements = $derived(generateFacingLineElements(lines, ctx));
   // Paths (Lines) - Standard
   let path = $derived(
     (() => {
@@ -1867,7 +1974,7 @@
 
       // Start with standard lines for the basic "lines" array.
       // To include macro/bridge lines, iterate timeline travel events directly when available.
-      if (effectiveTimePrediction && effectiveTimePrediction.timeline) {
+      if (effectiveTimePrediction?.timeline) {
         const paths: any[] = [];
 
         // Filter travel events
@@ -1893,14 +2000,7 @@
             (l) => l.color || "#60a5fa",
             (l) => width,
             `timeline-path-${idx}`,
-            {
-              x,
-              y,
-              uiLength,
-              settings,
-              timePrediction: effectiveTimePrediction,
-              dimmedIds,
-            },
+            ctx,
             isMainLine,
           );
           paths.push(...elems);
@@ -1919,14 +2019,7 @@
             ? uiLength(LINE_WIDTH * 2.5)
             : uiLength(LINE_WIDTH),
         "",
-        {
-          x,
-          y,
-          uiLength,
-          settings,
-          timePrediction: effectiveTimePrediction,
-          dimmedIds,
-        },
+        ctx,
         true,
       );
     })(),
@@ -1946,14 +2039,7 @@
             () => "#ef4444", // Red
             () => uiLength(LINE_WIDTH),
             "diff-old",
-            {
-              x,
-              y,
-              uiLength,
-              settings,
-              timePrediction: effectiveTimePrediction,
-              dimmedIds,
-            },
+            ctx,
             false,
           )
         : [];
@@ -1970,14 +2056,7 @@
         },
         (l) => uiLength(LINE_WIDTH), // No selection highlight in diff mode? Or maybe yes.
         "diff-new",
-        {
-          x,
-          y,
-          uiLength,
-          settings,
-          timePrediction: effectiveTimePrediction,
-          dimmedIds,
-        },
+        ctx,
         false,
       );
 
@@ -1994,45 +2073,28 @@
       startPoint,
       sequence,
       {
-        x,
-        y,
-        uiLength,
+        ...ctx,
         hoveredMarkerId: $hoveredMarkerId,
         ppI,
       },
     ),
   );
   // Shapes (Obstacles)
-  let shapeElements = $derived(
-    generateShapeElements(shapes, { x, y, uiLength }),
-  );
+  let shapeElements = $derived(generateShapeElements(shapes, ctx));
   // Onion Layers
   // Rendered as SVG overlay to avoid clearing Two.js scene.
   let onionLayerElements = $derived(
-    generateOnionLayerElements(lines, startPoint, {
-      settings,
-      timePrediction: effectiveTimePrediction,
-      percentStore: $percentStore,
-    }),
+    generateOnionLayerElements(lines, startPoint, ctx),
   );
   // Preview Paths
   let previewPathElements = $derived(
-    generatePreviewPathElements(previewOptimizedLines, startPoint, {
-      x,
-      y,
-      uiLength,
-    }),
+    generatePreviewPathElements(previewOptimizedLines, startPoint, ctx),
   );
   // Event Markers
   let eventMarkerElements = $derived(
     generateEventMarkerElements(lines, startPoint, sequence, {
-      x,
-      y,
-      uiLength,
+      ...ctx,
       hoveredMarkerId: $hoveredMarkerId,
-      multiSelectedPointIds: $multiSelectedPointIds,
-      settings,
-      timePrediction: effectiveTimePrediction,
       selectedLineId: $selectedLineId,
       selectedPointId: $selectedPointId,
       actionRegistry,
@@ -2045,11 +2107,7 @@
       lines,
       startPoint,
       effectiveTimePrediction,
-      {
-        x,
-        y,
-        uiLength,
-      },
+      ctx,
     ),
   );
   // Render Loop
@@ -2162,7 +2220,9 @@
     >
       {#each onionLayerElements as layer}
         <polygon
-          points={layer.corners.map((c) => `${x(c.x)},${y(c.y)}`).join(" ")}
+          points={layer.corners
+            .map((c: any) => `${x(c.x)},${y(c.y)}`)
+            .join(" ")}
           fill="none"
           stroke="#818cf8"
           stroke-width={uiLength(0.5)}
@@ -2367,73 +2427,79 @@
       isObstructed={isObstructingHUD}
     />
 
-    <!-- Zoom Controls -->
-    <div
-      class="absolute bottom-2 right-2 flex flex-col gap-1 z-30 bg-white/80 dark:bg-neutral-800/80 p-1 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
-    >
-      {#if isDirty}
-        <button
-          class="w-7 h-7 flex items-center justify-center rounded transition-colors {isDiffMode
-            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
-            : 'hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200'}"
-          onclick={toggleDiff}
-          aria-label={isDiffMode ? "Exit Visual Diff" : "Toggle Visual Diff"}
-          title={isDiffMode ? "Exit Diff Mode" : "Compare with Saved"}
-        >
-          {#if $isLoadingDiff}
-            <SpinnerIcon className="animate-spin w-4 h-4" />
-          {:else}
-            <!-- Diff Icon -->
-            <DocumentIcon className="w-4 h-4" />
+    {#if isDirty || !settings.lockFieldView}
+      <!-- Zoom Controls -->
+      <div
+        class="absolute bottom-2 right-2 flex flex-col gap-1 z-30 bg-white/80 dark:bg-neutral-800/80 p-1 rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
+      >
+        {#if isDirty}
+          <button
+            class="w-7 h-7 flex items-center justify-center rounded transition-colors {isDiffMode
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50'
+              : 'hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200'}"
+            onclick={toggleDiff}
+            aria-label={isDiffMode ? "Exit Visual Diff" : "Toggle Visual Diff"}
+            title={isDiffMode ? "Exit Diff Mode" : "Compare with Saved"}
+          >
+            {#if $isLoadingDiff}
+              <SpinnerIcon className="animate-spin w-4 h-4" />
+            {:else}
+              <!-- Diff Icon -->
+              <DocumentIcon className="w-4 h-4" />
+            {/if}
+          </button>
+          {#if !settings.lockFieldView}
+            <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
           {/if}
-        </button>
-        <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
-      {/if}
-      <button
-        class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-        onclick={() => {
-          followRobotStore.set(false);
-          const step = computeZoomStep(zoom, 1);
-          const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
-          const focus = isMouseOverField
-            ? { x: x(currentMouseX), y: y(currentMouseY) }
-            : { x: width / 2, y: height / 2 };
-          zoomTo(newZoom, focus);
-        }}
-        aria-label="Zoom in"
-        title="Zoom In (Cmd/Ctrl + +)"
-      >
-        <PlusIcon className="w-4 h-4" />
-      </button>
-      <button
-        class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-        onclick={() => {
-          followRobotStore.set(false);
-          const step = computeZoomStep(zoom, -1);
-          const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
-          const focus = isMouseOverField
-            ? { x: x(currentMouseX), y: y(currentMouseY) }
-            : { x: width / 2, y: height / 2 };
-          zoomTo(newZoom, focus);
-        }}
-        aria-label="Zoom out"
-        title="Zoom Out (Cmd/Ctrl + -)"
-      >
-        <MinusIcon className="w-4 h-4" />
-      </button>
-      <button
-        class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-        onclick={() => {
-          followRobotStore.set(false);
-          fieldZoom.set(1.0);
-          fieldPan.set({ x: 0, y: 0 });
-        }}
-        aria-label="Reset zoom"
-        title="Reset Zoom (Cmd/Ctrl + 0)"
-      >
-        <ResetZoomIcon className="w-4 h-4" />
-      </button>
-    </div>
+        {/if}
+        {#if !settings.lockFieldView}
+          <button
+            class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              const step = computeZoomStep(zoom, 1);
+              const newZoom = Math.min(5, Number((zoom + step).toFixed(2)));
+              const focus = isMouseOverField
+                ? { x: x(currentMouseX), y: y(currentMouseY) }
+                : { x: width / 2, y: height / 2 };
+              zoomTo(newZoom, focus);
+            }}
+            aria-label="Zoom in"
+            title="Zoom In (Cmd/Ctrl + +)"
+          >
+            <PlusIcon className="w-4 h-4" />
+          </button>
+          <button
+            class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              const step = computeZoomStep(zoom, -1);
+              const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
+              const focus = isMouseOverField
+                ? { x: x(currentMouseX), y: y(currentMouseY) }
+                : { x: width / 2, y: height / 2 };
+              zoomTo(newZoom, focus);
+            }}
+            aria-label="Zoom out"
+            title="Zoom Out (Cmd/Ctrl + -)"
+          >
+            <MinusIcon className="w-4 h-4" />
+          </button>
+          <button
+            class="w-7 h-7 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              fieldZoom.set(1);
+              fieldPan.set({ x: 0, y: 0 });
+            }}
+            aria-label="Reset zoom"
+            title="Reset Zoom (Cmd/Ctrl + 0)"
+          >
+            <ResetZoomIcon className="w-4 h-4" />
+          </button>
+        {/if}
+      </div>
+    {/if}
   {/if}
 
   {#if $isPresentationMode}
@@ -2444,51 +2510,53 @@
       <div
         class="flex flex-col gap-1 bg-white/90 dark:bg-neutral-800/90 p-1.5 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 backdrop-blur-sm"
       >
-        <button
-          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-          onclick={() => {
-            followRobotStore.set(false);
-            const step = computeZoomStep(zoom, 1);
-            const newZoom = Math.min(5.0, Number((zoom + step).toFixed(2)));
-            const focus = isMouseOverField
-              ? { x: x(currentMouseX), y: y(currentMouseY) }
-              : { x: width / 2, y: height / 2 };
-            zoomTo(newZoom, focus);
-          }}
-          aria-label="Zoom in"
-          title="Zoom In"
-        >
-          <PlusIcon className="w-5 h-5" />
-        </button>
-        <button
-          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-          onclick={() => {
-            followRobotStore.set(false);
-            const step = computeZoomStep(zoom, -1);
-            const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
-            const focus = isMouseOverField
-              ? { x: x(currentMouseX), y: y(currentMouseY) }
-              : { x: width / 2, y: height / 2 };
-            zoomTo(newZoom, focus);
-          }}
-          aria-label="Zoom out"
-          title="Zoom Out"
-        >
-          <MinusIcon className="w-5 h-5" />
-        </button>
-        <button
-          class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
-          onclick={() => {
-            followRobotStore.set(false);
-            fieldZoom.set(1.0);
-            fieldPan.set({ x: 0, y: 0 });
-          }}
-          aria-label="Reset zoom"
-          title="Reset Zoom"
-        >
-          <ResetZoomIcon className="w-5 h-5" />
-        </button>
-        <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
+        {#if !settings.lockFieldView}
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              const step = computeZoomStep(zoom, 1);
+              const newZoom = Math.min(5, Number((zoom + step).toFixed(2)));
+              const focus = isMouseOverField
+                ? { x: x(currentMouseX), y: y(currentMouseY) }
+                : { x: width / 2, y: height / 2 };
+              zoomTo(newZoom, focus);
+            }}
+            aria-label="Zoom in"
+            title="Zoom In"
+          >
+            <PlusIcon className="w-5 h-5" />
+          </button>
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              const step = computeZoomStep(zoom, -1);
+              const newZoom = Math.max(0.1, Number((zoom - step).toFixed(2)));
+              const focus = isMouseOverField
+                ? { x: x(currentMouseX), y: y(currentMouseY) }
+                : { x: width / 2, y: height / 2 };
+              zoomTo(newZoom, focus);
+            }}
+            aria-label="Zoom out"
+            title="Zoom Out"
+          >
+            <MinusIcon className="w-5 h-5" />
+          </button>
+          <button
+            class="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 transition-colors"
+            onclick={() => {
+              followRobotStore.set(false);
+              fieldZoom.set(1);
+              fieldPan.set({ x: 0, y: 0 });
+            }}
+            aria-label="Reset zoom"
+            title="Reset Zoom"
+          >
+            <ResetZoomIcon className="w-5 h-5" />
+          </button>
+          <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-0.5"></div>
+        {/if}
         <button
           class="w-8 h-8 flex items-center justify-center rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
           onclick={() => isPresentationMode.set(false)}

@@ -24,9 +24,9 @@ describe("animation", () => {
   const simpleTimeline: TimelineEvent[] = [
     {
       type: "travel",
-      duration: 1.0,
+      duration: 1,
       startTime: 0,
-      endTime: 1.0,
+      endTime: 1,
       lineIndex: 0,
     },
   ];
@@ -72,9 +72,9 @@ describe("animation", () => {
       const waitTimeline: TimelineEvent[] = [
         {
           type: "wait",
-          duration: 1.0,
+          duration: 1,
           startTime: 0,
-          endTime: 1.0,
+          endTime: 1,
           atPoint: { x: 5, y: 5 },
           startHeading: 0,
           targetHeading: 90,
@@ -102,11 +102,11 @@ describe("animation", () => {
       const profileTimeline: TimelineEvent[] = [
         {
           type: "travel",
-          duration: 1.0,
+          duration: 1,
           startTime: 0,
-          endTime: 1.0,
+          endTime: 1,
           lineIndex: 0,
-          motionProfile: [0, 1.0],
+          motionProfile: [0, 1],
           headingProfile: [0, 90], // unwrapped heading
         },
       ];

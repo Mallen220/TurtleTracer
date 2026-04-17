@@ -438,7 +438,7 @@ describe("codeExporter", () => {
           durationMs: 2000,
           eventMarkers: [
             { name: "midWait", position: 0.5 },
-            { name: "endWait", position: 1.0 },
+            { name: "endWait", position: 1 },
           ],
         } as any,
       ];

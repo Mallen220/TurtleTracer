@@ -47,7 +47,7 @@ export const fieldOverlay = derived(telemetryState, ($t) => {
 let frameCount = 0;
 
 // Only start interval if in browser environment
-if (typeof window !== "undefined") {
+if (typeof globalThis !== "undefined") {
   setInterval(() => {
     if (frameCount > 0) {
       telemetryState.update((s) => ({ ...s, fps: frameCount }));

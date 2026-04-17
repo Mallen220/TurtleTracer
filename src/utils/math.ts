@@ -3,6 +3,15 @@ import type { Line, Point } from "../types";
 
 type Point2D = { x: number; y: number };
 
+export function rotateVector(x: number, y: number, angleRad: number) {
+  const cos = Math.cos(angleRad);
+  const sin = Math.sin(angleRad);
+  return {
+    x: x * cos - y * sin,
+    y: x * sin + y * cos,
+  };
+}
+
 export function quadraticToCubic(P0: Point2D, P1: Point2D, P2: Point2D) {
   const Q1 = lerp2d(2 / 3, P0, P1);
   const Q2 = lerp2d(2 / 3, P2, P1);
@@ -13,19 +22,7 @@ export function easeInOutQuad(x: number): number {
   return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
 }
 
-export function getMousePos(evt: MouseEvent, canvas: SVGSVGElement) {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x:
-      ((evt.clientX - rect.left) / (rect.right - rect.left)) *
-      canvas.width.baseVal.value,
-    y:
-      ((evt.clientY - rect.top) / (rect.bottom - rect.top)) *
-      canvas.height.baseVal.value,
-  };
-}
-
-export function normalizeAngle(angle: number): number {
+function normalizeAngle(angle: number): number {
   return ((angle % 360) + 360) % 360;
 }
 
@@ -199,23 +196,138 @@ function getHeadingBase(
   return 0;
 }
 
+function evaluatePiecewiseSegment(
+  seg: any,
+  t: number,
+  line: Line,
+  previousPoint: Point,
+  isStart: boolean,
+): number {
+  if (seg.heading === "linear") {
+    const sDeg = seg.startDeg ?? 0;
+    const eDeg = seg.endDeg ?? 0;
+    let localT = 0;
+    if (seg.tEnd > seg.tStart) {
+      localT = (t - seg.tStart) / (seg.tEnd - seg.tStart);
+    }
+
+    const shortest = getAngularDifference(sDeg, eDeg);
+    const longest = shortest > 0 ? shortest - 360 : shortest + 360;
+
+    return transformAngle(sDeg + (seg.reverse ? longest : shortest) * localT);
+  }
+
+  if (seg.heading === "constant")
+    return transformAngle((seg.degrees ?? 0) + (seg.reverse ? 180 : 0));
+
+  let ref1: Point2D = previousPoint;
+  let ref2: Point2D = line.endPoint;
+
+  if (isStart) {
+    if (seg.heading === "tangential" && line.controlPoints?.length > 0) {
+      ref2 =
+        getFirstValidControlPoint(line.controlPoints, previousPoint) || ref2;
+    } else if (seg.heading === "facingPoint") {
+      const tx = seg.targetX || 0;
+      const ty = seg.targetY || 0;
+      // Piecewise start always uses t=0 for geometry lookup
+      const pos = previousPoint;
+      let angle = Math.atan2(ty - pos.y, tx - pos.x) * (180 / Math.PI);
+      if (seg.reverse) angle += 180;
+      return transformAngle(angle);
+    }
+    return getHeadingBase(seg, previousPoint, ref2);
+  } else {
+    if (seg.heading === "tangential" && line.controlPoints?.length > 0) {
+      ref1 =
+        getFirstValidControlPoint(line.controlPoints, line.endPoint, true) ||
+        ref1;
+    } else if (seg.heading === "facingPoint") {
+      const tx = seg.targetX || 0;
+      const ty = seg.targetY || 0;
+      const pos = line.endPoint;
+      let angle = Math.atan2(ty - pos.y, tx - pos.x) * (180 / Math.PI);
+      if (seg.reverse) angle += 180;
+      return transformAngle(angle);
+    }
+    return getHeadingBase(
+      seg,
+      seg.heading === "facingPoint" ? line.endPoint : ref1,
+      line.endPoint,
+    );
+  }
+}
+
+function getEffectiveHeadingSource(line: Line, globalOverride?: Line) {
+  const isGlobal =
+    globalOverride?.globalHeading && globalOverride.globalHeading !== "none";
+
+  return {
+    isGlobal,
+    effectiveSource: isGlobal
+      ? {
+          heading: globalOverride!.globalHeading,
+          degrees: globalOverride!.globalDegrees,
+          startDeg: globalOverride!.globalStartDeg,
+          endDeg: globalOverride!.globalEndDeg,
+          targetX: globalOverride!.globalTargetX,
+          targetY: globalOverride!.globalTargetY,
+          reverse: globalOverride!.globalReverse,
+          segments: globalOverride!.globalSegments,
+        }
+      : line.endPoint,
+  };
+}
+
 export function getLineStartHeading(
   line: Line | undefined,
   previousPoint: Point,
+  globalOverride?: Line,
+  totalChainDistance?: number,
+  distanceBefore?: number,
 ): number {
-  if (!line || !line.endPoint) return 0;
-  if (line.endPoint.heading === "linear") return line.endPoint.startDeg;
+  if (!line?.endPoint) return 0;
+
+  const { isGlobal, effectiveSource } = getEffectiveHeadingSource(
+    line,
+    globalOverride,
+  );
+
+  if (effectiveSource.heading === "linear")
+    return (effectiveSource as any).startDeg;
+
+  if (effectiveSource.heading === "piecewise") {
+    const segments = (effectiveSource as any).segments || [];
+    const t =
+      isGlobal && totalChainDistance && totalChainDistance > 0
+        ? (distanceBefore || 0) / totalChainDistance
+        : 0;
+
+    let activeSeg = null;
+    for (const seg of segments) {
+      if (t >= seg.tStart && t <= seg.tEnd) {
+        activeSeg = seg;
+        break;
+      }
+    }
+    if (!activeSeg && segments.length > 0) activeSeg = segments[0];
+
+    if (activeSeg) {
+      return evaluatePiecewiseSegment(activeSeg, t, line, previousPoint, true);
+    }
+    return 0;
+  }
 
   let nextP: Point2D = line.endPoint;
   if (
-    line.endPoint.heading === "tangential" &&
+    effectiveSource.heading === "tangential" &&
     line.controlPoints?.length > 0
   ) {
     nextP =
       getFirstValidControlPoint(line.controlPoints, previousPoint) || nextP;
   }
 
-  return getHeadingBase(line.endPoint, previousPoint, nextP);
+  return getHeadingBase(effectiveSource as any, previousPoint, nextP);
 }
 
 export function getInitialTangentialHeading(
@@ -229,13 +341,46 @@ export function getInitialTangentialHeading(
 export function getLineEndHeading(
   line: Line | undefined,
   previousPoint: Point,
+  globalOverride?: Line,
+  totalChainDistance?: number,
+  distanceAtEnd?: number,
 ): number {
-  if (!line || !line.endPoint) return 0;
-  if (line.endPoint.heading === "linear") return line.endPoint.endDeg;
+  if (!line?.endPoint) return 0;
+
+  const { isGlobal, effectiveSource } = getEffectiveHeadingSource(
+    line,
+    globalOverride,
+  );
+
+  if (effectiveSource.heading === "linear")
+    return (effectiveSource as any).endDeg;
+
+  if (effectiveSource.heading === "piecewise") {
+    const segments = (effectiveSource as any).segments || [];
+    const t =
+      isGlobal && totalChainDistance && totalChainDistance > 0
+        ? (distanceAtEnd || 0) / totalChainDistance
+        : 1;
+
+    let lastSeg = null;
+    for (const seg of segments) {
+      if (t >= seg.tStart && t <= seg.tEnd) {
+        lastSeg = seg;
+        break;
+      }
+    }
+    if (!lastSeg && segments.length > 0)
+      lastSeg = segments[segments.length - 1];
+
+    if (lastSeg) {
+      return evaluatePiecewiseSegment(lastSeg, t, line, previousPoint, false);
+    }
+    return 0;
+  }
 
   let prevP: Point2D = previousPoint;
   if (
-    line.endPoint.heading === "tangential" &&
+    effectiveSource.heading === "tangential" &&
     line.controlPoints?.length > 0
   ) {
     prevP =
@@ -244,28 +389,8 @@ export function getLineEndHeading(
   }
 
   return getHeadingBase(
-    line.endPoint,
-    line.endPoint.heading === "facingPoint" ? line.endPoint : prevP,
+    effectiveSource as any,
+    effectiveSource.heading === "facingPoint" ? line.endPoint : prevP,
     line.endPoint,
   );
-}
-
-function getViewportDimension(
-  percent: number,
-  clientProp: "clientHeight" | "clientWidth",
-  innerProp: "innerHeight" | "innerWidth",
-) {
-  const val = Math.max(
-    document.documentElement[clientProp],
-    window[innerProp] || 0,
-  );
-  return (percent * val) / 100;
-}
-
-export function vh(percent: number) {
-  return getViewportDimension(percent, "clientHeight", "innerHeight");
-}
-
-export function vw(percent: number) {
-  return getViewportDimension(percent, "clientWidth", "innerWidth");
 }

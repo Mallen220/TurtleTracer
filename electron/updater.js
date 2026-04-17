@@ -1,8 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { app, shell } from "electron";
-import * as fs from "fs";
-import * as path from "path";
-import { spawn, spawnSync } from "child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { spawn } from "node:child_process";
+
+const SAFE_PATH = "/usr/bin:/bin:/usr/sbin:/sbin";
 
 class AppUpdater {
   constructor(mainWindow) {
@@ -37,7 +39,7 @@ class AppUpdater {
       }
 
       const releaseData = await response.json();
-      const latestVersion = releaseData.tag_name.replace("v", "");
+      const latestVersion = releaseData.tag_name.replaceAll("v", "");
 
       console.log(`Current: ${this.currentVersion}, Latest: ${latestVersion}`);
 
@@ -86,9 +88,7 @@ class AppUpdater {
 
   loadSkippedVersions() {
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       if (fs.existsSync(this.updaterSettingsPath)) {
-        // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
         const data = fs.readFileSync(this.updaterSettingsPath, "utf8");
         const settings = JSON.parse(data);
         return settings.skippedVersions || [];
@@ -105,7 +105,7 @@ class AppUpdater {
         skippedVersions: skippedVersions,
         lastUpdated: new Date().toISOString(),
       };
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+
       fs.writeFileSync(
         this.updaterSettingsPath,
         JSON.stringify(settings, null, 2),
@@ -118,8 +118,8 @@ class AppUpdater {
   async showUpdateAvailableDialog(releaseData, delay = 3000) {
     // Wait a bit for the main window to be fully ready
     setTimeout(() => {
-      const version = releaseData.tag_name.replace("v", "");
-      if (this.mainWindow && this.mainWindow.webContents) {
+      const version = releaseData.tag_name.replaceAll("v", "");
+      if (this?.mainWindow?.webContents) {
         this.mainWindow.webContents.send("update-available", {
           version: version,
           releaseNotes: releaseData.body,
@@ -145,13 +145,19 @@ class AppUpdater {
         shell.openExternal(downloadUrl);
       } else if (process.platform === "darwin") {
         const command =
-          "curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash";
+          "/usr/bin/curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | /bin/bash";
         const appleScript = `tell application "Terminal" to do script "${command}"`;
-        spawn("osascript", ["-e", appleScript]);
-        spawn("osascript", ["-e", 'tell application "Terminal" to activate']);
+        spawn("/usr/bin/osascript", ["-e", appleScript], {
+          env: { ...process.env, PATH: SAFE_PATH },
+        });
+        spawn(
+          "/usr/bin/osascript",
+          ["-e", 'tell application "Terminal" to activate'],
+          { env: { ...process.env, PATH: SAFE_PATH } },
+        );
       } else if (process.platform === "linux") {
         const command =
-          "curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash";
+          "/usr/bin/curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | /bin/bash";
         if (!this.openTerminalLinux(command)) {
           // Fallback
           shell.openExternal(releasesUrl);
@@ -170,20 +176,20 @@ class AppUpdater {
     // Try to find a terminal emulator and run the command
     const terminals = [
       {
-        cmd: "gnome-terminal",
-        args: ["--", "bash", "-c", command],
+        cmd: "/usr/bin/gnome-terminal",
+        args: ["--", "/bin/bash", "-c", command],
       },
       {
-        cmd: "x-terminal-emulator",
-        args: ["-e", "bash", "-c", command],
+        cmd: "/usr/bin/x-terminal-emulator",
+        args: ["-e", "/bin/bash", "-c", command],
       },
       {
-        cmd: "konsole",
-        args: ["-e", "bash", "-c", command],
+        cmd: "/usr/bin/konsole",
+        args: ["-e", "/bin/bash", "-c", command],
       },
       {
-        cmd: "xterm",
-        args: ["-e", "bash", "-c", command],
+        cmd: "/usr/bin/xterm",
+        args: ["-e", "/bin/bash", "-c", command],
       },
     ];
 
@@ -197,13 +203,17 @@ class AppUpdater {
 
   trySpawnLinux(terminal, args) {
     try {
-      // Check if the terminal executable exists
-      if (spawnSync("which", [terminal]).status === 0) {
-        spawn(terminal, args, { detached: true, stdio: "ignore" }).unref();
-        return true;
-      }
-    } catch (e) {
-      // Ignore errors (e.g. if 'which' fails)
+      // Check if the terminal executable exists and can be executed.
+      fs.accessSync(terminal, fs.constants.X_OK);
+      spawn(terminal, args, {
+        detached: true,
+        stdio: "ignore",
+        env: { ...process.env, PATH: SAFE_PATH },
+      }).unref();
+      return true;
+    } catch {
+      // Ignore errors (e.g. terminal missing or not executable)
+      console.log("e.g. terminal missing or not executable");
     }
     return false;
   }

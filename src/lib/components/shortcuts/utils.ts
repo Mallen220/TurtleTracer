@@ -42,7 +42,6 @@ export function shouldBlockShortcut(
     actionId === "save-file-as" ||
     actionId === "undo" ||
     actionId === "redo" ||
-    actionId === "play-pause" ||
     actionId === "open-settings" ||
     actionId === "toggle-sidebar"
   )
@@ -73,7 +72,7 @@ export function getSelectedSequenceIndex(): number | null {
 
   // Selected item is a wait
   if (sel.startsWith("wait-")) {
-    const wid = sel.substring(5);
+    const wid = sel.slice(5);
     const idx = seq.findIndex(
       (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === wid,
     );
@@ -82,7 +81,7 @@ export function getSelectedSequenceIndex(): number | null {
 
   // Selected item is a rotate
   if (sel.startsWith("rotate-")) {
-    const rid = sel.substring(7);
+    const rid = sel.slice(7);
     const idx = seq.findIndex(
       (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rid,
     );

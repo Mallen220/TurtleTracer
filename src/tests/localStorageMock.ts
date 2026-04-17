@@ -3,7 +3,7 @@ import { vi } from "vitest";
 
 export function setupLocalStorageMock() {
   const storage: Record<string, string> = {};
-  Object.defineProperty(window, "localStorage", {
+  Object.defineProperty(globalThis, "localStorage", {
     value: {
       getItem: vi.fn((key: string) => storage[key] || null),
       setItem: vi.fn((key: string, value: string) => {

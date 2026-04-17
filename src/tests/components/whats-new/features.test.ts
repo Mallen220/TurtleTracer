@@ -33,5 +33,4 @@ describe("features module", () => {
       expect(latest).toBe(mod.features[0]?.id);
     }
   });
-
 });

@@ -94,7 +94,9 @@
             return;
 
           try {
-            const content = await window.electronAPI.readFile(filePath);
+            const content = await (globalThis as any).electronAPI.readFile(
+              filePath,
+            );
             const data = JSON.parse(content);
             if (data.startPoint && Array.isArray(data.lines)) {
               previews[filePath] = {
@@ -230,7 +232,9 @@
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return (
+      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+    );
   }
 
   function isToday(date: Date): boolean {
@@ -435,7 +439,7 @@
   run(() => {
     if (renamingFile) {
       if (renamingFile.path !== lastRenamingPath) {
-        renameInput = renamingFile.name.replace(/\.(pp|turt)$/i, "");
+        renameInput = renamingFile.name.replaceAll(/\.(pp|turt)$/gi, "");
         lastRenamingPath = renamingFile.path;
       }
     } else {
@@ -641,7 +645,7 @@
                 class="text-xs font-medium text-neutral-900 dark:text-neutral-100 truncate w-full px-1"
                 title={file.name}
               >
-                {file.name.replace(/\.(pp|turt)$/i, "")}
+                {file.name.replaceAll(/\.(pp|turt)$/gi, "")}
               </div>
               {#if file.error}
                 <div class="text-[10px] text-red-500 truncate">

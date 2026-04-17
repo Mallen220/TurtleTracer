@@ -42,6 +42,7 @@
     availableCommands,
     isDrawingMode,
   } from "../../stores";
+  import type { FileInfo } from "../../types";
   // keep a local binding for the update-available store
   const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import {
@@ -53,6 +54,10 @@
     playingStore,
     playbackSpeedStore,
     robotProfilesStore,
+    loopAnimationStore,
+    loopRangeActiveStore,
+    loopRangeStore,
+    percentStore,
   } from "../projectStore";
 
   import { loadFile, loadRecentFile } from "../../utils/fileHandlers";
@@ -89,6 +94,9 @@
     toggleHeadingMode,
     toggleReverse,
     toggleLock,
+    togglePathChain,
+    togglePiecewise,
+    toggleGlobalHeading,
   } from "./shortcuts/properties";
   import {
     cycleGridSize,
@@ -187,15 +195,19 @@
   }[] = $state([]);
 
   async function fetchFiles() {
-    if (!window.electronAPI) return;
+    if (!(globalThis as any).electronAPI) return;
     try {
-      let dir: string | null = await window.electronAPI.getSavedDirectory();
-      if (!dir) dir = await window.electronAPI.getDirectory();
+      let dir: string | null = await (
+        globalThis as any
+      ).electronAPI.getSavedDirectory();
+      if (!dir) dir = await (globalThis as any).electronAPI.getDirectory();
       if (dir) {
-        const files = await window.electronAPI.listFiles(dir);
+        const files: FileInfo[] = await (
+          globalThis as any
+        ).electronAPI.listFiles(dir);
         fileCommands = files
-          .filter((f) => isSupportedProjectFileName(f.name))
-          .map((f) => ({
+          .filter((f: FileInfo) => isSupportedProjectFileName(f.name))
+          .map((f: FileInfo) => ({
             id: `file-${f.name}`,
             label: `Open File: ${f.name}`,
             action: () => loadRecentFile(f.path),
@@ -232,7 +244,7 @@
     cut: () =>
       cut(activeControlTab, controlTabRef, () => removeSelected(recordChange)),
     paste: () => paste(recordChange),
-    splitPath: () => splitPath && splitPath(),
+    splitPath: () => splitPath?.(),
     removeSelected: () => removeSelected(recordChange),
     undo: () => undoAction(),
     redo: () => redoAction(),
@@ -252,6 +264,9 @@
     toggleHeadingMode: () => toggleHeadingMode(recordChange),
     toggleReverse: () => toggleReverse(recordChange),
     toggleLock: () => toggleLock(recordChange),
+    togglePathChain: () => togglePathChain(recordChange),
+    togglePiecewise: () => togglePiecewise(recordChange),
+    toggleGlobalHeading: () => toggleGlobalHeading(recordChange),
     toggleOnion: () =>
       settingsStore.update((s) => ({
         ...s,
@@ -267,24 +282,35 @@
     increasePlaybackSpeed: () => changePlaybackSpeedBy(0.25, play),
     decreasePlaybackSpeed: () => changePlaybackSpeedBy(-0.25, play),
     resetPlaybackSpeed: () => resetPlaybackSpeed(),
+    toggleLoop: () => loopAnimationStore.update((v) => !v),
+    toggleSectionLoop: () => {
+      let currentActive = false;
+      loopRangeActiveStore.subscribe((v) => (currentActive = v))();
+      const newVal = !currentActive;
+      loopRangeActiveStore.set(newVal);
+      if (newVal) {
+        let currentPercent = 0;
+        percentStore.subscribe((v) => (currentPercent = v))();
+        loopRangeStore.set([Math.floor(currentPercent), 100]);
+      }
+    },
     toggleProtractor: () => showProtractor.update((v) => !v),
     optimizeStart: () => {
-      if (controlTabRef?.openAndStartOptimization)
-        controlTabRef.openAndStartOptimization();
+      controlTabRef?.openAndStartOptimization?.();
     },
     optimizeStop: () => {
       if (controlTabRef?.getOptimizationStatus?.().isRunning)
-        controlTabRef.stopOptimization();
+        controlTabRef?.stopOptimization?.();
     },
     optimizeApply: () => {
       const status = controlTabRef?.getOptimizationStatus?.();
       if (status?.optimizedLines && !status.optimizationFailed)
-        controlTabRef.applyOptimization();
+        controlTabRef?.applyOptimization?.();
     },
     optimizeDiscard: () => {
       const status = controlTabRef?.getOptimizationStatus?.();
       if (status?.optimizedLines || status?.optimizationFailed)
-        controlTabRef.discardOptimization();
+        controlTabRef?.discardOptimization?.();
     },
     optimizeRetry: () => {
       const status = controlTabRef?.getOptimizationStatus?.();
@@ -292,7 +318,7 @@
         !status?.isRunning &&
         (status?.optimizedLines || status?.optimizationFailed)
       )
-        controlTabRef.retryOptimization();
+        controlTabRef?.retryOptimization?.();
     },
     selectTabPaths: () => (activeControlTab = "path"),
     selectTabField: () => (activeControlTab = "field"),
@@ -305,12 +331,10 @@
         const idx = tabs.indexOf(current);
         const next = tabs[(idx + 1) % tabs.length];
         settingsActiveTab.set(next);
-      } else {
-        if (activeControlTab === "path") activeControlTab = "field";
-        else if (activeControlTab === "field") activeControlTab = "table";
-        else if (activeControlTab === "table") activeControlTab = "code";
-        else activeControlTab = "path";
-      }
+      } else if (activeControlTab === "path") activeControlTab = "field";
+      else if (activeControlTab === "field") activeControlTab = "table";
+      else if (activeControlTab === "table") activeControlTab = "code";
+      else activeControlTab = "path";
     },
     cycleTabPrev: () => {
       if ($showSettings) {
@@ -319,36 +343,32 @@
         const idx = tabs.indexOf(current);
         const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
         settingsActiveTab.set(prev);
-      } else {
-        if (activeControlTab === "path") activeControlTab = "code";
-        else if (activeControlTab === "code") activeControlTab = "table";
-        else if (activeControlTab === "table") activeControlTab = "field";
-        else activeControlTab = "path";
-      }
+      } else if (activeControlTab === "path") activeControlTab = "code";
+      else if (activeControlTab === "code") activeControlTab = "table";
+      else if (activeControlTab === "table") activeControlTab = "field";
+      else activeControlTab = "path";
     },
     toggleCollapseAll: () => toggleCollapseAllTrigger.update((v) => v + 1),
     toggleCollapseSelected: () => {
       if (isUIElementFocused()) return;
-      if (controlTabRef && controlTabRef.toggleCollapseSelected) {
-        controlTabRef.toggleCollapseSelected();
-      }
+      controlTabRef?.toggleCollapseSelected?.();
     },
     showHelp: () => showShortcuts.update((v) => !v),
     openSettings: () => showSettings.update((v) => !v),
     openWhatsNew: () => {
-      if (openWhatsNew) openWhatsNew();
+      openWhatsNew?.();
     },
     toggleCommandPalette: () => {
       showCommandPalette = !showCommandPalette;
     },
     toggleStats: () => {
-      if (toggleStats) toggleStats();
+      toggleStats?.();
     },
     toggleSidebar: () => {
-      if (toggleSidebar) toggleSidebar();
+      toggleSidebar?.();
     },
     toggleControlTab: () => {
-      if (toggleControlTab) toggleControlTab();
+      toggleControlTab?.();
     },
     toggleDraw: () => {
       isDrawingMode.update((v) => !v);
@@ -483,27 +503,24 @@
     // New Actions
     moveItemUp: () => {
       const idx = getSelectedSequenceIndex();
-      if (idx !== null && controlTabRef && controlTabRef.moveSequenceItem) {
-        controlTabRef.moveSequenceItem(idx, -1);
+      if (idx !== null) {
+        controlTabRef?.moveSequenceItem?.(idx, -1);
       }
     },
     moveItemDown: () => {
       const idx = getSelectedSequenceIndex();
-      if (idx !== null && controlTabRef && controlTabRef.moveSequenceItem) {
-        controlTabRef.moveSequenceItem(idx, 1);
+      if (idx !== null) {
+        controlTabRef?.moveSequenceItem?.(idx, 1);
       }
     },
     addPathAtStart: () => {
-      if (controlTabRef && controlTabRef.addPathAtStart)
-        controlTabRef.addPathAtStart();
+      controlTabRef?.addPathAtStart?.();
     },
     addWaitAtStart: () => {
-      if (controlTabRef && controlTabRef.addWaitAtStart)
-        controlTabRef.addWaitAtStart();
+      controlTabRef?.addWaitAtStart?.();
     },
     addRotateAtStart: () => {
-      if (controlTabRef && controlTabRef.addRotateAtStart)
-        controlTabRef.addRotateAtStart();
+      controlTabRef?.addRotateAtStart?.();
     },
     validatePath: () => {
       validatePath(startPoint, lines, settings, sequence, shapes);
@@ -590,7 +607,7 @@
       const url =
         "https://www.turtletracer.com/turtle-tracer-lib/installation/";
 
-      const api = (window as any).electronAPI;
+      const api = (globalThis as any).electronAPI;
       if (api && api.openExternal) {
         api.openExternal(url);
       } else {
@@ -600,7 +617,7 @@
     reportIssue: () => {
       const url = "https://github.com/Mallen220/TurtleTracer/issues";
 
-      const api = (window as any).electronAPI;
+      const api = (globalThis as any).electronAPI;
       if (api && api.openExternal) {
         api.openExternal(url);
       } else {
@@ -608,7 +625,7 @@
       }
     },
     checkForUpdates: () => {
-      const api = (window as any).electronAPI;
+      const api = (globalThis as any).electronAPI;
       if (api && api.checkForUpdates) {
         api
           .checkForUpdates()
@@ -620,8 +637,11 @@
       }
     },
     setFileManagerDirectory: async () => {
-      if (window.electronAPI && window.electronAPI.setDirectory) {
-        await window.electronAPI.setDirectory();
+      if (
+        (globalThis as any).electronAPI &&
+        (globalThis as any).electronAPI.setDirectory
+      ) {
+        await (globalThis as any).electronAPI.setDirectory();
         // Optionally refresh files after setting directory
         fetchFiles();
       }
@@ -639,7 +659,7 @@
       }
     },
     resetSettings: () => {
-      settingsStore.set(structuredClone(DEFAULT_SETTINGS));
+      settingsStore.set({ ...DEFAULT_SETTINGS });
     },
     cycleTheme: () => {
       settingsStore.update((s) => {
@@ -676,19 +696,13 @@
         showRobotArrows: !s.showRobotArrows,
       })),
     copyCode: () => {
-      if (controlTabRef && controlTabRef.copyCode) {
-        controlTabRef.copyCode();
-      }
+      controlTabRef?.copyCode?.();
     },
     copyTable: () => {
-      if (controlTabRef && controlTabRef.copyTable) {
-        controlTabRef.copyTable();
-      }
+      controlTabRef?.copyTable?.();
     },
     downloadJava: () => {
-      if (controlTabRef && controlTabRef.downloadJava) {
-        controlTabRef.downloadJava();
-      }
+      controlTabRef?.downloadJava?.();
     },
     cycleRobotProfile: () => {
       const profiles = get(robotProfilesStore);
@@ -742,6 +756,17 @@
           timeout: 1500,
         });
         return { ...s, followRobot: newVal };
+      });
+    },
+    toggleLockFieldView: () => {
+      settingsStore.update((s) => {
+        const newVal = !s.lockFieldView;
+        notification.set({
+          message: `Lock Field View: ${newVal ? "On" : "Off"}`,
+          type: "info",
+          timeout: 1500,
+        });
+        return { ...s, lockFieldView: newVal };
       });
     },
     focusPathList: () => {
@@ -805,9 +830,7 @@
         action: () => {
           selectedPointId.set(`wait-${s.id}`);
           selectedLineId.set(null);
-          if (controlTabRef && controlTabRef.scrollToItem) {
-            controlTabRef.scrollToItem("wait", s.id);
-          }
+          controlTabRef?.scrollToItem?.("wait", s.id);
         },
       })),
   );
@@ -822,9 +845,7 @@
         action: () => {
           selectedPointId.set(`rotate-${s.id}`);
           selectedLineId.set(null);
-          if (controlTabRef && controlTabRef.scrollToItem) {
-            controlTabRef.scrollToItem("rotate", s.id);
-          }
+          controlTabRef?.scrollToItem?.("rotate", s.id);
         },
       })),
   );
@@ -841,9 +862,7 @@
               label: m.name ? `Event: ${m.name}` : `Event (Path ${lIdx + 1})`,
               category: "Event Marker",
               action: () => {
-                if (controlTabRef && controlTabRef.scrollToItem) {
-                  controlTabRef.scrollToItem("event", m.id);
-                }
+                controlTabRef?.scrollToItem?.("event", m.id);
               },
             });
           });
@@ -861,9 +880,7 @@
                 label: m.name ? `Event: ${m.name}` : `Event (${def.label})`,
                 category: "Event Marker",
                 action: () => {
-                  if (controlTabRef && controlTabRef.scrollToItem) {
-                    controlTabRef.scrollToItem("event", m.id);
-                  }
+                  controlTabRef?.scrollToItem?.("event", m.id);
                 },
               });
             });
@@ -901,14 +918,12 @@
       const cmdId = $executeCommandBus;
       executeCommandBus.set(null);
       const cmd = paletteCommands.find((c) => c.id === cmdId);
-      if (cmd && cmd.action) {
-        cmd.action();
-      }
+      cmd?.action?.();
     }
   });
 
   run(() => {
-    if (settings && settings.keyBindings) {
+    if (settings?.keyBindings) {
       hotkeys.unbind();
 
       // Bind all actions defined in settings

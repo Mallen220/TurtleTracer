@@ -1,8 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import fs from "fs";
-import path from "path";
-import { execSync } from "child_process";
-import { fileURLToPath } from "url";
+import fs from "node:fs";
+import path from "node:path";
+import { execSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -39,13 +39,13 @@ async function run() {
 
     // Run jscpd
     // Execute jscpd
-    // We restrict to typescript and javascript as per .codacy.yaml to match the expected count
+    // We restrict to typescript and javascript as per ..yaml to match the expected count
     try {
       execSync(
         `npx jscpd src --reporters json --output tmp/jscpd --threshold 0 --min-tokens 40 --format typescript,javascript`,
         { stdio: "pipe" },
       );
-    } catch (e) {
+    } catch {
       // jscpd returns exit code 1 if duplicates are found, which is expected
     }
 

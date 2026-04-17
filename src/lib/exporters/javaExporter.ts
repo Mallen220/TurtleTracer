@@ -105,7 +105,7 @@ export async function generateJavaCode(
   // First pass: generate unique variable names for all lines
   lines.forEach((line, idx) => {
     let baseName = line.name
-      ? line.name.replace(/[^a-zA-Z0-9]/g, "")
+      ? line.name.replaceAll(/[^a-zA-Z0-9]/g, "")
       : `line${idx + 1}`;
 
     if (usedPathNames.has(baseName)) {
@@ -254,29 +254,148 @@ export async function generateJavaCode(
               : `new BezierCurve`;
 
           let headingMethodCode = "";
-          if (line.endPoint.reverse) {
-            // Reversed: use setHeadingInterpolation(HeadingInterpolator.xxx).setReversed()
-            if (line.endPoint.heading === "constant") {
-              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.constant(${headingConfig}))\n        .setReversed()`;
-            } else if (line.endPoint.heading === "linear") {
-              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.linear(${headingConfig}))\n        .setReversed()`;
-            } else if (line.endPoint.heading === "tangential") {
-              // tangent is a field, not a method
-              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.tangent)\n        .setReversed()`;
-            } else if (line.endPoint.heading === "facingPoint") {
-              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${headingConfig}))\n        .setReversed()`;
+          let globalHeadingCode = "";
+
+          const generateInterpolatorString = (pointDef: any) => {
+            let config = "";
+            if (coordinateSystem === "FTC") {
+              if (pointDef.heading === "constant") {
+                const uh = toUserHeading(pointDef.degrees || 0, "FTC");
+                config = `Math.toRadians(${uh.toFixed(3)})`;
+              } else if (pointDef.heading === "linear") {
+                const uhStart = toUserHeading(pointDef.startDeg || 0, "FTC");
+                const uhEnd = toUserHeading(pointDef.endDeg || 0, "FTC");
+                config = `Math.toRadians(${uhStart.toFixed(3)}), Math.toRadians(${uhEnd.toFixed(3)})`;
+              } else if (pointDef.heading === "facingPoint") {
+                const uTarget = toUser(
+                  { x: pointDef.targetX || 0, y: pointDef.targetY || 0 },
+                  "FTC",
+                );
+                config = `new Pose(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)})`;
+              }
+            } else if (pointDef.heading === "constant") {
+              config = `Math.toRadians(${pointDef.degrees || 0})`;
+            } else if (pointDef.heading === "linear") {
+              config = `Math.toRadians(${pointDef.startDeg || 0}), Math.toRadians(${pointDef.endDeg || 0})`;
+            } else if (pointDef.heading === "facingPoint") {
+              const hx =
+                codeUnits === "metric"
+                  ? `cmToInches(${((pointDef.targetX || 0) * 2.54).toFixed(3)})`
+                  : (pointDef.targetX || 0).toFixed(3);
+              const hy =
+                codeUnits === "metric"
+                  ? `cmToInches(${((pointDef.targetY || 0) * 2.54).toFixed(3)})`
+                  : (pointDef.targetY || 0).toFixed(3);
+              config = `new Pose(${hx}, ${hy})`;
             }
-          } else {
-            // No reverse: use shorthand setters
-            if (line.endPoint.heading === "constant") {
-              headingMethodCode = `.setConstantHeadingInterpolation(${headingConfig})`;
-            } else if (line.endPoint.heading === "linear") {
-              headingMethodCode = `.setLinearHeadingInterpolation(${headingConfig})`;
-            } else if (line.endPoint.heading === "tangential") {
-              headingMethodCode = `.setTangentHeadingInterpolation()`;
-            } else if (line.endPoint.heading === "facingPoint") {
-              headingMethodCode = `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${headingConfig}))`;
+
+            let baseName = "";
+            if (pointDef.heading === "constant") {
+              baseName = `HeadingInterpolator.constant(${config})`;
+            } else if (pointDef.heading === "linear") {
+              baseName = `HeadingInterpolator.linear(${config})`;
+            } else if (pointDef.heading === "tangential") {
+              baseName = `HeadingInterpolator.tangent`;
+            } else if (pointDef.heading === "facingPoint") {
+              baseName = `HeadingInterpolator.facingPoint(${config})`;
             }
+
+            if (pointDef.reverse) {
+              if (pointDef.heading === "tangential")
+                return "HeadingInterpolator.reversedTangent";
+              if (pointDef.heading === "linear")
+                return `HeadingInterpolator.reversedLinear(${config})`;
+              if (pointDef.heading === "constant")
+                return `HeadingInterpolator.reversedConstant(${config})`;
+              if (pointDef.heading === "facingPoint")
+                return `HeadingInterpolator.reversedFacingPoint(${config})`;
+            }
+            return baseName;
+          };
+
+          const constructHeadingMethod = (targetConfig: any) => {
+            if (targetConfig.heading === "piecewise") {
+              const segs = targetConfig.segments || [];
+              if (segs.length === 0) {
+                return ".setTangentHeadingInterpolation()";
+              }
+              const segmentsStr = segs
+                .map((seg: any) => {
+                  const interpStr = generateInterpolatorString(seg);
+                  return `\n          new HeadingInterpolator.PiecewiseNode(${seg.tStart}, ${seg.tEnd}, ${interpStr})`;
+                })
+                .join(",");
+              return `.setHeadingInterpolation(HeadingInterpolator.piecewise(${segmentsStr}\n        ))`;
+            }
+
+            let hConfig = generateInterpolatorString(targetConfig);
+            let args = "";
+            if (hConfig.includes("(")) {
+              args = hConfig.slice(
+                hConfig.indexOf("(") + 1,
+                hConfig.lastIndexOf(")"),
+              );
+            }
+
+            if (targetConfig.reverse) {
+              if (targetConfig.heading === "constant") {
+                return `.setHeadingInterpolation(HeadingInterpolator.constant(${args}))\n        .setReversed()`;
+              } else if (targetConfig.heading === "linear") {
+                return `.setHeadingInterpolation(HeadingInterpolator.linear(${args}))\n        .setReversed()`;
+              } else if (targetConfig.heading === "tangential") {
+                return `.setHeadingInterpolation(HeadingInterpolator.tangent)\n        .setReversed()`;
+              } else if (targetConfig.heading === "facingPoint") {
+                return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))\n        .setReversed()`;
+              }
+            } else if (targetConfig.heading === "constant") {
+              return `.setConstantHeadingInterpolation(${args})`;
+            } else if (targetConfig.heading === "linear") {
+              return `.setLinearHeadingInterpolation(${args})`;
+            } else if (targetConfig.heading === "tangential") {
+              return `.setTangentHeadingInterpolation()`;
+            } else if (targetConfig.heading === "facingPoint") {
+              return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))`;
+            }
+            return "";
+          };
+
+          const isChainRoot =
+            !line.isChain && idx + 1 < lines.length && lines[idx + 1].isChain;
+          let hasGlobalHeading = false;
+          let tempIdx = idx;
+          let rootLine = line;
+          while (rootLine.isChain && tempIdx > 0) {
+            tempIdx--;
+            rootLine = lines[tempIdx];
+          }
+          if (
+            rootLine.globalHeading &&
+            rootLine.globalHeading !== ("none" as any)
+          ) {
+            hasGlobalHeading = true;
+            if (!line.isChain) {
+              const globalConfig = {
+                heading: rootLine.globalHeading,
+                reverse: rootLine.globalReverse,
+                degrees: rootLine.globalDegrees,
+                startDeg: rootLine.globalStartDeg,
+                endDeg: rootLine.globalEndDeg,
+                targetX: rootLine.globalTargetX,
+                targetY: rootLine.globalTargetY,
+                segments: rootLine.globalSegments,
+              };
+              const globalInterpStr = constructHeadingMethod(
+                globalConfig,
+              ).replaceAll(
+                /set(Constant|Linear|Tangent|Heading)Interpolation\(/g,
+                "setGlobalHeadingInterpolation(",
+              );
+              globalHeadingCode = `\n        ${globalInterpStr}`;
+            }
+          }
+
+          if (!hasGlobalHeading) {
+            headingMethodCode = constructHeadingMethod(line.endPoint);
           }
 
           // Add event markers to the path builder
@@ -291,28 +410,33 @@ export async function generateJavaCode(
             endCode,
             headingMethodCode,
             eventMarkerCode,
+            globalHeadingCode,
           };
         });
 
         // Consolidate chained paths
         const consolidatedBlocks: string[] = [];
         let currentBlock = "";
+        let currentGlobalHeadingCode = "";
 
         for (let i = 0; i < pathData.length; i++) {
           const pd = pathData[i];
 
-          if (!pd.line.isChain) {
+          if (pd.line.isChain) {
+            currentBlock += `\n        .addPath(\n          ${pd.curveType}(\n            ${pd.startCode},\n            ${pd.controlPointsCode}\n            ${pd.endCode}\n          )\n        )${pd.headingMethodCode}${pd.eventMarkerCode}`;
+          } else {
             if (currentBlock) {
+              currentBlock += currentGlobalHeadingCode;
               currentBlock += "\n        .build();";
               consolidatedBlocks.push(currentBlock);
             }
+            currentGlobalHeadingCode = pd.globalHeadingCode;
             currentBlock = `${pd.variableName} = follower.pathBuilder()\n        .addPath(\n          ${pd.curveType}(\n            ${pd.startCode},\n            ${pd.controlPointsCode}\n            ${pd.endCode}\n          )\n        )${pd.headingMethodCode}${pd.eventMarkerCode}`;
-          } else {
-            currentBlock += `\n        .addPath(\n          ${pd.curveType}(\n            ${pd.startCode},\n            ${pd.controlPointsCode}\n            ${pd.endCode}\n          )\n        )${pd.headingMethodCode}${pd.eventMarkerCode}`;
           }
         }
 
         if (currentBlock) {
+          currentBlock += currentGlobalHeadingCode;
           currentBlock += "\n        .build();";
           consolidatedBlocks.push(currentBlock);
         }
@@ -372,7 +496,7 @@ export async function generateJavaCode(
   targetSequence.forEach((item) => {
     // Check Registry
     const action = actionRegistry.get(item.kind);
-    if (action && action.toJavaCode) {
+    if (action?.toJavaCode) {
       const res = action.toJavaCode(item, { stateStep });
       stateMachineCode += res.code;
       stateStep += res.stepsUsed;
@@ -387,9 +511,13 @@ export async function generateJavaCode(
           (l.id || `line-${lines.indexOf(l) + 1}`) === (item as any).lineId,
       );
 
-      const idx = lineIndex !== -1 ? lineIndex : -1;
+      const idx = lineIndex === -1 ? -1 : lineIndex;
 
-      if (idx !== -1) {
+      if (idx === -1) {
+        stateMachineCode += `\n          setPathState(${stateStep + 1});`;
+        stateMachineCode += `\n          break;`;
+        stateStep += 1;
+      } else {
         const line = lines[idx];
         if (line.isChain) {
           // Chained paths don't get their own followPath command in the state machine,
@@ -410,10 +538,6 @@ export async function generateJavaCode(
           stateMachineCode += `\n          break;`;
           stateStep += 2;
         }
-      } else {
-        stateMachineCode += `\n          setPathState(${stateStep + 1});`;
-        stateMachineCode += `\n          break;`;
-        stateStep += 1;
       }
     }
   });
@@ -424,10 +548,7 @@ export async function generateJavaCode(
   stateMachineCode += `\n          break;`;
 
   let file = "";
-  if (!exportFullCode) {
-    file =
-      AUTO_GENERATED_FILE_WARNING_MESSAGE + pathsClass + namedCommandsSection;
-  } else {
+  if (exportFullCode) {
     // Determine imports based on telemetry implementation
     let extraImports = "";
     if (telemetryImpl === "Panels") {
@@ -620,6 +741,9 @@ export async function generateJavaCode(
       ${namedCommandsSection}
     }
     `;
+  } else {
+    file =
+      AUTO_GENERATED_FILE_WARNING_MESSAGE + pathsClass + namedCommandsSection;
   }
 
   try {

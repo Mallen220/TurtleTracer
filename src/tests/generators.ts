@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { existsSync } from "fs";
-import path from "path";
-import { createRequire } from "module";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { createRequire } from "node:module";
 
 // Only attempt to import fast-check if it's actually installed to avoid Vite
 // import-analysis failures when optional dev deps are missing.

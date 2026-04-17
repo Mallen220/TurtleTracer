@@ -7,28 +7,28 @@ describe("platform", () => {
   let originalProcessPlatform: any;
 
   beforeEach(() => {
-    originalNavigatorPlatform = global.navigator?.platform;
-    originalNavigatorUserAgent = global.navigator?.userAgent;
-    originalProcessPlatform = global.process?.platform;
+    originalNavigatorPlatform = globalThis.navigator?.platform;
+    originalNavigatorUserAgent = globalThis.navigator?.userAgent;
+    originalProcessPlatform = globalThis.process?.platform;
     vi.resetModules();
   });
 
   afterEach(() => {
-    if (global.navigator) {
-      Object.defineProperty(global.navigator, "platform", {
+    if (globalThis.navigator) {
+      Object.defineProperty(globalThis.navigator, "platform", {
         value: originalNavigatorPlatform,
         writable: true,
         configurable: true,
       });
-      Object.defineProperty(global.navigator, "userAgent", {
+      Object.defineProperty(globalThis.navigator, "userAgent", {
         value: originalNavigatorUserAgent,
         writable: true,
         configurable: true,
       });
     }
 
-    if (global.process) {
-      Object.defineProperty(global.process, "platform", {
+    if (globalThis.process) {
+      Object.defineProperty(globalThis.process, "platform", {
         value: originalProcessPlatform,
         writable: true,
         configurable: true,
@@ -38,7 +38,7 @@ describe("platform", () => {
   });
 
   it("detects Mac correctly", async () => {
-    Object.defineProperty(global.navigator, "platform", {
+    Object.defineProperty(globalThis.navigator, "platform", {
       value: "MacIntel",
       writable: true,
       configurable: true,
@@ -50,7 +50,7 @@ describe("platform", () => {
   });
 
   it("detects Windows correctly", async () => {
-    Object.defineProperty(global.navigator, "platform", {
+    Object.defineProperty(globalThis.navigator, "platform", {
       value: "Win32",
       writable: true,
       configurable: true,
@@ -62,7 +62,7 @@ describe("platform", () => {
   });
 
   it("detects browser correctly", async () => {
-    Object.defineProperty(global.navigator, "userAgent", {
+    Object.defineProperty(globalThis.navigator, "userAgent", {
       value: "Mozilla/5.0",
       writable: true,
       configurable: true,
@@ -72,7 +72,7 @@ describe("platform", () => {
   });
 
   it("detects electron correctly", async () => {
-    Object.defineProperty(global.navigator, "userAgent", {
+    Object.defineProperty(globalThis.navigator, "userAgent", {
       value: "Electron/12.0.0",
       writable: true,
       configurable: true,
@@ -82,7 +82,7 @@ describe("platform", () => {
   });
 
   it("returns process.platform if available", async () => {
-    Object.defineProperty(global.process, "platform", {
+    Object.defineProperty(globalThis.process, "platform", {
       value: "linux",
       writable: true,
       configurable: true,
@@ -92,12 +92,12 @@ describe("platform", () => {
   });
 
   it("returns navigator.platform if process.platform is not available", async () => {
-    Object.defineProperty(global.process, "platform", {
+    Object.defineProperty(globalThis.process, "platform", {
       value: undefined,
       writable: true,
       configurable: true,
     });
-    Object.defineProperty(global.navigator, "platform", {
+    Object.defineProperty(globalThis.navigator, "platform", {
       value: "Win32",
       writable: true,
       configurable: true,
@@ -107,17 +107,59 @@ describe("platform", () => {
   });
 
   it("returns unknown if neither is available", async () => {
-    Object.defineProperty(global.process, "platform", {
+    Object.defineProperty(globalThis.process, "platform", {
       value: undefined,
       writable: true,
       configurable: true,
     });
-    Object.defineProperty(global.navigator, "platform", {
+    Object.defineProperty(globalThis.navigator, "platform", {
       value: undefined,
       writable: true,
       configurable: true,
     });
     const { platform } = await import("./platform");
     expect(platform()).toBe("unknown");
+  });
+
+  it("returns navigator.platform if process is undefined", async () => {
+    const origProcess = globalThis.process;
+    const origNavigator = globalThis.navigator;
+    try {
+      // @ts-ignore
+      delete globalThis.process;
+
+      if (!globalThis.navigator) {
+        // @ts-ignore
+        globalThis.navigator = {};
+      }
+
+      Object.defineProperty(globalThis.navigator, "platform", {
+        value: "Win32",
+        writable: true,
+        configurable: true,
+      });
+      const { platform } = await import("./platform");
+      expect(platform()).toBe("Win32");
+    } finally {
+      globalThis.process = origProcess;
+      globalThis.navigator = origNavigator;
+    }
+  });
+
+  it("returns unknown if process and navigator are undefined", async () => {
+    const origProcess = globalThis.process;
+    const origNavigator = globalThis.navigator;
+    try {
+      // @ts-ignore
+      delete globalThis.process;
+      // @ts-ignore
+      delete globalThis.navigator;
+
+      const { platform } = await import("./platform");
+      expect(platform()).toBe("unknown");
+    } finally {
+      globalThis.process = origProcess;
+      globalThis.navigator = origNavigator;
+    }
   });
 });

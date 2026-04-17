@@ -16,22 +16,29 @@ describe("calculateSwerveDriveAngles", () => {
     });
   });
 
+  const expectAngles = (
+    angles: any,
+    fl: number,
+    bl: number,
+    fr: number,
+    br: number,
+  ) => {
+    expect(angles.frontLeft).toBeCloseTo(fl);
+    expect(angles.backLeft).toBeCloseTo(bl);
+    expect(angles.frontRight).toBeCloseTo(fr);
+    expect(angles.backRight).toBeCloseTo(br);
+  };
+
   it("should calculate correct angles when moving forward (0 heading)", () => {
     const angles = calculateSwerveDriveAngles(1, 0, 0, 0, rWidth, rLength);
     // Moving straight forward -> vy > 0, vx = 0 -> atan2(vy, vx) = atan2(1, 0) = 90 deg
-    expect(angles.frontLeft).toBeCloseTo(90);
-    expect(angles.backLeft).toBeCloseTo(90);
-    expect(angles.frontRight).toBeCloseTo(90);
-    expect(angles.backRight).toBeCloseTo(90);
+    expectAngles(angles, 90, 90, 90, 90);
   });
 
   it("should calculate correct angles when strafing right (0 heading)", () => {
     const angles = calculateSwerveDriveAngles(0, 1, 0, 0, rWidth, rLength);
     // Strafing right -> vx > 0, vy = 0 -> atan2(0, 1) = 0 deg
-    expect(angles.frontLeft).toBeCloseTo(0);
-    expect(angles.backLeft).toBeCloseTo(0);
-    expect(angles.frontRight).toBeCloseTo(0);
-    expect(angles.backRight).toBeCloseTo(0);
+    expectAngles(angles, 0, 0, 0, 0);
   });
 
   it("should calculate correct angles when turning in place (0 heading)", () => {
@@ -59,9 +66,6 @@ describe("calculateSwerveDriveAngles", () => {
       rLength,
     );
     // Bot needs to strafe right, should be 0 deg
-    expect(angles.frontLeft).toBeCloseTo(0);
-    expect(angles.backLeft).toBeCloseTo(0);
-    expect(angles.frontRight).toBeCloseTo(0);
-    expect(angles.backRight).toBeCloseTo(0);
+    expectAngles(angles, 0, 0, 0, 0);
   });
 });

@@ -26,8 +26,8 @@
       settings = { ...settings };
       return;
     }
-    let num = parseFloat(value);
-    if (isNaN(num)) num = 0;
+    let num = Number.parseFloat(value);
+    if (Number.isNaN(num)) num = 0;
     if (min !== undefined) num = Math.max(min, num);
     if (max !== undefined) num = Math.min(max, num);
     (settings as any)[property] = num;
@@ -143,7 +143,7 @@
         type="number"
         value={settings.rLength}
         oninput={(e) => {
-          settings.rLength = parseFloat(e.currentTarget.value) || 0;
+          settings.rLength = Number.parseFloat(e.currentTarget.value) || 0;
           settings = { ...settings };
         }}
         min="1"
@@ -169,7 +169,7 @@
         type="number"
         value={settings.rWidth}
         oninput={(e) => {
-          settings.rWidth = parseFloat(e.currentTarget.value) || 0;
+          settings.rWidth = Number.parseFloat(e.currentTarget.value) || 0;
           settings = { ...settings };
         }}
         min="1"
@@ -221,7 +221,7 @@
         type="number"
         value={settings.safetyMargin}
         oninput={(e) => {
-          settings.safetyMargin = parseFloat(e.currentTarget.value) || 0;
+          settings.safetyMargin = Number.parseFloat(e.currentTarget.value) || 0;
           settings = { ...settings };
         }}
         min="0"

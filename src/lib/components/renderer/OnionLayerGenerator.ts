@@ -1,12 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { type RenderContext, findActiveEvent } from "./GeneratorUtils";
 import type { Line, Point } from "../../../types";
 import { generateOnionLayers } from "../../../utils";
-
-interface RenderContext {
-  settings: any;
-  timePrediction: any;
-  percentStore: number;
-}
 
 export function generateOnionLayerElements(
   lines: Line[],
@@ -23,20 +18,11 @@ export function generateOnionLayerElements(
 
     // If "Current Path Only" is enabled, filter the lines based on animation time
     if (settings.onionSkinCurrentPathOnly) {
-      if (timePrediction && timePrediction.timeline) {
-        const totalDuration =
-          timePrediction.timeline[timePrediction.timeline.length - 1]
-            ?.endTime || 0;
-        const currentSeconds = (percentStore / 100) * totalDuration;
-        const activeEvent =
-          timePrediction.timeline.find(
-            (e: any) =>
-              currentSeconds >= e.startTime && currentSeconds <= e.endTime,
-          ) || timePrediction.timeline[timePrediction.timeline.length - 1];
+      if (timePrediction?.timeline) {
+        const activeEvent = findActiveEvent(timePrediction, percentStore!);
 
         if (
-          activeEvent &&
-          activeEvent.type === "travel" &&
+          activeEvent?.type === "travel" &&
           typeof activeEvent.lineIndex === "number"
         ) {
           const idx = activeEvent.lineIndex;

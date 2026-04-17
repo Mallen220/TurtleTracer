@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import type { Point, Line, Settings, SequenceItem } from "../types";
   import { onMount, onDestroy } from "svelte";
   import {
@@ -97,10 +95,16 @@
     exportDialogState.set({ isOpen: true, format, exporterName });
   }
 
-  run(() => {
-    if (settings) {
-      settings.rWidth = robotWidth;
-      settings.rLength = robotLength;
+  $effect(() => {
+    if (
+      settings &&
+      (settings.rWidth !== robotWidth || settings.rLength !== robotLength)
+    ) {
+      settings = {
+        ...settings,
+        rWidth: robotWidth,
+        rLength: robotLength,
+      };
     }
   });
 
@@ -281,18 +285,24 @@
             >{$currentFilePath.split(/[\\/]/).pop()}</span
           >
           {#if settings.gitIntegration && $gitStatusStore[$currentFilePath] && $gitStatusStore[$currentFilePath] !== "clean"}
-            <div
-              class="ml-2 text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 whitespace-nowrap
+            <button
+              class="ml-2 text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 whitespace-nowrap transition-all
                 {$gitStatusStore[$currentFilePath] === 'modified'
-                ? 'bg-amber-100 border-amber-200 text-amber-700 dark:bg-amber-900/50 dark:border-amber-700 dark:text-amber-300'
+                ? 'bg-amber-100 border-amber-200 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/70'
                 : $gitStatusStore[$currentFilePath] === 'staged'
-                  ? 'bg-green-100 border-green-200 text-green-700 dark:bg-green-900/50 dark:border-green-700 dark:text-green-300'
-                  : 'bg-neutral-100 border-neutral-200 text-neutral-600 dark:bg-neutral-700 dark:border-neutral-600 dark:text-neutral-300'}"
-              title={$gitStatusStore[$currentFilePath] === "modified"
-                ? "Git: Modified (Unstaged Changes)"
-                : $gitStatusStore[$currentFilePath] === "staged"
-                  ? "Git: Staged (Ready to Commit)"
-                  : "Git: Untracked (New File)"}
+                  ? 'bg-green-100 border-green-200 text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/70'
+                  : 'bg-neutral-100 border-neutral-200 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-700 dark:border-neutral-600 dark:text-neutral-300 dark:hover:bg-neutral-600'}"
+              title={`${
+                $gitStatusStore[$currentFilePath] === "modified"
+                  ? "Git: Modified (Unstaged Changes)"
+                  : $gitStatusStore[$currentFilePath] === "staged"
+                    ? "Git: Staged (Ready to Commit)"
+                    : "Git: Untracked (New File)"
+              } - Click to compare with committed version`}
+              onclick={(e) => {
+                e.stopPropagation();
+                import("../lib/diffStore").then((m) => m.toggleDiff());
+              }}
             >
               {#if $gitStatusStore[$currentFilePath] === "modified"}
                 <PenIcon className="size-3 flex-shrink-0" />
@@ -304,7 +314,7 @@
                 <PlusIcon className="size-3 flex-shrink-0" />
                 <span>Untracked</span>
               {/if}
-            </div>
+            </button>
           {/if}
           {#if $isUnsaved}
             <span class="text-amber-500 font-bold ml-1" title="Unsaved changes"
@@ -340,7 +350,7 @@
           >Est. Time</span
         >
         <span class="font-semibold text-neutral-800 dark:text-neutral-200"
-          >{formatEstimatedTime(timePrediction.totalTime)}</span
+          >{formatEstimatedTime(timePrediction?.totalTime ?? 0)}</span
         >
       </div>
       <div

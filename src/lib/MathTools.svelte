@@ -98,7 +98,7 @@
         inchY = Math.round(inchY / $gridSize) * $gridSize;
       }
 
-      const SNAP_THRESHOLD = 1.0;
+      const SNAP_THRESHOLD = 1;
       const isSnappingEnabled = $settingsStore.smartSnapping !== false;
       const shouldSnap = event.altKey ? !isSnappingEnabled : isSnappingEnabled;
 

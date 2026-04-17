@@ -50,8 +50,8 @@ export class PluginManager {
   private static allThemes: CustomTheme[] = [];
 
   static async init() {
-    const electronAPI = (window as any).electronAPI;
-    if (!electronAPI || !electronAPI.listPlugins) return;
+    const electronAPI = (globalThis as any).electronAPI;
+    if (!electronAPI?.listPlugins) return;
 
     // Reset internal lists
     this.allExporters = [];
@@ -170,9 +170,35 @@ export class PluginManager {
 
     const proxyAPI = new Proxy(() => {}, handler);
 
+    const shadowGlobals = [
+      "window",
+      "document",
+      "location",
+      "top",
+      "parent",
+      "self",
+      "globalThis",
+      "electronAPI",
+      "localStorage",
+      "sessionStorage",
+      "indexedDB",
+      "fetch",
+      "XMLHttpRequest",
+      "WebSocket",
+      "process",
+      "require",
+    ];
+    const shadowValues = shadowGlobals.map(() => undefined);
+
     try {
-      const fn = new Function("turtle", "pedro", code);
-      fn(proxyAPI, proxyAPI);
+      // Force strict mode and shadow sensitive globals
+      const fn = new Function(
+        "turtle",
+        "pedro",
+        ...shadowGlobals,
+        `"use strict";\n${code}`,
+      );
+      fn(proxyAPI, proxyAPI, ...shadowValues);
     } catch (e) {
       // Ignore errors during metadata extraction
     }
@@ -202,7 +228,7 @@ export class PluginManager {
 
         // Register dynamically with new system
         exporterRegistry.register({
-          id: `custom-${name.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
+          id: `custom-${name.toLowerCase().replaceAll(/[^a-z0-9]/g, "-")}`,
           name: name,
           description: `Custom exporter provided by plugin ${filename}`,
           exportCode: (data: any, settings: any) => handler(data),
@@ -478,11 +504,36 @@ export class PluginManager {
       },
     };
 
-    // Execute safely-ish
+    // Execute safely-ish by shadowing sensitive globals and enforcing strict mode
     try {
-      // pass 'turtle' (and legacy 'pedro') as the argument name
-      const fn = new Function("turtle", "pedro", codeToExecute);
-      fn(turtleAPI, turtleAPI);
+      const shadowGlobals = [
+        "window",
+        "document",
+        "location",
+        "top",
+        "parent",
+        "self",
+        "globalThis",
+        "electronAPI",
+        "localStorage",
+        "sessionStorage",
+        "indexedDB",
+        "fetch",
+        "XMLHttpRequest",
+        "WebSocket",
+        "process",
+        "require",
+      ];
+      const shadowValues = shadowGlobals.map(() => undefined);
+
+      // pass 'turtle' (and legacy 'pedro') as the argument names
+      const fn = new Function(
+        "turtle",
+        "pedro",
+        ...shadowGlobals,
+        `"use strict";\n${codeToExecute}`,
+      );
+      fn(turtleAPI, turtleAPI, ...shadowValues);
     } catch (e) {
       throw new Error(`Execution failed: ${e}`);
     }
@@ -491,15 +542,15 @@ export class PluginManager {
   }
 
   static async openPluginsFolder() {
-    const electronAPI = (window as any).electronAPI;
-    if (electronAPI && electronAPI.openPluginsFolder) {
+    const electronAPI = (globalThis as any).electronAPI;
+    if (electronAPI?.openPluginsFolder) {
       await electronAPI.openPluginsFolder();
     }
   }
 
   static async deletePlugin(name: string) {
-    const electronAPI = (window as any).electronAPI;
-    if (electronAPI && electronAPI.deletePlugin) {
+    const electronAPI = (globalThis as any).electronAPI;
+    if (electronAPI?.deletePlugin) {
       await electronAPI.deletePlugin(name);
       await this.reloadPlugins();
     }

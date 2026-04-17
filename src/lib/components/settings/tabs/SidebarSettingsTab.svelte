@@ -285,8 +285,8 @@
       settings = { ...settings };
       return;
     }
-    let num = parseFloat(value);
-    if (isNaN(num)) num = 0;
+    let num = Number.parseFloat(value);
+    if (Number.isNaN(num)) num = 0;
     if (min !== undefined) num = Math.max(min, num);
     if (max !== undefined) num = Math.min(max, num);
     (settings as any)[property] = num;

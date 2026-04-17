@@ -36,7 +36,7 @@ export function generateName(
 
   // Check if it already has " duplicate N" or " duplicate" suffix
   // Regex to match " duplicate" or " duplicate <number>" at the end
-  const duplicateRegex = / duplicate(?: (\d+))?$/;
+  const duplicateRegex = / duplicate(?: (\d+))?$/g;
   const match = baseName.match(duplicateRegex);
 
   let coreName = baseName;
@@ -44,9 +44,11 @@ export function generateName(
 
   if (match) {
     // It already has the suffix
-    coreName = baseName.replace(duplicateRegex, "");
-    if (match[1]) {
-      currentNum = parseInt(match[1], 10);
+    const subMatch = duplicateRegex.exec(baseName);
+    coreName = baseName.replaceAll(duplicateRegex, "");
+    // Extract number
+    if (subMatch?.[1]) {
+      currentNum = Number.parseInt(subMatch[1], 10);
     } else {
       // " duplicate" implies number 0 (conceptually, next is 1)
       currentNum = 0;

@@ -14,25 +14,23 @@ let cacheInitialized = false;
 let initPromise: Promise<void> | null = null;
 
 function getDB(): Promise<IDBDatabase> {
-  if (!dbPromise) {
-    dbPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-      request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME);
-        }
-      };
-    });
-  }
+  dbPromise ??= new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(new Error(request.error?.message));
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+  });
   return dbPromise;
 }
 
 async function initCache(): Promise<void> {
   if (cacheInitialized) return;
-  if (initPromise) return initPromise;
+  if (initPromise !== null) return initPromise;
 
   initPromise = (async () => {
     const db = await getDB();
@@ -51,7 +49,7 @@ async function initCache(): Promise<void> {
         cacheInitialized = true;
         resolve();
       };
-      tx.onerror = () => reject(tx.error);
+      tx.onerror = () => reject(new Error(tx.error?.name));
     });
   })();
 
@@ -72,7 +70,7 @@ async function set(key: string, value: any): Promise<void> {
     const store = tx.objectStore(STORE_NAME);
     const req = store.put(value, key);
     req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(new Error(req.error?.message));
   });
 }
 
@@ -85,7 +83,7 @@ async function del(key: string): Promise<void> {
     const store = tx.objectStore(STORE_NAME);
     const req = store.delete(key);
     req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(new Error(req.error?.message));
   });
 }
 
@@ -105,7 +103,7 @@ async function setMultiple(
     const store = tx.objectStore(STORE_NAME);
     entries.forEach((e) => store.put(e.value, e.key));
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => reject(new Error(tx.error?.message));
   });
 }
 
@@ -124,7 +122,7 @@ async function renameInDB(
     store.put(value, newPath);
     store.delete(oldPath);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => reject(new Error(tx.error?.message));
   });
 }
 
@@ -208,7 +206,7 @@ export const browserFileSystem = {
               modified: new Date(),
               isDirectory: false,
             });
-          } else if (val && val.type === "dir") {
+          } else if (val?.type === "dir") {
             if (!addedDirs.has(name)) {
               addedDirs.add(name);
               files.push({
@@ -319,7 +317,7 @@ export const browserFileSystem = {
     }
 
     const up = baseParts.length - commonLen;
-    const rel = Array(up)
+    const rel = new Array(up)
       .fill("..")
       .concat(targetParts.slice(commonLen))
       .join("/");

@@ -12,7 +12,7 @@ describe("file utils", () => {
       result: "data:image/png;base64,mockdata",
     };
 
-    global.FileReader = vi.fn(() => mockFileReader) as any;
+    globalThis.FileReader = vi.fn(() => mockFileReader) as any;
 
     const file = new File(["mock"], "test.png", { type: "image/png" });
 
@@ -33,7 +33,7 @@ describe("file utils", () => {
       onerror: null as any,
       error: new Error("read fail"),
     };
-    global.FileReader = vi.fn(() => mockFileReader) as any;
+    globalThis.FileReader = vi.fn(() => mockFileReader) as any;
 
     const file = new File(["mock"], "test.png", { type: "image/png" });
     const promise = imageToBase64(file);

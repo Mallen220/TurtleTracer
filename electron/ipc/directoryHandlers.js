@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { ipcMain, BrowserWindow, dialog } from "electron";
-import fs from "fs/promises";
-import path from "path";
+import fs from "node:fs/promises";
+import path from "node:path";
 import {
   loadDirectorySettings,
   saveDirectorySettings,
@@ -19,7 +19,7 @@ export function registerDirectoryHandlers() {
       try {
         await fs.access(settings.autoPathsDirectory);
         return settings.autoPathsDirectory;
-      } catch (error) {
+      } catch {
         console.log(
           "Saved directory no longer accessible, falling back to default",
         );
@@ -102,7 +102,8 @@ export function registerDirectoryHandlers() {
     let resolvedPath;
     try {
       resolvedPath = validateArbitraryPath(dirPath);
-    } catch (e) {
+    } catch {
+      // Catch for not a valid path
       return {
         totalFiles: 0,
         totalSize: 0,
@@ -115,7 +116,7 @@ export function registerDirectoryHandlers() {
       console.warn(
         "Directory not accessible in file:get-directory-stats:",
         resolvedPath,
-        err && err.code,
+        err?.code,
       );
       return {
         totalFiles: 0,
@@ -124,7 +125,6 @@ export function registerDirectoryHandlers() {
       };
     }
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       const files = await fs.readdir(resolvedPath);
       const projectFiles = files.filter((file) => isProjectFilePath(file));
 
@@ -133,7 +133,7 @@ export function registerDirectoryHandlers() {
 
       for (const file of projectFiles) {
         const filePath = path.join(dirPath, file);
-        // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+
         const stats = await fs.stat(filePath);
         totalSize += stats.size;
         if (stats.mtime > latestModified) {

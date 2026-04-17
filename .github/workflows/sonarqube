@@ -1,0 +1,40 @@
+# name: Build
+# # SonarCloud is configured for Automatic Analysis via the GitHub app.
+# # Running manual CI analysis on push/pull_request causes a conflict and will fail.
+# on:
+#   push:
+#     # branches:
+#     #   - main
+#   workflow_dispatch:
+# jobs:
+#   sonarqube:
+#     name: SonarQube
+#     runs-on: macos-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: 20
+#           cache: "npm"
+
+#       - name: Install Dependencies
+#         run: npm ci --ignore-scripts
+
+#       - name: Run Coverage
+#         run: npm run coverage
+
+#       - name: Upload Coverage Report
+#         if: always()
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: vitest-coverage
+#           path: coverage/
+
+#       - name: SonarQube Scan
+#         uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602
+#         env:
+#           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

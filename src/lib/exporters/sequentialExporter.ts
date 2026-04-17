@@ -50,7 +50,10 @@ export async function generateSequentialCommandCode(
   let className = "AutoPath";
   if (fileName) {
     const baseName = fileName.split(/[\\/]/).pop() || "";
-    className = stripProjectExtension(baseName).replace(/[^a-zA-Z0-9]/g, "_");
+    className = stripProjectExtension(baseName).replaceAll(
+      /[^a-zA-Z0-9]/g,
+      "_",
+    );
     if (!className) className = "AutoPath";
   }
 
@@ -78,9 +81,9 @@ export async function generateSequentialCommandCode(
         // Use exact values
         // Use overrideDegrees if provided, otherwise default to 0
         const degrees =
-          overrideDegrees !== undefined
-            ? overrideDegrees
-            : (point as any).degrees || 0;
+          overrideDegrees === undefined
+            ? (point as any).degrees || 0
+            : overrideDegrees;
 
         if (coordinateSystem === "FTC") {
           const userPt = toUser(point, "FTC");
@@ -141,7 +144,7 @@ export async function generateSequentialCommandCode(
   // Process each line
   lines.forEach((line, lineIdx) => {
     const endPointName = line.name
-      ? line.name.replace(/[^a-zA-Z0-9]/g, "")
+      ? line.name.replaceAll(/[^a-zA-Z0-9]/g, "")
       : `point${lineIdx + 1}`;
 
     // Determine end degrees
@@ -197,10 +200,10 @@ export async function generateSequentialCommandCode(
         idx === 0
           ? "startPoint"
           : lines[idx - 1]?.name
-            ? lines[idx - 1]!.name!.replace(/[^a-zA-Z0-9]/g, "")
+            ? lines[idx - 1]!.name!.replaceAll(/[^a-zA-Z0-9]/g, "")
             : `point${idx}`;
       const endPoseName = lines[idx].name
-        ? lines[idx].name.replace(/[^a-zA-Z0-9]/g, "")
+        ? lines[idx].name.replaceAll(/[^a-zA-Z0-9]/g, "")
         : `point${idx + 1}`;
 
       let pathName = `${startPoseName}TO${endPoseName}`;
@@ -234,9 +237,7 @@ export async function generateSequentialCommandCode(
   const SequentialGroupClass = isNextFTC
     ? "SequentialGroup"
     : "SequentialCommandGroup";
-  const ParallelRaceClass = isNextFTC
-    ? "ParallelRaceGroup"
-    : "ParallelRaceGroup";
+  const ParallelRaceClass = "ParallelRaceGroup"; // Same for NextFTC and SolversLib
   const WaitCmdClass = isNextFTC ? "Delay" : "WaitCommand";
   const InstantCmdClass = "InstantCommand";
   const WaitUntilCmdClass = isNextFTC ? "WaitUntil" : "WaitUntilCommand"; // NextFTC has similar or user maps it
@@ -264,14 +265,12 @@ export async function generateSequentialCommandCode(
     return result;
   };
 
-  const seq = flattenSequence(
-    sequence && sequence.length ? sequence : defaultSequence,
-  );
+  const seq = flattenSequence(sequence?.length ? sequence : defaultSequence);
 
   seq.forEach((item, idx) => {
     // Registry Check
     const action = actionRegistry.get(item.kind);
-    if (action && action.toSequentialCommand) {
+    if (action?.toSequentialCommand) {
       commands.push(action.toSequentialCommand(item, { isNextFTC }));
       return;
     }
@@ -312,56 +311,54 @@ export async function generateSequentialCommandCode(
 
     if (isNextFTC) {
       commands.push(followPathInstance);
-    } else {
-      if (allEventMarkers && allEventMarkers.length > 0) {
-        // Path has event markers
+    } else if (allEventMarkers && allEventMarkers.length > 0) {
+      // Path has event markers
 
-        // First: InstantCommand to set up tracker
-        commands.push(
-          `                new ${InstantCmdClass}(
+      // First: InstantCommand to set up tracker
+      commands.push(
+        `                new ${InstantCmdClass}(
                     () -> {
                         progressTracker.setCurrentChain(${pathName});
                         progressTracker.setCurrentPathName("${pathDisplayName}");`,
-        );
+      );
 
-        // Add event registrations
-        allEventMarkers.forEach((event) => {
-          commands[commands.length - 1] += `
-                        progressTracker.registerEvent("${event.name}", ${event.position.toFixed(3)});`;
-        });
-
+      // Add event registrations
+      allEventMarkers.forEach((event) => {
         commands[commands.length - 1] += `
+                        progressTracker.registerEvent("${event.name}", ${event.position.toFixed(3)});`;
+      });
+
+      commands[commands.length - 1] += `
                     })`;
 
-        // Second: ParallelRaceGroup for following path with event handling
-        commands.push(`                new ${ParallelRaceClass}(
+      // Second: ParallelRaceGroup for following path with event handling
+      commands.push(`                new ${ParallelRaceClass}(
                     ${followPathInstance},
                     new ${SequentialGroupClass}(`);
 
-        // Add WaitUntilCommand for each event
-        allEventMarkers.forEach((event, eventIdx) => {
-          if (eventIdx > 0) commands[commands.length - 1] += ",";
-          commands[commands.length - 1] += `
+      // Add WaitUntilCommand for each event
+      allEventMarkers.forEach((event, eventIdx) => {
+        if (eventIdx > 0) commands[commands.length - 1] += ",";
+        commands[commands.length - 1] += `
                         new ${WaitUntilCmdClass}(() -> progressTracker.shouldTriggerEvent("${event.name}")),
                         new ${InstantCmdClass}(
                             () -> {
                                 progressTracker.executeEvent("${event.name}");
                             })`;
-        });
+      });
 
-        commands[commands.length - 1] += `
+      commands[commands.length - 1] += `
                     ))`;
-      } else {
-        // No event markers - simple InstantCommand + FollowPathCommand
-        commands.push(
-          `                new ${InstantCmdClass}(
+    } else {
+      // No event markers - simple InstantCommand + FollowPathCommand
+      commands.push(
+        `                new ${InstantCmdClass}(
                     () -> {
                         progressTracker.setCurrentChain(${pathName});
                         progressTracker.setCurrentPathName("${pathDisplayName}");
                     }),
                 ${followPathInstance}`,
-        );
-      }
+      );
     }
   });
 
@@ -376,7 +373,7 @@ export async function generateSequentialCommandCode(
     const actualStartPose = startPoseVar || "startPoint";
 
     const endPoseName = line.name
-      ? line.name.replace(/[^a-zA-Z0-9]/g, "")
+      ? line.name.replaceAll(/[^a-zA-Z0-9]/g, "")
       : `point${idx + 1}`;
 
     const endPoseVar = endPoseName;
@@ -396,67 +393,186 @@ export async function generateSequentialCommandCode(
       controlPointsStr = controlPoints.join(", ") + ", ";
     }
 
-    // Determine heading interpolation
     let headingConfig = "";
-    if (line.endPoint.heading === "constant") {
-      if (hardcodeValues) {
-        headingConfig = `setConstantHeadingInterpolation(Math.toRadians(${line.endPoint.degrees || 0}))`;
-      } else {
-        headingConfig = `setConstantHeadingInterpolation(${endPoseVar}.getHeading())`;
-      }
-    } else if (line.endPoint.heading === "linear") {
-      if (hardcodeValues) {
-        headingConfig = `setLinearHeadingInterpolation(Math.toRadians(${line.endPoint.startDeg || 0}), Math.toRadians(${line.endPoint.endDeg || 0}))`;
-      } else {
-        headingConfig = `setLinearHeadingInterpolation(${actualStartPose}.getHeading(), ${endPoseVar}.getHeading())`;
-      }
-    } else if (line.endPoint.heading === "facingPoint") {
-      let hxStr = "0";
-      let hyStr = "0";
+    // Helper to generate a HeadingInterpolator string representation (e.g. "HeadingInterpolator.tangent")
+    const generateInterpolatorString = (
+      pointDef: any,
+      startPoseVarInner: string,
+      endPoseVarInner: string,
+    ) => {
+      let config = "";
       if (coordinateSystem === "FTC") {
-        const uTarget = toUser(
-          {
-            x: line.endPoint.targetX || 0,
-            y: line.endPoint.targetY || 0,
-          },
-          "FTC",
-        );
-        hxStr = uTarget.x.toFixed(3);
-        hyStr = uTarget.y.toFixed(3);
-      } else {
-        let targetX = line.endPoint.targetX || 0;
-        let targetY = line.endPoint.targetY || 0;
-        hxStr =
+        if (pointDef.heading === "constant") {
+          // If hardcode values is disabled, we don't have access to .getHeading() on the fly easily for just the segment string unless we map it
+          // But Piecewise with variables might be tricky, so we rely on hardcoding or variables.
+          if (hardcodeValues || pointDef.degrees !== undefined)
+            config = `Math.toRadians(${toUserHeading(pointDef.degrees || 0, "FTC").toFixed(3)})`;
+          else config = `${endPoseVarInner}.getHeading()`;
+        } else if (pointDef.heading === "linear") {
+          if (
+            hardcodeValues ||
+            (pointDef.startDeg !== undefined && pointDef.endDeg !== undefined)
+          )
+            config = `Math.toRadians(${toUserHeading(pointDef.startDeg || 0, "FTC").toFixed(3)}), Math.toRadians(${toUserHeading(pointDef.endDeg || 0, "FTC").toFixed(3)})`;
+          else
+            config = `${startPoseVarInner}.getHeading(), ${endPoseVarInner}.getHeading()`;
+        } else if (pointDef.heading === "facingPoint") {
+          const uTarget = toUser(
+            { x: pointDef.targetX || 0, y: pointDef.targetY || 0 },
+            "FTC",
+          );
+          config = `new Pose(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)})`;
+        }
+      } else if (pointDef.heading === "constant") {
+        if (hardcodeValues || pointDef.degrees !== undefined)
+          config = `Math.toRadians(${pointDef.degrees || 0})`;
+        else config = `${endPoseVarInner}.getHeading()`;
+      } else if (pointDef.heading === "linear") {
+        if (
+          hardcodeValues ||
+          (pointDef.startDeg !== undefined && pointDef.endDeg !== undefined)
+        )
+          config = `Math.toRadians(${pointDef.startDeg || 0}), Math.toRadians(${pointDef.endDeg || 0})`;
+        else
+          config = `${startPoseVarInner}.getHeading(), ${endPoseVarInner}.getHeading()`;
+      } else if (pointDef.heading === "facingPoint") {
+        const targetX = pointDef.targetX || 0;
+        const targetY = pointDef.targetY || 0;
+        const hx =
           codeUnits === "metric"
             ? `cmToInches(${(targetX * 2.54).toFixed(3)})`
             : targetX.toFixed(3);
-        hyStr =
+        const hy =
           codeUnits === "metric"
             ? `cmToInches(${(targetY * 2.54).toFixed(3)})`
             : targetY.toFixed(3);
+        config = `new Pose(${hx}, ${hy})`;
       }
-      headingConfig = `setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(${hxStr}, ${hyStr})))`;
-    } else {
-      headingConfig = `setTangentHeadingInterpolation()`;
+
+      let baseName = "";
+      if (pointDef.heading === "constant") {
+        baseName = `HeadingInterpolator.constant(${config})`;
+      } else if (pointDef.heading === "linear") {
+        baseName = `HeadingInterpolator.linear(${config})`;
+      } else if (pointDef.heading === "tangential") {
+        baseName = `HeadingInterpolator.tangent`;
+      } else if (pointDef.heading === "facingPoint") {
+        baseName = `HeadingInterpolator.facingPoint(${config})`;
+      }
+
+      if (pointDef.reverse) {
+        if (pointDef.heading === "tangential")
+          return "HeadingInterpolator.reversedTangent";
+        if (pointDef.heading === "linear")
+          return `HeadingInterpolator.reversedLinear(${config})`;
+        if (pointDef.heading === "constant")
+          return `HeadingInterpolator.reversedConstant(${config})`;
+        if (pointDef.heading === "facingPoint")
+          return `HeadingInterpolator.reversedFacingPoint(${config})`;
+      }
+      return baseName;
+    };
+
+    let headingMethodCode = "";
+    let globalHeadingCode = "";
+
+    const constructHeadingMethod = (targetConfig: any) => {
+      if (targetConfig.heading === "piecewise") {
+        const segmentsStr = (targetConfig.segments || [])
+          .map((seg: any) => {
+            const interpStr = generateInterpolatorString(
+              seg,
+              actualStartPose,
+              endPoseVar,
+            );
+            return `\n                new HeadingInterpolator.PiecewiseNode(${seg.tStart}, ${seg.tEnd}, ${interpStr})`;
+          })
+          .join(",");
+        return `.setHeadingInterpolation(HeadingInterpolator.piecewise(${segmentsStr}\n            ))`;
+      }
+
+      let hConfig = generateInterpolatorString(
+        targetConfig,
+        actualStartPose,
+        endPoseVar,
+      );
+      let args = "";
+      if (hConfig.includes("(")) {
+        args = hConfig.slice(
+          hConfig.indexOf("(") + 1,
+          hConfig.lastIndexOf(")"),
+        );
+      }
+
+      if (targetConfig.reverse) {
+        if (targetConfig.heading === "constant") {
+          return `.setHeadingInterpolation(HeadingInterpolator.constant(${args}))\n            .setReversed()`;
+        } else if (targetConfig.heading === "linear") {
+          return `.setHeadingInterpolation(HeadingInterpolator.linear(${args}))\n            .setReversed()`;
+        } else if (targetConfig.heading === "tangential") {
+          return `.setHeadingInterpolation(HeadingInterpolator.tangent)\n            .setReversed()`;
+        } else if (targetConfig.heading === "facingPoint") {
+          return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))\n            .setReversed()`;
+        }
+      } else if (targetConfig.heading === "constant") {
+        return `.setConstantHeadingInterpolation(${args})`;
+      } else if (targetConfig.heading === "linear") {
+        return `.setLinearHeadingInterpolation(${args})`;
+      } else if (targetConfig.heading === "tangential") {
+        return `.setTangentHeadingInterpolation()`;
+      } else if (targetConfig.heading === "facingPoint") {
+        return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))`;
+      }
+      return "";
+    };
+
+    const isChainRoot =
+      !line.isChain && idx + 1 < lines.length && lines[idx + 1].isChain;
+    let hasGlobalHeading = false;
+
+    let tempIdx = idx;
+    let rootLine = line;
+    while (rootLine.isChain && tempIdx > 0) {
+      tempIdx--;
+      rootLine = lines[tempIdx];
+    }
+    if (rootLine.globalHeading && rootLine.globalHeading !== ("none" as any)) {
+      hasGlobalHeading = true;
+      if (!line.isChain) {
+        const globalConfig = {
+          heading: rootLine.globalHeading,
+          reverse: rootLine.globalReverse,
+          degrees: rootLine.globalDegrees,
+          startDeg: rootLine.globalStartDeg,
+          endDeg: rootLine.globalEndDeg,
+          targetX: rootLine.globalTargetX,
+          targetY: rootLine.globalTargetY,
+          segments: rootLine.globalSegments,
+        };
+        const globalInterpStr = constructHeadingMethod(globalConfig).replaceAll(
+          /set(Constant|Linear|Tangent|Heading)Interpolation\(/g,
+          "setGlobalHeadingInterpolation(",
+        );
+        globalHeadingCode = `\n            ${globalInterpStr}`;
+      }
     }
 
-    // Build reverse config
-    const reverseConfig = line.endPoint.reverse
-      ? "\n                .setReversed()"
-      : "";
+    if (!hasGlobalHeading) {
+      headingMethodCode = constructHeadingMethod(line.endPoint);
+    }
 
-    if (!line.isChain) {
+    if (line.isChain) {
+      currentBuilderStr += `
+            .addPath(new ${curveType}(${actualStartPose}, ${controlPointsStr}${endPoseVar}))
+            ${headingMethodCode}`;
+    } else {
       if (currentBuilderStr !== "") {
         currentBuilderStr += "\n            .build();";
         pathBuildersArr.push(currentBuilderStr);
       }
       currentBuilderStr = `        ${pathName} = follower.pathBuilder()
             .addPath(new ${curveType}(${actualStartPose}, ${controlPointsStr}${endPoseVar}))
-            .${headingConfig}${reverseConfig}`;
-    } else {
-      currentBuilderStr += `
-            .addPath(new ${curveType}(${actualStartPose}, ${controlPointsStr}${endPoseVar}))
-            .${headingConfig}${reverseConfig}`;
+            ${headingMethodCode}${globalHeadingCode}`;
     }
   });
 

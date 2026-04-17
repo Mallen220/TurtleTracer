@@ -11,15 +11,15 @@ on:
         required: true
         default: ""
 
-permissions:
-  contents: write
-  packages: write
+permissions: {}
 
 env:
   TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
 
 jobs:
   prepare-release:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.ensure-release.outputs.upload_url }}
@@ -38,10 +38,14 @@ jobs:
       - name: Generate Release Notes
         id: generate-notes
         run: |
+          # 0. Extract version number (remove 'v' prefix)
+          VERSION="${TAG_NAME#v}"
+
           # 1. Create the static portion of the notes using a Heredoc
-          # This avoids the need to escape backticks or quotes
+          # Use a quoted heredoc so markdown backticks are not executed by the shell.
+          # Insert the version with a placeholder replacement step.
           cat > base_notes.md << 'EOF'
-          ## 🚀 Quick Update
+          ## Update v__VERSION__
 
           Refer to the README installation section for instructions on installing or updating Turtle Tracer. Below is a condensed version of the instructions for quick reference.
 
@@ -60,11 +64,10 @@ jobs:
 
           Windows Users can download from the Microsoft Store to receive auto-updates for stable releases. A .exe file is also provided below. 
 
-          ## 📝 Release Notes
+          ## Release Notes
           EOF
 
-          # 2. Extract version number (remove 'v' prefix)
-          VERSION="${TAG_NAME#v}"
+          sed -i "s/__VERSION__/${VERSION}/g" base_notes.md
 
           # 3. Append Changelog logic
           if [ -f "CHANGELOG.md" ]; then
@@ -124,6 +127,8 @@ jobs:
 
   release-mac:
     needs: prepare-release
+    permissions:
+      contents: write
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -133,7 +138,7 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Build Web Bundle
         env:
           VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
@@ -167,6 +172,8 @@ jobs:
 
   release-win:
     needs: prepare-release
+    permissions:
+      contents: write
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -176,7 +183,7 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Build Web Bundle
         env:
           VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}
@@ -232,6 +239,8 @@ jobs:
 
   release-linux:
     needs: prepare-release
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -254,7 +263,7 @@ jobs:
             zlib1g-dev \
             libzstd-dev
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Build Web Bundle
         env:
           VITE_DISCORD_RATINGS: ${{ secrets.DISCORD_RATINGS }}

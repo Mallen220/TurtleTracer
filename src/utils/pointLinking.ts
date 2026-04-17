@@ -12,7 +12,7 @@ export function updateLinkedWaypoints(
   changedLineId: string,
 ): Line[] {
   const changedLine = allLines.find((l) => l.id === changedLineId);
-  if (!changedLine || !changedLine.name) return allLines;
+  if (!changedLine?.name) return allLines;
 
   // Find other lines with the same non-empty name
   const linkedLines = allLines.filter(
@@ -89,7 +89,7 @@ export function updateLinkedWaits(
     (s) => s.kind === "wait" && s.id === changedWaitId,
   ) as SequenceWaitItem | undefined;
 
-  if (!changedItem || !changedItem.name) return sequence;
+  if (!changedItem?.name) return sequence;
 
   return sequence.map((s) => {
     if (
@@ -154,7 +154,7 @@ export function handleWaitRename(
 // Check if a line is linked
 export function isLineLinked(allLines: Line[], lineId: string): boolean {
   const line = allLines.find((l) => l.id === lineId);
-  if (!line || !line.name) return false;
+  if (!line?.name) return false;
   return allLines.some((l) => l.id !== lineId && l.name === line.name);
 }
 
@@ -166,7 +166,7 @@ export function isWaitLinked(
   const wait = sequence.find((s) => s.kind === "wait" && s.id === waitId) as
     | SequenceWaitItem
     | undefined;
-  if (!wait || !wait.name) return false;
+  if (!wait?.name) return false;
   return sequence.some(
     (s) => s.kind === "wait" && s.id !== waitId && s.name === wait.name,
   );
@@ -181,7 +181,7 @@ export function updateLinkedRotations(
     (s) => s.kind === "rotate" && s.id === changedRotateId,
   ) as SequenceRotateItem | undefined;
 
-  if (!changedItem || !changedItem.name) return sequence;
+  if (!changedItem?.name) return sequence;
 
   return sequence.map((s) => {
     if (
@@ -251,7 +251,7 @@ export function isRotateLinked(
   const rotate = sequence.find(
     (s) => s.kind === "rotate" && s.id === rotateId,
   ) as SequenceRotateItem | undefined;
-  if (!rotate || !rotate.name) return false;
+  if (!rotate?.name) return false;
   return sequence.some(
     (s) => s.kind === "rotate" && s.id !== rotateId && s.name === rotate.name,
   );

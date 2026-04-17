@@ -3,18 +3,7 @@ import Two from "two.js";
 import type { Line, Point, SequenceItem } from "../../../types";
 import { getCurvePoint } from "../../../utils/math";
 
-interface RenderContext {
-  x: d3.ScaleLinear<number, number>;
-  y: d3.ScaleLinear<number, number>;
-  uiLength: (inches: number) => number;
-  hoveredMarkerId: string | null;
-  multiSelectedPointIds: string[];
-  settings: any;
-  timePrediction: any;
-  selectedLineId: string | null;
-  selectedPointId: string | null;
-  actionRegistry: any;
-}
+import { type RenderContext } from "./GeneratorUtils";
 
 export function generateEventMarkerElements(
   lines: Line[],
@@ -40,7 +29,7 @@ export function generateEventMarkerElements(
   // Build a map of lineId -> startPoint from timePrediction if available
   // This handles cases where lines are out of order in the array (e.g. mixed with macros)
   const startPointMap = new Map<string, Point>();
-  if (timePrediction && timePrediction.timeline) {
+  if (timePrediction?.timeline) {
     timePrediction.timeline.forEach((ev: any) => {
       if (ev.type === "travel" && ev.line && ev.prevPoint) {
         startPointMap.set(ev.line.id, ev.prevPoint);
@@ -49,7 +38,7 @@ export function generateEventMarkerElements(
   }
 
   lines.forEach((line, idx) => {
-    if (!line || !line.endPoint || line.hidden) return;
+    if (!line?.endPoint || line.hidden) return;
 
     let _startPoint = startPointMap.get(line.id!);
     if (!_startPoint) {
@@ -91,17 +80,12 @@ export function generateEventMarkerElements(
     });
   });
 
-  if (
-    timePrediction &&
-    timePrediction.timeline &&
-    sequence &&
-    sequence.length > 0
-  ) {
+  if (timePrediction?.timeline && sequence && sequence.length > 0) {
     // Use Registry for registered actions (e.g. Wait)
     sequence.forEach((item) => {
       if ((item as any).hidden) return;
       const action = actionRegistry.get(item.kind);
-      if (action && action.renderField) {
+      if (action?.renderField) {
         const elems = action.renderField(item, {
           x,
           y,

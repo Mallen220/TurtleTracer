@@ -89,7 +89,6 @@ export const navbarActionRegistry = createNavbarActionRegistry();
 
 // --- Field Context Menu Registry ---
 import type { ContextMenuItem } from "../types";
-export type { ContextMenuItem };
 
 const createFieldContextMenuRegistry = () => {
   const { subscribe, update, set } = writable<ContextMenuItem[]>([]);
@@ -210,3 +209,5 @@ export interface FieldRenderEntry {
 }
 
 export const fieldRenderRegistry = createListRegistry<FieldRenderEntry>();
+
+export { type ContextMenuItem } from "../types";

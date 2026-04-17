@@ -58,7 +58,7 @@ export function getDisplayShortcut(
   const binding = settingsKeybindings.find(
     (b) => b.action === actionId || b.id === actionId,
   );
-  if (!binding || !binding.key) return "";
+  if (!binding?.key) return "";
 
   const isMac =
     /Mac|iPod|iPhone|iPad/.test(navigator.platform) ||

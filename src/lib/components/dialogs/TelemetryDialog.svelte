@@ -102,7 +102,7 @@
       // Optional heading
       const h = hIdx >= 0 && parts[hIdx] ? Number(parts[hIdx]) : 0;
 
-      if (!isNaN(t) && !isNaN(x) && !isNaN(y)) {
+      if (!Number.isNaN(t) && !Number.isNaN(x) && !Number.isNaN(y)) {
         points.push({ time: t, x, y, heading: h });
       }
     }
@@ -134,7 +134,9 @@
     transition:fade={{ duration: 200 }}
     class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
     role="presentation"
-    onclick={(e) => { if (e.target === e.currentTarget) isOpen = false; }}
+    onclick={(e) => {
+      if (e.target === e.currentTarget) isOpen = false;
+    }}
   >
     <div
       transition:fly={{ y: 20, duration: 300 }}

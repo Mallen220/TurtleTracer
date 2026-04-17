@@ -23,8 +23,8 @@
       settings = { ...settings };
       return;
     }
-    let num = parseFloat(value);
-    if (isNaN(num)) num = 0;
+    let num = Number.parseFloat(value);
+    if (Number.isNaN(num)) num = 0;
     if (min !== undefined) num = Math.max(min, num);
     if (max !== undefined) num = Math.min(max, num);
     (settings as any)[property] = num;
@@ -140,7 +140,8 @@
           step="1"
           value={settings.drawToolTolerance}
           oninput={(e) => {
-            settings.drawToolTolerance = parseFloat(e.currentTarget.value) || 0;
+            settings.drawToolTolerance =
+              Number.parseFloat(e.currentTarget.value) || 0;
             settings = { ...settings };
           }}
           onchange={handleToleranceInput}
@@ -168,7 +169,8 @@
           step="0.01"
           value={settings.drawToolTension}
           oninput={(e) => {
-            settings.drawToolTension = parseFloat(e.currentTarget.value) || 0;
+            settings.drawToolTension =
+              Number.parseFloat(e.currentTarget.value) || 0;
             settings = { ...settings };
           }}
           onchange={handleTensionInput}
@@ -199,7 +201,7 @@
           value={settings.optimizationIterations}
           oninput={(e) => {
             settings.optimizationIterations =
-              parseFloat(e.currentTarget.value) || 0;
+              Number.parseFloat(e.currentTarget.value) || 0;
             settings = { ...settings };
           }}
           onchange={handleIterationsInput}
@@ -229,7 +231,7 @@
           value={settings.optimizationPopulationSize}
           oninput={(e) => {
             settings.optimizationPopulationSize =
-              parseFloat(e.currentTarget.value) || 0;
+              Number.parseFloat(e.currentTarget.value) || 0;
             settings = { ...settings };
           }}
           onchange={handlePopulationInput}
@@ -259,7 +261,7 @@
           value={settings.optimizationMutationRate}
           oninput={(e) => {
             settings.optimizationMutationRate =
-              parseFloat(e.currentTarget.value) || 0;
+              Number.parseFloat(e.currentTarget.value) || 0;
             settings = { ...settings };
           }}
           onchange={handleMutationRateInput}
@@ -289,7 +291,7 @@
           value={settings.optimizationMutationStrength}
           oninput={(e) => {
             settings.optimizationMutationStrength =
-              parseFloat(e.currentTarget.value) || 0;
+              Number.parseFloat(e.currentTarget.value) || 0;
             settings = { ...settings };
           }}
           onchange={handleMutationStrengthInput}

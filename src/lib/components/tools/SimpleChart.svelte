@@ -27,10 +27,20 @@
 
   // Keep references to update efficiently
   let playheadSelection: any;
+  let cursorSelection: any;
+  let cursorDotSelection: any;
   let xScale: d3.ScaleLinear<number, number>;
+
+  function hideTooltip() {
+    if (tooltip) tooltip.style.opacity = "0";
+    if (cursorSelection) cursorSelection.attr("opacity", 0);
+    if (cursorDotSelection) cursorDotSelection.attr("opacity", 0);
+  }
 
   function draw() {
     if (!container) return;
+    // Defensive reset in case a redraw happens while hovering.
+    hideTooltip();
     container.innerHTML = "";
 
     const margin = { top: 20, right: 20, bottom: 30, left: 50 };
@@ -89,7 +99,7 @@
 
     // Gradient
     const defs = svg.append("defs");
-    const gradientId = `gradient-${label.replace(/\s+/g, "-")}`;
+    const gradientId = `gradient-${label.replaceAll(/\s+/g, "-")}`;
     const gradient = defs
       .append("linearGradient")
       .attr("id", gradientId)
@@ -192,20 +202,22 @@
           `;
 
           // Draw cursor line
-          cursor.attr("x1", x(d.time)).attr("x2", x(d.time)).attr("opacity", 1);
-          cursorDot
+          cursorSelection
+            .attr("x1", x(d.time))
+            .attr("x2", x(d.time))
+            .attr("opacity", 1);
+          cursorDotSelection
             .attr("cx", x(d.time))
             .attr("cy", y(d.value))
             .attr("opacity", 1);
         }
       })
-      .on("mouseleave", () => {
-        if (tooltip) tooltip.style.opacity = "0";
-        cursor.attr("opacity", 0);
-        cursorDot.attr("opacity", 0);
-      });
+      .on("mouseleave", hideTooltip)
+      .on("mouseout", hideTooltip)
+      .on("touchend", hideTooltip)
+      .on("touchcancel", hideTooltip);
 
-    const cursor = svg
+    cursorSelection = svg
       .append("line")
       .attr("y1", 0)
       .attr("y2", chartHeight)
@@ -214,7 +226,7 @@
       .attr("pointer-events", "none")
       .attr("opacity", 0);
 
-    const cursorDot = svg
+    cursorDotSelection = svg
       .append("circle")
       .attr("r", 4)
       .attr("fill", color)
@@ -246,7 +258,14 @@
     handleResize();
     const ro = new ResizeObserver(handleResize);
     ro.observe(container!);
-    return () => ro.disconnect();
+    window.addEventListener("blur", hideTooltip);
+    window.addEventListener("scroll", hideTooltip, true);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("blur", hideTooltip);
+      window.removeEventListener("scroll", hideTooltip, true);
+      hideTooltip();
+    };
   });
   // Make reactive to data/dimensions/time
   $effect(() => {

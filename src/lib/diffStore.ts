@@ -18,7 +18,7 @@ import type {
   EventMarker,
 } from "../types/index";
 import { calculatePathTime } from "../utils";
-import _ from "lodash";
+import isEqual from "lodash/isEqual";
 
 export interface ProjectData {
   startPoint: Point;
@@ -78,8 +78,8 @@ export async function toggleDiff() {
       return;
     }
 
-    const api = (window as any).electronAPI;
-    if (!api || !api.gitShow) {
+    const api = (globalThis as any).electronAPI;
+    if (!api?.gitShow) {
       console.warn("Git integration not available");
       return;
     }
@@ -194,12 +194,10 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
     const oldLine = oldLinesMap.get(line.id);
     if (!oldLine) {
       result.addedLines.push(line);
+    } else if (areLinesEqual(line, oldLine)) {
+      result.sameLines.push(line);
     } else {
-      if (areLinesEqual(line, oldLine)) {
-        result.sameLines.push(line);
-      } else {
-        result.changedLines.push({ old: oldLine, new: line });
-      }
+      result.changedLines.push({ old: oldLine, new: line });
     }
   });
 
@@ -244,15 +242,7 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
   // Added & Changed
   currentMarkers.forEach((m, id) => {
     const oldM = oldMarkers.get(id);
-    if (!oldM) {
-      result.eventDiff.push({
-        id,
-        name: m.name,
-        parentName: m.parentName,
-        changeType: "added",
-        description: `Added "${m.name}" to ${m.parentName} at ${(m.position * 100).toFixed(0)}%`,
-      });
-    } else {
+    if (oldM) {
       const changes: string[] = [];
       const details: EventChangeDetail[] = [];
 
@@ -292,6 +282,14 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
           details,
         });
       }
+    } else {
+      result.eventDiff.push({
+        id,
+        name: m.name,
+        parentName: m.parentName,
+        changeType: "added",
+        description: `Added "${m.name}" to ${m.parentName} at ${(m.position * 100).toFixed(0)}%`,
+      });
     }
   });
 
@@ -313,8 +311,8 @@ function computeDiff(current: ProjectData, old: ProjectData): DiffResult {
 
 function areLinesEqual(l1: Line, l2: Line): boolean {
   return (
-    _.isEqual(l1.endPoint, l2.endPoint) &&
-    _.isEqual(l1.controlPoints, l2.controlPoints) &&
+    isEqual(l1.endPoint, l2.endPoint) &&
+    isEqual(l1.controlPoints, l2.controlPoints) &&
     l1.name === l2.name
   );
 }

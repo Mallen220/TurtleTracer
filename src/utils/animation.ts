@@ -160,10 +160,7 @@ export function calculateRobotState(
 
         linePercent = tStart + localProgress * (tEnd - tStart);
 
-        if (
-          activeEvent.headingProfile &&
-          activeEvent.headingProfile.length === profile.length
-        ) {
+        if (activeEvent.headingProfile?.length === profile.length) {
           const hStart = activeEvent.headingProfile[i];
           const hEnd = activeEvent.headingProfile[i + 1];
           // Linear interpolation of unwrapped heading
@@ -352,27 +349,25 @@ export function createAnimationController(
         if (!isExternalChange) onPercentChange(state.percent);
         // keep animating
         state.animationFrameId = requestAnimationFrame(animate);
-      } else {
+      } else if (state.accumulatedSeconds >= endSec) {
         // Not looping: clamp to duration and stop when done
-        if (state.accumulatedSeconds >= endSec) {
-          state.accumulatedSeconds = endSec;
-          updatePercentFromAccumulated();
-          if (!isExternalChange)
-            onPercentChange(state.loopRangeActive ? state.loopMaxPercent : 100);
-          state.playing = false;
-          state.lastTimestamp = null;
-          absoluteStartTime = null;
-          if (state.animationFrameId) {
-            cancelAnimationFrame(state.animationFrameId);
-            state.animationFrameId = null;
-          }
-          if (onComplete) onComplete();
-          return;
-        } else {
-          updatePercentFromAccumulated();
-          if (!isExternalChange) onPercentChange(state.percent);
-          state.animationFrameId = requestAnimationFrame(animate);
+        state.accumulatedSeconds = endSec;
+        updatePercentFromAccumulated();
+        if (!isExternalChange)
+          onPercentChange(state.loopRangeActive ? state.loopMaxPercent : 100);
+        state.playing = false;
+        state.lastTimestamp = null;
+        absoluteStartTime = null;
+        if (state.animationFrameId) {
+          cancelAnimationFrame(state.animationFrameId);
+          state.animationFrameId = null;
         }
+        if (onComplete) onComplete();
+        return;
+      } else {
+        updatePercentFromAccumulated();
+        if (!isExternalChange) onPercentChange(state.percent);
+        state.animationFrameId = requestAnimationFrame(animate);
       }
     } else {
       // duration is zero or invalid

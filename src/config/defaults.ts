@@ -3,8 +3,6 @@ import type { Point, Line, Shape, Settings } from "../types";
 import { getRandomColor } from "../utils";
 import { DEFAULT_KEY_BINDINGS } from "./keybindings";
 
-export { DEFAULT_KEY_BINDINGS };
-
 /**
  * Default robot dimensions
  */
@@ -70,7 +68,7 @@ export const DEFAULT_SETTINGS: Settings = {
   optimizationIterations: 300,
   optimizationPopulationSize: 100,
   optimizationMutationRate: 0.4,
-  optimizationMutationStrength: 6.0,
+  optimizationMutationStrength: 6,
   drawToolTolerance: 5,
   drawToolTension: 0.38,
   validationDisabled: false,
@@ -88,6 +86,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dismissedRatings: {},
   hasSeenOnboarding: false,
   gitIntegration: true,
+  lockFieldView: false,
   obstaclePresets: [
     {
       id: "preset-decode-2025",
@@ -270,3 +269,5 @@ export function getDefaultShapes(): Shape[] {
   }
   return [];
 }
+
+export { DEFAULT_KEY_BINDINGS } from "./keybindings";

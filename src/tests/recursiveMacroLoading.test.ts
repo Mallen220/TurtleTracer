@@ -41,7 +41,7 @@ describe("recursiveMacroLoading", () => {
     const mockResolvePath = vi.fn((base, relative) => {
       // Simple mock implementation for path resolution
       if (relative.startsWith("/")) return relative; // Already absolute
-      const dir = base.substring(0, base.lastIndexOf("/"));
+      const dir = base.slice(0, Math.max(0, base.lastIndexOf("/")));
       return `${dir}/${relative}`;
     });
 

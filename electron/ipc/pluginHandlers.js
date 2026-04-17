@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { ipcMain, shell } from "electron";
-import fs from "fs/promises";
-import path from "path";
+import fs from "node:fs/promises";
+import path from "node:path";
 import ts from "typescript";
 import { getPluginsDirectory } from "../utils.js";
 
@@ -21,7 +21,7 @@ function getSafePluginsDirectory() {
  */
 async function resolvePluginFilePath(basePath, filename) {
   if (typeof filename !== "string") {
-    throw new Error("Invalid plugin filename");
+    throw new TypeError("Invalid plugin filename");
   }
 
   const safeFilename = path.basename(filename);
@@ -39,7 +39,6 @@ async function resolvePluginFilePath(basePath, filename) {
     throw new Error("Invalid plugin filename");
   }
 
-  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   const entries = await fs.readdir(basePath, { withFileTypes: true });
   const matchedEntry = entries.find(
     (entry) => entry.isFile() && entry.name === safeFilename,
@@ -86,9 +85,7 @@ export function registerPluginHandlers() {
   ipcMain.handle("plugins:list", async () => {
     const fullPath = getSafePluginsDirectory();
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       await fs.mkdir(fullPath, { recursive: true });
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       const files = await fs.readdir(fullPath);
       return files.filter(
         (f) =>
@@ -105,7 +102,6 @@ export function registerPluginHandlers() {
     const basePath = getSafePluginsDirectory();
     const fullPath = await resolvePluginFilePath(basePath, filename);
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       return await fs.readFile(fullPath, "utf-8");
     } catch (error) {
       console.error("Error reading plugin:", error);
@@ -116,7 +112,7 @@ export function registerPluginHandlers() {
   ipcMain.handle("plugins:open-folder", async () => {
     const fullPath = getSafePluginsDirectory();
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+      // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       await fs.mkdir(fullPath, { recursive: true });
       await shell.openPath(fullPath);
       return true;
@@ -130,7 +126,7 @@ export function registerPluginHandlers() {
     const basePath = getSafePluginsDirectory();
     const fullPath = await resolvePluginFilePath(basePath, filename);
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+      // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       await fs.unlink(fullPath);
       return true;
     } catch (error) {

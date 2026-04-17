@@ -136,7 +136,7 @@
           name: "Additional Feedback",
           value:
             description.length > 1000
-              ? description.substring(0, 1000) + "..."
+              ? description.slice(0, 1000) + "..."
               : description,
           inline: false,
         });
@@ -189,8 +189,6 @@
 </script>
 
 {#if $showRatingDialog && !isAlreadyRated}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     role="presentation"
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"

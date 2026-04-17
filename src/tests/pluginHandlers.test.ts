@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import path from "path";
+import path from "node:path";
 
 const handlerRegistry: Record<string, (...args: any[]) => Promise<any>> = {};
 
@@ -76,7 +76,7 @@ describe("Plugin IPC security handlers", () => {
     const getPluginsDirSpy = vi
       .spyOn(utils, "getPluginsDirectory")
       .mockReturnValue("/escaped/outside");
-    const fsPromises = await import("fs/promises");
+    const fsPromises = await import("node:fs/promises");
     const mkdirSpy = vi
       .spyOn(fsPromises.default, "mkdir")
       .mockRejectedValue(new Error("Invalid path"));

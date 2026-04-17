@@ -25,8 +25,8 @@ describe("SettingsDialog", () => {
     const settings = { ...DEFAULT_SETTINGS };
 
     // Stub confirm to accept reset
-    const origConfirm = window.confirm;
-    window.confirm = () => true;
+    const origConfirm = globalThis.confirm;
+    globalThis.confirm = () => true;
 
     const { getByText } = render(SettingsDialog, {
       props: { isOpen: true, settings },
@@ -42,6 +42,6 @@ describe("SettingsDialog", () => {
     expect(savedArg.hasSeenOnboarding).toBe(true);
 
     // Restore confirm
-    window.confirm = origConfirm;
+    globalThis.confirm = origConfirm;
   });
 });

@@ -1,8 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { execSync } from "child_process";
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
+import { execSync } from "node:child_process";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,7 +57,9 @@ function getModifiedFiles() {
     ];
 
     // Sort for consistent output
-    files.sort();
+    files.sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
+    );
 
     return files;
   } catch (error) {
@@ -81,7 +83,7 @@ async function appendToNotice() {
     // Read existing NOTICE file
     let noticeContent = "";
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+      // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       noticeContent = await fs.readFile(noticeFile, "utf8");
     } catch (error) {
       if (error.code !== "ENOENT") {
@@ -126,11 +128,11 @@ async function appendToNotice() {
     let updatedContent = noticeContent.trimEnd();
 
     // Add header if this is the first time
-    if (!updatedContent.includes("These files have been edited")) {
+    if (updatedContent.includes("These files have been edited")) {
+      updatedContent += "\n";
+    } else {
       updatedContent +=
         "\n\nThese files have been edited, deleted, or created by Matthew Allen:\n";
-    } else {
-      updatedContent += "\n";
     }
 
     // Add new files
@@ -139,7 +141,7 @@ async function appendToNotice() {
     });
 
     // Write back to file
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     await fs.writeFile(noticeFile, updatedContent);
 
     console.log(`✅ Added ${filesToAdd.length} file(s) to NOTICE:`);

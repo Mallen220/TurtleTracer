@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "files": ["vite.config.d.ts", "playwright.config.ts", "vitest.config.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.js",
+    "src/**/*.svelte",
+    "src/**/*.svelte.ts",
+    "e2e/**/*.ts",
+    "plugins/**/*.ts",
+    "plugins/**/*.d.ts",
+    "**/*.d.ts",
+    "scripts/**/*.ts",
+    "*.ts",
+    "playwright.config.ts",
+    "vitest.config.ts",
+    "vite.config.d.ts"
+  ]
+}

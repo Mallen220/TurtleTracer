@@ -16,7 +16,7 @@ turtle.registerExporter("Custom CSV", async (data) => {
 
   if (isTelemetry) {
     let csv = "time,x,y,heading\n";
-    let time = 0.0;
+    let time = 0;
 
     if (data.startPoint) {
       const h =
@@ -33,9 +33,9 @@ turtle.registerExporter("Custom CSV", async (data) => {
             line.endPoint.y - prevPoint.y,
           );
           // Simulate 20 inches/sec for reasonable telemetry times
-          time += distance / 20.0;
+          time += distance / 20;
         } else {
-          time += 1.0;
+          time += 1;
         }
 
         const h =

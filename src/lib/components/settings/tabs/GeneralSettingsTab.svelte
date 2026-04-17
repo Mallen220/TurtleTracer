@@ -30,11 +30,11 @@
 
   let isCheckingForUpdates = $state(false);
   let isOnline = $state(
-    typeof navigator !== "undefined" ? navigator.onLine : true,
+    typeof navigator === "undefined" ? true : navigator.onLine,
   );
 
   async function handleCheckForUpdates() {
-    const electronAPI = (window as any).electronAPI;
+    const electronAPI = (globalThis as any).electronAPI;
     if (electronAPI && electronAPI.checkForUpdates) {
       isCheckingForUpdates = true;
       try {
@@ -47,18 +47,16 @@
               type: "info",
               timeout: 4000,
             });
+          } else if (result.reason === "store") {
+            notification.set({
+              message: "Updates are managed by the Microsoft Store.",
+              type: "info",
+            });
           } else {
-            if (result.reason === "store") {
-              notification.set({
-                message: "Updates are managed by the Microsoft Store.",
-                type: "info",
-              });
-            } else {
-              notification.set({
-                message: "You are on the newest version.",
-                type: "success",
-              });
-            }
+            notification.set({
+              message: "You are on the newest version.",
+              type: "success",
+            });
           }
         } else {
           notification.set({
@@ -205,7 +203,7 @@
           id="autosave-interval"
           value={settings.autosaveInterval}
           onchange={(e) => {
-            settings.autosaveInterval = parseInt(e.currentTarget.value);
+            settings.autosaveInterval = Number.parseInt(e.currentTarget.value);
             settings = { ...settings };
           }}
           class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"

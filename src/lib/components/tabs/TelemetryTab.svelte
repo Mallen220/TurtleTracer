@@ -33,7 +33,7 @@
   let cleanupListeners: (() => void) | null = null;
 
   onMount(() => {
-    const api = (window as any).electronAPI;
+    const api = (globalThis as any).electronAPI;
     if (api && api.telemetry) {
       // Set up listeners
 
@@ -52,7 +52,7 @@
   });
 
   async function toggleConnection() {
-    const api = (window as any).electronAPI;
+    const api = (globalThis as any).electronAPI;
     if (!api || !api.telemetry) {
       notification.set({
         message: "Telemetry API not available",

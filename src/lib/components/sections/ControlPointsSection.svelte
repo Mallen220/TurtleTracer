@@ -2,7 +2,7 @@
 <script lang="ts">
   import { run, stopPropagation } from "svelte/legacy";
 
-  import _ from "lodash";
+  import random from "lodash/random";
   import {
     snapToGrid,
     showGrid,
@@ -98,8 +98,10 @@
 
     if (!target) return;
 
-    const index = parseInt(target.element.getAttribute("data-cp-index") || "");
-    if (isNaN(index)) return;
+    const index = Number.parseInt(
+      target.element.getAttribute("data-cp-index") || "",
+    );
+    if (Number.isNaN(index)) return;
 
     if (dragOverIndex !== index || dragPosition !== target.position) {
       dragOverIndex = index;
@@ -160,7 +162,7 @@
   <div class="flex items-center justify-between w-full py-1">
     <button
       onclick={toggleCollapsed}
-      class="flex items-center gap-2 text-xs font-semibold text-neutral-500 uppercase tracking-wide hover:text-neutral-800 dark:hover:text-neutral-300 transition-colors"
+      class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-200 uppercase tracking-wide hover:text-neutral-900 dark:hover:text-neutral-100 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors"
       title="{collapsed ? 'Show' : 'Hide'} control points"
       aria-expanded={!collapsed}
       aria-controls="control-points-list-{lineIdx}"
@@ -179,8 +181,8 @@
         line.controlPoints = [
           ...line.controlPoints,
           {
-            x: _.random(36, 108),
-            y: _.random(36, 108),
+            x: random(36, 108),
+            y: random(36, 108),
           },
         ];
         recordChange();
@@ -301,8 +303,8 @@
                   class="w-full pl-5 pr-1 py-1 text-xs rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} X"
                   oninput={(e) => {
-                    const val = parseFloat(e.currentTarget.value);
-                    if (!isNaN(val)) {
+                    const val = Number.parseFloat(e.currentTarget.value);
+                    if (!Number.isNaN(val)) {
                       const userPt = toUser(
                         point,
                         $settingsStore.coordinateSystem || "Pedro",
@@ -338,8 +340,8 @@
                   class="w-full pl-5 pr-1 py-1 text-xs rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   aria-label="Line {lineIdx + 1} Control Point {idx + 1} Y"
                   oninput={(e) => {
-                    const val = parseFloat(e.currentTarget.value);
-                    if (!isNaN(val)) {
+                    const val = Number.parseFloat(e.currentTarget.value);
+                    if (!Number.isNaN(val)) {
                       const userPt = toUser(
                         point,
                         $settingsStore.coordinateSystem || "Pedro",

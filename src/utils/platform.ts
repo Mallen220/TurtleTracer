@@ -16,6 +16,6 @@ export const modKey = isMac ? "Cmd" : "Ctrl";
 export const altKey = isMac ? "Opt" : "Alt";
 
 export const isBrowser =
-  typeof window !== "undefined" &&
+  typeof globalThis !== "undefined" &&
   typeof navigator !== "undefined" &&
   !/Electron/i.test(navigator.userAgent);

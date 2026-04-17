@@ -59,7 +59,9 @@
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return (
+      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+    );
   }
 
   async function processPreviewQueue() {
@@ -78,7 +80,9 @@
           )
             return;
           try {
-            const content = await window.electronAPI.readFile(filePath);
+            const content = await (globalThis as any).electronAPI.readFile(
+              filePath,
+            );
             const data = JSON.parse(content);
             if (data.startPoint && Array.isArray(data.lines)) {
               previews[filePath] = {
@@ -378,7 +382,7 @@
   run(() => {
     if (renamingFile) {
       if (renamingFile.path !== lastRenamingPath) {
-        renameInput = renamingFile.name.replace(/\.(pp|turt)$/i, "");
+        renameInput = renamingFile.name.replaceAll(/\.(pp|turt)$/gi, "");
         lastRenamingPath = renamingFile.path;
       }
     } else {
@@ -505,7 +509,7 @@
                   class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate"
                   title={file.name}
                 >
-                  {file.name.replace(/\.(pp|turt)$/i, "")}
+                  {file.name.replaceAll(/\.(pp|turt)$/gi, "")}
                 </span>
                 <div class="flex items-center gap-1">
                   {#if showGitStatus && file.gitStatus && file.gitStatus !== "clean"}

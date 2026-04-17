@@ -1,11 +1,9 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import * as d3 from "d3";
-  import { debounce } from "lodash";
+  import debounce from "lodash/debounce";
 
   // ⚡ Bolt Optimization:
   // Caching d3.scaleLinear() avoids repeated expensive instantiations during
@@ -53,6 +51,7 @@
     showExportImage,
     showStrategySheet,
     showShortcuts,
+    startTutorial,
     exportDialogState,
     selectedPointId,
     collisionMarkers,
@@ -164,10 +163,12 @@
     downloadUpdate?: (version: string, url: string) => void;
     skipUpdate?: (version: string) => void;
   }
-  const electronAPI = (window as any).electronAPI as ElectronAPI | undefined;
+  const electronAPI = (globalThis as any).electronAPI as
+    | ElectronAPI
+    | undefined;
 
   async function checkMsStoreTracking() {
-    if (!electronAPI || !electronAPI.isWindowsStore) return;
+    if (!electronAPI?.isWindowsStore) return;
     try {
       const isStore = await electronAPI.isWindowsStore();
       if (isStore) {
@@ -212,7 +213,7 @@
     const href = anchor.href;
     const isExternal =
       href.startsWith("http://") || href.startsWith("https://");
-    if (isExternal && electronAPI && electronAPI.openExternal) {
+    if (isExternal && electronAPI?.openExternal) {
       e.preventDefault();
       electronAPI
         .openExternal(href)
@@ -226,7 +227,7 @@
     const currentSettings = get(settingsStore);
     if (!currentSettings.gitIntegration) return;
 
-    if (electronAPI && (electronAPI as any).gitStatus) {
+    if ((electronAPI as any)?.gitStatus) {
       try {
         const statuses = await (electronAPI as any).gitStatus(dir);
         gitStatusStore.set(statuses);
@@ -255,7 +256,22 @@
     return () => {
       clearInterval(ratingInterval);
       window.removeEventListener("focus", fetchGitStatus);
+      if (gitRefreshUnsub) gitRefreshUnsub();
     };
+  });
+
+  // Automatically refresh git status when directory or file changes
+  let gitRefreshUnsub: () => void;
+  onMount(() => {
+    gitRefreshUnsub = currentDirectoryStore.subscribe(() => {
+      fetchGitStatus();
+    });
+  });
+
+  $effect(() => {
+    // Also refresh when git integration is toggled or file path changes
+    const _ = [$settingsStore.gitIntegration, $currentFilePath];
+    fetchGitStatus();
   });
 
   function tryShowRatingDialog() {
@@ -353,7 +369,7 @@
   // --- Unsaved Changes Dialog Logic ---
   async function handleUnsavedSave() {
     showUnsavedChangesDialog = false;
-    const api = (window as any).electronAPI;
+    const api = (globalThis as any).electronAPI;
     const currentPath = get(currentFilePath);
     let success = false;
 
@@ -390,7 +406,7 @@
 
     if (success) {
       if (pendingAction === "close") {
-        if (api && api.sendCloseApproved) {
+        if (api?.sendCloseApproved) {
           api.sendCloseApproved();
         }
       } else {
@@ -403,8 +419,8 @@
   function handleUnsavedDiscard() {
     showUnsavedChangesDialog = false;
     if (pendingAction === "close") {
-      const api = (window as any).electronAPI;
-      if (api && api.sendCloseApproved) {
+      const api = (globalThis as any).electronAPI;
+      if (api?.sendCloseApproved) {
         api.sendCloseApproved();
       }
     } else {
@@ -433,11 +449,7 @@
   function handleDragEnter(e: DragEvent) {
     e.preventDefault();
     // Check if dragging files
-    if (
-      e.dataTransfer &&
-      e.dataTransfer.types &&
-      e.dataTransfer.types.includes("Files")
-    ) {
+    if (e.dataTransfer?.types?.includes("Files")) {
       dragCounter++;
       isDraggingFile = true;
     }
@@ -462,18 +474,14 @@
     isDraggingFile = false;
 
     // Only intercept if it's an OS file drop we care about (avoids blocking internal drags)
-    if (
-      e.dataTransfer &&
-      e.dataTransfer.types &&
-      e.dataTransfer.types.includes("Files")
-    ) {
+    if (e.dataTransfer?.types?.includes("Files")) {
       e.preventDefault();
       e.stopPropagation();
 
       if (e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0];
         // Refresh electronAPI reference from window to ensure it's available
-        const api = (window as any).electronAPI;
+        const api = (globalThis as any).electronAPI;
 
         if (!api) return;
 
@@ -541,14 +549,12 @@
               }
 
               if (!success) return; // Save failed or cancelled
-            } else {
-              if (
-                !confirm(
-                  "This will discard your unsaved changes. Are you sure you want to open the new file?",
-                )
-              ) {
-                return;
-              }
+            } else if (
+              !confirm(
+                "This will discard your unsaved changes. Are you sure you want to open the new file?",
+              )
+            ) {
+              return;
             }
           }
 
@@ -614,7 +620,7 @@
       const path = get(currentFilePath);
       if (path && unsaved) {
         await saveProject();
-        if (electronAPI && electronAPI.sendCloseApproved) {
+        if (electronAPI?.sendCloseApproved) {
           electronAPI.sendCloseApproved();
         }
         return;
@@ -631,10 +637,8 @@
     if (unsaved) {
       pendingAction = "close";
       showUnsavedChangesDialog = true;
-    } else {
-      if (electronAPI && electronAPI.sendCloseApproved) {
-        electronAPI.sendCloseApproved();
-      }
+    } else if (electronAPI?.sendCloseApproved) {
+      electronAPI.sendCloseApproved();
     }
   }
 
@@ -737,7 +741,7 @@
     previewOptimizedLines = null;
     history.record(getAppState(), description);
     if (isLoaded) isUnsaved.set(true);
-    if (isLoaded && animationController) animationController.seekToPercent(0);
+    if (isLoaded) animationController?.seekToPercent(0);
 
     // Autosave on change
     if (isLoaded && settings?.autosaveMode === "change") {
@@ -752,7 +756,9 @@
           false,
           undefined,
           { quiet: true },
-        );
+        ).then(() => {
+          fetchGitStatus();
+        });
       }
     }
 
@@ -794,11 +800,13 @@
 
   function handleSaveProject() {
     const path = get(currentFilePath);
-    if (!path) {
+    if (path) {
+      saveProject().then(() => {
+        fetchGitStatus();
+      });
+    } else {
       showFileManager.set(true);
       fileManagerNewFileMode.set(true);
-    } else {
-      saveProject();
     }
   }
 
@@ -925,7 +933,7 @@
 
       // Check for directory setup FIRST
       let needsSetup = false;
-      if (electronAPI && electronAPI.getSavedDirectory) {
+      if (electronAPI?.getSavedDirectory) {
         try {
           const dir = await electronAPI.getSavedDirectory();
           if (!dir || dir.trim() === "") {
@@ -966,7 +974,7 @@
     }, 500);
 
     // Expose debug trigger for testing setup dialog
-    (window as any).triggerSetupDialog = () => {
+    (globalThis as any).triggerSetupDialog = () => {
       setupMode = true;
     };
 
@@ -1070,11 +1078,11 @@
     playingStore.set(false);
   }
   function resetAnimation() {
-    if (animationController) animationController.reset();
+    animationController?.reset();
     playingStore.set(false);
   }
   function handleSeek(val: number) {
-    if (animationController) animationController.seekToPercent(val);
+    animationController?.seekToPercent(val);
   }
 
   function handlePreviewChange(newLines: any) {
@@ -1096,7 +1104,7 @@
     handleSeek(p);
   }
   function changePlaybackSpeedBy(delta: number) {
-    const val = Math.max(0.25, Math.min(3.0, playbackSpeed + delta));
+    const val = Math.max(0.25, Math.min(3, playbackSpeed + delta));
     playbackSpeedStore.set(val);
   }
   // Compatibility alias expected by ControlTab props
@@ -1104,14 +1112,14 @@
     changePlaybackSpeedBy(delta);
   }
   function resetPlaybackSpeed() {
-    playbackSpeedStore.set(1.0);
+    playbackSpeedStore.set(1);
   }
   function setPlaybackSpeed(val: number) {
     playbackSpeedStore.set(val);
   }
 
   function handleSplitPath() {
-    if (!timePrediction || timePrediction.totalTime <= 0) return;
+    if (!(timePrediction?.totalTime > 0)) return;
     const currentLines = get(linesStore);
     const currentSequence = get(sequenceStore);
     const currentPercent = get(percentStore);
@@ -1130,7 +1138,7 @@
 
       // Select the split point
       const splitLine = res.lines[res.splitIndex];
-      if (splitLine && splitLine.id) {
+      if (splitLine?.id) {
         selectedLineId.set(splitLine.id);
         selectedPointId.set(`point-${res.splitIndex + 1}-0`);
       }
@@ -1218,11 +1226,8 @@
     if (!sel || !sel.startsWith("wait-")) return;
     let el = e.target as Element | null;
     while (el) {
-      if (el.classList && el.classList.contains("wait-row")) return;
-      if (
-        el.id &&
-        (el.id.startsWith("wait-") || el.id.startsWith("wait-event-"))
-      )
+      if (el.classList?.contains("wait-row")) return;
+      if (el.id?.startsWith("wait-") || el.id?.startsWith("wait-event-"))
         return;
       el = el.parentElement;
     }
@@ -1251,7 +1256,7 @@
 
   let settings = $derived($settingsStore);
   // Manage Time-based Autosave
-  run(() => {
+  $effect(() => {
     if (autosaveIntervalId) {
       clearInterval(autosaveIntervalId);
       autosaveIntervalId = null;
@@ -1265,7 +1270,7 @@
   let effectiveShowSidebar = $derived(
     $isPresentationMode ? false : showSidebar,
   );
-  run(() => {
+  $effect(() => {
     if (controlTabContainer && _controlTabObserver) {
       try {
         _controlTabObserver.observe(controlTabContainer);
@@ -1273,7 +1278,7 @@
       } catch (e) {}
     }
   });
-  run(() => {
+  $effect(() => {
     if (!effectiveShowSidebar && statsOpen) statsOpen = false;
   });
   let isLargeScreen = $derived(innerWidth >= 1024);
@@ -1288,7 +1293,7 @@
   let playbackSpeed = $derived($playbackSpeedStore);
   let loopRange = $derived($loopRangeStore);
   let loopRangeActive = $derived($loopRangeActiveStore);
-  run(() => {
+  $effect(() => {
     if (
       userFieldHeightLimit === null &&
       mainContentHeight > 0 &&
@@ -1297,7 +1302,7 @@
       userFieldHeightLimit = mainContentHeight * 0.6;
     }
   });
-  run(() => {
+  $effect(() => {
     if (userFieldLimit === null && mainContentWidth > 0 && isLargeScreen) {
       userFieldLimit = mainContentWidth * 0.49;
     }
@@ -1343,7 +1348,7 @@
   let canUndo = $derived($canUndoStore);
   let canRedo = $derived($canRedoStore);
   // --- Animation Logic ---
-  run(() => {
+  $effect(() => {
     if (!$isDraggingStore) {
       timePrediction = calculatePathTime(
         startPoint,
@@ -1355,7 +1360,7 @@
     }
   });
   // Continuous validation when path/settings change
-  run(() => {
+  $effect(() => {
     // depend on timePrediction to ensure validation with the latest timeline
     if (
       $startPointStore &&
@@ -1383,7 +1388,7 @@
       collisionMarkers.set([]);
     }
   });
-  run(() => {
+  $effect(() => {
     if (settings) debouncedSaveSettings(settings);
   });
   // Diff Mode Animation Logic
@@ -1400,7 +1405,9 @@
         )
       : null,
   );
-  let currentTotalTime = $derived(timePrediction.totalTime / 1000);
+  let currentTotalTime = $derived(
+    timePrediction?.totalTime ? timePrediction.totalTime / 1000 : 0,
+  );
   let committedTotalTime = $derived(
     committedTimePrediction ? committedTimePrediction.totalTime / 1000 : 0,
   );
@@ -1413,7 +1420,7 @@
   let animationDuration = $derived(
     getAnimationDuration(effectiveDuration, playbackSpeed),
   );
-  run(() => {
+  $effect(() => {
     if (animationController) {
       animationController.setDuration(animationDuration);
       animationController.setLoop(loopAnimation);
@@ -1427,20 +1434,16 @@
     }
   });
   // Sync playing store -> controller
-  run(() => {
+  $effect(() => {
     if (animationController) {
-      if (playing && !animationController.isPlaying())
+      if (playing && animationController.isPlaying() === false)
         animationController.play();
       if (!playing && animationController.isPlaying())
         animationController.pause();
     }
   });
-  run(() => {
-    if (
-      timePrediction &&
-      timePrediction.timeline &&
-      (lines.length > 0 || sequence.length > 0)
-    ) {
+  $effect(() => {
+    if (timePrediction?.timeline && (lines.length > 0 || sequence.length > 0)) {
       // Calculate Global Time based on effective duration
       const globalTime = (percent / 100) * effectiveDuration;
 
@@ -1499,27 +1502,27 @@
       committedRobotState = null;
     }
   });
-  run(() => {
-    if (!isLargeScreen) {
-      // On small screens, when sidebar is closed, wait for animation then hide
-      if (!effectiveShowSidebar) {
-        if (hideControlTabTimeout) clearTimeout(hideControlTabTimeout);
-        hideControlTabTimeout = setTimeout(() => {
-          controlTabHidden = true;
-        }, 320); // slightly longer than the 300ms transition
-      } else {
-        if (hideControlTabTimeout) {
-          clearTimeout(hideControlTabTimeout);
-          hideControlTabTimeout = null;
-        }
-        controlTabHidden = false;
-      }
-    } else {
+  $effect(() => {
+    if (isLargeScreen) {
       // Ensure visible on large screens
       controlTabHidden = false;
       if (hideControlTabTimeout) {
         clearTimeout(hideControlTabTimeout);
         hideControlTabTimeout = null;
+      }
+    } else {
+      // On small screens, when sidebar is closed, wait for animation then hide
+      if (effectiveShowSidebar) {
+        if (hideControlTabTimeout) {
+          clearTimeout(hideControlTabTimeout);
+          hideControlTabTimeout = null;
+        }
+        controlTabHidden = false;
+      } else {
+        if (hideControlTabTimeout) clearTimeout(hideControlTabTimeout);
+        hideControlTabTimeout = setTimeout(() => {
+          controlTabHidden = true;
+        }, 320); // slightly longer than the 300ms transition
       }
     }
   });
@@ -1545,7 +1548,7 @@
       }
     })(),
   );
-  run(() => {
+  $effect(() => {
     if ($exportDialogState.isOpen && exportDialog) {
       exportDialog.openWithFormat(
         $exportDialogState.format,
@@ -1556,7 +1559,7 @@
     }
   });
   // --- Apply Theme ---
-  run(() => {
+  $effect(() => {
     // Depend on themesStore so re-run when plugins load
     const registeredThemes = $themesStore;
     if (settings) {
@@ -1602,7 +1605,7 @@
           // Add a theme-specific class so we can scope CSS for multiple custom themes
           const themeClass = `theme-${t
             .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")}`;
+            .replaceAll(/[^a-z0-9]+/g, "-")}`;
           if (
             currentCustomThemeClass &&
             currentCustomThemeClass !== themeClass
@@ -1622,7 +1625,7 @@
           }
 
           if (t === "auto") {
-            t = window.matchMedia("(prefers-color-scheme: dark)").matches
+            t = globalThis.matchMedia("(prefers-color-scheme: dark)").matches
               ? "dark"
               : "light";
           }
@@ -1633,8 +1636,8 @@
     }
   });
   // --- Apply Program Font Size ---
-  run(() => {
-    if (settings && settings.programFontSize) {
+  $effect(() => {
+    if (settings?.programFontSize) {
       document.documentElement.style.fontSize = `${settings.programFontSize}%`;
     } else {
       document.documentElement.style.fontSize = "100%";
@@ -1776,7 +1779,7 @@
   />
 {/if}
 
-<WhatsNewDialog bind:show={$showWhatsNew} on:close={closeWhatsNew} />
+<WhatsNewDialog bind:show={$showWhatsNew} onclose={closeWhatsNew} />
 <SetupDialog bind:show={setupMode} />
 <NotificationToast />
 <OnboardingTutorial
@@ -1912,12 +1915,19 @@
         style={`
         width: ${isLargeScreen && effectiveShowSidebar ? leftPaneWidth + "px" : "100%"};
         height: ${isLargeScreen ? "100%" : fieldContainerTargetHeight};
-        min-height: ${!isLargeScreen ? (userFieldHeightLimit ? "0" : "60vh") : "0"};
+        min-height: ${isLargeScreen ? "0" : userFieldHeightLimit ? "0" : "60vh"};
       `}
       >
         <div
           class="relative shadow-inner w-full h-full flex justify-center items-center"
         >
+          <button
+            id="field-container-anchor"
+            type="button"
+            class="absolute inset-0 opacity-0 pointer-events-none"
+            aria-label="Field workspace tutorial target"
+            tabindex={$startTutorial ? 0 : -1}
+          ></button>
           <SvelteComponent_1
             bind:this={fieldRenderer}
             width={fieldRenderWidth}
@@ -1933,7 +1943,7 @@
       <!-- Resizer Handle (Desktop) -->
       {#if isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
         <button
-          class="group w-3 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
+          class="group w-4 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
           onmousedown={() => startResize("horizontal")}
           onkeydown={(e) => handleResizeKeyDown(e, "horizontal")}
           ondblclick={() => {
@@ -1943,7 +1953,7 @@
           title="Drag to resize. Double-click to reset. Use Arrow keys to adjust width."
         >
           <div
-            class="w-1 h-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
+            class="w-0.5 h-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
           ></div>
         </button>
       {/if}

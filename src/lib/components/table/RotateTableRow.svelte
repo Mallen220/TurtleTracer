@@ -83,7 +83,7 @@
 
   function handleDegreesInput(e: Event) {
     const target = e.target as HTMLInputElement;
-    (item as any).degrees = parseFloat(target.value);
+    (item as any).degrees = Number.parseFloat(target.value);
     // `updateLinkedRotations` is needed here.
     onUpdate(item);
   }

@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run, preventDefault } from "svelte/legacy";
-
   import { createEventDispatcher, tick } from "svelte";
   import { slide } from "svelte/transition";
 
@@ -36,7 +34,7 @@
   );
 
   // Reset highlight when options change
-  run(() => {
+  $effect(() => {
     if (filteredOptions) {
       highlightedIndex = -1;
     }
@@ -73,23 +71,23 @@
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (!isOpen) {
-        isOpen = true;
-        highlightedIndex = 0;
-      } else {
+      if (isOpen) {
         highlightedIndex = (highlightedIndex + 1) % filteredOptions.length;
         scrollToHighlighted();
+      } else {
+        isOpen = true;
+        highlightedIndex = 0;
       }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (!isOpen) {
-        isOpen = true;
-        highlightedIndex = filteredOptions.length - 1;
-      } else {
+      if (isOpen) {
         highlightedIndex =
           (highlightedIndex - 1 + filteredOptions.length) %
           filteredOptions.length;
         scrollToHighlighted();
+      } else {
+        isOpen = true;
+        highlightedIndex = filteredOptions.length - 1;
       }
     } else if (e.key === "Enter") {
       if (
@@ -167,7 +165,10 @@
             {index === highlightedIndex
             ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-900 dark:text-purple-100'
             : 'hover:bg-purple-50 dark:hover:bg-purple-900/20 text-neutral-700 dark:text-neutral-200'}"
-          onmousedown={preventDefault(() => selectOption(option))}
+          onmousedown={(e) => {
+            e.preventDefault();
+            selectOption(option);
+          }}
         >
           {option}
         </div>

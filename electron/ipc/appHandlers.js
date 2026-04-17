@@ -80,7 +80,7 @@ export function registerAppHandlers(state) {
       console.error("Error during manual update check:", err);
       return {
         success: false,
-        error: err && err.message ? err.message : String(err),
+        error: err?.message ? err.message : String(err),
       };
     }
   });

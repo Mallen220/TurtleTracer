@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import prettier from "prettier";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,16 +13,16 @@ const outputPath = path.join(__dirname, "../plugins/turtle.d.ts");
 async function generate() {
   console.log("Generating plugin types...");
   try {
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     let content = fs.readFileSync(typesPath, "utf-8");
 
     // Remove imports/exports to make types global
     // 1. Remove import statements (they should be at the top)
-    content = content.replace(/^import .*$/gm, "");
+    content = content.replaceAll(/^import .*$/gm, "");
 
     // 2. Remove 'export' keyword from declarations
     // Matches "export interface", "export type", "export const" etc.
-    content = content.replace(/^export /gm, "");
+    content = content.replaceAll(/^export /gm, "");
 
     const finalContent = `// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /**
@@ -48,7 +48,7 @@ declare global {
       parser: "typescript",
     });
 
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     fs.writeFileSync(outputPath, formatted);
     console.log(`Plugin types generated at ${outputPath}`);
   } catch (error) {

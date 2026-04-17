@@ -112,7 +112,7 @@
             color: 16753920, // Orange
             description:
               description.length > 4000
-                ? description.substring(0, 4000) + "..."
+                ? description.slice(0, 4000) + "..."
                 : description,
             fields: [
               {
@@ -172,7 +172,7 @@
       // Check cooldown
       const lastSubmitStr = $settingsStore.lastFeedbackSubmit;
       if (lastSubmitStr) {
-        const elapsed = Date.now() - parseInt(lastSubmitStr);
+        const elapsed = Date.now() - Number.parseInt(lastSubmitStr);
         if (elapsed < 300000) {
           cooldownSeconds = Math.ceil((300000 - elapsed) / 1000);
           startCooldownTimer();
@@ -195,8 +195,6 @@
     onclick={() => handleClickOutside()}
     transition:fade={{ duration: 150 }}
   >
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div
       role="dialog"
       aria-modal="true"

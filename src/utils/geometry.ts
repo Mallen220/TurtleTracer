@@ -86,20 +86,6 @@ export function pointToLineDistance(
 }
 
 /**
- * Calculate the center (centroid) of a polygon
- */
-export function polygonCenter(vertices: BasePoint[]): number[] {
-  const sum = vertices.reduce(
-    (acc, vertex) => {
-      return [acc[0] + vertex.x, acc[1] + vertex.y];
-    },
-    [0, 0],
-  );
-
-  return [sum[0] / vertices.length, sum[1] / vertices.length];
-}
-
-/**
  * Calculate the four corner points of a robot at a given position and heading
  * Assumes the robot is a rectangle centered at (x, y) with the given heading angle
  * The heading convention: 0° = right, 90° = down, 180° = left, 270° = up

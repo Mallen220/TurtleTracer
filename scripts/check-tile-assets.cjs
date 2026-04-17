@@ -3,8 +3,8 @@ CommonJS validation for tile assets under `build/win/`.
 Run with: npm run check:tiles
 */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 function hasPackage(name) {
   try {
@@ -34,9 +34,9 @@ async function main() {
   for (const r of required) {
     const pRoot = path.join(buildRoot, r.name);
     const pWin = path.join(outDir, r.name);
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     const p = fs.existsSync(pRoot) ? pRoot : pWin;
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     if (!fs.existsSync(p)) {
       console.error("MISSING (build/ or build/win):", r.name);
       failed = true;

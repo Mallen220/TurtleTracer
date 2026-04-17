@@ -3,11 +3,7 @@ import Two from "two.js";
 import type { Path } from "two.js/src/path";
 import type { Shape } from "../../../types";
 
-interface RenderContext {
-  x: d3.ScaleLinear<number, number>;
-  y: d3.ScaleLinear<number, number>;
-  uiLength: (inches: number) => number;
-}
+import { type RenderContext } from "./GeneratorUtils";
 
 export function generateShapeElements(shapes: Shape[], ctx: RenderContext) {
   let _shapes: Path[] = [];
@@ -62,7 +58,7 @@ export function generateShapeElements(shapes: Shape[], ctx: RenderContext) {
         shapeElement.stroke = shape.color;
         shapeElement.fill = shape.color;
         shapeElement.opacity = 0.1; // Low occupancy fill 10%
-        shapeElement.linewidth = uiLength(1.0);
+        shapeElement.linewidth = uiLength(1);
         shapeElement.dashes = [uiLength(4), uiLength(4)]; // Dashed lines
       } else {
         // Standard Obstacle

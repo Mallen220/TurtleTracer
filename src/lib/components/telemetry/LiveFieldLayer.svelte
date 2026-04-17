@@ -82,10 +82,10 @@
     if (ops && width && height) {
       if (!renderRequested) {
         renderRequested = true;
-        if (typeof requestAnimationFrame !== "undefined") {
-          requestAnimationFrame(render);
-        } else {
+        if (typeof requestAnimationFrame === "undefined") {
           render();
+        } else {
+          requestAnimationFrame(render);
         }
       }
     }

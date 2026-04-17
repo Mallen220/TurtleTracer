@@ -94,7 +94,7 @@
     const newPreset: ObstaclePreset = {
       id: `preset-${Math.random().toString(36).slice(2)}`,
       name: name,
-      shapes: structuredClone(shapes), // Deep copy
+      shapes: $state.snapshot(shapes), // Deep copy
     };
 
     $settingsStore.obstaclePresets = [
@@ -117,7 +117,7 @@
       if (!confirm("This will replace current obstacles. Continue?")) return;
     }
 
-    shapes = structuredClone(preset.shapes); // Deep copy
+    shapes = $state.snapshot(preset.shapes); // Deep copy
     // Reset collapsed states
     collapsedObstacles = new Array(shapes.length).fill(false);
     recordChange?.("Load Obstacle Preset");
@@ -324,10 +324,10 @@
 
               <div class="flex flex-row gap-1">
                 <button
-                  title={shape.visible !== false ? "Hide Shape" : "Show Shape"}
-                  aria-label={shape.visible !== false
-                    ? "Hide Shape"
-                    : "Show Shape"}
+                  title={shape.visible === false ? "Show Shape" : "Hide Shape"}
+                  aria-label={shape.visible === false
+                    ? "Show Shape"
+                    : "Hide Shape"}
                   onclick={() => {
                     shapes[shapeIdx] = {
                       ...shapes[shapeIdx],
@@ -418,8 +418,10 @@
                             $settingsStore.coordinateSystem || "Pedro",
                           )}
                           oninput={(e) => {
-                            const val = parseFloat(e.currentTarget.value);
-                            if (!isNaN(val)) {
+                            const val = Number.parseFloat(
+                              e.currentTarget.value,
+                            );
+                            if (!Number.isNaN(val)) {
                               vertex.x = toFieldCoordinate(
                                 val,
                                 $settingsStore.coordinateSystem || "Pedro",
@@ -457,8 +459,10 @@
                             $settingsStore.coordinateSystem || "Pedro",
                           )}
                           oninput={(e) => {
-                            const val = parseFloat(e.currentTarget.value);
-                            if (!isNaN(val)) {
+                            const val = Number.parseFloat(
+                              e.currentTarget.value,
+                            );
+                            if (!Number.isNaN(val)) {
                               vertex.y = toFieldCoordinate(
                                 val,
                                 $settingsStore.coordinateSystem || "Pedro",

@@ -61,9 +61,9 @@ function parsePoseCreation(tokens: string[]): Partial<Point> | null {
       const parenEnd = currentGroup.indexOf(")", parenStart);
       if (parenStart !== -1 && parenEnd !== -1) {
         const numStr = currentGroup.slice(parenStart + 1, parenEnd).join("");
-        const num = parseFloat(numStr);
+        const num = Number.parseFloat(numStr);
         parsedArgs.push({ value: num, isRadians: true });
-        i = parenEnd; // skip
+        i += parenEnd - i; // skip ahead
       }
     } else {
       // Check if it's a number
@@ -74,8 +74,8 @@ function parsePoseCreation(tokens: string[]): Partial<Point> | null {
         numStr += currentGroup[i + 1];
         offset = 1;
       }
-      if (!isNaN(parseFloat(numStr))) {
-        parsedArgs.push({ value: parseFloat(numStr), isRadians: false });
+      if (!Number.isNaN(Number.parseFloat(numStr))) {
+        parsedArgs.push({ value: Number.parseFloat(numStr), isRadians: false });
         i += offset;
       } else if (/^[a-zA-Z_]\w*$/.test(t)) {
         parsedArgs.push({ value: t, isRadians: false, isIdentifier: true });
@@ -230,7 +230,7 @@ export function importJavaProject(javaCode: string): TurtleData {
         tokens.includes("build")
       ) {
         const eqIdx = tokens.indexOf("=");
-        const pathName = eqIdx !== -1 ? tokens[0] : `Path ${lines.length + 1}`;
+        const pathName = eqIdx === -1 ? `Path ${lines.length + 1}` : tokens[0];
 
         // Find all addPath occurrences in this builder chain
         const addPathIndices: number[] = [];
@@ -315,7 +315,7 @@ export function importJavaProject(javaCode: string): TurtleData {
                     args.push([...currentArgTokens]);
                     currentArgTokens = [];
                     inNewPose = false;
-                    i = j;
+                    i += j - i; // skip ahead to the end of the pose
                     break;
                   }
                 }
@@ -462,7 +462,7 @@ export function importJavaProject(javaCode: string): TurtleData {
                   (line.endPoint as any).degrees = extracted.x;
                 } else {
                   const ext = resolveHeading(extracted, points);
-                  (line.endPoint as any).degrees = ext !== null ? ext : 0;
+                  (line.endPoint as any).degrees = ext === null ? 0 : ext;
                 }
               } else if (
                 pathTokens.includes("facingPoint") ||
@@ -523,14 +523,16 @@ export function importJavaProject(javaCode: string): TurtleData {
 
                 const mToks = pathTokens.slice(tStart + 1, tEnd);
                 // mToks should look like [ '1.000', '"ShootCenter"', ',' ] or similar
-                const numStr = mToks.find((t) => !isNaN(parseFloat(t)));
+                const numStr = mToks.find(
+                  (t) => !Number.isNaN(Number.parseFloat(t)),
+                );
                 const strTok = mToks.find((t) => t.includes('"'));
 
                 if (numStr && strTok) {
                   line.eventMarkers!.push({
                     id: makeId(),
-                    name: strTok.replace(/"/g, ""),
-                    position: parseFloat(numStr),
+                    name: strTok.replaceAll(`"`, ""),
+                    position: Number.parseFloat(numStr),
                   });
                 }
               });
@@ -566,8 +568,8 @@ export function importJavaProject(javaCode: string): TurtleData {
         const parenEnd = tokens.indexOf(")", parenStart);
         if (parenStart !== -1 && parenEnd !== -1) {
           const timeStr = tokens.slice(parenStart + 1, parenEnd).join("");
-          if (!isNaN(parseFloat(timeStr))) {
-            let time = parseFloat(timeStr);
+          if (!Number.isNaN(Number.parseFloat(timeStr))) {
+            let time = Number.parseFloat(timeStr);
             // Often, if the library uses `new WaitCommand(1000)`, it's in ms.
             // If they use `new Delay(1.5)`, it's seconds, but `Delay(1500)` would be ms.
             // We assume if it's Delay and < 100 it's probably seconds.
@@ -610,10 +612,10 @@ export function importJavaProject(javaCode: string): TurtleData {
             targetHeading = (pt as any).x; // we know parsePoseCreation converts single Math.toRadians -> degrees inside the x payload
           } else if (pt && (pt as any).x !== undefined) {
             targetHeading = (pt as any).x;
-          } else if (!isNaN(parseFloat(innerTokens.join("")))) {
+          } else if (!Number.isNaN(Number.parseFloat(innerTokens.join("")))) {
             // For `.turnTo(2.094)`, `innerTokens` is `[ '2.094' ]`. We should treat this as radians if the framework `turnTo` is always rads.
             // Pedro pathing `follower.turnTo(radians)`.
-            targetHeading = toDegrees(parseFloat(innerTokens.join("")));
+            targetHeading = toDegrees(Number.parseFloat(innerTokens.join("")));
           }
 
           tempSequence.push({
@@ -654,8 +656,8 @@ export function importJavaProject(javaCode: string): TurtleData {
             targetHeading = (pt as any).x;
           } else if (pt && (pt as any).x !== undefined) {
             targetHeading = (pt as any).x;
-          } else if (!isNaN(parseFloat(innerTokens.join("")))) {
-            targetHeading = toDegrees(parseFloat(innerTokens.join("")));
+          } else if (!Number.isNaN(Number.parseFloat(innerTokens.join("")))) {
+            targetHeading = toDegrees(Number.parseFloat(innerTokens.join("")));
           }
 
           // If the outer InstantCommand just processed this exact rotation, skip it

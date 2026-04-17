@@ -239,6 +239,27 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     action: "toggleLock",
     category: "Editing",
   },
+  {
+    id: "toggle-path-chain",
+    key: "shift+k",
+    description: "Toggle Path Chain",
+    action: "togglePathChain",
+    category: "Editing",
+  },
+  {
+    id: "toggle-piecewise",
+    key: "alt+k",
+    description: "Toggle Piecewise Heading",
+    action: "togglePiecewise",
+    category: "Editing",
+  },
+  {
+    id: "toggle-global-heading",
+    key: "shift+g",
+    description: "Toggle Global Chain Heading",
+    action: "toggleGlobalHeading",
+    category: "Editing",
+  },
 
   // Playback
   {
@@ -288,6 +309,20 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     key: "r",
     description: "Reset animation",
     action: "resetAnimation",
+    category: "Playback",
+  },
+  {
+    id: "toggle-loop",
+    key: "l",
+    description: "Toggle Animation Loop",
+    action: "toggleLoop",
+    category: "Playback",
+  },
+  {
+    id: "toggle-section-loop",
+    key: "cmd+shift+l, ctrl+shift+l",
+    description: "Toggle Section Looping",
+    action: "toggleSectionLoop",
     category: "Playback",
   },
 
@@ -749,6 +784,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     key: "alt+f",
     description: "Toggle Follow Robot",
     action: "toggleFollowRobot",
+    category: "View",
+  },
+  {
+    id: "toggle-lock-field-view",
+    key: "alt+g",
+    description: "Lock Field View (Disable Zoom & Drag)",
+    action: "toggleLockFieldView",
     category: "View",
   },
   {

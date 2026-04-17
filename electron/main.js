@@ -2,12 +2,12 @@
 import { isProjectFilePath, getPluginsDirectory } from "./utils.js";
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { app, BrowserWindow, dialog, Menu, shell } from "electron";
-import path from "path";
+import path from "node:path";
 import express from "express";
-import http from "http";
-import { fileURLToPath } from "url";
-import fs from "fs/promises";
-import fsSync from "fs";
+import http from "node:http";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import AppUpdater from "./updater.js";
 import rateLimit from "express-rate-limit";
 
@@ -22,8 +22,8 @@ let serverPort = 17218;
 let appUpdater;
 
 // Global references to prevent Electron Menu garbage collection (macOS WeakPtr bug)
-global.appMenu = null;
-global.dockMenu = null;
+globalThis.appMenu = null;
+globalThis.dockMenu = null;
 
 // Track if we've already cleared the default session storage/cache once
 let sessionCleared = false;
@@ -32,11 +32,11 @@ let sessionCleared = false;
 const waitForServerReady = async (timeoutMs = 5000) => {
   const start = Date.now();
   // Quick shortcut if node server object reports listening
-  if (server && server.listening) return;
+  if (server?.listening) return;
 
   while (Date.now() - start < timeoutMs) {
     // If server object exists and is listening, we're done
-    if (server && server.listening) return;
+    if (server?.listening) return;
 
     // Try a small HTTP GET to be certain the app is serving
     try {
@@ -55,7 +55,7 @@ const waitForServerReady = async (timeoutMs = 5000) => {
         });
       });
       return;
-    } catch (_) {
+    } catch {
       // Ignore and retry
     }
 
@@ -79,7 +79,7 @@ app.on("open-file", (event, path) => {
 if (process.windowsStore) {
   const oldUserDataPath = app.getPath("userData");
   if (oldUserDataPath.includes("LocalCache")) {
-    const newUserDataPath = oldUserDataPath.replace(
+    const newUserDataPath = oldUserDataPath.replaceAll(
       /LocalCache[\\/]Roaming/,
       "LocalState",
     );
@@ -101,9 +101,7 @@ if (process.windowsStore) {
 
 const gotTheLock = app.requestSingleInstanceLock();
 
-if (!gotTheLock) {
-  app.quit();
-} else {
+if (gotTheLock) {
   app.on("second-instance", (event, commandLine, workingDirectory) => {
     // Someone tried to run a second instance. Prefer focusing an existing window
     // to avoid racing with the local server or creating orphan windows.
@@ -114,7 +112,7 @@ if (!gotTheLock) {
         focused.focus();
       } else if (windows.size > 0) {
         const arr = Array.from(windows);
-        const last = arr[arr.length - 1];
+        const last = arr.at(-1);
         if (last) {
           if (last.isMinimized()) last.restore();
           last.focus();
@@ -166,6 +164,8 @@ if (!gotTheLock) {
       }
     }, 3000);
   });
+} else {
+  app.quit();
 }
 
 /**
@@ -207,29 +207,11 @@ const startServer = async () => {
 
   let distPath;
 
-  if (app.isPackaged) {
-    // In production: files are in app.asar at root
-    // But since dist/ is inside app.asar (which is mounted as a file system),
-    // and __dirname is inside app.asar/electron,
-    // path.join(__dirname, "../dist") should resolve to app.asar/dist.
-    // Using process.resourcesPath + "app.asar" works but can be brittle if asar name changes.
-    // However, the issue might be that express.static expects a directory.
-    // Electron's patched fs allows treating app.asar/dist as a directory.
-    // But check if the path is correct.
-    // If __dirname is /.../resources/app.asar/electron
-    // Then ../dist is /.../resources/app.asar/dist.
-
-    // Use the relative path approach as it's more standard for ASAR.
-    distPath = path.join(__dirname, "../dist");
-  } else {
-    // In development
-    distPath = path.join(__dirname, "../dist");
-  }
+  distPath = path.join(__dirname, "../dist");
 
   console.log("Serving static files from:", distPath);
   console.log("__dirname:", __dirname);
   try {
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     const files = await fs.readdir(distPath);
     console.log("Files in distPath:", files);
   } catch (e) {
@@ -250,28 +232,31 @@ const startServer = async () => {
       let attempt = 0;
       let port = startPort;
 
+      const handleError = (err) => {
+        if (err?.code === "EADDRINUSE" && attempt < maxAttempts) {
+          console.warn(`Port ${port} in use, trying ${port + 1}`);
+          port += 1;
+          // Give a tiny delay to avoid busy-looping
+          setTimeout(attemptListen, 10);
+        } else {
+          reject(err);
+        }
+      };
+
+      const handleListening = (candidate) => {
+        server = candidate;
+        serverPort = port;
+        console.log(`Local server running on port ${serverPort}`);
+        resolve();
+      };
+
       const attemptListen = () => {
         attempt += 1;
         // Create a new server instance for each attempt so errors don't persist
         const candidate = http.createServer(expressApp);
 
-        candidate.once("error", (err) => {
-          if (err && err.code === "EADDRINUSE" && attempt < maxAttempts) {
-            console.warn(`Port ${port} in use, trying ${port + 1}`);
-            port += 1;
-            // Give a tiny delay to avoid busy-looping
-            setTimeout(attemptListen, 10);
-          } else {
-            reject(err);
-          }
-        });
-
-        candidate.once("listening", () => {
-          server = candidate;
-          serverPort = port;
-          console.log(`Local server running on port ${serverPort}`);
-          resolve();
-        });
+        candidate.once("error", handleError);
+        candidate.once("listening", () => handleListening(candidate));
 
         candidate.listen(port, "127.0.0.1");
       };
@@ -407,7 +392,7 @@ const createWindow = async () => {
 
 const updateDockMenu = () => {
   if (process.platform === "darwin") {
-    global.dockMenu = Menu.buildFromTemplate([
+    globalThis.dockMenu = Menu.buildFromTemplate([
       {
         label: "New Window",
         click() {
@@ -415,7 +400,7 @@ const updateDockMenu = () => {
         },
       },
     ]);
-    app.dock.setMenu(global.dockMenu);
+    app.dock.setMenu(globalThis.dockMenu);
   }
 };
 
@@ -439,15 +424,13 @@ const sendToFocusedWindow = (channel, ...args) => {
   const win = BrowserWindow.getFocusedWindow();
   if (win) {
     win.webContents.send(channel, ...args);
-  } else {
+  } else if (windows.size === 1) {
     // Fallback: if only one window, send to it?
     // Or if no window is focused (rare when clicking menu), send to most recently created?
     // Usually Menu click focuses the app, so a window should be focused or last active.
     // Try to find the last active one if getFocusedWindow is null.
-    if (windows.size === 1) {
-      const first = windows.values().next().value;
-      if (first) first.webContents.send(channel, ...args);
-    }
+    const first = windows.values().next().value;
+    if (first) first.webContents.send(channel, ...args);
   }
 };
 
@@ -620,8 +603,8 @@ const createMenu = () => {
     },
   ];
 
-  global.appMenu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(global.appMenu);
+  globalThis.appMenu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(globalThis.appMenu);
 };
 
 // CRITICAL: Satisfies "when the project closes it should auto close"
@@ -661,13 +644,11 @@ registerIpcHandlers({
 async function ensureDefaultPlugins() {
   const pluginsDir = getPluginsDirectory();
   try {
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     await fs.mkdir(pluginsDir, { recursive: true });
 
     const sourcePluginsDir = path.join(__dirname, "../plugins");
 
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       const files = await fs.readdir(sourcePluginsDir);
       for (const file of files) {
         if (
@@ -681,10 +662,8 @@ async function ensureDefaultPlugins() {
         const destFile = path.join(pluginsDir, file);
 
         try {
-          // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
           await fs.access(destFile);
         } catch {
-          // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
           await fs.copyFile(srcFile, destFile);
         }
       }

@@ -5,6 +5,7 @@ import { calculateSwerveDriveAngles } from "./swerve";
 import { calculateFieldCentricMecanum } from "./mecanum";
 import { DEFAULT_ROBOT_LENGTH, DEFAULT_ROBOT_WIDTH } from "../../config";
 import type { WheelSpeeds } from "./mecanum";
+import { rotateVector } from "../math";
 
 export function calculateDrivetrainSpeeds(
   percentStore: number,
@@ -16,11 +17,7 @@ export function calculateDrivetrainSpeeds(
 ): WheelSpeeds | null {
   if (!showRobot || settings.robotImage !== "none") return null;
 
-  if (
-    !timePrediction ||
-    !timePrediction.timeline ||
-    timePrediction.timeline.length === 0
-  ) {
+  if (!timePrediction?.timeline || timePrediction.timeline.length === 0) {
     return { frontLeft: 0, backLeft: 0, frontRight: 0, backRight: 0 };
   }
 
@@ -105,11 +102,7 @@ export function fieldToRobotCentric(
   const theta = (robotAngle * Math.PI) / 180;
 
   // To convert field-centric to robot-centric, we rotate the vector by -theta
-  const cos = Math.cos(-theta);
-  const sin = Math.sin(-theta);
-
-  const vxRobot = vxField * cos - vyField * sin;
-  const vyRobot = vxField * sin + vyField * cos;
+  const { x: vxRobot, y: vyRobot } = rotateVector(vxField, vyField, -theta);
 
   return { vxRobot, vyRobot };
 }

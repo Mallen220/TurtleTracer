@@ -282,7 +282,7 @@
   });
   let undoTooltip = $derived(
     (() => {
-      let title = !canUndo ? "Nothing to Undo" : "Undo";
+      let title = canUndo ? "Undo" : "Nothing to Undo";
       if (canUndo && $undoDescription) {
         title = `Undo: ${$undoDescription}`;
       }
@@ -292,7 +292,7 @@
   );
   let redoTooltip = $derived(
     (() => {
-      let title = !canRedo ? "Nothing to Redo" : "Redo";
+      let title = canRedo ? "Redo" : "Nothing to Redo";
       if (canRedo && $redoDescription) {
         title = `Redo: ${$redoDescription}`;
       }

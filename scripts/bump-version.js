@@ -1,10 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
-import readline from "readline";
-import { exec } from "child_process";
-import { promisify } from "util";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import readline from "node:readline";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +23,7 @@ async function ask(question) {
 
 async function bumpVersion() {
   const packagePath = path.join(__dirname, "../package.json");
-  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+  // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   const packageJson = JSON.parse(await fs.readFile(packagePath, "utf8"));
 
   console.log(`Current version: ${packageJson.version}`);
@@ -38,7 +38,7 @@ async function bumpVersion() {
 
   // Update package.json
   packageJson.version = newVersion;
-  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+  // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   await fs.writeFile(packagePath, JSON.stringify(packageJson, null, 2));
 
   console.log(`✅ Updated version to ${newVersion}`);
@@ -49,14 +49,14 @@ async function bumpVersion() {
     "../src/lib/components/whats-new/features/newest.md",
   );
   try {
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     const stats = await fs.stat(newestPath);
     if (stats.isFile()) {
       const newFeaturePath = path.join(
         __dirname,
         `../src/lib/components/whats-new/features/v${newVersion}.md`,
       );
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+      // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       await fs.rename(newestPath, newFeaturePath);
       console.log(`✅ Renamed newest.md to v${newVersion}.md`);
     }
@@ -77,13 +77,13 @@ async function bumpVersion() {
 
     // Check if it exists now.
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+      // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       await fs.access(newestPath);
       // It exists. If we renamed it, it shouldn't exist unless race condition.
       // If we didn't rename it (e.g. it didn't exist), we need to create it.
     } catch {
       // It doesn't exist, create it.
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+      // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       await fs.writeFile(newestPath, template);
       console.log(`✅ Created new newest.md`);
     }
@@ -99,7 +99,7 @@ async function bumpVersion() {
     let changelogContent = "";
 
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+      // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       changelogContent = await fs.readFile(changelogPath, "utf8");
     } catch {
       // File doesn't exist
@@ -108,7 +108,7 @@ async function bumpVersion() {
     const today = new Date().toISOString().split("T")[0];
     const newEntry = `## ${newVersion} (${today})\n\n- ${changelog}\n\n`;
 
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     await fs.writeFile(changelogPath, newEntry + changelogContent);
     console.log("✅ Updated CHANGELOG.md");
   }

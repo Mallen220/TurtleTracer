@@ -24,7 +24,15 @@
     "src/**/*.ts",
     "src/**/*.js",
     "src/**/*.svelte",
-    "src/**/*.svelte.ts"
+    "src/**/*.svelte.ts",
+    "e2e/**/*.ts",
+    "plugins/**/*.ts",
+    "plugins/**/*.d.ts",
+    "scripts/**/*.ts",
+    "*.ts",
+    "playwright.config.ts",
+    "vitest.config.ts",
+    "vite.config.d.ts"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

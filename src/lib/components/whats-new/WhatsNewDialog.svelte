@@ -1,19 +1,17 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
-  import { createEventDispatcher, onMount } from "svelte";
+  import { onMount } from "svelte";
   import MarkdownIt from "markdown-it";
   import { features, getAllFeatures, type FeatureHighlight } from "./features";
   import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "../icons";
 
   interface Props {
     show?: boolean;
+    onclose?: () => void;
   }
 
-  let { show = $bindable(false) }: Props = $props();
+  let { show = $bindable(false), onclose }: Props = $props();
 
-  const dispatch = createEventDispatcher();
   const md = new MarkdownIt({
     html: true,
     linkify: true,
@@ -23,13 +21,7 @@
   // Mode can be 'features' (viewing individual features of current release) or 'releases' (viewing full changelogs)
   let viewMode: "features" | "releases" = $state("features");
 
-  let currentRelease: FeatureHighlight | null = $state(null);
-  let allReleases: FeatureHighlight[] = $state([]);
-
   // Left menu state
-  let parsedFeatures: { id: string; title: string; content: string }[] = $state(
-    [],
-  );
   let activeFeatureId: string | null = $state(null);
   let activeReleaseId: string | null = $state(null);
 
@@ -38,6 +30,8 @@
   let displayedFeatures = $derived(
     features.length ? getAllFeatures() : runtimeFeatures,
   );
+  let allReleases = $derived(displayedFeatures);
+  let currentRelease = $derived(allReleases.length > 0 ? allReleases[0] : null);
 
   onMount(async () => {
     // Dynamic import fallback (kept from original implementation)
@@ -60,10 +54,10 @@
             const content =
               typeof res === "string" ? res : (res?.default ?? "");
             const fileName = path.split("/").pop()!;
-            const id = fileName.replace(/\.md$/, "");
+            const id = fileName.replaceAll(/\.md$/g, "");
             out.push({
               id,
-              title: `Version ${id.replace(/^v/, "")} Highlights`,
+              title: `Version ${id.replaceAll(/^v/g, "")} Highlights`,
               content,
             });
           } catch (e) {}
@@ -71,13 +65,13 @@
 
         out.sort((a, b) => {
           const pa = a.id
-            .replace(/^v/, "")
+            .replaceAll(/^v/g, "")
             .split(".")
-            .map((n) => parseInt(n, 10) || 0);
+            .map((n) => Number.parseInt(n, 10) || 0);
           const pb = b.id
-            .replace(/^v/, "")
+            .replaceAll(/^v/g, "")
             .split(".")
-            .map((n) => parseInt(n, 10) || 0);
+            .map((n) => Number.parseInt(n, 10) || 0);
           for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
             if ((pb[i] || 0) !== (pa[i] || 0))
               return (pb[i] || 0) - (pa[i] || 0);
@@ -90,15 +84,11 @@
   });
 
   // Re-run parsing automatically when the displayed features update (e.g. via Vite HMR for live preview)
-  run(() => {
-    allReleases = displayedFeatures;
-  });
-  run(() => {
-    currentRelease = allReleases.length > 0 ? allReleases[0] : null;
-  });
-
-  run(() => {
-    if (currentRelease && show) {
+  let parsedFeatures = $derived(
+    (() => {
+      if (!(currentRelease && show)) {
+        return [];
+      }
       const lines = currentRelease.content.split("\n");
       const extracted: { id: string; title: string; content: string }[] = [];
       let currentTitle = "Overview";
@@ -117,8 +107,8 @@
           // Skip adding sections if they have no real text content
           if (text.length > 0) {
             extracted.push({
-              id: currentTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-              title: currentTitle.replace(/:$/, ""),
+              id: currentTitle.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-"),
+              title: currentTitle.replaceAll(/:$/g, ""),
               content: text,
             });
           }
@@ -131,28 +121,31 @@
       const finalText = currentContent.join("\n").trim();
       if (finalText.length > 0) {
         extracted.push({
-          id: currentTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-          title: currentTitle.replace(/:$/, ""),
+          id: currentTitle.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-"),
+          title: currentTitle.replaceAll(/:$/g, ""),
           content: finalText,
         });
       }
 
-      parsedFeatures = extracted;
-      // Auto-select the first feature if we don't have one selected or if it was removed
-      if (
-        parsedFeatures.length > 0 &&
-        (!activeFeatureId ||
-          !parsedFeatures.find((f) => f.id === activeFeatureId))
-      ) {
-        activeFeatureId = parsedFeatures[0].id;
-      }
+      return extracted;
+    })(),
+  );
+
+  $effect(() => {
+    // Auto-select the first feature if we don't have one selected or if it was removed
+    if (
+      parsedFeatures.length > 0 &&
+      (!activeFeatureId ||
+        !parsedFeatures.find((f) => f.id === activeFeatureId))
+    ) {
+      activeFeatureId = parsedFeatures[0].id;
     }
   });
 
   function close() {
     show = false;
     viewMode = "features";
-    dispatch("close");
+    onclose?.();
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -228,7 +221,7 @@
             <div
               class="mb-3 px-2 text-xs font-bold text-neutral-500 uppercase tracking-wider"
             >
-              Version {currentRelease?.id.replace(/^v/, "")}
+              Version {currentRelease?.id.replaceAll(/^v/g, "")}
             </div>
             {#each parsedFeatures as feature}
               <button

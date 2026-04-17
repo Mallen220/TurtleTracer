@@ -1,9 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run, stopPropagation, createBubbler } from "svelte/legacy";
-
-  const bubble = createBubbler();
-
   import type { Settings } from "../../types";
   import { fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
@@ -59,7 +55,7 @@
     handleSeek,
     loopAnimation = $bindable(),
     timelineItems = [],
-    playbackSpeed = 1.0,
+    playbackSpeed = 1,
     setPlaybackSpeed,
     totalSeconds = 0,
     settings,
@@ -70,7 +66,7 @@
 
   // Speed dropdown state & helpers
   let showSpeedMenu = $state(false);
-  const speedOptions = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0];
+  const speedOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 
   // Drag State
   let draggingMarkerIndex: number | null = $state(null);
@@ -110,8 +106,8 @@
     if (playing) pause();
     if (timelineContainer)
       timelineRect = timelineContainer.getBoundingClientRect();
-    window.addEventListener("mousemove", handleLoopDragMove);
-    window.addEventListener("mouseup", handleLoopDragEnd);
+    globalThis.addEventListener("mousemove", handleLoopDragMove);
+    globalThis.addEventListener("mouseup", handleLoopDragEnd);
   }
 
   function handleLoopDragMove(e: MouseEvent) {
@@ -133,15 +129,15 @@
       setTimeout(() => (ignoreClick = false), 50);
     }
     draggingLoopHandle = null;
-    window.removeEventListener("mousemove", handleLoopDragMove);
-    window.removeEventListener("mouseup", handleLoopDragEnd);
+    globalThis.removeEventListener("mousemove", handleLoopDragMove);
+    globalThis.removeEventListener("mouseup", handleLoopDragEnd);
     if (wasPlayingBeforeDrag) play();
   }
 
   let currentTime = $derived(
-    (draggingMarkerIndex !== null
-      ? draggingMarkerPercent / 100
-      : percent / 100) * totalSeconds,
+    (draggingMarkerIndex === null
+      ? percent / 100
+      : draggingMarkerPercent / 100) * totalSeconds,
   );
 
   function toggleSpeedMenu() {
@@ -168,12 +164,12 @@
   function handleSeekInput(e: Event) {
     if (draggingMarkerIndex !== null) return;
     const target = e.target as HTMLInputElement;
-    let val = parseFloat(target.value);
+    let val = Number.parseFloat(target.value);
 
     // Snap to markers/events if Shift is NOT held
     if (!shiftHeld) {
       let nearest: number | null = null;
-      let minDist = 1.0; // 1% threshold
+      let minDist = 1; // 1% threshold
 
       // Snap to 0 and 100
       if (Math.abs(val - 0) < minDist) {
@@ -232,7 +228,7 @@
   let isEditingTime = $state(false);
   let timeInputValue = $state("");
 
-  run(() => {
+  $effect(() => {
     if (!isEditingTime) {
       timeInputValue = formatTime(currentTime);
     }
@@ -245,21 +241,21 @@
 
   function handleTimeFocus() {
     isEditingTime = true;
-    timeInputValue = timeInputValue.replace("s", "");
+    timeInputValue = timeInputValue.replaceAll("s", "");
   }
 
   function parseTime(str: string): number {
-    str = str.replace("s", "").trim();
+    str = str.replaceAll("s", "").trim();
     const parts = str.split(":");
     if (parts.length === 2) {
-      return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+      return Number.parseFloat(parts[0]) * 60 + Number.parseFloat(parts[1]);
     }
-    return parseFloat(str);
+    return Number.parseFloat(str);
   }
 
   function commitTime() {
     const t = parseTime(timeInputValue);
-    if (!isNaN(t) && totalSeconds > 0) {
+    if (!Number.isNaN(t) && totalSeconds > 0) {
       const pct = (t / totalSeconds) * 100;
       handleSeek(Math.max(0, Math.min(100, pct)));
     }
@@ -302,8 +298,8 @@
     }
 
     // Add window listeners
-    window.addEventListener("mousemove", handleWindowMouseMove);
-    window.addEventListener("mouseup", handleWindowMouseUp);
+    globalThis.addEventListener("mousemove", handleWindowMouseMove);
+    globalThis.addEventListener("mouseup", handleWindowMouseUp);
   }
 
   function handleWindowMouseMove(e: MouseEvent) {
@@ -332,8 +328,8 @@
 
     draggingMarkerIndex = null;
     draggingMarkerId = null;
-    window.removeEventListener("mousemove", handleWindowMouseMove);
-    window.removeEventListener("mouseup", handleWindowMouseUp);
+    globalThis.removeEventListener("mousemove", handleWindowMouseMove);
+    globalThis.removeEventListener("mouseup", handleWindowMouseUp);
   }
 
   function handleContextMenu(e: MouseEvent, id: string | undefined) {
@@ -451,22 +447,38 @@
 
       <div
         role="slider"
+        aria-label="Loop range start"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-orientation="horizontal"
         aria-valuenow={loopRange[0]}
         tabindex="0"
-        class="absolute top-1/2 -translate-y-1/2 w-2 h-4 bg-purple-500 hover:bg-purple-400 cursor-ew-resize z-20 rounded-sm shadow-md"
+        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         style="left: {loopRange[0]}%; transform: translateX(-50%);"
         onmousedown={(e) => startDragLoopHandle(e, "min")}
-      ></div>
+      >
+        <div
+          class="absolute inset-0 m-auto w-2 h-4 rounded-sm bg-purple-500 hover:bg-purple-400 shadow-md"
+        ></div>
+      </div>
       <!-- B Handle -->
 
       <div
         role="slider"
+        aria-label="Loop range end"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-orientation="horizontal"
         aria-valuenow={loopRange[1]}
         tabindex="0"
-        class="absolute top-1/2 -translate-y-1/2 w-2 h-4 bg-purple-500 hover:bg-purple-400 cursor-ew-resize z-20 rounded-sm shadow-md"
+        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         style="left: {loopRange[1]}%; transform: translateX(-50%);"
         onmousedown={(e) => startDragLoopHandle(e, "max")}
-      ></div>
+      >
+        <div
+          class="absolute inset-0 m-auto w-2 h-4 rounded-sm bg-purple-500 hover:bg-purple-400 shadow-md"
+        ></div>
+      </div>
     {/if}
 
     <!-- The Slider -->
@@ -479,7 +491,7 @@
       step="0.000001"
       aria-label="Animation progress"
       class="w-full appearance-none slider focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 rounded-full bg-transparent dark:bg-transparent relative z-10 timeline-slider"
-      style={draggingMarkerIndex !== null ? "pointer-events: none;" : ""}
+      style={draggingMarkerIndex === null ? "" : "pointer-events: none;"}
       oninput={handleSeekInput}
       onkeydown={handleSliderKeydown}
     />
@@ -489,7 +501,7 @@
     {#each timelineItems as item, index}
       {#if item.type === "marker"}
         <div
-          class="absolute z-20 group rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
+          class="absolute z-20 group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
           role="button"
           tabindex="0"
           onmousedown={(e) => handleMarkerDragStart(e, index, item)}
@@ -503,7 +515,7 @@
           }}
           style="left: {draggingMarkerIndex === index
             ? draggingMarkerPercent
-            : item.percent}%; top: -4px; transform: translateX(-50%); cursor: {draggingMarkerIndex ===
+            : item.percent}%; top: -4px; transform: translateX(-50%); width: 24px; height: 24px; cursor: {draggingMarkerIndex ===
           index
             ? 'grabbing'
             : 'grab'}; pointer-events: auto;"
@@ -517,10 +529,14 @@
           </div>
 
           <!-- Map Pin Icon -->
-          <MapPinIcon
-            className="w-6 h-6 drop-shadow-md transition-transform group-hover:scale-125"
-            style={item.color ? `color: ${item.color}` : ""}
-          />
+          <div
+            class="absolute inset-0 flex items-center justify-center pointer-events-none"
+          >
+            <MapPinIcon
+              className="w-4 h-4 drop-shadow-md transition-transform group-hover:scale-125"
+              style={item.color ? `color: ${item.color}` : ""}
+            />
+          </div>
         </div>
       {:else if item.type === "dot"}
         <div
@@ -531,7 +547,7 @@
           onkeydown={(e) => {
             if (e.key === "Enter" || e.key === " ") handleSeek(item.percent);
           }}
-          style={`left: ${item.percent}%; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; background: ${item.color}; cursor: pointer;`}
+          style={`left: ${item.percent}%; top: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; background: ${item.color}; cursor: pointer;`}
           aria-label={item.name}
         >
           <!-- Tooltip (CSS Hover) -->
@@ -551,10 +567,13 @@
     <div class="relative">
       <button
         title="Open playback speed menu"
-        aria-label="Playback speed options"
+        aria-label={`Playback speed options, current speed ${(playbackSpeed ?? 1).toFixed(2)}x`}
         aria-haspopup="menu"
         aria-expanded={showSpeedMenu}
-        onclick={stopPropagation(toggleSpeedMenu)}
+        onclick={(e) => {
+          e.stopPropagation();
+          toggleSpeedMenu();
+        }}
         class="flex items-center gap-2 px-3 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-sm text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
         tabindex="0"
       >
@@ -572,8 +591,8 @@
           role="menu"
           aria-label="Playback speeds"
           class="absolute left-0 bottom-full mb-2 w-36 rounded-md bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 shadow-lg z-50 overflow-hidden"
-          onclick={stopPropagation(bubble("click"))}
-          onkeydown={stopPropagation(bubble("keydown"))}
+          onclick={(e) => e.stopPropagation()}
+          onkeydown={(e) => e.stopPropagation()}
           use:menuNavigation
           onclose={() => (showSpeedMenu = false)}
           in:fly={{ y: 8, duration: 160, easing: cubicInOut }}

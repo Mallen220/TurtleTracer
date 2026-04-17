@@ -8,6 +8,7 @@
   import type { Settings, CustomFieldConfig } from "../../../../types/index";
   import { themesStore } from "../../../pluginsStore";
   import { followRobotStore } from "../../../projectStore";
+  import { fieldZoom, fieldPan } from "../../../../stores";
   import * as ICONS from "../../icons";
   import CustomFieldWizard from "../../settings/CustomFieldWizard.svelte";
 
@@ -48,6 +49,11 @@
       }
       settings = { ...settings };
     }
+  }
+
+  function resetFieldViewToDefault() {
+    fieldZoom.set(1);
+    fieldPan.set({ x: 0, y: 0 });
   }
 
   function handleCustomFieldSave(e: CustomEvent<CustomFieldConfig>) {
@@ -104,8 +110,8 @@
     </select>
     <div class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
       {#if settings.theme === "auto"}
-        Current: {window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
+        Current: {globalThis.matchMedia &&
+        globalThis.matchMedia("(prefers-color-scheme: dark)").matches
           ? "Dark"
           : "Light"} (System)
       {:else}
@@ -134,7 +140,7 @@
         step="5"
         value={settings.programFontSize}
         oninput={(e) => {
-          settings.programFontSize = parseInt(e.currentTarget.value);
+          settings.programFontSize = Number.parseInt(e.currentTarget.value);
           settings = { ...settings };
         }}
         class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
@@ -346,7 +352,7 @@
             value={settings.onionLayerSpacing}
             oninput={(e) => {
               settings.onionLayerSpacing =
-                parseFloat(e.currentTarget.value) || 0;
+                Number.parseFloat(e.currentTarget.value) || 0;
               settings = { ...settings };
             }}
             class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
@@ -401,6 +407,32 @@
       onchange={(e) => {
         settings.showVelocityHeatmap = e.currentTarget.checked;
         settings = { ...settings };
+      }}
+      class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+    />
+  </SettingsItem>
+
+  <SettingsItem
+    label="Lock Field View"
+    isModified={settings.lockFieldView !== DEFAULT_SETTINGS.lockFieldView}
+    onReset={() => {
+      settings.lockFieldView = DEFAULT_SETTINGS.lockFieldView;
+      settings = { ...settings };
+      resetFieldViewToDefault();
+    }}
+    description="Lock the field view to prevent panning and zooming"
+    {searchQuery}
+    layout="row"
+    forId="lock-field-view"
+  >
+    <input
+      type="checkbox"
+      id="lock-field-view"
+      checked={settings.lockFieldView}
+      onchange={(e) => {
+        settings.lockFieldView = e.currentTarget.checked;
+        settings = { ...settings };
+        resetFieldViewToDefault();
       }}
       class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
     />

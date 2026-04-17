@@ -28,15 +28,15 @@
 
     if (disabled) return;
 
-    if (!confirming) {
+    if (confirming) {
+      clearTimeout(timeout);
+      confirming = false;
+      onclick?.();
+    } else {
       confirming = true;
       timeout = setTimeout(() => {
         confirming = false;
       }, 3000);
-    } else {
-      clearTimeout(timeout);
-      confirming = false;
-      onclick?.();
     }
   }
 

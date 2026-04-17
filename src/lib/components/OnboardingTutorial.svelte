@@ -37,7 +37,7 @@
     prevBtnText: "Previous",
     steps: [
       {
-        element: "#field-container",
+        element: "#field-container-anchor",
         popover: {
           title: "Welcome to Turtle Tracer!",
           description:

@@ -40,6 +40,5 @@ coverage/
 /src/lib/components/icons/svg
 
 
-.github/instructions/codacy.instructions.md
 tmp/jscpd/jscpd-report.json
 DuplicationReport.txt

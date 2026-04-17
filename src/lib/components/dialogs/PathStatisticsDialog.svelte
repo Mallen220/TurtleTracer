@@ -176,18 +176,18 @@
 
       // 1. Max Velocity Warning (Info)
       if (vLin >= maxVel * 0.99) {
-        if (!activeVelocityWarning) {
+        if (activeVelocityWarning) {
+          // Update value to max seen in this range
+          if (vLin > (activeVelocityWarning.value || 0)) {
+            activeVelocityWarning.value = vLin;
+          }
+        } else {
           activeVelocityWarning = {
             startTime: t,
             type: "info",
             message: "Max Velocity Reached",
             value: vLin,
           };
-        } else {
-          // Update value to max seen in this range
-          if (vLin > (activeVelocityWarning.value || 0)) {
-            activeVelocityWarning.value = vLin;
-          }
         }
       } else {
         // Condition ended
@@ -199,18 +199,18 @@
 
       // 2. Centripetal Friction Warning (Error)
       if (kFriction > 0 && accCent > frictionLimitAccel) {
-        if (!activeFrictionWarning) {
+        if (activeFrictionWarning) {
+          // Update value to max seen in this range
+          if (accCent > (activeFrictionWarning.value || 0)) {
+            activeFrictionWarning.value = accCent;
+          }
+        } else {
           activeFrictionWarning = {
             startTime: t,
             type: "error",
             message: "Risk of Wheel Slip (Centripetal)",
             value: accCent,
           };
-        } else {
-          // Update value to max seen in this range
-          if (accCent > (activeFrictionWarning.value || 0)) {
-            activeFrictionWarning.value = accCent;
-          }
         }
       } else {
         // Condition ended

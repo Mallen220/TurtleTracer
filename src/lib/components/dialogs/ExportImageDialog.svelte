@@ -36,7 +36,7 @@
   const dispatch = createEventDispatcher();
 
   let format: "png" | "jpeg" | "svg" = $state("png");
-  let resolutionScale = $state(1.0);
+  let resolutionScale = $state(1);
   let quality = $state(0.9); // 0.1 - 1.0 for JPEG
 
   let status = $state("idle"); // idle, generating, done, error
@@ -45,7 +45,7 @@
   let previewUrl: string | null = $state(null);
 
   // Store View State
-  let savedZoom = 1.0;
+  let savedZoom = 1;
   let savedPan = { x: 0, y: 0 };
 
   // Preview sizing helpers
@@ -193,7 +193,7 @@
     savedPan = get(fieldPan);
 
     // Force default view
-    fieldZoom.set(1.0);
+    fieldZoom.set(1);
     fieldPan.set({ x: 0, y: 0 });
 
     if (typeof ResizeObserver !== "undefined" && previewContainer) {
@@ -295,9 +295,9 @@
             >
               <option value={0.25}>25%</option>
               <option value={0.5}>50%</option>
-              <option value={1.0}>100%</option>
-              <option value={2.0}>200%</option>
-              <option value={4.0}>400%</option>
+              <option value={1}>100%</option>
+              <option value={2}>200%</option>
+              <option value={4}>400%</option>
             </select>
           </div>
 

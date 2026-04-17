@@ -224,8 +224,8 @@
             bwidth = cw;
             bheight = ch;
           } else {
-            bwidth = parseFloat(originalWidth) || 800;
-            bheight = parseFloat(originalHeight) || 800;
+            bwidth = Number.parseFloat(originalWidth) || 800;
+            bheight = Number.parseFloat(originalHeight) || 800;
           }
         }
 
@@ -362,7 +362,7 @@
   });
 
   function handlePrint() {
-    window.print();
+    globalThis.print();
   }
 
   async function handleDownloadPdf() {
@@ -475,7 +475,7 @@
       ? $currentFilePath
           .split(/[\\/]/)
           .pop()
-          ?.replace(/\.(pp|turt)$/i, "")
+          ?.replaceAll(/\.(pp|turt)$/gi, "")
       : "Untitled Project",
   );
 </script>
@@ -488,7 +488,9 @@
     transition:fade={{ duration: 200 }}
     class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 print:hidden"
     role="presentation"
-    onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+    onclick={(e) => {
+      if (e.target === e.currentTarget) handleClose();
+    }}
   >
     <!-- Dialog Panel -->
     <div

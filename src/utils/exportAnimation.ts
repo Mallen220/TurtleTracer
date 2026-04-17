@@ -70,10 +70,10 @@ async function renderFrameToCanvas(
   // Serialize the SVG
   const svgString = new XMLSerializer().serializeToString(svgEl);
   // Ensure xmlns is present
-  const hasNs = svgString.indexOf("xmlns=") >= 0;
+  const hasNs = svgString.includes("xmlns=");
   const svgWithNs = hasNs
     ? svgString
-    : svgString.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+    : svgString.replaceAll("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
   const data =
     "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgWithNs);
 
@@ -181,7 +181,7 @@ async function renderFrameToCanvas(
       }
       resolve();
     };
-    img.onerror = (err) => reject(err);
+    img.onerror = () => reject(new Error("Failed to rasterize SVG to image"));
     img.src = data;
   });
 }
@@ -242,7 +242,8 @@ async function urlToDataUri(url: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
+      reader.onerror = () =>
+        reject(new Error("Failed to convert blob to data URI"));
       reader.readAsDataURL(blob);
     });
   } catch (e) {
@@ -479,8 +480,11 @@ export async function exportPathToGif(
     animationController.seekToPercent(prevPercent);
   if (prevPlaying && animationController.play) animationController.play();
 
-  const p = new Promise<Blob>(async (resolve, reject) => {
+  const p = new Promise<Blob>((resolve, reject) => {
     let encodeStarted = false;
+
+    const rejectError = (reason: unknown) =>
+      reject(reason instanceof Error ? reason : new Error(String(reason)));
 
     const onAbort = () => {
       try {
@@ -525,15 +529,16 @@ export async function exportPathToGif(
                 } catch (e) {}
                 res();
               };
-              im.onerror = (e) => rej(e);
+              im.onerror = () =>
+                rej(new Error("Failed to load GIF frame image"));
               im.src = dataUrl;
             });
           }
           gif2.on("finished", (blobObj: Blob) => resolve(blobObj));
-          gif2.on("error", (err: any) => reject(err));
+          gif2.on("error", (err: any) => rejectError(err));
           gif2.render();
         } catch (err) {
-          reject(err);
+          rejectError(err);
         }
       }
     }, 3000);
@@ -546,7 +551,7 @@ export async function exportPathToGif(
     gif.on("error", (err: any) => {
       if (options.signal) options.signal.removeEventListener("abort", onAbort);
       clearTimeout(fallbackTimeout);
-      reject(err);
+      rejectError(err);
     });
     gif.on("progress", () => {
       encodeStarted = true;
@@ -556,7 +561,7 @@ export async function exportPathToGif(
       gif.render();
     } catch (err) {
       clearTimeout(fallbackTimeout);
-      reject(err);
+      rejectError(err);
     }
   });
 
@@ -665,7 +670,7 @@ export async function exportPathToApng(
       delays,
     );
 
-    if (onProgress) onProgress(1.0);
+    if (onProgress) onProgress(1);
 
     return new Blob([apngBuffer], { type: "image/png" });
   } finally {

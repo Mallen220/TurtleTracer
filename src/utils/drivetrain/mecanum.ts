@@ -1,4 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { rotateVector } from "../../utils/math";
+
 export interface WheelSpeeds {
   frontLeft: number;
   backLeft: number;
@@ -13,10 +15,11 @@ export function calculateFieldCentricMecanum(
   botHeading: number,
 ): WheelSpeeds {
   // Rotate the movement direction counter to the bot's rotation
-  const rotStrafe =
-    strafe * Math.cos(-botHeading) - forward * Math.sin(-botHeading);
-  const rotForward =
-    strafe * Math.sin(-botHeading) + forward * Math.cos(-botHeading);
+  const { x: rotStrafe, y: rotForward } = rotateVector(
+    strafe,
+    forward,
+    -botHeading,
+  );
 
   // Counteract imperfect strafing on the rotated vector
   const adjustedRotStrafe = rotStrafe * 1.1;
@@ -24,7 +27,7 @@ export function calculateFieldCentricMecanum(
   // Normalize speeds
   const denominator = Math.max(
     Math.abs(rotForward) + Math.abs(adjustedRotStrafe) + Math.abs(rotate),
-    1.0,
+    1,
   );
 
   return {

@@ -108,3 +108,4 @@ export { default as MicrosoftStoreIcon } from "./MicrosoftStoreIcon.svelte";
 export { default as RobotPlaceholderIcon } from "./RobotPlaceholderIcon.svelte";
 export { default as CriticalIcon } from "./CriticalIcon.svelte";
 export { default as DisabledIcon } from "./DisabledIcon.svelte";
+export { default as EllipsisVerticalIcon } from "./EllipsisVerticalIcon.svelte";

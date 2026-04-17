@@ -18,7 +18,7 @@ export function isLegacyProjectFileName(name: string): boolean {
 }
 
 export function stripProjectExtension(name: string): string {
-  return name.replace(/\.(pp|turt)$/i, "");
+  return name.replaceAll(/\.(pp|turt)$/gi, "");
 }
 
 export function ensureDefaultProjectExtension(path: string): string {

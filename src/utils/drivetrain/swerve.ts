@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { rotateVector } from "../math";
 import type { WheelSpeeds } from "./mecanum";
 
 export function calculateSwerveDriveAngles(
@@ -10,10 +11,11 @@ export function calculateSwerveDriveAngles(
   rLength: number,
 ): WheelSpeeds {
   // Rotate the movement direction counter to the bot's rotation
-  const rotStrafe =
-    strafe * Math.cos(-botHeading) - forward * Math.sin(-botHeading);
-  const rotForward =
-    strafe * Math.sin(-botHeading) + forward * Math.cos(-botHeading);
+  const { x: rotStrafe, y: rotForward } = rotateVector(
+    strafe,
+    forward,
+    -botHeading,
+  );
 
   // Wheel coordinates relative to center
   // X is right (+), Y is forward (+)

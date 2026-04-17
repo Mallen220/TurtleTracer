@@ -243,8 +243,8 @@
     lineId?: string,
   ) {
     const input = e.target as HTMLInputElement;
-    let val = parseFloat(input.value);
-    if (!isNaN(val)) {
+    let val = Number.parseFloat(input.value);
+    if (!Number.isNaN(val)) {
       if (
         settings?.visualizerUnits === "metric" &&
         (field === "x" || field === "y")
@@ -428,8 +428,10 @@
 
     if (!target) return;
 
-    const index = parseInt(target.element.getAttribute("data-seq-index") || "");
-    if (isNaN(index)) return;
+    const index = Number.parseInt(
+      target.element.getAttribute("data-seq-index") || "",
+    );
+    if (Number.isNaN(index)) return;
 
     // Start Point special case: cannot drop before it (index -1, top)
     if (index === -1 && target.position === "top") return;
@@ -496,10 +498,10 @@
       const target = getClosestTarget(e, "tr[data-seq-index]", document.body);
       let dropIndex = sequence.length;
       if (target) {
-        const idx = parseInt(
+        const idx = Number.parseInt(
           target.element.getAttribute("data-seq-index") || "",
         );
-        if (!isNaN(idx)) {
+        if (!Number.isNaN(idx)) {
           dropIndex = target.position === "bottom" ? idx + 1 : idx;
         }
       }
@@ -932,13 +934,49 @@
   function toggleChain(seqIndex: number) {
     const item = sequence[seqIndex];
     if (item && item.kind === "path") {
+      const newIsChain = !(item as any).isChain;
+
+      if (!newIsChain) {
+        // Find the root of the former chain
+        let rootIdx = seqIndex;
+        while (
+          rootIdx > 0 &&
+          sequence[rootIdx - 1].kind === "path" &&
+          (sequence[rootIdx] as any).isChain
+        ) {
+          rootIdx--;
+        }
+
+        // Find the end of the former chain
+        let endIdx = seqIndex;
+        while (
+          endIdx + 1 < sequence.length &&
+          sequence[endIdx + 1].kind === "path" &&
+          (sequence[endIdx + 1] as any).isChain
+        ) {
+          endIdx++;
+        }
+
+        // Reset globalHeading for all paths in the former chain island
+        for (let i = rootIdx; i <= endIdx; i++) {
+          const sItem = sequence[i];
+          if (sItem.kind === "path") {
+            const lIdx = lines.findIndex((l) => l.id === (sItem as any).lineId);
+            if (lIdx !== -1 && lines[lIdx].globalHeading !== undefined) {
+              lines[lIdx] = { ...lines[lIdx], globalHeading: undefined };
+            }
+          }
+        }
+      }
+
       const newSeq = [...sequence];
-      newSeq[seqIndex] = { ...item, isChain: !(item as any).isChain };
+      newSeq[seqIndex] = { ...item, isChain: newIsChain };
       sequence = newSeq;
+
       // Also update the line object
       const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
       if (lineIdx !== -1) {
-        lines[lineIdx] = { ...lines[lineIdx], isChain: !(item as any).isChain };
+        lines[lineIdx] = { ...lines[lineIdx], isChain: newIsChain };
         lines = [...lines];
       }
       recordChange();
@@ -1002,7 +1040,7 @@
     if (!item) return;
 
     if (item.kind === "wait") {
-      const newItem = structuredClone(item);
+      const newItem = $state.snapshot(item);
       newItem.id = makeId();
       newItem.locked = false; // unlock duplicate?
       // Preserve empty name when duplicating unnamed waits
@@ -1024,7 +1062,7 @@
       const line = lines.find((l) => l.id === (item as any).lineId);
       if (!line) return;
 
-      const newLine = structuredClone(line);
+      const newLine = $state.snapshot(line);
       newLine.id = makeId();
       newLine.locked = false;
       // Preserve empty name when duplicating unnamed paths
@@ -1212,7 +1250,7 @@
     // Extract name from path
     const parts = filePath.split(/[/\\]/);
     const fileName = parts.pop() || filePath;
-    const baseName = fileName.replace(/\.(pp|turt)$/i, "");
+    const baseName = fileName.replaceAll(/\.(pp|turt)$/gi, "");
 
     const newMacro: SequenceMacroItem = {
       kind: "macro",
@@ -1435,7 +1473,7 @@
           {/if}
 
           {#each lines.filter((l) => l.id === item.lineId) as line (line.id)}
-            {@const lineIdx = lines.findIndex((l) => l === line)}
+            {@const lineIdx = lines.indexOf(line)}
             <!-- End Point -->
             {@html debugPointRow(line, undefined)}
             {@const endPointId = `point-${lineIdx + 1}-0`}
@@ -1673,10 +1711,9 @@
             <!-- Control Points -->
             {#each line.controlPoints as cp, j}
               {@html debugPointRow(line, cp, j)}
-              {@const cpIndex = [
-                line.endPoint,
-                ...line.controlPoints,
-              ].findIndex((p) => p === cp)}
+              {@const cpIndex = [line.endPoint, ...line.controlPoints].indexOf(
+                cp,
+              )}
               {@const pointId = `point-${lineIdx + 1}-${cpIndex}`}
               <tr
                 class={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${$selectedLineId === line.id ? "bg-green-50 dark:bg-green-900/20" : ""} ${$multiSelectedPointIdsSet.size > 1 && $multiSelectedPointIdsSet.has(pointId) ? "bg-green-100 dark:bg-green-800/40" : ""}`}

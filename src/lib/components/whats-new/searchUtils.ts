@@ -9,9 +9,9 @@ export function getSnippet(text: string, q: string): string | null {
 
 function escapeHtml(text: string): string {
   return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }
 
 export function highlightSnippet(text: string, query: string): string {
@@ -89,7 +89,7 @@ export function highlightText(root: Element, query: string): void {
     const lowerText = text.toLowerCase();
 
     // Check if match exists
-    if (lowerText.indexOf(q) === -1) continue;
+    if (!lowerText.includes(q)) continue;
 
     const fragment = document.createDocumentFragment();
     let lastIndex = 0;

@@ -25,7 +25,7 @@ if (
   !localStorage ||
   typeof localStorage.getItem !== "function"
 ) {
-  (global as any).localStorage = createMockStorage();
+  (globalThis as any).localStorage = createMockStorage();
 }
 
 // Ensure sessionStorage is defined and functional
@@ -34,12 +34,12 @@ if (
   !sessionStorage ||
   typeof sessionStorage.getItem !== "function"
 ) {
-  (global as any).sessionStorage = createMockStorage();
+  (globalThis as any).sessionStorage = createMockStorage();
 }
 
 // Mock ResizeObserver which is missing in JSDOM
 if (typeof ResizeObserver === "undefined") {
-  (global as any).ResizeObserver = class {
+  (globalThis as any).ResizeObserver = class {
     observe() {}
     unobserve() {}
     disconnect() {}
@@ -67,8 +67,8 @@ if (typeof URL !== "undefined" && !URL.createObjectURL) {
 }
 
 // Mock matchMedia
-if (typeof window !== "undefined" && !window.matchMedia) {
-  window.matchMedia = (query) => ({
+if (typeof globalThis !== "undefined" && !globalThis.matchMedia) {
+  globalThis.matchMedia = (query) => ({
     matches: false,
     media: query,
     onchange: null,

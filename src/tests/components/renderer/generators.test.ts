@@ -64,7 +64,13 @@ describe("Renderer Generators", () => {
       } as any,
     ];
 
-    const points = generatePointElements(startPoint, lines, shapes, ctx as any);
+    const points = generatePointElements(
+      startPoint,
+      lines,
+      shapes,
+      [] as any,
+      ctx as any,
+    );
     expect(points.length).toBe(5);
     const sp = points[0] as InstanceType<typeof Two.Circle>;
     expect(sp.id).toBe("point-0-0");

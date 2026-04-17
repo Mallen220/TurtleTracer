@@ -66,13 +66,13 @@ describe("PlaybackControls", () => {
       props: createProps({ setPlaybackSpeed }),
     });
 
-    const speedBtn = screen.getByLabelText("Playback speed options");
+    const speedBtn = screen.getByLabelText(/Playback speed options/);
     await fireEvent.click(speedBtn);
 
     const speedOption = screen.getByText("2.00x");
     await fireEvent.click(speedOption);
 
-    expect(setPlaybackSpeed).toHaveBeenCalledWith(2.0, true);
+    expect(setPlaybackSpeed).toHaveBeenCalledWith(2, true);
   });
 
   it("seeks when slider changes", async () => {

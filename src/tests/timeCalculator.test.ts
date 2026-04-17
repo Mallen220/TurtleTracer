@@ -83,7 +83,7 @@ describe("Time Calculator", () => {
     expect(formatTime(65.123)).toBe("1:05.123s");
     expect(formatTime(0)).toBe("0.000s");
     expect(formatTime(-5)).toBe("0.000s");
-    expect(formatTime(NaN)).toBe("Infinite");
+    expect(formatTime(Number.NaN)).toBe("Infinite");
     expect(formatTime(Infinity)).toBe("Infinite");
   });
 
@@ -96,7 +96,7 @@ describe("Time Calculator", () => {
 
     it("handles edge cases gracefully", () => {
       expect(getAnimationDuration(0)).toBe(0);
-      expect(getAnimationDuration(NaN)).toBeNaN();
+      expect(getAnimationDuration(Number.NaN)).toBeNaN();
       expect(getAnimationDuration(Infinity)).toBe(Infinity);
       expect(getAnimationDuration(1, Infinity)).toBe(0);
       expect(getAnimationDuration(1, 0)).toBe(Infinity);
@@ -283,8 +283,8 @@ describe("Time Calculator", () => {
       x: 0,
       y: 0,
       heading: "linear",
-      startDeg: NaN,
-      endDeg: NaN,
+      startDeg: Number.NaN,
+      endDeg: Number.NaN,
     };
 
     const result = calculatePathTime(badStart, lines, zeroVelSettings);

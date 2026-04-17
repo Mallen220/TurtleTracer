@@ -60,7 +60,7 @@ describe("PathOptimizer", () => {
       optimizationIterations: 10,
       optimizationPopulationSize: 10,
       optimizationMutationRate: 0.5,
-      optimizationMutationStrength: 5.0,
+      optimizationMutationStrength: 5,
     };
 
     sequence = [

@@ -3,13 +3,7 @@ import Two from "two.js";
 import type { Line, Point, SequenceItem } from "../../../types";
 import { getCurvePoint } from "../../../utils/math";
 
-interface RenderContext {
-  x: d3.ScaleLinear<number, number>;
-  y: d3.ScaleLinear<number, number>;
-  uiLength: (inches: number) => number;
-  hoveredMarkerId: string | null;
-  ppI: number;
-}
+import { type RenderContext } from "./GeneratorUtils";
 
 export function generateDiffEventMarkerElements(
   isDiffMode: boolean,
@@ -103,7 +97,7 @@ export function generateDiffEventMarkerElements(
         const bg = new Two.Rectangle(
           x(pos.x),
           y(pos.y) - uiLength(3),
-          uiLength(textMetrics.width / ppI),
+          uiLength(textMetrics.width / (ppI || 1)),
           uiLength(1),
         );
         // Two.Text is easier.

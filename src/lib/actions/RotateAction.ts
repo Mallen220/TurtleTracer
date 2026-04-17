@@ -55,7 +55,7 @@ export const RotateAction: ActionDefinition = {
     const { timePrediction, x, y, uiLength, hoveredId, selectedPointId } =
       context;
 
-    if (!timePrediction || !timePrediction.timeline) return [];
+    if (!timePrediction?.timeline) return [];
 
     const elements: any[] = [];
 
@@ -163,9 +163,7 @@ export const RotateAction: ActionDefinition = {
     // Define classes based on library
     const InstantCmdClass = "InstantCommand";
     const WaitUntilCmdClass = isNextFTC ? "WaitUntil" : "WaitUntilCommand";
-    const ParallelRaceClass = isNextFTC
-      ? "ParallelRaceGroup"
-      : "ParallelRaceGroup";
+    const ParallelRaceClass = "ParallelRaceGroup"; // Same for NextFTC and SolversLib
     const SequentialGroupClass = isNextFTC
       ? "SequentialGroup"
       : "SequentialCommandGroup";

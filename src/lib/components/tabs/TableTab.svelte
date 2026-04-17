@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import type {
     Point,
     Line,
@@ -35,7 +33,7 @@
   let waypointTableRef: any = $state(null);
 
   let collapsedObstacles = $state(shapes.map(() => true));
-  run(() => {
+  $effect(() => {
     if (shapes.length !== collapsedObstacles.length) {
       collapsedObstacles = shapes.map(() => true);
     }

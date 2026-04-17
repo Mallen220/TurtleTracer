@@ -8,7 +8,7 @@ const DEFAULT_DIRECTORY_SETTINGS: DirectorySettings = {
 
 // Get the path for the directory settings file
 async function getDirectorySettingsPath(): Promise<string> {
-  const electronAPI = (window as any).electronAPI;
+  const electronAPI = (globalThis as any).electronAPI;
   if (electronAPI && !electronAPI.isVirtual) {
     const appDataPath = await electronAPI.getAppDataPath();
     return `${appDataPath}/directory-settings.json`;
@@ -21,7 +21,7 @@ export async function saveDirectorySettings(
   settings: DirectorySettings,
 ): Promise<void> {
   try {
-    const electronAPI = (window as any).electronAPI;
+    const electronAPI = (globalThis as any).electronAPI;
 
     // Use localStorage for browser environment
     if (!electronAPI || electronAPI.isVirtual) {
@@ -60,7 +60,7 @@ export function parseDirectorySettings(json: string): DirectorySettings {
 // Load directory settings
 export async function loadDirectorySettings(): Promise<DirectorySettings> {
   try {
-    const electronAPI = (window as any).electronAPI;
+    const electronAPI = (globalThis as any).electronAPI;
 
     // Use localStorage for browser environment
     if (!electronAPI || electronAPI.isVirtual) {

@@ -17,6 +17,12 @@ import { actionRegistry } from "../../actionRegistry";
 import { updateLinkedWaypoints } from "../../../utils/pointLinking";
 import { FIELD_SIZE } from "../../../config";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
+import {
+  parseSelectionId,
+  findSequenceItem,
+  findSequenceItemIndex,
+  updateEventMarkerPosition,
+} from "./itemUtils";
 
 export function removeSelected(recordChange: (action?: string) => void) {
   if (isUIElementFocused()) return;
@@ -41,38 +47,26 @@ export function removeSelected(recordChange: (action?: string) => void) {
   }[] = [];
 
   sels.forEach((sel) => {
-    if (sel.startsWith("wait-")) {
-      waitsToDelete.push(sel.substring(5));
-    } else if (sel.startsWith("rotate-")) {
-      rotatesToDelete.push(sel.substring(7));
-    } else if (sel.startsWith("point-")) {
-      const parts = sel.split("-");
-      const lineNum = Number(parts[1]);
-      const ptIdx = Number(parts[2]);
-      if (lineNum !== 0 || ptIdx !== 0) {
-        // skip start point
-        pointsToDelete.push({ lineIndex: lineNum - 1, ptIdx });
+    const info = parseSelectionId(sel);
+    if (info.type === "wait") {
+      waitsToDelete.push(info.id);
+    } else if (info.type === "rotate") {
+      rotatesToDelete.push(info.id);
+    } else if (info.type === "point") {
+      if (info.lineNum !== 0 || info.ptIdx !== 0) {
+        pointsToDelete.push({ lineIndex: info.lineNum - 1, ptIdx: info.ptIdx });
       }
-    } else if (sel.startsWith("event-wait-")) {
-      const parts = sel.split("-");
+    } else if (info.type === "event-wait" || info.type === "event-rotate") {
       eventMarkersToDelete.push({
-        itemType: "wait",
-        evIdx: Number(parts.pop()),
-        itemId: parts.slice(2).join("-"),
+        itemType: info.type === "event-wait" ? "wait" : "rotate",
+        evIdx: info.evIdx,
+        itemId: info.id,
       });
-    } else if (sel.startsWith("event-rotate-")) {
-      const parts = sel.split("-");
-      eventMarkersToDelete.push({
-        itemType: "rotate",
-        evIdx: Number(parts.pop()),
-        itemId: parts.slice(2).join("-"),
-      });
-    } else if (sel.startsWith("event-")) {
-      const parts = sel.split("-");
+    } else if (info.type === "event-line") {
       eventMarkersToDelete.push({
         itemType: "line",
-        evIdx: Number(parts[2]),
-        itemId: parts[1],
+        evIdx: info.evIdx,
+        itemId: String(info.lineIdx),
       });
     }
   });
@@ -93,7 +87,7 @@ export function removeSelected(recordChange: (action?: string) => void) {
       linesToRemove.add(lineIndex);
     } else {
       const cpIndex = ptIdx - 1;
-      if (line.controlPoints && line.controlPoints[cpIndex] !== undefined) {
+      if (line.controlPoints?.[cpIndex] !== undefined) {
         // Create a new line object with new controlPoints array
         lines[lineIndex] = {
           ...line,
@@ -164,19 +158,9 @@ export function removeSelected(recordChange: (action?: string) => void) {
   eventMarkersToDelete.sort((a, b) => b.evIdx - a.evIdx);
   eventMarkersToDelete.forEach(({ itemType, itemId, evIdx }) => {
     if (itemType === "wait" || itemType === "rotate") {
-      const item = sequence.find(
-        (s) =>
-          actionRegistry.get(s.kind)?.[
-            itemType === "wait" ? "isWait" : "isRotate"
-          ] && (s as any).id === itemId,
-      ) as any;
-      if (
-        item &&
-        item.eventMarkers &&
-        item.eventMarkers[evIdx] &&
-        !item.locked
-      ) {
-        const itemIdx = sequence.findIndex((s) => (s as any).id === itemId);
+      const item = findSequenceItem(sequence, itemId, itemType);
+      if (item?.eventMarkers?.[evIdx] && !item.locked) {
+        const itemIdx = findSequenceItemIndex(sequence, itemId, itemType);
         if (itemIdx !== -1) {
           sequence[itemIdx] = {
             ...item,
@@ -190,12 +174,7 @@ export function removeSelected(recordChange: (action?: string) => void) {
     } else if (itemType === "line") {
       const lineIdx = Number(itemId);
       const line = lines[lineIdx];
-      if (
-        line &&
-        line.eventMarkers &&
-        line.eventMarkers[evIdx] &&
-        !line.locked
-      ) {
+      if (line?.eventMarkers?.[evIdx] && !line.locked) {
         lines[lineIdx] = {
           ...line,
           eventMarkers: line.eventMarkers.filter(
@@ -266,11 +245,9 @@ export function movePoint(
   let startPointChanged = false;
 
   sels.forEach((currentSel) => {
-    if (currentSel.startsWith("point-")) {
-      const parts = currentSel.split("-");
-      const lineNum = Number(parts[1]);
-      const ptIdx = Number(parts[2]);
-      if (lineNum === 0 && ptIdx === 0) {
+    const info = parseSelectionId(currentSel);
+    if (info.type === "point") {
+      if (info.lineNum === 0 && info.ptIdx === 0) {
         if (!startPoint.locked) {
           const x = snapMode
             ? nextGridCoord(startPoint.x, dx)
@@ -288,10 +265,10 @@ export function movePoint(
         }
         return;
       }
-      const lineIndex = lineNum - 1;
+      const lineIndex = info.lineNum - 1;
       const line = lines[lineIndex];
       if (line && !line.locked) {
-        if (ptIdx === 0) {
+        if (info.ptIdx === 0) {
           if (line.endPoint) {
             const nx = snapMode
               ? nextGridCoord(line.endPoint.x, dx)
@@ -311,7 +288,7 @@ export function movePoint(
             linesChanged = true;
           }
         } else {
-          const cpIndex = ptIdx - 1;
+          const cpIndex = info.ptIdx - 1;
           if (line.controlPoints[cpIndex]) {
             const nx = snapMode
               ? nextGridCoord(line.controlPoints[cpIndex].x, dx)
@@ -340,12 +317,9 @@ export function movePoint(
           }
         }
       }
-    } else if (currentSel.startsWith("obstacle-")) {
-      const parts = currentSel.split("-");
-      const shapeIdx = Number(parts[1]);
-      const vertexIdx = Number(parts[2]);
-      if (shapes[shapeIdx]?.vertices[vertexIdx]) {
-        const v = shapes[shapeIdx].vertices[vertexIdx];
+    } else if (info.type === "obstacle") {
+      if (shapes[info.shapeIdx]?.vertices[info.vertexIdx]) {
+        const v = shapes[info.shapeIdx].vertices[info.vertexIdx];
         const nx = snapMode
           ? nextGridCoord(v.x, dx)
           : Math.max(0, Math.min(FIELD_SIZE, v.x + moveX));
@@ -353,74 +327,50 @@ export function movePoint(
           ? nextGridCoord(v.y, dy)
           : Math.max(0, Math.min(FIELD_SIZE, v.y + moveY));
 
-        const newVertices = [...shapes[shapeIdx].vertices];
-        newVertices[vertexIdx] = {
-          ...newVertices[vertexIdx],
+        const newVertices = [...shapes[info.shapeIdx].vertices];
+        newVertices[info.vertexIdx] = {
+          ...newVertices[info.vertexIdx],
           x: Number(nx.toFixed(3)),
           y: Number(ny.toFixed(3)),
         };
-        shapes[shapeIdx] = {
-          ...shapes[shapeIdx],
+        shapes[info.shapeIdx] = {
+          ...shapes[info.shapeIdx],
           vertices: newVertices,
         };
         shapesChanged = true;
       }
-    } else if (currentSel.startsWith("event-wait-")) {
-      const parts = currentSel.split("-");
-      const evIdx = Number(parts.pop() as string);
-      const waitId = parts.slice(2).join("-");
-
-      const itemIdx = sequence.findIndex(
-        (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
-      );
+    } else if (info.type === "event-wait" || info.type === "event-rotate") {
+      const kind = info.type === "event-wait" ? "wait" : "rotate";
+      const itemIdx = findSequenceItemIndex(sequence, info.id, kind);
       if (itemIdx !== -1) {
         const item = sequence[itemIdx] as any;
-        if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
-          const delta = (dx + dy) * 0.01;
-          let newPos = item.eventMarkers[evIdx].position + delta;
-          newPos = Math.max(0, Math.min(1, newPos));
-
+        if (item?.eventMarkers?.[info.evIdx]) {
+          const newPos = updateEventMarkerPosition(
+            item.eventMarkers[info.evIdx],
+            0.01 * (dx + dy),
+          );
           const newMarkers = [...item.eventMarkers];
-          newMarkers[evIdx] = { ...newMarkers[evIdx], position: newPos };
+          newMarkers[info.evIdx] = {
+            ...newMarkers[info.evIdx],
+            position: newPos,
+          };
           sequence[itemIdx] = { ...item, eventMarkers: newMarkers };
           sequenceChanged = true;
         }
       }
-    } else if (currentSel.startsWith("event-rotate-")) {
-      const parts = currentSel.split("-");
-      const evIdx = Number(parts.pop() as string);
-      const rotateId = parts.slice(2).join("-");
-
-      const itemIdx = sequence.findIndex(
-        (s) =>
-          actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
-      );
-      if (itemIdx !== -1) {
-        const item = sequence[itemIdx] as any;
-        if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
-          const delta = (dx + dy) * 0.01;
-          let newPos = item.eventMarkers[evIdx].position + delta;
-          newPos = Math.max(0, Math.min(1, newPos));
-
-          const newMarkers = [...item.eventMarkers];
-          newMarkers[evIdx] = { ...newMarkers[evIdx], position: newPos };
-          sequence[itemIdx] = { ...item, eventMarkers: newMarkers };
-          sequenceChanged = true;
-        }
-      }
-    } else if (currentSel.startsWith("event-")) {
-      const parts = currentSel.split("-");
-      const lineIdx = Number(parts[1]);
-      const evIdx = Number(parts[2]);
-      const line = lines[lineIdx];
-      if (line && line.eventMarkers && line.eventMarkers[evIdx]) {
-        const delta = (dx + dy) * 0.01;
-        let newPos = line.eventMarkers[evIdx].position + delta;
-        newPos = Math.max(0, Math.min(1, newPos));
-
+    } else if (info.type === "event-line") {
+      const line = lines[info.lineIdx];
+      if (line?.eventMarkers?.[info.evIdx]) {
+        const newPos = updateEventMarkerPosition(
+          line.eventMarkers[info.evIdx],
+          0.01 * (dx + dy),
+        );
         const newMarkers = [...line.eventMarkers];
-        newMarkers[evIdx] = { ...newMarkers[evIdx], position: newPos };
-        lines[lineIdx] = { ...line, eventMarkers: newMarkers };
+        newMarkers[info.evIdx] = {
+          ...newMarkers[info.evIdx],
+          position: newPos,
+        };
+        lines[info.lineIdx] = { ...line, eventMarkers: newMarkers };
         linesChanged = true;
       }
     }
@@ -484,53 +434,30 @@ export function syncSelectionToUI(controlTabRef: any) {
   const sequence = get(sequenceStore);
   const lines = get(linesStore);
 
-  if (!sel || !controlTabRef || !controlTabRef.scrollToItem) return;
+  if (!sel || !controlTabRef?.scrollToItem) return;
+  const info = parseSelectionId(sel);
 
-  if (sel.startsWith("wait-")) {
-    controlTabRef.scrollToItem("wait", sel.substring(5));
-  } else if (sel.startsWith("rotate-")) {
-    controlTabRef.scrollToItem("rotate", sel.substring(7));
-  } else if (sel.startsWith("point-")) {
-    // Points map to paths
-    // point-LINENUM-PTIDX
-    const parts = sel.split("-");
-    const lineNum = Number(parts[1]);
-    if (lineNum > 0) {
-      const line = lines[lineNum - 1];
-      if (line && line.id) {
-        // Control tab can handle generic path scroll requests
+  if (info.type === "wait") {
+    controlTabRef.scrollToItem("wait", info.id);
+  } else if (info.type === "rotate") {
+    controlTabRef.scrollToItem("rotate", info.id);
+  } else if (info.type === "point") {
+    if (info.lineNum > 0) {
+      const line = lines[info.lineNum - 1];
+      if (line?.id) {
         controlTabRef.scrollToItem("path", line.id);
       }
     }
-  } else if (sel.startsWith("event-wait-")) {
-    const parts = sel.split("-");
-    const evIdx = Number(parts.pop() as string);
-    const waitId = parts.slice(2).join("-");
-
-    const item = sequence.find(
-      (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
-    ) as any;
-    if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
-      controlTabRef.scrollToItem("event", item.eventMarkers[evIdx].id);
+  } else if (info.type === "event-wait" || info.type === "event-rotate") {
+    const kind = info.type === "event-wait" ? "wait" : "rotate";
+    const item = findSequenceItem(sequence, info.id, kind);
+    if (item?.eventMarkers?.[info.evIdx]) {
+      controlTabRef.scrollToItem("event", item.eventMarkers[info.evIdx].id);
     }
-  } else if (sel.startsWith("event-rotate-")) {
-    const parts = sel.split("-");
-    const evIdx = Number(parts.pop() as string);
-    const rotateId = parts.slice(2).join("-");
-
-    const item = sequence.find(
-      (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
-    ) as any;
-    if (item && item.eventMarkers && item.eventMarkers[evIdx]) {
-      controlTabRef.scrollToItem("event", item.eventMarkers[evIdx].id);
-    }
-  } else if (sel.startsWith("event-")) {
-    const parts = sel.split("-");
-    const lineIdx = Number(parts[1]);
-    const evIdx = Number(parts[2]);
-    const line = lines[lineIdx];
-    if (line && line.eventMarkers && line.eventMarkers[evIdx]) {
-      controlTabRef.scrollToItem("event", line.eventMarkers[evIdx].id);
+  } else if (info.type === "event-line") {
+    const line = lines[info.lineIdx];
+    if (line?.eventMarkers?.[info.evIdx]) {
+      controlTabRef.scrollToItem("event", line.eventMarkers[info.evIdx].id);
     }
   }
 }

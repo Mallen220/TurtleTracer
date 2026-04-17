@@ -13,6 +13,7 @@ import {
   getTangentAngle,
   getLineStartHeading,
   getLineEndHeading,
+  getInitialTangentialHeading,
   splitBezier,
 } from "../utils/math";
 import type { Line, Point } from "../types";
@@ -267,6 +268,33 @@ describe("Math Utils", () => {
       // Should skip (0,0) and use (5,5), angle 45
       expect(getLineStartHeading(line, prev)).toBe(45);
     });
+
+    it("interpolates piecewise linear headings across a global chain", () => {
+      const p1 = { x: 0, y: 0 } as Point;
+      const globalOverride = {
+        id: "root-line",
+        globalHeading: "piecewise",
+        globalSegments: [
+          {
+            tStart: 0,
+            tEnd: 1,
+            heading: "linear",
+            startDeg: 0,
+            endDeg: 180,
+          },
+        ],
+      } as any;
+
+      const res = getLineStartHeading(
+        { id: "line-2", endPoint: {} } as any,
+        p1,
+        globalOverride,
+        20, // totalChainDistance
+        10, // distanceBefore
+      );
+
+      expect(res).toBe(90);
+    });
   });
 
   describe("splitBezier", () => {
@@ -308,6 +336,40 @@ describe("Math Utils", () => {
       expect(right[0]).toEqual({ x: 10, y: 5 });
       expect(right[1]).toEqual({ x: 15, y: 5 });
       expect(right[2]).toEqual({ x: 20, y: 0 });
+    });
+  });
+
+  describe("getInitialTangentialHeading", () => {
+    it("calculates basic angle between two points", () => {
+      const startPoint = { x: 0, y: 0 } as Point;
+      const nextPoint = { x: 1, y: 1 };
+      expect(getInitialTangentialHeading(startPoint, nextPoint)).toBe(45);
+    });
+
+    it("adds 180 degrees if startPoint is reversed", () => {
+      const startPoint = { x: 0, y: 0, reverse: true } as Point;
+      const nextPoint = { x: 1, y: 1 };
+      // 45 + 180 = 225
+      expect(getInitialTangentialHeading(startPoint, nextPoint)).toBe(225);
+    });
+
+    it("handles vertical lines", () => {
+      const startPoint = { x: 0, y: 0 } as Point;
+      const nextPoint = { x: 0, y: 1 };
+      expect(getInitialTangentialHeading(startPoint, nextPoint)).toBe(90);
+    });
+
+    it("handles vertical lines when reversed", () => {
+      const startPoint = { x: 0, y: 0, reverse: true } as Point;
+      const nextPoint = { x: 0, y: 1 };
+      // 90 + 180 = 270
+      expect(getInitialTangentialHeading(startPoint, nextPoint)).toBe(270);
+    });
+
+    it("handles horizontal lines", () => {
+      const startPoint = { x: 0, y: 0 } as Point;
+      const nextPoint = { x: 1, y: 0 };
+      expect(getInitialTangentialHeading(startPoint, nextPoint)).toBe(0);
     });
   });
 
@@ -411,6 +473,33 @@ describe("Math Utils", () => {
       // Should skip (10,10) and use (5,5) as prev point for tangent
       // Tangent from (5,5) to (10,10) is 45 degrees
       expect(getLineEndHeading(line, prev)).toBe(45);
+    });
+
+    it("interpolates piecewise linear headings across a global chain", () => {
+      const p1 = { x: 0, y: 0 } as Point;
+      const globalOverride = {
+        id: "root-line",
+        globalHeading: "piecewise",
+        globalSegments: [
+          {
+            tStart: 0,
+            tEnd: 1,
+            heading: "linear",
+            startDeg: 0,
+            endDeg: 180,
+          },
+        ],
+      } as any;
+
+      const res = getLineEndHeading(
+        { id: "line-2", endPoint: {} } as any,
+        p1,
+        globalOverride,
+        20, // totalChainDistance
+        15, // distanceAtEnd
+      );
+
+      expect(res).toBe(135);
     });
   });
 

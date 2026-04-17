@@ -63,20 +63,19 @@ describe("calculateDrivetrainSpeeds", () => {
     });
   });
 
+  const mockRobotStates = (
+    state1: { x: number; y: number; heading: number },
+    state2: { x: number; y: number; heading: number },
+  ) => {
+    vi.mocked(animation.calculateRobotState).mockReset();
+    vi.mocked(animation.calculateRobotState)
+      .mockReturnValueOnce(state1)
+      .mockReturnValueOnce(state2);
+  };
+
   it("should calculate correct speeds for mecanum", () => {
     const timePrediction = { timeline: [{ endTime: 10 }] };
-    // state1
-    vi.mocked(animation.calculateRobotState).mockReturnValueOnce({
-      x: 0,
-      y: 0,
-      heading: 0,
-    });
-    // state2 (dt is 0.05, so after 0.05s it moved 1 inch in X, which is forward velocity in this func. vx = 1/0.05 = 20 inches/sec)
-    vi.mocked(animation.calculateRobotState).mockReturnValueOnce({
-      x: 1,
-      y: 0,
-      heading: 0,
-    });
+    mockRobotStates({ x: 0, y: 0, heading: 0 }, { x: 1, y: 0, heading: 0 });
 
     const speeds = calculateDrivetrainSpeeds(
       0,
@@ -97,18 +96,7 @@ describe("calculateDrivetrainSpeeds", () => {
 
   it("should calculate correct angles for swerve", () => {
     const timePrediction = { timeline: [{ endTime: 10 }] };
-    vi.mocked(animation.calculateRobotState).mockReset();
-    vi.mocked(animation.calculateRobotState).mockReturnValueOnce({
-      x: 0,
-      y: 0,
-      heading: 0,
-    });
-    // Moving only in X (forward for this function coordinate system)
-    vi.mocked(animation.calculateRobotState).mockReturnValueOnce({
-      x: 1,
-      y: 0,
-      heading: 0,
-    });
+    mockRobotStates({ x: 0, y: 0, heading: 0 }, { x: 1, y: 0, heading: 0 });
 
     const speeds = calculateDrivetrainSpeeds(
       0,

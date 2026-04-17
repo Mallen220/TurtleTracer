@@ -67,7 +67,10 @@ function runOptimized() {
     const currPt = getCurvePoint(t, cps);
     const color = getColor(t);
 
-    if (color !== currentColor) {
+    if (color === currentColor) {
+      // Color same. Extend current path.
+      currentPoints.push(currPt);
+    } else {
       // Color changed.
       if (currentPoints.length > 0) {
         objectCount++;
@@ -76,9 +79,6 @@ function runOptimized() {
       // Start new segment with previous point as anchor
       currentPoints = [prevPt, currPt];
       currentColor = color;
-    } else {
-      // Color same. Extend current path.
-      currentPoints.push(currPt);
     }
 
     prevPt = currPt;

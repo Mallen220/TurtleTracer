@@ -93,7 +93,7 @@ export class PathOptimizer {
     this.generations = settings.optimizationIterations ?? 100;
     this.populationSize = settings.optimizationPopulationSize ?? 50;
     this.mutationRate = settings.optimizationMutationRate ?? 0.4;
-    this.mutationStrength = settings.optimizationMutationStrength ?? 6.0;
+    this.mutationStrength = settings.optimizationMutationStrength ?? 6;
 
     // Cancellation flag
     this.stopRequested = false;
@@ -245,7 +245,7 @@ export class PathOptimizer {
       timeline = result.timeline;
     }
 
-    if (!timeline || timeline.length === 0) return [];
+    if (!timeline?.length) return [];
 
     // Filter out aggregate macro events which overlap the inner travel/wait events.
     // Including them in scanning can cause incorrect break/advance behavior.
@@ -545,8 +545,7 @@ export class PathOptimizer {
           activeEvent.type === "travel" ? activeEvent.lineIndex : undefined;
 
         const shouldExtend =
-          currentCollision &&
-          currentCollision.type === collisionType &&
+          currentCollision?.type === collisionType &&
           currentCollision.segmentEndIndex === currentSegmentIndex;
 
         if (shouldExtend) {
@@ -575,11 +574,9 @@ export class PathOptimizer {
             segmentEndIndex: currentSegmentIndex,
           };
         }
-      } else {
-        if (currentCollision) {
-          markers.push(currentCollision);
-          currentCollision = null;
-        }
+      } else if (currentCollision) {
+        markers.push(currentCollision);
+        currentCollision = null;
       }
     }
 
@@ -626,7 +623,7 @@ export class PathOptimizer {
   }
 
   private findValidPathSeeds(): { lines: Line[]; time: number }[] {
-    if (!this.shapes || this.shapes.length === 0) return [];
+    if (!this.shapes?.length) return [];
 
     const validSeeds: { lines: Line[]; time: number }[] = [];
     const gridSize = 8; // 8x8 grid for better coverage (step ~18in)
@@ -761,7 +758,7 @@ export class PathOptimizer {
     }
 
     // Smart Initialization: Seed with variants that have extra control points
-    if (this.shapes && this.shapes.length > 0) {
+    if (this.shapes?.length > 0) {
       for (let i = 0; i < Math.min(20, this.populationSize); i++) {
         const seedLines = structuredClone(this.originalLines);
         let prevPoint = this.startPoint;

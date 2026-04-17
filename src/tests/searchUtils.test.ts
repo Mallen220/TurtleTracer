@@ -91,16 +91,16 @@ describe("WhatsNew Search Utils", () => {
       );
       document = dom.window.document;
       // Polyfill TreeWalker for JSDOM if needed (JSDOM supports it)
-      global.document = document;
-      global.NodeFilter = dom.window.NodeFilter;
-      global.Node = dom.window.Node;
+      globalThis.document = document;
+      globalThis.NodeFilter = dom.window.NodeFilter;
+      globalThis.Node = dom.window.Node;
     });
 
     afterEach(() => {
       // Clean up globals set for JSDOM. Cast to `any` so `delete` is allowed by TypeScript.
-      delete (global as any).document;
-      delete (global as any).NodeFilter;
-      delete (global as any).Node;
+      delete (globalThis as any).document;
+      delete (globalThis as any).NodeFilter;
+      delete (globalThis as any).Node;
     });
 
     it("should highlight text in DOM", () => {

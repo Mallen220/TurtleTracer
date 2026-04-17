@@ -70,6 +70,18 @@ interface TimePrediction {
   timeline: TimelineEvent[];
 }
 
+type PiecewiseSegment = {
+  tStart: number;
+  tEnd: number;
+  heading: "constant" | "linear" | "tangential" | "facingPoint";
+  degrees?: number;
+  startDeg?: number;
+  endDeg?: number;
+  targetX?: number;
+  targetY?: number;
+  reverse?: boolean;
+};
+
 type Point = BasePoint &
   (
     | {
@@ -78,6 +90,9 @@ type Point = BasePoint &
         endDeg: number;
         degrees?: never;
         reverse?: never;
+        targetX?: never;
+        targetY?: never;
+        segments?: never;
       }
     | {
         heading: "constant";
@@ -85,6 +100,9 @@ type Point = BasePoint &
         startDeg?: never;
         endDeg?: never;
         reverse?: never;
+        targetX?: never;
+        targetY?: never;
+        segments?: never;
       }
     | {
         heading: "tangential";
@@ -92,6 +110,29 @@ type Point = BasePoint &
         startDeg?: never;
         endDeg?: never;
         reverse: boolean;
+        targetX?: never;
+        targetY?: never;
+        segments?: never;
+      }
+    | {
+        heading: "facingPoint";
+        targetX: number;
+        targetY: number;
+        reverse?: boolean;
+        degrees?: never;
+        startDeg?: never;
+        endDeg?: never;
+        segments?: never;
+      }
+    | {
+        heading: "piecewise";
+        segments: PiecewiseSegment[];
+        degrees?: never;
+        startDeg?: never;
+        endDeg?: never;
+        targetX?: never;
+        targetY?: never;
+        reverse?: never;
       }
   );
 
@@ -112,6 +153,14 @@ interface Line {
   waitBeforeName?: string;
   waitAfterName?: string;
   isChain?: boolean;
+  globalHeading?: Point["heading"]; // Used when isChain is true, acts as a global override
+  globalDegrees?: number;
+  globalStartDeg?: number;
+  globalEndDeg?: number;
+  globalTargetX?: number;
+  globalTargetY?: number;
+  globalReverse?: boolean;
+  globalSegments?: PiecewiseSegment[];
 }
 
 type SequencePathItem = {

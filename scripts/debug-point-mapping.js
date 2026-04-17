@@ -44,14 +44,12 @@ function runScenario() {
     if (item.kind === "path") {
       const matching = lines.filter((l) => l.id === item.lineId);
       matching.forEach((line) => {
-        const lineIdx = lines.findIndex((l) => l === line);
+        const lineIdx = lines.indexOf(line);
         console.log(
           `sequence idx ${seqIdx} -> line.id ${line.id} (lineIdx: ${lineIdx})`,
         );
         line.controlPoints.forEach((cp, j) => {
-          const cpIndex = [line.endPoint, ...line.controlPoints].findIndex(
-            (p) => p === cp,
-          );
+          const cpIndex = [line.endPoint, ...line.controlPoints].indexOf(cp);
           const pointId = `point-${lineIdx + 1}-${cpIndex}`;
           console.log("  cp", j, "cpIndex", cpIndex, "pointId", pointId);
         });

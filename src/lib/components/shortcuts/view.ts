@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { get } from "svelte/store";
-import { startPointStore, linesStore } from "../../projectStore";
+import { startPointStore, linesStore, settingsStore } from "../../projectStore";
 import {
   gridSize,
   fieldZoom,
@@ -29,18 +29,18 @@ export function cycleGridSizeReverse() {
 }
 
 export function modifyZoom(delta: number) {
-  if (isUIElementFocused()) return;
+  if (isUIElementFocused() || get(settingsStore).lockFieldView) return;
   fieldZoom.update((z) => {
     // Use adaptive step: when zooming in past 1x, speed up
     const step = computeZoomStep(z, Math.sign(delta));
     const change = Math.sign(delta) * step;
-    return Math.max(0.1, Math.min(5.0, Number((z + change).toFixed(2))));
+    return Math.max(0.1, Math.min(5, Number((z + change).toFixed(2))));
   });
 }
 
 export function resetZoom() {
-  if (isUIElementFocused()) return;
-  fieldZoom.set(1.0);
+  if (isUIElementFocused() || get(settingsStore).lockFieldView) return;
+  fieldZoom.set(1);
   fieldPan.set({ x: 0, y: 0 });
 }
 
@@ -50,7 +50,7 @@ export function snapSelection(recordChange: (action?: string) => void) {
   const startPoint = get(startPointStore);
   const lines = get(linesStore);
 
-  if (!sel || !sel.startsWith("point-")) return;
+  if (!sel?.startsWith("point-")) return;
 
   const snap = (v: number) => Math.round(v / gridStep) * gridStep;
 
@@ -109,7 +109,7 @@ export function resetStartPoint(recordChange: (action?: string) => void) {
 
 export function panToStart(fieldRenderer: any) {
   const startPoint = get(startPointStore);
-  if (fieldRenderer && fieldRenderer.panToField) {
+  if (fieldRenderer?.panToField) {
     fieldRenderer.panToField(startPoint.x, startPoint.y);
   } else {
     // Fallback
@@ -122,7 +122,7 @@ export function panToEnd(fieldRenderer: any) {
   if (lines.length > 0) {
     const lastLineIdx = lines.length - 1;
     const endPoint = lines[lastLineIdx].endPoint;
-    if (fieldRenderer && fieldRenderer.panToField) {
+    if (fieldRenderer?.panToField) {
       fieldRenderer.panToField(endPoint.x, endPoint.y);
     } else {
       // Fallback
@@ -133,6 +133,6 @@ export function panToEnd(fieldRenderer: any) {
 }
 
 export function panView(dx: number, dy: number) {
-  if (isUIElementFocused()) return;
+  if (isUIElementFocused() || get(settingsStore).lockFieldView) return;
   fieldPan.update((p) => ({ x: p.x + dx, y: p.y + dy }));
 }

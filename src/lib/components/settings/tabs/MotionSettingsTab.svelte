@@ -41,8 +41,8 @@
       settings = { ...settings };
       return;
     }
-    let num = parseFloat(value);
-    if (isNaN(num)) num = 0;
+    let num = Number.parseFloat(value);
+    if (Number.isNaN(num)) num = 0;
     if (min !== undefined) num = Math.max(min, num);
     if (max !== undefined) num = Math.min(max, num);
     (settings as any)[property] = num;
@@ -106,8 +106,8 @@
 
   function handleAngularVelocityInput(e: Event) {
     const target = e.target as HTMLInputElement;
-    const val = parseFloat(target.value);
-    if (isNaN(val)) return;
+    const val = Number.parseFloat(target.value);
+    if (Number.isNaN(val)) return;
 
     if (angularVelocityUnit === "rad") {
       settings.aVelocity = val * Math.PI;
@@ -129,8 +129,8 @@
 
   function handleMaxAngularAccelerationInput(e: Event) {
     const target = e.target as HTMLInputElement;
-    let val = parseFloat(target.value);
-    if (isNaN(val)) val = 0;
+    let val = Number.parseFloat(target.value);
+    if (Number.isNaN(val)) val = 0;
     if (val < 0) val = 0;
 
     if (angularVelocityUnit === "rad") {
@@ -167,7 +167,7 @@
         type="number"
         value={settings.xVelocity}
         oninput={(e) => {
-          settings.xVelocity = parseFloat(e.currentTarget.value) || 0;
+          settings.xVelocity = Number.parseFloat(e.currentTarget.value) || 0;
           settings = { ...settings };
         }}
         min="0"
@@ -191,7 +191,7 @@
         type="number"
         value={settings.yVelocity}
         oninput={(e) => {
-          settings.yVelocity = parseFloat(e.currentTarget.value) || 0;
+          settings.yVelocity = Number.parseFloat(e.currentTarget.value) || 0;
           settings = { ...settings };
         }}
         min="0"
@@ -284,7 +284,7 @@
       type="number"
       value={settings.maxVelocity}
       oninput={(e) => {
-        settings.maxVelocity = parseFloat(e.currentTarget.value) || 0;
+        settings.maxVelocity = Number.parseFloat(e.currentTarget.value) || 0;
         settings = { ...settings };
       }}
       min="0"
@@ -310,7 +310,8 @@
         type="number"
         value={settings.maxAcceleration}
         oninput={(e) => {
-          settings.maxAcceleration = parseFloat(e.currentTarget.value) || 0;
+          settings.maxAcceleration =
+            Number.parseFloat(e.currentTarget.value) || 0;
           settings = { ...settings };
         }}
         min="0"
@@ -334,7 +335,8 @@
         type="number"
         value={settings.maxDeceleration}
         oninput={(e) => {
-          settings.maxDeceleration = parseFloat(e.currentTarget.value) || 0;
+          settings.maxDeceleration =
+            Number.parseFloat(e.currentTarget.value) || 0;
           settings = { ...settings };
         }}
         min="0"
@@ -361,7 +363,7 @@
       type="number"
       value={settings.kFriction}
       oninput={(e) => {
-        settings.kFriction = parseFloat(e.currentTarget.value) || 0;
+        settings.kFriction = Number.parseFloat(e.currentTarget.value) || 0;
         settings = { ...settings };
       }}
       min="0"

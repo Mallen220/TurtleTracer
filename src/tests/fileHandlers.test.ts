@@ -53,7 +53,7 @@ describe("fileHandlers", () => {
     registerCoreUI();
 
     // Don't replace the entire window object, just extend it
-    (window as any).electronAPI = mockElectronAPI;
+    (globalThis as any).electronAPI = mockElectronAPI;
 
     vi.stubGlobal("alert", vi.fn());
     vi.stubGlobal("confirm", vi.fn());
@@ -148,9 +148,11 @@ describe("fileHandlers", () => {
 
   describe("loadRecentFile", () => {
     it("should alert if electronAPI is missing", async () => {
-      delete (window as any).electronAPI;
+      delete (globalThis as any).electronAPI;
       const { loadRecentFile } = await import("../utils/fileHandlers");
-      const alertMock = vi.spyOn(window, "alert").mockImplementation(() => {});
+      const alertMock = vi
+        .spyOn(globalThis, "alert")
+        .mockImplementation(() => {});
 
       await loadRecentFile("test.pp");
       expect(alertMock).toHaveBeenCalledWith(
@@ -341,7 +343,7 @@ describe("fileHandlers", () => {
       mockElectronAPI.readFile.mockResolvedValue(JSON.stringify({}));
       mockElectronAPI.getSavedDirectory.mockResolvedValue("/my/projects");
       mockElectronAPI.fileExists.mockResolvedValue(false); // Dest doesn't exist
-      (global.confirm as any).mockReturnValue(true); // User says yes to copy
+      (globalThis.confirm as any).mockReturnValue(true); // User says yes to copy
 
       await fileHandlers.handleExternalFileOpen("/external/file.pp");
 
@@ -444,6 +446,23 @@ describe("fileHandlers", () => {
       // verify auto-export occurred
       expect(mockElectronAPI.writeFile).toHaveBeenCalled();
     });
+
+    it("alerts when JSON parsing fails (corrupt file)", async () => {
+      mockElectronAPI.readFile.mockResolvedValue("invalid-json");
+      mockElectronAPI.getSavedDirectory.mockResolvedValue("/project/dir");
+
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      await fileHandlers.handleExternalFileOpen("/external/file.pp");
+
+      expect(globalThis.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to load file: Unexpected token"),
+      );
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe("exportAsProjectFile", () => {
@@ -512,6 +531,123 @@ describe("fileHandlers", () => {
       expect(content.startPoint.startDeg).toBe(45);
       // End heading depends on logic. Since it's a straight line, end heading is 45.
       expect(content.startPoint.endDeg).toBe(45);
+    });
+  });
+
+  describe("loadFile", () => {
+    function setupMockFileReaderAndEvent(fileName = "newfile.turt") {
+      const evt = {
+        target: {
+          files: [{ name: fileName }],
+          value: "somepath",
+        },
+      } as unknown as Event;
+
+      let onloadHandler: any;
+      const mockFileReader = {
+        readAsText: vi.fn(function (this: any, file) {
+          onloadHandler = this.onload;
+        }),
+      };
+      vi.stubGlobal(
+        "FileReader",
+        vi.fn(() => mockFileReader),
+      );
+
+      return { evt, mockFileReader, getOnloadHandler: () => onloadHandler };
+    }
+
+    it("returns early if no file is selected", async () => {
+      const evt = { target: { files: [] } } as unknown as Event;
+      await fileHandlers.loadFile(evt);
+      expect(get(currentFilePath)).toBe("");
+    });
+
+    it("alerts and clears input if an unsupported file extension is used", async () => {
+      const evt = {
+        target: { files: [{ name: "wrong.txt" }], value: "somepath" },
+      } as unknown as Event;
+      await fileHandlers.loadFile(evt);
+      expect(globalThis.alert).toHaveBeenCalledWith(
+        "Please select a .turt or .pp file",
+      );
+      expect((evt.target as any).value).toBe("");
+    });
+
+    it("uses electronAPI copy logic if available and currentFilePath is set", async () => {
+      currentFilePath.set("/project/dir/current.turt");
+      const { evt, mockFileReader, getOnloadHandler } =
+        setupMockFileReaderAndEvent("newfile.turt");
+      const fileData = { lines: [], sequence: [] };
+      const fileContent = JSON.stringify(fileData);
+
+      mockElectronAPI.fileExists.mockResolvedValue(false);
+      mockElectronAPI.writeFile.mockResolvedValue(true);
+
+      await fileHandlers.loadFile(evt);
+
+      expect(mockFileReader.readAsText).toHaveBeenCalled();
+
+      // Now execute the onload handler and wait for it
+      await getOnloadHandler()({ target: { result: fileContent } });
+
+      expect(mockElectronAPI.writeFile).toHaveBeenCalledWith(
+        "/project/dir/newfile.turt",
+        fileContent,
+      );
+      expect(get(currentFilePath)).toBe("/project/dir/newfile.turt");
+    });
+
+    it("prompts for overwrite if file exists during electronAPI copy", async () => {
+      currentFilePath.set("/project/dir/current.turt");
+      const { evt, getOnloadHandler } =
+        setupMockFileReaderAndEvent("existing.turt");
+      const fileContent = JSON.stringify({ lines: [], sequence: [] });
+
+      mockElectronAPI.fileExists.mockResolvedValue(true); // File exists!
+      const confirmMock = vi.fn().mockReturnValue(false); // User declines overwrite
+      vi.stubGlobal("confirm", confirmMock);
+
+      await fileHandlers.loadFile(evt);
+      await getOnloadHandler()({ target: { result: fileContent } });
+
+      expect(confirmMock).toHaveBeenCalled();
+      // Write file should not be called because user declined
+      expect(mockElectronAPI.writeFile).not.toHaveBeenCalled();
+    });
+
+    it("alerts when JSON parsing fails (corrupt file)", async () => {
+      currentFilePath.set("/project/dir/current.turt");
+      const { evt, getOnloadHandler } =
+        setupMockFileReaderAndEvent("corrupt.turt");
+
+      await fileHandlers.loadFile(evt);
+
+      await getOnloadHandler()({ target: { result: "invalid-json" } });
+
+      expect(globalThis.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Error parsing file: Unexpected token"),
+      );
+    });
+
+    it("falls back to loadTrajectoryFromFile when electronAPI is absent or currentFilePath is empty", async () => {
+      currentFilePath.set(""); // This will trigger fallback
+
+      // Since it uses the web fallback, we need to mock loadTrajectoryFromFile
+      // But wait, loadTrajectoryFromFile is exported from "./index.ts" and imported into fileHandlers
+      // Let's just mock the FileReader that loadTrajectoryFromFile creates!
+
+      const { evt, getOnloadHandler } = setupMockFileReaderAndEvent("web.turt");
+
+      await fileHandlers.loadFile(evt);
+
+      const fileData = { lines: [], sequence: [] };
+      getOnloadHandler()({ target: { result: JSON.stringify(fileData) } }); // sync call
+
+      // wait a tick for the async success callback
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(get(isUnsaved)).toBe(false);
     });
   });
 });

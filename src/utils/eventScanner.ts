@@ -57,8 +57,8 @@ export function scanForEvents(
 }
 
 export async function scanEventsInDirectory(directory: string) {
-  const electronAPI = (window as any).electronAPI;
-  if (!electronAPI || !electronAPI.listFiles || !electronAPI.readFile) return;
+  const electronAPI = (globalThis as any).electronAPI;
+  if (!electronAPI?.listFiles || !electronAPI.readFile) return;
 
   try {
     const files = await electronAPI.listFiles(directory);
@@ -112,7 +112,11 @@ export async function scanEventsInDirectory(directory: string) {
       }),
     );
 
-    diskEventNamesStore.set(Array.from(eventNames).sort());
+    diskEventNamesStore.set(
+      Array.from(eventNames).sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
+      ),
+    );
   } catch (err) {
     console.error("Error scanning events in directory:", err);
   }

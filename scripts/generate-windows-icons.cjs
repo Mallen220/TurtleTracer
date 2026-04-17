@@ -4,8 +4,8 @@ Falls back to `canvas` if `sharp` is not installed.
 Run with: npm run generate:icons
 */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 function hasPackage(name) {
   try {
@@ -47,7 +47,7 @@ async function resizeWithCanvas(
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
   }
 
-  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+  // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   const out = fs.createWriteStream(outPath);
   const stream = canvas.createPNGStream();
   await new Promise((res, rej) => {
@@ -64,14 +64,14 @@ async function main() {
   // also need `build/win` for NSIS icon.ico
   const winDir = path.resolve(__dirname, "..", "build", "win");
 
-  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+  // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   if (!fs.existsSync(src)) {
     console.error("Source icon not found at", src);
     process.exit(2);
   }
-  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+  // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+  // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   if (!fs.existsSync(winDir)) fs.mkdirSync(winDir, { recursive: true });
 
   const tiles = [
@@ -121,9 +121,9 @@ async function main() {
     // includes them in the generated Appx manifest (Windows Start/Store tiles)
     const buildRoot = path.resolve(__dirname, "..", "build");
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+      // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       fs.copyFileSync(out100, path.join(buildRoot, path.basename(out100)));
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+      // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       fs.copyFileSync(out200, path.join(buildRoot, path.basename(out200)));
     } catch (err) {
       console.warn(
@@ -140,10 +140,10 @@ async function main() {
     if (hasPackage("png-to-ico")) {
       const pngToIco = require("png-to-ico");
       const icoBuf = await pngToIco(buf);
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+      // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       fs.writeFileSync(icoPath, icoBuf);
     } else {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+      // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       fs.writeFileSync(icoPath, buf);
     }
   } else {
@@ -153,7 +153,7 @@ async function main() {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(img, 0, 0, 256, 256);
     const buf = canvas.toBuffer("image/png");
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     fs.writeFileSync(icoPath, buf);
   }
 
@@ -163,7 +163,7 @@ async function main() {
       path.resolve(__dirname, "..", "build"),
       path.basename(icoPath),
     );
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     fs.copyFileSync(icoPath, topIco);
     console.log("Also wrote", topIco);
   } catch (err) {

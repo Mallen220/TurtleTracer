@@ -54,7 +54,7 @@ export const WaitAction: ActionDefinition = {
     const { timePrediction, x, y, uiLength, hoveredId, selectedPointId } =
       context;
 
-    if (!timePrediction || !timePrediction.timeline) return [];
+    if (!timePrediction?.timeline) return [];
 
     const elements: any[] = [];
 
@@ -148,15 +148,13 @@ export const WaitAction: ActionDefinition = {
     // Define classes based on library
     const WaitCmdClass = isNextFTC ? "Delay" : "WaitCommand";
     const InstantCmdClass = "InstantCommand";
-    const ParallelRaceClass = isNextFTC
-      ? "ParallelRaceGroup"
-      : "ParallelRaceGroup";
+    const ParallelRaceClass = "ParallelRaceGroup"; // Same for NextFTC and SolversLib
     const SequentialGroupClass = isNextFTC
       ? "SequentialGroup"
       : "SequentialCommandGroup";
 
     const getWaitValue = (ms: number) =>
-      isNextFTC ? (ms / 1000.0).toFixed(3) : ms.toFixed(0);
+      isNextFTC ? (ms / 1000).toFixed(3) : ms.toFixed(0);
 
     const markers: any[] = Array.isArray(waitItem.eventMarkers)
       ? [...waitItem.eventMarkers]

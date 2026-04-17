@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { ipcMain, BrowserWindow, dialog } from "electron";
-import fs from "fs/promises";
-import path from "path";
+import fs from "node:fs/promises";
+import path from "node:path";
 import simpleGit from "simple-git";
 import { isProjectFilePath, validateArbitraryPath } from "../utils.js";
 
@@ -58,13 +58,12 @@ export function registerFileHandlers() {
       console.warn(
         "Directory not accessible in file:list:",
         resolvedDir,
-        err && err.code,
+        err?.code,
       );
       return [];
     }
 
     try {
-      // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
       const dirents = await fs.readdir(resolvedDir, { withFileTypes: true });
       const projectFilesAndDirs = dirents.filter(
         (dirent) => dirent.isDirectory() || isProjectFilePath(dirent.name),
@@ -75,10 +74,17 @@ export function registerFileHandlers() {
         const git = simpleGit(directory);
         if (await git.checkIsRepo()) {
           const status = await git.status();
-          const rootDir = await git.revparse(["--show-toplevel"]);
+          const rawRoot = await git.revparse(["--show-toplevel"]);
+          const rootDir = await fs.realpath(rawRoot.trim());
 
-          status.files.forEach((fileStatus) => {
-            const absPath = path.resolve(rootDir.trim(), fileStatus.path);
+          for (const fileStatus of status.files) {
+            const absPath = path.resolve(rootDir, fileStatus.path);
+            let realAbsPath = absPath;
+            try {
+              realAbsPath = await fs.realpath(absPath);
+            } catch {
+              // File might be deleted
+            }
             let statusStr = "clean";
             if (
               fileStatus.working_dir === "?" ||
@@ -92,8 +98,8 @@ export function registerFileHandlers() {
               statusStr = "modified";
             else if (fileStatus.index !== " " && fileStatus.index !== "?")
               statusStr = "staged";
-            gitStatuses[absPath] = statusStr;
-          });
+            gitStatuses[realAbsPath] = statusStr;
+          }
         }
       } catch (e) {
         console.warn("Error checking git status:", e);
@@ -102,9 +108,9 @@ export function registerFileHandlers() {
       const fileDetails = await Promise.all(
         projectFilesAndDirs.map(async (dirent) => {
           const filePath = path.join(directory, dirent.name);
-          // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+
           const stats = await fs.stat(filePath);
-          const resolvedPath = path.resolve(filePath);
+          const resolvedPath = await fs.realpath(filePath);
           return {
             name: dirent.name,
             path: filePath,
@@ -179,10 +185,9 @@ export function registerFileHandlers() {
         const win = BrowserWindow.fromWebContents(event.sender);
         const options = {
           title: "Export .pp File (Legacy)",
-          defaultPath:
-            defaultName && defaultName.endsWith(".pp")
-              ? defaultName
-              : `${defaultName}.pp`,
+          defaultPath: defaultName?.endsWith(".pp")
+            ? defaultName
+            : `${defaultName}.pp`,
           filters: [{ name: "Turtle Tracer Path", extensions: ["pp"] }],
         };
         const result = await dialog.showSaveDialog(win, options);

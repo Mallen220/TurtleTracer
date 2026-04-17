@@ -24,7 +24,7 @@ describe("buttonStyles", () => {
 
     it("returns correct class string for 'amber'", () => {
       expect(getButtonFilledClass("amber")).toBe(
-        "bg-amber-500 dark:bg-amber-600 hover:bg-amber-600 dark:hover:bg-amber-500 focus:ring-amber-300 dark:focus:ring-amber-600",
+        "bg-amber-600 dark:bg-amber-600 hover:bg-amber-700 dark:hover:bg-amber-500 focus:ring-amber-300 dark:focus:ring-amber-500",
       );
     });
 

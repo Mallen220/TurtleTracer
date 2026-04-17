@@ -274,7 +274,7 @@
   <div
     class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
     transition:scale={{
-      duration: (globalThis as any).vitest !== undefined ? 0 : 200,
+      duration: (globalThis as any).vitest === undefined ? 200 : 0,
       start: 0.95,
     }}
   >
@@ -359,7 +359,7 @@
               <option value={0.25}>25% (Smallest)</option>
               <option value={0.5}>50% (Recommended)</option>
               <option value={0.75}>75%</option>
-              <option value={1.0}>100% (Original)</option>
+              <option value={1}>100% (Original)</option>
               <option value={1.5}>150% (High Res)</option>
             </select>
           </div>

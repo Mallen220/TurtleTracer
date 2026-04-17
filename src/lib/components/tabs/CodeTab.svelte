@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import type {
     Point,
     Line,
@@ -15,7 +13,7 @@
     showSettings,
     settingsActiveTab,
   } from "../../../stores";
-  import { debounce } from "lodash";
+  import debounce from "lodash/debounce";
   import { onMount } from "svelte";
   import { getButtonFilledClass } from "../../../utils/buttonStyles";
   import codeStyle from "svelte-highlight/styles/androidstudio";
@@ -56,10 +54,10 @@
     isActive = false,
   }: Props = $props();
 
-  const electronAPI = (window as any).electronAPI;
+  const electronAPI = (globalThis as any).electronAPI;
 
   async function relativizeSequenceForPreview(seq: SequenceItem[]) {
-    const cloned = structuredClone(seq);
+    const cloned = $state.snapshot(seq);
 
     const base = get(currentFilePath);
     if (!electronAPI?.makeRelativePath || !base) return cloned;
@@ -88,7 +86,7 @@
   let targetLibrary: "SolversLib" | "NextFTC" = $state("SolversLib");
 
   // Sync state with settings
-  run(() => {
+  $effect(() => {
     if (settings) {
       if (settings.autoExportFormat) {
         format = settings.autoExportFormat;
@@ -168,16 +166,7 @@
       if (format === "custom") codeLanguage = "plaintext";
 
       // If first run, just set it
-      if (!code) {
-        code = newCode;
-        previousCode = newCode;
-        const hlLines = highlightAndSplit(newCode, codeLanguage);
-        displayLines = hlLines.map((content, i) => ({
-          content,
-          type: "unchanged",
-          id: `initial-${i}`,
-        }));
-      } else {
+      if (code) {
         // Highlight old and new code using context-aware highlighter
         const oldLinesHL = highlightAndSplit(previousCode, codeLanguage);
         const newLinesHL = highlightAndSplit(newCode, codeLanguage);
@@ -191,7 +180,7 @@
 
         diffs.forEach((part, partIdx) => {
           // Get line count for this part (matching old behavior of ignoring trailing newline)
-          const partLinesRaw = part.value.replace(/\n$/, "").split("\n");
+          const partLinesRaw = part.value.replaceAll(/\n$/g, "").split("\n");
           const count = partLinesRaw.length;
 
           if (part.added) {
@@ -242,6 +231,15 @@
         displayLines = newDisplayLines;
         previousCode = newCode;
         code = newCode;
+      } else {
+        code = newCode;
+        previousCode = newCode;
+        const hlLines = highlightAndSplit(newCode, codeLanguage);
+        displayLines = hlLines.map((content, i) => ({
+          content,
+          type: "unchanged",
+          id: `initial-${i}`,
+        }));
       }
     } catch (err) {
       console.error("Error generating code:", err);
@@ -253,7 +251,7 @@
 
   // Trigger update when dependencies change
   // Trigger update when dependencies change
-  run(() => {
+  $effect(() => {
     // Deeply track dependencies in Svelte 5
     $state.snapshot(startPoint);
     $state.snapshot(lines);
@@ -269,7 +267,12 @@
 
   // Force update on mount
   onMount(() => {
-    if (isActive) updateCode();
+    if (isActive) {
+      updateCode();
+      if (typeof (updateCode as any).flush === "function") {
+        (updateCode as any).flush();
+      }
+    }
   });
 
   export function copyCode() {
@@ -313,7 +316,7 @@
     let defaultName = `AutoPath.${ext}`;
     if (currentPath) {
       const baseName = currentPath.split(/[\\\/]/).pop() || "";
-      const short = baseName.replace(/\.(pp|turt)$/i, "") || "trajectory";
+      const short = baseName.replaceAll(/\.(pp|turt)$/gi, "") || "trajectory";
       defaultName = `${short}.${ext}`;
     } else if (format === "java" || format === "sequential") {
       const match = code.match(/class\s+(\w+)/);

@@ -2,7 +2,6 @@
   <img src="public/icon.png" alt="Turtle Tracer Logo" width="150" height="150">
   
   <h1>Turtle Tracer</h1>
-  <p><em>(Previously called Pedro Pathing Plus Visualizer)</em></p>
   
   <p>
     <b>The modern, intuitive, and native path planner for FIRST Tech Challenge.</b>
@@ -23,8 +22,22 @@
   </p>
 
 <p>
-    <a href="https://app.codacy.com/gh/Mallen220/TurtleTracer/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade"><img src="https://app.codacy.com/project/badge/Grade/d5fa1b70a73c4a44909a222418714360"/></a>
-    <a href="https://app.codacy.com/gh/Mallen220/TurtleTracer/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage"><img src="https://app.codacy.com/project/badge/Coverage/d5fa1b70a73c4a44909a222418714360"/></a>
+    <img src="https://sonarcloud.io/api/project_badges/measure?project=Mallen220_TurtleTracer&metric=alert_status"/>
+    <img src="https://sonarcloud.io/api/project_badges/measure?project=Mallen220_TurtleTracer&metric=reliability_rating"/>
+    <img src="https://sonarcloud.io/api/project_badges/measure?project=Mallen220_TurtleTracer&metric=security_rating"/>
+    <img src="https://sonarcloud.io/api/project_badges/measure?project=Mallen220_TurtleTracer&metric=sqale_rating"/>
+    <img src="https://sonarcloud.io/api/project_badges/measure?project=Mallen220_TurtleTracer&metric=vulnerabilities"/>
+    <img src="https://sonarcloud.io/api/project_badges/measure?project=Mallen220_TurtleTracer&metric=bugs"/>
+</p>
+<p>
+  
+  
+  
+  <!-- COVERAGE_BADGE_START -->
+  <a href="coverage/index.html">
+    <img src="README_Content/coverage-badge.svg" alt="Function Coverage: 55.63%" height="20">
+  </a>
+  <!-- COVERAGE_BADGE_END -->
 </p>
   <!-- LIGHTHOUSE_BADGES_START -->
   <p>
@@ -41,7 +54,7 @@
       <img src="README_Content/lighthouse-badges/lighthouse_seo.svg" alt="Lighthouse SEO Badge">
     </a>
   </p>
-  <p><sub>Lighthouse badges generated for v2.1.1</sub></p>
+  <p><sub>Lighthouse badges generated for v2.1.2</sub></p>
   <!-- LIGHTHOUSE_BADGES_END -->
 
   <a href="https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full" target="_blank" rel="noopener noreferrer">

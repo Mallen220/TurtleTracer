@@ -37,7 +37,7 @@
   function addEventMarker() {
     const list = wait.eventMarkers ?? [];
     const newMarker: EventMarker = {
-      id: `wait-event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `wait-event-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       name: `WaitEvent_${(wait.eventMarkers?.length ?? 0) + 1}`,
       position: 0.5,
       waitId: wait.id,
@@ -55,16 +55,16 @@
   }
 
   function handlePositionInput(e: any, evt: EventMarker) {
-    const value = parseFloat(e.target?.value);
-    if (!isNaN(value)) {
+    const value = Number.parseFloat(e.target?.value);
+    if (!Number.isNaN(value)) {
       evt.position = value;
       wait.eventMarkers = [...(wait.eventMarkers ?? [])];
     }
   }
 
   function handlePositionBlur(e: any, evt: EventMarker) {
-    const value = parseFloat(e.target?.value);
-    if (isNaN(value) || value < 0 || value > 1) {
+    const value = Number.parseFloat(e.target?.value);
+    if (Number.isNaN(value) || value < 0 || value > 1) {
       if (e && e.target) e.target.value = String(evt.position);
       return;
     }
@@ -75,8 +75,8 @@
   function handlePositionKeydown(e: any, evt: EventMarker) {
     const tgt = e?.target;
     if (e.key === "Enter") {
-      const value = parseFloat(tgt?.value);
-      if (isNaN(value) || value < 0 || value > 1) {
+      const value = Number.parseFloat(tgt?.value);
+      if (Number.isNaN(value) || value < 0 || value > 1) {
         if (tgt) tgt.value = String(evt.position);
         e.preventDefault();
         return;

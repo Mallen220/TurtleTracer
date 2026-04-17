@@ -1,10 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import fs from "fs/promises";
-import path from "path";
-import { exec } from "child_process";
-import { promisify } from "util";
-import { fileURLToPath } from "url";
-import readline from "readline";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
+import readline from "node:readline";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,7 +27,7 @@ async function runCommand(cmd, label) {
 
 async function getCurrentVersion() {
   const packageJson = JSON.parse(
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     await fs.readFile(path.join(__dirname, "../package.json"), "utf8"),
   );
   return packageJson.version;
@@ -50,7 +50,7 @@ async function createGitHubRelease(version) {
   const title = `Turtle Tracer ${version}`;
 
   // NOTE CONTENT IS UNCHANGED
-  let notes = `## 🚀 Quick Update
+  let notes = `## Update v${version}
 
 Refer to the README installation section for instructions on installing or updating Turtle Tracer. Below is a condensed version of the instructions for quick reference. 
 
@@ -65,11 +65,11 @@ curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install
 #### **Windows**
 Download and install via the  \`.exe\` installer below.
 
-## 📝 Release Notes
+## Release Notes
 `;
 
   try {
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     const changelog = await fs.readFile(
       path.join(__dirname, "../CHANGELOG.md"),
       "utf8",
@@ -78,7 +78,7 @@ Download and install via the  \`.exe\` installer below.
       new RegExp(`## ${version}[\\s\\S]*?(?=## |$)`),
     );
     if (versionSection) {
-      notes += `\n${versionSection[0].replace(`## ${version}`, "")}`;
+      notes += `\n${versionSection[0].replaceAll(`## ${version}`, "")}`;
     } else {
       notes += `\n- Bug fixes and improvements`;
     }
@@ -87,7 +87,7 @@ Download and install via the  \`.exe\` installer below.
   }
 
   const notesFile = path.join(__dirname, `../release-notes-${version}.md`);
-  // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+  // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
   await fs.writeFile(notesFile, notes);
 
   try {
@@ -106,7 +106,7 @@ Download and install via the  \`.exe\` installer below.
       "Creating GitHub draft release",
     );
   } finally {
-    // nosemgrep: codacy.tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
+    // nosemgrep: .tools-configs.javascript_pathtraversal_rule-non-literal-fs-filename
     await fs.unlink(notesFile).catch(() => {});
   }
 }
@@ -138,7 +138,9 @@ async function main() {
       .then(() => true)
       .catch(() => false);
 
-    if (!tagExists) {
+    if (tagExists) {
+      console.log(`Tag v${version} already exists`);
+    } else {
       const createTag = await ask(`Create git tag v${version}? (y/N): `);
       if (!createTag.toLowerCase().startsWith("y")) {
         console.log("Tag creation skipped");
@@ -150,8 +152,6 @@ async function main() {
         "Creating git tag",
       );
       await runCommand(`git push origin v${version}`, "Pushing git tag");
-    } else {
-      console.log(`Tag v${version} already exists`);
     }
 
     const createRelease = await ask(

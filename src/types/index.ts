@@ -11,39 +11,92 @@ export interface BasePoint {
   originalId?: string;
 }
 
+export type PiecewiseSegment = {
+  tStart: number;
+  tEnd: number;
+} & (
+  | {
+      heading: "linear";
+      startDeg: number;
+      endDeg: number;
+      degrees?: undefined;
+      targetX?: undefined;
+      targetY?: undefined;
+    }
+  | {
+      heading: "constant";
+      degrees: number;
+      startDeg?: undefined;
+      endDeg?: undefined;
+      targetX?: undefined;
+      targetY?: undefined;
+    }
+  | {
+      heading: "tangential";
+      degrees?: undefined;
+      startDeg?: undefined;
+      endDeg?: undefined;
+      targetX?: undefined;
+      targetY?: undefined;
+    }
+  | {
+      heading: "facingPoint";
+      targetX: number;
+      targetY: number;
+      degrees?: undefined;
+      startDeg?: undefined;
+      endDeg?: undefined;
+    }
+) & {
+    reverse?: boolean;
+  };
+
 export type Point = BasePoint &
   (
     | {
         heading: "linear";
         startDeg: number;
         endDeg: number;
-        degrees?: never;
-        targetX?: never;
-        targetY?: never;
+        degrees?: undefined;
+        targetX?: undefined;
+        targetY?: undefined;
+        segments?: undefined;
       }
     | {
         heading: "constant";
         degrees: number;
-        startDeg?: never;
-        endDeg?: never;
-        targetX?: never;
-        targetY?: never;
+        startDeg?: undefined;
+        endDeg?: undefined;
+        targetX?: undefined;
+        targetY?: undefined;
+        segments?: undefined;
       }
     | {
         heading: "tangential";
-        degrees?: never;
-        startDeg?: never;
-        endDeg?: never;
-        targetX?: never;
-        targetY?: never;
+        degrees?: undefined;
+        startDeg?: undefined;
+        endDeg?: undefined;
+        targetX?: undefined;
+        targetY?: undefined;
+        segments?: undefined;
       }
     | {
         heading: "facingPoint";
         targetX: number;
         targetY: number;
-        degrees?: never;
-        startDeg?: never;
-        endDeg?: never;
+        degrees?: undefined;
+        startDeg?: undefined;
+        endDeg?: undefined;
+        segments?: undefined;
+      }
+    | {
+        heading: "piecewise";
+        segments: PiecewiseSegment[];
+        degrees?: undefined;
+        startDeg?: undefined;
+        endDeg?: undefined;
+        targetX?: undefined;
+        targetY?: undefined;
       }
   ) & {
     reverse?: boolean;
@@ -91,6 +144,14 @@ export interface Line {
   macroId?: string;
   originalId?: string;
   isChain?: boolean;
+  globalHeading?: Point["heading"] | "none"; // Used when isChain is true, acts as a global override
+  globalDegrees?: number;
+  globalStartDeg?: number;
+  globalEndDeg?: number;
+  globalTargetX?: number;
+  globalTargetY?: number;
+  globalReverse?: boolean;
+  globalSegments?: PiecewiseSegment[];
 }
 
 export type SequencePathItem = {
@@ -248,6 +309,7 @@ export interface Settings {
   autoExportEmbedPoseData?: boolean; // Embed pose data in the generated code
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
   followRobot?: boolean;
+  lockFieldView?: boolean;
   coordinateSystem?: "Pedro" | "FTC";
   visualizerUnits?: "imperial" | "metric";
   codeUnits?: "imperial" | "metric";
@@ -319,6 +381,9 @@ export interface TimelineEvent {
   velocityProfile?: number[];
   // Detailed heading profile for travel events: maps step index to unwrapped heading
   headingProfile?: number[];
+  isGlobalOverride?: boolean;
+  rootLine?: Line;
+  globalHeading?: Point["heading"];
 }
 
 export interface TimePrediction {
@@ -453,12 +518,19 @@ export interface FieldView {
 
 export interface AppStore {
   fieldViewStore: Writable<FieldView>;
+  isUnsaved: Writable<boolean>;
 }
 
 export interface DialogDefinition {
   id: string;
   component: any;
   props?: any;
+}
+
+export interface PluginMetadata {
+  description?: string;
+  author?: string;
+  version?: string;
 }
 
 export interface PluginGraphicsOptions {
@@ -518,6 +590,8 @@ export interface TurtleAPI {
    * @param name The display name of the exporter.
    * @param handler A function that takes the current project data and returns a string (code) or a Promise that resolves to a string.
    */
+  registerMetadata(meta: PluginMetadata): void;
+
   registerExporter(
     name: string,
     handler: (data: TurtleData) => string | Promise<string>,

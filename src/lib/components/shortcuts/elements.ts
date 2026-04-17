@@ -8,7 +8,7 @@ import {
 import { selectedLineId, selectedPointId } from "../../../stores";
 import { actionRegistry } from "../../actionRegistry";
 import type { Line, SequenceItem } from "../../../types/index";
-import _ from "lodash";
+import random from "lodash/random";
 import { getRandomColor } from "../../../utils";
 import { getSelectedSequenceIndex } from "./utils";
 
@@ -17,8 +17,8 @@ export function addNewLine(recordChange: (action?: string) => void) {
     id: `line-${Math.random().toString(36).slice(2)}`,
     name: "",
     endPoint: {
-      x: _.random(36, 108),
-      y: _.random(36, 108),
+      x: random(36, 108),
+      y: random(36, 108),
       heading: "tangential",
       reverse: false,
     },
@@ -103,8 +103,8 @@ export function addEventMarker(recordChange: (action?: string) => void) {
   const selPoint = get(selectedPointId);
   const sequence = get(sequenceStore);
 
-  if (selPoint && selPoint.startsWith("wait-")) {
-    const waitId = selPoint.substring(5);
+  if (selPoint?.startsWith("wait-")) {
+    const waitId = selPoint.slice(5);
     const waitItem = sequence.find(
       (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
     ) as any;
@@ -130,8 +130,8 @@ export function addEventMarker(recordChange: (action?: string) => void) {
     }
   }
 
-  if (selPoint && selPoint.startsWith("rotate-")) {
-    const rotateId = selPoint.substring(7);
+  if (selPoint?.startsWith("rotate-")) {
+    const rotateId = selPoint.slice(7);
     const rotateItem = sequence.find(
       (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
     ) as any;
@@ -189,8 +189,8 @@ export function addControlPoint(recordChange: (action?: string) => void) {
     if (targetLine.locked) return; // Don't allow adding control points to locked lines
 
     const newCp = {
-      x: _.random(36, 108),
-      y: _.random(36, 108),
+      x: random(36, 108),
+      y: random(36, 108),
     };
     const lineIndex = lines.findIndex((l) => l.id === targetLine.id);
     if (lineIndex !== -1) {

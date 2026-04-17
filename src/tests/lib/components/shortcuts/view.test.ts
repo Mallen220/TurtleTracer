@@ -53,7 +53,7 @@ describe("view shortcuts", () => {
 
   describe("modifyZoom", () => {
     it("should zoom in and out", () => {
-      fieldZoom.set(1.0);
+      fieldZoom.set(1);
       modifyZoom(1);
       let zoom: any;
       fieldZoom.subscribe((v) => (zoom = v))();
@@ -61,7 +61,7 @@ describe("view shortcuts", () => {
 
       modifyZoom(-1);
       fieldZoom.subscribe((v) => (zoom = v))();
-      expect(zoom).toBe(1.0);
+      expect(zoom).toBe(1);
     });
   });
 });

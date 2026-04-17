@@ -44,7 +44,7 @@ export function getShortcutFromSettings(
   settings: Settings | undefined,
   actionId: string,
 ): string {
-  if (!settings || !settings.keyBindings) return "";
+  if (!settings?.keyBindings) return "";
 
   const binding = settings.keyBindings.find((b) => b.id === actionId);
   if (!binding) return "";

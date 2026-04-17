@@ -98,64 +98,48 @@
   export async function openAndStartOptimization() {
     focusOptimizationTab();
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.openAndStartOptimization) {
-      return await optimizerController.openAndStartOptimization();
-    }
+    return await optimizerController?.openAndStartOptimization?.();
   }
 
   export function stopOptimization() {
     focusOptimizationTab();
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.stopOptimization) {
-      optimizerController.stopOptimization();
-    }
+    optimizerController?.stopOptimization?.();
   }
 
   export function applyOptimization() {
     focusOptimizationTab();
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.applyOptimization) {
-      optimizerController.applyOptimization();
-    }
+    optimizerController?.applyOptimization?.();
   }
 
   export function discardOptimization() {
     focusOptimizationTab();
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.discardOptimization) {
-      optimizerController.discardOptimization();
-    }
+    optimizerController?.discardOptimization?.();
   }
 
   export function retryOptimization() {
     focusOptimizationTab();
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.retryOptimization) {
-      optimizerController.retryOptimization();
-    }
+    optimizerController?.retryOptimization?.();
   }
 
   export function copyCode() {
-    if (activeTabInstance && activeTabInstance.copyCode) {
-      activeTabInstance.copyCode();
-    }
+    activeTabInstance?.copyCode?.();
   }
 
   export function downloadJava() {
-    if (activeTabInstance && activeTabInstance.downloadJava) {
-      activeTabInstance.downloadJava();
-    }
+    activeTabInstance?.downloadJava?.();
   }
 
   export function copyTable() {
-    if (activeTabInstance && activeTabInstance.copyTable) {
-      activeTabInstance.copyTable();
-    }
+    activeTabInstance?.copyTable?.();
   }
 
   export function getOptimizationStatus() {
     const optimizerController = getOptimizationController();
-    if (optimizerController && optimizerController.getOptimizationStatus) {
+    if (optimizerController?.getOptimizationStatus) {
       return optimizerController.getOptimizationStatus();
     }
     return {
@@ -168,48 +152,34 @@
 
   // --- Methods delegating to PathTab ---
   export function addPathAtStart() {
-    if (tabInstances["path"] && tabInstances["path"].addPathAtStart) {
-      tabInstances["path"].addPathAtStart();
-    }
+    tabInstances["path"]?.addPathAtStart?.();
   }
 
   export function addWaitAtStart() {
-    if (tabInstances["path"] && tabInstances["path"].addWaitAtStart) {
-      tabInstances["path"].addWaitAtStart();
-    }
+    tabInstances["path"]?.addWaitAtStart?.();
   }
 
   export function addRotateAtStart() {
-    if (tabInstances["path"] && tabInstances["path"].addRotateAtStart) {
-      tabInstances["path"].addRotateAtStart();
-    }
+    tabInstances["path"]?.addRotateAtStart?.();
   }
 
   export function moveSequenceItem(seqIndex: number, delta: number) {
-    if (tabInstances["path"] && tabInstances["path"].moveSequenceItem) {
-      tabInstances["path"].moveSequenceItem(seqIndex, delta);
-    }
+    tabInstances["path"]?.moveSequenceItem?.(seqIndex, delta);
   }
 
   export function toggleCollapseSelected() {
-    if (activeTabInstance && activeTabInstance.toggleCollapseSelected) {
-      activeTabInstance.toggleCollapseSelected();
-    }
+    activeTabInstance?.toggleCollapseSelected?.();
   }
 
   export async function scrollToItem(type: string, id: string) {
     if (type === "path" || type === "wait" || type === "rotate") {
       activeTab = "path";
       await tick();
-      if (tabInstances["path"] && tabInstances["path"].scrollToItem) {
-        tabInstances["path"].scrollToItem(id);
-      }
+      tabInstances["path"]?.scrollToItem?.(id);
     } else if (type === "event") {
       activeTab = "field";
       await tick();
-      if (tabInstances["field"] && tabInstances["field"].scrollToMarker) {
-        tabInstances["field"].scrollToMarker(id);
-      }
+      tabInstances["field"]?.scrollToMarker?.(id);
     }
   }
 
@@ -261,7 +231,7 @@
     let localPos = 0;
     if (targetEvent.duration > 0) {
       if (targetLine && targetEvent.motionProfile) {
-        const profile = targetEvent.motionProfile as number[];
+        const profile = targetEvent.motionProfile;
         const steps = profile.length - 1;
         const relTime = globalTime - targetEvent.startTime;
 
@@ -428,7 +398,7 @@
     settings = $bindable(),
     handleSeek,
     loopAnimation = $bindable(),
-    playbackSpeed = 1.0,
+    playbackSpeed = 1,
     splitPath = () => {},
     setPlaybackSpeed,
     totalSeconds = 0,
@@ -439,21 +409,17 @@
     activeTab = $bindable("path"),
   }: Props = $props();
   let isOnline = $state(
-    typeof navigator !== "undefined" ? navigator.onLine : true,
+    typeof navigator === "undefined" ? true : navigator.onLine,
   );
   // If code tab is active but setting is disabled, switch to path
   run(() => {
-    if (activeTab === "code" && settings && settings.autoExportCode === false) {
+    if (activeTab === "code" && settings?.autoExportCode === false) {
       activeTab = "path";
     }
   });
   // collapse telemetry tab if user disabled it
   run(() => {
-    if (
-      activeTab === "telemetry" &&
-      settings &&
-      settings.showTelemetryTab === false
-    ) {
+    if (activeTab === "telemetry" && settings?.showTelemetryTab === false) {
       activeTab = "path";
     }
   });
@@ -521,7 +487,7 @@
           }
           if (
             !isRotate &&
-            Math.abs((ev.startHeading || 0) - (ev.targetHeading || 0)) > 1.0
+            Math.abs((ev.startHeading || 0) - (ev.targetHeading || 0)) > 1
           ) {
             isRotate = true;
             explicit = false;
@@ -550,7 +516,7 @@
       timeline.forEach((ev) => {
         if (ev.type === "travel") {
           const line = (ev as any).line || lines[ev.lineIndex as number];
-          if (line && line.eventMarkers) {
+          if (line?.eventMarkers) {
             line.eventMarkers.forEach((m: any) => {
               let timeOffset = 0;
               if (ev.motionProfile) {
@@ -581,8 +547,7 @@
           const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
           const def = seqItem ? actionRegistry.get(seqItem.kind) : null;
           if (
-            seqItem &&
-            (seqItem.kind === "wait" || seqItem.kind === "rotate") &&
+            (seqItem?.kind === "wait" || seqItem?.kind === "rotate") &&
             seqItem.eventMarkers
           ) {
             seqItem.eventMarkers.forEach((m: any) => {
@@ -669,7 +634,7 @@
               class="flex-1 min-w-[80px] px-3 py-2 text-sm font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 flex items-center justify-center gap-2 {activeTab ===
               tab.id
                 ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white ring-1 ring-black/5 dark:ring-white/5'
-                : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-50/50 dark:hover:bg-neutral-700/50'}"
+                : 'text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-50/50 dark:hover:bg-neutral-700/50'}"
               onclick={() => (activeTab = tab.id)}
             >
               {#if tab.icon}
@@ -687,7 +652,6 @@
         onclick={() => (statsOpen = !statsOpen)}
         class="flex-none flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 hover:text-neutral-900 dark:hover:text-neutral-200 gap-2 shadow-sm"
         title={`Path Statistics${getShortcutFromSettings(settings, "toggle-stats")}`}
-        aria-label="View path statistics"
       >
         <StatsIcon className="size-4" />
         Stats
