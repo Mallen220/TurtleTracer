@@ -148,7 +148,10 @@ export function updateRobotImageDisplay(): void {
   try {
     const storage = globalThis.localStorage as Storage | undefined;
     const prototypeGetItem = (Storage as any)?.prototype?.getItem;
-    if (typeof prototypeGetItem === "function" && (prototypeGetItem as any).mock) {
+    if (
+      typeof prototypeGetItem === "function" &&
+      (prototypeGetItem as any).mock
+    ) {
       // In tests, the prototype method can be mocked/spied; call it directly so
       // assertions on Storage.prototype.getItem remain reliable.
       storedImage = prototypeGetItem.call(storage, "robot.png");

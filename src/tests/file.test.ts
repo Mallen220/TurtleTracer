@@ -142,12 +142,12 @@ describe("File Utils", () => {
     let getItemSpy: any;
 
     beforeEach(() => {
-      document.body.innerHTML = '';
-      getItemSpy = vi.spyOn(Storage.prototype, 'getItem');
+      document.body.innerHTML = "";
+      getItemSpy = vi.spyOn(Storage.prototype, "getItem");
     });
 
     afterEach(() => {
-      document.body.innerHTML = '';
+      document.body.innerHTML = "";
     });
 
     it("should update robot image src if image and stored string exist", () => {
@@ -156,7 +156,9 @@ describe("File Utils", () => {
 
       updateRobotImageDisplay();
 
-      const img = document.querySelector('img[alt="Robot"]') as HTMLImageElement;
+      const img = document.querySelector(
+        'img[alt="Robot"]',
+      ) as HTMLImageElement;
       expect(img.src).toContain("new-robot.png");
       expect(getItemSpy).toHaveBeenCalledWith("robot.png");
     });
@@ -167,7 +169,9 @@ describe("File Utils", () => {
 
       updateRobotImageDisplay();
 
-      const img = document.querySelector('img[alt="Robot"]') as HTMLImageElement;
+      const img = document.querySelector(
+        'img[alt="Robot"]',
+      ) as HTMLImageElement;
       expect(img.src).toContain("old-src.png");
     });
 

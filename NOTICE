@@ -483,3 +483,13 @@ electron/utils.test.js
 README_Content/coverage-badge.svg
 vitest.config.ts
 src/tests/SimpleChart.test.ts
+src/tests/javaImporterError.test.ts
+src/utils/timeCalculator/chainMeta.ts
+src/utils/timeCalculator/formatter.ts
+src/utils/timeCalculator/headingProfile.ts
+src/utils/timeCalculator/index.ts
+src/utils/timeCalculator/motionProfile.ts
+src/utils/timeCalculator/pathCalculator.ts
+src/utils/timeCalculator/rotation.ts
+src/utils/timeCalculator/segmentAnalyzer.ts
+src/utils/timeCalculator/types/index.ts
