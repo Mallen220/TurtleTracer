@@ -42,9 +42,10 @@ jobs:
           VERSION="${TAG_NAME#v}"
 
           # 1. Create the static portion of the notes using a Heredoc
-          # Keep heredoc unquoted so VERSION is interpolated in heading
-          cat > base_notes.md << EOF
-          ## Update v${VERSION}
+          # Use a quoted heredoc so markdown backticks are not executed by the shell.
+          # Insert the version with a placeholder replacement step.
+          cat > base_notes.md << 'EOF'
+          ## Update v__VERSION__
 
           Refer to the README installation section for instructions on installing or updating Turtle Tracer. Below is a condensed version of the instructions for quick reference.
 
@@ -65,6 +66,8 @@ jobs:
 
           ## Release Notes
           EOF
+
+          sed -i "s/__VERSION__/${VERSION}/g" base_notes.md
 
           # 3. Append Changelog logic
           if [ -f "CHANGELOG.md" ]; then
