@@ -256,7 +256,22 @@
     return () => {
       clearInterval(ratingInterval);
       window.removeEventListener("focus", fetchGitStatus);
+      if (gitRefreshUnsub) gitRefreshUnsub();
     };
+  });
+
+  // Automatically refresh git status when directory or file changes
+  let gitRefreshUnsub: () => void;
+  onMount(() => {
+    gitRefreshUnsub = currentDirectoryStore.subscribe(() => {
+      fetchGitStatus();
+    });
+  });
+
+  $effect(() => {
+    // Also refresh when git integration is toggled or file path changes
+    const _ = [$settingsStore.gitIntegration, $currentFilePath];
+    fetchGitStatus();
   });
 
   function tryShowRatingDialog() {
@@ -741,7 +756,9 @@
           false,
           undefined,
           { quiet: true },
-        );
+        ).then(() => {
+          fetchGitStatus();
+        });
       }
     }
 
@@ -784,7 +801,9 @@
   function handleSaveProject() {
     const path = get(currentFilePath);
     if (path) {
-      saveProject();
+      saveProject().then(() => {
+        fetchGitStatus();
+      });
     } else {
       showFileManager.set(true);
       fileManagerNewFileMode.set(true);
