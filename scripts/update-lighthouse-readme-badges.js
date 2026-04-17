@@ -30,6 +30,10 @@ function getOutputDirPath() {
     : path.resolve(process.cwd(), "README_Content/lighthouse-badges");
 }
 
+/**
+ * @param {string[]} flagNames
+ * @returns {string | null}
+ */
 function getArgValue(flagNames) {
   for (let i = 0; i < process.argv.length; i += 1) {
     if (flagNames.includes(process.argv[i])) {
@@ -39,6 +43,10 @@ function getArgValue(flagNames) {
   return null;
 }
 
+/**
+ * @param {string} url
+ * @returns {Promise<void>}
+ */
 function runLighthouseBadges(url) {
   const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
   const repoRootPath = getRepoRootPath();
@@ -61,7 +69,7 @@ function runLighthouseBadges(url) {
 
     child.on("close", (code) => {
       if (code === 0) {
-        resolve();
+        resolve(undefined);
       } else {
         reject(new Error(`lighthouse-badges exited with code ${code}`));
       }
@@ -71,6 +79,10 @@ function runLighthouseBadges(url) {
   });
 }
 
+/**
+ * @param {string | number} version
+ * @returns {string}
+ */
 function buildReadmeBadgeBlock(version) {
   const lighthouseLink = "https://github.com/GoogleChrome/lighthouse";
 
@@ -96,6 +108,11 @@ function buildReadmeBadgeBlock(version) {
   ].join("\n");
 }
 
+/**
+ * @param {string} content
+ * @param {string} replacement
+ * @returns {string}
+ */
 export function replaceBetweenMarkers(content, replacement) {
   const pattern =
     /\s*<!-- LIGHTHOUSE_BADGES_START -->[\s\S]*?<!-- LIGHTHOUSE_BADGES_END -->/;

@@ -1924,7 +1924,7 @@
       <!-- Resizer Handle (Desktop) -->
       {#if isLargeScreen && effectiveShowSidebar && !$isPresentationMode}
         <button
-          class="group w-6 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
+          class="group w-4 cursor-col-resize flex justify-center items-center hover:bg-purple-500/10 active:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors select-none z-40 border-none bg-neutral-200 dark:bg-neutral-800 p-0 m-0 border-l border-r border-neutral-300 dark:border-neutral-700"
           onmousedown={() => startResize("horizontal")}
           onkeydown={(e) => handleResizeKeyDown(e, "horizontal")}
           ondblclick={() => {
@@ -1934,7 +1934,7 @@
           title="Drag to resize. Double-click to reset. Use Arrow keys to adjust width."
         >
           <div
-            class="w-1 h-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
+            class="w-0.5 h-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors rounded-full"
           ></div>
         </button>
       {/if}

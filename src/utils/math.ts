@@ -394,4 +394,3 @@ export function getLineEndHeading(
     line.endPoint,
   );
 }
-
