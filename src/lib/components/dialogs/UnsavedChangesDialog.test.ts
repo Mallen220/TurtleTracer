@@ -9,7 +9,7 @@ describe("UnsavedChangesDialog", () => {
     const onDiscard = vi.fn();
     const onCancel = vi.fn();
 
-    const { getByText, queryByText } = render(UnsavedChangesDialog, {
+    const { getByText } = render(UnsavedChangesDialog, {
       show: true,
       onSave,
       onDiscard,
@@ -48,7 +48,7 @@ describe("UnsavedChangesDialog", () => {
       onCancel,
     });
 
-    await fireEvent.keyDown(window, { key: "Escape" });
+    await fireEvent.keyDown(globalThis, { key: "Escape" });
     expect(onCancel).toHaveBeenCalled();
   });
 });
