@@ -1,3 +1,4 @@
+// Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/svelte";
 import TransformDialog from "./TransformDialog.svelte";
