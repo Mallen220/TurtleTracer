@@ -56,8 +56,7 @@
     fieldPan.set({ x: 0, y: 0 });
   }
 
-  function handleCustomFieldSave(e: CustomEvent<CustomFieldConfig>) {
-    const newConfig = e.detail;
+  function handleCustomFieldSave(newConfig: CustomFieldConfig) {
     if (!settings.customMaps) settings.customMaps = [];
 
     const index = settings.customMaps.findIndex((m) => m.id === newConfig.id);
@@ -466,6 +465,6 @@
 <CustomFieldWizard
   bind:isOpen={isCustomFieldWizardOpen}
   currentConfig={editingCustomConfig}
-  on:save={handleCustomFieldSave}
-  on:close={() => (isCustomFieldWizardOpen = false)}
+  onsave={handleCustomFieldSave}
+  onclose={() => (isCustomFieldWizardOpen = false)}
 />

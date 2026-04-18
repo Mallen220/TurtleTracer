@@ -1,6 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
   import type { CustomFieldConfig } from "../../../types";
@@ -9,12 +8,12 @@
   interface Props {
     isOpen?: boolean;
     currentConfig?: CustomFieldConfig | undefined;
+    onclose?: () => void;
+    onsave?: (config: CustomFieldConfig) => void;
   }
 
-  let { isOpen = $bindable(false), currentConfig = undefined }: Props =
+  let { isOpen = $bindable(false), currentConfig = undefined, onclose, onsave }: Props =
     $props();
-
-  const dispatch = createEventDispatcher();
 
   let step = $state(1); // 1: Upload, 2: Calibrate Field Bounds, 3: Review
   let imageData: string | null = $state(null);
@@ -52,7 +51,7 @@
   });
 
   function handleClose() {
-    dispatch("close");
+    onclose?.();
   }
 
   function handleImageUpload(e: Event) {
@@ -135,8 +134,8 @@
   function handleSave() {
     const config = calculateConfig();
     if (config) {
-      dispatch("save", config);
-      dispatch("close");
+      onsave?.(config);
+      onclose?.();
     }
   }
 
