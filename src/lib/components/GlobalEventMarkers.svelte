@@ -171,7 +171,13 @@
     const newMarker: EventMarker = {
       id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       name: "",
+      type: "parametric",
       position: 0.5,
+      time: 500,
+      poseX: 0,
+      poseY: 0,
+      poseHeading: 0,
+      poseGuess: 0.5,
     };
 
     if (def?.isPath) {
@@ -398,28 +404,47 @@
             onmouseenter={() => hoveredMarkerId.set(marker.id)}
             onmouseleave={() => hoveredMarkerId.set(null)}
           >
-            <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-2 flex-1">
-                <div class="w-2 h-2 rounded-full bg-purple-500 shrink-0"></div>
-                <SearchableDropdown
-                  value={marker.ref.name}
-                  options={availableEvents}
-                  placeholder="Search or add new..."
-                  onchange={(val) => {
-                    marker.ref.name = val;
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-1">
+                  <div class="w-2 h-2 rounded-full bg-purple-500 shrink-0"></div>
+                  <SearchableDropdown
+                    value={marker.ref.name}
+                    options={availableEvents}
+                    placeholder="Search or add new..."
+                    onchange={(val) => {
+                      marker.ref.name = val;
+                      if (marker.parentType === "path") lines = [...lines];
+                      else sequence = [...sequence];
+                    }}
+                  />
+                </div>
+                <button
+                  class="text-neutral-400 hover:text-red-500 transition-colors"
+                  onclick={() => removeMarker(marker)}
+                  title="Remove Marker"
+                  aria-label="Remove Marker"
+                >
+                  <TrashIcon className="size-4" />
+                </button>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-neutral-500">Type:</span>
+                <select
+                  class="rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-xs py-1 px-2 flex-1"
+                  value={marker.ref.type || "parametric"}
+                  onchange={(e) => {
+                    marker.ref.type = e.currentTarget.value as any;
                     if (marker.parentType === "path") lines = [...lines];
                     else sequence = [...sequence];
                   }}
-                />
+                >
+                  <option value="parametric">Parametric</option>
+                  <option value="temporal">Temporal</option>
+                  <option value="pose">Pose</option>
+                </select>
               </div>
-              <button
-                class="text-neutral-400 hover:text-red-500 transition-colors"
-                onclick={() => removeMarker(marker)}
-                title="Remove Marker"
-                aria-label="Remove Marker"
-              >
-                <TrashIcon className="size-4" />
-              </button>
             </div>
 
             <div
@@ -470,17 +495,82 @@
                 />
               </div>
             {:else if marker.ref.type === "temporal"}
-              <div class="text-xs text-neutral-500 flex justify-between">
-                <span>Type: Temporal</span>
-                <span>Time: {marker.ref.time ?? 500}ms</span>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-xs text-neutral-500">Time (ms):</span>
+                <input
+                  type="number"
+                  value={marker.ref.time ?? 500}
+                  aria-label="Event time in milliseconds"
+                  min="0"
+                  step="1"
+                  class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                  onchange={(e) => {
+                    marker.ref.time = Number.parseFloat(e.currentTarget.value);
+                    if (marker.parentType === "path") lines = [...lines];
+                    else sequence = [...sequence];
+                  }}
+                />
               </div>
             {:else if marker.ref.type === "pose"}
-              <div class="text-xs text-neutral-500 flex justify-between">
-                <span>Type: Pose</span>
-                <span
-                  >X: {marker.ref.poseX}, Y: {marker.ref.poseY}, H: {marker.ref
-                    .poseHeading}</span
-                >
+              <div class="grid grid-cols-2 gap-2 mt-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-neutral-500 w-3">X:</span>
+                  <input
+                    type="number"
+                    value={marker.ref.poseX ?? 0}
+                    step="0.1"
+                    class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                    onchange={(e) => {
+                      marker.ref.poseX = Number.parseFloat(e.currentTarget.value);
+                      if (marker.parentType === "path") lines = [...lines];
+                      else sequence = [...sequence];
+                    }}
+                  />
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-neutral-500 w-3">Y:</span>
+                  <input
+                    type="number"
+                    value={marker.ref.poseY ?? 0}
+                    step="0.1"
+                    class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                    onchange={(e) => {
+                      marker.ref.poseY = Number.parseFloat(e.currentTarget.value);
+                      if (marker.parentType === "path") lines = [...lines];
+                      else sequence = [...sequence];
+                    }}
+                  />
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-neutral-500 w-3">H:</span>
+                  <input
+                    type="number"
+                    value={marker.ref.poseHeading ?? 0}
+                    step="1"
+                    class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                    onchange={(e) => {
+                      marker.ref.poseHeading = Number.parseFloat(e.currentTarget.value);
+                      if (marker.parentType === "path") lines = [...lines];
+                      else sequence = [...sequence];
+                    }}
+                  />
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-neutral-500 w-3">G:</span>
+                  <input
+                    type="number"
+                    value={marker.ref.poseGuess ?? 0.5}
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                    onchange={(e) => {
+                      marker.ref.poseGuess = Number.parseFloat(e.currentTarget.value);
+                      if (marker.parentType === "path") lines = [...lines];
+                      else sequence = [...sequence];
+                    }}
+                  />
+                </div>
               </div>
             {/if}
           </div>
