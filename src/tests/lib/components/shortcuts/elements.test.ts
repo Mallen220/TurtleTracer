@@ -4,9 +4,6 @@ import {
   addNewLine,
   addWait,
   addRotate,
-  addEventMarker,
-  addControlPoint,
-  removeControlPoint,
 } from "../../../../lib/components/shortcuts/elements";
 import { linesStore, sequenceStore } from "../../../../lib/projectStore";
 import { selectedLineId, selectedPointId } from "../../../../stores";

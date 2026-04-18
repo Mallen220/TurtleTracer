@@ -2,7 +2,6 @@
 /* eslint-env node */
 /* global process, console */
 import fs from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 
 const readmePath = new URL("../README.md", import.meta.url);
 const coverageSummaryPath = new URL(

@@ -6,7 +6,6 @@ import {
   modifyZoom,
 } from "../../../../lib/components/shortcuts/view";
 import { gridSize, fieldZoom } from "../../../../stores";
-import * as utils from "../../../../lib/components/shortcuts/utils";
 
 vi.mock("../../../../lib/components/shortcuts/utils", () => ({
   isUIElementFocused: vi.fn(() => false),

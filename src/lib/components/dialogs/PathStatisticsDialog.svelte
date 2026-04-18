@@ -18,7 +18,6 @@
     ErrorIcon,
     WarningIcon,
     InfoIcon,
-    PhotoIcon,
     ClipboardIcon,
   } from "../icons";
   import { getAngularDifference } from "../../../utils/math";

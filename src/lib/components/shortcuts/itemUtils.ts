@@ -1,6 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { actionRegistry } from "../../actionRegistry";
-import type { SequenceItem, Line } from "../../../types/index";
+import type { SequenceItem } from "../../../types/index";
 
 export type SelectionInfo =
   | { type: "wait"; id: string }

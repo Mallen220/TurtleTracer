@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { TimePrediction } from "../../types";
 
 export function formatTime(totalSeconds: number): string {
   // Handle NaN or Infinity

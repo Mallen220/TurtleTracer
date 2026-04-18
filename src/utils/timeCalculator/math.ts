@@ -1,22 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type {
-  Point,
-  BasePoint,
-  Line,
-  Settings,
-  TimePrediction,
-  TimelineEvent,
-  SequenceItem,
-} from "../../types";
-import {
-  getCurvePoint,
-  getLineStartHeading,
-  getLineEndHeading,
-  getAngularDifference,
-  getDistance,
-  getInitialTangentialHeading,
-} from "../math";
-import { actionRegistry } from "../../lib/actionRegistry";
+
+import { getCurvePoint } from "../math";
 
 /**
  * Calculates the first derivative of a Bezier curve of degree N at t.

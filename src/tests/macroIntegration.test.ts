@@ -8,7 +8,6 @@ import type {
   SequenceItem,
   TurtleData,
   SequenceMacroItem,
-  SequencePathItem,
 } from "../types";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";

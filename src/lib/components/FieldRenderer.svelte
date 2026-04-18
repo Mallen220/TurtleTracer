@@ -82,7 +82,6 @@
     getRandomColor,
     updateRobotImageDisplay,
     getLineStartHeading,
-    getInitialTangentialHeading,
   } from "../../utils";
   import { getAlignmentMenuItems } from "../../utils/alignmentMenu";
   import { toUser } from "../../utils/coordinates";

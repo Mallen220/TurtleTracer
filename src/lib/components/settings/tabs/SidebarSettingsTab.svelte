@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Component, ComponentType } from "svelte";
+  import type { Component } from "svelte";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import DeleteButtonWithConfirm from "../../common/DeleteButtonWithConfirm.svelte";
   import { menuNavigation } from "../../../actions/menuNavigation";

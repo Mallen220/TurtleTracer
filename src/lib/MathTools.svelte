@@ -17,7 +17,6 @@
     startPointStore,
     shapesStore,
   } from "./projectStore";
-  import { toUser } from "../utils/coordinates";
   import { FIELD_SIZE } from "../config/defaults";
   import type * as d3 from "d3";
   import type { Point } from "../types";

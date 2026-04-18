@@ -2,12 +2,7 @@
 import { render, screen } from "@testing-library/svelte";
 import { describe, it, expect, vi } from "vitest";
 import GlobalEventMarkers from "../lib/components/GlobalEventMarkers.svelte";
-import type {
-  SequenceItem,
-  Line,
-  SequencePathItem,
-  SequenceMacroItem,
-} from "../types";
+import type { SequenceItem, Line } from "../types";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import { pathKind, macroKind } from "./testUtils";
 

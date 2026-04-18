@@ -14,7 +14,6 @@ import {
   multiSelectedLineIds,
 } from "../../../stores";
 import { actionRegistry } from "../../actionRegistry";
-import { updateLinkedWaypoints } from "../../../utils/pointLinking";
 import { FIELD_SIZE } from "../../../config";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
 import {
