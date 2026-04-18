@@ -63,7 +63,7 @@ export function generateEventMarkerElements(
 
         // Use timePrediction if available
         if (timePrediction?.timeline) {
-          const matchingEvent = timePrediction.timeline.find(e => e.type === "travel" && e.line && e.line.id === line.id);
+          const matchingEvent = timePrediction.timeline.find((e: any) => e.type === "travel" && e.line && e.line.id === line.id);
           if (matchingEvent && matchingEvent.duration) {
              t = Math.max(0, Math.min(1, (ev.time ?? 500) / matchingEvent.duration));
           }
