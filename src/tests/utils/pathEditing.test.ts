@@ -4,7 +4,7 @@ import {
   generateLinesFromDrawing,
   splitPathAtPercent,
 } from "../../utils/pathEditing";
-import type { Line, Point, SequenceItem } from "../../types";
+import type { Point } from "../../types";
 
 describe("pathEditing", () => {
   describe("generateLinesFromDrawing", () => {

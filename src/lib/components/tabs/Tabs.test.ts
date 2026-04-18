@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { tick } from "svelte";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/svelte";
+import { render, screen, cleanup } from "@testing-library/svelte";
 import PathTab from "./PathTab.svelte";
 import CodeTab from "./CodeTab.svelte";
 import type { Point, Line, Settings, SequenceItem } from "../../../types";

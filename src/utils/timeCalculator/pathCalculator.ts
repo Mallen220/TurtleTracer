@@ -7,13 +7,7 @@ import type {
   SequenceItem,
   TimelineEvent,
 } from "../../types";
-import {
-  getDistance,
-  getAngularDifference,
-  getLineStartHeading,
-  getLineEndHeading,
-  getInitialTangentialHeading,
-} from "../math";
+import { getLineStartHeading, getInitialTangentialHeading } from "../math";
 import {
   calculateGlobalChainMeta,
   calculateSegmentVelocities,

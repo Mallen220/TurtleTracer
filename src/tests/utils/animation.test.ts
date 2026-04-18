@@ -5,7 +5,6 @@ import {
   createAnimationController,
   generateOnionLayers,
 } from "../../utils/animation";
-import type { TimelineEvent, Line, Point } from "../../types";
 
 const mockScale = (val: number) => val;
 

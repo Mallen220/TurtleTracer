@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, fireEvent, screen } from "@testing-library/svelte";
+import { render } from "@testing-library/svelte";
 import ExportCodeDialog from "./ExportCodeDialog.svelte";
-import { DEFAULT_SETTINGS } from "../../../config/defaults";
 
 vi.mock("../../../utils/codeExport/index", () => ({
   generateCode: vi.fn(() => "export code"),
@@ -11,7 +10,7 @@ vi.mock("../../../stores", async () => {
   const svelteStore = await import("svelte/store");
   return {
     notification: { show: vi.fn() },
-    currentFilePath: svelteStore.writable(null)
+    currentFilePath: svelteStore.writable(null),
   };
 });
 
@@ -19,7 +18,7 @@ vi.mock("../../projectStore", async () => {
   const svelteStore = await import("svelte/store");
   const defaults = await import("../../../config/defaults");
   return {
-    settingsStore: svelteStore.writable(defaults.DEFAULT_SETTINGS)
+    settingsStore: svelteStore.writable(defaults.DEFAULT_SETTINGS),
   };
 });
 
@@ -30,7 +29,7 @@ describe("ExportCodeDialog", () => {
       sequence: [],
       lines: [],
       startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
-      shapes: []
+      shapes: [],
     });
 
     expect(getByRole("dialog")).toBeInTheDocument();

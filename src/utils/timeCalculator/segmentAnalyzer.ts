@@ -1,19 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type {
-  Point,
-  Line,
-  Settings,
-  TimePrediction,
-  SequenceItem,
-  TimelineEvent,
-  BasePoint,
-} from "../../types";
-import {
-  getDistance,
-  getAngularDifference,
-  getCurvePoint,
-  getInitialTangentialHeading,
-} from "../math";
+import type { BasePoint } from "../../types";
+import { getDistance, getAngularDifference, getCurvePoint } from "../math";
 import type { PathStep, PathAnalysis } from "./types";
 import { getBezierDerivative, getBezierSecondDerivative } from "./math";
 

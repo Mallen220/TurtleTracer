@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, fireEvent, screen, waitFor } from "@testing-library/svelte";
+import { describe, it, expect, vi } from "vitest";
+import { render, fireEvent, screen } from "@testing-library/svelte";
 import SaveNameDialog from "./SaveNameDialog.svelte";
 
 describe("SaveNameDialog", () => {

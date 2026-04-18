@@ -4,7 +4,6 @@ import {
   isInputFocused,
   isButtonFocused,
   shouldBlockShortcut,
-  getSelectedSequenceIndex,
 } from "../../../../lib/components/shortcuts/utils";
 
 describe("shortcuts utils", () => {

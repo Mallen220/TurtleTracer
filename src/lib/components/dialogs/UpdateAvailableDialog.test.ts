@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, fireEvent } from "@testing-library/svelte";
-import { writable } from "svelte/store";
+import { render } from "@testing-library/svelte";
 
 // We need to mock the stores first before importing the component
 vi.mock("../../../stores", () => {

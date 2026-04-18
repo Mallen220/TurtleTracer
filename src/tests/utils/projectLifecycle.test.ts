@@ -9,7 +9,6 @@ import {
   startPointStore,
   linesStore,
   sequenceStore,
-  shapesStore,
 } from "../../lib/projectStore";
 
 vi.mock("../../config", () => ({

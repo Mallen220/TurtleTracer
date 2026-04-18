@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, fireEvent, screen } from "@testing-library/svelte";
+import { render, fireEvent } from "@testing-library/svelte";
 import SetupDialog from "./SetupDialog.svelte";
 
 vi.mock("../../../utils/directorySettings", () => ({
@@ -16,7 +16,7 @@ describe("SetupDialog", () => {
 
   it("renders when show is true", () => {
     const { getByRole } = render(SetupDialog, {
-      show: true
+      show: true,
     });
 
     expect(getByRole("dialog")).toBeInTheDocument();
@@ -25,11 +25,11 @@ describe("SetupDialog", () => {
   it("calls electron API when select directory button clicked", async () => {
     const mockSetDirectory = vi.fn().mockResolvedValue("some-path");
     (globalThis as any).electronAPI = {
-      setDirectory: mockSetDirectory
+      setDirectory: mockSetDirectory,
     };
 
     const { getByText } = render(SetupDialog, {
-      show: true
+      show: true,
     });
 
     const button = getByText(/Select Directory/i);

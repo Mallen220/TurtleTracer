@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, fireEvent } from "@testing-library/svelte";
+import { render } from "@testing-library/svelte";
 import TelemetryDialog from "./TelemetryDialog.svelte";
 
 vi.mock("../../telemetryStore", () => ({

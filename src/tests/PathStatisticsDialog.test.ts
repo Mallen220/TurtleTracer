@@ -2,13 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, fireEvent } from "@testing-library/svelte";
 import PathStatisticsDialog from "../lib/components/dialogs/PathStatisticsDialog.svelte";
-import type {
-  Point,
-  Line,
-  SequenceItem,
-  Settings,
-  SequencePathItem,
-} from "../types/index";
+import type { Point, Line, SequenceItem, Settings } from "../types/index";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import { pathKind } from "./testUtils";

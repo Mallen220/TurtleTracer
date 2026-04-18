@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import AppUpdater from "./updater.js";
-import { app, shell } from "electron";
+import { shell } from "electron";
 import fs from "node:fs";
 
 vi.mock("electron", () => ({

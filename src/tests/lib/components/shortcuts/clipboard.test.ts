@@ -2,10 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   generateName,
-  duplicate,
   copy,
-  cut,
-  paste,
 } from "../../../../lib/components/shortcuts/clipboard";
 import * as utils from "../../../../lib/components/shortcuts/utils";
 

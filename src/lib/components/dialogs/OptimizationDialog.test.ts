@@ -32,7 +32,16 @@ describe("OptimizationDialog", () => {
   it("renders when isOpen is true", () => {
     const { getByText } = render(OptimizationDialog, {
       isOpen: true,
-      lines: [{ id: "l1", name: "Path 1", controlPoints: [], color: "", endPoint: { x:0, y:0, heading: "constant", degrees:0 }, eventMarkers: [] }],
+      lines: [
+        {
+          id: "l1",
+          name: "Path 1",
+          controlPoints: [],
+          color: "",
+          endPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
+          eventMarkers: [],
+        },
+      ],
       startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
       sequence: [],
       onApply: vi.fn(),
@@ -47,8 +56,22 @@ describe("OptimizationDialog", () => {
     const { getByRole, getByText } = render(OptimizationDialog, {
       isOpen: true,
       lines: [
-        { id: "l1", name: "Path 1", controlPoints: [], color: "", endPoint: { x:0, y:0, heading: "constant", degrees:0 }, eventMarkers: [] },
-        { id: "l2", name: "Path 2", controlPoints: [], color: "", endPoint: { x:0, y:0, heading: "constant", degrees:0 }, eventMarkers: [] },
+        {
+          id: "l1",
+          name: "Path 1",
+          controlPoints: [],
+          color: "",
+          endPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
+          eventMarkers: [],
+        },
+        {
+          id: "l2",
+          name: "Path 2",
+          controlPoints: [],
+          color: "",
+          endPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
+          eventMarkers: [],
+        },
       ],
       startPoint: { x: 0, y: 0, heading: "constant", degrees: 0 },
       sequence: [],

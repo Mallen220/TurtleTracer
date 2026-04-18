@@ -47,7 +47,7 @@ describe("UnsavedChangesDialog", () => {
       onCancel,
     });
 
-    await fireEvent.keyDown(window, { key: "Escape" });
+    await fireEvent.keyDown(globalThis, { key: "Escape" });
     expect(onCancel).toHaveBeenCalled();
   });
 });

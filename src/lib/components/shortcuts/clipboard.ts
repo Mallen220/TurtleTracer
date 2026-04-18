@@ -10,11 +10,7 @@ import { selectedLineId, selectedPointId, notification } from "../../../stores";
 import { actionRegistry } from "../../actionRegistry";
 import type { Line, SequenceItem } from "../../../types/index";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
-import {
-  parseSelectionId,
-  findSequenceItem,
-  findSequenceItemIndex,
-} from "./itemUtils";
+import { parseSelectionId, findSequenceItem } from "./itemUtils";
 
 // Internal clipboard state for shortcuts
 export let clipboard: SequenceItem | Line | null = null;
