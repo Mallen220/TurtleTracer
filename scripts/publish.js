@@ -50,7 +50,7 @@ async function createGitHubRelease(version) {
   const title = `Turtle Tracer ${version}`;
 
   // NOTE CONTENT IS UNCHANGED
-  let notes = `## 🚀 Quick Update
+  let notes = `## Update v${version}
 
 Refer to the README installation section for instructions on installing or updating Turtle Tracer. Below is a condensed version of the instructions for quick reference. 
 
@@ -65,7 +65,7 @@ curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install
 #### **Windows**
 Download and install via the  \`.exe\` installer below.
 
-## 📝 Release Notes
+## Release Notes
 `;
 
   try {

@@ -55,7 +55,7 @@ describe("Plugin IPC security handlers", () => {
 
   it("plugins:delete throws for path traversal filename", async () => {
     await expect(
-      handlerRegistry["plugins:delete"](null, "..\\..\\..\\etc\\passwd"),
+      handlerRegistry["plugins:delete"](null, String.raw`..\..\..\etc\passwd`),
     ).rejects.toThrow("Invalid plugin filename");
   });
 

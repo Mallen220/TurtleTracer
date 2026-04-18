@@ -758,6 +758,17 @@
         return { ...s, followRobot: newVal };
       });
     },
+    toggleLockFieldView: () => {
+      settingsStore.update((s) => {
+        const newVal = !s.lockFieldView;
+        notification.set({
+          message: `Lock Field View: ${newVal ? "On" : "Off"}`,
+          type: "info",
+          timeout: 1500,
+        });
+        return { ...s, lockFieldView: newVal };
+      });
+    },
     focusPathList: () => {
       activeControlTab = "path";
       setTimeout(() => {

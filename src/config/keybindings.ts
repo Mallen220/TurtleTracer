@@ -787,6 +787,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "View",
   },
   {
+    id: "toggle-lock-field-view",
+    key: "alt+g",
+    description: "Lock Field View (Disable Zoom & Drag)",
+    action: "toggleLockFieldView",
+    category: "View",
+  },
+  {
     id: "toggle-continuous-validation",
     key: "alt+v",
     description: "Toggle Continuous Validation",

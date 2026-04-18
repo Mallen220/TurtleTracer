@@ -38,10 +38,14 @@ jobs:
       - name: Generate Release Notes
         id: generate-notes
         run: |
+          # 0. Extract version number (remove 'v' prefix)
+          VERSION="${TAG_NAME#v}"
+
           # 1. Create the static portion of the notes using a Heredoc
-          # This avoids the need to escape backticks or quotes
+          # Use a quoted heredoc so markdown backticks are not executed by the shell.
+          # Insert the version with a placeholder replacement step.
           cat > base_notes.md << 'EOF'
-          ## 🚀 Quick Update
+          ## Update v__VERSION__
 
           Refer to the README installation section for instructions on installing or updating Turtle Tracer. Below is a condensed version of the instructions for quick reference.
 
@@ -60,11 +64,10 @@ jobs:
 
           Windows Users can download from the Microsoft Store to receive auto-updates for stable releases. A .exe file is also provided below. 
 
-          ## 📝 Release Notes
+          ## Release Notes
           EOF
 
-          # 2. Extract version number (remove 'v' prefix)
-          VERSION="${TAG_NAME#v}"
+          sed -i "s/__VERSION__/${VERSION}/g" base_notes.md
 
           # 3. Append Changelog logic
           if [ -f "CHANGELOG.md" ]; then

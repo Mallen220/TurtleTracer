@@ -369,7 +369,7 @@
     // Dynamic import to avoid bundling issues
     const html2pdf = (await import("html2pdf.js")).default;
     const printableSheet = document.querySelector(
-      ".max-w-\\[210mm\\]",
+      String.raw`.max-w-\[210mm\]`,
     ) as HTMLElement;
     if (!printableSheet) return;
 

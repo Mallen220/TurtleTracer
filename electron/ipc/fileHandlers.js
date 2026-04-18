@@ -74,10 +74,17 @@ export function registerFileHandlers() {
         const git = simpleGit(directory);
         if (await git.checkIsRepo()) {
           const status = await git.status();
-          const rootDir = await git.revparse(["--show-toplevel"]);
+          const rawRoot = await git.revparse(["--show-toplevel"]);
+          const rootDir = await fs.realpath(rawRoot.trim());
 
-          status.files.forEach((fileStatus) => {
-            const absPath = path.resolve(rootDir.trim(), fileStatus.path);
+          for (const fileStatus of status.files) {
+            const absPath = path.resolve(rootDir, fileStatus.path);
+            let realAbsPath = absPath;
+            try {
+              realAbsPath = await fs.realpath(absPath);
+            } catch {
+              // File might be deleted
+            }
             let statusStr = "clean";
             if (
               fileStatus.working_dir === "?" ||
@@ -91,8 +98,8 @@ export function registerFileHandlers() {
               statusStr = "modified";
             else if (fileStatus.index !== " " && fileStatus.index !== "?")
               statusStr = "staged";
-            gitStatuses[absPath] = statusStr;
-          });
+            gitStatuses[realAbsPath] = statusStr;
+          }
         }
       } catch (e) {
         console.warn("Error checking git status:", e);
@@ -103,7 +110,7 @@ export function registerFileHandlers() {
           const filePath = path.join(directory, dirent.name);
 
           const stats = await fs.stat(filePath);
-          const resolvedPath = path.resolve(filePath);
+          const resolvedPath = await fs.realpath(filePath);
           return {
             name: dirent.name,
             path: filePath,

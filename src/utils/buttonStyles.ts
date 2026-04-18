@@ -10,7 +10,7 @@ export function getButtonFilledClass(color: string) {
       "bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-600 focus:ring-purple-300 dark:focus:ring-purple-700",
     pink: "bg-pink-600 dark:bg-pink-700 hover:bg-pink-700 dark:hover:bg-pink-600 focus:ring-pink-300 dark:focus:ring-pink-700",
     amber:
-      "bg-amber-600 dark:bg-amber-700 hover:bg-amber-700 dark:hover:bg-amber-600 focus:ring-amber-300 dark:focus:ring-amber-600",
+      "bg-amber-600 dark:bg-amber-600 hover:bg-amber-700 dark:hover:bg-amber-500 focus:ring-amber-300 dark:focus:ring-amber-500",
     indigo:
       "bg-indigo-600 dark:bg-indigo-700 hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:ring-indigo-300 dark:focus:ring-indigo-700",
     blue: "bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 focus:ring-blue-300 dark:focus:ring-blue-700",

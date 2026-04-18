@@ -42,7 +42,6 @@ export function shouldBlockShortcut(
     actionId === "save-file-as" ||
     actionId === "undo" ||
     actionId === "redo" ||
-    actionId === "play-pause" ||
     actionId === "open-settings" ||
     actionId === "toggle-sidebar"
   )

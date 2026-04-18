@@ -127,7 +127,7 @@ describe("File Utils", () => {
       const event = {
         target: {
           files: [file],
-          value: "C:\\fakepath\\test.turt",
+          value: String.raw`C:\fakepath\test.turt`,
         },
       } as unknown as Event;
 
