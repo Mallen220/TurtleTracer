@@ -33,7 +33,7 @@
     showHistory,
     showTransformDialog,
     protractorLockToRobot,
-    showExportGif,
+    showExportGif, showExportImage, showWhatsNew,
     notification,
     showUpdateAvailableDialog as _showUpdateAvailableDialog,
     showFeedbackDialog,
@@ -428,6 +428,14 @@
         showShortcuts.set(false);
         return;
       }
+      if ($showExportImage) {
+        showExportImage.set(false);
+        return;
+      }
+      if ($showWhatsNew) {
+        showWhatsNew.set(false);
+        return;
+      }
       if ($showExportGif) {
         showExportGif.set(false);
         return;
@@ -785,6 +793,8 @@
       if ($showSettings) showSettings.set(false);
       else if ($showFileManager) showFileManager.set(false);
       else if ($showPluginManager) showPluginManager.set(false);
+      else if ($showExportImage) showExportImage.set(false);
+      else if ($showWhatsNew) showWhatsNew.set(false);
       else if ($showExportGif) showExportGif.set(false);
       else if ($exportDialogState.isOpen)
         exportDialogState.update((s) => ({ ...s, isOpen: false }));
