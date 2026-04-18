@@ -56,17 +56,42 @@ export function generateEventMarkerElements(
       const radius = isHovered ? 1.8 : 0.9;
       const color = isHovered ? "#a78bfa" : "#c4b5fd";
 
-      const t = Math.max(0, Math.min(1, ev.position ?? 0.5));
-      let pos = { x: 0, y: 0 };
-      if (line.controlPoints.length > 0) {
-        const cps = [_startPoint, ...line.controlPoints, line.endPoint];
-        const pt = getCurvePoint(t, cps);
-        pos.x = pt.x;
-        pos.y = pt.y;
+      let t = 0;
+      if (ev.type === "temporal") {
+        const lineDuration = 2000; // Simplified estimation for UI only when detailed prediction missing
+        t = Math.max(0, Math.min(1, (ev.time ?? 500) / lineDuration));
+
+        // Use timePrediction if available
+        if (timePrediction?.timeline) {
+          const matchingEvent = timePrediction.timeline.find(e => e.type === "travel" && e.line && e.line.id === line.id);
+          if (matchingEvent && matchingEvent.duration) {
+             t = Math.max(0, Math.min(1, (ev.time ?? 500) / matchingEvent.duration));
+          }
+        }
+      } else if (ev.type === "pose") {
+        t = Math.max(0, Math.min(1, ev.poseGuess ?? 0.5));
       } else {
-        pos.x = _startPoint.x + (line.endPoint.x - _startPoint.x) * t;
-        pos.y = _startPoint.y + (line.endPoint.y - _startPoint.y) * t;
+        t = Math.max(0, Math.min(1, ev.position ?? 0.5));
       }
+
+      let pos = { x: 0, y: 0 };
+
+      if (ev.type === "pose") {
+        // Just render at the pose coordinates
+        pos.x = ev.poseX ?? 0;
+        pos.y = ev.poseY ?? 0;
+      } else {
+        if (line.controlPoints.length > 0) {
+          const cps = [_startPoint, ...line.controlPoints, line.endPoint];
+          const pt = getCurvePoint(t, cps);
+          pos.x = pt.x;
+          pos.y = pt.y;
+        } else {
+          pos.x = _startPoint.x + (line.endPoint.x - _startPoint.x) * t;
+          pos.y = _startPoint.y + (line.endPoint.y - _startPoint.y) * t;
+        }
+      }
+
       const px = x(pos.x);
       const py = y(pos.y);
       let grp = new Two.Group();

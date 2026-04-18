@@ -498,12 +498,30 @@
               <div class="flex items-center gap-2 mt-1">
                 <span class="text-xs text-neutral-500">Time (ms):</span>
                 <input
+                  type="range"
+                  min="0"
+                  max="10000"
+                  step="10"
+                  value={marker.ref.time ?? 500}
+                  class="flex-1 slider accent-purple-500"
+                  onchange={(e) => {
+                    marker.ref.time = Number.parseFloat(e.currentTarget.value);
+                    if (marker.parentType === "path") lines = [...lines];
+                    else sequence = [...sequence];
+                  }}
+                  oninput={(e) => {
+                    marker.ref.time = Number.parseFloat(e.currentTarget.value);
+                    if (marker.parentType === "path") lines = [...lines];
+                    else sequence = [...sequence];
+                  }}
+                />
+                <input
                   type="number"
                   value={marker.ref.time ?? 500}
                   aria-label="Event time in milliseconds"
                   min="0"
                   step="1"
-                  class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
+                  class="w-16 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-center"
                   onchange={(e) => {
                     marker.ref.time = Number.parseFloat(e.currentTarget.value);
                     if (marker.parentType === "path") lines = [...lines];
