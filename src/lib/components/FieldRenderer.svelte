@@ -98,11 +98,6 @@
   import { generateCollisionElements } from "./renderer/CollisionMarkerGenerator";
   import { generateOnionLayerElements } from "./renderer/OnionLayerGenerator";
   import { generateFacingLineElements } from "./renderer/FacingLineGenerator";
-  import {
-    findClosestT,
-    getCurvePoint,
-    getDistance,
-  } from "../../utils/math";
   import { type RenderContext } from "./renderer/GeneratorUtils";
 
   import { updateLinkedWaypoints } from "../../utils/pointLinking";
@@ -479,10 +474,8 @@
           let linesChanged = false;
           let shapesChanged = false;
           let startPointChanged = false;
-          let sequenceChanged = false;
 
           $multiSelectedPointIds.forEach((id) => {
-
             // If the element is a line point, verify it is not locked
             if (id.startsWith("point-")) {
               const line = Number(id.split("-")[1]) - 1;
@@ -734,87 +727,6 @@
                   linesChanged = true;
                 }
               }
-            } else if (id.startsWith("event-")) {
-              const parts = id.split("-");
-              let lIdx = Number(parts[1]);
-              let eIdx = Number(parts[2]);
-              const evMarkers = lines[lIdx]?.eventMarkers;
-              if (evMarkers?.[eIdx]) {
-                const ev = evMarkers[eIdx];
-                if (ev.type === "pose") {
-                  ev.poseX = Math.round(inchX * 100) / 100;
-                  ev.poseY = Math.round(inchY * 100) / 100;
-
-                  // Find best path to attach to
-                  let bestDist = Infinity;
-                  let bestLineIdx = lIdx;
-                  lines.forEach((line, idx) => {
-                    if (line.hidden) return;
-                    const prevP =
-                      idx === 0 ? startPoint : lines[idx - 1].endPoint;
-                    const cps = [prevP, ...line.controlPoints, line.endPoint];
-                    const t = findClosestT({ x: inchX, y: inchY }, cps);
-                    const pt = getCurvePoint(t, cps);
-                    const dist = getDistance({ x: inchX, y: inchY }, pt);
-                    if (dist < bestDist) {
-                      bestDist = dist;
-                      bestLineIdx = idx;
-                    }
-                  });
-
-                  if (bestLineIdx !== lIdx) {
-                    // Move marker to new line
-                    const marker = evMarkers.splice(eIdx, 1)[0];
-                    lines[lIdx].eventMarkers = [...evMarkers];
-
-                    if (!lines[bestLineIdx].eventMarkers)
-                      lines[bestLineIdx].eventMarkers = [];
-                    lines[bestLineIdx].eventMarkers.push(marker);
-                    const newEIdx = lines[bestLineIdx].eventMarkers.length - 1;
-
-                    // Update selection and ID
-                    const newId = `event-${bestLineIdx}-${newEIdx}`;
-                    multiSelectedPointIds.update((ids) =>
-                      ids.map((sid) => (sid === id ? newId : sid)),
-                    );
-                    const offset = multiDragOffsets.get(id);
-                    if (offset) {
-                      multiDragOffsets.set(newId, offset);
-                      multiDragOffsets.delete(id);
-                    }
-                    if (currentElem === id) currentElem = newId;
-                  } else {
-                    lines[lIdx].eventMarkers = [...evMarkers];
-                  }
-                  linesChanged = true;
-                }
-              }
-            } else if (id.startsWith("wait-event-")) {
-              const parts = id.split("-");
-              const waitId = parts[2];
-              const eIdx = Number(parts[3]);
-              const waitItem = sequence.find(s => s.kind === "wait" && (s as any).id === waitId);
-              if (waitItem && (waitItem as any).eventMarkers?.[eIdx]) {
-                const ev = (waitItem as any).eventMarkers[eIdx];
-                if (ev.type === "pose") {
-                  ev.poseX = Math.round(inchX * 100) / 100;
-                  ev.poseY = Math.round(inchY * 100) / 100;
-                  sequenceChanged = true;
-                }
-              }
-            } else if (id.startsWith("rotate-event-")) {
-              const parts = id.split("-");
-              const rotateId = parts[2];
-              const eIdx = Number(parts[3]);
-              const rotateItem = sequence.find(s => s.kind === "rotate" && (s as any).id === rotateId);
-              if (rotateItem && (rotateItem as any).eventMarkers?.[eIdx]) {
-                const ev = (rotateItem as any).eventMarkers[eIdx];
-                if (ev.type === "pose") {
-                  ev.poseX = Math.round(inchX * 100) / 100;
-                  ev.poseY = Math.round(inchY * 100) / 100;
-                  sequenceChanged = true;
-                }
-              }
             } else {
               const line = Number(id.split("-")[1]) - 1;
               const point = Number(id.split("-")[2]);
@@ -860,7 +772,6 @@
           if (linesChanged) linesStore.set([...lines]);
           if (shapesChanged) shapesStore.set([...shapes]);
           if (startPointChanged) startPointStore.set({ ...startPoint });
-          if (sequenceChanged) sequenceStore.set([...sequence]);
         } else if (isPanning) {
           // Panning Logic
           followRobotStore.set(false);
@@ -1230,55 +1141,6 @@
                 objectY = lines[line].controlPoints[point - 1].y;
               }
             }
-          } else if (currentElem.startsWith("event-")) {
-            const parts = currentElem.split("-");
-            const lIdx = Number(parts[1]);
-            const eIdx = Number(parts[2]);
-            const ev = lines[lIdx]?.eventMarkers?.[eIdx];
-            if (ev) {
-              if (ev.type === "pose") {
-                objectX = ev.poseX ?? 0;
-                objectY = ev.poseY ?? 0;
-              } else {
-                // For parametric/temporal, we could calculate the path position, 
-                // but for now let's just use mouse position as object start 
-                // if we don't want to do complex path math here.
-                // However, the user wants "initial + change relative".
-                // Let's approximate.
-                objectX = mouseX; 
-                objectY = mouseY;
-              }
-            }
-          } else if (currentElem.startsWith("wait-event-")) {
-            const parts = currentElem.split("-");
-            const waitId = parts[2];
-            const eIdx = Number(parts[3]);
-            const waitItem = sequence.find(
-              (s) => s.kind === "wait" && (s as any).id === waitId,
-            );
-            const ev = (waitItem as any)?.eventMarkers?.[eIdx];
-            if (ev?.type === "pose") {
-              objectX = ev.poseX ?? 0;
-              objectY = ev.poseY ?? 0;
-            } else {
-              objectX = mouseX;
-              objectY = mouseY;
-            }
-          } else if (currentElem.startsWith("rotate-event-")) {
-            const parts = currentElem.split("-");
-            const rotateId = parts[2];
-            const eIdx = Number(parts[3]);
-            const rotateItem = sequence.find(
-              (s) => s.kind === "rotate" && (s as any).id === rotateId,
-            );
-            const ev = (rotateItem as any)?.eventMarkers?.[eIdx];
-            if (ev?.type === "pose") {
-              objectX = ev.poseX ?? 0;
-              objectY = ev.poseY ?? 0;
-            } else {
-              objectX = mouseX;
-              objectY = mouseY;
-            }
           }
           multiDragOffsets.clear();
           const currentIds = $multiSelectedPointIds;
@@ -1337,48 +1199,6 @@
                   ox = lines[line].controlPoints[point - 1].x;
                   oy = lines[line].controlPoints[point - 1].y;
                 }
-              }
-            } else if (id.startsWith("event-")) {
-              const parts = id.split("-");
-              const lIdx = Number(parts[1]);
-              const eIdx = Number(parts[2]);
-              const ev = lines[lIdx]?.eventMarkers?.[eIdx];
-              if (ev?.type === "pose") {
-                ox = ev.poseX ?? 0;
-                oy = ev.poseY ?? 0;
-              } else {
-                ox = mouseX;
-                oy = mouseY;
-              }
-            } else if (id.startsWith("wait-event-")) {
-              const parts = id.split("-");
-              const waitId = parts[2];
-              const eIdx = Number(parts[3]);
-              const waitItem = sequence.find(
-                (s) => s.kind === "wait" && (s as any).id === waitId,
-              );
-              const ev = (waitItem as any)?.eventMarkers?.[eIdx];
-              if (ev?.type === "pose") {
-                ox = ev.poseX ?? 0;
-                oy = ev.poseY ?? 0;
-              } else {
-                ox = mouseX;
-                oy = mouseY;
-              }
-            } else if (id.startsWith("rotate-event-")) {
-              const parts = id.split("-");
-              const rotateId = parts[2];
-              const eIdx = Number(parts[3]);
-              const rotateItem = sequence.find(
-                (s) => s.kind === "rotate" && (s as any).id === rotateId,
-              );
-              const ev = (rotateItem as any)?.eventMarkers?.[eIdx];
-              if (ev?.type === "pose") {
-                ox = ev.poseX ?? 0;
-                oy = ev.poseY ?? 0;
-              } else {
-                ox = mouseX;
-                oy = mouseY;
               }
             }
             multiDragOffsets.set(id, { x: ox - mouseX, y: oy - mouseY });

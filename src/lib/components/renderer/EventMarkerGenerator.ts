@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
 import type { Line, Point, SequenceItem } from "../../../types";
-import { getCurvePoint, findClosestT } from "../../../utils/math";
+import { getCurvePoint } from "../../../utils/math";
 
 import { type RenderContext } from "./GeneratorUtils";
 
@@ -58,29 +58,18 @@ export function generateEventMarkerElements(
 
       let t = 0;
       if (ev.type === "temporal") {
-        const markerTime = ev.endTime ?? ev.time ?? 500;
-        const lineDuration = 2000;
-        t = Math.max(0, Math.min(1, markerTime / lineDuration));
+        const lineDuration = 2000; // Simplified estimation for UI only when detailed prediction missing
+        t = Math.max(0, Math.min(1, (ev.time ?? 500) / lineDuration));
 
-        // Use timePrediction if available for absolute positioning
+        // Use timePrediction if available
         if (timePrediction?.timeline) {
-          const matchingEvent = timePrediction.timeline.find(
-            (e: any) => e.type === "travel" && e.line && e.line.id === line.id,
-          );
+          const matchingEvent = timePrediction.timeline.find((e: any) => e.type === "travel" && e.line && e.line.id === line.id);
           if (matchingEvent && matchingEvent.duration) {
-            // Calculate relative time within the segment
-            const relTime = Math.max(0, markerTime / 1000 - matchingEvent.startTime);
-            t = Math.max(0, Math.min(1, relTime / matchingEvent.duration));
+             t = Math.max(0, Math.min(1, (ev.time ?? 500) / matchingEvent.duration));
           }
         }
       } else if (ev.type === "pose") {
-        if (ev.poseGuess !== undefined) {
-          t = Math.max(0, Math.min(1, ev.poseGuess));
-        } else {
-          // Auto-calculate best guess
-          const cps = [_startPoint, ...line.controlPoints, line.endPoint];
-          t = findClosestT({ x: ev.poseX ?? 0, y: ev.poseY ?? 0 }, cps);
-        }
+        t = Math.max(0, Math.min(1, ev.poseGuess ?? 0.5));
       } else {
         t = Math.max(0, Math.min(1, ev.position ?? 0.5));
       }
