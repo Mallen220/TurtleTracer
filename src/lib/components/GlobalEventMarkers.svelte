@@ -14,6 +14,99 @@
   import { hoveredMarkerId, diskEventNamesStore } from "../../stores";
   import SearchableDropdown from "./common/SearchableDropdown.svelte";
   import { actionRegistry } from "../actionRegistry";
+  import { findClosestT, getCurvePoint } from "../../utils/math";
+  import { startPointStore } from "../projectStore";
+
+  function getParametricIndexDisplay(marker: GlobalMarker) {
+    if (marker.parentType !== "path") return 0;
+    const localT = marker.ref.poseGuess ?? getAutoPoseGuess(marker);
+    const lIdx = lines.findIndex((l) => l.id === marker.parentId);
+    return (lIdx !== -1 ? lIdx : marker.parentIndex) + localT;
+  }
+
+  function updateMarkerFromParametricIndex(marker: GlobalMarker, value: number) {
+    if (marker.parentType !== "path") return;
+
+    const finalIdx = Math.max(0, Math.min(lines.length - 1, Math.floor(value)));
+    const finalT = Math.max(0, Math.min(1, value - Math.floor(value)));
+
+    marker.ref.poseGuess = finalT;
+
+    // Update X, Y position to match parametric index
+    const prevPt =
+      finalIdx === 0 ? $startPointStore : lines[finalIdx - 1].endPoint;
+    const cps = [
+      prevPt,
+      ...(lines[finalIdx].controlPoints || []),
+      lines[finalIdx].endPoint,
+    ];
+    const pt = getCurvePoint(finalT, cps);
+    marker.ref.poseX = pt.x;
+    marker.ref.poseY = pt.y;
+
+    if (lines[finalIdx].id !== marker.parentId) {
+      // Move marker to new parent line
+      const oldLine = lines.find((l) => l.id === marker.parentId);
+      const newLine = lines[finalIdx];
+
+      if (oldLine) {
+        const mIdx = oldLine.eventMarkers.findIndex(
+          (ev) => ev.id === marker.originalId,
+        );
+        if (mIdx !== -1) {
+          const m = oldLine.eventMarkers.splice(mIdx, 1)[0];
+          oldLine.eventMarkers = [...oldLine.eventMarkers];
+
+          if (!newLine.eventMarkers) newLine.eventMarkers = [];
+          newLine.eventMarkers.push(m);
+          newLine.eventMarkers = [...newLine.eventMarkers];
+        }
+      }
+    }
+    lines = [...lines];
+  }
+
+  function getAutoPoseGuess(marker: GlobalMarker) {
+    if (marker.parentType !== "path") return 0.5;
+    const lIdx = lines.findIndex((l) => l.id === marker.parentId);
+    if (lIdx === -1) return 0.5;
+    const line = lines[lIdx];
+
+    // Find previous point for Bezier
+    let prevPoint: any = $startPointStore;
+    if (lIdx > 0) {
+      prevPoint = lines[lIdx - 1].endPoint;
+    }
+
+    const cps = [prevPoint, ...line.controlPoints, line.endPoint];
+    return findClosestT(
+      { x: marker.ref.poseX ?? 0, y: marker.ref.poseY ?? 0 },
+      cps,
+    );
+  }
+
+  function getGlobalPoseGuess(marker: GlobalMarker) {
+    const localT = marker.ref.poseGuess ?? getAutoPoseGuess(marker);
+    if (marker.parentType !== "path") return localT;
+
+    const lIdx = lines.findIndex((l) => l.id === marker.parentId);
+    if (lIdx === -1) return localT;
+
+    // Find chain root and count
+    let rootIdx = lIdx;
+    while (rootIdx > 0 && lines[rootIdx].isChain) {
+      rootIdx--;
+    }
+
+    let totalInChain = 1;
+    for (let i = rootIdx + 1; i < lines.length; i++) {
+      if (lines[i].isChain) totalInChain++;
+      else break;
+    }
+
+    const localIdx = lIdx - rootIdx;
+    return (localIdx + localT) / totalInChain;
+  }
 
   interface Props {
     sequence: SequenceItem[];
@@ -195,7 +288,7 @@
       poseX: 0,
       poseY: 0,
       poseHeading: 0,
-      poseGuess: 0.5,
+      poseGuess: undefined,
     };
 
     if (def?.isPath) {
@@ -591,6 +684,8 @@
               <span>•</span>
               {#if marker.ref.type === "temporal"}
                 <span>Global Time: {Math.round(marker.globalTime)}ms</span>
+              {:else if marker.ref.type === "pose"}
+                <span>Global Index: {getParametricIndexDisplay(marker).toFixed(3)}</span>
               {:else}
                 <span>Global Index: {marker.globalPosition.toFixed(2)}</span>
               {/if}
@@ -705,30 +800,36 @@
                   />
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="text-xs text-neutral-500 w-3">H:</span>
+                  <span
+                    class="text-xs text-neutral-500 w-3 shrink-0"
+                    title="Parametric Guess (Local: {(
+                      marker.ref.poseGuess ?? getAutoPoseGuess(marker)
+                    ).toFixed(3)}, Global: {getGlobalPoseGuess(marker).toFixed(
+                      3,
+                    )})"
+                  >
+                    G:
+                  </span>
                   <input
                     type="number"
-                    value={marker.ref.poseHeading ?? 0}
-                    step="1"
-                    class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
-                    onchange={(e) => {
-                      marker.ref.poseHeading = Number.parseFloat(e.currentTarget.value);
-                      if (marker.parentType === "path") lines = [...lines];
-                      else sequence = [...sequence];
-                    }}
-                  />
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-neutral-500 w-3">G:</span>
-                  <input
-                    type="number"
-                    value={marker.ref.poseGuess ?? 0.5}
+                    value={marker.ref.poseGuess !== undefined
+                      ? getParametricIndexDisplay(marker).toFixed(3)
+                      : ""}
+                    placeholder={getParametricIndexDisplay(marker).toFixed(3)}
                     min="0"
-                    max="1"
-                    step="0.01"
+                    max={lines.length.toString()}
+                    step="0.001"
                     class="flex-1 px-1 py-0.5 text-xs rounded bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700"
-                    onchange={(e) => {
-                      marker.ref.poseGuess = Number.parseFloat(e.currentTarget.value);
+                    oninput={(e) => {
+                      const val = e.currentTarget.value;
+                      if (val === "") {
+                        marker.ref.poseGuess = undefined;
+                      } else {
+                        updateMarkerFromParametricIndex(
+                          marker,
+                          Number.parseFloat(val),
+                        );
+                      }
                       if (marker.parentType === "path") lines = [...lines];
                       else sequence = [...sequence];
                     }}

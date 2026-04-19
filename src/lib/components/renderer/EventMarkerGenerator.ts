@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
 import type { Line, Point, SequenceItem } from "../../../types";
-import { getCurvePoint } from "../../../utils/math";
+import { getCurvePoint, findClosestT } from "../../../utils/math";
 
 import { type RenderContext } from "./GeneratorUtils";
 
@@ -74,7 +74,13 @@ export function generateEventMarkerElements(
           }
         }
       } else if (ev.type === "pose") {
-        t = Math.max(0, Math.min(1, ev.poseGuess ?? 0.5));
+        if (ev.poseGuess !== undefined) {
+          t = Math.max(0, Math.min(1, ev.poseGuess));
+        } else {
+          // Auto-calculate best guess
+          const cps = [_startPoint, ...line.controlPoints, line.endPoint];
+          t = findClosestT({ x: ev.poseX ?? 0, y: ev.poseY ?? 0 }, cps);
+        }
       } else {
         t = Math.max(0, Math.min(1, ev.position ?? 0.5));
       }
