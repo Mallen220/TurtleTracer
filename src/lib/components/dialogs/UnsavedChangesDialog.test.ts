@@ -9,7 +9,7 @@ describe("UnsavedChangesDialog", () => {
     const onDiscard = vi.fn();
     const onCancel = vi.fn();
 
-    const { getByText, queryByText } = render(UnsavedChangesDialog, {
+    const { getByText } = render(UnsavedChangesDialog, {
       show: true,
       onSave,
       onDiscard,
