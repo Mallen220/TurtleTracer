@@ -78,26 +78,6 @@ export async function generateJavaCode(
     pathChainNames.push(baseName);
   });
 
-  // Pre-calculate chain information
-  const chainInfos = lines.map((line, idx) => {
-    let rootIdx = idx;
-    if (line.isChain) {
-      for (let i = idx; i >= 0; i--) {
-        if (!lines[i].isChain) {
-          rootIdx = i;
-          break;
-        }
-      }
-    }
-    let totalInChain = 1;
-    for (let i = rootIdx + 1; i < lines.length; i++) {
-      if (lines[i].isChain) totalInChain++;
-      else break;
-    }
-    let localIdx = idx - rootIdx;
-    return { localIdx, totalInChain };
-  });
-
   let pathsClass = `
   public static class Paths {
     ${pathChainNames
@@ -379,15 +359,9 @@ export async function generateJavaCode(
           }
 
           // Add event markers to the path builder
-          const _startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
-          const _cps = [_startPt, ...line.controlPoints, line.endPoint];
-          const _info = chainInfos[idx];
           const eventMarkerCode = generateEventMarkerCode(
             line.eventMarkers,
             "        ",
-            _cps,
-            _info.localIdx,
-            _info.totalInChain,
           );
 
           return {
