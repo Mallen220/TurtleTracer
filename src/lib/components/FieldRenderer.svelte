@@ -769,8 +769,74 @@
 
                     if (!lines[bestLineIdx].eventMarkers)
                       lines[bestLineIdx].eventMarkers = [];
-                    lines[bestLineIdx].eventMarkers.push(marker);
-                    const newEIdx = lines[bestLineIdx].eventMarkers.length - 1;
+                    lines[bestLineIdx].eventMarkers!.push(marker);
+                    const newEIdx = lines[bestLineIdx].eventMarkers!.length - 1;
+
+                    // Update selection and ID
+                    const newId = `event-${bestLineIdx}-${newEIdx}`;
+                    multiSelectedPointIds.update((ids) =>
+                      ids.map((sid) => (sid === id ? newId : sid)),
+                    );
+                    const offset = multiDragOffsets.get(id);
+                    if (offset) {
+                      multiDragOffsets.set(newId, offset);
+                      multiDragOffsets.delete(id);
+                    }
+                    if (currentElem === id) currentElem = newId;
+                  } else {
+                    lines[lIdx].eventMarkers = [...evMarkers];
+                  }
+                  linesChanged = true;
+                } else {
+                  // Parametric or Temporal
+                  let bestDist = Infinity;
+                  let bestLineIdx = lIdx;
+                  let bestT = 0;
+
+                  lines.forEach((line, idx) => {
+                    if (line.hidden) return;
+                    const prevP =
+                      idx === 0 ? startPoint : lines[idx - 1].endPoint;
+                    const cps = [prevP, ...line.controlPoints, line.endPoint];
+                    const t = findClosestT({ x: inchX, y: inchY }, cps);
+                    const pt = getCurvePoint(t, cps);
+                    const dist = getDistance({ x: inchX, y: inchY }, pt);
+                    if (dist < bestDist) {
+                      bestDist = dist;
+                      bestLineIdx = idx;
+                      bestT = t;
+                    }
+                  });
+
+                  if (ev.type === "temporal" && timePrediction?.timeline) {
+                    const travelEvents = timePrediction.timeline.filter(
+                      (e: any) => e.type === "travel",
+                    );
+                    const matchingEvent = travelEvents.find(
+                      (e: any) =>
+                        e.line && e.line.id === lines[bestLineIdx].id,
+                    );
+                    if (matchingEvent) {
+                      const newTime =
+                        (matchingEvent.startTime +
+                          bestT * matchingEvent.duration) *
+                        1000;
+                      ev.time = newTime;
+                      ev.endTime = newTime;
+                    }
+                  } else {
+                    ev.position = bestT;
+                  }
+
+                  if (bestLineIdx !== lIdx) {
+                    // Move marker to new line
+                    const marker = evMarkers.splice(eIdx, 1)[0];
+                    lines[lIdx].eventMarkers = [...evMarkers];
+
+                    if (!lines[bestLineIdx].eventMarkers)
+                      lines[bestLineIdx].eventMarkers = [];
+                    lines[bestLineIdx].eventMarkers!.push(marker);
+                    const newEIdx = lines[bestLineIdx].eventMarkers!.length - 1;
 
                     // Update selection and ID
                     const newId = `event-${bestLineIdx}-${newEIdx}`;

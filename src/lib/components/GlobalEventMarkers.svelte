@@ -49,7 +49,7 @@
       const oldLine = lines.find((l) => l.id === marker.parentId);
       const newLine = lines[finalIdx];
 
-      if (oldLine) {
+      if (oldLine && oldLine.eventMarkers) {
         const mIdx = oldLine.eventMarkers.findIndex(
           (ev) => ev.id === marker.originalId,
         );
@@ -285,8 +285,8 @@
       position: 0.5,
       time: 500,
       endTime: 500,
-      poseX: 0,
-      poseY: 0,
+      poseX: 72,
+      poseY: 72,
       poseHeading: 0,
       poseGuess: undefined,
     };
@@ -435,11 +435,37 @@
     const timeline = timePrediction.timeline;
     let targetEvent: any = null;
 
+    // First, find the exact matching event in the timeline
     for (let i = 0; i < timeline.length; i++) {
       const ev = timeline[i];
       if (globalTime >= ev.startTime && globalTime <= ev.endTime) {
         targetEvent = ev;
         break;
+      }
+    }
+
+    // If no exact event found (e.g. past end), or if we landed on a non-travel event,
+    // look for the closest travel (path) event.
+    if (!targetEvent || targetEvent.type !== "travel") {
+      const travelEvents = timeline.filter((e: any) => e.type === "travel");
+      if (travelEvents.length > 0) {
+        let bestDist = Infinity;
+        let bestTravel = travelEvents[0];
+        travelEvents.forEach((te: any) => {
+          const dist = Math.min(
+            Math.abs(globalTime - te.startTime),
+            Math.abs(globalTime - te.endTime),
+          );
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestTravel = te;
+          }
+        });
+
+        // Only switch if the "better" travel event is reasonably close or if we were on a non-travel event
+        if (!targetEvent || bestDist < 0.1 || targetEvent.type !== "travel") {
+          targetEvent = bestTravel;
+        }
       }
     }
 
