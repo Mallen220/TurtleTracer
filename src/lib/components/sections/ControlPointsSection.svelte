@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run, stopPropagation } from "svelte/legacy";
-
   import random from "lodash/random";
   import {
     snapToGrid,
@@ -56,7 +54,7 @@
   let yInputs: (HTMLInputElement | null)[] = $state([]);
 
   // Handle focus request
-  run(() => {
+  $effect(() => {
     if ($focusRequest) {
       if (
         $selectedPointId &&
@@ -247,7 +245,10 @@
                 <button
                   title={line.locked ? "Locked" : "Move up"}
                   aria-label="Move control point up"
-                  onclick={stopPropagation(() => moveControlPoint(idx, -1))}
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    moveControlPoint(idx, -1);
+                  }}
                   class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={idx === 0 || line.locked}
                 >
@@ -261,7 +262,10 @@
                 <button
                   title={line.locked ? "Locked" : "Move down"}
                   aria-label="Move control point down"
-                  onclick={stopPropagation(() => moveControlPoint(idx, 1))}
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    moveControlPoint(idx, 1);
+                  }}
                   class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={idx === line.controlPoints.length - 1 ||
                     line.locked}

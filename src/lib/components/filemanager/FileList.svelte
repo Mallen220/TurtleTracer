@@ -1,9 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <!-- src/lib/components/filemanager/FileList.svelte -->
 <script lang="ts">
-  import { run, createBubbler, stopPropagation } from "svelte/legacy";
-
-  const bubble = createBubbler();
   import { createEventDispatcher, tick } from "svelte";
   import type { FileInfo } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
@@ -379,7 +376,7 @@
   }: Props = $props();
   onMount(() => setupObserver());
   onDestroy(() => observer && observer.disconnect());
-  run(() => {
+  $effect(() => {
     if (renamingFile) {
       if (renamingFile.path !== lastRenamingPath) {
         renameInput = renamingFile.name.replaceAll(/\.(pp|turt)$/gi, "");
@@ -394,7 +391,7 @@
     sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }],
   );
   // Preload top N files proactively when files change (helps when toggling icon display)
-  run(() => {
+  $effect(() => {
     if (files && files.length) {
       const PRELOAD_COUNT = 12;
       files.slice(0, PRELOAD_COUNT).forEach((f) => {
@@ -407,7 +404,7 @@
     }
   });
   // If the field image changes, retry previously failed previews
-  run(() => {
+  $effect(() => {
     if (fieldImage !== undefined) {
       Object.keys(previews).forEach((p) => {
         if (previews[p] && previews[p].startPoint == null) loadPreview(p, true);
@@ -487,7 +484,9 @@
             {#if renamingFile?.path === file.path}
               <div
                 class="flex items-center gap-1"
-                onclick={stopPropagation(bubble("click"))}
+                onclick={(e) => {
+                  e.stopPropagation();
+                }}
                 role="presentation"
               >
                 <input

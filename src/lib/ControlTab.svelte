@@ -61,8 +61,6 @@
 </script>
 
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import type {
     Point,
     Line,
@@ -419,13 +417,13 @@
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
   // If code tab is active but setting is disabled, switch to path
-  run(() => {
+  $effect(() => {
     if (activeTab === "code" && settings?.autoExportCode === false) {
       activeTab = "path";
     }
   });
   // collapse telemetry tab if user disabled it
-  run(() => {
+  $effect(() => {
     if (activeTab === "telemetry" && settings?.showTelemetryTab === false) {
       activeTab = "path";
     }

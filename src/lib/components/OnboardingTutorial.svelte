@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { createEventDispatcher } from "svelte";
   import { driver } from "driver.js";
   import "driver.js/dist/driver.css";
@@ -144,7 +142,7 @@
   });
 
   // Reactive trigger
-  run(() => {
+  $effect(() => {
     if ($startTutorial) {
       if (!driverObj.isActive()) {
         driverObj.drive();
@@ -154,7 +152,7 @@
   });
 
   // Auto-start logic
-  run(() => {
+  $effect(() => {
     // Only check if loaded
     if (isLoaded) {
       if (FORCE_START_DEV && !$startTutorial) {

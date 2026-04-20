@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { stopPropagation } from "svelte/legacy";
-
   import type { SequenceRotateItem, SequenceItem } from "../../../types";
   import TrashIcon from "../icons/TrashIcon.svelte";
   import Bars3Icon from "../icons/Bars3Icon.svelte";
@@ -173,7 +171,10 @@
   <td class="px-3 py-2 text-left flex items-center justify-start gap-1">
     <!-- Lock toggle for rotate -->
     <button
-      onclick={stopPropagation(onLock)}
+      onclick={(e) => {
+        e.stopPropagation();
+        onLock();
+      }}
       title={isLocked ? "Unlock rotate" : "Lock rotate"}
       aria-label={isLocked ? "Unlock rotate" : "Lock rotate"}
       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
@@ -189,7 +190,10 @@
     <!-- Delete slot (hidden when locked) -->
     {#if !isLocked}
       <button
-        onclick={stopPropagation(onDelete)}
+        onclick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
         title="Delete rotate"
         aria-label="Delete rotate"
         class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"

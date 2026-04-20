@@ -1,9 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <!-- src/lib/components/filemanager/FileGrid.svelte -->
 <script lang="ts">
-  import { run, stopPropagation, createBubbler } from "svelte/legacy";
-
-  const bubble = createBubbler();
   import { createEventDispatcher, tick, onMount, onDestroy } from "svelte";
   import type { FileInfo, Point, Line } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
@@ -436,7 +433,7 @@
       // Ignored
     }
   }
-  run(() => {
+  $effect(() => {
     if (renamingFile) {
       if (renamingFile.path !== lastRenamingPath) {
         renameInput = renamingFile.name.replaceAll(/\.(pp|turt)$/gi, "");
@@ -451,7 +448,7 @@
     sortMode === "date" ? groupFilesByDate(files) : [{ title: "Files", files }],
   );
   // When files change, proactively load previews for recently modified files (e.g., today)
-  run(() => {
+  $effect(() => {
     if (files && files.length) {
       // Preload top N files proactively
       files.slice(0, PRELOAD_COUNT).forEach((f) => {
@@ -477,7 +474,7 @@
     }
   });
   // If the field image or other settings change, retry any previously-failed previews
-  run(() => {
+  $effect(() => {
     if (fieldImage !== undefined) {
       Object.keys(previews).forEach((p) => {
         if (previews[p] && previews[p]!.startPoint == null) {
@@ -611,9 +608,10 @@
             <button
               class="absolute top-1 right-1 p-1 rounded-full bg-white/80 dark:bg-neutral-800/80 shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
               aria-label="File actions"
-              onclick={stopPropagation((e) =>
-                openContextMenuFromEvent(e, file),
-              )}
+              onclick={(e) => {
+                e.stopPropagation();
+                openContextMenuFromEvent(e, file);
+              }}
               title="More actions"
             >
               <EllipsisHorizontalIcon
@@ -630,7 +628,9 @@
                   type="text"
                   bind:value={renameInput}
                   use:focusInput
-                  onclick={stopPropagation(bubble("click"))}
+                  onclick={(e) => {
+                    e.stopPropagation();
+                  }}
                   class="w-full text-xs text-center border border-blue-400 rounded focus:outline-none dark:bg-neutral-700 py-0.5"
                   onkeydown={(e: KeyboardEvent) => {
                     e.stopPropagation();

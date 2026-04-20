@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import {
     showRuler,
     showProtractor,
@@ -235,10 +233,10 @@
   let spacing = $state(12);
   let gridPositions: number[] = $state([]);
 
-  run(() => {
+  $effect(() => {
     spacing = Math.max(1, $gridSize || 12);
   });
-  run(() => {
+  $effect(() => {
     gridPositions = (() => {
       const positions: number[] = [];
       for (let pos = 0; pos <= FIELD_SIZE; pos += spacing) {

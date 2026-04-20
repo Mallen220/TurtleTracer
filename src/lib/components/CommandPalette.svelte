@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run, self } from "svelte/legacy";
-
   import { fade, fly } from "svelte/transition";
   import { cubicInOut } from "svelte/easing";
   import { onMount } from "svelte";
@@ -87,7 +85,7 @@
     })(),
   );
 
-  run(() => {
+  $effect(() => {
     if (isOpen && inputElement) {
       // Focus input when opened
       setTimeout(() => {
@@ -97,7 +95,7 @@
     }
   });
 
-  run(() => {
+  $effect(() => {
     if (!isOpen) {
       searchQuery = "";
     }
@@ -150,7 +148,9 @@
     role="presentation"
     transition:fade={{ duration: 150, easing: cubicInOut }}
     class="fixed inset-0 z-[2000] flex items-start justify-center pt-[15vh] bg-black bg-opacity-60 backdrop-blur-sm"
-    onclick={self(onClose)}
+    onclick={(e) => {
+      if (e.target === e.currentTarget) onClose();
+    }}
     onkeydown={(e) => {
       if (e.key === "Escape") onClose();
     }}

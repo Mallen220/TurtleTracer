@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { onMount } from "svelte";
   import { fieldOverlay } from "../../telemetryStore";
   import type { ScaleFunction } from "../../../types";
@@ -78,7 +76,7 @@
   }
 
   // Reactive Trigger
-  run(() => {
+  $effect(() => {
     if (ops && width && height) {
       if (!renderRequested) {
         renderRequested = true;

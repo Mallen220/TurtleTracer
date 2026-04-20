@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import type { Component } from "svelte";
   import {
     UndoIcon,
@@ -258,7 +256,7 @@
   let historyStore = $derived(history?.historyStore);
   let undoDescription = $derived(history?.undoDescriptionStore);
   let redoDescription = $derived(history?.redoDescriptionStore);
-  run(() => {
+  $effect(() => {
     activeSidebarItems = (
       settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id)
     )

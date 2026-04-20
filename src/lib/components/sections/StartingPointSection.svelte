@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run, stopPropagation } from "svelte/legacy";
-
   import type { Point, Settings } from "../../../types/index";
   import { selectedPointId, focusRequest } from "../../../stores";
   import { linesStore } from "../../../lib/projectStore";
@@ -92,7 +90,7 @@
   let lines = $derived($linesStore);
 
   // Subscribe to focus requests
-  run(() => {
+  $effect(() => {
     if ($focusRequest) {
       if ($selectedPointId === "point-0-0") {
         if ($focusRequest.field === "x" && xInput) xInput.focus();
@@ -122,11 +120,12 @@
         aria-label={startPoint.locked
           ? "Unlock Starting Point"
           : "Lock Starting Point"}
-        onclick={stopPropagation(() => {
+        onclick={(e) => {
+          e.stopPropagation();
           // By spreading $state.snapshot, we avoid injecting a Svelte Proxy
           // into the state, preserving cloneability for history.
           startPoint = { ...startPoint, locked: !startPoint.locked };
-        })}
+        }}
         class="ml-1 p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         {#if startPoint.locked}

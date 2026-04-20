@@ -1,8 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { stopPropagation, createBubbler } from "svelte/legacy";
-
-  const bubble = createBubbler();
   import { selectedPointId, selectedLineId } from "../../../stores";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
   import type { SequenceWaitItem, SequenceItem } from "../../../types/index";
@@ -115,12 +112,13 @@
       ? "border-amber-400 ring-1 ring-amber-400/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
   } ${isHidden ? "opacity-50 grayscale-[50%]" : ""}`}
-  onclick={stopPropagation(() => {
+  onclick={(e) => {
+    e.stopPropagation();
     if (!wait.locked) {
       selectedPointId.set(`wait-${wait.id}`);
       selectedLineId.set(null);
     }
-  })}
+  }}
   onkeydown={(e) => {
     e.stopPropagation();
     if (e.key === "Enter" || e.key === " ") {
@@ -137,7 +135,10 @@
     <!-- Left: Title & Name -->
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
-        onclick={stopPropagation(toggleCollapsed)}
+        onclick={(e) => {
+          e.stopPropagation();
+          toggleCollapsed();
+        }}
         class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         title="{collapsed ? 'Expand' : 'Collapse'} wait"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} wait"
@@ -167,7 +168,9 @@
             disabled={wait.locked}
             oninput={handleNameInput}
             onblur={handleBlur}
-            onclick={stopPropagation(bubble("click"))}
+            onclick={(e) => {
+              e.stopPropagation();
+            }}
           />
           {#if linked}
             <div
@@ -196,7 +199,8 @@
     <!-- Right: Controls -->
     <div class="flex items-center gap-1">
       <button
-        onclick={stopPropagation(() => {
+        onclick={(e) => {
+          e.stopPropagation();
           const idx = sequence.findIndex((s) => (s as any).id === wait.id);
           if (idx !== -1) {
             const currentWait = sequence[idx] as any;
@@ -206,7 +210,7 @@
             wait = newWait;
           }
           if (recordChange) recordChange();
-        })}
+        }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         title={isHidden ? "Show Wait" : "Hide Wait"}
         aria-label={isHidden ? "Show Wait" : "Hide Wait"}
@@ -221,7 +225,8 @@
       <button
         title={wait.locked ? "Unlock Wait" : "Lock Wait"}
         aria-label={wait.locked ? "Unlock Wait" : "Lock Wait"}
-        onclick={stopPropagation(() => {
+        onclick={(e) => {
+          e.stopPropagation();
           const idx = sequence.findIndex((s) => (s as any).id === wait.id);
           if (idx !== -1) {
             const currentWait = sequence[idx] as any;
@@ -231,7 +236,7 @@
             wait = newWait;
           }
           if (recordChange) recordChange();
-        })}
+        }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
       >
         {#if wait.locked}
@@ -251,9 +256,10 @@
         class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
       >
         <button
-          onclick={stopPropagation(() => {
+          onclick={(e) => {
+            e.stopPropagation();
             if (!wait.locked && canMoveUp && onMoveUp) onMoveUp();
-          })}
+          }}
           disabled={!canMoveUp || wait.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           title="Move Up"
@@ -262,9 +268,10 @@
           <ChevronUpIcon className="size-3.5" />
         </button>
         <button
-          onclick={stopPropagation(() => {
+          onclick={(e) => {
+            e.stopPropagation();
             if (!wait.locked && canMoveDown && onMoveDown) onMoveDown();
-          })}
+          }}
           disabled={!canMoveDown || wait.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           title="Move Down"
@@ -306,7 +313,9 @@
             step="50"
             value={wait.durationMs}
             onchange={handleDurationChange}
-            onclick={stopPropagation(bubble("click"))}
+            onclick={(e) => {
+              e.stopPropagation();
+            }}
             disabled={wait.locked}
           />
         </div>
@@ -323,12 +332,13 @@
           {#if def.createDefault || def.isPath}
             {@const color = def.buttonColor || "gray"}
             <button
-              onclick={stopPropagation(() => {
+              onclick={(e) => {
+                e.stopPropagation();
                 if (onAddAction) onAddAction(def);
                 else if (def.isPath) onAddPathAfter();
                 else if (def.isWait) onInsertAfter();
                 else if (def.isRotate) onAddRotateAfter();
-              })}
+              }}
               class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${getSmallButtonClass(color)}`}
               title={`Add ${def.label} After`}
               aria-label={`Add ${def.label} After`}

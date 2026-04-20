@@ -1,8 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { stopPropagation, createBubbler } from "svelte/legacy";
-
-  const bubble = createBubbler();
   import { selectedPointId, selectedLineId } from "../../../stores";
   import { slide } from "svelte/transition";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
@@ -92,12 +89,13 @@
       ? "border-teal-400 ring-1 ring-teal-400/20"
       : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
   } ${isHidden ? "opacity-50 grayscale-[50%]" : ""}`}
-  onclick={stopPropagation(() => {
+  onclick={(e) => {
+    e.stopPropagation();
     if (!macro.locked) {
       selectedPointId.set(`macro-${macro.id}`);
       selectedLineId.set(null);
     }
-  })}
+  }}
   onkeydown={(e: KeyboardEvent) => {
     e.stopPropagation();
     if (e.key === "Enter" || e.key === " ") {
@@ -114,7 +112,10 @@
     <!-- Left: Title & Name -->
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
-        onclick={stopPropagation(toggleCollapsed)}
+        onclick={(e) => {
+          e.stopPropagation();
+          toggleCollapsed();
+        }}
         class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
         title="{collapsed ? 'Expand' : 'Collapse'} macro"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} macro"
@@ -142,7 +143,9 @@
             disabled={macro.locked}
             oninput={handleNameInput}
             onblur={handleBlur}
-            onclick={stopPropagation(bubble("click"))}
+            onclick={(e) => {
+              e.stopPropagation();
+            }}
           />
         </div>
       </div>
@@ -151,7 +154,8 @@
     <!-- Right: Controls -->
     <div class="flex items-center gap-1">
       <button
-        onclick={stopPropagation(() => {
+        onclick={(e) => {
+          e.stopPropagation();
           const idx = sequence.findIndex((s) => (s as any).id === macro.id);
           if (idx !== -1) {
             const currentMacro = sequence[idx] as any;
@@ -161,7 +165,7 @@
             macro = newMacro;
           }
           if (recordChange) recordChange();
-        })}
+        }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
         title={isHidden ? "Show Macro" : "Hide Macro"}
         aria-label={isHidden ? "Show Macro" : "Hide Macro"}
@@ -176,7 +180,8 @@
       <button
         title={macro.locked ? "Unlock Macro" : "Lock Macro"}
         aria-label={macro.locked ? "Unlock Macro" : "Lock Macro"}
-        onclick={stopPropagation(() => {
+        onclick={(e) => {
+          e.stopPropagation();
           const idx = sequence.findIndex((s) => (s as any).id === macro.id);
           if (idx !== -1) {
             const currentMacro = sequence[idx] as any;
@@ -186,7 +191,7 @@
             macro = newMacro;
           }
           if (recordChange) recordChange();
-        })}
+        }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
       >
         {#if macro.locked}
@@ -206,9 +211,10 @@
         class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
       >
         <button
-          onclick={stopPropagation(() => {
+          onclick={(e) => {
+            e.stopPropagation();
             if (!macro.locked && canMoveUp && onMoveUp) onMoveUp();
-          })}
+          }}
           disabled={!canMoveUp || macro.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
           title="Move Up"
@@ -217,9 +223,10 @@
           <ArrowUpIcon className="size-3.5" />
         </button>
         <button
-          onclick={stopPropagation(() => {
+          onclick={(e) => {
+            e.stopPropagation();
             if (!macro.locked && canMoveDown && onMoveDown) onMoveDown();
-          })}
+          }}
           disabled={!canMoveDown || macro.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow"
           title="Move Down"
@@ -231,9 +238,10 @@
 
       {#if onUnlink}
         <button
-          onclick={stopPropagation(() => {
+          onclick={(e) => {
+            e.stopPropagation();
             if (!macro.locked && onUnlink) onUnlink();
-          })}
+          }}
           disabled={macro.locked}
           title="Unlink Macro"
           aria-label="Unlink Macro"
@@ -271,7 +279,10 @@
 
       <div class="pt-1">
         <button
-          onclick={stopPropagation(() => (showTransforms = !showTransforms))}
+          onclick={(e) => {
+            e.stopPropagation();
+            showTransforms = !showTransforms;
+          }}
           disabled={macro.locked}
           class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-colors w-full justify-center border disabled:opacity-50 ${
             showTransforms
@@ -318,12 +329,13 @@
           {#if def.createDefault || def.isPath}
             {@const color = def.buttonColor || "gray"}
             <button
-              onclick={stopPropagation(() => {
+              onclick={(e) => {
+                e.stopPropagation();
                 if (onAddAction) onAddAction(def);
                 else if (def.isPath) onAddPathAfter();
                 else if (def.isWait) onAddWaitAfter();
                 else if (def.isRotate) onAddRotateAfter();
-              })}
+              }}
               class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium ${getSmallButtonClass(color)}`}
               title={`Add ${def.label} After`}
             >

@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run, self } from "svelte/legacy";
-
   import type { Point, Line, SequenceItem, Shape } from "../../../types/index";
   import Highlight from "svelte-highlight";
   import { java } from "svelte-highlight/languages";
@@ -91,7 +89,7 @@
   }
 
   // Update sequential class name when file changes
-  run(() => {
+  $effect(() => {
     if ($currentFilePath) {
       const fileName = $currentFilePath.split(/[\\/]/).pop();
       if (fileName) {
@@ -429,7 +427,9 @@
     transition:fade={{ duration: 200 }}
     class="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
     role="presentation"
-    onclick={self(() => (isOpen = false))}
+    onclick={(e) => {
+      if (e.target === e.currentTarget) isOpen = false;
+    }}
   >
     <!-- Dialog Panel -->
     <div

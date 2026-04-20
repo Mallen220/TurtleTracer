@@ -1,9 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { untrack } from "svelte";
-  import { run, stopPropagation, createBubbler } from "svelte/legacy";
 
-  const bubble = createBubbler();
   import type { Line } from "../../../types/index";
   import { snapToGrid, showGrid, gridSize } from "../../../stores";
   import ControlPointsSection from "./ControlPointsSection.svelte";
@@ -165,7 +163,7 @@
   }
 
   // Listen for focus requests
-  run(() => {
+  $effect(() => {
     if ($focusRequest) {
       if ($selectedPointId === `point-${idx + 1}-0`) {
         if ($focusRequest.field === "x" && xInput) xInput.focus();
@@ -355,7 +353,10 @@
     <!-- Left: Title & Name -->
     <div class="flex items-center gap-3 flex-1 min-w-0">
       <button
-        onclick={stopPropagation(toggleCollapsed)}
+        onclick={(e) => {
+          e.stopPropagation();
+          toggleCollapsed();
+        }}
         class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title="{collapsed ? 'Expand' : 'Collapse'} path"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} Path {idx + 1}"
@@ -384,7 +385,9 @@
             disabled={line.locked}
             oninput={handleNameInput}
             onblur={() => recordChange && recordChange("Rename Path")}
-            onclick={stopPropagation(bubble("click"))}
+            onclick={(e) => {
+              e.stopPropagation();
+            }}
           />
           {#if line.id && isLineLinked(lines, line.id)}
             <div
@@ -426,14 +429,15 @@
       />
 
       <button
-        onclick={stopPropagation(() => {
+        onclick={(e) => {
+          e.stopPropagation();
           const currentLine = lines[idx];
           const newLine = { ...currentLine, hidden: !isHidden };
           lines[idx] = newLine;
           lines = [...lines];
           line = newLine;
           if (recordChange) recordChange();
-        })}
+        }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title={isHidden ? "Show Path" : "Hide Path"}
         aria-label={isHidden ? "Show Path" : "Hide Path"}
@@ -446,13 +450,14 @@
       </button>
 
       <button
-        onclick={stopPropagation(() => {
+        onclick={(e) => {
+          e.stopPropagation();
           const currentLine = lines[idx];
           const newLine = { ...currentLine, locked: !currentLine.locked };
           lines[idx] = newLine;
           lines = [...lines];
           line = newLine;
-        })}
+        }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title={line.locked ? "Unlock Path" : "Lock Path"}
         aria-label={line.locked ? "Unlock Path" : "Lock Path"}
@@ -474,9 +479,10 @@
         class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
       >
         <button
-          onclick={stopPropagation(
-            () => !line.locked && onMoveUp && onMoveUp(),
-          )}
+          onclick={(e) => {
+            e.stopPropagation();
+            if (!line.locked && onMoveUp) onMoveUp();
+          }}
           disabled={!canMoveUp || line.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
           title="Move Up"
@@ -485,9 +491,10 @@
           <ArrowUpIcon className="size-3.5" />
         </button>
         <button
-          onclick={stopPropagation(
-            () => !line.locked && onMoveDown && onMoveDown(),
-          )}
+          onclick={(e) => {
+            e.stopPropagation();
+            if (!line.locked && onMoveDown) onMoveDown();
+          }}
           disabled={!canMoveDown || line.locked}
           class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
           title="Move Down"

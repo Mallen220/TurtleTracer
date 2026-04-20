@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { createTriangle } from "../../../utils";
   import {
     snapToGrid,
@@ -149,7 +147,7 @@
   }
 
   // React to external additions to shapes (e.g. from keybindings)
-  run(() => {
+  $effect(() => {
     if (shapes.length > collapsedObstacles.length) {
       const diff = shapes.length - collapsedObstacles.length;
       // Default new externally added obstacles to expanded (false) so user can see them immediately

@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { get } from "svelte/store";
   import hotkeys from "hotkeys-js";
 
@@ -221,7 +219,7 @@
     }
   }
 
-  run(() => {
+  $effect(() => {
     if (showCommandPalette) {
       fetchFiles();
     }
@@ -921,11 +919,11 @@
     ...eventCommands,
   ]);
 
-  run(() => {
+  $effect(() => {
     availableCommands.set(paletteCommands);
   });
 
-  run(() => {
+  $effect(() => {
     if ($executeCommandBus) {
       const cmdId = $executeCommandBus;
       executeCommandBus.set(null);
@@ -934,7 +932,7 @@
     }
   });
 
-  run(() => {
+  $effect(() => {
     if (settings?.keyBindings) {
       hotkeys.unbind();
 

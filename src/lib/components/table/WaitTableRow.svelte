@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { stopPropagation } from "svelte/legacy";
-
   import type { SequenceWaitItem, SequenceItem } from "../../../types";
   import { tooltipPortal } from "../../actions/portal";
   import TrashIcon from "../icons/TrashIcon.svelte";
@@ -165,7 +163,10 @@
   <td class="px-3 py-2 text-left flex items-center justify-start gap-1">
     <!-- Lock toggle for wait -->
     <button
-      onclick={stopPropagation(onLock)}
+      onclick={(e) => {
+        e.stopPropagation();
+        onLock();
+      }}
       title={isLocked ? "Unlock wait" : "Lock wait"}
       aria-label={isLocked ? "Unlock wait" : "Lock wait"}
       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
@@ -181,7 +182,10 @@
     <!-- Delete slot (hidden when locked) -->
     {#if !isLocked}
       <button
-        onclick={stopPropagation(onDelete)}
+        onclick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
         title="Delete wait"
         aria-label="Delete wait"
         class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded transition-colors text-neutral-400 hover:text-red-600 hover:bg-neutral-50 dark:hover:bg-neutral-800"

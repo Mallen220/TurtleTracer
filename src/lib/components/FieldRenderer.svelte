@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { onMount, onDestroy } from "svelte";
   import { get } from "svelte/store";
   import Two from "two.js";
@@ -2054,7 +2052,7 @@
         height / 2 - (baseSize * scaleFactor) / 2 + pan.y,
       ]),
   );
-  run(() => {
+  $effect(() => {
     fieldViewStore.set({ xScale: x, yScale: y, width, height });
   });
   let lines = $derived($linesStore);
@@ -2083,13 +2081,13 @@
   );
   let robotXY = $derived($robotXYStore);
   // Follow Robot Logic (Reactive for scrubbing/stepping)
-  run(() => {
+  $effect(() => {
     if ($followRobotStore && robotXY && !$playingStore) {
       panToField(robotXY.x, robotXY.y);
     }
   });
   // Resume Follow on Play Logic
-  run(() => {
+  $effect(() => {
     if ($playingStore && settings.followRobot) {
       followRobotStore.set(true);
     }
@@ -2110,7 +2108,7 @@
   // This ensures generated code (and any UI showing `startDeg`) updates as the
   // start position or first path changes — fixing cases where heading looked
   // "locked" to an old value after moving the start point.
-  run(() => {
+  $effect(() => {
     if (
       startPoint &&
       startPoint.heading === "linear" &&
@@ -2134,7 +2132,7 @@
   let isLiveTelemetryVisible = $derived($showTelemetry);
   let isImportedGhostVisible = $derived($showTelemetryGhost);
   // Compute imported ghost robot from imported telemetry data and time offset.
-  run(() => {
+  $effect(() => {
     if (
       $importedTelemetryData &&
       $importedTelemetryData.length > 0 &&
@@ -2354,7 +2352,7 @@
     ),
   );
   // Render Loop
-  run(() => {
+  $effect(() => {
     if (two) {
       $pluginRedrawTrigger; // Subscribe to plugin redraw requests
 

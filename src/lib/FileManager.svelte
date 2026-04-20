@@ -3,14 +3,6 @@
 </script>
 
 <script lang="ts">
-  import {
-    run,
-    createBubbler,
-    preventDefault,
-    stopPropagation,
-  } from "svelte/legacy";
-
-  const bubble = createBubbler();
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
   import { get } from "svelte/store";
@@ -1088,34 +1080,34 @@
       return parts.join("/") || "/";
     },
   };
-  run(() => {
+  $effect(() => {
     if ($fileManagerNewFileMode) {
       creatingNewFile = true;
       fileManagerNewFileMode.set(false);
     }
   });
-  run(() => {
+  $effect(() => {
     if (creatingNewFile) {
       // Focus the input after it renders
       tick().then(() => newFileInput?.focus());
     }
   });
-  run(() => {
+  $effect(() => {
     if (creatingNewFolder) {
       tick().then(() => newFolderInput?.focus());
     }
   });
-  run(() => {
+  $effect(() => {
     if (currentDirectory) {
       currentDirectoryStore.set(currentDirectory);
     }
   });
   // Persist session state when changed
-  run(() => {
+  $effect(() => {
     fileManagerSessionState.set({ searchQuery, viewMode, sortMode });
   });
   // Sync sortMode to settings only after initialization and persist it
-  run(() => {
+  $effect(() => {
     if (sortModeInitialized && settings && sortMode) {
       if (settings.fileManagerSortMode !== sortMode) {
         settings.fileManagerSortMode = sortMode;
@@ -1133,7 +1125,7 @@
     }
   });
   // Update filtered files whenever files or searchQuery changes
-  run(() => {
+  $effect(() => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filteredFiles = files.filter((f) => f.name.toLowerCase().includes(q));
@@ -1141,7 +1133,7 @@
       filteredFiles = [...files];
     }
   });
-  run(() => {
+  $effect(() => {
     if (sortMode) {
       sortFiles();
     }
@@ -1197,8 +1189,14 @@
     role="presentation"
     ondragstart={() => (isDraggingPath = true)}
     ondragend={() => (isDraggingPath = false)}
-    ondragover={stopPropagation(preventDefault(bubble("dragover")))}
-    ondrop={stopPropagation(preventDefault(bubble("drop")))}
+    ondragover={(e) => {
+      e.stopPropagation();
+      e.preventDefault();
+    }}
+    ondrop={(e) => {
+      e.stopPropagation();
+      e.preventDefault();
+    }}
   >
     <!-- Resizer Handle -->
     <button

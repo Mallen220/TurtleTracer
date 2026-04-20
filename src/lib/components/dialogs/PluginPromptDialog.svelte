@@ -1,7 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { tick } from "svelte";
 
   interface Props {
@@ -44,7 +42,7 @@
 
   // Reset value when dialog opens
   let wasShown = $state(false);
-  run(() => {
+  $effect(() => {
     if (show && !wasShown) {
       wasShown = true;
       value = defaultText || "";
@@ -56,7 +54,7 @@
       });
     }
   });
-  run(() => {
+  $effect(() => {
     if (!show) {
       wasShown = false;
     }
