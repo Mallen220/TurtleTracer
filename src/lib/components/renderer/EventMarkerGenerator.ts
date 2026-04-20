@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
 import type { Line, Point, SequenceItem } from "../../../types";
-import { getCurvePoint } from "../../../utils/math";
+import { getCurvePoint, findClosestT, interpolateTFromProfile, easeInOutQuad } from "../../../utils/math";
 
 import { type RenderContext } from "./GeneratorUtils";
 
@@ -58,23 +58,36 @@ export function generateEventMarkerElements(
 
       let t = 0;
       if (ev.type === "temporal") {
-        const lineDuration = 2000; // Simplified estimation for UI only when detailed prediction missing
-        t = Math.max(0, Math.min(1, (ev.time ?? 500) / lineDuration));
+        const markerTime = ev.endTime ?? ev.time ?? 500;
+        const lineDuration = 2000;
+        t = Math.max(0, Math.min(1, markerTime / lineDuration));
 
-        // Use timePrediction if available
+        // Use timePrediction if available for absolute positioning
         if (timePrediction?.timeline) {
           const matchingEvent = timePrediction.timeline.find(
-            (e: any) => e.type === "travel" && e.line?.id === line.id,
+            (e: any) => e.type === "travel" && e.line && e.line.id === line.id,
           );
-          if (matchingEvent?.duration) {
-            t = Math.max(
-              0,
-              Math.min(1, (ev.time ?? 500) / matchingEvent.duration),
-            );
+          if (matchingEvent && matchingEvent.duration) {
+            // Calculate relative time within the segment
+            const relTime = Math.max(0, markerTime / 1000 - matchingEvent.startTime);
+            
+            if (matchingEvent.motionProfile && matchingEvent.motionProfile.length > 0) {
+              t = interpolateTFromProfile(relTime, matchingEvent.motionProfile);
+            } else {
+              // Fallback to quadratic easing to match robot playback
+              const timeProgress = Math.max(0, Math.min(1, relTime / matchingEvent.duration));
+              t = easeInOutQuad(timeProgress);
+            }
           }
         }
       } else if (ev.type === "pose") {
-        t = Math.max(0, Math.min(1, ev.poseGuess ?? 0.5));
+        if (ev.poseGuess !== undefined) {
+          t = Math.max(0, Math.min(1, ev.poseGuess));
+        } else {
+          // Auto-calculate best guess
+          const cps = [_startPoint, ...line.controlPoints, line.endPoint];
+          t = findClosestT({ x: ev.poseX ?? 0, y: ev.poseY ?? 0 }, cps);
+        }
       } else {
         t = Math.max(0, Math.min(1, ev.position ?? 0.5));
       }
@@ -85,14 +98,16 @@ export function generateEventMarkerElements(
         // Just render at the pose coordinates
         pos.x = ev.poseX ?? 0;
         pos.y = ev.poseY ?? 0;
-      } else if (line.controlPoints.length > 0) {
-        const cps = [_startPoint, ...line.controlPoints, line.endPoint];
-        const pt = getCurvePoint(t, cps);
-        pos.x = pt.x;
-        pos.y = pt.y;
       } else {
-        pos.x = _startPoint.x + (line.endPoint.x - _startPoint.x) * t;
-        pos.y = _startPoint.y + (line.endPoint.y - _startPoint.y) * t;
+        if (line.controlPoints.length > 0) {
+          const cps = [_startPoint, ...line.controlPoints, line.endPoint];
+          const pt = getCurvePoint(t, cps);
+          pos.x = pt.x;
+          pos.y = pt.y;
+        } else {
+          pos.x = _startPoint.x + (line.endPoint.x - _startPoint.x) * t;
+          pos.y = _startPoint.y + (line.endPoint.y - _startPoint.y) * t;
+        }
       }
 
       const px = x(pos.x);

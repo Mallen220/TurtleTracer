@@ -426,3 +426,46 @@ export function getLineEndHeading(
     line.endPoint,
   );
 }
+
+/**
+ * Finds the parametric value t [0, 1] on a Bezier curve (defined by points) 
+ * that is closest to the given target point.
+ */
+export function findClosestT(target: Point2D, points: Point2D[], iterations: number = 3): number {
+  let bestT = 0;
+  let minDistance = Infinity;
+  
+  // Coarse search
+  const samples = 20;
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples;
+    const pt = getCurvePoint(t, points);
+    const dist = getDistance(target, pt);
+    if (dist < minDistance) {
+      minDistance = dist;
+      bestT = t;
+    }
+  }
+  
+  // Refinement
+  let range = 1 / samples;
+  for (let iter = 0; iter < iterations; iter++) {
+    const startT = Math.max(0, bestT - range);
+    const endT = Math.min(1, bestT + range);
+    if (endT <= startT) break;
+    
+    const step = (endT - startT) / 10;
+    for (let i = 0; i <= 10; i++) {
+      const t = startT + i * step;
+      const pt = getCurvePoint(t, points);
+      const dist = getDistance(target, pt);
+      if (dist < minDistance) {
+        minDistance = dist;
+        bestT = t;
+      }
+    }
+    range = step;
+  }
+  
+  return bestT;
+}

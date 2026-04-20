@@ -111,7 +111,8 @@ export interface EventMarker {
   name: string;
   type?: EventMarkerType; // Defaults to "parametric" if missing
   position: number; // 0-1 within the path segment (for parametric)
-  time?: number; // milliseconds (for temporal)
+  time?: number; // milliseconds (for temporal, legacy)
+  endTime?: number; // milliseconds (for temporal, absolute time from start)
   poseX?: number; // for pose
   poseY?: number; // for pose
   poseHeading?: number; // degrees, for pose

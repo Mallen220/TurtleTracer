@@ -297,6 +297,13 @@
     if (found && oldMarker) {
       // Update properties
       oldMarker.position = localPos;
+      
+      // Update endTime if temporal
+      if (oldMarker.type === "temporal") {
+        oldMarker.endTime = globalTime * 1000;
+        oldMarker.time = oldMarker.endTime; // Maintain legacy property
+      }
+
       // Remove old association fields
       delete oldMarker.lineIndex;
       delete oldMarker.waitId;
@@ -685,6 +692,7 @@
               {recordChange}
               {onPreviewChange}
               isActive={activeTab === tab.id}
+              {timePrediction}
             />
           </div>
         {/if}
