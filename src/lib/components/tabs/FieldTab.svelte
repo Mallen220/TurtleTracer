@@ -26,6 +26,7 @@
     recordChange: (description?: string) => void;
     onPreviewChange?: ((lines: Line[] | null) => void) | null;
     isActive?: boolean;
+    timePrediction?: any;
   }
 
   let {
@@ -39,6 +40,7 @@
     recordChange,
     onPreviewChange = null,
     isActive = false,
+    timePrediction,
   }: Props = $props();
 
   // Local state for optimization
@@ -216,6 +218,7 @@
     bind:sequence
     bind:lines
     bind:collapsedMarkers={collapsedSections.globalMarkers}
+    {timePrediction}
   />
 
   <ObstaclesSection

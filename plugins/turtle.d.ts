@@ -111,10 +111,20 @@ type Point = BasePoint &
 
 type ControlPoint = BasePoint;
 
+type EventMarkerType = "parametric" | "temporal" | "pose";
+
 interface EventMarker {
   id: string;
   name: string;
-  position: number; // 0-1 within the path segment
+  type?: EventMarkerType; // Defaults to "parametric" if missing
+  position: number; // 0-1 within the path segment (for parametric)
+  time?: number; // milliseconds (for temporal, legacy)
+  endTime?: number; // milliseconds (for temporal, absolute time from start)
+  poseX?: number; // for pose
+  poseY?: number; // for pose
+  poseHeading?: number; // degrees, for pose
+  poseGuess?: number; // 0-1, initial guess for parametric t-value of closest point (for pose)
+
   // For path-based markers, the index of the line in `lines`
   lineIndex?: number;
   // For wait-based markers, the id of the wait in `sequence`

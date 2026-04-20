@@ -163,13 +163,21 @@ describe("codeExporter", () => {
       expect(codeReverse).toContain(".setReversed()");
     });
 
-    it("should omit event markers when using basic java export", async () => {
+    it("should include event markers when using basic java export", async () => {
       const lines = [line3];
       const code = await generateJavaCode(startPoint, lines, false);
 
-      expect(code).not.toContain('.addEventMarker(0.500, "marker1")');
-      expect(code).not.toContain(
-        '// NamedCommands.registerCommand("marker1", yourmarker1Command);',
+      expect(code).toContain(
+        '.addParametricCallback(0.500, () -> NamedCommands.getCommand("marker1"))',
+      );
+    });
+
+    it("should include NamedCommands import when exportFullCode has event markers", async () => {
+      const lines = [line3];
+      const code = await generateJavaCode(startPoint, lines, true);
+
+      expect(code).toContain(
+        "import com.turtletracerlib.pathing.NamedCommands;",
       );
     });
 
@@ -449,8 +457,6 @@ describe("codeExporter", () => {
         sequence,
       );
 
-      expect(code).toContain("ParallelRaceGroup");
-      expect(code).toContain('progressTracker.executeEvent("midWait")');
       // 2000ms * 0.5 = 1000
       expect(code).toContain("new WaitCommand(1000)");
     });

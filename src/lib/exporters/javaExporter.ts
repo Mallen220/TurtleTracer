@@ -5,6 +5,7 @@ import type { Point, Line, SequenceItem, TurtleData } from "../../types";
 import { getLineStartHeading } from "../../utils/math";
 import pkg from "../../../package.json";
 import { actionRegistry } from "../../lib/actionRegistry";
+import { generateEventMarkerCode } from "./eventMarkerUtils";
 import {
   toUser,
   toUserHeading,
@@ -12,13 +13,10 @@ import {
 } from "../../utils/coordinates";
 
 import { exporterRegistry } from "./index";
-import { notification } from "../../stores";
 
 /**
  * Generate Java code from path data
  */
-
-let hasWarnedAboutEventMarkers = false;
 
 const AUTO_GENERATED_FILE_WARNING_MESSAGE: string = `
 /* ============================================================= *
@@ -47,13 +45,6 @@ export async function generateJavaCode(
     tangential: "setTangentHeadingInterpolation",
   };
 
-  // Collect all unique event marker names
-  const eventMarkerNames = new Set<string>();
-  lines.forEach((line) => {
-    line.eventMarkers?.forEach((event) => {
-      eventMarkerNames.add(event.name);
-    });
-  });
   const flattenSequence = (seq: SequenceItem[]): SequenceItem[] => {
     const result: SequenceItem[] = [];
     seq.forEach((item) => {
@@ -67,27 +58,6 @@ export async function generateJavaCode(
     });
     return result;
   };
-
-  if (sequence) {
-    const flatSeq = flattenSequence(sequence);
-    flatSeq.forEach((item) => {
-      if ((item as any).kind === "wait" && (item as any).eventMarkers) {
-        (item as any).eventMarkers.forEach((event: any) => {
-          eventMarkerNames.add(event.name);
-        });
-      }
-    });
-  }
-
-  if (eventMarkerNames.size > 0 && !hasWarnedAboutEventMarkers) {
-    notification.set({
-      message:
-        "Event markers are not supported in basic Java export yet. They have been omitted from the generated code.",
-      type: "warning",
-      timeout: 5000,
-    });
-    hasWarnedAboutEventMarkers = true;
-  }
 
   const pathChainNames: string[] = [];
   const usedPathNames = new Map<string, number>();
@@ -108,6 +78,26 @@ export async function generateJavaCode(
     pathChainNames.push(baseName);
   });
 
+  // Pre-calculate chain information
+  const chainInfos = lines.map((line, idx) => {
+    let rootIdx = idx;
+    if (line.isChain) {
+      for (let i = idx; i >= 0; i--) {
+        if (!lines[i].isChain) {
+          rootIdx = i;
+          break;
+        }
+      }
+    }
+    let totalInChain = 1;
+    for (let i = rootIdx + 1; i < lines.length; i++) {
+      if (lines[i].isChain) totalInChain++;
+      else break;
+    }
+    let localIdx = idx - rootIdx;
+    return { localIdx, totalInChain };
+  });
+
   let pathsClass = `
   public static class Paths {
     ${pathChainNames
@@ -117,7 +107,7 @@ export async function generateJavaCode(
       })
       .filter(Boolean)
       .join("\n")}
-    
+
     public Paths(Follower follower) {
       ${(() => {
         const pathData = lines.map((line, idx) => {
@@ -389,7 +379,16 @@ export async function generateJavaCode(
           }
 
           // Add event markers to the path builder
-          let eventMarkerCode = "";
+          const _startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+          const _cps = [_startPt, ...line.controlPoints, line.endPoint];
+          const _info = chainInfos[idx];
+          const eventMarkerCode = generateEventMarkerCode(
+            line.eventMarkers,
+            "        ",
+            _cps,
+            _info.localIdx,
+            _info.totalInChain,
+          );
 
           return {
             line,
@@ -539,22 +538,28 @@ export async function generateJavaCode(
 
   let file = "";
   if (exportFullCode) {
-    // Determine imports based on telemetry implementation
-    let extraImports = "";
-    if (telemetryImpl === "Panels") {
-      extraImports = `
+      const hasEventMarkers = lines.some((line) => line.eventMarkers && line.eventMarkers.length > 0);
+
+      // Determine imports based on telemetry implementation
+      let extraImports = "";
+      if (telemetryImpl === "Panels") {
+        extraImports = `
     import com.bylazar.configurables.annotations.Configurable;
     import com.bylazar.telemetry.TelemetryManager;
     import com.bylazar.telemetry.PanelsTelemetry;`;
-    } else if (telemetryImpl === "Dashboard") {
-      extraImports = `
+      } else if (telemetryImpl === "Dashboard") {
+        extraImports = `
     import com.acmerobotics.dashboard.FtcDashboard;
     import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
     import org.firstinspires.ftc.robotcore.external.Telemetry;`;
-    }
+      }
 
-    const classAnnotations =
-      telemetryImpl === "Panels" ? "@Configurable // Panels" : "";
+      const namedCommandsImport = hasEventMarkers
+        ? "import com.turtletracerlib.pathing.NamedCommands;\n"
+        : "";
+
+      const classAnnotations =
+        telemetryImpl === "Panels" ? "@Configurable // Panels" : "";
 
     let telemetryField = "";
     if (telemetryImpl === "Panels") {
@@ -651,7 +656,7 @@ export async function generateJavaCode(
     import com.pedropathing.geometry.PedroCoordinates;
     import org.firstinspires.ftc.teamcode.pedroPathing.PedroConstants;
     import com.pedropathing.ftc.PoseConverter;
-    ${extraImports}
+    ${namedCommandsImport}${extraImports}
     import com.pedropathing.geometry.BezierCurve;
     import com.pedropathing.geometry.BezierLine;
     import com.pedropathing.follower.Follower;

@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
 import type { Line, Point, SequenceItem } from "../../../types";
-import { getCurvePoint } from "../../../utils/math";
+import { getCurvePoint, findClosestT, interpolateTFromProfile, easeInOutQuad } from "../../../utils/math";
 
 import { type RenderContext } from "./GeneratorUtils";
 
@@ -56,17 +56,60 @@ export function generateEventMarkerElements(
       const radius = isHovered ? 1.8 : 0.9;
       const color = isHovered ? "#a78bfa" : "#c4b5fd";
 
-      const t = Math.max(0, Math.min(1, ev.position ?? 0.5));
-      let pos = { x: 0, y: 0 };
-      if (line.controlPoints.length > 0) {
-        const cps = [_startPoint, ...line.controlPoints, line.endPoint];
-        const pt = getCurvePoint(t, cps);
-        pos.x = pt.x;
-        pos.y = pt.y;
+      let t = 0;
+      if (ev.type === "temporal") {
+        const markerTime = ev.endTime ?? ev.time ?? 500;
+        const lineDuration = 2000;
+        t = Math.max(0, Math.min(1, markerTime / lineDuration));
+
+        // Use timePrediction if available for absolute positioning
+        if (timePrediction?.timeline) {
+          const matchingEvent = timePrediction.timeline.find(
+            (e: any) => e.type === "travel" && e.line && e.line.id === line.id,
+          );
+          if (matchingEvent && matchingEvent.duration) {
+            // Calculate relative time within the segment
+            const relTime = Math.max(0, markerTime / 1000 - matchingEvent.startTime);
+            
+            if (matchingEvent.motionProfile && matchingEvent.motionProfile.length > 0) {
+              t = interpolateTFromProfile(relTime, matchingEvent.motionProfile);
+            } else {
+              // Fallback to quadratic easing to match robot playback
+              const timeProgress = Math.max(0, Math.min(1, relTime / matchingEvent.duration));
+              t = easeInOutQuad(timeProgress);
+            }
+          }
+        }
+      } else if (ev.type === "pose") {
+        if (ev.poseGuess !== undefined) {
+          t = Math.max(0, Math.min(1, ev.poseGuess));
+        } else {
+          // Auto-calculate best guess
+          const cps = [_startPoint, ...line.controlPoints, line.endPoint];
+          t = findClosestT({ x: ev.poseX ?? 0, y: ev.poseY ?? 0 }, cps);
+        }
       } else {
-        pos.x = _startPoint.x + (line.endPoint.x - _startPoint.x) * t;
-        pos.y = _startPoint.y + (line.endPoint.y - _startPoint.y) * t;
+        t = Math.max(0, Math.min(1, ev.position ?? 0.5));
       }
+
+      let pos = { x: 0, y: 0 };
+
+      if (ev.type === "pose") {
+        // Just render at the pose coordinates
+        pos.x = ev.poseX ?? 0;
+        pos.y = ev.poseY ?? 0;
+      } else {
+        if (line.controlPoints.length > 0) {
+          const cps = [_startPoint, ...line.controlPoints, line.endPoint];
+          const pt = getCurvePoint(t, cps);
+          pos.x = pt.x;
+          pos.y = pt.y;
+        } else {
+          pos.x = _startPoint.x + (line.endPoint.x - _startPoint.x) * t;
+          pos.y = _startPoint.y + (line.endPoint.y - _startPoint.y) * t;
+        }
+      }
+
       const px = x(pos.x);
       const py = y(pos.y);
       let grp = new Two.Group();

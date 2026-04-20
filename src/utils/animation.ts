@@ -4,6 +4,7 @@ import {
   easeInOutQuad,
   shortestRotation,
   radiansToDegrees,
+  interpolateTFromProfile,
 } from "./math";
 import { getRobotCorners } from "./geometry";
 import type { Point, Line, TimelineEvent, BasePoint } from "../types";
@@ -126,47 +127,35 @@ export function calculateRobotState(
 
     // Use detailed motion profile if available
     if (activeEvent.motionProfile && activeEvent.motionProfile.length > 0) {
-      const profile = activeEvent.motionProfile;
       const relativeTime = Math.max(0, currentSeconds - activeEvent.startTime);
-      const profileEndTime = profile[profile.length - 1];
+      linePercent = interpolateTFromProfile(
+        relativeTime,
+        activeEvent.motionProfile,
+      );
 
-      if (relativeTime >= profileEndTime) {
-        linePercent = 1;
-        if (
-          activeEvent.headingProfile &&
-          activeEvent.headingProfile.length > 0
-        ) {
-          interpolatedHeading =
-            activeEvent.headingProfile[activeEvent.headingProfile.length - 1];
-        }
-      } else {
-        // Find the segment in the profile
-        // Ensure i stops at length - 2 so i+1 is valid
+      if (
+        activeEvent.headingProfile &&
+        activeEvent.headingProfile.length === activeEvent.motionProfile.length
+      ) {
+        // Find the index for heading interpolation (we need the same 'i' and 'localProgress' used in interpolateTFromProfile)
+        // Since we want to stay smooth, let's re-calculate local values here or refine the utility.
+        // For now, we'll just repeat the small loop for heading specifically.
+        const profile = activeEvent.motionProfile;
         let i = 0;
         while (i < profile.length - 2 && relativeTime > profile[i + 1]) {
           i++;
         }
-
-        // Interpolate t
-        const tStart = i / (profile.length - 1);
-        const tEnd = (i + 1) / (profile.length - 1);
         const timeStart = profile[i];
         const timeEnd = profile[i + 1];
-
         let localProgress = 0;
         if (timeEnd > timeStart) {
           localProgress = (relativeTime - timeStart) / (timeEnd - timeStart);
         }
 
-        linePercent = tStart + localProgress * (tEnd - tStart);
-
-        if (activeEvent.headingProfile?.length === profile.length) {
-          const hStart = activeEvent.headingProfile[i];
-          const hEnd = activeEvent.headingProfile[i + 1];
-          // Linear interpolation of unwrapped heading
-          if (Number.isFinite(hStart) && Number.isFinite(hEnd)) {
-            interpolatedHeading = hStart + (hEnd - hStart) * localProgress;
-          }
+        const hStart = activeEvent.headingProfile[i];
+        const hEnd = activeEvent.headingProfile[i + 1];
+        if (Number.isFinite(hStart) && Number.isFinite(hEnd)) {
+          interpolatedHeading = hStart + (hEnd - hStart) * localProgress;
         }
       }
     } else {

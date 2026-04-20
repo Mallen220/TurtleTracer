@@ -297,6 +297,13 @@
     if (found && oldMarker) {
       // Update properties
       oldMarker.position = localPos;
+      
+      // Update endTime if temporal
+      if (oldMarker.type === "temporal") {
+        oldMarker.endTime = globalTime * 1000;
+        oldMarker.time = oldMarker.endTime; // Maintain legacy property
+      }
+
       // Remove old association fields
       delete oldMarker.lineIndex;
       delete oldMarker.waitId;
@@ -522,8 +529,12 @@
               if (ev.motionProfile) {
                 const steps = ev.motionProfile.length - 1;
                 if (steps > 0) {
-                  const idx = Math.min(Math.floor(m.position * steps), steps);
-                  timeOffset = ev.motionProfile[idx];
+                  const rawIdx = m.position * steps;
+                  const i = Math.min(Math.floor(rawIdx), steps - 1);
+                  const f = rawIdx - i;
+                  const t0 = ev.motionProfile[i];
+                  const t1 = ev.motionProfile[i + 1];
+                  timeOffset = t0 + f * (t1 - t0);
                 }
               } else {
                 timeOffset = ev.duration * m.position;
@@ -681,6 +692,7 @@
               {recordChange}
               {onPreviewChange}
               isActive={activeTab === tab.id}
+              {timePrediction}
             />
           </div>
         {/if}

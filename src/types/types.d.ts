@@ -275,10 +275,18 @@ interface Shape {
   locked?: boolean;
 }
 
+type EventMarkerType = "parametric" | "temporal" | "pose";
+
 interface EventMarker {
   id: string;
   name: string;
+  type?: EventMarkerType;
   position: number; // 0-1 within the path segment
+  time?: number; // milliseconds
+  poseX?: number;
+  poseY?: number;
+  poseHeading?: number;
+  poseGuess?: number;
   lineIndex: number;
   parameters?: Record<string, any>; // Optional parameters for the command
 }

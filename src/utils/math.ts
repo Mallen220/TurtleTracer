@@ -22,6 +22,38 @@ export function easeInOutQuad(x: number): number {
   return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
 }
 
+/**
+ * Interpolates the parametric value 't' [0, 1] from a motion profile.
+ * The motion profile is an array of timestamps corresponding to uniform steps in 't'.
+ */
+export function interpolateTFromProfile(
+  relativeTime: number,
+  profile: number[],
+): number {
+  if (!profile || profile.length < 2) return 0;
+
+  const profileEndTime = profile[profile.length - 1];
+  if (relativeTime >= profileEndTime) return 1;
+  if (relativeTime <= 0) return 0;
+
+  let i = 0;
+  while (i < profile.length - 2 && relativeTime > profile[i + 1]) {
+    i++;
+  }
+
+  const tStart = i / (profile.length - 1);
+  const tEnd = (i + 1) / (profile.length - 1);
+  const timeStart = profile[i];
+  const timeEnd = profile[i + 1];
+
+  let localProgress = 0;
+  if (timeEnd > timeStart) {
+    localProgress = (relativeTime - timeStart) / (timeEnd - timeStart);
+  }
+
+  return tStart + localProgress * (tEnd - tStart);
+}
+
 function normalizeAngle(angle: number): number {
   return ((angle % 360) + 360) % 360;
 }
@@ -393,4 +425,47 @@ export function getLineEndHeading(
     effectiveSource.heading === "facingPoint" ? line.endPoint : prevP,
     line.endPoint,
   );
+}
+
+/**
+ * Finds the parametric value t [0, 1] on a Bezier curve (defined by points) 
+ * that is closest to the given target point.
+ */
+export function findClosestT(target: Point2D, points: Point2D[], iterations: number = 3): number {
+  let bestT = 0;
+  let minDistance = Infinity;
+  
+  // Coarse search
+  const samples = 20;
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples;
+    const pt = getCurvePoint(t, points);
+    const dist = getDistance(target, pt);
+    if (dist < minDistance) {
+      minDistance = dist;
+      bestT = t;
+    }
+  }
+  
+  // Refinement
+  let range = 1 / samples;
+  for (let iter = 0; iter < iterations; iter++) {
+    const startT = Math.max(0, bestT - range);
+    const endT = Math.min(1, bestT + range);
+    if (endT <= startT) break;
+    
+    const step = (endT - startT) / 10;
+    for (let i = 0; i <= 10; i++) {
+      const t = startT + i * step;
+      const pt = getCurvePoint(t, points);
+      const dist = getDistance(target, pt);
+      if (dist < minDistance) {
+        minDistance = dist;
+        bestT = t;
+      }
+    }
+    range = step;
+  }
+  
+  return bestT;
 }
