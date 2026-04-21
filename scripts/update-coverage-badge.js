@@ -31,7 +31,7 @@ async function main() {
   }
 
   const summary = JSON.parse(summaryContent);
-  const pct = summary.total.functions.pct;
+  const pct = summary.total.branches?.pct ?? summary.total.functions?.pct;
 
   if (typeof pct !== "number") {
     console.error("Invalid coverage summary format.");
@@ -50,7 +50,7 @@ async function main() {
   await downloadBadge(badgeUrl, badgeOutputPath);
 
   const relativeBadgePath = "README_Content/coverage-badge.svg";
-  const replacement = `  <!-- COVERAGE_BADGE_START -->\n  <a href="coverage/index.html">\n    <img src="${relativeBadgePath}" alt="Function Coverage: ${pct}%" height="20">\n  </a>\n  <!-- COVERAGE_BADGE_END -->`;
+  const replacement = `  <!-- COVERAGE_BADGE_START -->\n  <a href="coverage/index.html">\n    <img src="${relativeBadgePath}" alt="Branch Coverage: ${pct}%" height="20">\n  </a>\n  <!-- COVERAGE_BADGE_END -->`;
 
   const readme = await fs.readFile(readmePath, "utf8");
 
