@@ -411,6 +411,45 @@
         focusRequest.set({ field: "x", timestamp: Date.now(), id: sel });
       }
     },
+    selectAll: () => {
+      if (
+        document.activeElement &&
+        ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)
+      ) {
+        return;
+      }
+
+      if ($linesStore.length === 0) return;
+
+      const allLineIds = $linesStore.map((l) => l.id as string).filter(Boolean);
+      const allPointIds: string[] = [];
+
+      $linesStore.forEach((l, i) => {
+        const lineNum = i + 1;
+        // Include start point if it's the very first line
+        if (i === 0) {
+          allPointIds.push("point-0-0");
+        }
+        // Points are actually represented by the line's endPoint and controlPoints.
+        // There is 1 endPoint at index 0, and controlPoints at 1..N.
+        const numPoints = 1 + (l.controlPoints ? l.controlPoints.length : 0);
+        for (let pIdx = 0; pIdx < numPoints; pIdx++) {
+          allPointIds.push(`point-${lineNum}-${pIdx}`);
+        }
+      });
+
+      multiSelectedLineIds.set(allLineIds);
+      multiSelectedPointIds.set(allPointIds);
+
+      // Focus the last element
+      const lastLine = $linesStore[$linesStore.length - 1];
+      if (lastLine) {
+        const numPoints =
+          1 + (lastLine.controlPoints ? lastLine.controlPoints.length : 0);
+        selectedLineId.set(lastLine.id || null);
+        selectedPointId.set(`point-${$linesStore.length}-${numPoints - 1}`);
+      }
+    },
     deselectAll: () => {
       if ($showSettings) {
         showSettings.set(false);

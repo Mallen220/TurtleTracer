@@ -212,6 +212,13 @@ export const DEFAULT_KEY_BINDINGS: KeyBinding[] = [
     category: "Editing",
   },
   {
+    id: "select-all",
+    key: "cmd+a, ctrl+a",
+    description: "Select all paths/points",
+    action: "selectAll",
+    category: "Editing",
+  },
+  {
     id: "deselect-all",
     key: "escape",
     description: "Deselect all",
