@@ -181,8 +181,8 @@
     }
   }
 
-  function handleMarkerChange(e: CustomEvent) {
-    const { id, percent } = e.detail;
+  function handleMarkerChange(detail: { id: string; percent: number }) {
+    const { id, percent } = detail;
     if (!timePrediction || timePrediction.totalTime <= 0) return;
 
     const globalTime = (percent / 100) * timePrediction.totalTime;
@@ -326,8 +326,8 @@
     }
   }
 
-  function handleMarkerAction(e: CustomEvent) {
-    const { id, action } = e.detail;
+  function handleMarkerAction(detail: { id: string; action: string }) {
+    const { id, action } = detail;
     if (action === "delete") {
       let found = false;
 
@@ -714,8 +714,8 @@
       {totalSeconds}
       {settings}
       {splitPath}
-      on:markerChange={handleMarkerChange}
-      on:markerAction={handleMarkerAction}
+      onmarkerChange={handleMarkerChange}
+      onmarkerAction={handleMarkerAction}
     />
   </div>
 </div>

@@ -5,7 +5,7 @@
   import { cubicInOut } from "svelte/easing";
   import { menuNavigation } from "../actions/menuNavigation";
   import { formatTime, getShortcutFromSettings } from "../../utils";
-  import { createEventDispatcher, onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { loopRangeActiveStore, loopRangeStore } from "../../lib/projectStore";
   import ContextMenu from "./tools/ContextMenu.svelte";
   import {
@@ -45,6 +45,8 @@
     totalSeconds?: number;
     settings: Settings | undefined;
     splitPath?: () => void;
+    onmarkerChange?: (data: { id: string; percent: number }) => void;
+    onmarkerAction?: (data: { id: string; action: string }) => void;
   }
 
   let {
@@ -60,9 +62,9 @@
     totalSeconds = 0,
     settings,
     splitPath = () => {},
+    onmarkerChange,
+    onmarkerAction,
   }: Props = $props();
-
-  const dispatch = createEventDispatcher();
 
   // Speed dropdown state & helpers
   let showSpeedMenu = $state(false);
@@ -316,7 +318,7 @@
     if (draggingMarkerIndex !== null) {
       // Commit change
       if (draggingMarkerId) {
-        dispatch("markerChange", {
+        onmarkerChange?.({
           id: draggingMarkerId,
           percent: draggingMarkerPercent,
         });
@@ -346,7 +348,7 @@
 
   function handleContextMenuAction(action: string) {
     if (contextMenuTargetId) {
-      dispatch("markerAction", { id: contextMenuTargetId, action });
+      onmarkerAction?.({ id: contextMenuTargetId, action });
     }
     showContextMenu = false;
   }
