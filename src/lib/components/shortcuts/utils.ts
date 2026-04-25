@@ -32,6 +32,7 @@ export function shouldBlockShortcut(
   // Whitelist specific actions that should work even when input is focused
   if (
     actionId === "toggle-command-palette" ||
+    actionId === "show-help" ||
     actionId === "cycle-tabs-next" ||
     actionId === "cycle-tabs-prev" ||
     actionId === "select-code-tab" ||
