@@ -53,7 +53,9 @@ export function shouldBlockShortcut(
     actionId === "pan-view-left" ||
     actionId === "pan-view-right" ||
     actionId === "pan-start" ||
-    actionId === "pan-end"
+    actionId === "pan-end" ||
+    actionId === "toggle-lock-field-view" ||
+    actionId === "toggle-continuous-validation"
   )
     return false;
   if (e.key === "Escape") return false;
