@@ -34,6 +34,7 @@ import {
   QuestionMarkIcon,
   PhotoIcon,
   ExportGifIcon,
+  SearchIcon,
   RobotPlaceholderIcon,
 } from "../lib/components/icons";
 
@@ -55,6 +56,13 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     type: "system",
     shortcutKey: "toggle-file-manager",
     iconComponent: FolderIcon,
+  },
+  {
+    id: "commandPalette",
+    label: "Command Palette",
+    type: "system",
+    shortcutKey: "toggle-command-palette",
+    iconComponent: SearchIcon,
   },
   {
     id: "undo",

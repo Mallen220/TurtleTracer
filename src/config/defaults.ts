@@ -193,6 +193,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showTelemetryTab: false,
   sidebarItems: [
     "fileManager",
+    "commandPalette",
     "separator",
     "undo",
     "history",
