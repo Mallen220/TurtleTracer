@@ -414,6 +414,7 @@
               disabled={idx === 0}
               class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Move up"
+              aria-label="Move up"
             >
               <ICONS.ChevronUpIcon className="size-4" />
             </button>
@@ -422,6 +423,7 @@
               disabled={idx === activeSidebarList.length - 1}
               class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Move down"
+              aria-label="Move down"
             >
               <ICONS.ChevronDownIcon className="size-4" />
             </button>
@@ -429,6 +431,7 @@
               onclick={() => removeSidebarItem(idx)}
               class="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
               title="Remove from sidebar"
+              aria-label="Remove from sidebar"
             >
               <ICONS.CloseIcon className="size-4" />
             </button>
@@ -716,6 +719,7 @@
                                     : 'bg-transparent border-transparent text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
                                   onclick={() => selectCustomIcon(iconDef.name)}
                                   title={iconDef.name}
+                                  aria-label={iconDef.name}
                                 >
                                   <iconDef.component
                                     className="size-5 shrink-0"

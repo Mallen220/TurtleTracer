@@ -256,6 +256,7 @@
                       onclick={() => (pluginToDelete = plugin)}
                       class="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                       title="Delete plugin"
+                      aria-label="Delete plugin"
                     >
                       <TrashIcon className="size-4" />
                     </button>

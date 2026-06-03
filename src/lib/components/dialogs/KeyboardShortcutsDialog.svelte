@@ -460,6 +460,7 @@
                           onclick={() => resetBinding(binding.id)}
                           class="text-xs text-neutral-400 hover:text-red-500 transition-colors"
                           title="Reset to default"
+                          aria-label="Reset to default"
                         >
                           <ArrowCircleIcon className="size-4" strokeWidth={2} />
                         </button>

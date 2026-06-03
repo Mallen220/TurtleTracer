@@ -372,6 +372,9 @@
                   title={feature.visible === false
                     ? "Show Feature"
                     : "Hide Feature"}
+                  aria-label={feature.visible === false
+                    ? "Show Feature"
+                    : "Hide Feature"}
                 >
                   {#if feature.visible === false}
                     <EyeSlashIcon className="w-4 h-4" />
@@ -386,6 +389,7 @@
                     removeFeature(feature.id);
                   }}
                   title="Remove Feature"
+                  aria-label="Remove Feature"
                 >
                   <CloseIcon className="w-4 h-4" />
                 </button>
