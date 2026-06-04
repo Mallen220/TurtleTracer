@@ -337,6 +337,7 @@
         onclick={() =>
           document.getElementById("settings-import-input")?.click()}
         title="Import Settings"
+        aria-label="Import Settings"
         class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-md transition-colors"
       >
         Import

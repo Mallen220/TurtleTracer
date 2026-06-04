@@ -570,6 +570,7 @@
                   onclick={() => removeTransition(i)}
                   class="text-red-500 hover:text-red-700 p-0.5 rounded hover:bg-red-500/10 transition-colors"
                   title="Remove Transition"
+                  aria-label="Remove Transition"
                 >
                   <TrashIcon className="size-3" />
                 </button>

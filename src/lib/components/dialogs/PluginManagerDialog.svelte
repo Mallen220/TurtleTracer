@@ -92,6 +92,7 @@
           <button
             onclick={() => (isOpen = false)}
             aria-label="Close"
+            title="Close"
             class="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
           >
             <CloseIcon className="size-6" />
@@ -256,6 +257,7 @@
                       onclick={() => (pluginToDelete = plugin)}
                       class="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                       title="Delete plugin"
+                      aria-label="Delete plugin"
                     >
                       <TrashIcon className="size-4" />
                     </button>

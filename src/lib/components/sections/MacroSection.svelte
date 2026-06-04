@@ -338,6 +338,7 @@
               }}
               class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium ${getSmallButtonClass(color)}`}
               title={`Add ${def.label} After`}
+              aria-label={`Add ${def.label} After`}
             >
               <PlusIcon className="size-3" />
               {def.label}

@@ -370,6 +370,7 @@
               onclick={() => moveTransform(i, -1)}
               disabled={i === 0}
               aria-label="Move transform up"
+              title="Move transform up"
               class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
             >
               <ChevronUpIcon className="size-3" />
@@ -378,6 +379,7 @@
               onclick={() => moveTransform(i, 1)}
               disabled={i === (macro.transformations?.length ?? 0) - 1}
               aria-label="Move transform down"
+              title="Move transform down"
               class="p-0.5 text-neutral-400 hover:text-neutral-600 disabled:opacity-0"
             >
               <ChevronDownIcon className="size-3" />
@@ -385,6 +387,7 @@
             <button
               onclick={() => removeTransform(i)}
               aria-label="Remove transform"
+              title="Remove transform"
               class="p-0.5 text-red-400 hover:text-red-600 ml-1"
             >
               <TrashIcon className="size-3" />

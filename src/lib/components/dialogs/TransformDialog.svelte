@@ -171,6 +171,7 @@
           onclick={() => (isOpen = false)}
           class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-md transition-colors"
           aria-label="Close"
+          title="Close"
         >
           <CloseIcon className="w-5 h-5 text-neutral-500" strokeWidth={2} />
         </button>

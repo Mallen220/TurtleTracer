@@ -634,6 +634,7 @@
                 }
               }}
               title="Jump to global source"
+              aria-label="Jump to global source"
             >
               <LinkIcon className="size-4 shrink-0 text-purple-500" />
               Overridden by Global Chain Heading

@@ -366,6 +366,7 @@
             onclick={() => (isOpen = false)}
             class="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors"
             aria-label="Close dialog"
+            title="Close dialog"
           >
             <CloseIcon className="size-6" />
           </button>
@@ -460,6 +461,7 @@
                           onclick={() => resetBinding(binding.id)}
                           class="text-xs text-neutral-400 hover:text-red-500 transition-colors"
                           title="Reset to default"
+                          aria-label="Reset to default"
                         >
                           <ArrowCircleIcon className="size-4" strokeWidth={2} />
                         </button>

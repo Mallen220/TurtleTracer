@@ -291,6 +291,7 @@
             document.getElementById("profile-import-input")?.click()}
           class="text-xs px-2 py-1 bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           aria-label="Import profile"
+          title="Import profile"
         >
           Import
         </button>
@@ -298,6 +299,7 @@
           onclick={() => (isCreating = true)}
           class="text-xs px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
           aria-label="Create new profile"
+          title="Create new profile"
         >
           + New Profile
         </button>

@@ -196,6 +196,7 @@
                 onclick={() => (viewMode = "features")}
                 class="p-1 -ml-1 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700"
                 aria-label="Back"
+                title="Back"
               >
                 <ChevronLeftIcon className="h-5 w-5" />
               </button>

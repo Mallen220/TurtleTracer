@@ -243,6 +243,7 @@
                 disabled={isSubmitting}
                 class="hover:scale-110 transition-transform focus:outline-none disabled:opacity-50"
                 aria-label="{star} star rating"
+                title="{star} star rating"
               >
                 <StarIcon
                   className="w-8 h-8 {rating >= star

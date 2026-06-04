@@ -640,6 +640,7 @@
             class={`px-3 py-1 rounded-md transition-all ${activeTab === "summary" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
             onclick={() => (activeTab = "summary")}
             aria-label="Summary view"
+            title="Summary view"
           >
             Summary
           </button>
@@ -647,6 +648,7 @@
             class={`px-3 py-1 rounded-md transition-all ${activeTab === "graphs" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
             onclick={() => (activeTab = "graphs")}
             aria-label="Graphs view"
+            title="Graphs view"
           >
             Graphs
           </button>
@@ -654,6 +656,7 @@
             class={`px-3 py-1 rounded-md transition-all ${activeTab === "insights" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
             onclick={() => (activeTab = "insights")}
             aria-label="Insights view"
+            title="Insights view"
           >
             Insights
           </button>

@@ -543,6 +543,7 @@
                 }}
                 class="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 rounded text-neutral-500 transition-colors"
                 aria-label="Close search"
+                title="Close search"
               >
                 <CloseIcon strokeWidth={2} className="size-4" />
               </button>
@@ -554,6 +555,7 @@
             onclick={() => (isOpen = false)}
             class="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label="Close export dialog"
+            title="Close export dialog"
           >
             <CloseIcon strokeWidth={2} className="size-5" />
           </button>
