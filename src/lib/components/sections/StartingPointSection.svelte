@@ -225,7 +225,7 @@
     >
     <button
       onclick={addPathAtStart}
-      aria-label="Add Path after start"
+      aria-label={`Add Path${getShortcutFromSettings(settings, "add-path-start")}`}
       title={`Add Path${getShortcutFromSettings(settings, "add-path-start")}`}
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors border border-green-200 dark:border-green-800/30 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
     >
@@ -234,7 +234,7 @@
     </button>
     <button
       onclick={addWaitAtStart}
-      aria-label="Add Wait after start"
+      aria-label={`Add Wait${getShortcutFromSettings(settings, "add-wait-start")}`}
       title={`Add Wait${getShortcutFromSettings(settings, "add-wait-start")}`}
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200 dark:border-amber-800/30 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
     >
@@ -243,7 +243,7 @@
     </button>
     <button
       onclick={addRotateAtStart}
-      aria-label="Add Rotate after start"
+      aria-label={`Add Rotate${getShortcutFromSettings(settings, "add-rotate-start")}`}
       title={`Add Rotate${getShortcutFromSettings(settings, "add-rotate-start")}`}
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors border border-pink-200 dark:border-pink-800/30 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-1 dark:focus:ring-offset-neutral-900"
     >

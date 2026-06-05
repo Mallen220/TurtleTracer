@@ -367,8 +367,8 @@
             : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
         >
           <button
-            title={`${item.label}${item.shortcutKey ? getShortcutFromSettings(settings, item.shortcutKey) : ""}`}
-            aria-label={item.label}
+            title={item.shortcutKey && settings.keyBindings ? `${item.label}${getShortcutFromSettings(settings, item.shortcutKey)}` : item.label}
+            aria-label={item.shortcutKey && settings.keyBindings ? `${item.label}${getShortcutFromSettings(settings, item.shortcutKey)}` : item.label}
             aria-pressed={isActive}
             onclick={() => item.settingKey && toggleSetting(item.settingKey)}
             class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
@@ -407,8 +407,8 @@
             : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
         >
           <button
-            title={item.label}
-            aria-label={item.label}
+            title={item.shortcutKey && settings.keyBindings ? `${item.label}${getShortcutFromSettings(settings, item.shortcutKey)}` : item.label}
+            aria-label={item.shortcutKey && settings.keyBindings ? `${item.label}${getShortcutFromSettings(settings, item.shortcutKey)}` : item.label}
             onclick={() => executeCommandBus.set(item.commandId ?? null)}
             class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
               ? 'w-[calc(100%-1.1rem)] px-3'
@@ -451,7 +451,7 @@
             <button
               id="sidebar-file-manager-btn"
               title={`Open File Manager${getShortcutFromSettings(settings, "toggle-file-manager")}`}
-              aria-label="Open File Manager"
+              aria-label={`Open File Manager${getShortcutFromSettings(settings, "toggle-file-manager")}`}
               onclick={() => showFileManager.set(true)}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-purple-600 dark:hover:text-purple-400 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
@@ -492,7 +492,7 @@
               title={item.shortcutKey && settings.keyBindings
                 ? `${item.label} (${getShortcutFromSettings(settings, item.shortcutKey)})`
                 : item.label}
-              aria-label={item.label}
+              aria-label={item.shortcutKey && settings.keyBindings ? `${item.label}${getShortcutFromSettings(settings, item.shortcutKey)}` : item.label}
               onclick={() => showShortcuts.set(true)}
               class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
@@ -530,8 +530,8 @@
               : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
           >
             <button
-              title={item.label}
-              aria-label={item.label}
+              title={item.shortcutKey && settings.keyBindings ? `${item.label}${getShortcutFromSettings(settings, item.shortcutKey)}` : item.label}
+              aria-label={item.shortcutKey && settings.keyBindings ? `${item.label}${getShortcutFromSettings(settings, item.shortcutKey)}` : item.label}
               onclick={() => executeCommandBus.set("toggle-command-palette")}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
@@ -613,7 +613,7 @@
               <button
                 bind:this={historyButtonRef}
                 title={`History Panel${getShortcutFromSettings(settings, "toggle-history")}`}
-                aria-label="History Panel"
+                aria-label={`History Panel${getShortcutFromSettings(settings, "toggle-history")}`}
                 aria-haspopup="menu"
                 aria-expanded={$showHistory}
                 aria-controls="history-menu"
@@ -749,7 +749,7 @@
           >
             <button
               title={`Draw Path${getShortcutFromSettings(settings, "toggle-draw")}`}
-              aria-label="Draw Path"
+              aria-label={`Draw Path${getShortcutFromSettings(settings, "toggle-draw")}`}
               aria-pressed={$isDrawingMode}
               onclick={() => isDrawingMode.update((v) => !v)}
               class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
@@ -788,7 +788,7 @@
           >
             <button
               title={`Toggle Ruler${getShortcutFromSettings(settings, "toggle-ruler")}`}
-              aria-label="Toggle Ruler"
+              aria-label={`Toggle Ruler${getShortcutFromSettings(settings, "toggle-ruler")}`}
               aria-pressed={$showRuler}
               onclick={() => showRuler.update((v) => !v)}
               class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
@@ -825,7 +825,7 @@
           >
             <button
               title={`Toggle Protractor${getShortcutFromSettings(settings, "toggle-protractor")}`}
-              aria-label="Toggle Protractor"
+              aria-label={`Toggle Protractor${getShortcutFromSettings(settings, "toggle-protractor")}`}
               aria-pressed={$showProtractor}
               onclick={() => showProtractor.update((v) => !v)}
               class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
@@ -892,7 +892,7 @@
           >
             <button
               title={`Toggle Grid${getShortcutFromSettings(settings, "toggle-grid")}`}
-              aria-label="Toggle Grid"
+              aria-label={`Toggle Grid${getShortcutFromSettings(settings, "toggle-grid")}`}
               aria-pressed={$showGrid}
               onclick={() => showGrid.update((v) => !v)}
               class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
@@ -915,7 +915,7 @@
             {#if $showGrid}
               <button
                 title={`Toggle Snap${getShortcutFromSettings(settings, "toggle-snap")}`}
-                aria-label={$snapToGrid ? "Disable Snap" : "Enable Snap"}
+                aria-label={`Toggle Snap${getShortcutFromSettings(settings, "toggle-snap")}`}
                 aria-pressed={$snapToGrid}
                 onclick={() => snapToGrid.update((v) => !v)}
                 class="p-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
@@ -980,7 +980,7 @@
           >
             <button
               title={`Toggle Onion Skin${getShortcutFromSettings(settings, "toggle-onion")}`}
-              aria-label="Toggle Onion Skin"
+              aria-label={`Toggle Onion Skin${getShortcutFromSettings(settings, "toggle-onion")}`}
               aria-pressed={settings.showOnionLayers}
               onclick={() => {
                 settings.showOnionLayers = !settings.showOnionLayers;
@@ -1009,9 +1009,7 @@
             {#if settings.showOnionLayers}
               <button
                 title={`Toggle Current Path Only${getShortcutFromSettings(settings, "toggle-onion-current-path")}`}
-                aria-label={settings.onionSkinCurrentPathOnly
-                  ? "Show All Paths"
-                  : "Show Current Path Only"}
+                aria-label={`Toggle Current Path Only${getShortcutFromSettings(settings, "toggle-onion-skin-current")}`}
                 aria-pressed={settings.onionSkinCurrentPathOnly}
                 onclick={() => {
                   settings.onionSkinCurrentPathOnly =
@@ -1056,7 +1054,7 @@
               : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
           >
             <button
-              title={`Toggle Velocity Heatmap`}
+              title="Toggle Velocity Heatmap"
               aria-label="Toggle Velocity Heatmap"
               aria-pressed={settings.showVelocityHeatmap}
               onclick={() => {
@@ -1091,7 +1089,7 @@
           >
             <button
               title={`Toggle Field View Lock${getShortcutFromSettings(settings, "toggle-lock-view")}`}
-              aria-label="Toggle Field View Lock"
+              aria-label={`Toggle Field View Lock${getShortcutFromSettings(settings, "toggle-lock-view")}`}
               aria-pressed={settings.lockFieldView}
               onclick={() => {
                 settingsStore.update((s) => ({
@@ -1139,7 +1137,7 @@
             <button
               id="sidebar-new-path-btn"
               title={`New Path${getShortcutFromSettings(settings, "new-file")}`}
-              aria-label="New Path"
+              aria-label={`New File${getShortcutFromSettings(settings, "new-file")}`}
               onclick={() => resetProject()}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'
@@ -1175,7 +1173,7 @@
             <button
               id="sidebar-settings-btn"
               title={`Settings${getShortcutFromSettings(settings, "open-settings")}`}
-              aria-label="Settings"
+              aria-label={`Settings${getShortcutFromSettings(settings, "open-settings")}`}
               onclick={() => showSettings.set(true)}
               class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
                 ? 'w-[calc(100%-1.1rem)] px-3'

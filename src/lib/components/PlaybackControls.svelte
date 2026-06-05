@@ -616,7 +616,7 @@
     <!-- Playback Speed Indicator (dropdown) -->
     <div class="relative">
       <button
-        title="Open playback speed menu"
+        title={`Playback speed options, current speed ${(playbackSpeed ?? 1).toFixed(2)}x`}
         aria-label={`Playback speed options, current speed ${(playbackSpeed ?? 1).toFixed(2)}x`}
         aria-haspopup="menu"
         aria-expanded={showSpeedMenu}
@@ -712,7 +712,7 @@
         title={playing
           ? `Pause Animation${getShortcutFromSettings(settings, "play-pause")}`
           : `Play Animation${getShortcutFromSettings(settings, "play-pause")}`}
-        aria-label={playing ? "Pause animation" : "Play animation"}
+        aria-label={playing ? `Pause Animation${getShortcutFromSettings(settings, "play-pause")}` : `Play Animation${getShortcutFromSettings(settings, "play-pause")}`}
         onclick={() => {
           if (playing) {
             pause();
@@ -797,6 +797,7 @@
       <button
         title={loopAnimation ? "Disable Loop" : "Enable Loop"}
         aria-label="Loop animation"
+
         aria-pressed={loopAnimation}
         onclick={() => (loopAnimation = !loopAnimation)}
         class:opacity-100={loopAnimation}

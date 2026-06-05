@@ -236,7 +236,7 @@ describe("CodeTab", () => {
 
     expect(screen.getByText(/Previewing:.*/)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Copy generated code" }),
+      screen.getByRole("button", { name: /Copy Code/ }),
     ).toBeInTheDocument();
 
     await vi.waitFor(() => {

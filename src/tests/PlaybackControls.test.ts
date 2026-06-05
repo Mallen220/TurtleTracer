@@ -26,7 +26,7 @@ describe("PlaybackControls", () => {
       props: createProps({ play }),
     });
 
-    const btn = screen.getByLabelText("Play animation");
+    const btn = screen.getByTitle(/Play Animation/);
     expect(btn).toBeInTheDocument();
 
     await fireEvent.click(btn);
@@ -39,7 +39,7 @@ describe("PlaybackControls", () => {
       props: createProps({ playing: true, pause }),
     });
 
-    const btn = screen.getByLabelText("Pause animation");
+    const btn = screen.getByTitle(/Pause Animation/);
     expect(btn).toBeInTheDocument();
 
     await fireEvent.click(btn);

@@ -245,7 +245,7 @@
               >
                 <button
                   title={line.locked ? "Locked" : "Move up"}
-                  aria-label="Move control point up"
+                  aria-label={line.locked ? "Cannot move point while locked" : "Move control point up"}
                   onclick={(e) => {
                     e.stopPropagation();
                     moveControlPoint(idx, -1);
@@ -262,7 +262,7 @@
                 ></div>
                 <button
                   title={line.locked ? "Locked" : "Move down"}
-                  aria-label="Move control point down"
+                  aria-label={line.locked ? "Cannot move point while locked" : "Move control point down"}
                   onclick={(e) => {
                     e.stopPropagation();
                     moveControlPoint(idx, 1);
