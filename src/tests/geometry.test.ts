@@ -118,24 +118,11 @@ describe("Geometry Utils", () => {
 
   describe("convexHull", () => {
     it("returns convex hull of points", () => {
-      const points = [
-        { x: 0, y: 0 },
-        { x: 10, y: 0 },
-        { x: 10, y: 10 },
-        { x: 0, y: 10 },
-        { x: 5, y: 5 }, // Inside point
-      ];
+      const points = [...square, { x: 5, y: 5 }]; // Inside point
 
       const hull = convexHull(points);
       expect(hull.length).toBe(4);
-      expect(hull).toEqual(
-        expect.arrayContaining([
-          { x: 0, y: 0 },
-          { x: 10, y: 0 },
-          { x: 10, y: 10 },
-          { x: 0, y: 10 },
-        ]),
-      );
+      expect(hull).toEqual(expect.arrayContaining(square));
       expect(hull).not.toContainEqual({ x: 5, y: 5 });
     });
 
