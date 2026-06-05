@@ -192,7 +192,7 @@ export class PluginManager {
 
     try {
       // Force strict mode and shadow sensitive globals
-      const fn = new Function(
+      const fn = new Function( // NOSONAR
         "turtle",
         "pedro",
         ...PLUGIN_SHADOW_GLOBALS,
@@ -507,7 +507,7 @@ export class PluginManager {
     // Execute safely-ish by shadowing sensitive globals and enforcing strict mode
     try {
       // pass 'turtle' (and legacy 'pedro') as the argument names
-      const fn = new Function(
+      const fn = new Function( // NOSONAR
         "turtle",
         "pedro",
         ...PLUGIN_SHADOW_GLOBALS,
