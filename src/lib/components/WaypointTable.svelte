@@ -1641,7 +1641,7 @@
                 <!-- Eye/Hide icon -->
                 <button
                   title={line.hidden ? "Show Path" : "Hide Path"}
-                  aria-label={line.hidden ? "Show Path" : "Hide Path"}
+                  aria-label="Toggle Path Visibility"
                   onclick={(e) => {
                     e.stopPropagation();
                     const lIdx = lines.findIndex((l) => l.id === line.id);
@@ -1655,6 +1655,7 @@
                     if (recordChange) recordChange();
                   }}
                   class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                  aria-pressed={!line.hidden}
                 >
                   {#if line.hidden}
                     <EyeSlashIcon className="size-5 text-neutral-400" />
@@ -1666,7 +1667,8 @@
                 <!-- Left slot: lock/unlock button always visible -->
                 <button
                   title={line.locked ? "Unlock Path" : "Lock Path"}
-                  aria-label={line.locked ? "Unlock Path" : "Lock Path"}
+                  aria-label="Toggle Path Lock"
+                  aria-pressed={line.locked}
                   onclick={(e) => {
                     e.stopPropagation();
                     const lIdx = lines.findIndex((l) => l.id === line.id);
@@ -1680,7 +1682,6 @@
                     if (recordChange) recordChange();
                   }}
                   class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-                  aria-pressed={line.locked}
                 >
                   {#if line.locked}
                     <LockIcon className="size-5 stroke-yellow-500" />

@@ -131,7 +131,7 @@
         onLock();
       }}
       title={isLocked ? "Unlock macro" : "Lock macro"}
-      aria-label={isLocked ? "Unlock macro" : "Lock macro"}
+      aria-label="Toggle Macro Lock"
       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
       aria-pressed={isLocked}
     >

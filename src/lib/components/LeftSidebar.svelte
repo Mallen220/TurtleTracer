@@ -850,9 +850,7 @@
                 title={$protractorLockToRobot
                   ? "Unlock Protractor from Robot"
                   : "Lock Protractor to Robot"}
-                aria-label={$protractorLockToRobot
-                  ? "Unlock Protractor from Robot"
-                  : "Lock Protractor to Robot"}
+                aria-label="Toggle Protractor Lock to Robot"
                 aria-pressed={$protractorLockToRobot}
                 onclick={() => protractorLockToRobot.update((v) => !v)}
                 class="p-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
@@ -915,7 +913,7 @@
             {#if $showGrid}
               <button
                 title={`Toggle Snap${getShortcutFromSettings(settings, "toggle-snap")}`}
-                aria-label={$snapToGrid ? "Disable Snap" : "Enable Snap"}
+                aria-label="Toggle Snap to Grid"
                 aria-pressed={$snapToGrid}
                 onclick={() => snapToGrid.update((v) => !v)}
                 class="p-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
@@ -1009,9 +1007,7 @@
             {#if settings.showOnionLayers}
               <button
                 title={`Toggle Current Path Only${getShortcutFromSettings(settings, "toggle-onion-current-path")}`}
-                aria-label={settings.onionSkinCurrentPathOnly
-                  ? "Show All Paths"
-                  : "Show Current Path Only"}
+                aria-label="Toggle Onion Skin Current Path Only"
                 aria-pressed={settings.onionSkinCurrentPathOnly}
                 onclick={() => {
                   settings.onionSkinCurrentPathOnly =
@@ -1553,7 +1549,7 @@
     <div class="w-full flex justify-center">
       <button
         title={sidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
-        aria-label={sidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+        aria-label="Toggle Sidebar Expansion"
         aria-expanded={sidebarExpanded}
         aria-controls="sidebar-toolbar"
         onclick={toggleSidebar}

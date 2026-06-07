@@ -118,7 +118,7 @@
         }}
         class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1"
         title="{collapsed ? 'Expand' : 'Collapse'} macro"
-        aria-label="{collapsed ? 'Expand' : 'Collapse'} macro"
+        aria-label="Toggle Macro Collapse"
         aria-expanded={!collapsed}
       >
         <ChevronRightIcon
@@ -168,7 +168,8 @@
         }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
         title={isHidden ? "Show Macro" : "Hide Macro"}
-        aria-label={isHidden ? "Show Macro" : "Hide Macro"}
+        aria-label="Toggle Macro Visibility"
+        aria-pressed={!isHidden}
       >
         {#if isHidden}
           <EyeSlashIcon className="size-4 text-neutral-400" strokeWidth={2} />
@@ -179,7 +180,8 @@
 
       <button
         title={macro.locked ? "Unlock Macro" : "Lock Macro"}
-        aria-label={macro.locked ? "Unlock Macro" : "Lock Macro"}
+        aria-label="Toggle Macro Lock"
+        aria-pressed={macro.locked}
         onclick={(e) => {
           e.stopPropagation();
           const idx = sequence.findIndex((s) => (s as any).id === macro.id);

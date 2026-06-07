@@ -168,7 +168,7 @@
         onLock();
       }}
       title={isLocked ? "Unlock wait" : "Lock wait"}
-      aria-label={isLocked ? "Unlock wait" : "Lock wait"}
+      aria-label="Toggle Wait Lock"
       class="inline-flex items-center justify-center h-6 w-6 p-0.5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
       aria-pressed={isLocked}
     >

@@ -440,7 +440,8 @@
         }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title={isHidden ? "Show Path" : "Hide Path"}
-        aria-label={isHidden ? "Show Path" : "Hide Path"}
+        aria-label="Toggle Path Visibility"
+        aria-pressed={!isHidden}
       >
         {#if isHidden}
           <EyeSlashIcon className="size-4 text-neutral-400" strokeWidth={2} />
@@ -460,7 +461,8 @@
         }}
         class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title={line.locked ? "Unlock Path" : "Lock Path"}
-        aria-label={line.locked ? "Unlock Path" : "Lock Path"}
+        aria-label="Toggle Path Lock"
+        aria-pressed={line.locked}
       >
         {#if line.locked}
           <LockIcon className="size-4 text-amber-500" />
