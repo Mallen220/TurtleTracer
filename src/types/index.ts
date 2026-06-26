@@ -258,6 +258,8 @@ export interface CustomSidebarItem {
 }
 
 export interface Settings {
+  fieldWidth?: number;
+  fieldHeight?: number;
   xVelocity: number;
   yVelocity: number;
   aVelocity: number;

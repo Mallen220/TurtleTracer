@@ -7,7 +7,7 @@
   } from "../../../../config/defaults";
   import type { Settings, CustomFieldConfig } from "../../../../types/index";
   import { themesStore } from "../../../pluginsStore";
-  import { followRobotStore } from "../../../projectStore";
+  import { followRobotStore, shapesStore } from "../../../projectStore";
   import { fieldZoom, fieldPan } from "../../../../stores";
   import * as ICONS from "../../icons";
   import CustomFieldWizard from "../../settings/CustomFieldWizard.svelte";
@@ -26,6 +26,34 @@
       label: m.name || "Custom Field",
     })),
   ]);
+
+  function stretchObstacles(
+    oldWidth: number,
+    oldHeight: number,
+    newWidth: number,
+    newHeight: number,
+  ) {
+    const isCustomMap = settings.customMaps?.some(
+      (m) => m.id === settings.fieldMap,
+    );
+    if (isCustomMap) return;
+
+    if (oldWidth === 0 || oldHeight === 0) return;
+
+    const scaleX = newWidth / oldWidth;
+    const scaleY = newHeight / oldHeight;
+
+    shapesStore.update((shapes) => {
+      return shapes.map((shape) => ({
+        ...shape,
+        vertices: shape.vertices.map((v) => ({
+          ...v,
+          x: v.x * scaleX,
+          y: v.y * scaleY,
+        })),
+      }));
+    });
+  }
 
   let isCustomFieldWizardOpen = $state(false);
   let editingCustomConfig: CustomFieldConfig | undefined = $state(undefined);
@@ -202,6 +230,76 @@
     >
       + Add Custom Field Map
     </button>
+  </SettingsItem>
+
+  <SettingsItem
+    label="Field Dimensions (inches)"
+    isModified={settings.fieldWidth !== DEFAULT_SETTINGS.fieldWidth ||
+      settings.fieldHeight !== DEFAULT_SETTINGS.fieldHeight}
+    onReset={() => {
+      stretchObstacles(
+        settings.fieldWidth ?? 144,
+        settings.fieldHeight ?? 144,
+        DEFAULT_SETTINGS.fieldWidth ?? 144,
+        DEFAULT_SETTINGS.fieldHeight ?? 144,
+      );
+      settings.fieldWidth = DEFAULT_SETTINGS.fieldWidth;
+      settings.fieldHeight = DEFAULT_SETTINGS.fieldHeight;
+      settings = { ...settings };
+    }}
+    description="Set the physical dimensions of the field"
+    {searchQuery}
+    forId="field-dimensions"
+  >
+    <div class="flex items-center gap-2">
+      <div class="flex flex-col flex-1">
+        <label for="field-width" class="text-xs text-neutral-500 mb-1"
+          >Width (X)</label
+        >
+        <input
+          id="field-width"
+          type="number"
+          min="12"
+          max="500"
+          value={settings.fieldWidth ?? 144}
+          oninput={(e) => {
+            const val = parseFloat(e.currentTarget.value);
+            if (!isNaN(val)) {
+              const oldWidth = settings.fieldWidth ?? 144;
+              const currentHeight = settings.fieldHeight ?? 144;
+              stretchObstacles(oldWidth, currentHeight, val, currentHeight);
+              settings.fieldWidth = val;
+            }
+            settings = { ...settings };
+          }}
+          class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      <span class="text-neutral-500 mt-4">×</span>
+      <div class="flex flex-col flex-1">
+        <label for="field-height" class="text-xs text-neutral-500 mb-1"
+          >Height (Y)</label
+        >
+        <input
+          id="field-height"
+          type="number"
+          min="12"
+          max="500"
+          value={settings.fieldHeight ?? 144}
+          oninput={(e) => {
+            const val = parseFloat(e.currentTarget.value);
+            if (!isNaN(val)) {
+              const oldHeight = settings.fieldHeight ?? 144;
+              const currentWidth = settings.fieldWidth ?? 144;
+              stretchObstacles(currentWidth, oldHeight, currentWidth, val);
+              settings.fieldHeight = val;
+            }
+            settings = { ...settings };
+          }}
+          class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+    </div>
   </SettingsItem>
 
   <SettingsItem

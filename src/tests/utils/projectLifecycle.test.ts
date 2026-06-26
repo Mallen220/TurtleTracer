@@ -15,6 +15,7 @@ vi.mock("../../config", () => ({
   getDefaultStartPoint: vi.fn(() => ({ x: 0, y: 0 })),
   getDefaultLines: vi.fn(() => []),
   getDefaultShapes: vi.fn(() => []),
+  DEFAULT_SETTINGS: { fieldWidth: 144, fieldHeight: 144 },
 }));
 
 vi.mock("../../utils/fileHandlers", () => ({

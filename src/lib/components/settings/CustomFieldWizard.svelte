@@ -4,6 +4,7 @@
   import { cubicInOut } from "svelte/easing";
   import type { CustomFieldConfig } from "../../../types";
   import { CloseIcon, PhotoIcon } from "../icons";
+  import { settingsStore } from "../../projectStore";
 
   interface Props {
     isOpen?: boolean;
@@ -106,10 +107,12 @@
 
     if (pxWidth <= 0 || pxHeight <= 0) return null;
 
-    // The box represents the 144x144 field.
-    // scaleX = 144 inches / pxWidth pixels => inches per pixel
-    const scaleX = 144 / pxWidth;
-    const scaleY = 144 / pxHeight;
+    const fieldW = $settingsStore.fieldWidth ?? 144;
+    const fieldH = $settingsStore.fieldHeight ?? 144;
+    // The box represents the custom field.
+    // scaleX = fieldW inches / pxWidth pixels => inches per pixel
+    const scaleX = fieldW / pxWidth;
+    const scaleY = fieldH / pxHeight;
 
     // Total image width/height in inches
     const widthIn = imageElement.naturalWidth * scaleX;
@@ -119,10 +122,10 @@
     // So the image left edge (which is pxLeft pixels to the left of the box) is at X = -pxLeft * scaleX
     const x = -pxLeft * scaleX;
 
-    // The box top edge corresponds to Y = 144.
+    // The box top edge corresponds to Y = fieldH.
     // The image top edge is pxTop pixels above the box.
     // Since Y increases upwards, moving up by pxTop pixels means adding (pxTop * scaleY) inches.
-    const y = 144 + pxTop * scaleY;
+    const y = fieldH + pxTop * scaleY;
 
     return {
       id: currentConfig?.id || crypto.randomUUID(),
@@ -500,7 +503,8 @@
                     class="text-sm text-blue-800 dark:text-blue-200 mb-4 flex-1"
                   >
                     Drag and resize the blue box so that it perfectly aligns
-                    with the outer boundaries of the 144x144 inch playable field
+                    with the outer boundaries of the {$settingsStore.fieldWidth ??
+                      144}x{$settingsStore.fieldHeight ?? 144} inch playable field
                     in your image.
                   </p>
                   <div
@@ -512,7 +516,10 @@
                         Exclude the walls if you want your robot to navigate
                         inside them.
                       </li>
-                      <li>The box will map to 0-144 on both X and Y axes.</li>
+                      <li>
+                        The box will map to 0-{$settingsStore.fieldWidth ?? 144} on
+                        X and 0-{$settingsStore.fieldHeight ?? 144} on Y.
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -552,15 +559,16 @@
                               alt="Preview"
                               class="absolute max-w-none opacity-80 pointer-events-none"
                               style={`
-                                left: ${(res.x / 144) * 100}%;
-                                top: ${(1 - res.y / 144) * 100}%;
-                                width: ${(res.width / 144) * 100}%;
-                                height: ${(res.height / 144) * 100}%;
+                                left: ${(res.x / ($settingsStore.fieldWidth ?? 144)) * 100}%;
+                                top: ${(1 - res.y / ($settingsStore.fieldHeight ?? 144)) * 100}%;
+                                width: ${(res.width / ($settingsStore.fieldWidth ?? 144)) * 100}%;
+                                height: ${(res.height / ($settingsStore.fieldHeight ?? 144)) * 100}%;
                               `}
                             />
                           </div>
                           <p class="text-xs text-neutral-400 mt-1">
-                            Dashed box is the 144x144 field.
+                            Dashed box is the {$settingsStore.fieldWidth ??
+                              144}x{$settingsStore.fieldHeight ?? 144} field.
                           </p>
                         </div>
                       </div>

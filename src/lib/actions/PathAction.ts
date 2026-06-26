@@ -3,6 +3,8 @@ import type { ActionDefinition, InsertionContext } from "../actionRegistry";
 import { makeId, renumberDefaultPathNames } from "../../utils/nameGenerator";
 import { getRandomColor } from "../../utils/draw";
 import type { Line } from "../../types";
+import { settingsStore } from "../projectStore";
+import { get } from "svelte/store";
 
 // Tailwind Safelist for dynamic classes:
 // bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 focus:ring-green-300 dark:focus:ring-green-700
@@ -43,6 +45,10 @@ export const PathAction: ActionDefinition = {
       }
     }
 
+    const settings = get(settingsStore);
+    const fieldW = settings?.fieldWidth ?? 144;
+    const fieldH = settings?.fieldHeight ?? 144;
+
     // Inherit heading type from refPoint
     let endPoint: import("../../types").Point;
     if (refPoint.heading === "linear") {
@@ -52,8 +58,8 @@ export const PathAction: ActionDefinition = {
       >;
       const deg = linRef.endDeg ?? linRef.startDeg ?? 0;
       endPoint = {
-        x: Math.max(0, Math.min(144, refPoint.x + 10)),
-        y: Math.max(0, Math.min(144, refPoint.y + 10)),
+        x: Math.max(0, Math.min(fieldW, refPoint.x + 10)),
+        y: Math.max(0, Math.min(fieldH, refPoint.y + 10)),
         heading: "linear",
         startDeg: deg,
         endDeg: deg,
@@ -64,15 +70,15 @@ export const PathAction: ActionDefinition = {
         { heading: "constant" }
       >;
       endPoint = {
-        x: Math.max(0, Math.min(144, refPoint.x + 10)),
-        y: Math.max(0, Math.min(144, refPoint.y + 10)),
+        x: Math.max(0, Math.min(fieldW, refPoint.x + 10)),
+        y: Math.max(0, Math.min(fieldH, refPoint.y + 10)),
         heading: "constant",
         degrees: constRef.degrees ?? 0,
       };
     } else {
       endPoint = {
-        x: Math.max(0, Math.min(144, refPoint.x + 10)),
-        y: Math.max(0, Math.min(144, refPoint.y + 10)),
+        x: Math.max(0, Math.min(fieldW, refPoint.x + 10)),
+        y: Math.max(0, Math.min(fieldH, refPoint.y + 10)),
         heading: "tangential",
         reverse: (refPoint as any).reverse ?? false,
       };

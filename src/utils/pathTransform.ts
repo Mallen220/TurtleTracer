@@ -24,30 +24,32 @@ export function mirrorPointHeading(point: Point): Point {
   return point;
 }
 
-// Mirror path data across the center Y-axis (X = 72)
-export function mirrorPathData(data: PathData) {
+// Mirror path data across the center Y-axis
+export function mirrorPathData(data: PathData, fieldWidth: number = 144) {
   const m = structuredClone(data);
 
   if (m.startPoint) {
-    m.startPoint.x = 144 - m.startPoint.x;
+    m.startPoint.x = fieldWidth - m.startPoint.x;
     m.startPoint = mirrorPointHeading(m.startPoint);
   }
 
   if (m.lines) {
     m.lines.forEach((line: Line) => {
       if (line.endPoint) {
-        line.endPoint.x = 144 - line.endPoint.x;
+        line.endPoint.x = fieldWidth - line.endPoint.x;
         line.endPoint = mirrorPointHeading(line.endPoint);
       }
       if (line.controlPoints) {
-        line.controlPoints.forEach((cp: ControlPoint) => (cp.x = 144 - cp.x));
+        line.controlPoints.forEach(
+          (cp: ControlPoint) => (cp.x = fieldWidth - cp.x),
+        );
       }
     });
   }
 
   if (m.shapes) {
     m.shapes.forEach((s: Shape) =>
-      s.vertices?.forEach((v: any) => (v.x = 144 - v.x)),
+      s.vertices?.forEach((v: any) => (v.x = fieldWidth - v.x)),
     );
   }
 

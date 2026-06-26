@@ -137,7 +137,8 @@ function processFile(filePath, styleType) {
 
   // 4. Remove Single Line Comments (// ...) if present (e.g. if re-running this script)
   // Matches lines starting with // containing Copyright and Matthew Allen at the very top.
-  const lineCommentRegex = /^(\s*\/\/[^\n]*Copyright[^\n]*Matthew Allen[^\n]*\n)+/;
+  const lineCommentRegex =
+    /^(\s*\/\/[^\n]*Copyright[^\n]*Matthew Allen[^\n]*\n)+/;
   if (lineCommentRegex.test(body)) {
     body = body.replace(lineCommentRegex, "");
   }

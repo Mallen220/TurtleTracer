@@ -11,6 +11,7 @@ import {
   getDefaultStartPoint,
   getDefaultLines,
   getDefaultShapes,
+  DEFAULT_SETTINGS,
 } from "../config";
 import { isUnsaved, currentFilePath } from "../stores";
 import { saveProject } from "./fileHandlers";
@@ -28,7 +29,25 @@ export function resetPath() {
       lineId: ln.id || `line-${Math.random().toString(36).slice(2)}`,
     })),
   );
-  shapesStore.set(getDefaultShapes());
+  let newShapes = getDefaultShapes();
+  const currentSettings = get(settingsStore);
+  if (
+    (currentSettings.fieldWidth !== DEFAULT_SETTINGS.fieldWidth ||
+      currentSettings.fieldHeight !== DEFAULT_SETTINGS.fieldHeight) &&
+    !currentSettings.customMaps?.some((m) => m.id === currentSettings.fieldMap)
+  ) {
+    const scaleX = (currentSettings.fieldWidth ?? 144) / (DEFAULT_SETTINGS.fieldWidth ?? 144);
+    const scaleY = (currentSettings.fieldHeight ?? 144) / (DEFAULT_SETTINGS.fieldHeight ?? 144);
+    newShapes = newShapes.map((shape) => ({
+      ...shape,
+      vertices: shape.vertices.map((v) => ({
+        ...v,
+        x: v.x * scaleX,
+        y: v.y * scaleY,
+      })),
+    }));
+  }
+  shapesStore.set(newShapes);
 }
 
 /**
