@@ -275,12 +275,11 @@
                 </button>
               </div>
 
-              <!-- Delete Button -->
               <DeleteButtonWithConfirm
                 onclick={() => {
-                  let _pts = line.controlPoints;
-                  _pts.splice(idx, 1);
-                  line.controlPoints = _pts;
+                  line.controlPoints = line.controlPoints.filter(
+                    (_, i) => i !== idx,
+                  );
                   recordChange();
                 }}
                 disabled={line.locked}

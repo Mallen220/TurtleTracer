@@ -953,8 +953,12 @@
         savedSettings.fieldHeight !== DEFAULT_SETTINGS.fieldHeight) &&
       !savedSettings.customMaps?.some((m) => m.id === savedSettings.fieldMap)
     ) {
-      const scaleX = (savedSettings.fieldWidth ?? 144) / (DEFAULT_SETTINGS.fieldWidth ?? 144);
-      const scaleY = (savedSettings.fieldHeight ?? 144) / (DEFAULT_SETTINGS.fieldHeight ?? 144);
+      const scaleX =
+        (savedSettings.fieldWidth ?? 144) /
+        (DEFAULT_SETTINGS.fieldWidth ?? 144);
+      const scaleY =
+        (savedSettings.fieldHeight ?? 144) /
+        (DEFAULT_SETTINGS.fieldHeight ?? 144);
       shapesStore.update((shapes) =>
         shapes.map((shape) => ({
           ...shape,
@@ -963,7 +967,7 @@
             x: v.x * scaleX,
             y: v.y * scaleY,
           })),
-        }))
+        })),
       );
     }
 

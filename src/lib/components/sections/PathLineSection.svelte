@@ -751,7 +751,11 @@
         bind:line
         lineIdx={idx}
         bind:collapsed={collapsedControlPoints}
-        {recordChange}
+        recordChange={() => {
+          lines[idx] = { ...line };
+          lines = [...lines];
+          if (recordChange) recordChange("Update Control Points");
+        }}
       />
 
       <!-- Action Bar -->

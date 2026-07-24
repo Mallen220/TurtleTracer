@@ -192,7 +192,7 @@ export function resetProject() {
   startPointStore.set(getDefaultStartPoint());
   const newLines = normalizeLines(getDefaultLines());
   linesStore.set(newLines);
-  
+
   let newShapes = getDefaultShapes();
   const currentSettings = get(settingsStore);
   if (
@@ -200,8 +200,12 @@ export function resetProject() {
       currentSettings.fieldHeight !== DEFAULT_SETTINGS.fieldHeight) &&
     !currentSettings.customMaps?.some((m) => m.id === currentSettings.fieldMap)
   ) {
-    const scaleX = (currentSettings.fieldWidth ?? 144) / (DEFAULT_SETTINGS.fieldWidth ?? 144);
-    const scaleY = (currentSettings.fieldHeight ?? 144) / (DEFAULT_SETTINGS.fieldHeight ?? 144);
+    const scaleX =
+      (currentSettings.fieldWidth ?? 144) /
+      (DEFAULT_SETTINGS.fieldWidth ?? 144);
+    const scaleY =
+      (currentSettings.fieldHeight ?? 144) /
+      (DEFAULT_SETTINGS.fieldHeight ?? 144);
     newShapes = newShapes.map((shape) => ({
       ...shape,
       vertices: shape.vertices.map((v) => ({
@@ -211,7 +215,7 @@ export function resetProject() {
       })),
     }));
   }
-  
+
   shapesStore.set(newShapes);
   sequenceStore.set(
     newLines.map((ln) => ({

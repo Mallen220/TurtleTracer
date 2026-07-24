@@ -36,8 +36,12 @@ export function resetPath() {
       currentSettings.fieldHeight !== DEFAULT_SETTINGS.fieldHeight) &&
     !currentSettings.customMaps?.some((m) => m.id === currentSettings.fieldMap)
   ) {
-    const scaleX = (currentSettings.fieldWidth ?? 144) / (DEFAULT_SETTINGS.fieldWidth ?? 144);
-    const scaleY = (currentSettings.fieldHeight ?? 144) / (DEFAULT_SETTINGS.fieldHeight ?? 144);
+    const scaleX =
+      (currentSettings.fieldWidth ?? 144) /
+      (DEFAULT_SETTINGS.fieldWidth ?? 144);
+    const scaleY =
+      (currentSettings.fieldHeight ?? 144) /
+      (DEFAULT_SETTINGS.fieldHeight ?? 144);
     newShapes = newShapes.map((shape) => ({
       ...shape,
       vertices: shape.vertices.map((v) => ({
