@@ -53,11 +53,11 @@ jobs:
 
       - name: Build Application (Linux)
         if: runner.os == 'Linux'
-        run: npx electron-builder --linux --x64 --dir
+        run: npm run electron-builder -- --linux --x64 --dir
 
       - name: Build Application (Windows)
         if: runner.os == 'Windows'
-        run: npx electron-builder --win --x64 --dir
+        run: npm run electron-builder -- --win --x64 --dir
 
       - name: Build Application (macOS x64)
         if: runner.os == 'macOS' && matrix.arch == 'x64'
@@ -65,12 +65,12 @@ jobs:
         # Note: --mac implies default target (dmg + zip + mas potentially), but we just need the .app
         # electron-builder defaults to universal or current arch?
         # specify --x64 explicitly.
-        run: npx electron-builder --mac --x64 --dir --publish=never
+        run: npm run electron-builder -- --mac --x64 --dir --publish=never
 
       - name: Build Application (macOS arm64)
         if: runner.os == 'macOS' && matrix.arch == 'arm64'
         # We build for arm64.
-        run: npx electron-builder --mac --arm64 --dir --publish=never
+        run: npm run electron-builder -- --mac --arm64 --dir --publish=never
 
       - name: Ad-hoc Sign Application (macOS)
         if: runner.os == 'macOS'
@@ -86,11 +86,11 @@ jobs:
           # We need to determine if we should use xvfb-run
           USE_XVFB: ${{ runner.os == 'Linux' }}
         run: |
-          npx playwright install-deps
+          npm run playwright -- install-deps
           if [ "$USE_XVFB" = "true" ]; then
-            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npm run playwright -- test
           else
-            npx playwright test
+            npm run playwright -- test
           fi
 
       - name: Upload Test Results

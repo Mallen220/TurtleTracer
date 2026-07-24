@@ -99,6 +99,12 @@
       </div>
       {#if currentNotification && currentNotification.action && currentNotification.actionLabel}
         <button
+          title={currentNotification.actionLabel === "github"
+            ? "View on GitHub"
+            : undefined}
+          aria-label={currentNotification.actionLabel === "github"
+            ? "View on GitHub"
+            : undefined}
           onclick={() => {
             const act = currentNotification
               ? currentNotification.action

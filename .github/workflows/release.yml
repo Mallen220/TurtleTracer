@@ -153,8 +153,8 @@ jobs:
           rm -rf release/mac*
 
           # Build each architecture separately to avoid electron-builder hardlink collision
-          npx electron-builder --mac --x64 --publish never -c.mac.identity=null --config.directories.output=release/mac-x64
-          npx electron-builder --mac --arm64 --publish never -c.mac.identity=null --config.directories.output=release/mac-arm64
+          npm run electron-builder -- --mac --x64 --publish never -c.mac.identity=null --config.directories.output=release/mac-x64
+          npm run electron-builder -- --mac --arm64 --publish never -c.mac.identity=null --config.directories.output=release/mac-arm64
 
           echo "Build complete. Checking release directory..."
           ls -la release/ || echo "release directory not found"
@@ -221,7 +221,7 @@ jobs:
           MSIX_PUBLISHER_DISPLAY_NAME: ${{ secrets.MSIX_PUBLISHER_DISPLAY_NAME }}
         run: |
           echo "Building Windows packages..."
-          npx electron-builder --win --x64 --publish never
+          npm run electron-builder -- --win --x64 --publish never
           echo "Build complete. Checking release directory..."
           ls release/ || echo "release directory not found"
         shell: bash
@@ -273,7 +273,7 @@ jobs:
       - name: Build (Linux)
         run: |
           echo "Building Linux packages..."
-          npx electron-builder --linux --x64 --arm64 --publish never
+          npm run electron-builder -- --linux --x64 --arm64 --publish never
           echo "Build complete. Checking release directory..."
           ls -la release/ || echo "release directory not found"
           find release -name "*.AppImage" -o -name "*.deb" | head -10

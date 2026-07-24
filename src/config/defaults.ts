@@ -14,6 +14,7 @@ export const DEFAULT_ROBOT_WIDTH = 16;
  */
 export const POINT_RADIUS = 1.15;
 export const LINE_WIDTH = 0.57;
+// DEPRECATED: use settingsStore.fieldWidth / fieldHeight instead
 export const FIELD_SIZE = 144;
 
 /**
@@ -36,6 +37,8 @@ export const SETTINGS_TAB_ORDER = [
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
+  fieldWidth: 144,
+  fieldHeight: 144,
   xVelocity: 30,
   yVelocity: 30,
   aVelocity: Math.PI / 2, // 90 deg/s

@@ -68,7 +68,7 @@
   onclick={handleClick}
   onblur={handleBlur}
   {disabled}
-  {title}
+  title={confirming ? "Confirm Deletion" : title}
   type="button"
   aria-label={confirming ? "Confirm Deletion" : title}
   aria-live="polite"

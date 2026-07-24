@@ -216,6 +216,7 @@
         class="flex items-center justify-center p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 last:rounded-r-md"
         aria-expanded={saveDropdownOpen}
         aria-label="Save options"
+        title="Save options"
         onclick={toggleSaveDropdown}
       >
         <ChevronUpIcon

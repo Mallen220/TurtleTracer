@@ -34,9 +34,10 @@
 </p>
 <p>
 
+  
   <!-- COVERAGE_BADGE_START -->
   <a href="coverage/index.html">
-    <img src="README_Content/coverage-badge.svg" alt="Branch Coverage: 73.48%" height="20">
+    <img src="README_Content/coverage-badge.svg" alt="Branch Coverage: 73.45%" height="20">
   </a>
   <!-- COVERAGE_BADGE_END -->
 </p>
@@ -55,7 +56,7 @@
       <img src="README_Content/lighthouse-badges/lighthouse_seo.svg" alt="Lighthouse SEO Badge">
     </a>
   </p>
-  <p><sub>Lighthouse badges generated for v2.2.0</sub></p>
+  <p><sub>Lighthouse badges generated for v2.2.1</sub></p>
   <!-- LIGHTHOUSE_BADGES_END -->
 
   <a href="https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full" target="_blank" rel="noopener noreferrer">

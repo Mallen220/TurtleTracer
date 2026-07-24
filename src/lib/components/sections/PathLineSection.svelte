@@ -540,8 +540,12 @@
                 class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 type="number"
-                min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
-                max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
+                min={$settingsStore.coordinateSystem === "FTC"
+                  ? -($settingsStore.fieldHeight ?? 144) / 2
+                  : 0}
+                max={$settingsStore.coordinateSystem === "FTC"
+                  ? ($settingsStore.fieldHeight ?? 144) / 2
+                  : ($settingsStore.fieldWidth ?? 144)}
                 value={xDraft}
                 oninput={(e) => {
                   xDraft = e.currentTarget.value;
@@ -568,8 +572,12 @@
                 bind:this={yInput}
                 class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
-                min={$settingsStore.coordinateSystem === "FTC" ? "-72" : "0"}
-                max={$settingsStore.coordinateSystem === "FTC" ? "72" : "144"}
+                min={$settingsStore.coordinateSystem === "FTC"
+                  ? -($settingsStore.fieldWidth ?? 144) / 2
+                  : 0}
+                max={$settingsStore.coordinateSystem === "FTC"
+                  ? ($settingsStore.fieldWidth ?? 144) / 2
+                  : ($settingsStore.fieldHeight ?? 144)}
                 type="number"
                 value={yDraft}
                 oninput={(e) => {
@@ -743,7 +751,11 @@
         bind:line
         lineIdx={idx}
         bind:collapsed={collapsedControlPoints}
-        {recordChange}
+        recordChange={() => {
+          lines[idx] = { ...line };
+          lines = [...lines];
+          if (recordChange) recordChange("Update Control Points");
+        }}
       />
 
       <!-- Action Bar -->

@@ -115,7 +115,7 @@ function processFile(filePath, styleType) {
   // 1. Remove Multi-line Block Comments (/* ... */)
   // Matches start of block comment, content including "Copyright" and "Matthew Allen", end of block comment.
   const multiLineBlockRegex =
-    /^\s*\/\*[\s\S]*?Copyright[\s\S]*?Matthew Allen[\s\S]*?\*\/\s*/;
+    /^(\s*\/\*[\s\S]*?Copyright[\s\S]*?Matthew Allen[\s\S]*?\*\/\s*)+/;
   if (multiLineBlockRegex.test(body)) {
     body = body.replace(multiLineBlockRegex, "");
   }
@@ -123,7 +123,7 @@ function processFile(filePath, styleType) {
   // 2. Remove HTML Comments (<!-- ... -->)
   // Matches start, content, end.
   const htmlCommentRegex =
-    /^\s*<!--[\s\S]*?Copyright[\s\S]*?Matthew Allen[\s\S]*?-->\s*/;
+    /^(\s*<!--[\s\S]*?Copyright[\s\S]*?Matthew Allen[\s\S]*?-->\s*)+/;
   if (htmlCommentRegex.test(body)) {
     body = body.replace(htmlCommentRegex, "");
   }
@@ -137,7 +137,8 @@ function processFile(filePath, styleType) {
 
   // 4. Remove Single Line Comments (// ...) if present (e.g. if re-running this script)
   // Matches lines starting with // containing Copyright and Matthew Allen at the very top.
-  const lineCommentRegex = /^\s*\/\/.*?Copyright.*?Matthew Allen.*?\n/;
+  const lineCommentRegex =
+    /^(\s*\/\/[^\n]*Copyright[^\n]*Matthew Allen[^\n]*\n)+/;
   if (lineCommentRegex.test(body)) {
     body = body.replace(lineCommentRegex, "");
   }

@@ -76,7 +76,6 @@
   } from "../../stores";
   import {
     LINE_WIDTH,
-    FIELD_SIZE,
     DEFAULT_ROBOT_LENGTH,
     DEFAULT_ROBOT_WIDTH,
   } from "../../config";
@@ -108,6 +107,7 @@
   import type { Line, Point, BasePoint } from "../../types/index";
   import MathTools from "../MathTools.svelte";
   import FieldCoordinates from "./FieldCoordinates.svelte";
+
   import {
     ArrowUpIcon,
     ChevronRightIcon,
@@ -151,6 +151,12 @@
     onRecordChange,
   }: Props = $props();
 
+  let fieldW = $derived($settingsStore.fieldWidth ?? 144);
+  let fieldH = $derived($settingsStore.fieldHeight ?? 144);
+  let basePpI = $derived(Math.min(width / fieldW, height / fieldH));
+  let visualW = $derived(fieldW * basePpI);
+  let visualH = $derived(fieldH * basePpI);
+
   // Local state
   let two: Two | undefined = $state();
   let ghostRobotState: { x: number; y: number; heading: number } | null =
@@ -176,7 +182,7 @@
   let currentElem: string | null = null;
   let isDown = false;
   let isPanning = false;
-  let isDrawing = false;
+  let isDrawing = $state(false);
   let hoverRobotXY = $derived($hoverRobotXYStore);
   let hoverRobotHeading = $derived($hoverRobotHeadingStore);
 
@@ -192,8 +198,7 @@
   let boxSelectCurrent: { x: number; y: number } | null = null;
   let boxSelectElement: InstanceType<typeof Two.Rectangle> | null = null;
 
-  let drawPoints: { x: number; y: number }[] = [];
-  let drawPathElement: InstanceType<typeof Two.Path> | null = null;
+  let drawPoints: { x: number; y: number }[] = $state([]);
   let multiDragOffsets = new Map<string, { x: number; y: number }>();
   let startPan = { x: 0, y: 0 };
 
@@ -402,13 +407,13 @@
     // Trust existing helper if it is generic enough, or recalculate manually.
 
     // Manual calculation to be safe with non-square viewport:
-    // fx = width/2 + (fieldX/FIELD_SIZE - 0.5) * baseSize * newZoom + newPanX
-    // newPanX = fx - width/2 - (fieldX/FIELD_SIZE - 0.5) * baseSize * newZoom
+    // fx = width/2 + (fieldX/fieldW - 0.5) * visualW * newZoom + newPanX
+    // newPanX = fx - width/2 - (fieldX/fieldW - 0.5) * visualW * newZoom
 
     const newPanX =
-      fx - width / 2 - (fieldX / FIELD_SIZE - 0.5) * baseSize * newZoom;
+      fx - width / 2 - (fieldX / fieldW - 0.5) * visualW * newZoom;
     const newPanY =
-      fy - height / 2 - (0.5 - fieldY / FIELD_SIZE) * baseSize * newZoom;
+      fy - height / 2 - (0.5 - fieldY / fieldH) * visualH * newZoom;
 
     fieldZoom.set(Number(newZoom.toFixed(2)));
     fieldPan.set({ x: newPanX, y: newPanY });
@@ -598,8 +603,8 @@
 
         // Update props (need to be bound in parent or use event dispatch,
         // but Svelte props are 2-way by default if bound)
-        currentMouseX = Math.max(0, Math.min(FIELD_SIZE, rawInchXForDisplay));
-        currentMouseY = Math.max(0, Math.min(FIELD_SIZE, rawInchYForDisplay));
+        currentMouseX = Math.max(0, Math.min(fieldW, rawInchXForDisplay));
+        currentMouseY = Math.max(0, Math.min(fieldH, rawInchYForDisplay));
         isMouseOverField = true;
 
         // Velocity Tooltip Logic
@@ -724,7 +729,7 @@
           isObstructingHUD = visualX < w * 0.35 && visualY > h * 0.8;
         }
 
-        if ($isDrawingMode && isDrawing && drawPathElement) {
+        if ($isDrawingMode && isDrawing) {
           // Collect points
           const lastPoint = drawPoints[drawPoints.length - 1];
 
@@ -743,22 +748,6 @@
           // Add a new point if it moved at least 2 inches
           if (dist >= 2) {
             drawPoints.push({ x: inchX, y: inchY });
-
-            // Re-render path preview
-            if (drawPathElement) drawPathElement.remove();
-
-            const pointsForMakePath: number[] = [];
-            drawPoints.forEach((p) => {
-              pointsForMakePath.push(x(p.x), y(p.y));
-            });
-            drawPathElement = two!.makePath(...pointsForMakePath);
-            drawPathElement.stroke = "#a855f7"; // purple-500
-            drawPathElement.linewidth = uiLength(LINE_WIDTH);
-            drawPathElement.fill = "transparent";
-            drawPathElement.noFill(); // important for two.js paths not to auto fill black
-            drawPathElement.closed = false; // important for open paths
-            two!.add(drawPathElement);
-            two!.update(); // We need to immediately update two.js manually here since this is an event listener outside of standard svelte reactivity loop
           }
           return;
         }
@@ -832,9 +821,9 @@
 
               // Add field boundaries (corners)
               targets.push({ x: 0, y: 0 } as Point);
-              targets.push({ x: FIELD_SIZE, y: 0 } as Point);
-              targets.push({ x: 0, y: FIELD_SIZE } as Point);
-              targets.push({ x: FIELD_SIZE, y: FIELD_SIZE } as Point);
+              targets.push({ x: fieldW, y: 0 } as Point);
+              targets.push({ x: 0, y: fieldH } as Point);
+              targets.push({ x: fieldW, y: fieldH } as Point);
 
               // Add shape vertices
               shapes.forEach((shape) => {
@@ -880,12 +869,7 @@
 
               if (bestX !== null) {
                 inchX = bestX;
-                const guide = new Two.Line(
-                  x(inchX),
-                  y(0),
-                  x(inchX),
-                  y(FIELD_SIZE),
-                );
+                const guide = new Two.Line(x(inchX), y(0), x(inchX), y(fieldH));
                 guide.stroke = "#f59e0b"; // Amber
                 guide.linewidth = uiLength(0.5);
                 guide.dashes = [uiLength(4), uiLength(4)];
@@ -894,12 +878,7 @@
 
               if (bestY !== null) {
                 inchY = bestY;
-                const guide = new Two.Line(
-                  x(0),
-                  y(inchY),
-                  x(FIELD_SIZE),
-                  y(inchY),
-                );
+                const guide = new Two.Line(x(0), y(inchY), x(fieldW), y(inchY));
                 guide.stroke = "#f59e0b"; // Amber
                 guide.linewidth = uiLength(0.5);
                 guide.dashes = [uiLength(4), uiLength(4)];
@@ -917,9 +896,9 @@
             // Apply field restrictions if enabled or if snapped (snap implies grid which is usually in field, but use explicit restriction)
             if (settings.restrictDraggingToField !== false) {
               minX = 0;
-              maxX = FIELD_SIZE;
+              maxX = fieldW;
               minY = 0;
-              maxY = FIELD_SIZE;
+              maxY = fieldH;
 
               if (id.startsWith("point-")) {
                 const parts = id.split("-");
@@ -947,9 +926,9 @@
                 }
 
                 minX = margin;
-                maxX = FIELD_SIZE - margin;
+                maxX = fieldW - margin;
                 minY = margin;
-                maxY = FIELD_SIZE - margin;
+                maxY = fieldH - margin;
               }
             }
 
@@ -1407,26 +1386,8 @@
 
           drawPoints.push({ x: inchX, y: inchY });
 
-          // Create initial temporary path
-          if (drawPathElement) {
-            drawPathElement.remove();
-          }
+          drawPoints.push({ x: inchX, y: inchY });
 
-          // We'll update the actual visual path in mousemove
-          drawPathElement = two!.makePath(
-            x(inchX),
-            y(inchY),
-            x(inchX),
-            y(inchY),
-            false as any,
-          );
-          drawPathElement.stroke = "#a855f7"; // purple-500
-          drawPathElement.linewidth = uiLength(LINE_WIDTH);
-          drawPathElement.fill = "transparent";
-          drawPathElement.noFill();
-          drawPathElement.closed = false;
-          two!.add(drawPathElement);
-          two!.update(); // We need to immediately update two.js manually here
           return; // Don't process other click events
         }
 
@@ -1834,10 +1795,6 @@
 
       if ($isDrawingMode && isDrawing) {
         isDrawing = false;
-        if (drawPathElement) {
-          drawPathElement.remove();
-          drawPathElement = null;
-        }
 
         if (drawPoints.length > 1) {
           const result = generateLinesFromDrawing(
@@ -1914,8 +1871,8 @@
         inchY = Math.round(inchY / $gridSize) * $gridSize;
       }
       if (settings.restrictDraggingToField !== false) {
-        inchX = Math.max(0, Math.min(FIELD_SIZE, inchX));
-        inchY = Math.max(0, Math.min(FIELD_SIZE, inchY));
+        inchX = Math.max(0, Math.min(fieldW, inchX));
+        inchY = Math.max(0, Math.min(fieldH, inchY));
       }
 
       const existingLines = get(linesStore);
@@ -1990,15 +1947,14 @@
   // Public method to pan the view to center on specific field coordinates (inches)
   export function panToField(fx: number, fy: number) {
     const factor = get(fieldZoom);
-    const baseSize = Math.min(width, height);
     // Calculate required pan to center the point
-    // x(v) = center + pan + (v/SIZE - 0.5)*baseSize*zoom
-    // target x(v) = center => pan = - (v/SIZE - 0.5)*baseSize*zoom
-    const px = baseSize * factor * (0.5 - fx / FIELD_SIZE);
+    // x(v) = center + pan + (v/SIZE - 0.5)*visualW*zoom
+    // target x(v) = center => pan = - (v/SIZE - 0.5)*visualW*zoom
+    const px = visualW * factor * (0.5 - fx / fieldW);
 
-    // y(v) = center + pan - (v/SIZE - 0.5)*baseSize*zoom
-    // target y(v) = center => pan = (v/SIZE - 0.5)*baseSize*zoom
-    const py = baseSize * factor * (fy / FIELD_SIZE - 0.5);
+    // y(v) = center + pan - (v/SIZE - 0.5)*visualH*zoom
+    // target y(v) = center => pan = (v/SIZE - 0.5)*visualH*zoom
+    const py = visualH * factor * (fy / fieldH - 0.5);
 
     fieldPan.set({ x: px, y: py });
   }
@@ -2409,23 +2365,23 @@
   let zoom = $derived($fieldZoom);
   let pan = $derived($fieldPan);
   let scaleFactor = $derived(zoom);
-  let baseSize = $derived(Math.min(width, height));
+
   let x = $derived(
     d3
       .scaleLinear()
-      .domain([0, FIELD_SIZE])
+      .domain([0, fieldW])
       .range([
-        width / 2 - (baseSize * scaleFactor) / 2 + pan.x,
-        width / 2 + (baseSize * scaleFactor) / 2 + pan.x,
+        width / 2 - (visualW * scaleFactor) / 2 + pan.x,
+        width / 2 + (visualW * scaleFactor) / 2 + pan.x,
       ]),
   );
   let y = $derived(
     d3
       .scaleLinear()
-      .domain([0, FIELD_SIZE])
+      .domain([0, fieldH])
       .range([
-        height / 2 + (baseSize * scaleFactor) / 2 + pan.y,
-        height / 2 - (baseSize * scaleFactor) / 2 + pan.y,
+        height / 2 + (visualH * scaleFactor) / 2 + pan.y,
+        height / 2 - (visualH * scaleFactor) / 2 + pan.y,
       ]),
   );
   $effect(() => {
@@ -2470,7 +2426,7 @@
   });
   // Visual Scale (Pixels per Inch at 1x Zoom)
   // Used for UI elements (points, markers) so they don't grow when zooming in
-  let ppI = $derived(baseSize / FIELD_SIZE);
+  let ppI = $derived(basePpI);
   let uiLength = $derived((inches: number) => inches * ppI);
   let shapes = $derived($shapesStore);
   let robotHeading = $derived($robotHeadingStore);
@@ -2858,6 +2814,20 @@
           opacity="0.7"
         />
       {/each}
+      {#if $isDrawingMode && isDrawing && drawPoints.length > 0}
+        <path
+          d={`M ${x(drawPoints[0].x)} ${y(drawPoints[0].y)} ` +
+            drawPoints
+              .slice(1)
+              .map((p) => `L ${x(p.x)} ${y(p.y)}`)
+              .join(" ")}
+          fill="none"
+          stroke="#a855f7"
+          stroke-width={uiLength(LINE_WIDTH)}
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      {/if}
     </svg>
 
     {#if settings.customMaps?.some((m) => m.id === settings.fieldMap)}
@@ -2885,7 +2855,7 @@
           : "/fields/decode.webp"}
         alt="Field"
         class="absolute rounded-lg z-10 max-w-none"
-        style={`top: ${y(FIELD_SIZE)}px; left: ${x(0)}px; width: ${x(FIELD_SIZE) - x(0)}px; height: ${y(0) - y(FIELD_SIZE)}px;`}
+        style={`top: ${y(fieldH)}px; left: ${x(0)}px; width: ${x(fieldW) - x(0)}px; height: ${y(0) - y(fieldH)}px;`}
         draggable="false"
         onerror={function (e) {
           const target = e.currentTarget || e.target;

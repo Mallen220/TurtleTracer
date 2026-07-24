@@ -1,3 +1,7 @@
+## 2.2.1 (2026-07-24)
+
+- Fix accessibility issues for icon-only buttons. More developer friendly. Use dynamic field dimensions instead of static variables. Added a setting. Fix control point deletion reactivity. Code cleanup. 
+
 ## 2.2.0 (2026-05-24)
 
 - Add live timeline hover scrubbing preview with Ghost Robot. Add Customizable Robot Features to robot image. Add Lock Field View shortcut. Shift+Drag Box Selection in FieldRenderer. Overhauled event marker logic for support on FTC SDK, SolversLib, and NextFTC (Runnable only). Users must update to newest TurtleTracerLib version for proper support. Added Velocity Tooltip setting (off by default) that shows Velocity, Time, and distance traveled at any point in a path. Improved Java code importer support for commands. Add select all keybinding. Add Toggle Field View Lock shortcut. New Toast when library updates are available. Improved MS update notification. Added new robot image option 🐢. Replace sidebar Github with Discord. Code cleanup.

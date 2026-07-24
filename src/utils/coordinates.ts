@@ -4,13 +4,15 @@ export type CoordinateSystem = "Pedro" | "FTC";
 export function toUser(
   point: { x: number; y: number },
   system: CoordinateSystem = "Pedro",
+  fieldWidth: number = 144,
+  fieldHeight: number = 144,
 ): { x: number; y: number } {
   if (system === "FTC") {
-    // User X = 72 - Field Y
-    // User Y = Field X - 72
+    // User X = fieldHeight/2 - Field Y
+    // User Y = Field X - fieldWidth/2
     return {
-      x: 72 - point.y,
-      y: point.x - 72,
+      x: fieldHeight / 2 - point.y,
+      y: point.x - fieldWidth / 2,
     };
   }
   return { x: point.x, y: point.y };
@@ -19,13 +21,15 @@ export function toUser(
 export function toField(
   point: { x: number; y: number },
   system: CoordinateSystem = "Pedro",
+  fieldWidth: number = 144,
+  fieldHeight: number = 144,
 ): { x: number; y: number } {
   if (system === "FTC") {
-    // Field X = User Y + 72
-    // Field Y = 72 - User X
+    // Field X = User Y + fieldWidth/2
+    // Field Y = fieldHeight/2 - User X
     return {
-      x: point.y + 72,
-      y: 72 - point.x,
+      x: point.y + fieldWidth / 2,
+      y: fieldHeight / 2 - point.x,
     };
   }
   return { x: point.x, y: point.y };

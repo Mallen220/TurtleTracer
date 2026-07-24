@@ -160,7 +160,7 @@
             commitStartPointInput("x");
           }}
           min="0"
-          max="144"
+          max={settings?.fieldWidth ?? 144}
           type="number"
           class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
           step="0.1"
@@ -188,7 +188,7 @@
             commitStartPointInput("y");
           }}
           min="0"
-          max="144"
+          max={settings?.fieldHeight ?? 144}
           type="number"
           class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
           step="0.1"

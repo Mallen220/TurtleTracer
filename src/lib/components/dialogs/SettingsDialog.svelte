@@ -407,6 +407,7 @@
               <button
                 onclick={() => (isOpen = false)}
                 aria-label="Close settings"
+                title="Close settings"
                 class="p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-500"
               >
                 <CloseIcon className="size-6" />

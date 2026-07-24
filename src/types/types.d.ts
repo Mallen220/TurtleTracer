@@ -195,6 +195,8 @@ interface KeyBinding {
 }
 
 interface Settings {
+  fieldWidth?: number;
+  fieldHeight?: number;
   xVelocity: number;
   yVelocity: number;
   aVelocity: number;

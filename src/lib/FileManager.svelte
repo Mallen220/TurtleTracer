@@ -1203,6 +1203,7 @@
       class="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 z-50 transition-colors appearance-none bg-transparent"
       onmousedown={startResize}
       aria-label="Resize sidebar"
+      title="Resize sidebar"
     ></button>
 
     <!-- Header -->

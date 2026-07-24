@@ -8,6 +8,7 @@
   const IDENTITY_SCALE = d3.scaleLinear();
 
   // Components
+  import { DEFAULT_SETTINGS } from "./config/defaults";
   import ControlTab from "./lib/ControlTab.svelte";
   import Navbar from "./lib/Navbar.svelte";
   import LeftSidebar from "./lib/components/LeftSidebar.svelte";
@@ -946,6 +947,29 @@
     // Load Settings
     const savedSettings = await loadSettings();
     settingsStore.set({ ...savedSettings });
+
+    if (
+      (savedSettings.fieldWidth !== DEFAULT_SETTINGS.fieldWidth ||
+        savedSettings.fieldHeight !== DEFAULT_SETTINGS.fieldHeight) &&
+      !savedSettings.customMaps?.some((m) => m.id === savedSettings.fieldMap)
+    ) {
+      const scaleX =
+        (savedSettings.fieldWidth ?? 144) /
+        (DEFAULT_SETTINGS.fieldWidth ?? 144);
+      const scaleY =
+        (savedSettings.fieldHeight ?? 144) /
+        (DEFAULT_SETTINGS.fieldHeight ?? 144);
+      shapesStore.update((shapes) =>
+        shapes.map((shape) => ({
+          ...shape,
+          vertices: shape.vertices.map((v) => ({
+            ...v,
+            x: v.x * scaleX,
+            y: v.y * scaleY,
+          })),
+        })),
+      );
+    }
 
     // Stabilize
     setTimeout(async () => {
@@ -1980,6 +2004,7 @@
             type="button"
             class="absolute inset-0 opacity-0 pointer-events-none"
             aria-label="Field workspace tutorial target"
+            title="Field workspace tutorial target"
             tabindex={$startTutorial ? 0 : -1}
           ></button>
           <SvelteComponent_1
