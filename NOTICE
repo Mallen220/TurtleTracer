@@ -519,3 +519,4 @@ src/lib/exporters/utils/eventMarkerUtils.ts
 src/lib/components/icons/KeyboardIcon.svelte
 src/lib/components/whats-new/features/v2.2.0.md
 src/utils/libraryVersionChecker.ts
+.npmrc
