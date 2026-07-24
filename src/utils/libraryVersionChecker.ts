@@ -28,7 +28,7 @@ export async function checkLibraryVersion(
     let projectRoot = directory;
 
     // Normalize path to handle both Windows and Unix slashes
-    const normalizedDir = directory.replace(/\\/g, "/");
+    const normalizedDir = directory.replaceAll("\\", "/");
     const parts = normalizedDir.split("/");
     const teamCodeIndex = parts.indexOf("TeamCode");
 
