@@ -61,10 +61,16 @@ export function validatePath(
       ).length;
       const obstacleCount = markers.length - boundaryCount - zeroLengthCount;
 
-      let msg = `Found ${markers.length} issues! `;
+      let msg = `Found ${markers.length} ${markers.length === 1 ? "issue" : "issues"}! `;
       const parts = [];
-      if (obstacleCount > 0) parts.push(`${obstacleCount} obstacle`);
-      if (boundaryCount > 0) parts.push(`${boundaryCount} boundary`);
+      if (obstacleCount > 0)
+        parts.push(
+          `${obstacleCount} ${obstacleCount === 1 ? "obstacle" : "obstacles"}`,
+        );
+      if (boundaryCount > 0)
+        parts.push(
+          `${boundaryCount} ${boundaryCount === 1 ? "boundary" : "boundaries"}`,
+        );
       if (zeroLengthCount > 0) parts.push(`${zeroLengthCount} zero-length`);
 
       msg += `(${parts.join(", ")})`;

@@ -116,7 +116,7 @@
         {/if}
       {:else}
         <p class="text-sm text-red-600 dark:text-red-400 font-bold mb-1">
-          Found Issues!
+          {$collisionMarkers.length === 1 ? "Found Issue!" : "Found Issues!"}
         </p>
         <ul
           class="text-xs text-neutral-700 dark:text-neutral-300 space-y-1 list-disc list-inside"

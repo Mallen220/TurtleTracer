@@ -1,6 +1,6 @@
 ## 2.2.1 (2026-07-24)
 
-- Fix accessibility issues for icon-only buttons. More developer friendly. Use dynamic field dimensions instead of static variables. Added a setting. Fix control point deletion reactivity. Code cleanup. 
+- Fix accessibility issues for icon-only buttons. More developer friendly. Use dynamic field dimensions instead of static variables. Added a setting. Fix control point deletion reactivity. Code cleanup.
 
 ## 2.2.0 (2026-05-24)
 
