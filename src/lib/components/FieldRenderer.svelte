@@ -2852,7 +2852,7 @@
       <img
         src={settings.fieldMap && !settings.fieldMap.includes("custom") // Safe fallback check
           ? `/fields/${settings.fieldMap}`
-          : "/fields/decode.webp"}
+          : "/fields/biobuzz.webp"}
         alt="Field"
         class="absolute rounded-lg z-10 max-w-none"
         style={`top: ${y(fieldH)}px; left: ${x(0)}px; width: ${x(fieldW) - x(0)}px; height: ${y(0) - y(fieldH)}px;`}
@@ -2860,7 +2860,7 @@
         onerror={function (e) {
           const target = e.currentTarget || e.target;
           if (target instanceof HTMLImageElement) {
-            target.src = "/fields/decode.webp";
+            target.src = "/fields/biobuzz.webp";
           }
         }}
       />

@@ -85,8 +85,21 @@ export function mergeSettings(source: any): Settings {
       // Skip if source value is undefined/null (will use default)
       if (sourceVal === undefined || sourceVal === null) return;
 
-      // Special-case merging for keyBindings so newly added defaults appear
-      if (key === "keyBindings" && Array.isArray(sourceVal)) {
+      // Special-case merging for obstaclePresets so all default presets are guaranteed present & up to date, while user custom presets are preserved
+      if (key === "obstaclePresets" && Array.isArray(sourceVal)) {
+        const defaultPresets = defaults.obstaclePresets || [];
+        const storedPresets = sourceVal as any[];
+
+        const defaultIds = new Set(defaultPresets.map((p) => p.id));
+
+        // Start with defaultPresets (always up to date with official seasons)
+        // Then append any custom user presets that aren't in defaultPresets
+        const customPresets = storedPresets.filter(
+          (p) => p && typeof p === "object" && p.id && !defaultIds.has(p.id),
+        );
+
+        migrated.obstaclePresets = [...defaultPresets, ...customPresets];
+      } else if (key === "keyBindings" && Array.isArray(sourceVal)) {
         const defaultBindings = defaults.keyBindings || [];
         const storedBindings = sourceVal as any[];
 

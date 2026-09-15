@@ -195,7 +195,7 @@
       bgSrc =
         settings.fieldMap && !settings.fieldMap.includes("custom")
           ? `/fields/${settings.fieldMap}`
-          : "/fields/decode.webp";
+          : "/fields/biobuzz.webp";
     }
 
     if (svg && bgSrc) {

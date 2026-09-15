@@ -105,7 +105,7 @@
         signal: abortController.signal,
         backgroundImageSrc: settings.fieldMap
           ? `/fields/${settings.fieldMap}`
-          : "/fields/decode.webp",
+          : "/fields/biobuzz.webp",
         robotImageSrc:
           settings.robotImage && settings.robotImage !== "none"
             ? settings.robotImage

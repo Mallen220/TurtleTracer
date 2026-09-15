@@ -1,6 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Point, Line, Shape, Settings } from "../types";
-import { getRandomColor } from "../utils";
 import { DEFAULT_KEY_BINDINGS } from "./keybindings";
 
 /**
@@ -21,6 +20,7 @@ export const FIELD_SIZE = 144;
  * Available field maps
  */
 export const AVAILABLE_FIELD_MAPS = [
+  { value: "biobuzz.webp", label: "BioBuzz Field (2026-2027)" },
   { value: "decode.webp", label: "DECODE Field (2025-2026)" },
   { value: "intothedeep.webp", label: "Into The Deep Field (2024-2025)" },
   { value: "centerstage.webp", label: "Centerstage (2023-2024)" },
@@ -50,7 +50,7 @@ export const DEFAULT_SETTINGS: Settings = {
   maxAcceleration: 30,
   maxDeceleration: 30,
   maxAngularAcceleration: 0, // 0 = Auto-calculate from linear acceleration
-  fieldMap: "decode.webp",
+  fieldMap: "biobuzz.webp",
   fieldRotation: 0,
   // use no-image by default; users can opt in to the lightweight
   // legacy robot.png graphic via the settings panel if desired.
@@ -94,6 +94,38 @@ export const DEFAULT_SETTINGS: Settings = {
   lockFieldView: false,
   obstaclePresets: [
     {
+      id: "preset-biobuzz-2026",
+      name: "BioBuzz Field (2026-2027)",
+      shapes: [
+        {
+          id: "biobuzz-hive-red",
+          name: "HiveRedSide",
+          vertices: [
+            { x: 46.5, y: 92 },
+            { x: 46.5, y: 52 },
+            { x: 49, y: 52 },
+            { x: 49, y: 92 },
+          ],
+          color: "#3f3f3f",
+          fillColor: "#fca5a5",
+          type: "obstacle",
+        },
+        {
+          id: "biobuzz-hive-blue",
+          name: "HiveBlueSide",
+          vertices: [
+            { x: 95, y: 92 },
+            { x: 95, y: 52 },
+            { x: 97.5, y: 52 },
+            { x: 97.5, y: 92 },
+          ],
+          color: "#3f3f3f",
+          fillColor: "#fca5a5",
+          type: "obstacle",
+        },
+      ],
+    },
+    {
       id: "preset-decode-2025",
       name: "DECODE Field (2025-2026)",
       shapes: [
@@ -122,6 +154,25 @@ export const DEFAULT_SETTINGS: Settings = {
             { x: 7.5, y: 69.5 },
           ],
           color: "#0b08d9",
+          fillColor: "#fca5a5",
+          type: "obstacle",
+        },
+      ],
+    },
+    {
+      id: "preset-intothedeep-2024",
+      name: "Into The Deep Field (2024-2025)",
+      shapes: [
+        {
+          id: "itd-red-goal",
+          name: "Center Structure",
+          vertices: [
+            { x: 96, y: 57 },
+            { x: 96, y: 87 },
+            { x: 48, y: 87 },
+            { x: 48, y: 57 },
+          ],
+          color: "#fbf42d",
           fillColor: "#fca5a5",
           type: "obstacle",
         },
@@ -158,25 +209,6 @@ export const DEFAULT_SETTINGS: Settings = {
           locked: false,
           type: "obstacle",
           visible: true,
-        },
-      ],
-    },
-    {
-      id: "preset-intothedeep-2024",
-      name: "Into The Deep Field (2024-2025)",
-      shapes: [
-        {
-          id: "itd-red-goal",
-          name: "Center Structure",
-          vertices: [
-            { x: 96, y: 57 },
-            { x: 96, y: 87 },
-            { x: 48, y: 87 },
-            { x: 48, y: 57 },
-          ],
-          color: "#fbf42d",
-          fillColor: "#fca5a5",
-          type: "obstacle",
         },
       ],
     },
@@ -228,11 +260,10 @@ export const DEFAULT_SETTINGS: Settings = {
  */
 export function getDefaultStartPoint(): Point {
   return {
-    x: 56,
-    y: 9.3,
-    heading: "linear",
-    startDeg: 90,
-    endDeg: 180,
+    x: 9,
+    y: 25,
+    heading: "constant",
+    degrees: 0,
     locked: false,
   };
 }
@@ -244,10 +275,16 @@ export function getDefaultLines(): Line[] {
   return [
     {
       id: `line-${Math.random().toString(36).slice(2)}`,
-      name: "",
-      endPoint: { x: 56, y: 36, heading: "linear", startDeg: 90, endDeg: 180 },
+      name: "DriveToShoot",
+      endPoint: {
+        x: 60,
+        y: 25,
+        heading: "linear",
+        startDeg: 0,
+        endDeg: 90,
+      },
       controlPoints: [],
-      color: getRandomColor(),
+      color: "#8CD6B8",
       eventMarkers: [],
       locked: false,
       waitBeforeMs: 0,
@@ -262,12 +299,12 @@ export function getDefaultLines(): Line[] {
  * Get default shapes (field obstacles)
  */
 export function getDefaultShapes(): Shape[] {
-  const decodePreset = DEFAULT_SETTINGS.obstaclePresets?.find(
-    (p) => p.id === "preset-decode-2025",
+  const biobuzzPreset = DEFAULT_SETTINGS.obstaclePresets?.find(
+    (p) => p.id === "preset-biobuzz-2026",
   );
-  if (decodePreset) {
+  if (biobuzzPreset) {
     // Return copies so mutations don't affect the preset
-    return decodePreset.shapes.map((s) => ({
+    return biobuzzPreset.shapes.map((s) => ({
       ...s,
       vertices: s.vertices.map((v) => ({ ...v })),
     }));
