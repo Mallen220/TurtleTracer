@@ -1,3 +1,7 @@
+## 2.3.0 (2026-09-16)
+
+- Fixed minor bug were text said "Found Issues" when only one issue was found. Updated field map and obstacles to BioBuzz. FIX: Optimization preview line should always update when calculating, not just on the first iteration. Change default safety margin to two inches from six inches. Code exporter now supports TurtleTracerLib Events since PedroPathing deprecated callbacks and updated code exporter for Pedro 3.0.0
+
 ## 2.2.1 (2026-07-24)
 
 - Fix accessibility issues for icon-only buttons. More developer friendly. Use dynamic field dimensions instead of static variables. Added a setting. Fix control point deletion reactivity. Code cleanup.
