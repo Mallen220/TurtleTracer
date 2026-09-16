@@ -5,7 +5,7 @@ import type { Point, Line, SequenceItem, TurtleData } from "../../types";
 import { getLineStartHeading } from "../../utils/math";
 import pkg from "../../../package.json";
 import { actionRegistry } from "../../lib/actionRegistry";
-import { generateEventMarkerCode } from "./eventMarkerUtils";
+import { generateTrackerEventRegistrationCode } from "./eventMarkerUtils";
 import {
   toUser,
   toUserHeading,
@@ -39,12 +39,6 @@ export async function generateJavaCode(
   coordinateSystem: CoordinateSystem = "Pedro",
   codeUnits: "imperial" | "metric" = "imperial",
 ): Promise<string> {
-  const headingTypeToFunctionName = {
-    constant: "setConstantHeadingInterpolation",
-    linear: "setLinearHeadingInterpolation",
-    tangential: "setTangentHeadingInterpolation",
-  };
-
   const flattenSequence = (seq: SequenceItem[]): SequenceItem[] => {
     const result: SequenceItem[] = [];
     seq.forEach((item) => {
@@ -103,7 +97,7 @@ export async function generateJavaCode(
     ${pathChainNames
       .map((variableName, idx) => {
         if (lines[idx].isChain) return "";
-        return `public PathChain ${variableName};`;
+        return `public Path ${variableName};`;
       })
       .filter(Boolean)
       .join("\n")}
@@ -228,10 +222,10 @@ export async function generateJavaCode(
                     : "";
           }
 
-          const curveType =
+          const pathCall =
             line.controlPoints.length === 0
-              ? `new BezierLine`
-              : `new BezierCurve`;
+              ? `line(\n          ${startCode},\n          ${endCode}\n        )`
+              : `curve(\n          ${startCode},\n          ${controlPointsCode}${endCode}\n        )`;
 
           let headingMethodCode = "";
           let globalHeadingCode = "";
@@ -271,24 +265,24 @@ export async function generateJavaCode(
 
             let baseName = "";
             if (pointDef.heading === "constant") {
-              baseName = `HeadingInterpolator.constant(${config})`;
+              baseName = `Interpolator.constant(${config})`;
             } else if (pointDef.heading === "linear") {
-              baseName = `HeadingInterpolator.linear(${config})`;
+              baseName = `Interpolator.linear(${config})`;
             } else if (pointDef.heading === "tangential") {
-              baseName = `HeadingInterpolator.tangent`;
+              baseName = `Interpolator.tangent`;
             } else if (pointDef.heading === "facingPoint") {
-              baseName = `HeadingInterpolator.facingPoint(${config})`;
+              baseName = `Interpolator.facingPoint(${config})`;
             }
 
             if (pointDef.reverse) {
               if (pointDef.heading === "tangential")
-                return "HeadingInterpolator.reversedTangent";
+                return "Interpolator.tangent.reverse()";
               if (pointDef.heading === "linear")
-                return `HeadingInterpolator.reversedLinear(${config})`;
+                return `Interpolator.linear(${config}).reverse()`;
               if (pointDef.heading === "constant")
-                return `HeadingInterpolator.reversedConstant(${config})`;
+                return `Interpolator.constant(${config}).reverse()`;
               if (pointDef.heading === "facingPoint")
-                return `HeadingInterpolator.reversedFacingPoint(${config})`;
+                return `Interpolator.facingPoint(${config}).reverse()`;
             }
             return baseName;
           };
@@ -297,20 +291,23 @@ export async function generateJavaCode(
             if (targetConfig.heading === "piecewise") {
               const segs = targetConfig.segments || [];
               if (segs.length === 0) {
-                return ".setTangentHeadingInterpolation()";
+                return ".tangent()";
               }
               const segmentsStr = segs
                 .map((seg: any) => {
                   const interpStr = generateInterpolatorString(seg);
-                  return `\n          new HeadingInterpolator.PiecewiseNode(${seg.tStart}, ${seg.tEnd}, ${interpStr})`;
+                  return `.until(${seg.tEnd}, ${interpStr})`;
                 })
-                .join(",");
-              return `.setHeadingInterpolation(HeadingInterpolator.piecewise(${segmentsStr}\n        ))`;
+                .join("\n          ");
+              if (targetConfig.reverse) {
+                return `.heading(Interpolator.piecewise()\n          ${segmentsStr}\n          .reverse())`;
+              }
+              return `.heading(Interpolator.piecewise()\n          ${segmentsStr}\n        )`;
             }
 
             let hConfig = generateInterpolatorString(targetConfig);
             let args = "";
-            if (hConfig.includes("(")) {
+            if (hConfig.includes("(") && !hConfig.endsWith(".reverse()")) {
               args = hConfig.slice(
                 hConfig.indexOf("(") + 1,
                 hConfig.lastIndexOf(")"),
@@ -319,22 +316,22 @@ export async function generateJavaCode(
 
             if (targetConfig.reverse) {
               if (targetConfig.heading === "constant") {
-                return `.setHeadingInterpolation(HeadingInterpolator.constant(${args}))\n        .setReversed()`;
+                return `.heading(${hConfig})`;
               } else if (targetConfig.heading === "linear") {
-                return `.setHeadingInterpolation(HeadingInterpolator.linear(${args}))\n        .setReversed()`;
+                return `.heading(${hConfig})`;
               } else if (targetConfig.heading === "tangential") {
-                return `.setHeadingInterpolation(HeadingInterpolator.tangent)\n        .setReversed()`;
+                return `.reverseTangent()`;
               } else if (targetConfig.heading === "facingPoint") {
-                return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))\n        .setReversed()`;
+                return `.heading(${hConfig})`;
               }
             } else if (targetConfig.heading === "constant") {
-              return `.setConstantHeadingInterpolation(${args})`;
+              return `.constant(${args})`;
             } else if (targetConfig.heading === "linear") {
-              return `.setLinearHeadingInterpolation(${args})`;
+              return `.linear(${args})`;
             } else if (targetConfig.heading === "tangential") {
-              return `.setTangentHeadingInterpolation()`;
+              return `.tangent()`;
             } else if (targetConfig.heading === "facingPoint") {
-              return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))`;
+              return `.facingPoint(${args})`;
             }
             return "";
           };
@@ -364,13 +361,7 @@ export async function generateJavaCode(
                 targetY: rootLine.globalTargetY,
                 segments: rootLine.globalSegments,
               };
-              const globalInterpStr = constructHeadingMethod(
-                globalConfig,
-              ).replaceAll(
-                /set(Constant|Linear|Tangent|Heading)Interpolation\(/g,
-                "setGlobalHeadingInterpolation(",
-              );
-              globalHeadingCode = `\n        ${globalInterpStr}`;
+              globalHeadingCode = `\n        ${constructHeadingMethod(globalConfig)}`;
             }
           }
 
@@ -378,59 +369,44 @@ export async function generateJavaCode(
             headingMethodCode = constructHeadingMethod(line.endPoint);
           }
 
-          // Add event markers to the path builder
-          const _startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
-          const _cps = [_startPt, ...line.controlPoints, line.endPoint];
-          const _info = chainInfos[idx];
-          const eventMarkerCode = generateEventMarkerCode(
-            line.eventMarkers,
-            "        ",
-            _cps,
-            _info.localIdx,
-            _info.totalInChain,
-          );
-
           return {
             line,
             variableName,
-            curveType,
-            startCode,
-            controlPointsCode,
-            endCode,
+            pathCall,
             headingMethodCode,
-            eventMarkerCode,
             globalHeadingCode,
           };
         });
 
         // Consolidate chained paths
         const consolidatedBlocks: string[] = [];
-        let currentBlock = "";
-        let currentGlobalHeadingCode = "";
-
-        for (let i = 0; i < pathData.length; i++) {
-          const pd = pathData[i];
-
-          if (pd.line.isChain) {
-            currentBlock += `\n        .addPath(\n          ${pd.curveType}(\n            ${pd.startCode},\n            ${pd.controlPointsCode}\n            ${pd.endCode}\n          )\n        )${pd.headingMethodCode}${pd.eventMarkerCode}`;
-          } else {
-            if (currentBlock) {
-              currentBlock += currentGlobalHeadingCode;
-              currentBlock += "\n        .build();";
-              consolidatedBlocks.push(currentBlock);
-            }
-            currentGlobalHeadingCode = pd.globalHeadingCode;
-            currentBlock = `${pd.variableName} = follower.pathBuilder()\n        .addPath(\n          ${pd.curveType}(\n            ${pd.startCode},\n            ${pd.controlPointsCode}\n            ${pd.endCode}\n          )\n        )${pd.headingMethodCode}${pd.eventMarkerCode}`;
+        let i = 0;
+        while (i < pathData.length) {
+          const rootPd = pathData[i];
+          const chainMembers = [rootPd];
+          let j = i + 1;
+          while (j < pathData.length && pathData[j].line.isChain) {
+            chainMembers.push(pathData[j]);
+            j++;
           }
+
+          if (chainMembers.length === 1) {
+            consolidatedBlocks.push(
+              `${rootPd.variableName} = ${rootPd.pathCall}${rootPd.headingMethodCode};`,
+            );
+          } else {
+            const childCalls = chainMembers.map((m) => {
+              return `        ${m.pathCall}${m.headingMethodCode}`;
+            });
+            consolidatedBlocks.push(
+              `${rootPd.variableName} = path(\n${childCalls.join(",\n")}\n      )${rootPd.globalHeadingCode};`,
+            );
+          }
+
+          i = j;
         }
 
-        if (currentBlock) {
-          currentBlock += currentGlobalHeadingCode;
-          currentBlock += "\n        .build();";
-          consolidatedBlocks.push(currentBlock);
-        }
-
-        return consolidatedBlocks.join("\n\n");
+        return consolidatedBlocks.join("\n\n      ");
       })()}
   }}
 
@@ -438,15 +414,7 @@ export async function generateJavaCode(
       coordinateSystem === "FTC"
         ? `
     private static Pose buildPose(double x, double y, double heading) {
-        return PoseConverter.pose2DToPose(
-            new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
-                org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH,
-                x, y,
-                org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS,
-                heading
-            ),
-            InvertedFTCCoordinates.INSTANCE
-        ).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+        return new Pose(y + 72.0, 72.0 - x, heading);
     }
     `
         : ""
@@ -464,6 +432,10 @@ export async function generateJavaCode(
 
   // Add NamedCommands registration instructions
   let namedCommandsSection = "";
+
+  const hasEventMarkers = lines.some(
+    (line) => line.eventMarkers && line.eventMarkers.length > 0,
+  );
 
   // Generate state machine logic
   let stateMachineCode = "";
@@ -509,14 +481,17 @@ export async function generateJavaCode(
       } else {
         const line = lines[idx];
         if (line.isChain) {
-          // Chained paths don't get their own followPath command in the state machine,
+          // Chained paths don't get their own follow command in the state machine,
           // they are executed as part of the root chain path before them.
           stateMachineCode += `\n          // Handled by previous chained path`;
           stateMachineCode += `\n          setPathState(${stateStep + 1});`;
           stateMachineCode += `\n          break;`;
           stateStep += 1;
         } else {
-          stateMachineCode += `\n          follower.followPath(paths.${pathChainNames[idx]}, true);`;
+          stateMachineCode += `\n          follower.follow(paths.${pathChainNames[idx]});`;
+          if (hasEventMarkers) {
+            stateMachineCode += `\n          tracker.setCurrentPath(paths.${pathChainNames[idx]});`;
+          }
           stateMachineCode += `\n          setPathState(${stateStep + 1});`;
           stateMachineCode += `\n          break;`;
 
@@ -538,10 +513,6 @@ export async function generateJavaCode(
 
   let file = "";
   if (exportFullCode) {
-    const hasEventMarkers = lines.some(
-      (line) => line.eventMarkers && line.eventMarkers.length > 0,
-    );
-
     // Determine imports based on telemetry implementation
     let extraImports = "";
     if (telemetryImpl === "Panels") {
@@ -557,7 +528,7 @@ export async function generateJavaCode(
     }
 
     const namedCommandsImport = hasEventMarkers
-      ? "import com.turtletracerlib.pathing.NamedCommands;\n"
+      ? "import com.turtletracerlib.pathing.NamedCommands;\nimport com.turtletracerlib.pathing.ProgressTracker;\n"
       : "";
 
     const classAnnotations =
@@ -594,25 +565,25 @@ export async function generateJavaCode(
       telemetryLoop = `
         // Log values to Panels and Driver Station
         panelsTelemetry.debug("Path State", pathState);
-        panelsTelemetry.debug("X", follower.getPose().getX());
-        panelsTelemetry.debug("Y", follower.getPose().getY());
-        panelsTelemetry.debug("Heading", follower.getPose().getHeading());
+        panelsTelemetry.debug("X", follower.pose().x());
+        panelsTelemetry.debug("Y", follower.pose().y());
+        panelsTelemetry.debug("Heading", follower.pose().heading());
         panelsTelemetry.update(telemetry);`;
     } else if (telemetryImpl === "Dashboard") {
       telemetryLoop = `
         // Log values to Dashboard and Driver Station
         telemetryA.addData("Path State", pathState);
-        telemetryA.addData("X", follower.getPose().getX());
-        telemetryA.addData("Y", follower.getPose().getY());
-        telemetryA.addData("Heading", follower.getPose().getHeading());
+        telemetryA.addData("X", follower.pose().x());
+        telemetryA.addData("Y", follower.pose().y());
+        telemetryA.addData("Heading", follower.pose().heading());
         telemetryA.update();`;
     } else if (telemetryImpl === "Standard") {
       telemetryLoop = `
         // Log values to Driver Station
         telemetry.addData("Path State", pathState);
-        telemetry.addData("X", follower.getPose().getX());
-        telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading", follower.getPose().getHeading());
+        telemetry.addData("X", follower.pose().x());
+        telemetry.addData("Y", follower.pose().y());
+        telemetry.addData("Heading", follower.pose().heading());
         telemetry.update();`;
     }
 
@@ -654,24 +625,22 @@ export async function generateJavaCode(
     import com.qualcomm.robotcore.eventloop.opmode.OpMode;
     import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
     import com.qualcomm.robotcore.util.ElapsedTime;
-    import com.pedropathing.ftc.InvertedFTCCoordinates;
-    import com.pedropathing.geometry.PedroCoordinates;
     import org.firstinspires.ftc.teamcode.pedroPathing.PedroConstants;
-    import com.pedropathing.ftc.PoseConverter;
     ${namedCommandsImport}${extraImports}
-    import com.pedropathing.geometry.BezierCurve;
-    import com.pedropathing.geometry.BezierLine;
     import com.pedropathing.follower.Follower;
-    import com.pedropathing.paths.PathChain;
-    import com.pedropathing.geometry.Pose;
-    import com.pedropathing.paths.HeadingInterpolator;
+    import com.pedropathing.paths.Path;
+    import static com.pedropathing.api.Paths.curve;
+    import static com.pedropathing.api.Paths.line;
+    import static com.pedropathing.api.Paths.path;
+    import com.pedropathing.math.Pose;
+    import com.pedropathing.paths.interpolator.Interpolator;
     
     @Autonomous(name = "Turtle Tracer Autonomous", group = "Autonomous")
     ${classAnnotations}
     public class TurtleTracerAutonomous extends OpMode {
       ${telemetryField}
       public Follower follower; // Pathing follower instance
-      private int pathState; // Current autonomous path state (state machine)
+      ${hasEventMarkers ? "private ProgressTracker tracker; // Progress tracker instance for event markers\n      " : ""}private int pathState; // Current autonomous path state (state machine)
       private ElapsedTime pathTimer; // Timer for path state machine
       private Paths paths; // Paths defined in the Paths class
       
@@ -694,7 +663,7 @@ export async function generateJavaCode(
                   codeUnits === "metric"
                     ? `cmToInches(${(uStart.y * 2.54).toFixed(3)})`
                     : uStart.y.toFixed(3);
-                return `follower.setStartingPose(buildPose(${px}, ${py}, Math.toRadians(${uHead.toFixed(3)})));`;
+                return `follower.setPose(buildPose(${px}, ${py}, Math.toRadians(${uHead.toFixed(3)})));`;
               })()
             : (() => {
                 const px =
@@ -705,18 +674,23 @@ export async function generateJavaCode(
                   codeUnits === "metric"
                     ? `cmToInches(${(startPoint.y * 2.54).toFixed(3)})`
                     : startPoint.y.toFixed(3);
-                return `follower.setStartingPose(new Pose(${px}, ${py}, Math.toRadians(${startDegForExport.toFixed(3)})));`;
+                return `follower.setPose(new Pose(${px}, ${py}, Math.toRadians(${startDegForExport.toFixed(3)})));`;
               })()
         }
 
         pathTimer = new ElapsedTime();
         paths = new Paths(follower); // Build paths
+        ${
+          hasEventMarkers
+            ? `\n        tracker = new ProgressTracker(follower, telemetry);${generateTrackerEventRegistrationCode(lines, "        ", coordinateSystem, codeUnits)}`
+            : ""
+        }
       }
       
       @Override
       public void loop() {
         follower.update(); // Update follower
-        pathState = autonomousPathUpdate(); // Update autonomous state machine
+        ${hasEventMarkers ? "tracker.update(); // Update tracker\n        " : ""}pathState = autonomousPathUpdate(); // Update autonomous state machine
 
         ${telemetryLoop}
       }

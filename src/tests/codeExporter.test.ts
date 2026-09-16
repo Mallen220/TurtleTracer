@@ -101,22 +101,19 @@ describe("codeExporter", () => {
       const code = await generateJavaCode(startPoint, lines, false);
 
       expect(code).toContain("public static class Paths {");
-      expect(code).toContain("public PathChain line1;");
-      expect(code).toContain("line1 = follower.pathBuilder()");
-      expect(code).toContain(".addPath(");
-      expect(code).toContain("new BezierLine");
-      expect(code).toContain(
-        "setConstantHeadingInterpolation(Math.toRadians(90))",
-      );
+      expect(code).toContain("public Path line1;");
+      expect(code).toContain("line1 = line(");
+      expect(code).toContain(".constant(Math.toRadians(90))");
     });
 
     it("should generate code with BezierCurve and Linear Heading", async () => {
       const lines = [line2];
       const code = await generateJavaCode(startPoint, lines, false);
 
-      expect(code).toContain("new BezierCurve");
+      expect(code).toContain("curve(");
+      expect(code).not.toContain("Paths.curve(");
       expect(code).toContain(
-        "setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))",
+        ".linear(Math.toRadians(90), Math.toRadians(180))",
       );
     });
 
@@ -124,10 +121,7 @@ describe("codeExporter", () => {
       const lines = [line3];
       const code = await generateJavaCode(startPoint, lines, false);
 
-      expect(code).toContain(
-        ".setHeadingInterpolation(HeadingInterpolator.tangent)",
-      );
-      expect(code).toContain(".setReversed()");
+      expect(code).toContain(".reverseTangent()");
     });
 
     it("should generate code with Facing Point Heading", async () => {
@@ -147,9 +141,7 @@ describe("codeExporter", () => {
         locked: false,
       };
       const code = await generateJavaCode(startPoint, [facingPointLine], false);
-      expect(code).toContain(
-        ".setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(20.000, 30.000)))",
-      );
+      expect(code).toContain(".facingPoint(new Pose(20.000, 30.000))");
 
       facingPointLine.endPoint.reverse = true;
       const codeReverse = await generateJavaCode(
@@ -158,18 +150,81 @@ describe("codeExporter", () => {
         false,
       );
       expect(codeReverse).toContain(
-        ".setHeadingInterpolation(HeadingInterpolator.facingPoint(new Pose(20.000, 30.000)))",
+        ".heading(Interpolator.facingPoint(new Pose(20.000, 30.000)).reverse())",
       );
-      expect(codeReverse).toContain(".setReversed()");
     });
 
-    it("should include event markers when using basic java export", async () => {
+    it("should keep Paths class purely geometric without event markers in basic java export", async () => {
       const lines = [line3];
       const code = await generateJavaCode(startPoint, lines, false);
 
+      expect(code).toContain("line3 = curve(");
+      expect(code).not.toContain(".onParametric");
+      expect(code).not.toContain(".onTemporal");
+      expect(code).not.toContain(".onSpatial");
+      expect(code).not.toContain("addParametricCallback");
+    });
+
+    it("should export event markers on ProgressTracker in full autonomous OpMode", async () => {
+      const lines = [line3];
+      const code = await generateJavaCode(startPoint, lines, true);
+
       expect(code).toContain(
-        '.addParametricCallback(0.500, NamedCommands.getCommand("marker1"))',
+        "import com.turtletracerlib.pathing.NamedCommands;",
       );
+      expect(code).toContain(
+        "import com.turtletracerlib.pathing.ProgressTracker;",
+      );
+      expect(code).toContain("private ProgressTracker tracker;");
+      expect(code).toContain(
+        "tracker = new ProgressTracker(follower, telemetry);",
+      );
+      expect(code).toContain(
+        'tracker.onParametric(0.500, NamedCommands.getCommand("marker1"));',
+      );
+      expect(code).toContain("tracker.update();");
+      expect(code).toContain("tracker.setCurrentPath(paths.line3);");
+      // Paths class inside OpMode must remain pure geometry
+      expect(code).not.toContain(".reverseTangent().onParametric");
+    });
+
+    it("should export temporal and spatial event markers using onTemporal and onSpatial on ProgressTracker", async () => {
+      const lineWithEvents: Line = {
+        id: "l_events",
+        name: "eventLine",
+        controlPoints: [],
+        endPoint: { x: 30, y: 30, heading: "constant", degrees: 0 },
+        color: "#000000",
+        eventMarkers: [
+          {
+            id: "t1",
+            name: "tempMarker",
+            type: "temporal",
+            position: 0,
+            time: 750,
+          },
+          {
+            id: "s1",
+            name: "spatMarker",
+            type: "pose",
+            position: 0,
+            poseX: 15,
+            poseY: 20,
+            poseHeading: 90,
+            radius: 1.5,
+          } as any,
+        ],
+      };
+
+      const code = await generateJavaCode(startPoint, [lineWithEvents], true);
+      expect(code).toContain(
+        'tracker.onTemporal(750, NamedCommands.getCommand("tempMarker"));',
+      );
+      expect(code).toContain(
+        'tracker.onSpatial(new Pose(15.000, 20.000, Math.toRadians(90.000)), 1.5, NamedCommands.getCommand("spatMarker"));',
+      );
+      expect(code).not.toContain("addTemporalCallback");
+      expect(code).not.toContain("addPoseCallback");
     });
 
     it("should include NamedCommands import when exportFullCode has event markers", async () => {
@@ -192,13 +247,17 @@ describe("codeExporter", () => {
         "public class TurtleTracerAutonomous extends OpMode",
       );
       expect(code).toContain("paths = new Paths(follower);");
+      expect(code).toContain("import static com.pedropathing.api.Paths.curve;");
+      expect(code).toContain("import static com.pedropathing.api.Paths.line;");
+      expect(code).toContain("import static com.pedropathing.api.Paths.path;");
+      expect(code).not.toContain("import com.pedropathing.api.Paths;");
     });
 
     it("should handle empty lines array", async () => {
       const code = await generateJavaCode(startPoint, [], false);
       expect(code).toContain("public static class Paths");
       // Should not contain any paths
-      expect(code).not.toContain("public PathChain");
+      expect(code).not.toContain("public Path ");
     });
 
     it("should omit wait events in sequence when provided", async () => {
@@ -244,13 +303,13 @@ describe("codeExporter", () => {
       const code = await generateJavaCode(startPoint, lines, false);
 
       // Check unique variables
-      expect(code).toMatch(/public PathChain Score;/);
-      expect(code).toMatch(/public PathChain Score_1;/);
-      expect(code).toMatch(/public PathChain Park;/);
+      expect(code).toMatch(/public Path Score;/);
+      expect(code).toMatch(/public Path Score_1;/);
+      expect(code).toMatch(/public Path Park;/);
 
       // Check initialization - check for assignment
-      expect(code).toMatch(/Score = follower/);
-      expect(code).toMatch(/Score_1 = follower/);
+      expect(code).toMatch(/Score = line/);
+      expect(code).toMatch(/Score_1 = curve/);
     });
 
     const setupTangentTest = () => {
@@ -275,7 +334,7 @@ describe("codeExporter", () => {
       // Math.toRadians(45) approx 0.785
       // 45 degrees
       expect(code).toContain(
-        "follower.setStartingPose(new Pose(10.000, 10.000, Math.toRadians(45.000)))",
+        "follower.setPose(new Pose(10.000, 10.000, Math.toRadians(45.000)))",
       );
     });
 
@@ -291,7 +350,7 @@ describe("codeExporter", () => {
       };
       const code = await generateJavaCode(sp, [], true);
       expect(code).toContain(
-        "follower.setStartingPose(new Pose(10.000, 10.000, Math.toRadians(120.000)))",
+        "follower.setPose(new Pose(10.000, 10.000, Math.toRadians(120.000)))",
       );
     });
 
@@ -313,7 +372,7 @@ describe("codeExporter", () => {
       // When line geometry exists, export should reflect the geometric start heading (45°),
       // so updating the start position will change the exported angle accordingly.
       expect(code).toContain(
-        "follower.setStartingPose(new Pose(10.000, 10.000, Math.toRadians(45.000)))",
+        "follower.setPose(new Pose(10.000, 10.000, Math.toRadians(45.000)))",
       );
     });
   });
@@ -358,6 +417,9 @@ describe("codeExporter", () => {
       expect(code).toContain("import dev.nextftc.core.commands.Command;");
       expect(code).toContain(
         "import dev.nextftc.core.commands.groups.SequentialGroup;",
+      );
+      expect(code).toContain(
+        "import dev.nextftc.core.commands.delays.WaitUntil;",
       );
       expect(code).toContain(
         "import org.firstinspires.ftc.teamcode.pedroPathing.FollowPath;",
@@ -506,9 +568,9 @@ describe("codeExporter", () => {
       expect(initA?.length).toBe(1);
 
       // 3. Path Naming
-      expect(code).toMatch(/private PathChain startPointTOA;/);
-      expect(code).toMatch(/private PathChain ATOB;/);
-      expect(code).toMatch(/private PathChain BTOA;/);
+      expect(code).toMatch(/private Path startPointTOA;/);
+      expect(code).toMatch(/private Path ATOB;/);
+      expect(code).toMatch(/private Path BTOA;/);
 
       // Test duplicate path naming
       const makeLine = (id: string, name: string, x: number, y: number) =>
@@ -534,10 +596,31 @@ describe("codeExporter", () => {
         loopLines,
         "TestPath.turt",
       );
-      expect(loopCode).toMatch(/private PathChain ATOB;/);
-      expect(loopCode).toMatch(/private PathChain ATOB_1;/);
-      expect(loopCode).toMatch(/ATOB = follower/);
-      expect(loopCode).toMatch(/ATOB_1 = follower/);
+      expect(loopCode).toMatch(/private Path ATOB;/);
+      expect(loopCode).toMatch(/private Path ATOB_1;/);
+      expect(loopCode).toMatch(/ATOB = line/);
+      expect(loopCode).toMatch(/ATOB_1 = line/);
+    });
+
+    it("should use TurtleTracerReader when hardcodeValues is false", async () => {
+      const lines = [line1];
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestPath.turt",
+        undefined,
+        "SolversLib",
+        "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+        false, // hardcodeValues: false
+      );
+
+      expect(code).toContain("import com.turtletracerlib.TurtleTracerReader;");
+      expect(code).toContain(
+        'TurtleTracerReader pp = new TurtleTracerReader("TestPath.turt", hw.appContext);',
+      );
+      expect(code).toContain('pp.get("startPoint");');
+      expect(code).toContain('pp.get("line1");');
+      expect(code).not.toContain("PedroPathReader");
     });
 
     it("should embed pose data when hardcodeValues is true", async () => {
@@ -552,8 +635,11 @@ describe("codeExporter", () => {
         true, // hardcodeValues
       );
 
-      expect(code).not.toContain("import com.turtletracerlib.PedroPathReader;");
-      expect(code).not.toContain("new PedroPathReader");
+      expect(code).not.toContain(
+        "import com.turtletracerlib.TurtleTracerReader;",
+      );
+      expect(code).not.toContain("new TurtleTracerReader");
+      expect(code).not.toContain("PedroPathReader");
       expect(code).toContain("new Pose(10.000, 10.000, Math.toRadians(0))"); // startPoint
       // Check line1 (constant 90)
       expect(code).toContain("new Pose(20.000, 20.000, Math.toRadians(90))");
@@ -563,12 +649,214 @@ describe("codeExporter", () => {
       expect(code).not.toContain("pp.get(");
 
       // Check hardcoded heading interpolation
+      expect(code).toContain(".constant(Math.toRadians(90))");
       expect(code).toContain(
-        "setConstantHeadingInterpolation(Math.toRadians(90))",
+        ".linear(Math.toRadians(90), Math.toRadians(180))",
+      );
+    });
+
+    it("should register event markers with TurtleTracerReader and ProgressTracker in SolversLib sequential code", async () => {
+      const lines = [line3];
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestPath.turt",
+        undefined,
+        "SolversLib",
+        "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+        false, // hardcodeValues: false
+      );
+
+      // Verify buildPaths is purely geometric without onParametric
+      expect(code).not.toContain(".onParametric");
+      expect(code).not.toContain(".onTemporal");
+      expect(code).not.toContain(".onSpatial");
+
+      // Verify TurtleTracerReader and ProgressTracker event binding
+      expect(code).toContain(
+        "import com.turtletracerlib.pathing.ProgressTracker;",
       );
       expect(code).toContain(
-        "setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))",
+        "import com.turtletracerlib.pathing.NamedCommands;",
       );
+      expect(code).toContain(
+        'pp.onEvent("marker1", NamedCommands.getCommand("marker1"));',
+      );
+      expect(code).toContain(
+        "ProgressTracker tracker = new ProgressTracker(follower, telemetry);",
+      );
+      expect(code).toContain("pp.registerEvents(tracker);");
+    });
+
+    it("should register event markers with ProgressTracker in NextFTC sequential code (null telemetry)", async () => {
+      const lines = [line3];
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestPath.turt",
+        undefined,
+        "NextFTC",
+        "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+        false, // hardcodeValues: false
+      );
+
+      expect(code).not.toContain(".onParametric");
+      expect(code).toContain(
+        "import com.turtletracerlib.pathing.ProgressTracker;",
+      );
+      expect(code).toContain(
+        "import com.turtletracerlib.pathing.NamedCommands;",
+      );
+      expect(code).toContain(
+        'pp.onEvent("marker1", NamedCommands.getCommand("marker1"));',
+      );
+      expect(code).toContain(
+        "ProgressTracker tracker = new ProgressTracker(follower, null);",
+      );
+      expect(code).toContain("pp.registerEvents(tracker);");
+    });
+
+    it("should bind event markers to ProgressTracker directly when hardcodeValues is true", async () => {
+      const lines = [line3];
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestPath.turt",
+        undefined,
+        "SolversLib",
+        "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+        true, // hardcodeValues: true
+      );
+
+      expect(code).toContain(
+        "import com.turtletracerlib.pathing.ProgressTracker;",
+      );
+      expect(code).toContain(
+        "ProgressTracker tracker = new ProgressTracker(follower, telemetry);",
+      );
+      expect(code).toContain(
+        'tracker.onParametric(0.500, NamedCommands.getCommand("marker1"));',
+      );
+    });
+
+    it("should export rotate action using Pedro v3 follower.hold and !isBusy", async () => {
+      const lines = [line1];
+      const sequence: SequenceItem[] = [
+        { kind: pathKind(), lineId: "line1" },
+        { kind: "rotate", id: "rot1", degrees: 90 } as any,
+      ];
+
+      const solversCode = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestPath.turt",
+        sequence,
+        "SolversLib",
+      );
+      expect(solversCode).toContain(
+        "follower.hold(follower.pose().withHeading(1.571))",
+      );
+      expect(solversCode).toContain(
+        "new WaitUntilCommand(() -> !follower.isBusy())",
+      );
+      expect(solversCode).toContain(
+        "import com.seattlesolvers.solverslib.command.WaitUntilCommand;",
+      );
+
+      const nextFtcCode = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestPath.turt",
+        sequence,
+        "NextFTC",
+      );
+      expect(nextFtcCode).toContain(
+        "follower.hold(follower.pose().withHeading(1.571))",
+      );
+      expect(nextFtcCode).toContain("new WaitUntil(() -> !follower.isBusy())");
+      expect(nextFtcCode).toContain(
+        "import dev.nextftc.core.commands.delays.WaitUntil;",
+      );
+    });
+
+    it("should export chained paths using Paths.path in sequential code", async () => {
+      const chainedLines: Line[] = [
+        {
+          id: "l1",
+          endPoint: { x: 20, y: 20, heading: "constant", degrees: 0 },
+          controlPoints: [],
+          color: "blue",
+          name: "Line1",
+        },
+        {
+          id: "l2",
+          endPoint: { x: 30, y: 30, heading: "constant", degrees: 0 },
+          controlPoints: [],
+          color: "blue",
+          name: "Line2",
+          isChain: true,
+        },
+      ];
+
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        chainedLines,
+        "TestPath.turt",
+      );
+
+      expect(code).toContain("startPointTOLine1 = path(");
+      expect(code).toContain("line(startPoint, Line1)");
+      expect(code).toContain("line(Line1, Line2)");
+      expect(code).toContain("import static com.pedropathing.api.Paths.curve;");
+      expect(code).toContain("import static com.pedropathing.api.Paths.line;");
+      expect(code).toContain("import static com.pedropathing.api.Paths.path;");
+      expect(code).not.toContain("import com.pedropathing.api.Paths;");
+    });
+  });
+
+  describe("rotate in generateJavaCode", () => {
+    it("should export rotate action using follower.hold and !follower.isBusy()", async () => {
+      const lines = [line1];
+      const sequence: SequenceItem[] = [
+        { kind: pathKind(), lineId: "line1" },
+        { kind: "rotate", id: "rot1", degrees: 90 } as any,
+      ];
+
+      const code = await generateJavaCode(startPoint, lines, true, sequence);
+      expect(code).toContain(
+        "follower.hold(follower.pose().withHeading(1.571));",
+      );
+      expect(code).toContain("if(!follower.isBusy()) {");
+    });
+  });
+
+  describe("chained paths in generateJavaCode", () => {
+    it("should export chained paths using Paths.path compound path", async () => {
+      const chainedLines: Line[] = [
+        {
+          id: "l1",
+          endPoint: { x: 20, y: 20, heading: "tangential", reverse: false },
+          controlPoints: [],
+          color: "blue",
+          name: "Line1",
+          globalHeading: "tangential",
+        },
+        {
+          id: "l2",
+          endPoint: { x: 30, y: 30, heading: "tangential", reverse: false },
+          controlPoints: [],
+          color: "blue",
+          name: "Line2",
+          isChain: true,
+        },
+      ];
+
+      const code = await generateJavaCode(startPoint, chainedLines, false);
+      expect(code).toContain("public Path Line1;");
+      expect(code).not.toContain("public Path Line2;");
+      expect(code).toContain("Line1 = path(");
+      expect(code).not.toContain("Paths.path(");
+      expect(code).toContain(".tangent()");
     });
   });
 });
