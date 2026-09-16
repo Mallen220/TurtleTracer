@@ -94,7 +94,7 @@ export async function generateSequentialCommandCode(
               ? `cmToInches(${(userPt.y * 2.54).toFixed(3)})`
               : userPt.y.toFixed(3);
           allPoseInitializations.push(
-            `        ${variableName} = buildPose(${px}, ${py}, Math.toRadians(${userHead.toFixed(3)}));`,
+            `        ${variableName} = buildPose(${px}, ${py}, ${userHead.toFixed(3)});`,
           );
         } else {
           const px =
@@ -106,7 +106,7 @@ export async function generateSequentialCommandCode(
               ? `cmToInches(${(point.y * 2.54).toFixed(3)})`
               : point.y.toFixed(3);
           allPoseInitializations.push(
-            `        ${variableName} = new Pose(${px}, ${py}, Math.toRadians(${degrees}));`,
+            `        ${variableName} = p.of(${px}, ${py}, ${degrees});`,
           );
         }
       } else {
@@ -172,7 +172,7 @@ export async function generateSequentialCommandCode(
 
         if (hardcodeValues) {
           allPoseInitializations.push(
-            `        ${uniqueControlVar} = new Pose(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)});`,
+            `        ${uniqueControlVar} = p.of(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)}, 0.0);`,
           );
         } else {
           allPoseInitializations.push(
@@ -340,7 +340,7 @@ export async function generateSequentialCommandCode(
     if (isCurve) {
       const controlPoints: string[] = [];
       line.controlPoints.forEach((cp) => {
-        controlPoints.push(`new Pose(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)})`);
+        controlPoints.push(`p.of(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)}, 0.0)`);
       });
       controlPointsStr = controlPoints.join(", ") + ", ";
     }
@@ -374,7 +374,7 @@ export async function generateSequentialCommandCode(
             { x: pointDef.targetX || 0, y: pointDef.targetY || 0 },
             "FTC",
           );
-          config = `new Pose(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)})`;
+          config = `p.of(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)}, 0.0)`;
         }
       } else if (pointDef.heading === "constant") {
         if (hardcodeValues || pointDef.degrees !== undefined)
@@ -399,7 +399,7 @@ export async function generateSequentialCommandCode(
           codeUnits === "metric"
             ? `cmToInches(${(targetY * 2.54).toFixed(3)})`
             : targetY.toFixed(3);
-        config = `new Pose(${hx}, ${hy})`;
+        config = `p.of(${hx}, ${hy}, 0.0)`;
       }
 
       let baseName = "";
@@ -619,6 +619,7 @@ ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
 package ${packageName};
 
+import com.pedropathing.api.PoseFactory;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.paths.Path;
 import static com.pedropathing.api.Paths.curve;
@@ -635,6 +636,7 @@ import ${packageName.split(".").slice(0, 4).join(".")}.Subsystems.Drivetrain;
 public class ${className} extends Command {
 
     private final Follower follower;
+    private final PoseFactory p = PoseFactory.degrees();
     private Command group;
 
     // Poses
@@ -681,6 +683,25 @@ ${commands.join(",\n")}
     public boolean isDone() {
         return group != null && group.isDone();
     }
+
+    ${
+      coordinateSystem === "FTC"
+        ? `
+    private Pose buildPose(double x, double y, double heading) {
+        return p.of(y + 72.0, 72.0 - x, heading);
+    }
+    `
+        : ""
+    }
+    ${
+      codeUnits === "metric"
+        ? `
+    private double cmToInches(double cm) {
+        return cm / 2.54;
+    }
+`
+        : ""
+    }
 }
 `;
   } else {
@@ -689,6 +710,7 @@ ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
 package ${packageName};
 
+import com.pedropathing.api.PoseFactory;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.paths.Path;
 import static com.pedropathing.api.Paths.curve;
@@ -707,6 +729,7 @@ import ${packageName.split(".").slice(0, 4).join(".")}.Subsystems.Drivetrain;
 public class ${className} extends ${SequentialGroupClass} {
 
     private final Follower follower;
+    private final PoseFactory p = PoseFactory.degrees();
 
     // Poses
 ${allPoseDeclarations.join("\n")}
@@ -739,7 +762,7 @@ ${commands.join(",\n")}
       coordinateSystem === "FTC"
         ? `
     private Pose buildPose(double x, double y, double heading) {
-        return new Pose(y + 72.0, 72.0 - x, heading);
+        return p.of(y + 72.0, 72.0 - x, heading);
     }
     `
         : ""

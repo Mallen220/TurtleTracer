@@ -94,6 +94,7 @@ export async function generateJavaCode(
 
   let pathsClass = `
   public static class Paths {
+    private static final PoseFactory p = PoseFactory.degrees();
     ${pathChainNames
       .map((variableName, idx) => {
         if (lines[idx].isChain) return "";
@@ -125,7 +126,7 @@ export async function generateJavaCode(
                 codeUnits === "metric"
                   ? `cmToInches(${(u.y * 2.54).toFixed(3)})`
                   : u.y.toFixed(3);
-              return `buildPose(${px}, ${py}, Math.toRadians(${uh.toFixed(3)}))`;
+              return `buildPose(${px}, ${py}, ${uh.toFixed(3)})`;
             };
 
             const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
@@ -157,7 +158,7 @@ export async function generateJavaCode(
                 },
                 "FTC",
               );
-              headingConfig = `new Pose(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)})`;
+              headingConfig = `p.of(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)}, 0.0)`;
             } else {
               headingConfig = "";
             }
@@ -172,7 +173,7 @@ export async function generateJavaCode(
               codeUnits === "metric"
                 ? `cmToInches(${(startPt.y * 2.54).toFixed(3)})`
                 : startPt.y.toFixed(3);
-            startCode = `new Pose(${sx}, ${sy})`;
+            startCode = `p.of(${sx}, ${sy}, 0.0)`;
 
             controlPointsCode =
               line.controlPoints.length > 0
@@ -186,7 +187,7 @@ export async function generateJavaCode(
                         codeUnits === "metric"
                           ? `cmToInches(${(point.y * 2.54).toFixed(3)})`
                           : point.y.toFixed(3);
-                      return `new Pose(${px}, ${py})`;
+                      return `p.of(${px}, ${py}, 0.0)`;
                     })
                     .join(",\n")},`
                 : "";
@@ -199,7 +200,7 @@ export async function generateJavaCode(
               codeUnits === "metric"
                 ? `cmToInches(${(line.endPoint.y * 2.54).toFixed(3)})`
                 : line.endPoint.y.toFixed(3);
-            endCode = `new Pose(${ex}, ${ey})`;
+            endCode = `p.of(${ex}, ${ey}, 0.0)`;
 
             let hx = line.endPoint.targetX
               ? codeUnits === "metric"
@@ -218,7 +219,7 @@ export async function generateJavaCode(
                 : line.endPoint.heading === "linear"
                   ? `Math.toRadians(${line.endPoint.startDeg}), Math.toRadians(${line.endPoint.endDeg})`
                   : line.endPoint.heading === "facingPoint"
-                    ? `new Pose(${hx}, ${hy})`
+                    ? `p.of(${hx}, ${hy}, 0.0)`
                     : "";
           }
 
@@ -245,7 +246,7 @@ export async function generateJavaCode(
                   { x: pointDef.targetX || 0, y: pointDef.targetY || 0 },
                   "FTC",
                 );
-                config = `new Pose(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)})`;
+                config = `p.of(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)}, 0.0)`;
               }
             } else if (pointDef.heading === "constant") {
               config = `Math.toRadians(${pointDef.degrees || 0})`;
@@ -260,7 +261,7 @@ export async function generateJavaCode(
                 codeUnits === "metric"
                   ? `cmToInches(${((pointDef.targetY || 0) * 2.54).toFixed(3)})`
                   : (pointDef.targetY || 0).toFixed(3);
-              config = `new Pose(${hx}, ${hy})`;
+              config = `p.of(${hx}, ${hy}, 0.0)`;
             }
 
             let baseName = "";
@@ -408,13 +409,13 @@ export async function generateJavaCode(
 
         return consolidatedBlocks.join("\n\n      ");
       })()}
-  }}
+    }
 
     ${
       coordinateSystem === "FTC"
         ? `
-    private static Pose buildPose(double x, double y, double heading) {
-        return new Pose(y + 72.0, 72.0 - x, heading);
+    public static Pose buildPose(double x, double y, double heading) {
+        return p.of(y + 72.0, 72.0 - x, heading);
     }
     `
         : ""
@@ -422,12 +423,13 @@ export async function generateJavaCode(
     ${
       codeUnits === "metric"
         ? `
-    private static double cmToInches(double cm) {
+    public static double cmToInches(double cm) {
         return cm / 2.54;
     }
 `
         : ""
     }
+  }
   `;
 
   // Add NamedCommands registration instructions
@@ -627,6 +629,7 @@ export async function generateJavaCode(
     import com.qualcomm.robotcore.util.ElapsedTime;
     import org.firstinspires.ftc.teamcode.pedroPathing.PedroConstants;
     ${namedCommandsImport}${extraImports}
+    import com.pedropathing.api.PoseFactory;
     import com.pedropathing.follower.Follower;
     import com.pedropathing.paths.Path;
     import static com.pedropathing.api.Paths.curve;
@@ -640,6 +643,7 @@ export async function generateJavaCode(
     public class TurtleTracerAutonomous extends OpMode {
       ${telemetryField}
       public Follower follower; // Pathing follower instance
+      private final PoseFactory p = PoseFactory.degrees();
       ${hasEventMarkers ? "private ProgressTracker tracker; // Progress tracker instance for event markers\n      " : ""}private int pathState; // Current autonomous path state (state machine)
       private ElapsedTime pathTimer; // Timer for path state machine
       private Paths paths; // Paths defined in the Paths class
@@ -663,7 +667,7 @@ export async function generateJavaCode(
                   codeUnits === "metric"
                     ? `cmToInches(${(uStart.y * 2.54).toFixed(3)})`
                     : uStart.y.toFixed(3);
-                return `follower.setPose(buildPose(${px}, ${py}, Math.toRadians(${uHead.toFixed(3)})));`;
+                return `follower.setPose(buildPose(${px}, ${py}, ${uHead.toFixed(3)}));`;
               })()
             : (() => {
                 const px =
@@ -674,7 +678,7 @@ export async function generateJavaCode(
                   codeUnits === "metric"
                     ? `cmToInches(${(startPoint.y * 2.54).toFixed(3)})`
                     : startPoint.y.toFixed(3);
-                return `follower.setPose(new Pose(${px}, ${py}, Math.toRadians(${startDegForExport.toFixed(3)})));`;
+                return `follower.setPose(p.of(${px}, ${py}, ${startDegForExport.toFixed(3)}));`;
               })()
         }
 
@@ -696,6 +700,25 @@ export async function generateJavaCode(
       }
 
       ${pathsClass}
+
+      ${
+        coordinateSystem === "FTC"
+          ? `
+      private Pose buildPose(double x, double y, double heading) {
+          return Paths.buildPose(x, y, heading);
+      }
+      `
+          : ""
+      }
+      ${
+        codeUnits === "metric"
+          ? `
+      private double cmToInches(double cm) {
+          return Paths.cmToInches(cm);
+      }
+  `
+          : ""
+      }
 
       public int autonomousPathUpdate() {
         switch (pathState) {

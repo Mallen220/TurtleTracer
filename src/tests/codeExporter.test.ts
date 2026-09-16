@@ -141,7 +141,7 @@ describe("codeExporter", () => {
         locked: false,
       };
       const code = await generateJavaCode(startPoint, [facingPointLine], false);
-      expect(code).toContain(".facingPoint(new Pose(20.000, 30.000))");
+      expect(code).toContain(".facingPoint(p.of(20.000, 30.000, 0.0))");
 
       facingPointLine.endPoint.reverse = true;
       const codeReverse = await generateJavaCode(
@@ -150,7 +150,7 @@ describe("codeExporter", () => {
         false,
       );
       expect(codeReverse).toContain(
-        ".heading(Interpolator.facingPoint(new Pose(20.000, 30.000)).reverse())",
+        ".heading(Interpolator.facingPoint(p.of(20.000, 30.000, 0.0)).reverse())",
       );
     });
 
@@ -221,7 +221,7 @@ describe("codeExporter", () => {
         'tracker.onTemporal(750, NamedCommands.getCommand("tempMarker"));',
       );
       expect(code).toContain(
-        'tracker.onSpatial(new Pose(15.000, 20.000, Math.toRadians(90.000)), 1.5, NamedCommands.getCommand("spatMarker"));',
+        'tracker.onSpatial(p.of(15.000, 20.000, 90.000), 1.5, NamedCommands.getCommand("spatMarker"));',
       );
       expect(code).not.toContain("addTemporalCallback");
       expect(code).not.toContain("addPoseCallback");
@@ -250,6 +250,13 @@ describe("codeExporter", () => {
       expect(code).toContain("import static com.pedropathing.api.Paths.curve;");
       expect(code).toContain("import static com.pedropathing.api.Paths.line;");
       expect(code).toContain("import static com.pedropathing.api.Paths.path;");
+      expect(code).toContain("import com.pedropathing.api.PoseFactory;");
+      expect(code).toContain(
+        "private final PoseFactory p = PoseFactory.degrees();",
+      );
+      expect(code).toContain(
+        "private static final PoseFactory p = PoseFactory.degrees();",
+      );
       expect(code).not.toContain("import com.pedropathing.api.Paths;");
     });
 
@@ -333,9 +340,7 @@ describe("codeExporter", () => {
       // startPoint is (10,10). Tangent to (20,20) is 45 degrees.
       // Math.toRadians(45) approx 0.785
       // 45 degrees
-      expect(code).toContain(
-        "follower.setPose(new Pose(10.000, 10.000, Math.toRadians(45.000)))",
-      );
+      expect(code).toContain("follower.setPose(p.of(10.000, 10.000, 45.000))");
     });
 
     it("should use default start heading if lines array is empty", async () => {
@@ -349,9 +354,7 @@ describe("codeExporter", () => {
         endDeg: 180,
       };
       const code = await generateJavaCode(sp, [], true);
-      expect(code).toContain(
-        "follower.setPose(new Pose(10.000, 10.000, Math.toRadians(120.000)))",
-      );
+      expect(code).toContain("follower.setPose(p.of(10.000, 10.000, 120.000))");
     });
 
     it("uses geometric start heading when path geometry exists (updates with position)", async () => {
@@ -371,9 +374,7 @@ describe("codeExporter", () => {
 
       // When line geometry exists, export should reflect the geometric start heading (45°),
       // so updating the start position will change the exported angle accordingly.
-      expect(code).toContain(
-        "follower.setPose(new Pose(10.000, 10.000, Math.toRadians(45.000)))",
-      );
+      expect(code).toContain("follower.setPose(p.of(10.000, 10.000, 45.000))");
     });
   });
 
@@ -640,11 +641,19 @@ describe("codeExporter", () => {
       );
       expect(code).not.toContain("new TurtleTracerReader");
       expect(code).not.toContain("PedroPathReader");
-      expect(code).toContain("new Pose(10.000, 10.000, Math.toRadians(0))"); // startPoint
+      expect(code).toContain("import com.pedropathing.api.PoseFactory;");
+      expect(code).toContain(
+        "private final PoseFactory p = PoseFactory.degrees();",
+      );
+      expect(code).toContain("startPoint = p.of(10.000, 10.000, 0);"); // startPoint
       // Check line1 (constant 90)
-      expect(code).toContain("new Pose(20.000, 20.000, Math.toRadians(90))");
+      expect(code).toContain("line1 = p.of(20.000, 20.000, 90);");
       // Check line2 (linear 90 -> 180). End point should use endDeg (180)
-      expect(code).toContain("new Pose(30.000, 10.000, Math.toRadians(180))");
+      expect(code).toContain("line2 = p.of(30.000, 10.000, 180);");
+      // Check control point
+      expect(code).toContain(
+        "line2_line1_control1 = p.of(25.000, 15.000, 0.0);",
+      );
 
       expect(code).not.toContain("pp.get(");
 
@@ -857,6 +866,53 @@ describe("codeExporter", () => {
       expect(code).toContain("Line1 = path(");
       expect(code).not.toContain("Paths.path(");
       expect(code).toContain(".tangent()");
+    });
+  });
+
+  describe("PoseFactory coordinate systems and units", () => {
+    it("should export Java code using buildPose and p.of with FTC coordinates", async () => {
+      const lines = [line1];
+      const code = await generateJavaCode(
+        startPoint,
+        lines,
+        true,
+        undefined,
+        "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+        "Panels",
+        "FTC",
+        "imperial",
+      );
+
+      expect(code).toContain("import com.pedropathing.api.PoseFactory;");
+      expect(code).toContain(
+        "private final PoseFactory p = PoseFactory.degrees();",
+      );
+      expect(code).toContain("return p.of(y + 72.0, 72.0 - x, heading);");
+      expect(code).toContain("follower.setPose(buildPose(");
+      expect(code).not.toContain("Math.toRadians(" + "buildPose");
+    });
+
+    it("should export Sequential code using buildPose and p.of with FTC coordinates and metric units", async () => {
+      const lines = [line1];
+      const code = await generateSequentialCommandCode(
+        startPoint,
+        lines,
+        "TestFTCPath.turt",
+        undefined,
+        "SolversLib",
+        "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
+        true,
+        "FTC",
+        "metric",
+      );
+
+      expect(code).toContain("import com.pedropathing.api.PoseFactory;");
+      expect(code).toContain(
+        "private final PoseFactory p = PoseFactory.degrees();",
+      );
+      expect(code).toContain("return p.of(y + 72.0, 72.0 - x, heading);");
+      expect(code).toContain("cmToInches(");
+      expect(code).toContain("follower.setPose(startPoint);");
     });
   });
 });

@@ -37,7 +37,7 @@ export function generateTrackerEventRegistrationCode(
               codeUnits === "metric"
                 ? `cmToInches(${(u.y * 2.54).toFixed(3)})`
                 : u.y.toFixed(3);
-            poseArg = `buildPose(${px}, ${py}, Math.toRadians(${uh.toFixed(3)}))`;
+            poseArg = `buildPose(${px}, ${py}, ${uh.toFixed(3)})`;
           } else {
             const px =
               codeUnits === "metric"
@@ -47,7 +47,7 @@ export function generateTrackerEventRegistrationCode(
               codeUnits === "metric"
                 ? `cmToInches(${((event.poseY ?? 0) * 2.54).toFixed(3)})`
                 : (event.poseY ?? 0).toFixed(3);
-            poseArg = `new Pose(${px}, ${py}, Math.toRadians(${(event.poseHeading ?? 0).toFixed(3)}))`;
+            poseArg = `p.of(${px}, ${py}, ${(event.poseHeading ?? 0).toFixed(3)})`;
           }
           const radius = (event as any).radius ?? 2.0;
           const radiusStr =
