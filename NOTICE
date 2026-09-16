@@ -521,3 +521,5 @@ src/lib/components/whats-new/features/v2.2.0.md
 src/utils/libraryVersionChecker.ts
 .npmrc
 public/fields/biobuzz.webp
+src/lib/components/settings/tabs/AboutSettingsTab.test.ts
+src/lib/components/whats-new/features/v2.3.0.md

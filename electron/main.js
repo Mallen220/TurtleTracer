@@ -20,7 +20,6 @@ const windows = new Set();
 let server;
 let serverPort = 17218;
 let appUpdater;
-process.windowsStore = false; // TOGGLE THIS: Set to true to simulate Microsoft Store mode for development
 
 // Global references to prevent Electron Menu garbage collection (macOS WeakPtr bug)
 globalThis.appMenu = null;
