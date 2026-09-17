@@ -47,6 +47,7 @@ module.exports = {
     "unicorn/no-zero-fractions": "error",
     "unicorn/prefer-number-properties": "error",
     "unicorn/prefer-string-raw": "error",
+    "unicorn/prefer-at": "error",
   },
   overrides: [
     {
