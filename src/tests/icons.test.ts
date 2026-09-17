@@ -71,9 +71,6 @@ describe("Icon System Integration", () => {
         const exportRegex = new RegExp(
           `export { default as \\w+ } from "./${file}";`,
         );
-        const exportRegexSimple = new RegExp(
-          `export { default as ${iconName} } from "./${file}";`,
-        );
         const isExported = exportRegex.test(indexContent);
         expect(isExported, `Icon ${file} is not exported in index.ts`).toBe(
           true,

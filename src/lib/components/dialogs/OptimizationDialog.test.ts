@@ -2,7 +2,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/svelte";
 import OptimizationDialog from "./OptimizationDialog.svelte";
-import type { Line } from "../../../types";
 
 import { DEFAULT_SETTINGS } from "../../../config/defaults";
 
@@ -86,7 +85,7 @@ describe("OptimizationDialog", () => {
   });
 
   it("can select and deselect lines", async () => {
-    const { getByRole, getByText } = render(OptimizationDialog, {
+    const { getByText } = render(OptimizationDialog, {
       isOpen: true,
       lines: [
         {

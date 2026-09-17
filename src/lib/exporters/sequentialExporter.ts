@@ -190,32 +190,6 @@ export async function generateSequentialCommandCode(
     }
   });
 
-  // Pre-calculate chain information
-  const chainInfos = lines.map((line, idx) => {
-    let rootIdx = idx;
-    if (line.isChain) {
-      for (let i = idx; i >= 0; i--) {
-        if (!lines[i].isChain) {
-          rootIdx = i;
-          break;
-        }
-      }
-    }
-
-    // Find total count in this chain
-    let totalInChain = 1;
-    // Walk forward from root
-    for (let i = rootIdx + 1; i < lines.length; i++) {
-      if (lines[i].isChain) totalInChain++;
-      else break;
-    }
-
-    // Find local index within chain
-    let localIdx = idx - rootIdx;
-
-    return { localIdx, totalInChain };
-  });
-
   // Generate path chain declarations
   const pathChainDeclarations = lines
     .map((line, idx) => {
@@ -257,8 +231,6 @@ export async function generateSequentialCommandCode(
   const SequentialGroupClass = isNextFTC
     ? "SequentialGroup"
     : "SequentialCommandGroup";
-  const WaitCmdClass = isNextFTC ? "Delay" : "WaitCommand";
-  const InstantCmdClass = "InstantCommand";
   const FollowPathCmdClass = isNextFTC ? "FollowPath" : "FollowPathCommand";
 
   // Generate addCommands calls with event handling; iterate sequence if provided
@@ -285,7 +257,7 @@ export async function generateSequentialCommandCode(
 
   const seq = flattenSequence(sequence?.length ? sequence : defaultSequence);
 
-  seq.forEach((item, idx) => {
+  seq.forEach((item) => {
     // Registry Check
     const action = actionRegistry.get(item.kind);
     if (action?.toSequentialCommand) {

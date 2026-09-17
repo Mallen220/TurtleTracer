@@ -184,7 +184,6 @@
       recordingKeyFor = null;
       return;
     }
-    const binding = settings.keyBindings[bindingIndex];
 
     event.preventDefault();
     event.stopPropagation();

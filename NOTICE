@@ -523,3 +523,8 @@ src/utils/libraryVersionChecker.ts
 public/fields/biobuzz.webp
 src/lib/components/settings/tabs/AboutSettingsTab.test.ts
 src/lib/components/whats-new/features/v2.3.0.md
+scripts/debug-point-mapping.js
+src/lib/components/renderer/CollisionMarkerGenerator.ts
+src/lib/components/renderer/DiffEventMarkerGenerator.ts
+src/lib/components/settings/RobotFeaturesEditor.svelte
+src/vite-env.d.ts

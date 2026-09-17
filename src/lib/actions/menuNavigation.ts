@@ -66,14 +66,12 @@ export function menuNavigation(
       // Type-ahead
       const char = event.key.toLowerCase();
       // Start searching after current index
-      let found = false;
       for (let i = 1; i < items.length + 1; i++) {
         const idx = (currentIndex + i) % items.length;
         const item = items[idx];
         if (item.textContent?.trim().toLowerCase().startsWith(char)) {
           event.preventDefault();
           item.focus();
-          found = true;
           break;
         }
       }

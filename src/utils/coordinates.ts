@@ -37,7 +37,7 @@ export function toField(
 
 export function toUserHeading(
   fieldHeading: number, // degrees
-  system: CoordinateSystem = "Pedro",
+  _system: CoordinateSystem = "Pedro",
 ): number {
   // Both systems use Right = 0, Up = 90 (Unit Circle)
   return fieldHeading;
@@ -45,7 +45,7 @@ export function toUserHeading(
 
 export function toFieldHeading(
   userHeading: number, // degrees
-  system: CoordinateSystem = "Pedro",
+  _system: CoordinateSystem = "Pedro",
 ): number {
   // Both systems use Right = 0, Up = 90 (Unit Circle)
   return userHeading;
@@ -53,14 +53,14 @@ export function toFieldHeading(
 
 export function toUserCoordinate(
   val: number,
-  system: CoordinateSystem,
+  _system: CoordinateSystem,
 ): number {
   return val; // Placeholder, not safe for FTC
 }
 
 export function toFieldCoordinate(
   val: number,
-  system: CoordinateSystem,
+  _system: CoordinateSystem,
 ): number {
   return val; // Placeholder
 }

@@ -226,7 +226,7 @@ describe("CodeTab", () => {
   });
 
   it("renders correctly and calls highlightAndSplit", async () => {
-    const { component } = render(CodeTab, {
+    render(CodeTab, {
       startPoint: defaultStartPoint,
       lines: [],
       sequence: [],

@@ -32,34 +32,8 @@ import {
   isSupportedProjectFileName,
   stripProjectExtension,
 } from "./fileExtensions";
+import { getElectronAPI } from "./platform";
 import pkg from "../../package.json";
-
-interface ExtendedElectronAPI {
-  writeFile: (filePath: string, content: string) => Promise<boolean>;
-  writeFileBase64?: (
-    filePath: string,
-    base64Content: string,
-  ) => Promise<boolean>;
-  showSaveDialog?: (options: any) => Promise<string | null>;
-  getDirectory?: () => Promise<string | null>;
-  getSavedDirectory?: () => Promise<string>;
-  fileExists?: (filePath: string) => Promise<boolean>;
-  readFile?: (filePath: string) => Promise<string>;
-  onMenuAction?: (callback: (action: string) => void) => void;
-  copyFile?: (src: string, dest: string) => Promise<boolean>;
-  saveFile?: (
-    content: string,
-    path?: string,
-  ) => Promise<{ success: boolean; filepath: string; error?: string }>;
-  makeRelativePath?: (base: string, target: string) => Promise<string>;
-  resolvePath?: (base: string, relative: string) => Promise<string>;
-  createDirectory?: (dirPath: string) => Promise<boolean>;
-}
-
-// Access electronAPI dynamically to allow mocking/runtime changes
-function getElectronAPI(): ExtendedElectronAPI | undefined {
-  return (globalThis as any).electronAPI as ExtendedElectronAPI | undefined;
-}
 
 // Helper to update startPoint headings based on path geometry
 function calculateStartPointHeadings(startPoint: Point, lines: Line[]): Point {
@@ -72,7 +46,7 @@ function calculateStartPointHeadings(startPoint: Point, lines: Line[]): Point {
   );
   // strip out the "degrees" field if it existed so the resulting object conforms
   // to the linear-point variant of the Point union (which forbids degrees).
-  const { degrees, ...rest } = startPoint as any;
+  const { degrees: _degrees, ...rest } = startPoint as any;
   return {
     ...rest,
     heading: "linear",
@@ -222,7 +196,10 @@ async function performSave(
     const nameGroups = new Map<string, Array<Line | any>>(); // any for SequenceWaitItem
 
     // Helper to collect items
-    const collectItems = (items: Array<Line | any>, type: "line" | "wait") => {
+    const collectItems = (
+      items: Array<Line | any>,
+      _type?: "line" | "wait",
+    ) => {
       items.forEach((item) => {
         const name = item.name?.trim();
         if (name) {

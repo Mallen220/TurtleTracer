@@ -46,8 +46,8 @@ vi.mock("../../../lib/components/shortcuts/utils", () => ({
 }));
 
 vi.mock("../../../lib/utils/pathEditing", () => ({
-  updateLinkedWaits: vi.fn((seq, id) => seq),
-  updateLinkedRotations: vi.fn((seq, id) => seq),
+  updateLinkedWaits: vi.fn((seq, _id) => seq),
+  updateLinkedRotations: vi.fn((seq, _id) => seq),
 }));
 
 import { get } from "svelte/store";

@@ -72,26 +72,6 @@ export async function generateJavaCode(
     pathChainNames.push(baseName);
   });
 
-  // Pre-calculate chain information
-  const chainInfos = lines.map((line, idx) => {
-    let rootIdx = idx;
-    if (line.isChain) {
-      for (let i = idx; i >= 0; i--) {
-        if (!lines[i].isChain) {
-          rootIdx = i;
-          break;
-        }
-      }
-    }
-    let totalInChain = 1;
-    for (let i = rootIdx + 1; i < lines.length; i++) {
-      if (lines[i].isChain) totalInChain++;
-      else break;
-    }
-    let localIdx = idx - rootIdx;
-    return { localIdx, totalInChain };
-  });
-
   let pathsClass = `
   public static class Paths {
     private static final PoseFactory p = PoseFactory.degrees();
@@ -108,7 +88,7 @@ export async function generateJavaCode(
         const pathData = lines.map((line, idx) => {
           const variableName = pathChainNames[idx];
 
-          let startCode, controlPointsCode, endCode, headingConfig;
+          let startCode, controlPointsCode, endCode;
 
           if (coordinateSystem === "FTC") {
             // Helper to format buildPose call
@@ -141,27 +121,6 @@ export async function generateJavaCode(
                 : "";
 
             endCode = formatPose(line.endPoint, 0);
-
-            // Heading configurations
-            if (line.endPoint.heading === "constant") {
-              const uh = toUserHeading(line.endPoint.degrees || 0, "FTC");
-              headingConfig = `Math.toRadians(${uh.toFixed(3)})`;
-            } else if (line.endPoint.heading === "linear") {
-              const uhStart = toUserHeading(line.endPoint.startDeg || 0, "FTC");
-              const uhEnd = toUserHeading(line.endPoint.endDeg || 0, "FTC");
-              headingConfig = `Math.toRadians(${uhStart.toFixed(3)}), Math.toRadians(${uhEnd.toFixed(3)})`;
-            } else if (line.endPoint.heading === "facingPoint") {
-              const uTarget = toUser(
-                {
-                  x: line.endPoint.targetX || 0,
-                  y: line.endPoint.targetY || 0,
-                },
-                "FTC",
-              );
-              headingConfig = `p.of(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)}, 0.0)`;
-            } else {
-              headingConfig = "";
-            }
           } else {
             // Standard Pedro (0-144)
             const startPt = idx === 0 ? startPoint : lines[idx - 1].endPoint;
@@ -201,26 +160,6 @@ export async function generateJavaCode(
                 ? `cmToInches(${(line.endPoint.y * 2.54).toFixed(3)})`
                 : line.endPoint.y.toFixed(3);
             endCode = `p.of(${ex}, ${ey}, 0.0)`;
-
-            let hx = line.endPoint.targetX
-              ? codeUnits === "metric"
-                ? `cmToInches(${(line.endPoint.targetX * 2.54).toFixed(3)})`
-                : line.endPoint.targetX.toFixed(3)
-              : "0";
-            let hy = line.endPoint.targetY
-              ? codeUnits === "metric"
-                ? `cmToInches(${(line.endPoint.targetY * 2.54).toFixed(3)})`
-                : line.endPoint.targetY.toFixed(3)
-              : "0";
-
-            headingConfig =
-              line.endPoint.heading === "constant"
-                ? `Math.toRadians(${line.endPoint.degrees})`
-                : line.endPoint.heading === "linear"
-                  ? `Math.toRadians(${line.endPoint.startDeg}), Math.toRadians(${line.endPoint.endDeg})`
-                  : line.endPoint.heading === "facingPoint"
-                    ? `p.of(${hx}, ${hy}, 0.0)`
-                    : "";
           }
 
           const pathCall =
@@ -337,8 +276,6 @@ export async function generateJavaCode(
             return "";
           };
 
-          const isChainRoot =
-            !line.isChain && idx + 1 < lines.length && lines[idx + 1].isChain;
           let hasGlobalHeading = false;
           let tempIdx = idx;
           let rootLine = line;

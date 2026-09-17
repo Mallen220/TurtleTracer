@@ -153,4 +153,4 @@ async function appendToNotice() {
 }
 
 // Main execution
-appendToNotice();
+await appendToNotice();

@@ -52,7 +52,6 @@
     sequenceStore,
     settingsStore,
     playingStore,
-    playbackSpeedStore,
     robotProfilesStore,
     loopAnimationStore,
     loopRangeActiveStore,
@@ -182,7 +181,6 @@
   let shapes = $derived($shapesStore);
   let sequence = $derived($sequenceStore);
   let playing = $derived($playingStore);
-  let playbackSpeed = $derived($playbackSpeedStore);
 
   // Internal State
   let showCommandPalette = $state(false);

@@ -7,7 +7,6 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 const reportDir = path.join(rootDir, "tmp/jscpd");
-const reportFile = path.join(reportDir, "jscpd-report.json");
 const outputFile = path.join(rootDir, "DuplicationReport.txt");
 
 function getContext(filePath, startLine, endLine, contextLines = 2) {
@@ -123,4 +122,4 @@ async function run() {
   }
 }
 
-run();
+await run();

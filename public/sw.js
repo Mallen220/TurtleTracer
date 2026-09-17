@@ -67,7 +67,7 @@ globalThis.addEventListener("fetch", (event) => {
           cache.put(event.request, networkResponse.clone());
         }
         return networkResponse;
-      } catch (error) {
+      } catch {
         // 2. If the network fails (offline), try to get from cache
         const cachedResponse = await cache.match(event.request);
         if (cachedResponse) {

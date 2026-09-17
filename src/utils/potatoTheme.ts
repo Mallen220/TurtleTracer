@@ -99,7 +99,6 @@ button:not(.bg-transparent) svg {
 
 export function firePotatoConfetti(x: number, y: number) {
   const count = 10;
-  const spread = 50;
 
   for (let i = 0; i < count; i++) {
     const potato = document.createElement("img");

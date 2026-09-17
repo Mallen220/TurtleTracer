@@ -12,6 +12,7 @@
     [key: string]: any;
   }
 
+  // svelte-ignore custom_element_props_identifier
   let {
     disabled = false,
     title = "Delete",

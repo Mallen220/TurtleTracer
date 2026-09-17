@@ -38,7 +38,6 @@
   } from "../../../lib/projectStore";
   import { get } from "svelte/store";
   import { actionRegistry } from "../../actionRegistry";
-  import { getButtonFilledClass } from "../../../utils/buttonStyles";
   import { wouldCreateCycle } from "../../../lib/macroUtils";
   import {
     updateLinkedWaits,
@@ -487,16 +486,6 @@
     recordChange("Add Path");
   }
 
-  // Deprecated specific add functions - replaced by handleAddAction
-  // kept if needed by exported bindings
-  function addWait() {
-    handleAddAction($actionRegistry["wait"]);
-  }
-
-  function addRotate() {
-    handleAddAction($actionRegistry["rotate"]);
-  }
-
   function collapseAll() {
     collapsedSections.lines = lines.map(() => true);
     collapsedSections.controlPoints = lines.map(() => true);
@@ -604,82 +593,6 @@
       ...collapsedEventMarkers,
     ];
     selectedLineId.set(newLine.id!);
-    recordChange("Add Path");
-  }
-
-  function insertWaitAfter(seqIndex: number) {
-    const newSeq = [...sequence];
-    newSeq.splice(seqIndex + 1, 0, {
-      kind: "wait",
-      id: makeId(),
-      name: "",
-      durationMs: 1000,
-      locked: false,
-    });
-    sequence = newSeq;
-  }
-
-  function insertRotateAfter(seqIndex: number) {
-    const newSeq = [...sequence];
-    newSeq.splice(seqIndex + 1, 0, {
-      kind: "rotate",
-      id: makeId(),
-      name: "",
-      degrees: 0,
-      locked: false,
-    });
-    sequence = newSeq;
-  }
-
-  function insertPathAfter(seqIndex: number) {
-    // Find the closest preceding path item to inherit heading from
-    let prevEndPoint: Point | null = null;
-    for (let i = seqIndex; i >= 0; i--) {
-      const si = sequence[i];
-      if (si.kind === "path") {
-        const ln = lines.find((l) => l.id === si.lineId);
-        if (ln) {
-          prevEndPoint = ln.endPoint;
-          break;
-        }
-      }
-    }
-
-    const endPoint: Point = prevEndPoint
-      ? makeNewEndPointFrom(prevEndPoint)
-      : {
-          x: random(36, 108),
-          y: random(36, 108),
-          heading: "tangential",
-          reverse: false,
-        };
-
-    const newLine: Line = {
-      id: makeId(),
-      name: "",
-      endPoint,
-      controlPoints: [],
-      color: getRandomColor(),
-      eventMarkers: [],
-      waitBeforeMs: 0,
-      waitAfterMs: 0,
-      waitBeforeName: "",
-      waitAfterName: "",
-    };
-
-    lines = [...lines, newLine];
-    lines = renumberDefaultPathNames(lines);
-
-    const newSeq = [...sequence];
-    newSeq.splice(seqIndex + 1, 0, { kind: "path", lineId: newLine.id! });
-    sequence = newSeq;
-
-    collapsedSections.lines.push(allCollapsed ? true : false);
-    collapsedSections.controlPoints.push(true);
-    collapsedEventMarkers.push(false);
-
-    collapsedSections = { ...collapsedSections };
-    collapsedEventMarkers = [...collapsedEventMarkers];
     recordChange("Add Path");
   }
 
@@ -846,10 +759,6 @@
     handleAddActionAfter(idx, def);
   }
 
-  // Helper for button classes
-  function getButtonColorClass(color: string) {
-    return getButtonFilledClass(color);
-  }
   let showDebug = $derived((settings as any)?.showDebugSequence);
   // Debug helpers
   let debugLinesIds = $derived(
@@ -960,7 +869,6 @@
 
   <div role="list" class="flex flex-col gap-4">
     {#each sequence as item, sIdx (getItemId(item))}
-      {@const isLocked = isItemLocked(item, lines)}
       {@const def = $actionRegistry[item.kind]}
       {@const prevItem = sIdx > 0 ? sequence[sIdx - 1] : null}
       {@const nextItem = sIdx < sequence.length - 1 ? sequence[sIdx + 1] : null}

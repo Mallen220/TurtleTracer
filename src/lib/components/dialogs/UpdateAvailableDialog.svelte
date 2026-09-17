@@ -269,6 +269,7 @@
               </div>
             {:else}
               <div class="prose prose-sm dark:prose-invert max-w-none">
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 {@html releaseNotesHtml}
               </div>
             {/if}

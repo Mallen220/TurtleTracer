@@ -119,7 +119,7 @@
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { checkLibraryVersion } from "./utils/libraryVersionChecker";
   import { PluginManager } from "./lib/pluginManager";
-  import { isBrowser } from "./utils/platform";
+  import { isBrowser, getElectronAPI } from "./utils/platform";
   import { themesStore } from "./lib/pluginsStore";
   import { registerCoreUI } from "./lib/coreRegistrations";
   import { componentRegistry } from "./lib/registries";
@@ -146,29 +146,7 @@
   let sessionStartTime = Date.now();
   const appStartTime = sessionStartTime;
 
-  // Electron API
-  interface ElectronAPI {
-    onMenuAction?: (callback: (action: string) => void) => void;
-    showSaveDialog?: (options: any) => Promise<string | null>;
-    writeFileBase64?: (path: string, content: string) => Promise<boolean>;
-    rendererReady?: () => Promise<void>;
-    onOpenFilePath?: (callback: (path: string) => void) => void;
-    onAppCloseRequested?: (callback: () => void) => void;
-    sendCloseApproved?: () => void;
-    // Open a link in the system default browser
-    openExternal?: (url: string) => Promise<boolean>;
-    getPathForFile?: (file: File) => string;
-    getSavedDirectory?: () => Promise<string>;
-    gitShow?: (filePath: string) => Promise<string | null>;
-    isWindowsStore?: () => Promise<boolean>;
-    onUpdateAvailable?: (callback: (data: any) => void) => void;
-    onStoreUpdateAvailable?: (callback: (data: any) => void) => void;
-    downloadUpdate?: (version: string, url: string) => void;
-    skipUpdate?: (version: string) => void;
-  }
-  const electronAPI = (globalThis as any).electronAPI as
-    | ElectronAPI
-    | undefined;
+  const electronAPI = getElectronAPI();
 
   async function checkMsStoreTracking() {
     if (!electronAPI?.isWindowsStore) return;
@@ -641,7 +619,7 @@
     sessionStartTime = now;
     try {
       await saveSettings(get(settingsStore));
-    } catch (e) {}
+    } catch {}
 
     const unsaved = get(isUnsaved);
     const autosaveMode = settings?.autosaveMode;
@@ -742,7 +720,7 @@
 
   // --- History ---
   const history = createHistory();
-  const { canUndoStore, canRedoStore, historyStore } = history;
+  const { canUndoStore, canRedoStore } = history;
 
   let isLoaded = $state(false);
   let lastSavedState: string = "";
@@ -1153,14 +1131,6 @@
     percentStore.set(p);
     handleSeek(p);
   }
-  function changePlaybackSpeedBy(delta: number) {
-    const val = Math.max(0.25, Math.min(3, playbackSpeed + delta));
-    playbackSpeedStore.set(val);
-  }
-  // Compatibility alias expected by ControlTab props
-  function changePlaybackSpeed(delta: number) {
-    changePlaybackSpeedBy(delta);
-  }
   function resetPlaybackSpeed() {
     playbackSpeedStore.set(1);
   }
@@ -1245,24 +1215,22 @@
 
         userFieldLimit = Math.max(min, Math.min(current, max));
       }
-    } else {
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       // Vertical
-      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-        e.preventDefault();
+      e.preventDefault();
 
-        if (userFieldHeightLimit === null) {
-          userFieldHeightLimit = mainContentHeight * 0.6;
-        }
-
-        let current = userFieldHeightLimit;
-        // ArrowUp decreases height (pulls up), ArrowDown increases height (pulls down)
-        if (e.key === "ArrowUp") current -= step;
-        else current += step;
-
-        const rect = mainContentDiv!.getBoundingClientRect();
-        const max = rect.height - 100;
-        userFieldHeightLimit = Math.max(200, Math.min(current, max));
+      if (userFieldHeightLimit === null) {
+        userFieldHeightLimit = mainContentHeight * 0.6;
       }
+
+      let current = userFieldHeightLimit;
+      // ArrowUp decreases height (pulls up), ArrowDown increases height (pulls down)
+      if (e.key === "ArrowUp") current -= step;
+      else current += step;
+
+      const rect = mainContentDiv!.getBoundingClientRect();
+      const max = rect.height - 100;
+      userFieldHeightLimit = Math.max(200, Math.min(current, max));
     }
   }
 
@@ -1325,7 +1293,7 @@
       try {
         _controlTabObserver.observe(controlTabContainer);
         updateControlRect();
-      } catch (e) {}
+      } catch {}
     }
   });
   $effect(() => {
@@ -1334,7 +1302,6 @@
   let isLargeScreen = $derived(innerWidth >= 1024);
   let startPoint = $derived($startPointStore);
   let lines = $derived($linesStore);
-  let shapes = $derived($shapesStore);
   let sequence = $derived($sequenceStore);
   let macros = $derived($macrosStore);
   let percent = $derived($percentStore);
@@ -1589,20 +1556,18 @@
         clearTimeout(hideControlTabTimeout);
         hideControlTabTimeout = null;
       }
-    } else {
+    } else if (effectiveShowSidebar) {
       // On small screens, when sidebar is closed, wait for animation then hide
-      if (effectiveShowSidebar) {
-        if (hideControlTabTimeout) {
-          clearTimeout(hideControlTabTimeout);
-          hideControlTabTimeout = null;
-        }
-        controlTabHidden = false;
-      } else {
-        if (hideControlTabTimeout) clearTimeout(hideControlTabTimeout);
-        hideControlTabTimeout = setTimeout(() => {
-          controlTabHidden = true;
-        }, 320); // slightly longer than the 300ms transition
+      if (hideControlTabTimeout) {
+        clearTimeout(hideControlTabTimeout);
+        hideControlTabTimeout = null;
       }
+      controlTabHidden = false;
+    } else {
+      if (hideControlTabTimeout) clearTimeout(hideControlTabTimeout);
+      hideControlTabTimeout = setTimeout(() => {
+        controlTabHidden = true;
+      }, 320); // slightly longer than the 300ms transition
     }
   });
   let fieldRenderWidth = $derived(

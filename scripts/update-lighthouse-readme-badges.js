@@ -191,8 +191,11 @@ async function main() {
 }
 
 if (isFileModuleUrl && process.argv[1] === fileURLToPath(import.meta.url)) {
-  main().catch((error) => {
-    console.error("Failed to update Lighthouse badges:", error.message);
+  try {
+    await main();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Failed to update Lighthouse badges:", message);
     process.exit(1);
-  });
+  }
 }

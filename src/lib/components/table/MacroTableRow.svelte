@@ -71,8 +71,6 @@
     item.name = target.value;
     onUpdate(item);
   }
-
-  let filePath = $derived((item as any).filePath || "");
 </script>
 
 <tr

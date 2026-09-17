@@ -102,7 +102,7 @@ if (process.windowsStore) {
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (gotTheLock) {
-  app.on("second-instance", (event, commandLine, workingDirectory) => {
+  app.on("second-instance", (event, commandLine, _workingDirectory) => {
     // Someone tried to run a second instance. Prefer focusing an existing window
     // to avoid racing with the local server or creating orphan windows.
     try {
@@ -360,7 +360,7 @@ const createWindow = async () => {
   // Handle "Save As" dialog native behavior
   newWindow.webContents.session.on(
     "will-download",
-    (event, item, webContents) => {
+    (event, item, _webContents) => {
       item.on("updated", (event, state) => {
         if (state === "interrupted") {
           console.log("Download is interrupted but can be resumed");

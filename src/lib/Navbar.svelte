@@ -337,6 +337,7 @@
         onclick={action.onClick}
         class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html action.icon}
       </button>
     {/each}
@@ -394,6 +395,7 @@
         onclick={action.onClick}
         class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors hidden md:block focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html action.icon}
       </button>
     {/each}
@@ -506,6 +508,7 @@
         onclick={action.onClick}
         class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html action.icon}
       </button>
     {/each}

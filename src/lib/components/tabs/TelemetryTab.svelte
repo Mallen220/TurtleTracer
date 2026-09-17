@@ -29,9 +29,6 @@
   // Sort keys alphabetically
   let sortedKeys = $derived(Object.keys(lines).sort());
 
-  // Listen for IPC events
-  let cleanupListeners: (() => void) | null = null;
-
   onMount(() => {
     const api = (globalThis as any).electronAPI;
     if (api && api.telemetry) {

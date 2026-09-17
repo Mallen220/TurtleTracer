@@ -397,17 +397,6 @@
     }
   }
 
-  // Helpers for table data
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function getSegmentName(line: Line, index: number) {
-    return line.name || `Path ${index + 1}`;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function getEventsForLine(line: Line) {
-    return line.eventMarkers || [];
-  }
-
   // Combine Path, Waits, and Rotations into a linear list for the table
   let combinedSequence = $derived(
     (() => {

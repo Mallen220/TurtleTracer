@@ -4,7 +4,7 @@ export async function checkLibraryVersion(
   electronAPI: any,
   notificationSet: any,
 ) {
-  if (!electronAPI || !electronAPI.readFile || !electronAPI.fileExists) return;
+  if (!electronAPI?.readFile || !electronAPI.fileExists) return;
 
   try {
     // 1. Fetch latest version from GitHub
@@ -12,10 +12,9 @@ export async function checkLibraryVersion(
       "https://api.github.com/repos/Mallen220/TurtleTracerLib/releases/latest",
     );
     if (!res.ok) return;
-    const data = await res.json();
+    const data = (await res.json()) as any;
     let latestVersion = data.tag_name as string;
-    if (latestVersion && latestVersion.startsWith("v"))
-      latestVersion = latestVersion.substring(1);
+    if (latestVersion?.startsWith("v")) latestVersion = latestVersion.slice(1);
 
     // 2. Scan gradle files for local version
     const filesToCheck = [
@@ -56,7 +55,7 @@ export async function checkLibraryVersion(
         const content = await electronAPI.readFile(filePath);
         // Look for com.github.Mallen220:TurtleTracerLib:X.Y.Z or similar
         const match = content.match(/Mallen220:TurtleTracerLib:?([0-9.]+)/i);
-        if (match && match[1]) {
+        if (match?.[1]) {
           localVersion = match[1];
           break;
         }

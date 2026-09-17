@@ -1,3 +1,4 @@
+/* eslint-disable */
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 /**
  * Type definitions for Turtle Tracer Plugins.
@@ -889,6 +890,111 @@ interface UpdateData {
   version: string;
   releaseNotes: string;
   url: string;
+}
+
+interface NamedCommand {
+  name: string;
+  description?: string;
+  parameters?: string[];
+}
+
+interface ElectronTelemetryAPI {
+  connect: (ip: string, port: number, protocol: string) => Promise<any>;
+  disconnect: () => Promise<any>;
+  onData: (callback: (data: any) => void) => void;
+  onStatus: (callback: (status: any) => void) => void;
+}
+
+interface ElectronAPI {
+  // Utils
+  getPathForFile?: (file: File) => string;
+
+  // File system operations
+  getAppDataPath?: () => Promise<string>;
+  getDirectory?: () => Promise<string | null>;
+  setDirectory?: (path?: string) => Promise<string | null>;
+  selectDirectory?: () => Promise<string | null>;
+  listFiles: (directory: string) => Promise<FileInfo[]>;
+  readFile: (filePath: string) => Promise<string>;
+  writeFile: (filePath: string, content: string) => Promise<boolean>;
+  deleteFile: (filePath: string) => Promise<boolean>;
+  fileExists: (filePath: string) => Promise<boolean>;
+  resolvePath?: (base: string, relative: string) => Promise<string>;
+  makeRelativePath?: (base: string, target: string) => Promise<string>;
+
+  // Directory settings operations
+  getDirectorySettings?: () => Promise<any>;
+  saveDirectorySettings?: (settings: any) => Promise<boolean>;
+  getSavedDirectory?: () => Promise<string>;
+
+  // Enhanced file operations
+  createDirectory?: (dirPath: string) => Promise<boolean>;
+  getDirectoryStats?: (dirPath: string) => Promise<any>;
+
+  // Rename operation
+  renameFile?: (
+    oldPath: string,
+    newPath: string,
+  ) => Promise<{ success: boolean; newPath: string }>;
+
+  // Show native save dialog
+  showSaveDialog?: (options?: any) => Promise<string | null>;
+
+  // Write binary content encoded as base64 to disk
+  writeFileBase64?: (
+    filePath: string,
+    base64Content: string,
+  ) => Promise<boolean>;
+
+  // Export legacy .pp convenience wrapper
+  exportPP?: (content: string, defaultName?: string) => Promise<any>;
+
+  // File Copy
+  copyFile?: (srcPath: string, destPath: string) => Promise<boolean>;
+
+  // Git operations
+  gitShow?: (filePath: string) => Promise<string | null>;
+  gitStatus?: (directory: string) => Promise<any>;
+
+  // Renderer ready signal
+  rendererReady?: () => Promise<void>;
+
+  // Listeners
+  onOpenFilePath?: (callback: (filePath: string) => void) => void;
+  onAppCloseRequested?: (callback: () => void) => void;
+  sendCloseApproved?: () => Promise<void>;
+  onMenuAction?: (callback: (action: string) => void) => void;
+
+  // App version & store
+  getAppVersion?: () => Promise<string>;
+  isWindowsStore?: () => Promise<boolean>;
+  openExternal?: (url: string) => Promise<boolean>;
+
+  // Plugin System
+  listPlugins?: () => Promise<any[]>;
+  readPlugin?: (filename: string) => Promise<string>;
+  deletePlugin?: (filename: string) => Promise<boolean>;
+  openPluginsFolder?: () => Promise<void>;
+  transpilePlugin?: (code: string) => Promise<string>;
+
+  // Telemetry
+  telemetry?: ElectronTelemetryAPI;
+
+  // Updater
+  onUpdateAvailable?: (callback: (data: any) => void) => void;
+  onStoreUpdateAvailable?: (callback: (data: any) => void) => void;
+  downloadUpdate?: (version: string, url: string) => void;
+  skipUpdate?: (version: string) => void;
+  checkForUpdates?: () => Promise<any>;
+
+  // Virtual / Mock metadata
+  isVirtual?: boolean;
+
+  // Fallback compatibility used in web / mock environments
+  saveFile?: (
+    content: string,
+    path?: string,
+  ) => Promise<{ success: boolean; filepath: string; error?: string }>;
 }
 
 export {};

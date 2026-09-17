@@ -49,7 +49,7 @@ export function generateTrackerEventRegistrationCode(
                 : (event.poseY ?? 0).toFixed(3);
             poseArg = `p.of(${px}, ${py}, ${(event.poseHeading ?? 0).toFixed(3)})`;
           }
-          const radius = (event as any).radius ?? 2.0;
+          const radius = (event as any).radius ?? 2;
           const radiusStr =
             typeof radius === "number" ? radius.toFixed(1) : radius;
           code += `\n${indent}tracker.onSpatial(${poseArg}, ${radiusStr}, NamedCommands.getCommand("${event.name}"));`;
@@ -94,7 +94,7 @@ export function generateEventMarkerCode(
         const px = (event.poseX ?? 0).toFixed(3);
         const py = (event.poseY ?? 0).toFixed(3);
         const ph = (event.poseHeading ?? 0).toFixed(3);
-        const radius = (event as any).radius ?? 2.0;
+        const radius = (event as any).radius ?? 2;
         const radiusStr =
           typeof radius === "number" ? radius.toFixed(1) : radius;
         const poseArg = `new Pose(${px}, ${py}, Math.toRadians(${ph}))`;

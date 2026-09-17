@@ -16,14 +16,14 @@ export function generateDiffEventMarkerElements(
 ) {
   if (!isDiffMode || !diffData) return [];
 
-  const { x, y, uiLength, hoveredMarkerId, ppI } = ctx;
+  const { x, y, uiLength, hoveredMarkerId } = ctx;
   const elems: InstanceType<typeof Two.Group>[] = [];
 
   // Helper to extract marker positions from a dataset
   const getMarkerMap = (
     dataLines: Line[],
     dataStart: Point,
-    dataSequence: SequenceItem[],
+    _dataSequence: SequenceItem[],
   ) => {
     const map = new Map<string, { x: number; y: number }>();
 
@@ -48,15 +48,6 @@ export function generateDiffEventMarkerElements(
         }
         map.set(id, pos);
       });
-    });
-
-    // Sequence
-    dataSequence.forEach((s) => {
-      if (s.kind === "wait" || s.kind === "rotate") {
-        const parentName = s.name || (s.kind === "wait" ? "Wait" : "Rotate");
-        // Sequence events usually attach to the end of a line.
-        // Skip them in diff view when position data is unavailable and fall back to Path Events.
-      }
     });
 
     return map;
@@ -91,16 +82,6 @@ export function generateDiffEventMarkerElements(
       if (isHovered) {
         const text = new Two.Text(label, x(pos.x), y(pos.y) - uiLength(3));
         text.fill = "white"; // Dark mode friendly? or switch based on theme
-
-        // Background for text
-        const textMetrics = { width: label.length * 8, height: 14 }; // Approx
-        const bg = new Two.Rectangle(
-          x(pos.x),
-          y(pos.y) - uiLength(3),
-          uiLength(textMetrics.width / (ppI || 1)),
-          uiLength(1),
-        );
-        // Two.Text is easier.
         text.weight = 700;
         text.size = uiLength(1.5);
         text.stroke = "black";

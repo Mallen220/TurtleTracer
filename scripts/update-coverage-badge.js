@@ -23,7 +23,7 @@ async function main() {
   let summaryContent;
   try {
     summaryContent = await fs.readFile(coverageSummaryPath, "utf8");
-  } catch (err) {
+  } catch {
     console.error(
       "Could not read coverage-summary.json. Did you run vitest with coverage?",
     );
@@ -74,7 +74,9 @@ async function main() {
   console.log(`Updated README with coverage badge: ${pct}%`);
 }
 
-main().catch((err) => {
+try {
+  await main();
+} catch (err) {
   console.error("Failed to update coverage badge:", err.message);
   process.exit(1);
-});
+}

@@ -434,11 +434,7 @@
     }
   }
 
-  function updateMarkerTime(
-    marker: GlobalMarker,
-    newTimeMs: number,
-    commit: boolean,
-  ) {
+  function updateMarkerTime(marker: GlobalMarker, newTimeMs: number) {
     if (!timePrediction || timePrediction.totalTime <= 0) {
       marker.ref.endTime = newTimeMs;
       marker.ref.time = newTimeMs;
@@ -607,14 +603,14 @@
       cachedSortedMarkers = [...allMarkers];
     }
     const latestMarker = allMarkers.find((m) => m.id === marker.id) || marker;
-    updateMarkerTime(latestMarker, newVal, false);
+    updateMarkerTime(latestMarker, newVal);
   }
 
   function handleGlobalTimeCommit(marker: GlobalMarker, newVal: number) {
     draggingMarkerId = null;
     cachedSortedMarkers = [];
     const latestMarker = allMarkers.find((m) => m.id === marker.id) || marker;
-    updateMarkerTime(latestMarker, newVal, true);
+    updateMarkerTime(latestMarker, newVal);
   }
 
   export async function scrollToMarker(markerId: string) {

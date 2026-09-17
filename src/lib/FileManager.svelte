@@ -36,12 +36,12 @@
   import { scanEventsInDirectory } from "../utils/eventScanner";
   import {
     DEFAULT_PROJECT_EXTENSION,
-    SUPPORTED_PROJECT_EXTENSIONS,
     ensureDefaultProjectExtension,
     getProjectExtensionFromPath,
     isSupportedProjectFileName,
     stripProjectExtension,
   } from "../utils/fileExtensions";
+  import { getElectronAPI } from "../utils/platform";
 
   import FileManagerToolbar from "./components/filemanager/FileManagerToolbar.svelte";
   import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
@@ -123,8 +123,7 @@
     }
   }
 
-  const supportedFileTypes = [...SUPPORTED_PROJECT_EXTENSIONS];
-  const electronAPI = (globalThis as any).electronAPI;
+  const electronAPI = getElectronAPI();
 
   function getErrorMessage(error: unknown): string {
     if (error instanceof Error) return error.message;
@@ -148,7 +147,7 @@
   let newFileInput: HTMLInputElement | null = $state(null);
   let newFolderInput: HTMLInputElement | null = $state(null);
 
-  function startResize(e: MouseEvent) {
+  function startResize() {
     isResizing = true;
     globalThis.addEventListener("mousemove", handleResize);
     globalThis.addEventListener("mouseup", stopResize);
@@ -242,15 +241,23 @@
   }
 
   async function loadDirectory() {
+    if (!electronAPI) {
+      errorMessage = "File system API is not available";
+      return;
+    }
     loading = true;
     errorMessage = "";
     try {
-      const savedDir = await electronAPI.getSavedDirectory();
+      const savedDir = electronAPI.getSavedDirectory
+        ? await electronAPI.getSavedDirectory()
+        : null;
       if (savedDir && savedDir.trim() !== "") {
         currentDirectory = savedDir;
         baseDirectory = savedDir;
       } else {
-        const dir = await electronAPI.getDirectory();
+        const dir = electronAPI.getDirectory
+          ? await electronAPI.getDirectory()
+          : null;
         currentDirectory = dir || "";
         baseDirectory = dir || "";
       }
@@ -264,7 +271,8 @@
   }
 
   async function refreshDirectory() {
-    if (!currentDirectory || currentDirectory.trim() === "") return;
+    if (!electronAPI || !currentDirectory || currentDirectory.trim() === "")
+      return;
 
     try {
       const allFiles = await electronAPI.listFiles(currentDirectory);
@@ -346,6 +354,13 @@
 
   // Handle directory change (dialog)
   async function changeDirectoryDialog() {
+    if (!electronAPI?.setDirectory) {
+      showToast(
+        "Directory selection is not supported in this environment",
+        "error",
+      );
+      return;
+    }
     try {
       const newDir = await electronAPI.setDirectory();
       if (newDir) {
@@ -466,7 +481,7 @@
           content = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target?.result as string);
-            reader.onerror = (e) => reject(new Error("Failed to read file"));
+            reader.onerror = () => reject(new Error("Failed to read file"));
             reader.readAsText(file);
           });
         }
@@ -526,7 +541,7 @@
             selectedFile = null;
 
             showToast(`Imported: ${file.name}`, "success");
-          } catch (err) {
+          } catch {
             showToast("Invalid file content", "error");
           }
         };
@@ -554,6 +569,11 @@
       }
 
       const newPath = path.join(newDir, sourceFile.name);
+
+      if (!electronAPI?.renameFile) {
+        showToast("Moving files is not supported in this environment", "error");
+        return;
+      }
 
       const result = await electronAPI.renameFile(sourceFile.path, newPath);
       if (result.success) {
@@ -637,6 +657,11 @@
     try {
       if (await electronAPI?.fileExists?.(newFilePath)) {
         showToast(`File "${fileName}" already exists`, "error");
+        return;
+      }
+
+      if (!electronAPI?.renameFile) {
+        showToast("Renaming is not supported in this environment", "error");
         return;
       }
 
@@ -732,7 +757,14 @@
     }
 
     try {
-      const content = await electronAPI?.readFile?.(file.path);
+      if (!electronAPI?.readFile) {
+        showToast("File reading is not supported in this environment", "error");
+        return;
+      }
+      const content = await electronAPI.readFile(file.path);
+      if (!content) {
+        throw new Error("File is empty or could not be read");
+      }
       const data = JSON.parse(content);
 
       if (!data.startPoint || !data.lines)
@@ -836,6 +868,11 @@
 
       const content = JSON.stringify(data, null, 2);
 
+      if (!electronAPI?.writeFile) {
+        showToast("Saving files is not supported in this environment", "error");
+        return;
+      }
+
       await electronAPI.writeFile(targetFile.path, content);
       await refreshDirectory();
       isUnsaved.set(false);
@@ -861,6 +898,14 @@
     try {
       if (await electronAPI?.fileExists?.(dirPath)) {
         showToast(`Folder "${name}" already exists.`, "error");
+        return;
+      }
+
+      if (!electronAPI?.createDirectory) {
+        showToast(
+          "Creating folders is not supported in this environment",
+          "error",
+        );
         return;
       }
 
@@ -916,6 +961,14 @@
 
       const content = JSON.stringify(data, null, 2);
 
+      if (!electronAPI?.writeFile) {
+        showToast(
+          "Creating files is not supported in this environment",
+          "error",
+        );
+        return;
+      }
+
       await electronAPI.writeFile(filePath, content);
       creatingNewFile = false;
       newFileName = "";
@@ -956,7 +1009,17 @@
     mode: "copy" | "mirror" | "reverse" = "copy",
   ) {
     try {
-      const content = await electronAPI?.readFile?.(file.path);
+      if (!electronAPI?.readFile || !electronAPI?.writeFile) {
+        showToast(
+          "File operations are not supported in this environment",
+          "error",
+        );
+        return;
+      }
+      const content = await electronAPI.readFile(file.path);
+      if (!content) {
+        throw new Error("File is empty or could not be read");
+      }
       let data = JSON.parse(content);
 
       let suffix = "_copy";

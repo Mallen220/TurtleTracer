@@ -9,7 +9,7 @@ vi.mock("../../../utils/exportAnimation", () => ({
 
 describe("ExportImageDialog", () => {
   it("renders when show is true", () => {
-    const { getByText, getByRole } = render(ExportImageDialog, {
+    const { getByText } = render(ExportImageDialog, {
       show: true,
       twoInstance: { update: vi.fn() },
       settings: {
@@ -31,7 +31,7 @@ describe("ExportImageDialog", () => {
   });
 
   it("interacts with inputs correctly", async () => {
-    const { getByRole, getByLabelText } = render(ExportImageDialog, {
+    const { getByLabelText } = render(ExportImageDialog, {
       show: true,
       twoInstance: { update: vi.fn() },
       settings: {

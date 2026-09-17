@@ -26,7 +26,7 @@ export function setupImageMocks() {
   globalThis.Image = MockImage as any;
 
   globalThis.XMLSerializer = class {
-    serializeToString(node: Node) {
+    serializeToString(_node: Node) {
       return "<svg></svg>";
     }
   } as any;

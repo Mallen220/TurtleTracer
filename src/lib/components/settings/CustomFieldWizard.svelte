@@ -82,7 +82,7 @@
     }
   }
 
-  function handleImageLoadError(e: Event) {
+  function handleImageLoadError(_e: Event) {
     alert(
       "The image failed to load in the browser. It may be corrupted or an unsupported format.",
     );

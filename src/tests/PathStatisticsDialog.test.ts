@@ -63,7 +63,7 @@ describe("PathStatisticsDialog", () => {
   });
 
   it("switches to graphs tab", async () => {
-    const { getByText, getAllByText } = renderDialog();
+    const { getByText } = renderDialog();
 
     const graphsTab = getByText("Graphs");
     expect(graphsTab).toBeTruthy();
@@ -75,7 +75,7 @@ describe("PathStatisticsDialog", () => {
   });
 
   it("shows acceleration graphs and insights tab", async () => {
-    const { getByText, getAllByText } = renderDialog({
+    const { getByText } = renderDialog({
       settings: { ...defaultSettings, kFriction: 0.5 },
     });
 

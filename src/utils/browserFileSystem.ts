@@ -261,7 +261,7 @@ export const browserFileSystem = {
     await set(dirPath, { type: "dir" });
     return true;
   },
-  getDirectoryStats: async (dirPath: string): Promise<any> => {
+  getDirectoryStats: async (_dirPath: string): Promise<any> => {
     return { size: 0, files: 0 };
   },
   resolvePath: async (base: string, relative: string): Promise<string> => {

@@ -388,6 +388,7 @@
                 {@const SvelteComponent = ICON_COMPONENT_MAP[item.icon]}
                 <SvelteComponent className="size-5" />
               {:else}
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 {@html item.icon}
               {/if}
             {:else if item.id === "separator"}
@@ -463,6 +464,7 @@
                       ICON_COMPONENT_MAP[available.iconSvg]}
                     <SvelteComponent_1 className="size-4" />
                   {:else}
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                     {@html available.iconSvg}
                   {/if}
                 {:else}

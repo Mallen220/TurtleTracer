@@ -483,6 +483,7 @@
                 {:else if line.type === "modified"}~
                 {/if}
               </span>
+              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
               <span>{@html line.content || "<br class='select-none' />"}</span>
             </div>
           {/each}
@@ -505,6 +506,7 @@
 </div>
 
 <svelte:head>
+  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
   {@html codeStyle}
 </svelte:head>
 

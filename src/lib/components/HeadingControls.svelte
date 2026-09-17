@@ -130,7 +130,6 @@
     oncommit?.();
   }
 
-  let collapsedSegments: boolean[] = $state([]);
   let isPiecewiseCollapsed = $state(false);
 
   // Drag and drop state

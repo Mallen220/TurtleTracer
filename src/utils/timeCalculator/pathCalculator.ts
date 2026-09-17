@@ -24,14 +24,8 @@ export function calculatePathTime(
   lines: Line[],
   settings: Settings,
   sequence?: SequenceItem[],
-  macros?: Map<string, import("../../types").TurtleData>,
+  _macros?: Map<string, import("../../types").TurtleData>,
 ): TimePrediction {
-  const msToSeconds = (value?: number | string) => {
-    const numeric = Number(value);
-    if (!Number.isFinite(numeric) || numeric <= 0) return 0;
-    return numeric / 1000;
-  };
-
   const useMotionProfile =
     settings.maxVelocity !== undefined &&
     settings.maxAcceleration !== undefined;
@@ -328,7 +322,6 @@ export function calculatePathTime(
       let endHeading = rotationAnalysis.endHeading;
       let rotationRequired = rotationAnalysis.rotationRequired;
       let endHeadingRaw = rotationAnalysis.endHeadingRaw;
-      const effectiveHeading = rotationAnalysis.effectiveHeading;
 
       const totalRotationRequiredForSegment = isChained
         ? Math.abs(endHeading - currentHeading)

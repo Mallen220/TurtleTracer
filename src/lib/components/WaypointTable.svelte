@@ -57,10 +57,8 @@
   import {
     updateLinkedWaypoints,
     handleWaypointRename,
-    handleWaitRename,
     updateLinkedWaits,
     isLineLinked,
-    handleRotateRename,
     updateLinkedRotations,
   } from "../../utils/pointLinking";
   import { getRandomColor } from "../../utils/draw";
@@ -214,28 +212,6 @@
   // Use snap stores to determine step size for inputs
   let stepSize = $derived($snapToGrid && $showGrid ? $gridSize : 0.1);
 
-  function updatePoint(
-    point: Point | ControlPoint,
-    field: "x" | "y",
-    value: number,
-    lineId?: string,
-  ) {
-    point[field] = value;
-
-    // Check for linked endpoint updates
-    if (lineId) {
-      const line = lines.find((l) => l.id === lineId);
-      if (line && line.endPoint === point) {
-        lines = updateLinkedWaypoints(lines, lineId);
-      }
-    }
-
-    // Trigger reactivity for lines/startPoint
-    lines = lines;
-    startPoint = startPoint;
-    recordChange();
-  }
-
   function handleInput(
     e: Event,
     point: Point | ControlPoint,
@@ -278,62 +254,6 @@
     recordChange();
   }
 
-  function updateWaitName(item: SequenceItem, name: string) {
-    if (item.kind === "wait") {
-      sequence = handleWaitRename(sequence, item.id, name);
-      recordChange();
-    }
-  }
-
-  function updateRotateName(item: SequenceItem, name: string) {
-    if (item.kind === "rotate") {
-      sequence = handleRotateRename(sequence, item.id, name);
-      recordChange();
-    }
-  }
-
-  function updateLineColor(lineId: string, color: string) {
-    const line = lines.find((l) => l.id === lineId);
-    if (line) {
-      line.color = color;
-      lines = lines; // Trigger reactivity
-      recordChange();
-    }
-  }
-
-  function updateRotateDegrees(item: SequenceItem, degrees: number) {
-    if (item.kind === "rotate") {
-      item.degrees = degrees;
-      sequence = updateLinkedRotations(sequence, item.id);
-      recordChange();
-    }
-  }
-
-  function updateWaitDuration(item: SequenceItem, duration: number) {
-    if (item.kind === "wait") {
-      item.durationMs = duration;
-      sequence = updateLinkedWaits(sequence, item.id);
-      recordChange();
-    }
-  }
-
-  function updateMacroName(item: SequenceItem, name: string) {
-    if (item.kind === "macro") {
-      item.name = name;
-      sequence = [...sequence]; // trigger reactivity
-      recordChange();
-    }
-  }
-
-  // Debug helper to log mapping between line, index and control points when rows render
-  function debugPointRow(
-    line: Line,
-    cp: ControlPoint | Point | undefined,
-    j?: number,
-  ) {
-    return "";
-  }
-
   // Helper to find the index in the real `sequence` array for a display item
   function findSequenceIndex(item: any) {
     if (!Array.isArray(sequence)) return -1;
@@ -362,7 +282,7 @@
           }
         });
         return seqCopy;
-      } catch (e) {
+      } catch {
         return sequence || [];
       }
     })(),
@@ -380,15 +300,6 @@
           actionRegistry.get(s.kind)?.isPath
             ? (s as any).lineId
             : (s as any).id,
-        )
-      : [],
-  );
-  let debugDisplayIds = $derived(
-    Array.isArray(displaySequence)
-      ? displaySequence.map((d) =>
-          actionRegistry.get(d.kind)?.isPath
-            ? (d as any).lineId
-            : (d as any).id,
         )
       : [],
   );
@@ -444,8 +355,6 @@
 
   function handleWindowDrop(e: DragEvent) {
     if (!isActive) return;
-
-    const isInternalReorder = draggingIndex !== null;
 
     // Check for internal macro data OR OS files that could be macros
     let isMacroDrop = e.dataTransfer?.types
@@ -671,17 +580,6 @@
     selectedPointId.set(null);
   }
 
-  // Deprecated specific delete functions mapped to generic one for backward compat if needed
-  function deleteWait(index: number) {
-    deleteSequenceItem(index);
-  }
-  function deleteRotate(index: number) {
-    deleteSequenceItem(index);
-  }
-  function deleteMacro(index: number) {
-    deleteSequenceItem(index);
-  }
-
   function toggleWaitLock(index: number) {
     const item = sequence[index];
     if (
@@ -770,11 +668,9 @@
   let contextMenuItems: any[] = $state([]);
 
   let hoveredLinkId: string | null = $state(null);
-  let hoveredWaitId: string | null = $state(null);
   let hoveredStatsLineId: string | null = $state(null);
   // Anchor elements used for portal positioning (moved to body)
   let hoveredLinkAnchor: HTMLElement | null = $state(null);
-  let hoveredWaitAnchor: HTMLElement | null = $state(null);
   let hoveredStatsAnchor: HTMLElement | null = $state(null);
 
   function handleLinkHoverEnter(e: MouseEvent, id: string | null) {
@@ -785,15 +681,6 @@
   function handleLinkHoverLeave() {
     hoveredLinkId = null;
     hoveredLinkAnchor = null;
-  }
-
-  function handleWaitHoverEnter(e: MouseEvent, id: string | null) {
-    hoveredWaitId = id;
-    hoveredWaitAnchor = e.currentTarget as HTMLElement;
-  }
-  function handleWaitHoverLeave() {
-    hoveredWaitId = null;
-    hoveredWaitAnchor = null;
   }
 
   function handleStatsHoverEnter(e: MouseEvent, id: string | null) {
@@ -1480,7 +1367,6 @@
           {#each lines.filter((l) => l.id === item.lineId) as line (line.id)}
             {@const lineIdx = lines.indexOf(line)}
             <!-- End Point -->
-            {@html debugPointRow(line, undefined)}
             {@const endPointId = `point-${lineIdx + 1}-0`}
             <tr
               data-seq-index={seqIndex}
@@ -1715,7 +1601,6 @@
 
             <!-- Control Points -->
             {#each line.controlPoints as cp, j}
-              {@html debugPointRow(line, cp, j)}
               {@const cpIndex = [line.endPoint, ...line.controlPoints].indexOf(
                 cp,
               )}

@@ -9,7 +9,7 @@ setupImageMocks();
 
 // Mock DOMParser
 globalThis.DOMParser = class {
-  parseFromString(str: string, type: string) {
+  parseFromString(_str: string, _type: string) {
     return {
       documentElement: {
         firstChild: { nodeName: "mockNode" },
@@ -33,7 +33,6 @@ globalThis.FileReader = class {
 
 describe("exportPathToImage", () => {
   let mockTwo: any;
-  let mockCtx: any;
   let mockCanvas: any;
   let options: ExportImageOptions;
 
@@ -47,7 +46,6 @@ describe("exportPathToImage", () => {
     );
 
     const canvasMocks = setupCanvasMocks();
-    mockCtx = canvasMocks.mockCtx;
     mockCanvas = canvasMocks.mockCanvas;
     mockTwo = canvasMocks.mockTwo;
 

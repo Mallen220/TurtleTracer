@@ -205,13 +205,13 @@
                 {@const strokeColor = isSelected ? "#ef4444" : feature.color}
                 {@const strokeWidth = isSelected ? 3 : 1}
                 {@const fill = feature.filled ? feature.color : "transparent"}
-                {@const opacity = !isVisible
-                  ? 0.3
-                  : feature.filled
+                {@const opacity = isVisible
+                  ? feature.filled
                     ? isSelected
                       ? 0.9
                       : 0.7
-                    : 1}
+                    : 1
+                  : 0.3}
 
                 {#if isVisible || isSelected}
                   <g

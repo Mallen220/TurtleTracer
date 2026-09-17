@@ -97,8 +97,6 @@
 
     // Detailed segment analysis
     let segments: SegmentStat[] = [];
-    let maxLinearVelocity = 0;
-    let maxAngularVelocity = 0;
 
     // Data for charts
     let velocityData: { time: number; value: number }[] = [];
@@ -108,20 +106,10 @@
     let insights: Insight[] = [];
 
     // Pre-calculate constants for insight thresholds
-    const maxAccel = settings.maxAcceleration || 30;
     const maxVel = settings.maxVelocity || 100;
     const kFriction = settings.kFriction || 0;
     const gravity = 386.22; // in/s^2
     const frictionLimitAccel = kFriction * gravity;
-
-    let currentHeading =
-      startPoint.heading === "linear"
-        ? startPoint.startDeg
-        : startPoint.heading === "constant"
-          ? startPoint.degrees
-          : 0; // Approx for tangential start
-
-    let lastPoint = startPoint;
 
     // Map timePrediction segments to sequence items
     const timeline = timePred.timeline || [];
@@ -189,12 +177,10 @@
             value: vLin,
           };
         }
-      } else {
+      } else if (activeVelocityWarning) {
         // Condition ended
-        if (activeVelocityWarning) {
-          insights.push({ ...(activeVelocityWarning as Insight), endTime: t });
-          activeVelocityWarning = null;
-        }
+        insights.push({ ...(activeVelocityWarning as Insight), endTime: t });
+        activeVelocityWarning = null;
       }
 
       // 2. Centripetal Friction Warning (Error)
@@ -212,12 +198,10 @@
             value: accCent,
           };
         }
-      } else {
+      } else if (activeFrictionWarning) {
         // Condition ended
-        if (activeFrictionWarning) {
-          insights.push({ ...(activeFrictionWarning as Insight), endTime: t });
-          activeFrictionWarning = null;
-        }
+        insights.push({ ...(activeFrictionWarning as Insight), endTime: t });
+        activeFrictionWarning = null;
       }
     };
 

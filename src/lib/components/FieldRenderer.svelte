@@ -178,7 +178,6 @@
   // Optimization: Cache bounding rects to avoid reflows during drag
   let cachedRect: DOMRect | null = null;
   let cachedWrapperRect: DOMRect | null = null;
-  let dragOffset = { x: 0, y: 0 };
   let currentElem: string | null = null;
   let isDown = false;
   let isPanning = false;
@@ -372,11 +371,11 @@
       const WIGGLE_SPEED = 25;
 
       // Cap the wiggling factors to 1.0 to enforce the maximum flapping cap
-      const factorFl = Math.min(1.0, Math.abs(fr));
-      const factorFr = Math.min(1.0, Math.abs(fl));
-      const factorBl = Math.min(1.0, Math.abs(br));
-      const factorBr = Math.min(1.0, Math.abs(bl));
-      const factorTail = Math.min(1.0, total);
+      const factorFl = Math.min(1, Math.abs(fr));
+      const factorFr = Math.min(1, Math.abs(fl));
+      const factorBl = Math.min(1, Math.abs(br));
+      const factorBr = Math.min(1, Math.abs(bl));
+      const factorTail = Math.min(1, total);
 
       turtlePhases.fl += dt * factorFl * WIGGLE_SPEED;
       turtlePhases.fr += dt * factorFr * WIGGLE_SPEED;
@@ -620,7 +619,6 @@
           let bestDist = 0.5; // Snap threshold
           let bestLineIdx = -1;
           let bestT = 0;
-          let bestCps: any[] = [];
 
           lines.forEach((line, idx) => {
             if (line.hidden) return;
@@ -639,7 +637,6 @@
               bestDist = dist;
               bestLineIdx = idx;
               bestT = t;
-              bestCps = cps;
             }
           });
 
@@ -1307,7 +1304,7 @@
               // diff-event-{id}-{suffix}
 
               const parts = currentElem.split("-");
-              const suffix = parts.pop(); // remove suffix
+              parts.pop(); // remove suffix
               // Remove 'diff' and 'event'
               parts.shift(); // diff
               parts.shift(); // event
@@ -1483,7 +1480,6 @@
           if (currentElem.startsWith("point-")) {
             const parts = currentElem.split("-");
             const lineNum = Number(parts[1]);
-            const pointIdx = Number(parts[2]);
             let lId = null;
             if (!Number.isNaN(lineNum) && lineNum > 0) {
               const lineIndex = lineNum - 1;
@@ -1532,19 +1528,7 @@
             }
           }
 
-          // Calculate drag offset
-          let objectX = 0;
-          let objectY = 0;
-          const rectForMouse = two!.renderer.domElement.getBoundingClientRect();
-          const transformedForMouse = getTransformedCoordinates(
-            evt.clientX,
-            evt.clientY,
-            rectForMouse,
-            settings.fieldRotation || 0,
-          );
-          const mouseX = x.invert(transformedForMouse.x);
-          const mouseY = y.invert(transformedForMouse.y);
-
+          // Check if obstacle is locked to prevent dragging
           if (currentElem.startsWith("obstacle-")) {
             const parts = currentElem.split("-");
             const shapeIdx = Number(parts[1]);
@@ -1555,106 +1539,17 @@
               currentElem = null;
               return;
             }
-            const vertexIdx = Number(parts[2]);
-            if (shapes[shapeIdx]?.vertices?.[vertexIdx]) {
-              objectX = shapes[shapeIdx].vertices[vertexIdx].x;
-              objectY = shapes[shapeIdx].vertices[vertexIdx].y;
-            }
-          } else if (currentElem.startsWith("targetpoint-")) {
-            const parts = currentElem.split("-");
-            const lineIdx = Number(parts[1]) - 1;
-            if (lines[lineIdx]?.endPoint) {
-              const targetLine = lines[lineIdx];
-              // Check for Global Heading override
-              const isGlobal =
-                targetLine.globalHeading !== undefined &&
-                targetLine.globalHeading !== "none";
-
-              if (parts.length > 2 && parts[2] === "piecewise") {
-                const segIdx = Number(parts[3]);
-                const segments = isGlobal
-                  ? targetLine.globalSegments || []
-                  : targetLine.endPoint.segments || [];
-                if (segments[segIdx]) {
-                  objectX = segments[segIdx].targetX || 0;
-                  objectY = segments[segIdx].targetY || 0;
-                }
-              } else {
-                objectX =
-                  (isGlobal
-                    ? targetLine.globalTargetX
-                    : targetLine.endPoint.targetX) || 0;
-                objectY =
-                  (isGlobal
-                    ? targetLine.globalTargetY
-                    : targetLine.endPoint.targetY) || 0;
-              }
-            }
-          } else if (currentElem.startsWith("point-")) {
-            const line = Number(currentElem.split("-")[1]) - 1;
-            const point = Number(currentElem.split("-")[2]);
-            if (line === -1) {
-              objectX = startPoint.x;
-              objectY = startPoint.y;
-            } else if (lines[line]) {
-              if (point === 0 && lines[line]?.endPoint) {
-                objectX = lines[line].endPoint.x;
-                objectY = lines[line].endPoint.y;
-              } else if (lines[line]?.controlPoints?.[point - 1]) {
-                objectX = lines[line].controlPoints[point - 1].x;
-                objectY = lines[line].controlPoints[point - 1].y;
-              }
-            }
-          } else if (currentElem.startsWith("event-")) {
-            const parts = currentElem.split("-");
-            const lIdx = Number(parts[1]);
-            const eIdx = Number(parts[2]);
-            const ev = lines[lIdx]?.eventMarkers?.[eIdx];
-            if (ev) {
-              if (ev.type === "pose") {
-                objectX = ev.poseX ?? 0;
-                objectY = ev.poseY ?? 0;
-              } else {
-                // For parametric/temporal, we could calculate the path position,
-                // but for now let's just use mouse position as object start
-                // if we don't want to do complex path math here.
-                // However, the user wants "initial + change relative".
-                // Let's approximate.
-                objectX = mouseX;
-                objectY = mouseY;
-              }
-            }
-          } else if (currentElem.startsWith("wait-event-")) {
-            const parts = currentElem.split("-");
-            const waitId = parts[2];
-            const eIdx = Number(parts[3]);
-            const waitItem = sequence.find(
-              (s) => s.kind === "wait" && (s as any).id === waitId,
-            );
-            const ev = (waitItem as any)?.eventMarkers?.[eIdx];
-            if (ev?.type === "pose") {
-              objectX = ev.poseX ?? 0;
-              objectY = ev.poseY ?? 0;
-            } else {
-              objectX = mouseX;
-              objectY = mouseY;
-            }
-          } else if (currentElem.startsWith("rotate-event-")) {
-            const parts = currentElem.split("-");
-            const rotateId = parts[2];
-            const eIdx = Number(parts[3]);
-            const rotateItem = sequence.find(
-              (s) => s.kind === "rotate" && (s as any).id === rotateId,
-            );
-            const ev = (rotateItem as any)?.eventMarkers?.[eIdx];
-            if (ev?.type === "pose") {
-              objectX = ev.poseX ?? 0;
-              objectY = ev.poseY ?? 0;
-            } else {
-              objectX = mouseX;
-              objectY = mouseY;
-            }
           }
+
+          const rectForMouse = two!.renderer.domElement.getBoundingClientRect();
+          const transformedForMouse = getTransformedCoordinates(
+            evt.clientX,
+            evt.clientY,
+            rectForMouse,
+            settings.fieldRotation || 0,
+          );
+          const mouseX = x.invert(transformedForMouse.x);
+          const mouseY = y.invert(transformedForMouse.y);
           multiDragOffsets.clear();
           const currentIds = $multiSelectedPointIds;
 
@@ -2540,11 +2435,6 @@
       if (isDiffMode) return []; // Don't render standard path in diff mode
       const currentSelectedId = $selectedLineId;
 
-      // Use timeline events to find all lines (including bridge & macros)
-      // Extract unique lines from timeline events of type 'travel'
-      let renderLines: Line[] = [];
-      let lineStartPoints = new Map<string, Point>(); // lineId -> startPoint
-
       // Start with standard lines for the basic "lines" array.
       // To include macro/bridge lines, iterate timeline travel events directly when available.
       if (effectiveTimePrediction?.timeline) {
@@ -2571,7 +2461,7 @@
             [line],
             start,
             (l) => l.color || "#60a5fa",
-            (l) => width,
+            () => width,
             `timeline-path-${idx}`,
             ctx,
             isMainLine,
@@ -2627,7 +2517,7 @@
           if (isSame) return "#3b82f6"; // Blue
           return "#22c55e"; // Green
         },
-        (l) => uiLength(LINE_WIDTH), // No selection highlight in diff mode? Or maybe yes.
+        () => uiLength(LINE_WIDTH), // No selection highlight in diff mode? Or maybe yes.
         "diff-new",
         ctx,
         false,

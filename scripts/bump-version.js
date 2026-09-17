@@ -158,4 +158,4 @@ async function bumpVersion() {
   }
 }
 
-bumpVersion();
+await bumpVersion();

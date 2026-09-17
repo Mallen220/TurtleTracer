@@ -13,13 +13,9 @@
   } from "../icons/index";
   import { fade, fly } from "svelte/transition";
   import { resetSettings } from "../../../utils/settingsPersistence";
-  import {
-    AVAILABLE_FIELD_MAPS,
-    DEFAULT_SETTINGS,
-  } from "../../../config/defaults";
+  import { DEFAULT_SETTINGS } from "../../../config/defaults";
   import type { Settings } from "../../../types/index";
   import { settingsActiveTab } from "../../../stores";
-  import { SIDEBAR_ITEMS } from "../../../config/sidebarItems";
   import { isBrowser } from "../../../utils/platform";
   import * as ICONS from "../icons";
   import GeneralSettingsTab from "../settings/tabs/GeneralSettingsTab.svelte";
@@ -212,51 +208,6 @@
       searchQuery = "";
     }
   });
-  let availableMaps = $derived([
-    ...AVAILABLE_FIELD_MAPS,
-    ...(settings.customMaps || []).map((m) => ({
-      value: m.id,
-      label: m.name || "Custom Field",
-    })),
-  ]);
-  // ==== Sidebar Settings State ====
-
-  let activeSidebarList = $derived(
-    (() => {
-      const ids = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
-      return ids.map((id) => {
-        let item: any = SIDEBAR_ITEMS.find((i) => i.id === id);
-        const isCustom = !item && settings.customSidebarItems;
-        if (isCustom && settings.customSidebarItems) {
-          item = settings.customSidebarItems.find((i) => i.id === id);
-        }
-        return {
-          id,
-          label: item?.label ?? id,
-          icon: item?.iconSvg ?? "",
-          iconComponent: item?.iconComponent,
-          isCustom: !!isCustom,
-        };
-      });
-    })(),
-  );
-  // Native drag-and-drop reordering
-
-  let unusedAvailableTools = $derived(
-    (() => {
-      const active = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
-      const builtIn = SIDEBAR_ITEMS.filter(
-        (i) =>
-          i.type !== "separator" &&
-          i.type !== "spacer" &&
-          !active.includes(i.id),
-      );
-      const custom = (settings.customSidebarItems || []).filter(
-        (i) => !active.includes(i.id),
-      );
-      return [...builtIn, ...custom];
-    })(),
-  );
 
   // Custom Item Form State
 

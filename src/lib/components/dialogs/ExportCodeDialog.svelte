@@ -120,7 +120,6 @@
 
   async function refreshCode() {
     try {
-      const codeUnits = $settingsStore?.codeUnits || "imperial";
       const packageName = $settingsStore?.javaPackageName || DEFAULT_PACKAGE;
       const targetLibrary =
         $settingsStore?.autoExportTargetLibrary || "SolversLib";
@@ -416,6 +415,7 @@
 </script>
 
 <svelte:head>
+  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
   {@html codeStyle}
 </svelte:head>
 

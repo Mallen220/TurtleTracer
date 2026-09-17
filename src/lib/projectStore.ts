@@ -22,6 +22,7 @@ import { notification } from "../stores";
 import { hookRegistry } from "./registries";
 import { actionRegistry } from "./actionRegistry";
 import { currentDirectoryStore, currentFilePath } from "../stores";
+import { getElectronAPI } from "../utils/platform";
 
 export function normalizeLines(input: Line[]): Line[] {
   return (input || []).map((line) => ({
@@ -43,13 +44,6 @@ export function normalizeLines(input: Line[]): Line[] {
     waitBeforeName: line.waitBeforeName ?? line.waitBefore?.name ?? "",
     waitAfterName: line.waitAfterName ?? line.waitAfter?.name ?? "",
   }));
-}
-
-function getElectronAPI() {
-  const globalAny = globalThis as any;
-  if (globalAny.electronAPI) return globalAny.electronAPI;
-  if (globalAny.window?.electronAPI) return globalAny.window.electronAPI;
-  return undefined;
 }
 
 // Helper: sanitize sequence to remove references to non-existent lines and append any missing lines
@@ -323,14 +317,12 @@ export async function loadMacro(filePath: string, force = false) {
         if (data.sequence?.length > 0) {
           for (const item of data.sequence) {
             if (actionRegistry.get(item.kind)?.isMacro) {
-              if (api?.resolvePath) {
+              const resolvePath = api.resolvePath;
+              if (resolvePath) {
                 // Resolve potential relative paths against the current macro file path
                 promises.push(
                   (async () => {
-                    const resolved = await api.resolvePath(
-                      filePath,
-                      item.filePath,
-                    );
+                    const resolved = await resolvePath(filePath, item.filePath);
                     // Update the sequence item to use the absolute path for this session
                     item.filePath = resolved;
                     await loadMacro(resolved);
@@ -421,11 +413,12 @@ export async function loadProjectData(data: any, projectFilePath?: string) {
   const promises: Promise<void>[] = [];
   for (const item of sanitized) {
     if (item.kind === "macro") {
-      if (projectFilePath && api?.resolvePath) {
+      const resolvePath = api?.resolvePath;
+      if (projectFilePath && resolvePath) {
         promises.push(
           (async () => {
             try {
-              const resolved = await api.resolvePath(
+              const resolved = await resolvePath(
                 projectFilePath,
                 item.filePath,
               );
@@ -500,6 +493,8 @@ export async function updateAllMacroReferences(
   if (!api?.writeFile || !api?.listFiles || !api?.readFile)
     return { totalUpdated: 0, mainSequenceChanged: false };
 
+  const electron = api;
+
   let totalUpdated = 0;
   const errors: string[] = [];
   const processedFiles = new Set<string>();
@@ -557,20 +552,19 @@ export async function updateAllMacroReferences(
     // Build a new sequence with updated paths.
     // Paths coming from disk are relative; resolve them to absolute before comparison,
     // then re-relativize the updated path before writing back out.
+    const resolvePath = electron.resolvePath;
+    const makeRelativePath = electron.makeRelativePath;
     const newSeq = await Promise.all(
       data.sequence.map(async (item) => {
         if (item.kind !== "macro") return item;
 
         // Resolve relative → absolute so getUpdatedPath works correctly.
         let absoluteItemPath = item.filePath;
-        if (!dataHasAbsolutePaths && api?.resolvePath) {
+        if (!dataHasAbsolutePaths && resolvePath) {
           try {
-            absoluteItemPath = await api.resolvePath(
-              actualFilePath,
-              item.filePath,
-            );
+            absoluteItemPath = await resolvePath(actualFilePath, item.filePath);
           } catch {
-            // Leave as-is if resolution fails; getUpdatedPath will simply not match.
+            absoluteItemPath = item.filePath;
           }
         }
 
@@ -581,14 +575,11 @@ export async function updateAllMacroReferences(
         );
         if (!updatedAbsPath) return item;
 
-        // Re-relativize for on-disk storage (mirrors what performSave / makeRelativePath does).
+        // If the data came from disk, re-relativize the path before saving
         let diskPath = updatedAbsPath;
-        if (!dataHasAbsolutePaths && api?.makeRelativePath) {
+        if (!dataHasAbsolutePaths && makeRelativePath) {
           try {
-            diskPath = await api.makeRelativePath(
-              actualFilePath,
-              updatedAbsPath,
-            );
+            diskPath = await makeRelativePath(actualFilePath, updatedAbsPath);
           } catch {
             diskPath = updatedAbsPath;
           }
@@ -613,13 +604,13 @@ export async function updateAllMacroReferences(
     const currentMacros = get(macrosStore);
     if (currentMacros.has(originalFilePath)) {
       macrosStoreChanged = true;
-      if (!dataHasAbsolutePaths && api?.resolvePath) {
+      if (!dataHasAbsolutePaths && resolvePath) {
         // Build an absolute-path version of the updated sequence for macrosStore.
         const absoluteSeq = await Promise.all(
           newSeq.map(async (item) => {
             if (item.kind !== "macro") return item;
             try {
-              const abs = await api.resolvePath(actualFilePath, item.filePath);
+              const abs = await resolvePath(actualFilePath, item.filePath);
               return { ...item, filePath: abs };
             } catch {
               return item;
@@ -638,7 +629,7 @@ export async function updateAllMacroReferences(
     // Write the updated file to disk (relative paths for disk-sourced data).
     try {
       const content = JSON.stringify(updatedData, null, 2);
-      await api.writeFile(actualFilePath, content);
+      await electron.writeFile(actualFilePath, content);
     } catch (e) {
       console.error(
         `Failed to save updated macro reference to ${actualFilePath}`,
@@ -661,11 +652,11 @@ export async function updateAllMacroReferences(
   //    Files on disk store macro paths as RELATIVE strings — processFileData resolves them
   //    to absolute before comparing and re-relativizes before writing back.
   const baseDirectory =
-    (await api.getSavedDirectory?.()) || get(currentDirectoryStore);
+    (await electron.getSavedDirectory?.()) || get(currentDirectoryStore);
   if (baseDirectory) {
     async function scanDirectory(dir: string) {
       try {
-        const files = await api.listFiles(dir);
+        const files = await electron.listFiles(dir);
         for (const f of files) {
           if (f.isDirectory && f.name !== "..") {
             await scanDirectory(f.path);
@@ -675,7 +666,7 @@ export async function updateAllMacroReferences(
             (f.name.endsWith(".turt") || f.name.endsWith(".pp"))
           ) {
             try {
-              const content = await api.readFile(f.path);
+              const content = await electron.readFile(f.path);
               const data = JSON.parse(content);
               // dataHasAbsolutePaths = false because this came fresh from disk
               await processFileData(f.path, f.path, data, false);
@@ -687,11 +678,8 @@ export async function updateAllMacroReferences(
             }
           }
         }
-      } catch (err) {
-        console.error(
-          `Failed to scan directory for macro updates: ${dir}`,
-          err,
-        );
+      } catch (e) {
+        console.error(`Failed to scan directory for macros: ${dir}`, e);
       }
     }
     await scanDirectory(baseDirectory);
