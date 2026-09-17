@@ -115,6 +115,50 @@ describe("Global Stores", () => {
     });
   });
 
+  describe("Consolidated Dialog & Selection Helpers", () => {
+    it("isAnyDialogOpen tracks active dialogs accurately", () => {
+      stores.closeAllDialogs();
+      expect(get(stores.isAnyDialogOpen)).toBe(false);
+
+      stores.showSettings.set(true);
+      expect(get(stores.isAnyDialogOpen)).toBe(true);
+
+      stores.showSettings.set(false);
+      expect(get(stores.isAnyDialogOpen)).toBe(false);
+
+      stores.exportDialogState.set({ isOpen: true, format: "java" });
+      expect(get(stores.isAnyDialogOpen)).toBe(true);
+
+      stores.closeAllDialogs();
+      expect(get(stores.isAnyDialogOpen)).toBe(false);
+    });
+
+    it("closeAllDialogs dismisses open dialogs and returns true, or false if none open", () => {
+      stores.closeAllDialogs();
+      expect(stores.closeAllDialogs()).toBe(false);
+
+      stores.showFileManager.set(true);
+      stores.showPluginManager.set(true);
+      expect(stores.closeAllDialogs()).toBe(true);
+      expect(get(stores.showFileManager)).toBe(false);
+      expect(get(stores.showPluginManager)).toBe(false);
+    });
+
+    it("clearAllSelections deselects points and lines simultaneously", () => {
+      stores.selectedPointId.set("point-1-0");
+      stores.multiSelectedPointIds.set(["point-1-0", "point-1-1"]);
+      stores.selectedLineId.set("line-1");
+      stores.multiSelectedLineIds.set(["line-1", "line-2"]);
+
+      stores.clearAllSelections();
+
+      expect(get(stores.selectedPointId)).toBeNull();
+      expect(get(stores.multiSelectedPointIds)).toEqual([]);
+      expect(get(stores.selectedLineId)).toBeNull();
+      expect(get(stores.multiSelectedLineIds)).toEqual([]);
+    });
+  });
+
   describe("Fallback block", () => {
     it("should assign showUpdateAvailableDialog to window if window is defined", async () => {
       vi.stubGlobal("window", {});

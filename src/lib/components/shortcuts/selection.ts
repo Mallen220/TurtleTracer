@@ -528,3 +528,40 @@ export function cycleSequenceSelection(dir: number, controlTabRef: any) {
 
   syncSelectionToUI(controlTabRef);
 }
+
+export function selectAll(): void {
+  if (
+    document.activeElement &&
+    ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)
+  ) {
+    return;
+  }
+
+  const lines = get(linesStore);
+  if (lines.length === 0) return;
+
+  const allLineIds = lines.map((l) => l.id as string).filter(Boolean);
+  const allPointIds: string[] = [];
+
+  lines.forEach((l, i) => {
+    const lineNum = i + 1;
+    if (i === 0) {
+      allPointIds.push("point-0-0");
+    }
+    const numPoints = 1 + (l.controlPoints ? l.controlPoints.length : 0);
+    for (let pIdx = 0; pIdx < numPoints; pIdx++) {
+      allPointIds.push(`point-${lineNum}-${pIdx}`);
+    }
+  });
+
+  multiSelectedLineIds.set(allLineIds);
+  multiSelectedPointIds.set(allPointIds);
+
+  const lastLine = lines[lines.length - 1];
+  if (lastLine) {
+    const numPoints =
+      1 + (lastLine.controlPoints ? lastLine.controlPoints.length : 0);
+    selectedLineId.set(lastLine.id || null);
+    selectedPointId.set(`point-${lines.length}-${numPoints - 1}`);
+  }
+}

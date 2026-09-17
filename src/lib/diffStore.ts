@@ -18,6 +18,7 @@ import type {
   EventMarker,
 } from "../types/index";
 import { calculatePathTime } from "../utils";
+import { getElectronAPI } from "../utils/platform";
 import isEqual from "lodash/isEqual";
 
 export interface ProjectData {
@@ -78,7 +79,7 @@ export async function toggleDiff() {
       return;
     }
 
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (!api?.gitShow) {
       console.warn("Git integration not available");
       return;
