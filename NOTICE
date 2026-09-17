@@ -576,3 +576,7 @@ src/lib/components/shortcuts/shortcutActions.ts
 src/lib/components/renderer/FieldInteractionController.test.ts
 src/lib/components/renderer/FieldInteractionController.ts
 src/lib/macroReferenceUpdater.ts
+.eslintrc.cjs
+src/lib/components/renderer/GeneratorUtils.ts
+src/utils/drivetrain/velocity.ts
+src/utils/geometry.ts

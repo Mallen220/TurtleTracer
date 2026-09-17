@@ -25,8 +25,7 @@ export function calculateDrivetrainSpeeds(
     return { frontLeft: 0, backLeft: 0, frontRight: 0, backRight: 0 };
   }
 
-  const totalDuration =
-    timePrediction.timeline[timePrediction.timeline.length - 1].endTime;
+  const totalDuration = timePrediction.timeline.at(-1).endTime;
   const currentSeconds = (percentStore / 100) * totalDuration;
 
   // Time delta for velocity calc

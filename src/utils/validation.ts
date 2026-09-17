@@ -36,7 +36,7 @@ export function validatePath(
   lines.forEach((line, index) => {
     const dx = line.endPoint.x - currentStart.x;
     const dy = line.endPoint.y - currentStart.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const dist = Math.hypot(dx, dy);
 
     // If distance is effectively zero (epsilon check), add a boundary marker
     if (dist < 0.001) {

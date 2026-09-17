@@ -32,7 +32,7 @@ export function interpolateTFromProfile(
 ): number {
   if (!profile || profile.length < 2) return 0;
 
-  const profileEndTime = profile[profile.length - 1];
+  const profileEndTime = profile.at(-1);
   if (relativeTime >= profileEndTime) return 1;
   if (relativeTime <= 0) return 0;
 
@@ -112,7 +112,7 @@ export function getFirstValidControlPoint(
 export function getDistance(p1: Point2D, p2: Point2D) {
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
-  return Math.sqrt(dx * dx + dy * dy);
+  return Math.hypot(dx, dy);
 }
 
 export function getCurvePoint(t: number, points: Point2D[]): Point2D {
@@ -185,7 +185,7 @@ export function splitBezier(
   let currentPoints = points.slice();
 
   left.push(currentPoints[0]);
-  right.push(currentPoints[currentPoints.length - 1]);
+  right.push(currentPoints.at(-1));
 
   for (let i = 0; i < n; i++) {
     const nextPoints: Point2D[] = [];
@@ -194,7 +194,7 @@ export function splitBezier(
     }
     currentPoints = nextPoints;
     left.push(currentPoints[0]);
-    right.push(currentPoints[currentPoints.length - 1]);
+    right.push(currentPoints.at(-1));
   }
 
   right.reverse();
@@ -401,8 +401,7 @@ export function getLineEndHeading(
         break;
       }
     }
-    if (!lastSeg && segments.length > 0)
-      lastSeg = segments[segments.length - 1];
+    if (!lastSeg && segments.length > 0) lastSeg = segments.at(-1);
 
     if (lastSeg) {
       return evaluatePiecewiseSegment(lastSeg, t, line, previousPoint, false);

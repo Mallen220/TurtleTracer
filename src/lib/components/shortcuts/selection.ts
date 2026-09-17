@@ -557,7 +557,7 @@ export function selectAll(): void {
   multiSelectedLineIds.set(allLineIds);
   multiSelectedPointIds.set(allPointIds);
 
-  const lastLine = lines[lines.length - 1];
+  const lastLine = lines.at(-1);
   if (lastLine) {
     const numPoints =
       1 + (lastLine.controlPoints ? lastLine.controlPoints.length : 0);

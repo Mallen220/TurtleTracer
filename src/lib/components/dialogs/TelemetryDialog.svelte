@@ -115,7 +115,7 @@
   }
 
   function generateSummary(points: TelemetryPoint[]) {
-    const duration = points[points.length - 1].time - points[0].time;
+    const duration = points.at(-1).time - points[0].time;
     summary = `Loaded ${points.length} imported points. Duration: ${duration.toFixed(2)}s.`;
     errorMsg = "";
   }

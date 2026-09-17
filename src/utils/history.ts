@@ -43,14 +43,14 @@ export function createHistory(maxSize = 200) {
     canRedoStore.set(redoStack.length > 0);
 
     if (undoStack.length > 1) {
-      undoDescriptionStore.set(undoStack[undoStack.length - 1].description);
+      undoDescriptionStore.set(undoStack.at(-1).description);
     } else {
       undoDescriptionStore.set(null);
     }
 
     // Top of redoStack.
     if (redoStack.length > 0) {
-      redoDescriptionStore.set(redoStack[redoStack.length - 1].description);
+      redoDescriptionStore.set(redoStack.at(-1).description);
     } else {
       redoDescriptionStore.set(null);
     }
@@ -112,7 +112,7 @@ export function createHistory(maxSize = 200) {
   function undo(): AppState | null {
     if (!canUndo()) return null;
     const current = undoStack.pop()!; // current state to redo
-    const prev = undoStack[undoStack.length - 1];
+    const prev = undoStack.at(-1);
     redoStack.push(current);
     lastHash = hash(prev.state);
     updateStores();
@@ -130,7 +130,7 @@ export function createHistory(maxSize = 200) {
 
   function peek(): AppState | null {
     if (undoStack.length === 0) return null;
-    return deepClone(undoStack[undoStack.length - 1].state);
+    return deepClone(undoStack.at(-1).state);
   }
 
   function restore(id: string): AppState | null {
@@ -150,7 +150,7 @@ export function createHistory(maxSize = 200) {
       while (safety-- > 0 && canRedo()) {
         redo();
 
-        if (undoStack[undoStack.length - 1].id === id) break;
+        if (undoStack.at(-1).id === id) break;
       }
       return peek();
     }

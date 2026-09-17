@@ -661,12 +661,12 @@ export function regenerateProjectMacros(
           }
 
           // Update current point to end of last line
-          const lastLine = preservedLines[preservedLines.length - 1];
+          const lastLine = preservedLines.at(-1);
           currentPoint = lastLine.endPoint;
           currentHeading = getLineEndHeading(
             lastLine,
             preservedLines.length > 1
-              ? preservedLines[preservedLines.length - 2].endPoint
+              ? preservedLines.at(-2).endPoint
               : currentPoint,
           );
           if (lastLine.endPoint.heading === "constant")

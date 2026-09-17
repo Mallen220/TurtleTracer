@@ -484,7 +484,7 @@
     if (!targetEvent) {
       if (globalTime < 0 && timeline.length > 0) targetEvent = timeline[0];
       else if (globalTime > timePrediction.totalTime && timeline.length > 0)
-        targetEvent = timeline[timeline.length - 1];
+        targetEvent = timeline.at(-1);
     }
 
     if (!targetEvent) return;

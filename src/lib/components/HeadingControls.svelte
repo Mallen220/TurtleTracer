@@ -115,7 +115,7 @@
   }
 
   function addSegment() {
-    const lastSeg = endPoint.segments[endPoint.segments.length - 1];
+    const lastSeg = endPoint.segments.at(-1);
     const midp = (lastSeg.tStart + lastSeg.tEnd) / 2;
     const originalEnd = lastSeg.tEnd;
     lastSeg.tEnd = midp;

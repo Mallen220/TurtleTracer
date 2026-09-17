@@ -41,8 +41,8 @@ function calculateStartPointHeadings(startPoint: Point, lines: Line[]): Point {
 
   const startHeading = getLineStartHeading(lines[0], startPoint);
   const endHeading = getLineEndHeading(
-    lines[lines.length - 1],
-    lines.length > 1 ? lines[lines.length - 2].endPoint : startPoint,
+    lines.at(-1),
+    lines.length > 1 ? lines.at(-2).endPoint : startPoint,
   );
   // strip out the "degrees" field if it existed so the resulting object conforms
   // to the linear-point variant of the Point union (which forbids degrees).

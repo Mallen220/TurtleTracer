@@ -53,7 +53,7 @@ export const testMenuOffScreenPositioning = async (
 ) => {
   const { rerender } = renderComponent(initialProps);
   const menuNodes = screen.getAllByRole("menu");
-  const menuNode = menuNodes[menuNodes.length - 1]; // get the latest rendered menu
+  const menuNode = menuNodes.at(-1); // get the latest rendered menu
   menuNode.getBoundingClientRect = () =>
     ({
       width: 200,

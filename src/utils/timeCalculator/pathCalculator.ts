@@ -394,7 +394,7 @@ export function calculatePathTime(
       // so the next segment always continues from wherever we truly ended up
       // (which can differ from endHeading when using global chain interpolation).
       if (headingProfile && headingProfile.length > 0) {
-        currentHeading = headingProfile[headingProfile.length - 1];
+        currentHeading = headingProfile.at(-1);
       } else {
         currentHeading = endHeading;
       }

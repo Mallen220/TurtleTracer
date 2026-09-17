@@ -90,7 +90,7 @@ export function splitPathAtPercent(
   ];
   const [leftPoints, rightPoints] = splitBezier(t, curvePoints);
 
-  const splitPoint = leftPoints[leftPoints.length - 1];
+  const splitPoint = leftPoints.at(-1);
 
   // Create Line 1 (The first half)
   const line1: Line = {
@@ -309,7 +309,7 @@ export function generateLinesFromDrawing(
 
   let currentConnectionPt = isFirstLine
     ? { x: simplified[0].x, y: simplified[0].y }
-    : currentLines[currentLines.length - 1].endPoint;
+    : currentLines.at(-1).endPoint;
 
   if (isFirstLine) {
     currentStartPoint = {
@@ -340,9 +340,9 @@ export function generateLinesFromDrawing(
   // Determine if we should maintain tangency from a previous line
   let initialTangent: { dx: number; dy: number } | null = null;
   if (!isFirstLine) {
-    const lastLine = currentLines[currentLines.length - 1];
+    const lastLine = currentLines.at(-1);
     if (lastLine.controlPoints.length > 0) {
-      const lastCp = lastLine.controlPoints[lastLine.controlPoints.length - 1];
+      const lastCp = lastLine.controlPoints.at(-1);
       initialTangent = {
         dx: lastLine.endPoint.x - lastCp.x,
         dy: lastLine.endPoint.y - lastCp.y,
@@ -350,7 +350,7 @@ export function generateLinesFromDrawing(
     } else {
       const pPrev =
         currentLines.length > 1
-          ? currentLines[currentLines.length - 2].endPoint
+          ? currentLines.at(-2).endPoint
           : currentStartPoint;
       initialTangent = {
         dx: lastLine.endPoint.x - pPrev.x,
@@ -436,10 +436,7 @@ export function generateLinesFromDrawing(
     }
 
     // Normalize start tangent
-    let stMag =
-      Math.sqrt(
-        startTangent.dx * startTangent.dx + startTangent.dy * startTangent.dy,
-      ) || 1;
+    let stMag = Math.hypot(startTangent.dx, startTangent.dy) || 1;
     startTangent.dx /= stMag;
     startTangent.dy /= stMag;
 
@@ -451,10 +448,7 @@ export function generateLinesFromDrawing(
     }
 
     // Normalize end tangent
-    let etMag =
-      Math.sqrt(
-        endTangent.dx * endTangent.dx + endTangent.dy * endTangent.dy,
-      ) || 1;
+    let etMag = Math.hypot(endTangent.dx, endTangent.dy) || 1;
     endTangent.dx /= etMag;
     endTangent.dy /= etMag;
 

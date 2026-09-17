@@ -178,13 +178,11 @@ describe("exportAnimation", () => {
           mock: { calls: any[][] };
         };
         expect(mockEncode.mock.calls.length).toBeGreaterThanOrEqual(1);
-        const buffers =
-          mockEncode.mock.calls[mockEncode.mock.calls.length - 1][0];
+        const buffers = mockEncode.mock.calls.at(-1)[0];
         expect(buffers.length).toBe(calculatedFrames);
 
         // Ensure delays sum to total duration in ms
-        const delays =
-          mockEncode.mock.calls[mockEncode.mock.calls.length - 1][4];
+        const delays = mockEncode.mock.calls.at(-1)[4];
         const totalMs = delays.reduce((s: number, v: number) => s + v, 0);
         expect(totalMs).toBe(Math.round(duration * 1000));
       });

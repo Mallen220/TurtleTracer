@@ -194,7 +194,7 @@ describe("Time Calculator Extended", () => {
       // Check profile start/end
       const profile = travelEvent!.headingProfile!;
       expect(profile[0]).toBeCloseTo(0);
-      expect(profile[profile.length - 1]).toBeCloseTo(180);
+      expect(profile.at(-1)).toBeCloseTo(180);
     });
   });
 

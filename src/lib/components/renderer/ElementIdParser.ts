@@ -97,23 +97,23 @@ export function normalizeEventElementId(targetId: string): string {
   const idParts = targetId.split("-");
   if (targetId.startsWith("wait-event-")) {
     if (idParts.length >= 4) {
-      const waitId = idParts[idParts.length - 2];
-      const evIdx = idParts[idParts.length - 1];
+      const waitId = idParts.at(-2);
+      const evIdx = idParts.at(-1);
       return `wait-event-${waitId}-${evIdx}`;
     }
     return targetId;
   }
   if (targetId.startsWith("rotate-event-")) {
     if (idParts.length >= 4) {
-      const rotateId = idParts[idParts.length - 2];
-      const evIdx = idParts[idParts.length - 1];
+      const rotateId = idParts.at(-2);
+      const evIdx = idParts.at(-1);
       return `rotate-event-${rotateId}-${evIdx}`;
     }
     return targetId;
   }
   if (idParts.length >= 3) {
-    const lineIdx = idParts[idParts.length - 2];
-    const evIdx = idParts[idParts.length - 1];
+    const lineIdx = idParts.at(-2);
+    const evIdx = idParts.at(-1);
     return `event-${lineIdx}-${evIdx}`;
   }
   return targetId;

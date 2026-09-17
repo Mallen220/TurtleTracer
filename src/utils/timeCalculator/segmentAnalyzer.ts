@@ -208,7 +208,7 @@ export function analyzePathSegment(
     if (i > 0) {
       const dx = px - prevPointX;
       const dy = py - prevPointY;
-      deltaLength = Math.sqrt(dx * dx + dy * dy);
+      deltaLength = Math.hypot(dx, dy);
       length += deltaLength;
     }
     prevPointX = px;

@@ -23,9 +23,8 @@ function runScenario() {
   console.log("[scenario] selectedLineId:", selectedLineId);
 
   // addControlPoint logic
-  const targetId = selectedLineId || lines[lines.length - 1].id;
-  const targetLine =
-    lines.find((l) => l.id === targetId) || lines[lines.length - 1];
+  const targetId = selectedLineId || lines.at(-1).id;
+  const targetLine = lines.find((l) => l.id === targetId) || lines.at(-1);
   console.log(
     "[addControlPoint] targetId, targetLineId, lineIndex:",
     targetId,

@@ -455,7 +455,7 @@
 
   function addLine() {
     // Inherit heading from the last line, or fall back to tangential
-    const lastLine = lines.length > 0 ? lines[lines.length - 1] : null;
+    const lastLine = lines.length > 0 ? lines.at(-1) : null;
     const endPoint: Point = lastLine
       ? makeNewEndPointFrom(lastLine.endPoint)
       : {

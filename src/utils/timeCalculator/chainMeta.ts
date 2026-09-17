@@ -248,8 +248,7 @@ export function calculateEndHeadingAndRotation(
         break;
       }
     }
-    if (!activeSeg && segments.length > 0)
-      activeSeg = segments[segments.length - 1];
+    if (!activeSeg && segments.length > 0) activeSeg = segments.at(-1);
 
     if (activeSeg) {
       if (activeSeg.heading === "constant") {

@@ -57,11 +57,11 @@ export function continueDrawing(
 
   const inchX = snapDrawingCoordinate(rawX, gridConfig);
   const inchY = snapDrawingCoordinate(rawY, gridConfig);
-  const lastPoint = points[points.length - 1];
+  const lastPoint = points.at(-1);
 
   const dx = inchX - lastPoint.x;
   const dy = inchY - lastPoint.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
+  const dist = Math.hypot(dx, dy);
 
   if (dist >= minDistance) {
     points.push({ x: inchX, y: inchY });

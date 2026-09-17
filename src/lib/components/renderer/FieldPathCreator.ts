@@ -16,9 +16,7 @@ export interface CreatePathAtPointOptions {
 export function createPathAtPoint(options: CreatePathAtPointOptions): Line {
   const { inchX, inchY, existingLines } = options;
   const prevEndPoint =
-    existingLines.length > 0
-      ? existingLines[existingLines.length - 1]?.endPoint
-      : null;
+    existingLines.length > 0 ? existingLines.at(-1)?.endPoint : null;
 
   let endPoint: Point;
   if (!prevEndPoint) {

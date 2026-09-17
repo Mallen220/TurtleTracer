@@ -125,7 +125,7 @@ if (gotTheLock) {
 
       // Check for file arguments in the second instance command line
       // Windows/Linux: The file path is usually the last argument or specifically passed
-      const lastArg = commandLine[commandLine.length - 1];
+      const lastArg = commandLine.at(-1);
       if (isProjectFilePath(lastArg)) {
         handleOpenedFile(lastArg);
       }
@@ -139,7 +139,7 @@ if (gotTheLock) {
   app.on("ready", async () => {
     // Check for file arguments on initial launch (Windows/Linux)
     if (process.platform !== "darwin" && process.argv.length >= 2) {
-      const lastArg = process.argv[process.argv.length - 1];
+      const lastArg = process.argv.at(-1);
       if (isProjectFilePath(lastArg)) {
         pendingFilePath = lastArg;
       }
