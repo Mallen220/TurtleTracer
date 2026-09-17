@@ -17,6 +17,7 @@ module.exports = {
     "build/",
     "playwright-report/",
     "test-results/",
+    "plugins/turtle.d.ts",
   ],
   extends: ["plugin:prettier/recommended"],
   rules: {
