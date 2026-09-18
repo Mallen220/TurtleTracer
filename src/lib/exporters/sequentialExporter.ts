@@ -2,35 +2,32 @@
 import prettier from "prettier";
 import prettierJavaPlugin from "prettier-plugin-java";
 import type { Point, Line, SequenceItem, TurtleData } from "../../types";
-import pkg from "../../../package.json";
 import {
   generateTrackerEventRegistrationCode,
   getUniqueEventMarkerNames,
 } from "./eventMarkerUtils";
 import { actionRegistry } from "../../lib/actionRegistry";
-import {
-  toUser,
-  toUserHeading,
-  type CoordinateSystem,
-} from "../../utils/coordinates";
+import { type CoordinateSystem } from "../../utils/coordinates";
 import {
   DEFAULT_PROJECT_EXTENSION,
   getProjectExtensionFromPath,
   stripProjectExtension,
 } from "../../utils/fileExtensions";
 import { exporterRegistry } from "./index";
-
-const AUTO_GENERATED_FILE_WARNING_MESSAGE: string = `
-/* ============================================================= *
- *                 Turtle Tracer — Auto-Generated                *
- *                                                               *
- *  Version: ${pkg.version}.                                              *
- *  Copyright (c) ${new Date().getFullYear()} Matthew Allen                             *
- *                                                               *
- *  THIS FILE IS AUTO-GENERATED — DO NOT EDIT MANUALLY.          *
- *  Changes will be overwritten when regenerated.                *
- * ============================================================= */
-`;
+import {
+  javaLength,
+  flattenMacros,
+  AUTO_GENERATED_FILE_WARNING_MESSAGE,
+  poseCode,
+  angleCode,
+  headingMethodCode,
+  chainGlobalHeading,
+  groupChains,
+  uniqueNames,
+  identifierFor,
+  type FormatOptions,
+  type HeadingConfig,
+} from "./javaFormat";
 
 export async function generateSequentialCommandCode(
   startPoint: Point,
@@ -43,186 +40,76 @@ export async function generateSequentialCommandCode(
   coordinateSystem: CoordinateSystem = "Pedro",
   codeUnits: "imperial" | "metric" = "imperial",
 ): Promise<string> {
-  // Determine class name from file name or use default
-  let className = "AutoPath";
-  if (fileName) {
-    const baseName = fileName.split(/[\\/]/).pop() || "";
-    className = stripProjectExtension(baseName).replaceAll(
-      /[^a-zA-Z0-9]/g,
-      "_",
-    );
-    if (!className) className = "AutoPath";
-  }
+  const baseName = fileName ? fileName.split(/[\\/]/).pop() || "" : "";
+  const className =
+    stripProjectExtension(baseName).replaceAll(/[^a-zA-Z0-9]/g, "_") ||
+    "AutoPath";
 
-  // Collect all pose names including control points
-  const allPoseDeclarations: string[] = [];
-  const allPoseInitializations: string[] = [];
-
-  // Track declared poses to prevent duplicates
-  const declaredPoses = new Set<string>();
-
-  // Map logic name to variable name
-  const poseVariableNames: Map<string, string> = new Map();
-
-  // Helper to add pose if not exists
-  const addPose = (
-    variableName: string,
-    lookupName: string = variableName,
-    point?: Point,
-    overrideDegrees?: number, // - New parameter
-  ): void => {
-    if (!declaredPoses.has(variableName)) {
-      allPoseDeclarations.push(`    private Pose ${variableName};`);
-
-      if (hardcodeValues && point) {
-        // Use exact values
-        // Use overrideDegrees if provided, otherwise default to 0
-        const degrees =
-          overrideDegrees === undefined
-            ? (point as any).degrees || 0
-            : overrideDegrees;
-
-        if (coordinateSystem === "FTC") {
-          const userPt = toUser(point, "FTC");
-          const userHead = toUserHeading(degrees, "FTC");
-          const px =
-            codeUnits === "metric"
-              ? `cmToInches(${(userPt.x * 2.54).toFixed(3)})`
-              : userPt.x.toFixed(3);
-          const py =
-            codeUnits === "metric"
-              ? `cmToInches(${(userPt.y * 2.54).toFixed(3)})`
-              : userPt.y.toFixed(3);
-          allPoseInitializations.push(
-            `        ${variableName} = buildPose(${px}, ${py}, ${userHead.toFixed(3)});`,
-          );
-        } else {
-          const px =
-            codeUnits === "metric"
-              ? `cmToInches(${(point.x * 2.54).toFixed(3)})`
-              : point.x.toFixed(3);
-          const py =
-            codeUnits === "metric"
-              ? `cmToInches(${(point.y * 2.54).toFixed(3)})`
-              : point.y.toFixed(3);
-          allPoseInitializations.push(
-            `        ${variableName} = p.of(${px}, ${py}, ${degrees});`,
-          );
-        }
-      } else {
-        // Use pp.get
-        allPoseInitializations.push(
-          `        ${variableName} = pp.get("${lookupName}");`,
-        );
-      }
-      declaredPoses.add(variableName);
+  // Every pose becomes a field. With hardcodeValues it's set from the
+  // project's numbers; otherwise it's loaded at runtime with pp.get().
+  const poseDeclarations: string[] = [];
+  const poseInitializations: string[] = [];
+  const declareInitializedPose = (name: string, value: string) => {
+    poseDeclarations.push(`    private Pose ${name};`);
+    poseInitializations.push(`        ${name} = ${value};`);
+  };
+  const declarePose = (name: string, point: Point, degrees: number) => {
+    if (!hardcodeValues) {
+      declareInitializedPose(name, `pp.get("${name}")`);
+    } else if (coordinateSystem === "FTC") {
+      declareInitializedPose(name, poseCode(point, opts, degrees));
+    } else {
+      const { x, y } = point;
+      declareInitializedPose(
+        name,
+        `p.of(${javaLength(x, codeUnits)}, ${javaLength(y, codeUnits)}, ${degrees})`,
+      );
     }
   };
 
-  // Determine start degrees
+  const opts: FormatOptions = { coordinateSystem, codeUnits };
+  const poseName = (idx: number) =>
+    idx < 0 ? "startPoint" : identifierFor(lines[idx].name, `point${idx + 1}`);
+
   let startDegrees = 0;
-  if (startPoint.heading === "constant" && startPoint.degrees !== undefined) {
-    startDegrees = startPoint.degrees;
-  } else if (
-    startPoint.heading === "linear" &&
-    startPoint.startDeg !== undefined
-  ) {
-    startDegrees = startPoint.startDeg;
-  }
+  if (startPoint.heading === "constant") startDegrees = startPoint.degrees ?? 0;
+  else if (startPoint.heading === "linear")
+    startDegrees = startPoint.startDeg ?? 0;
+  declarePose("startPoint", startPoint, startDegrees);
 
-  // Add start point
-  addPose("startPoint", "startPoint", startPoint, startDegrees);
-  poseVariableNames.set("startPoint", "startPoint");
-
-  // Track used path chain names to handle duplicates
-  const usedPathChainNames = new Map<string, number>();
-  const pathChainVariables: string[] = []; // Stores the variable name for each line index
-
-  // Process each line
+  const declared = new Set(["startPoint"]);
   lines.forEach((line, lineIdx) => {
-    const endPointName = line.name
-      ? line.name.replaceAll(/[^a-zA-Z0-9]/g, "")
-      : `point${lineIdx + 1}`;
-
-    // Determine end degrees
+    const name = poseName(lineIdx);
+    const end = line.endPoint;
     let endDegrees = 0;
-    if (
-      line.endPoint.heading === "constant" &&
-      line.endPoint.degrees !== undefined
-    ) {
-      endDegrees = line.endPoint.degrees;
-    } else if (
-      line.endPoint.heading === "linear" &&
-      line.endPoint.endDeg !== undefined
-    ) {
-      endDegrees = line.endPoint.endDeg;
+    if (end.heading === "constant") endDegrees = end.degrees ?? 0;
+    else if (end.heading === "linear") endDegrees = end.endDeg ?? 0;
+
+    // Lines with the same name share one pose.
+    if (!declared.has(name)) {
+      declared.add(name);
+      declarePose(name, end, endDegrees);
     }
 
-    // Add end point declaration (shared poses)
-    // Note: line.endPoint includes degrees from BasePoint
-    addPose(endPointName, endPointName, line.endPoint, endDegrees);
-    poseVariableNames.set(`point${lineIdx + 1}`, endPointName);
-
-    if (line.controlPoints && line.controlPoints.length > 0) {
-      line.controlPoints.forEach((cp, controlIdx) => {
-        const controlPointName = `${endPointName}_control${controlIdx + 1}`;
-        const uniqueControlVar = `${endPointName}_line${lineIdx}_control${controlIdx + 1}`;
-
-        allPoseDeclarations.push(`    private Pose ${uniqueControlVar};`);
-
-        if (hardcodeValues) {
-          allPoseInitializations.push(
-            `        ${uniqueControlVar} = p.of(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)}, 0.0);`,
-          );
-        } else {
-          allPoseInitializations.push(
-            `        ${uniqueControlVar} = pp.get(\"${controlPointName}\");`,
-          );
-        }
-
-        // Store for use in path building
-        // Key: identifying the control point for this specific line/index
-        poseVariableNames.set(
-          `${lineIdx}_control${controlIdx}`, // Use line index to disambiguate
-          uniqueControlVar,
-        );
-      });
-    }
+    line.controlPoints.forEach((cp, i) => {
+      declareInitializedPose(
+        `${name}_line${lineIdx}_control${i + 1}`,
+        hardcodeValues
+          ? `p.of(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)}, 0.0)`
+          : `pp.get("${name}_control${i + 1}")`,
+      );
+    });
   });
 
-  // Generate path chain declarations
+  // Paths are named after their start and end poses, e.g. startPointTOShoot.
+  const pathChainVariables = uniqueNames(
+    lines.map((_, idx) => `${poseName(idx - 1)}TO${poseName(idx)}`),
+  );
+  // A chained line is part of the path before it, so it has no variable.
   const pathChainDeclarations = lines
-    .map((line, idx) => {
-      const startPoseName =
-        idx === 0
-          ? "startPoint"
-          : lines[idx - 1]?.name
-            ? lines[idx - 1]!.name!.replaceAll(/[^a-zA-Z0-9]/g, "")
-            : `point${idx}`;
-      const endPoseName = lines[idx].name
-        ? lines[idx].name.replaceAll(/[^a-zA-Z0-9]/g, "")
-        : `point${idx + 1}`;
-
-      let pathName = `${startPoseName}TO${endPoseName}`;
-
-      // Handle duplicates
-      if (usedPathChainNames.has(pathName)) {
-        const count = usedPathChainNames.get(pathName)!;
-        usedPathChainNames.set(pathName, count + 1);
-        pathName = `${pathName}_${count}`;
-      } else {
-        usedPathChainNames.set(pathName, 1);
-      }
-
-      pathChainVariables.push(pathName);
-
-      // If this line is chained to the previous, it does not get its own PathChain variable
-      if (line.isChain) {
-        return "";
-      }
-
-      return `    private Path ${pathName};`;
-    })
+    .map((line, idx) =>
+      line.isChain ? "" : `    private Path ${pathChainVariables[idx]};`,
+    )
     .filter(Boolean)
     .join("\n");
 
@@ -241,21 +128,7 @@ export async function generateSequentialCommandCode(
     lineId: ln.id || `line-${idx + 1}`,
   }));
 
-  const flattenSequence = (seq: SequenceItem[]): SequenceItem[] => {
-    const result: SequenceItem[] = [];
-    seq.forEach((item) => {
-      if (item.kind === "macro") {
-        if (item.sequence && item.sequence.length > 0) {
-          result.push(...flattenSequence(item.sequence));
-        }
-      } else {
-        result.push(item);
-      }
-    });
-    return result;
-  };
-
-  const seq = flattenSequence(sequence?.length ? sequence : defaultSequence);
+  const seq = flattenMacros(sequence?.length ? sequence : defaultSequence);
 
   seq.forEach((item) => {
     // Registry Check
@@ -290,242 +163,67 @@ export async function generateSequentialCommandCode(
     commands.push(`                ${followPathInstance}`);
   });
 
-  // Generate path building
+  // Interpolator arguments for a path between two pose variables. Unless
+  // values are hardcoded, headings that weren't set explicitly are read
+  // from the poses loaded at runtime.
+  const interpolatorArgsFor =
+    (startPose: string, endPose: string) =>
+    (h: HeadingConfig): string => {
+      switch (h.heading) {
+        case "constant":
+          return hardcodeValues || h.degrees !== undefined
+            ? angleCode(h.degrees || 0, opts)
+            : `${endPose}.heading()`;
+        case "linear":
+          return hardcodeValues ||
+            (h.startDeg !== undefined && h.endDeg !== undefined)
+            ? `${angleCode(h.startDeg || 0, opts)}, ${angleCode(h.endDeg || 0, opts)}`
+            : `${startPose}.heading(), ${endPose}.heading()`;
+        case "facingPoint":
+          return poseCode({ x: h.targetX || 0, y: h.targetY || 0 }, opts);
+        default:
+          return "";
+      }
+    };
+
   const pathData = lines.map((line, idx) => {
-    const startPoseVar =
-      idx === 0 ? "startPoint" : poseVariableNames.get(`point${idx}`);
-    // Fallback if something is wrong, though logic aligns with declaration loop
-    const actualStartPose = startPoseVar || "startPoint";
+    const startPose = poseName(idx - 1);
+    const endPose = poseName(idx);
+    const args = interpolatorArgsFor(startPose, endPose);
 
-    const endPoseName = line.name
-      ? line.name.replaceAll(/[^a-zA-Z0-9]/g, "")
-      : `point${idx + 1}`;
+    const controlPoints = line.controlPoints.map(
+      (cp) => `p.of(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)}, 0.0)`,
+    );
+    const call = controlPoints.length
+      ? `curve(${startPose}, ${controlPoints.join(", ")}, ${endPose})`
+      : `line(${startPose}, ${endPose})`;
 
-    const endPoseVar = endPoseName;
-
-    const pathName = pathChainVariables[idx];
-
-    const isCurve = line.controlPoints && line.controlPoints.length > 0;
-
-    // Build control points string (instantiate inline as new Pose(x, y))
-    let controlPointsStr = "";
-    if (isCurve) {
-      const controlPoints: string[] = [];
-      line.controlPoints.forEach((cp) => {
-        controlPoints.push(`p.of(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)}, 0.0)`);
-      });
-      controlPointsStr = controlPoints.join(", ") + ", ";
-    }
-
-    const pathCall = isCurve
-      ? `curve(${actualStartPose}, ${controlPointsStr}${endPoseVar})`
-      : `line(${actualStartPose}, ${endPoseVar})`;
-
-    // Helper to generate an Interpolator string representation (e.g. "Interpolator.tangent")
-    const generateInterpolatorString = (
-      pointDef: any,
-      startPoseVarInner: string,
-      endPoseVarInner: string,
-    ) => {
-      let config = "";
-      if (coordinateSystem === "FTC") {
-        if (pointDef.heading === "constant") {
-          if (hardcodeValues || pointDef.degrees !== undefined)
-            config = `Math.toRadians(${toUserHeading(pointDef.degrees || 0, "FTC").toFixed(3)})`;
-          else config = `${endPoseVarInner}.heading()`;
-        } else if (pointDef.heading === "linear") {
-          if (
-            hardcodeValues ||
-            (pointDef.startDeg !== undefined && pointDef.endDeg !== undefined)
-          )
-            config = `Math.toRadians(${toUserHeading(pointDef.startDeg || 0, "FTC").toFixed(3)}), Math.toRadians(${toUserHeading(pointDef.endDeg || 0, "FTC").toFixed(3)})`;
-          else
-            config = `${startPoseVarInner}.heading(), ${endPoseVarInner}.heading()`;
-        } else if (pointDef.heading === "facingPoint") {
-          const uTarget = toUser(
-            { x: pointDef.targetX || 0, y: pointDef.targetY || 0 },
-            "FTC",
-          );
-          config = `p.of(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)}, 0.0)`;
-        }
-      } else if (pointDef.heading === "constant") {
-        if (hardcodeValues || pointDef.degrees !== undefined)
-          config = `Math.toRadians(${pointDef.degrees || 0})`;
-        else config = `${endPoseVarInner}.heading()`;
-      } else if (pointDef.heading === "linear") {
-        if (
-          hardcodeValues ||
-          (pointDef.startDeg !== undefined && pointDef.endDeg !== undefined)
-        )
-          config = `Math.toRadians(${pointDef.startDeg || 0}), Math.toRadians(${pointDef.endDeg || 0})`;
-        else
-          config = `${startPoseVarInner}.heading(), ${endPoseVarInner}.heading()`;
-      } else if (pointDef.heading === "facingPoint") {
-        const targetX = pointDef.targetX || 0;
-        const targetY = pointDef.targetY || 0;
-        const hx =
-          codeUnits === "metric"
-            ? `cmToInches(${(targetX * 2.54).toFixed(3)})`
-            : targetX.toFixed(3);
-        const hy =
-          codeUnits === "metric"
-            ? `cmToInches(${(targetY * 2.54).toFixed(3)})`
-            : targetY.toFixed(3);
-        config = `p.of(${hx}, ${hy}, 0.0)`;
-      }
-
-      let baseName = "";
-      if (pointDef.heading === "constant") {
-        baseName = `Interpolator.constant(${config})`;
-      } else if (pointDef.heading === "linear") {
-        baseName = `Interpolator.linear(${config})`;
-      } else if (pointDef.heading === "tangential") {
-        baseName = `Interpolator.tangent`;
-      } else if (pointDef.heading === "facingPoint") {
-        baseName = `Interpolator.facingPoint(${config})`;
-      }
-
-      if (pointDef.reverse) {
-        if (pointDef.heading === "tangential")
-          return "Interpolator.tangent.reverse()";
-        if (pointDef.heading === "linear")
-          return `Interpolator.linear(${config}).reverse()`;
-        if (pointDef.heading === "constant")
-          return `Interpolator.constant(${config}).reverse()`;
-        if (pointDef.heading === "facingPoint")
-          return `Interpolator.facingPoint(${config}).reverse()`;
-      }
-      return baseName;
-    };
-
-    let headingMethodCode = "";
-    let globalHeadingCode = "";
-
-    const constructHeadingMethod = (targetConfig: any) => {
-      if (targetConfig.heading === "piecewise") {
-        const segmentsStr = (targetConfig.segments || [])
-          .map((seg: any) => {
-            const interpStr = generateInterpolatorString(
-              seg,
-              actualStartPose,
-              endPoseVar,
-            );
-            return `.until(${seg.tEnd}, ${interpStr})`;
-          })
-          .join("\n            ");
-        if (targetConfig.reverse) {
-          return `.heading(Interpolator.piecewise()\n            ${segmentsStr}\n            .reverse())`;
-        }
-        return `.heading(Interpolator.piecewise()\n            ${segmentsStr}\n        )`;
-      }
-
-      let hConfig = generateInterpolatorString(
-        targetConfig,
-        actualStartPose,
-        endPoseVar,
-      );
-      let args = "";
-      if (hConfig.includes("(") && !hConfig.endsWith(".reverse()")) {
-        args = hConfig.slice(
-          hConfig.indexOf("(") + 1,
-          hConfig.lastIndexOf(")"),
-        );
-      }
-
-      if (targetConfig.reverse) {
-        if (targetConfig.heading === "constant") {
-          return `.heading(${hConfig})`;
-        } else if (targetConfig.heading === "linear") {
-          return `.heading(${hConfig})`;
-        } else if (targetConfig.heading === "tangential") {
-          return `.reverseTangent()`;
-        } else if (targetConfig.heading === "facingPoint") {
-          return `.heading(${hConfig})`;
-        }
-      } else if (targetConfig.heading === "constant") {
-        return `.constant(${args})`;
-      } else if (targetConfig.heading === "linear") {
-        return `.linear(${args})`;
-      } else if (targetConfig.heading === "tangential") {
-        return `.tangent()`;
-      } else if (targetConfig.heading === "facingPoint") {
-        return `.facingPoint(${args})`;
-      }
-      return "";
-    };
-
-    let hasGlobalHeading = false;
-
-    let tempIdx = idx;
-    let rootLine = line;
-    while (rootLine.isChain && tempIdx > 0) {
-      tempIdx--;
-      rootLine = lines[tempIdx];
-    }
-    if (rootLine.globalHeading && rootLine.globalHeading !== ("none" as any)) {
-      hasGlobalHeading = true;
-      if (!line.isChain) {
-        const globalConfig = {
-          heading: rootLine.globalHeading,
-          reverse: rootLine.globalReverse,
-          degrees: rootLine.globalDegrees,
-          startDeg: rootLine.globalStartDeg,
-          endDeg: rootLine.globalEndDeg,
-          targetX: rootLine.globalTargetX,
-          targetY: rootLine.globalTargetY,
-          segments: rootLine.globalSegments,
-        };
-        globalHeadingCode = `\n            ${constructHeadingMethod(globalConfig)}`;
-      }
-    }
-
-    if (!hasGlobalHeading) {
-      headingMethodCode = constructHeadingMethod(line.endPoint);
-    }
-
+    const global = chainGlobalHeading(lines, idx);
     return {
-      line,
-      pathName,
-      pathCall,
-      headingMethodCode,
-      globalHeadingCode,
+      name: pathChainVariables[idx],
+      call,
+      heading: global ? "" : headingMethodCode(line.endPoint, args),
+      chainHeading:
+        global && !line.isChain
+          ? `\n            ${headingMethodCode(global, args)}`
+          : "",
     };
   });
 
-  const pathBuildersArr: string[] = [];
-  let i = 0;
-  while (i < pathData.length) {
-    const rootPd = pathData[i];
-    const chainMembers = [rootPd];
-    let j = i + 1;
-    while (j < pathData.length && pathData[j].line.isChain) {
-      chainMembers.push(pathData[j]);
-      j++;
-    }
-
-    if (chainMembers.length === 1) {
-      const headingStr = rootPd.headingMethodCode
-        ? `\n            ${rootPd.headingMethodCode}`
-        : "";
-      pathBuildersArr.push(
-        `        ${rootPd.pathName} = ${rootPd.pathCall}${headingStr};`,
-      );
-    } else {
-      const childCalls = chainMembers.map((m) => {
-        const headingStr = m.headingMethodCode
-          ? `\n                ${m.headingMethodCode}`
-          : "";
-        return `            ${m.pathCall}${headingStr}`;
+  const pathBuilders = groupChains(lines, pathData)
+    .map((members) => {
+      const root = members[0];
+      if (members.length === 1) {
+        const heading = root.heading ? `\n            ${root.heading}` : "";
+        return `        ${root.name} = ${root.call}${heading};`;
+      }
+      const calls = members.map((m) => {
+        const heading = m.heading ? `\n                ${m.heading}` : "";
+        return `            ${m.call}${heading}`;
       });
-      pathBuildersArr.push(
-        `        ${rootPd.pathName} = path(\n${childCalls.join(",\n")}\n        )${rootPd.globalHeadingCode};`,
-      );
-    }
-
-    i = j;
-  }
-
-  const pathBuilders = pathBuildersArr.join("\n\n");
+      return `        ${root.name} = path(\n${calls.join(",\n")}\n        )${root.chainHeading};`;
+    })
+    .join("\n\n");
 
   // Generate imports based on library
   let imports = "";
@@ -612,7 +310,7 @@ public class ${className} extends Command {
     private Command group;
 
     // Poses
-${allPoseDeclarations.join("\n")}
+${poseDeclarations.join("\n")}
 
     // Path chains
 ${pathChainDeclarations}
@@ -623,7 +321,7 @@ ${pathChainDeclarations}
         ${ppReaderInit}${getEventBindingCode(true)}
 
         // Load poses
-${allPoseInitializations.join("\n")}
+${poseInitializations.join("\n")}
 
         follower.setPose(startPoint);
     }
@@ -704,7 +402,7 @@ public class ${className} extends ${SequentialGroupClass} {
     private final PoseFactory p = PoseFactory.degrees();
 
     // Poses
-${allPoseDeclarations.join("\n")}
+${poseDeclarations.join("\n")}
 
     // Path chains
 ${pathChainDeclarations}
@@ -715,7 +413,7 @@ ${pathChainDeclarations}
         ${ppReaderInit}${getEventBindingCode(false)}
 
         // Load poses
-${allPoseInitializations.join("\n")}
+${poseInitializations.join("\n")}
 
         follower.setPose(startPoint);
 

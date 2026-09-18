@@ -252,18 +252,3 @@ export async function resetSettings(): Promise<Settings> {
   await saveSettings(defaults);
   return defaults;
 }
-
-// Check if settings file exists
-export async function settingsFileExists(): Promise<boolean> {
-  const api = getElectronAPI();
-  if (!api) return false;
-
-  try {
-    const paths = await getSettingsPaths();
-    if (paths.current && (await api.fileExists(paths.current))) return true;
-    return paths.legacy ? await api.fileExists(paths.legacy) : false;
-  } catch (error) {
-    console.error("Error checking settings file:", error);
-    return false;
-  }
-}

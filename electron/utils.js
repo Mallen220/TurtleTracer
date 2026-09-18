@@ -51,7 +51,7 @@ export function validateArbitraryPath(inputPath) {
   return normalized;
 }
 
-export const PROJECT_EXTENSIONS = [".turt", ".pp"];
+const PROJECT_EXTENSIONS = [".turt", ".pp"];
 
 /**
  * Checks if a file path is a project file.

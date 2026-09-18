@@ -4,7 +4,6 @@ import {
   calculatePathTime,
   formatTime,
   analyzePathSegment,
-  getAnimationDuration,
   calculateRotationTime,
 } from "../utils/timeCalculator";
 import type { Point, Line, Settings, SequenceItem } from "../types";
@@ -85,22 +84,6 @@ describe("Time Calculator", () => {
     expect(formatTime(-5)).toBe("0.000s");
     expect(formatTime(Number.NaN)).toBe("Infinite");
     expect(formatTime(Infinity)).toBe("Infinite");
-  });
-
-  describe("getAnimationDuration", () => {
-    it("calculates animation duration correctly", () => {
-      expect(getAnimationDuration(2)).toBe(2000);
-      expect(getAnimationDuration(2, 2)).toBe(1000);
-      expect(getAnimationDuration(2, 0.5)).toBe(4000);
-    });
-
-    it("handles edge cases gracefully", () => {
-      expect(getAnimationDuration(0)).toBe(0);
-      expect(getAnimationDuration(Number.NaN)).toBeNaN();
-      expect(getAnimationDuration(Infinity)).toBe(Infinity);
-      expect(getAnimationDuration(1, Infinity)).toBe(0);
-      expect(getAnimationDuration(1, 0)).toBe(Infinity);
-    });
   });
 
   describe("calculateRotationTime", () => {

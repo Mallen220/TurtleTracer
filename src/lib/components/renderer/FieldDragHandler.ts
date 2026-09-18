@@ -6,10 +6,14 @@ import type {
   Shape,
   SequenceItem,
   Settings,
+  EventMarker,
+  TimePrediction,
 } from "../../../types/index";
-import { findClosestT, getCurvePoint, getDistance } from "../../../utils/math";
+import { closestPointOnPath } from "../../../utils/geometry";
 import { updateLinkedWaypoints } from "../../../utils/pointLinking";
 import {
+  parseElementId,
+  parseStepEventId,
   normalizeEventElementId,
   resolveHoveredMarkerId,
 } from "./ElementIdParser";
@@ -205,7 +209,7 @@ export interface DragUpdateParams {
   shapes: Shape[];
   startPoint: Point;
   sequence: SequenceItem[];
-  timePrediction?: any;
+  timePrediction?: TimePrediction;
   currentElem: string | null;
 }
 
@@ -222,288 +226,251 @@ export interface DragUpdateResult {
   idReplacement?: { oldId: string; newId: string };
 }
 
+type XY = { x: number; y: number };
+
+const roundToHundredth = (v: number) => Math.round(v * 100) / 100;
+
 /**
- * Applies a drag coordinate update to the appropriate project element (obstacle, target point, event, waypoint).
+ * Facing-point targets live on the line itself, unless the line is part of
+ * a chain whose first line sets a heading for the whole chain. Returns the
+ * index of the line that owns the target and whether it's the chain's.
+ */
+function facingTargetOwner(
+  lines: Line[],
+  lineIdx: number,
+): { ownerIdx: number; global: boolean } {
+  let root = lineIdx;
+  while (root > 0 && lines[root].isChain) root--;
+  const heading = lines[root]?.globalHeading;
+  return heading && heading !== "none"
+    ? { ownerIdx: root, global: true }
+    : { ownerIdx: lineIdx, global: false };
+}
+
+/** "targetpoint-{line+1}" or "targetpoint-{line+1}-piecewise-{segment}". */
+function parseTargetPointId(id: string) {
+  const parts = id.split("-");
+  return {
+    lineIdx: Number(parts[1]) - 1,
+    segIdx: parts[2] === "piecewise" ? Number(parts[3]) : null,
+  };
+}
+
+function getFacingTarget(
+  lines: Line[],
+  lineIdx: number,
+  segIdx: number | null,
+): XY | null {
+  if (!lines[lineIdx]) return null;
+  const { ownerIdx, global } = facingTargetOwner(lines, lineIdx);
+  const owner = lines[ownerIdx];
+  if (segIdx !== null) {
+    const seg = (global ? owner.globalSegments : owner.endPoint.segments)?.[
+      segIdx
+    ];
+    return seg ? { x: seg.targetX || 0, y: seg.targetY || 0 } : null;
+  }
+  return global
+    ? { x: owner.globalTargetX || 0, y: owner.globalTargetY || 0 }
+    : { x: owner.endPoint.targetX || 0, y: owner.endPoint.targetY || 0 };
+}
+
+/** Returns new lines with the target moved, or null if there's nothing to move. */
+function setFacingTarget(
+  lines: Line[],
+  lineIdx: number,
+  segIdx: number | null,
+  { x, y }: XY,
+): Line[] | null {
+  if (!lines[lineIdx]?.endPoint) return null;
+  const { ownerIdx, global } = facingTargetOwner(lines, lineIdx);
+  const owner = lines[ownerIdx];
+  let updated: Line;
+
+  if (segIdx === null) {
+    updated = global
+      ? { ...owner, globalTargetX: x, globalTargetY: y }
+      : {
+          ...owner,
+          endPoint: { ...owner.endPoint, targetX: x, targetY: y } as Point,
+        };
+  } else {
+    const segments =
+      (global ? owner.globalSegments : owner.endPoint.segments) ?? [];
+    if (segments[segIdx]?.heading !== "facingPoint") return null;
+    const newSegments = segments.map((seg, i) =>
+      i === segIdx ? ({ ...seg, targetX: x, targetY: y } as typeof seg) : seg,
+    );
+    updated = global
+      ? { ...owner, globalSegments: newSegments }
+      : {
+          ...owner,
+          endPoint: { ...owner.endPoint, segments: newSegments } as Point,
+        };
+  }
+
+  const newLines = [...lines];
+  newLines[ownerIdx] = updated;
+  return newLines;
+}
+
+/** An event marker on a wait or rotate step, from its element id. */
+function findStepMarker(sequence: SequenceItem[], id: string) {
+  const step = parseStepEventId(id);
+  if (!step) return undefined;
+  const item = sequence.find(
+    (s) => s.kind === step.kind && (s as { id?: string }).id === step.itemId,
+  ) as { eventMarkers?: EventMarker[] } | undefined;
+  return item?.eventMarkers?.[step.eventIndex];
+}
+
+/**
+ * Moves a path event marker to (x, y). The marker snaps to the nearest path
+ * and may move to a different line, which changes its element id.
+ */
+function dragLineMarker(
+  lines: Line[],
+  startPoint: Point,
+  timePrediction: TimePrediction | undefined,
+  lineIdx: number,
+  markerIdx: number,
+  pt: XY,
+): { lines: Line[]; newId?: string } | null {
+  const marker = lines[lineIdx]?.eventMarkers?.[markerIdx];
+  if (!marker) return null;
+
+  const closest = closestPointOnPath(lines, startPoint, pt);
+  const targetIdx = closest?.lineIdx ?? lineIdx;
+  const moved: EventMarker = { ...marker };
+
+  if (marker.type === "pose") {
+    moved.poseX = roundToHundredth(pt.x);
+    moved.poseY = roundToHundredth(pt.y);
+  } else if (marker.type === "temporal" && timePrediction?.timeline) {
+    // Temporal markers store the time the robot passes this point.
+    const travel = timePrediction.timeline.find(
+      (e) => e.type === "travel" && e.line?.id === lines[targetIdx].id,
+    );
+    if (travel && closest) {
+      moved.time = moved.endTime =
+        (travel.startTime + closest.t * travel.duration) * 1000;
+    }
+  } else if (closest) {
+    moved.position = closest.t;
+  }
+
+  const newLines = [...lines];
+  const without = lines[lineIdx].eventMarkers!.filter(
+    (_, i) => i !== markerIdx,
+  );
+  if (targetIdx === lineIdx) {
+    const markers = [...lines[lineIdx].eventMarkers!];
+    markers[markerIdx] = moved;
+    newLines[lineIdx] = { ...lines[lineIdx], eventMarkers: markers };
+    return { lines: newLines };
+  }
+
+  newLines[lineIdx] = { ...lines[lineIdx], eventMarkers: without };
+  const targetMarkers = [...(lines[targetIdx].eventMarkers ?? []), moved];
+  newLines[targetIdx] = { ...lines[targetIdx], eventMarkers: targetMarkers };
+  return {
+    lines: newLines,
+    newId: `event-${targetIdx}-${targetMarkers.length - 1}`,
+  };
+}
+
+/**
+ * Applies a drag coordinate update to the appropriate project element
+ * (obstacle vertex, facing target, event marker, or path point).
  */
 export function applyDragToElement(params: DragUpdateParams): DragUpdateResult {
-  const {
-    id,
-    inchX,
-    inchY,
+  const { id, inchX, inchY, lines, shapes, startPoint, sequence } = params;
+  const result: DragUpdateResult = {
     lines,
     shapes,
     startPoint,
     sequence,
-    timePrediction,
-    currentElem,
-  } = params;
+    linesChanged: false,
+    shapesChanged: false,
+    startPointChanged: false,
+    sequenceChanged: false,
+    currentElem: params.currentElem,
+  };
+  const pt = { x: inchX, y: inchY };
+  const parsed = parseElementId(id);
 
-  let newLines = lines;
-  let newShapes = shapes;
-  let newStartPoint = startPoint;
-  const newSequence = sequence;
-  let linesChanged = false;
-  let shapesChanged = false;
-  let startPointChanged = false;
-  let sequenceChanged = false;
-  let nextCurrentElem = currentElem;
-  let idReplacement: { oldId: string; newId: string } | undefined;
-
-  if (id.startsWith("obstacle-")) {
-    const parts = id.split("-");
-    const shapeIdx = Number(parts[1]);
-    if (!shapes[shapeIdx]?.locked) {
-      const vertexIdx = Number(parts[2]);
-      const newVertices = [...shapes[shapeIdx].vertices];
-      newVertices[vertexIdx] = {
-        ...newVertices[vertexIdx],
-        x: inchX,
-        y: inchY,
-      };
-      newShapes = [...shapes];
-      newShapes[shapeIdx] = { ...shapes[shapeIdx], vertices: newVertices };
-      shapesChanged = true;
+  if (id.startsWith("targetpoint-")) {
+    const { lineIdx, segIdx } = parseTargetPointId(id);
+    const moved = setFacingTarget(lines, lineIdx, segIdx, pt);
+    if (moved) {
+      result.lines = moved;
+      result.linesChanged = true;
     }
-  } else if (id.startsWith("targetpoint-")) {
-    const parts = id.split("-");
-    const lineIdx = Number(parts[1]) - 1;
-    const line = lines[lineIdx];
-    if (line?.endPoint) {
-      const isPiecewise = parts.length > 2 && parts[2] === "piecewise";
-      const segIdx = isPiecewise ? Number(parts[3]) : -1;
-
-      let rootIdx = lineIdx;
-      if (lines[lineIdx].isChain) {
-        for (let i = lineIdx; i >= 0; i--) {
-          if (!lines[i].isChain) {
-            rootIdx = i;
-            break;
-          }
-        }
-      }
-      const targetLine = lines[rootIdx];
-
-      newLines = [...lines];
-      if (targetLine.globalHeading === undefined) {
-        if (isPiecewise) {
-          const segments = line.endPoint.segments || [];
-          const seg = segments[segIdx];
-          if (seg?.heading === "facingPoint") {
-            const newSegs = [...segments] as any[];
-            newSegs[segIdx] = { ...seg, targetX: inchX, targetY: inchY };
-            newLines[lineIdx] = {
-              ...line,
-              endPoint: { ...line.endPoint, segments: newSegs } as Point,
-            };
-            linesChanged = true;
-          }
-        } else {
-          newLines[lineIdx] = {
-            ...line,
-            endPoint: {
-              ...line.endPoint,
-              targetX: inchX,
-              targetY: inchY,
-            } as Point,
-          };
-          linesChanged = true;
-        }
-      } else if (isPiecewise) {
-        const segments = targetLine.globalSegments || [];
-        const seg = segments[segIdx];
-        if (seg?.heading === "facingPoint") {
-          const newSegs = [...segments] as any[];
-          newSegs[segIdx] = { ...seg, targetX: inchX, targetY: inchY };
-          newLines[rootIdx] = { ...targetLine, globalSegments: newSegs };
-          linesChanged = true;
-        }
-      } else {
-        newLines[rootIdx] = {
-          ...targetLine,
-          globalTargetX: inchX,
-          globalTargetY: inchY,
-        };
-        linesChanged = true;
-      }
+  } else if (parsed?.type === "obstacle") {
+    const shape = shapes[parsed.shapeIndex];
+    if (shape && !shape.locked) {
+      const vertices = [...shape.vertices];
+      vertices[parsed.vertexIndex] = { ...vertices[parsed.vertexIndex], ...pt };
+      result.shapes = [...shapes];
+      result.shapes[parsed.shapeIndex] = { ...shape, vertices };
+      result.shapesChanged = true;
     }
-  } else if (id.startsWith("event-")) {
-    const parts = id.split("-");
-    const lIdx = Number(parts[1]);
-    const eIdx = Number(parts[2]);
-    const evMarkers = lines[lIdx]?.eventMarkers;
-    if (evMarkers?.[eIdx]) {
-      const ev = evMarkers[eIdx];
-      newLines = [...lines];
-      if (ev.type === "pose") {
-        ev.poseX = Math.round(inchX * 100) / 100;
-        ev.poseY = Math.round(inchY * 100) / 100;
-
-        let bestDist = Infinity;
-        let bestLineIdx = lIdx;
-        lines.forEach((line, idx) => {
-          if (line.hidden) return;
-          const prevP = idx === 0 ? startPoint : lines[idx - 1].endPoint;
-          const cps = [prevP, ...line.controlPoints, line.endPoint];
-          const t = findClosestT({ x: inchX, y: inchY }, cps);
-          const pt = getCurvePoint(t, cps);
-          const dist = getDistance({ x: inchX, y: inchY }, pt);
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestLineIdx = idx;
-          }
-        });
-
-        if (bestLineIdx === lIdx) {
-          newLines[lIdx].eventMarkers = [...evMarkers];
-        } else {
-          const marker = evMarkers.splice(eIdx, 1)[0];
-          newLines[lIdx].eventMarkers = [...evMarkers];
-          if (!newLines[bestLineIdx].eventMarkers) {
-            newLines[bestLineIdx].eventMarkers = [];
-          }
-          newLines[bestLineIdx].eventMarkers!.push(marker);
-          const newEIdx = newLines[bestLineIdx].eventMarkers!.length - 1;
-          const newId = `event-${bestLineIdx}-${newEIdx}`;
-          idReplacement = { oldId: id, newId };
-          if (nextCurrentElem === id) nextCurrentElem = newId;
-        }
-        linesChanged = true;
-      } else {
-        let bestDist = Infinity;
-        let bestLineIdx = lIdx;
-        let bestT = 0;
-
-        lines.forEach((line, idx) => {
-          if (line.hidden) return;
-          const prevP = idx === 0 ? startPoint : lines[idx - 1].endPoint;
-          const cps = [prevP, ...line.controlPoints, line.endPoint];
-          const t = findClosestT({ x: inchX, y: inchY }, cps);
-          const pt = getCurvePoint(t, cps);
-          const dist = getDistance({ x: inchX, y: inchY }, pt);
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestLineIdx = idx;
-            bestT = t;
-          }
-        });
-
-        if (ev.type === "temporal" && timePrediction?.timeline) {
-          const travelEvents = timePrediction.timeline.filter(
-            (e: any) => e.type === "travel",
-          );
-          const matchingEvent = travelEvents.find(
-            (e: any) => e?.line?.id === lines[bestLineIdx].id,
-          );
-          if (matchingEvent) {
-            const newTime =
-              (matchingEvent.startTime + bestT * matchingEvent.duration) * 1000;
-            ev.time = newTime;
-            ev.endTime = newTime;
-          }
-        } else {
-          ev.position = bestT;
-        }
-
-        if (bestLineIdx === lIdx) {
-          newLines[lIdx].eventMarkers = [...evMarkers];
-        } else {
-          const marker = evMarkers.splice(eIdx, 1)[0];
-          newLines[lIdx].eventMarkers = [...evMarkers];
-          if (!newLines[bestLineIdx].eventMarkers) {
-            newLines[bestLineIdx].eventMarkers = [];
-          }
-          newLines[bestLineIdx].eventMarkers!.push(marker);
-          const newEIdx = newLines[bestLineIdx].eventMarkers!.length - 1;
-          const newId = `event-${bestLineIdx}-${newEIdx}`;
-          idReplacement = { oldId: id, newId };
-          if (nextCurrentElem === id) nextCurrentElem = newId;
-        }
-        linesChanged = true;
-      }
-    }
-  } else if (id.startsWith("wait-event-")) {
-    const parts = id.split("-");
-    const waitId = parts[2];
-    const eIdx = Number(parts[3]);
-    const waitItem = sequence.find(
-      (s) => s.kind === "wait" && (s as any).id === waitId,
+  } else if (parsed?.type === "event") {
+    const moved = dragLineMarker(
+      lines,
+      startPoint,
+      params.timePrediction,
+      parsed.lineIndex,
+      parsed.eventIndex,
+      pt,
     );
-    if ((waitItem as any)?.eventMarkers?.[eIdx]) {
-      const ev = (waitItem as any).eventMarkers[eIdx];
-      if (ev.type === "pose") {
-        ev.poseX = Math.round(inchX * 100) / 100;
-        ev.poseY = Math.round(inchY * 100) / 100;
-        sequenceChanged = true;
+    if (moved) {
+      result.lines = moved.lines;
+      result.linesChanged = true;
+      if (moved.newId) {
+        result.idReplacement = { oldId: id, newId: moved.newId };
+        if (result.currentElem === id) result.currentElem = moved.newId;
       }
     }
-  } else if (id.startsWith("rotate-event-")) {
-    const parts = id.split("-");
-    const rotateId = parts[2];
-    const eIdx = Number(parts[3]);
-    const rotateItem = sequence.find(
-      (s) => s.kind === "rotate" && (s as any).id === rotateId,
-    );
-    if ((rotateItem as any)?.eventMarkers?.[eIdx]) {
-      const ev = (rotateItem as any).eventMarkers[eIdx];
-      if (ev.type === "pose") {
-        ev.poseX = Math.round(inchX * 100) / 100;
-        ev.poseY = Math.round(inchY * 100) / 100;
-        sequenceChanged = true;
-      }
+  } else if (parsed?.type === "wait-event" || parsed?.type === "rotate-event") {
+    // Only pose markers on waits/rotates have a position on the field.
+    const marker = findStepMarker(sequence, id);
+    if (marker?.type === "pose") {
+      marker.poseX = roundToHundredth(pt.x);
+      marker.poseY = roundToHundredth(pt.y);
+      result.sequenceChanged = true;
     }
-  } else {
-    const line = Number(id.split("-")[1]) - 1;
-    const point = Number(id.split("-")[2]);
-
-    if (line === -1) {
+  } else if (parsed?.type === "point") {
+    const { lineIndex, pointIndex } = parsed;
+    const line = lines[lineIndex];
+    if (lineIndex === -1) {
       if (!startPoint.locked) {
-        newStartPoint = { ...startPoint, x: inchX, y: inchY };
-        startPointChanged = true;
+        result.startPoint = { ...startPoint, ...pt };
+        result.startPointChanged = true;
       }
-    } else if (lines[line]) {
-      newLines = [...lines];
-      if (point === 0 && lines[line]?.endPoint) {
-        newLines[line] = {
-          ...lines[line],
-          endPoint: { ...lines[line].endPoint, x: inchX, y: inchY },
+    } else if (line) {
+      let newLines = [...lines];
+      if (pointIndex === 0) {
+        newLines[lineIndex] = {
+          ...line,
+          endPoint: { ...line.endPoint, ...pt },
         };
-        if (lines[line].id) {
-          const updated = updateLinkedWaypoints(
-            newLines,
-            lines[line].id as string,
-          );
-          if (updated !== newLines) {
-            newLines = updated;
-          }
-        }
-      } else if (!lines[line]?.locked) {
-        const newControlPoints = [...lines[line].controlPoints];
-        newControlPoints[point - 1] = {
-          ...newControlPoints[point - 1],
-          x: inchX,
-          y: inchY,
+        // Points with the same name are linked and move together.
+        if (line.id) newLines = updateLinkedWaypoints(newLines, line.id);
+      } else if (!line.locked) {
+        const controlPoints = [...line.controlPoints];
+        controlPoints[pointIndex - 1] = {
+          ...controlPoints[pointIndex - 1],
+          ...pt,
         };
-        newLines[line] = {
-          ...lines[line],
-          controlPoints: newControlPoints,
-        };
+        newLines[lineIndex] = { ...line, controlPoints };
       }
-      linesChanged = true;
+      result.lines = newLines;
+      result.linesChanged = true;
     }
   }
 
-  return {
-    lines: newLines,
-    shapes: newShapes,
-    startPoint: newStartPoint,
-    sequence: newSequence,
-    linesChanged,
-    shapesChanged,
-    startPointChanged,
-    sequenceChanged,
-    currentElem: nextCurrentElem,
-    idReplacement,
-  };
+  return result;
 }
 
 export interface DragOffsetContext {
@@ -513,112 +480,57 @@ export interface DragOffsetContext {
   sequence: SequenceItem[];
 }
 
+/** Where a draggable element currently is, or null if it has no position. */
+function getElementPosition(id: string, ctx: DragOffsetContext): XY | null {
+  const { lines, shapes, startPoint, sequence } = ctx;
+  if (id.startsWith("targetpoint-")) {
+    const { lineIdx, segIdx } = parseTargetPointId(id);
+    return getFacingTarget(lines, lineIdx, segIdx);
+  }
+
+  const parsed = parseElementId(id);
+  switch (parsed?.type) {
+    case "obstacle":
+      return shapes[parsed.shapeIndex]?.vertices?.[parsed.vertexIndex] ?? null;
+    case "point": {
+      if (parsed.lineIndex === -1) return startPoint;
+      const line = lines[parsed.lineIndex];
+      return parsed.pointIndex === 0
+        ? (line?.endPoint ?? null)
+        : (line?.controlPoints?.[parsed.pointIndex - 1] ?? null);
+    }
+    case "event":
+    case "wait-event":
+    case "rotate-event": {
+      const marker =
+        parsed.type === "event"
+          ? lines[parsed.lineIndex]?.eventMarkers?.[parsed.eventIndex]
+          : findStepMarker(sequence, id);
+      // Other marker types follow the path rather than a fixed position.
+      return marker?.type === "pose"
+        ? { x: marker.poseX ?? 0, y: marker.poseY ?? 0 }
+        : null;
+    }
+    default:
+      return null;
+  }
+}
+
 /**
- * Computes mouse drag offsets for all selected elements at the moment dragging starts.
+ * Offsets from the mouse to each selected element when a drag starts, so
+ * they keep their relative positions while moving.
  */
 export function computeMultiDragOffsets(
   elementIds: string[],
   mouseX: number,
   mouseY: number,
   context: DragOffsetContext,
-): Map<string, { x: number; y: number }> {
-  const { lines, shapes, startPoint, sequence } = context;
-  const offsets = new Map<string, { x: number; y: number }>();
-
-  elementIds.forEach((id) => {
-    let ox = mouseX;
-    let oy = mouseY;
-
-    if (id.startsWith("obstacle-")) {
-      const parts = id.split("-");
-      const shapeIdx = Number(parts[1]);
-      const vertexIdx = Number(parts[2]);
-      if (shapes[shapeIdx]?.vertices?.[vertexIdx]) {
-        ox = shapes[shapeIdx].vertices[vertexIdx].x;
-        oy = shapes[shapeIdx].vertices[vertexIdx].y;
-      }
-    } else if (id.startsWith("targetpoint-")) {
-      const parts = id.split("-");
-      const lineIdx = Number(parts[1]) - 1;
-      if (lines[lineIdx]?.endPoint) {
-        const targetLine = lines[lineIdx];
-        const isGlobal =
-          targetLine.globalHeading !== undefined &&
-          targetLine.globalHeading !== "none";
-
-        if (parts.length > 2 && parts[2] === "piecewise") {
-          const segIdx = Number(parts[3]);
-          const segments = isGlobal
-            ? targetLine.globalSegments || []
-            : targetLine.endPoint.segments || [];
-          if (segments[segIdx]) {
-            ox = segments[segIdx].targetX || 0;
-            oy = segments[segIdx].targetY || 0;
-          }
-        } else {
-          ox =
-            (isGlobal
-              ? targetLine.globalTargetX
-              : targetLine.endPoint.targetX) || 0;
-          oy =
-            (isGlobal
-              ? targetLine.globalTargetY
-              : targetLine.endPoint.targetY) || 0;
-        }
-      }
-    } else if (id.startsWith("point-")) {
-      const line = Number(id.split("-")[1]) - 1;
-      const point = Number(id.split("-")[2]);
-      if (line === -1) {
-        ox = startPoint.x;
-        oy = startPoint.y;
-      } else if (lines[line]) {
-        if (point === 0 && lines[line]?.endPoint) {
-          ox = lines[line].endPoint.x;
-          oy = lines[line].endPoint.y;
-        } else if (lines[line]?.controlPoints?.[point - 1]) {
-          ox = lines[line].controlPoints[point - 1].x;
-          oy = lines[line].controlPoints[point - 1].y;
-        }
-      }
-    } else if (id.startsWith("event-")) {
-      const parts = id.split("-");
-      const lIdx = Number(parts[1]);
-      const eIdx = Number(parts[2]);
-      const ev = lines[lIdx]?.eventMarkers?.[eIdx];
-      if (ev?.type === "pose") {
-        ox = ev.poseX ?? 0;
-        oy = ev.poseY ?? 0;
-      }
-    } else if (id.startsWith("wait-event-")) {
-      const parts = id.split("-");
-      const waitId = parts[2];
-      const eIdx = Number(parts[3]);
-      const waitItem = sequence.find(
-        (s) => s.kind === "wait" && (s as any).id === waitId,
-      );
-      const ev = (waitItem as any)?.eventMarkers?.[eIdx];
-      if (ev?.type === "pose") {
-        ox = ev.poseX ?? 0;
-        oy = ev.poseY ?? 0;
-      }
-    } else if (id.startsWith("rotate-event-")) {
-      const parts = id.split("-");
-      const rotateId = parts[2];
-      const eIdx = Number(parts[3]);
-      const rotateItem = sequence.find(
-        (s) => s.kind === "rotate" && (s as any).id === rotateId,
-      );
-      const ev = (rotateItem as any)?.eventMarkers?.[eIdx];
-      if (ev?.type === "pose") {
-        ox = ev.poseX ?? 0;
-        oy = ev.poseY ?? 0;
-      }
-    }
-
-    offsets.set(id, { x: ox - mouseX, y: oy - mouseY });
-  });
-
+): Map<string, XY> {
+  const offsets = new Map<string, XY>();
+  for (const id of elementIds) {
+    const pos = getElementPosition(id, context) ?? { x: mouseX, y: mouseY };
+    offsets.set(id, { x: pos.x - mouseX, y: pos.y - mouseY });
+  }
   return offsets;
 }
 
@@ -734,7 +646,7 @@ export function executeMultiDragIteration(
       shapes,
       startPoint,
       sequence,
-      timePrediction: timePrediction as any,
+      timePrediction: timePrediction as TimePrediction | undefined,
       currentElem,
     });
 

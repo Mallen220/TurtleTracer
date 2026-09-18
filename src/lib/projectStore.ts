@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { writable, get } from "svelte/store";
 import type {
+  TimePrediction,
   Line,
   Point,
   SequenceItem,
@@ -23,11 +24,12 @@ import { hookRegistry } from "./registries";
 import { actionRegistry } from "./actionRegistry";
 import { currentFilePath } from "../stores";
 import { getElectronAPI } from "../utils/platform";
+import { makeId } from "../utils/nameGenerator";
 
 export function normalizeLines(input: Line[]): Line[] {
   return (input || []).map((line) => ({
     ...line,
-    id: line.id || `line-${Math.random().toString(36).slice(2)}`,
+    id: line.id || makeId("line"),
     controlPoints: line.controlPoints || [],
     eventMarkers: line.eventMarkers || [],
     color: line.color || getRandomColor(),
@@ -140,6 +142,8 @@ export const loopAnimationStore = writable(true);
 export const loopRangeActiveStore = writable(true);
 export const loopRangeStore = writable<[number, number]>([0, 100]);
 export const isDraggingStore = writable(false);
+// Timing of the current path, computed by App whenever the project changes.
+export const timePredictionStore = writable<TimePrediction | null>(null);
 
 // Robot State (derived or managed)
 export const robotXYStore = writable({ x: 0, y: 0 });
@@ -182,35 +186,43 @@ robotProfilesStore.subscribe((profiles) => {
   }
 });
 
+/**
+ * Default obstacles are laid out for the standard field. On a different-sized
+ * built-in field, stretch them to match. Custom maps are left alone.
+ */
+export function scaleShapesToField(
+  shapes: Shape[],
+  settings: Settings,
+): Shape[] {
+  const defaultWidth = DEFAULT_SETTINGS.fieldWidth ?? 144;
+  const defaultHeight = DEFAULT_SETTINGS.fieldHeight ?? 144;
+  const width = settings.fieldWidth ?? 144;
+  const height = settings.fieldHeight ?? 144;
+  const isCustomMap = settings.customMaps?.some(
+    (m) => m.id === settings.fieldMap,
+  );
+  if (isCustomMap || (width === defaultWidth && height === defaultHeight)) {
+    return shapes;
+  }
+
+  const scaleX = width / defaultWidth;
+  const scaleY = height / defaultHeight;
+  return shapes.map((shape) => ({
+    ...shape,
+    vertices: shape.vertices.map((v) => ({
+      ...v,
+      x: v.x * scaleX,
+      y: v.y * scaleY,
+    })),
+  }));
+}
+
+/** Replaces the project with the default starting path. */
 export function resetProject() {
   startPointStore.set(getDefaultStartPoint());
   const newLines = normalizeLines(getDefaultLines());
   linesStore.set(newLines);
-
-  let newShapes = getDefaultShapes();
-  const currentSettings = get(settingsStore);
-  if (
-    (currentSettings.fieldWidth !== DEFAULT_SETTINGS.fieldWidth ||
-      currentSettings.fieldHeight !== DEFAULT_SETTINGS.fieldHeight) &&
-    !currentSettings.customMaps?.some((m) => m.id === currentSettings.fieldMap)
-  ) {
-    const scaleX =
-      (currentSettings.fieldWidth ?? 144) /
-      (DEFAULT_SETTINGS.fieldWidth ?? 144);
-    const scaleY =
-      (currentSettings.fieldHeight ?? 144) /
-      (DEFAULT_SETTINGS.fieldHeight ?? 144);
-    newShapes = newShapes.map((shape) => ({
-      ...shape,
-      vertices: shape.vertices.map((v) => ({
-        ...v,
-        x: v.x * scaleX,
-        y: v.y * scaleY,
-      })),
-    }));
-  }
-
-  shapesStore.set(newShapes);
+  shapesStore.set(scaleShapesToField(getDefaultShapes(), get(settingsStore)));
   sequenceStore.set(
     newLines.map((ln) => ({
       kind: "path",

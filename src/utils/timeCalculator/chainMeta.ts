@@ -7,6 +7,7 @@ import {
 } from "../math";
 import type { SequenceItem, Line, Point, BasePoint } from "../../types";
 import type { PathAnalysis } from "./types";
+import { makeId } from "../nameGenerator";
 
 export function calculateGlobalChainMeta(
   seq: SequenceItem[],
@@ -15,7 +16,7 @@ export function calculateGlobalChainMeta(
 ) {
   const lineById = new Map<string, Line>();
   lines.forEach((ln) => {
-    if (!ln.id) ln.id = `line-${Math.random().toString(36).slice(2)}`;
+    if (!ln.id) ln.id = makeId("line");
     lineById.set(ln.id, ln);
   });
 

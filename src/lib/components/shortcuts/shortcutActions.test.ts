@@ -4,6 +4,7 @@ import {
   buildActionHandlers,
   type ShortcutActionContext,
 } from "./shortcutActions";
+import { DEFAULT_KEY_BINDINGS } from "../../../config/keybindings";
 
 describe("shortcutActions", () => {
   let mockCtx: ShortcutActionContext;
@@ -58,6 +59,14 @@ describe("shortcutActions", () => {
       fetchFiles: vi.fn(),
       isPlaying: () => false,
     };
+  });
+
+  it("has a handler for every default key binding", () => {
+    const handlers = buildActionHandlers(mockCtx);
+    const missing = DEFAULT_KEY_BINDINGS.map((b) => b.action).filter(
+      (action) => typeof handlers[action] !== "function",
+    );
+    expect(missing).toEqual([]);
   });
 
   it("builds a full set of action handlers", () => {

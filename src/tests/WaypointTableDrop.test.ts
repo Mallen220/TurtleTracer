@@ -56,7 +56,7 @@ describe("WaypointTable Drop Handling", () => {
   it("handles macro drop when isActive is true (default)", async () => {
     render(WaypointTable, { ...defaultProps });
     triggerDropEvent();
-    expect(loadMacro).toHaveBeenCalledWith("test.pp");
+    expect(loadMacro).toHaveBeenCalledWith("test.pp", true);
   });
 
   it("does NOT handle macro drop when isActive is false", async () => {
@@ -74,6 +74,6 @@ describe("WaypointTable Drop Handling", () => {
       isActive: true,
     });
     triggerDropEvent();
-    expect(loadMacro).toHaveBeenCalledWith("test.pp");
+    expect(loadMacro).toHaveBeenCalledWith("test.pp", true);
   });
 });

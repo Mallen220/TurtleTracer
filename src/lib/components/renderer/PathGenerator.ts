@@ -4,7 +4,7 @@ import type { Path } from "two.js/src/path";
 import type { Line as PathLine } from "two.js/src/shapes/line";
 import type { Line, Point } from "../../../types";
 import { getCurvePoint } from "../../../utils/math";
-import { type RenderContext, createPathAnchors } from "./GeneratorUtils";
+import { type RenderContext, createLineElement } from "./GeneratorUtils";
 
 export function generatePathElements(
   targetLines: Line[],
@@ -160,19 +160,7 @@ export function generatePathElements(
     }
 
     // Fallback: Standard Line Rendering
-    let lineElem: Path | PathLine;
-    const anchors = createPathAnchors(line, _startPoint, ctx);
-    if (line.controlPoints.length === 0) {
-      lineElem = new Two.Line(
-        anchors[0].x,
-        anchors[0].y,
-        anchors[1].x,
-        anchors[1].y,
-      );
-    } else {
-      lineElem = new Two.Path(anchors);
-      lineElem.automatic = false;
-    }
+    const lineElem = createLineElement(line, _startPoint, ctx);
     lineElem.id = `${idPrefix}-line-${idx + 1}`;
 
     const isDimmed = line.id && dimmedIds.includes(line.id);

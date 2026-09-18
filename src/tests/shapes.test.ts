@@ -89,7 +89,7 @@ describe("Shape Utilities", () => {
   describe("createEventMarker", () => {
     it("should create an event marker with default properties", () => {
       const marker = createEventMarker(0);
-      expect(marker.id).toMatch(/^event-\d+-[a-z0-9]+$/);
+      expect(marker.id).toMatch(/^event-[a-z0-9-]+$/);
       expect(marker.name).toBe("Event_1");
       expect(marker.position).toBe(0.5);
       expect(marker.lineIndex).toBe(0);

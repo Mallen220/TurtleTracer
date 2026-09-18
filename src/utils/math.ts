@@ -1,7 +1,20 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Line, Point } from "../types";
+import type { Line, Point, PiecewiseSegment } from "../types";
 
 type Point2D = { x: number; y: number };
+
+// The fields of Point / PiecewiseSegment / a line's global override that
+// describe how the robot should be facing.
+type HeadingSource = {
+  heading?: Point["heading"] | "none";
+  degrees?: number;
+  startDeg?: number;
+  endDeg?: number;
+  targetX?: number;
+  targetY?: number;
+  reverse?: boolean;
+  segments?: PiecewiseSegment[];
+};
 
 export function rotateVector(x: number, y: number, angleRad: number) {
   const cos = Math.cos(angleRad);
@@ -23,8 +36,26 @@ export function easeInOutQuad(x: number): number {
 }
 
 /**
- * Interpolates the parametric value 't' [0, 1] from a motion profile.
- * The motion profile is an array of timestamps corresponding to uniform steps in 't'.
+ * Finds which step of a motion profile `time` falls in. `profile[i]` is the
+ * cumulative time at step i. Returns the step index and how far (0..1) we are
+ * towards the next step.
+ */
+export function locateInProfile(
+  time: number,
+  profile: number[],
+): { index: number; fraction: number } {
+  let i = 0;
+  while (i < profile.length - 2 && time > profile[i + 1]) {
+    i++;
+  }
+  const span = profile[i + 1] - profile[i];
+  const fraction = span > 0 ? (time - profile[i]) / span : 0;
+  return { index: i, fraction: Math.max(0, Math.min(1, fraction)) };
+}
+
+/**
+ * Converts a time into the curve parameter t (0..1) using a motion profile
+ * whose entries are timestamps at evenly spaced values of t.
  */
 export function interpolateTFromProfile(
   relativeTime: number,
@@ -32,36 +63,20 @@ export function interpolateTFromProfile(
 ): number {
   if (!profile || profile.length < 2) return 0;
 
-  const profileEndTime = profile.at(-1);
-  if (relativeTime >= profileEndTime) return 1;
-  if (relativeTime <= 0) return 0;
-
-  let i = 0;
-  while (i < profile.length - 2 && relativeTime > profile[i + 1]) {
-    i++;
-  }
-
-  const tStart = i / (profile.length - 1);
-  const tEnd = (i + 1) / (profile.length - 1);
-  const timeStart = profile[i];
-  const timeEnd = profile[i + 1];
-
-  let localProgress = 0;
-  if (timeEnd > timeStart) {
-    localProgress = (relativeTime - timeStart) / (timeEnd - timeStart);
-  }
-
-  return tStart + localProgress * (tEnd - tStart);
+  const { index, fraction } = locateInProfile(relativeTime, profile);
+  return (index + fraction) / (profile.length - 1);
 }
 
 function normalizeAngle(angle: number): number {
   return ((angle % 360) + 360) % 360;
 }
 
+/** Wraps an angle into the range [-180, 180). */
 export function transformAngle(angle: number) {
   return normalizeAngle(angle + 180) - 180;
 }
 
+/** Signed difference from `start` to `end`, taking the short way around. */
 export function getAngularDifference(start: number, end: number): number {
   let diff = normalizeAngle(end) - normalizeAngle(start);
 
@@ -69,6 +84,20 @@ export function getAngularDifference(start: number, end: number): number {
   else if (diff < -180) diff += 360;
 
   return diff;
+}
+
+/**
+ * How many degrees a linear heading turns going from `startDeg` to
+ * `endDeg`: the short way, or the long way round when `reverse` is set.
+ */
+export function linearHeadingSweep(
+  startDeg: number,
+  endDeg: number,
+  reverse?: boolean,
+): number {
+  if (!reverse) return getAngularDifference(startDeg, endDeg);
+  const clockwise = (((endDeg - startDeg) % 360) + 360) % 360;
+  return clockwise <= 180 ? clockwise - 360 : clockwise;
 }
 
 export function shortestRotation(
@@ -95,106 +124,84 @@ export function lerp2d(ratio: number, start: Point2D, end: Point2D) {
   };
 }
 
-export function getFirstValidControlPoint(
+/**
+ * Returns the first control point that isn't sitting on top of `refPoint`.
+ * Used to get a usable tangent when a control point overlaps an endpoint.
+ */
+function getFirstValidControlPoint(
   controlPoints: Point2D[],
   refPoint: Point2D,
   reverse: boolean = false,
 ): Point2D | null {
   const pts = reverse ? [...controlPoints].reverse() : controlPoints;
-  for (const cp of pts) {
-    if (getDistance(cp, refPoint) > 1e-6) {
-      return cp;
-    }
-  }
-  return null;
+  return pts.find((cp) => getDistance(cp, refPoint) > 1e-6) ?? null;
 }
 
 export function getDistance(p1: Point2D, p2: Point2D) {
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
-  return Math.hypot(dx, dy);
+  return Math.hypot(p2.x - p1.x, p2.y - p1.y);
 }
 
+/** Evaluates a Bezier curve of any degree at t. */
 export function getCurvePoint(t: number, points: Point2D[]): Point2D {
   const len = points.length;
 
   if (len === 0)
     throw new Error("getCurvePoint: points array must not be empty");
   if (len === 1) return points[0];
+  if (len === 2) return lerp2d(t, points[0], points[1]);
 
-  if (len === 2) {
-    return lerp2d(t, points[0], points[1]);
-  } else if (len === 3) {
-    const p0 = points[0];
-    const p1 = points[1];
-    const p2 = points[2];
-    const mt = 1 - t;
+  // Closed forms for the common quadratic and cubic cases.
+  const mt = 1 - t;
+  if (len === 3) {
+    const [p0, p1, p2] = points;
     const a = mt * mt;
     const b = 2 * mt * t;
     const c = t * t;
-
     return {
       x: a * p0.x + b * p1.x + c * p2.x,
       y: a * p0.y + b * p1.y + c * p2.y,
     };
-  } else if (len === 4) {
-    const p0 = points[0];
-    const p1 = points[1];
-    const p2 = points[2];
-    const p3 = points[3];
-    const mt = 1 - t;
-    const mt2 = mt * mt;
-    const t2 = t * t;
-
-    const a = mt2 * mt;
-    const b = 3 * mt2 * t;
-    const c = 3 * mt * t2;
-    const d = t2 * t;
-
+  }
+  if (len === 4) {
+    const [p0, p1, p2, p3] = points;
+    const a = mt * mt * mt;
+    const b = 3 * mt * mt * t;
+    const c = 3 * mt * t * t;
+    const d = t * t * t;
     return {
       x: a * p0.x + b * p1.x + c * p2.x + d * p3.x,
       y: a * p0.y + b * p1.y + c * p2.y + d * p3.y,
     };
   }
 
-  const work = points.slice();
-  let n = len;
-  while (n > 1) {
-    for (let i = 0; i < n - 1; i++) {
-      const p = lerp2d(t, work[i], work[i + 1]);
-      if (n === len) {
-        work[i] = p;
-      } else {
-        work[i].x = p.x;
-        work[i].y = p.y;
-      }
+  // De Casteljau's algorithm for higher degrees.
+  const work = points.map((p) => ({ x: p.x, y: p.y }));
+  for (let n = len - 1; n > 0; n--) {
+    for (let i = 0; i < n; i++) {
+      work[i].x = lerp(t, work[i].x, work[i + 1].x);
+      work[i].y = lerp(t, work[i].y, work[i + 1].y);
     }
-    n--;
   }
   return work[0];
 }
 
+/** Splits a Bezier curve at t into two curves with the same degree. */
 export function splitBezier(
   t: number,
   points: Point2D[],
 ): [Point2D[], Point2D[]] {
-  const left: Point2D[] = [];
-  const right: Point2D[] = [];
-  const n = points.length - 1;
+  const left: Point2D[] = [points[0]];
+  const right: Point2D[] = [points.at(-1)!];
 
-  let currentPoints = points.slice();
-
-  left.push(currentPoints[0]);
-  right.push(currentPoints.at(-1));
-
-  for (let i = 0; i < n; i++) {
+  let currentPoints = points;
+  while (currentPoints.length > 1) {
     const nextPoints: Point2D[] = [];
     for (let j = 0; j < currentPoints.length - 1; j++) {
       nextPoints.push(lerp2d(t, currentPoints[j], currentPoints[j + 1]));
     }
     currentPoints = nextPoints;
     left.push(currentPoints[0]);
-    right.push(currentPoints.at(-1));
+    right.push(currentPoints.at(-1)!);
   }
 
   right.reverse();
@@ -205,112 +212,107 @@ export function getTangentAngle(p1: Point2D, p2: Point2D): number {
   return radiansToDegrees(Math.atan2(p2.y - p1.y, p2.x - p1.x));
 }
 
-function getHeadingBase(
-  endPoint: any,
-  refPoint1: Point2D,
-  refPoint2: Point2D,
+/**
+ * Heading for the non-interpolating modes (constant, facingPoint, tangential).
+ * `from` is where the robot is; `towards` is the next point along the path,
+ * which is only used for tangential headings.
+ */
+function getPointHeading(
+  source: HeadingSource,
+  from: Point2D,
+  towards: Point2D,
 ): number {
-  const reverseOffset = endPoint.reverse ? 180 : 0;
-  if (endPoint.heading === "constant") {
-    return transformAngle(endPoint.degrees + reverseOffset);
+  const reverseOffset = source.reverse ? 180 : 0;
+  switch (source.heading) {
+    case "constant":
+      return transformAngle((source.degrees ?? 0) + reverseOffset);
+    case "facingPoint": {
+      const target = { x: source.targetX || 0, y: source.targetY || 0 };
+      return transformAngle(getTangentAngle(from, target) + reverseOffset);
+    }
+    case "tangential":
+      return transformAngle(getTangentAngle(from, towards) + reverseOffset);
+    default:
+      return 0;
   }
-  if (endPoint.heading === "facingPoint") {
-    const angle = getTangentAngle(refPoint1, {
-      x: endPoint.targetX || 0,
-      y: endPoint.targetY || 0,
-    });
-    return transformAngle(angle + reverseOffset);
-  }
-  if (endPoint.heading === "tangential") {
-    const angle = getTangentAngle(refPoint1, refPoint2);
-    return transformAngle(angle + reverseOffset);
-  }
-  return 0;
 }
 
-function evaluatePiecewiseSegment(
-  seg: any,
-  t: number,
+function getHeadingAtLineStart(
+  source: HeadingSource,
   line: Line,
-  previousPoint: Point,
-  isStart: boolean,
+  previousPoint: Point2D,
 ): number {
-  if (seg.heading === "linear") {
-    const sDeg = seg.startDeg ?? 0;
-    const eDeg = seg.endDeg ?? 0;
-    let localT = 0;
-    if (seg.tEnd > seg.tStart) {
-      localT = (t - seg.tStart) / (seg.tEnd - seg.tStart);
-    }
-
-    const shortest = getAngularDifference(sDeg, eDeg);
-    const longest = shortest > 0 ? shortest - 360 : shortest + 360;
-
-    return transformAngle(sDeg + (seg.reverse ? longest : shortest) * localT);
+  let towards: Point2D = line.endPoint;
+  if (source.heading === "tangential" && line.controlPoints?.length) {
+    towards =
+      getFirstValidControlPoint(line.controlPoints, previousPoint) ?? towards;
   }
-
-  if (seg.heading === "constant")
-    return transformAngle((seg.degrees ?? 0) + (seg.reverse ? 180 : 0));
-
-  let ref1: Point2D = previousPoint;
-  let ref2: Point2D = line.endPoint;
-
-  if (isStart) {
-    if (seg.heading === "tangential" && line.controlPoints?.length > 0) {
-      ref2 =
-        getFirstValidControlPoint(line.controlPoints, previousPoint) || ref2;
-    } else if (seg.heading === "facingPoint") {
-      const tx = seg.targetX || 0;
-      const ty = seg.targetY || 0;
-      // Piecewise start always uses t=0 for geometry lookup
-      const pos = previousPoint;
-      let angle = Math.atan2(ty - pos.y, tx - pos.x) * (180 / Math.PI);
-      if (seg.reverse) angle += 180;
-      return transformAngle(angle);
-    }
-    return getHeadingBase(seg, previousPoint, ref2);
-  } else {
-    if (seg.heading === "tangential" && line.controlPoints?.length > 0) {
-      ref1 =
-        getFirstValidControlPoint(line.controlPoints, line.endPoint, true) ||
-        ref1;
-    } else if (seg.heading === "facingPoint") {
-      const tx = seg.targetX || 0;
-      const ty = seg.targetY || 0;
-      const pos = line.endPoint;
-      let angle = Math.atan2(ty - pos.y, tx - pos.x) * (180 / Math.PI);
-      if (seg.reverse) angle += 180;
-      return transformAngle(angle);
-    }
-    return getHeadingBase(
-      seg,
-      seg.heading === "facingPoint" ? line.endPoint : ref1,
-      line.endPoint,
-    );
-  }
+  return getPointHeading(source, previousPoint, towards);
 }
 
-function getEffectiveHeadingSource(line: Line, globalOverride?: Line) {
-  const isGlobal =
-    globalOverride?.globalHeading && globalOverride.globalHeading !== "none";
+function getHeadingAtLineEnd(
+  source: HeadingSource,
+  line: Line,
+  previousPoint: Point2D,
+): number {
+  if (source.heading === "facingPoint") {
+    return getPointHeading(source, line.endPoint, line.endPoint);
+  }
+  let from: Point2D = previousPoint;
+  if (source.heading === "tangential" && line.controlPoints?.length) {
+    from =
+      getFirstValidControlPoint(line.controlPoints, line.endPoint, true) ??
+      from;
+  }
+  return getPointHeading(source, from, line.endPoint);
+}
 
+function getLinearSegmentHeading(seg: PiecewiseSegment, t: number): number {
+  const startDeg = seg.startDeg ?? 0;
+  const endDeg = seg.endDeg ?? 0;
+  const localT =
+    seg.tEnd > seg.tStart ? (t - seg.tStart) / (seg.tEnd - seg.tStart) : 0;
+
+  return transformAngle(
+    startDeg + linearHeadingSweep(startDeg, endDeg, seg.reverse) * localT,
+  );
+}
+
+/**
+ * A chained line can override its own heading with the chain's global
+ * heading. Returns whichever source actually applies.
+ */
+function getEffectiveHeadingSource(line: Line, globalOverride?: Line) {
+  if (
+    !globalOverride?.globalHeading ||
+    globalOverride.globalHeading === "none"
+  ) {
+    return { isGlobal: false, source: line.endPoint as HeadingSource };
+  }
   return {
-    isGlobal,
-    effectiveSource: isGlobal
-      ? {
-          heading: globalOverride!.globalHeading,
-          degrees: globalOverride!.globalDegrees,
-          startDeg: globalOverride!.globalStartDeg,
-          endDeg: globalOverride!.globalEndDeg,
-          targetX: globalOverride!.globalTargetX,
-          targetY: globalOverride!.globalTargetY,
-          reverse: globalOverride!.globalReverse,
-          segments: globalOverride!.globalSegments,
-        }
-      : line.endPoint,
+    isGlobal: true,
+    source: {
+      heading: globalOverride.globalHeading,
+      degrees: globalOverride.globalDegrees,
+      startDeg: globalOverride.globalStartDeg,
+      endDeg: globalOverride.globalEndDeg,
+      targetX: globalOverride.globalTargetX,
+      targetY: globalOverride.globalTargetY,
+      reverse: globalOverride.globalReverse,
+      segments: globalOverride.globalSegments,
+    } as HeadingSource,
   };
 }
 
+function findSegmentAt(segments: PiecewiseSegment[], t: number) {
+  return segments.find((seg) => t >= seg.tStart && t <= seg.tEnd);
+}
+
+/**
+ * The heading the robot should have at the start of `line`.
+ * For a line inside a chain, pass the chain's first line as `globalOverride`
+ * and the distances so piecewise headings can be evaluated chain-wide.
+ */
 export function getLineStartHeading(
   line: Line | undefined,
   previousPoint: Point,
@@ -320,46 +322,24 @@ export function getLineStartHeading(
 ): number {
   if (!line?.endPoint) return 0;
 
-  const { isGlobal, effectiveSource } = getEffectiveHeadingSource(
-    line,
-    globalOverride,
-  );
+  const { isGlobal, source } = getEffectiveHeadingSource(line, globalOverride);
 
-  if (effectiveSource.heading === "linear")
-    return (effectiveSource as any).startDeg;
+  if (source.heading === "linear") return source.startDeg as number;
 
-  if (effectiveSource.heading === "piecewise") {
-    const segments = (effectiveSource as any).segments || [];
+  if (source.heading === "piecewise") {
+    const segments = source.segments ?? [];
     const t =
       isGlobal && totalChainDistance && totalChainDistance > 0
         ? (distanceBefore || 0) / totalChainDistance
         : 0;
 
-    let activeSeg = null;
-    for (const seg of segments) {
-      if (t >= seg.tStart && t <= seg.tEnd) {
-        activeSeg = seg;
-        break;
-      }
-    }
-    if (!activeSeg && segments.length > 0) activeSeg = segments[0];
-
-    if (activeSeg) {
-      return evaluatePiecewiseSegment(activeSeg, t, line, previousPoint, true);
-    }
-    return 0;
+    const seg = findSegmentAt(segments, t) ?? segments[0];
+    if (!seg) return 0;
+    if (seg.heading === "linear") return getLinearSegmentHeading(seg, t);
+    return getHeadingAtLineStart(seg, line, previousPoint);
   }
 
-  let nextP: Point2D = line.endPoint;
-  if (
-    effectiveSource.heading === "tangential" &&
-    line.controlPoints?.length > 0
-  ) {
-    nextP =
-      getFirstValidControlPoint(line.controlPoints, previousPoint) || nextP;
-  }
-
-  return getHeadingBase(effectiveSource as any, previousPoint, nextP);
+  return getHeadingAtLineStart(source, line, previousPoint);
 }
 
 export function getInitialTangentialHeading(
@@ -370,6 +350,7 @@ export function getInitialTangentialHeading(
   return startPoint.reverse ? angle + 180 : angle;
 }
 
+/** The heading the robot should have at the end of `line`. */
 export function getLineEndHeading(
   line: Line | undefined,
   previousPoint: Point,
@@ -379,51 +360,24 @@ export function getLineEndHeading(
 ): number {
   if (!line?.endPoint) return 0;
 
-  const { isGlobal, effectiveSource } = getEffectiveHeadingSource(
-    line,
-    globalOverride,
-  );
+  const { isGlobal, source } = getEffectiveHeadingSource(line, globalOverride);
 
-  if (effectiveSource.heading === "linear")
-    return (effectiveSource as any).endDeg;
+  if (source.heading === "linear") return source.endDeg as number;
 
-  if (effectiveSource.heading === "piecewise") {
-    const segments = (effectiveSource as any).segments || [];
+  if (source.heading === "piecewise") {
+    const segments = source.segments ?? [];
     const t =
       isGlobal && totalChainDistance && totalChainDistance > 0
         ? (distanceAtEnd || 0) / totalChainDistance
         : 1;
 
-    let lastSeg = null;
-    for (const seg of segments) {
-      if (t >= seg.tStart && t <= seg.tEnd) {
-        lastSeg = seg;
-        break;
-      }
-    }
-    if (!lastSeg && segments.length > 0) lastSeg = segments.at(-1);
-
-    if (lastSeg) {
-      return evaluatePiecewiseSegment(lastSeg, t, line, previousPoint, false);
-    }
-    return 0;
+    const seg = findSegmentAt(segments, t) ?? segments.at(-1);
+    if (!seg) return 0;
+    if (seg.heading === "linear") return getLinearSegmentHeading(seg, t);
+    return getHeadingAtLineEnd(seg, line, previousPoint);
   }
 
-  let prevP: Point2D = previousPoint;
-  if (
-    effectiveSource.heading === "tangential" &&
-    line.controlPoints?.length > 0
-  ) {
-    prevP =
-      getFirstValidControlPoint(line.controlPoints, line.endPoint, true) ||
-      prevP;
-  }
-
-  return getHeadingBase(
-    effectiveSource as any,
-    effectiveSource.heading === "facingPoint" ? line.endPoint : prevP,
-    line.endPoint,
-  );
+  return getHeadingAtLineEnd(source, line, previousPoint);
 }
 
 /**
@@ -438,19 +392,21 @@ export function findClosestT(
   let bestT = 0;
   let minDistance = Infinity;
 
-  // Coarse search
-  const samples = 20;
-  for (let i = 0; i <= samples; i++) {
-    const t = i / samples;
-    const pt = getCurvePoint(t, points);
-    const dist = getDistance(target, pt);
+  const tryT = (t: number) => {
+    const dist = getDistance(target, getCurvePoint(t, points));
     if (dist < minDistance) {
       minDistance = dist;
       bestT = t;
     }
+  };
+
+  // Coarse search over evenly spaced samples.
+  const samples = 20;
+  for (let i = 0; i <= samples; i++) {
+    tryT(i / samples);
   }
 
-  // Refinement
+  // Then repeatedly search a narrower window around the best sample.
   let range = 1 / samples;
   for (let iter = 0; iter < iterations; iter++) {
     const startT = Math.max(0, bestT - range);
@@ -459,13 +415,7 @@ export function findClosestT(
 
     const step = (endT - startT) / 10;
     for (let i = 0; i <= 10; i++) {
-      const t = startT + i * step;
-      const pt = getCurvePoint(t, points);
-      const dist = getDistance(target, pt);
-      if (dist < minDistance) {
-        minDistance = dist;
-        bestT = t;
-      }
+      tryT(startT + i * step);
     }
     range = step;
   }

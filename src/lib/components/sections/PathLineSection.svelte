@@ -133,6 +133,12 @@
     }
   });
 
+  function setColor(e: Event) {
+    const color = (e.currentTarget as HTMLInputElement).value;
+    lines[idx] = { ...lines[idx], color };
+    lines = [...lines];
+  }
+
   function commitEndpointInput(axis: "x" | "y") {
     let parsed = Number.parseFloat(axis === "x" ? xDraft : yDraft);
     if (Number.isNaN(parsed)) {
@@ -416,13 +422,11 @@
     <!-- Right: Controls -->
     <div class="flex items-center gap-1">
       <ColorPicker
-        bind:color={line.color}
-        oninput={() => {
-          lines = [...lines];
-        }}
-        onchange={() => {
-          lines = [...lines];
-          if (recordChange) recordChange("Change Path Color");
+        color={line.color}
+        oninput={(e) => setColor(e)}
+        onchange={(e) => {
+          setColor(e);
+          recordChange?.("Change Path Color");
         }}
         title="Change Path Color"
         disabled={line.locked}

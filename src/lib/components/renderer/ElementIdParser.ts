@@ -43,6 +43,38 @@ export type ParseResult =
   | ParsedUnknown
   | null;
 
+// Longest first, so "wait-event-circle-" wins over "wait-event-".
+const STEP_EVENT_PREFIXES = [
+  "wait-event-circle-",
+  "wait-event-flag-",
+  "wait-event-",
+  "rotate-event-circle-",
+  "rotate-event-arrow-",
+  "rotate-event-",
+];
+
+/**
+ * Parses the element id of an event marker on a wait or rotate step, e.g.
+ * "wait-event-{waitId}-{markerIndex}" or "rotate-event-circle-{id}-{n}".
+ * Step ids can themselves contain "-", so the index is read from the end.
+ */
+export function parseStepEventId(
+  id: string,
+): { kind: "wait" | "rotate"; itemId: string; eventIndex: number } | null {
+  const prefix = STEP_EVENT_PREFIXES.find((p) => id.startsWith(p));
+  if (!prefix) return null;
+  const rest = id.slice(prefix.length);
+  const cut = rest.lastIndexOf("-");
+  if (cut <= 0) return null;
+  const eventIndex = Number(rest.slice(cut + 1));
+  if (Number.isNaN(eventIndex)) return null;
+  return {
+    kind: prefix.startsWith("wait") ? "wait" : "rotate",
+    itemId: rest.slice(0, cut),
+    eventIndex,
+  };
+}
+
 /**
  * Parses an element ID string (e.g. from DOM or SVG elements) into structured metadata.
  *
@@ -77,14 +109,22 @@ export function parseElementId(id: string | null | undefined): ParseResult {
     const evIdx = Number(parts[2]);
     if (Number.isNaN(lineIdx) || Number.isNaN(evIdx)) return null;
     return { type: "event", lineIndex: lineIdx, eventIndex: evIdx };
-  } else if (type === "wait" && parts[1] === "event") {
-    const waitId = parts[2];
-    const evIdx = Number(parts[3]);
-    return { type: "wait-event", waitId, eventIndex: evIdx };
-  } else if (type === "rotate" && parts[1] === "event") {
-    const rotateId = parts[2];
-    const evIdx = Number(parts[3]);
-    return { type: "rotate-event", rotateId, eventIndex: evIdx };
+  } else if (parts[1] === "event") {
+    const step = parseStepEventId(id);
+    if (step?.kind === "wait") {
+      return {
+        type: "wait-event",
+        waitId: step.itemId,
+        eventIndex: step.eventIndex,
+      };
+    }
+    if (step?.kind === "rotate") {
+      return {
+        type: "rotate-event",
+        rotateId: step.itemId,
+        eventIndex: step.eventIndex,
+      };
+    }
   }
 
   return { type: "unknown", originalId: id };
@@ -94,27 +134,17 @@ export function parseElementId(id: string | null | undefined): ParseResult {
  * Normalizes complex SVG event element IDs (e.g. event-circle-0-1, wait-event-flag-id-2) into canonical event keys.
  */
 export function normalizeEventElementId(targetId: string): string {
+  const step = parseStepEventId(targetId);
+  if (step) return `${step.kind}-event-${step.itemId}-${step.eventIndex}`;
+  if (
+    targetId.startsWith("wait-event-") ||
+    targetId.startsWith("rotate-event-")
+  ) {
+    return targetId;
+  }
   const idParts = targetId.split("-");
-  if (targetId.startsWith("wait-event-")) {
-    if (idParts.length >= 4) {
-      const waitId = idParts.at(-2);
-      const evIdx = idParts.at(-1);
-      return `wait-event-${waitId}-${evIdx}`;
-    }
-    return targetId;
-  }
-  if (targetId.startsWith("rotate-event-")) {
-    if (idParts.length >= 4) {
-      const rotateId = idParts.at(-2);
-      const evIdx = idParts.at(-1);
-      return `rotate-event-${rotateId}-${evIdx}`;
-    }
-    return targetId;
-  }
   if (idParts.length >= 3) {
-    const lineIdx = idParts.at(-2);
-    const evIdx = idParts.at(-1);
-    return `event-${lineIdx}-${evIdx}`;
+    return `event-${idParts.at(-2)}-${idParts.at(-1)}`;
   }
   return targetId;
 }
@@ -147,30 +177,13 @@ export function resolveHoveredMarkerId(
         return lines[lIdx].eventMarkers[eIdx].id;
       }
     }
-  } else if (elemId.startsWith("wait-event-")) {
-    const parts = elemId.split("-");
-    if (parts.length >= 4) {
-      const waitId = parts[2];
-      const eIdx = Number(parts[3]);
-      const waitItem = sequence.find(
-        (s) => s.kind === "wait" && s.id === waitId,
-      );
-      if (waitItem?.eventMarkers?.[eIdx]) {
-        return waitItem.eventMarkers[eIdx].id;
-      }
-    }
-  } else if (elemId.startsWith("rotate-event-")) {
-    const parts = elemId.split("-");
-    if (parts.length >= 4) {
-      const rotateId = parts[2];
-      const eIdx = Number(parts[3]);
-      const rotateItem = sequence.find(
-        (s) => s.kind === "rotate" && s.id === rotateId,
-      );
-      if (rotateItem?.eventMarkers?.[eIdx]) {
-        return rotateItem.eventMarkers[eIdx].id;
-      }
-    }
+  } else {
+    const step = parseStepEventId(elemId);
+    const item = step
+      ? sequence.find((s) => s.kind === step.kind && s.id === step.itemId)
+      : undefined;
+    const marker = step ? item?.eventMarkers?.[step.eventIndex] : undefined;
+    if (marker) return marker.id;
   }
   return null;
 }

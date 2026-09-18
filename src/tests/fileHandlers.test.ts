@@ -29,7 +29,6 @@ vi.mock("../stores", async () => {
     currentFilePath: writable(""),
     isUnsaved: writable(false),
     notification: writable(null),
-    projectMetadataStore: writable({}),
     currentDirectoryStore: writable(null),
   };
 });

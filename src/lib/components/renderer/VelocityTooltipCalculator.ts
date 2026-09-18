@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Line, Point } from "../../../types";
-import { findClosestT, getCurvePoint, getDistance } from "../../../utils/math";
+import { closestPointOnPath } from "../../../utils/geometry";
+import { getDistance } from "../../../utils/math";
 
 export interface VelocityTooltipResult {
   visible: boolean;
@@ -44,27 +45,15 @@ export function calculateVelocityTooltip(
     return { visible: false };
   }
 
-  let bestDist = snapThreshold;
-  let bestLineIdx = -1;
-  let bestT = 0;
-
-  lines.forEach((line, idx) => {
-    if (line.hidden) return;
-    const prevP = idx === 0 ? startPoint : lines[idx - 1].endPoint;
-    const cps = [prevP, ...line.controlPoints, line.endPoint];
-    const t = findClosestT({ x: rawInchX, y: rawInchY }, cps);
-    const pt = getCurvePoint(t, cps);
-    const dist = getDistance({ x: rawInchX, y: rawInchY }, pt);
-    if (dist < bestDist) {
-      bestDist = dist;
-      bestLineIdx = idx;
-      bestT = t;
-    }
+  const closest = closestPointOnPath(lines, startPoint, {
+    x: rawInchX,
+    y: rawInchY,
   });
-
-  if (bestLineIdx === -1) {
+  if (!closest || closest.dist >= snapThreshold) {
     return { visible: false };
   }
+  const bestLineIdx = closest.lineIdx;
+  const bestT = closest.t;
 
   const tlEvent = timeline.find(
     (e: any) => e.type === "travel" && e.lineIndex === bestLineIdx,

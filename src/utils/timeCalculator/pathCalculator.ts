@@ -18,6 +18,7 @@ import { buildHeadingProfile } from "./headingProfile";
 import { calculateRotationTime } from "./rotation";
 import { calculateMotionProfileDetailed } from "./motionProfile";
 import { actionRegistry } from "../../lib/actionRegistry";
+import { makeId } from "../nameGenerator";
 
 export function calculatePathTime(
   startPoint: Point,
@@ -128,7 +129,7 @@ export function calculatePathTime(
 
     const lineById = new Map<string, Line>();
     contextLines.forEach((ln) => {
-      if (!ln.id) ln.id = `line-${Math.random().toString(36).slice(2)}`;
+      if (!ln.id) ln.id = makeId("line");
       lineById.set(ln.id, ln);
     });
 
@@ -321,7 +322,6 @@ export function calculatePathTime(
       );
       let endHeading = rotationAnalysis.endHeading;
       let rotationRequired = rotationAnalysis.rotationRequired;
-      let endHeadingRaw = rotationAnalysis.endHeadingRaw;
 
       const totalRotationRequiredForSegment = isChained
         ? Math.abs(endHeading - currentHeading)
@@ -349,22 +349,21 @@ export function calculatePathTime(
 
       // Build heading profile AFTER motion profile is scaled/finalized so we have accurate times
       if (useMotionProfile && motionProfile) {
-        headingProfile = buildHeadingProfile(
+        headingProfile = buildHeadingProfile({
           line,
           prevPoint,
           rootLine,
           chainMeta,
           currentHeading,
           endHeading,
-          endHeadingRaw,
           physicalRotationTime,
           analysis,
           motionProfile,
-          safeSettings,
+          settings: safeSettings,
           length,
           isChained,
           isGlobalOverride,
-        );
+        });
       }
 
       // Cleaned up the duplicate declarations that caused tests to fail.
@@ -393,11 +392,7 @@ export function calculatePathTime(
       // Update state: seed from actual last heading profile value if available
       // so the next segment always continues from wherever we truly ended up
       // (which can differ from endHeading when using global chain interpolation).
-      if (headingProfile && headingProfile.length > 0) {
-        currentHeading = headingProfile.at(-1);
-      } else {
-        currentHeading = endHeading;
-      }
+      currentHeading = headingProfile?.at(-1) ?? endHeading;
       lastPoint = line.endPoint as Point;
     });
   };

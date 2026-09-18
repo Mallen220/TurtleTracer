@@ -428,7 +428,7 @@ export function getSelectableItems() {
   return items;
 }
 
-export function syncSelectionToUI(controlTabRef: any) {
+function syncSelectionToUI(controlTabRef: any) {
   const sel = get(selectedPointId);
   const sequence = get(sequenceStore);
   const lines = get(linesStore);
@@ -459,31 +459,6 @@ export function syncSelectionToUI(controlTabRef: any) {
       controlTabRef.scrollToItem("event", line.eventMarkers[info.evIdx].id);
     }
   }
-}
-
-export function cycleSelection(dir: number, controlTabRef: any) {
-  if (isUIElementFocused()) return;
-  const items = getSelectableItems();
-  if (items.length === 0) return;
-
-  const lines = get(linesStore);
-  let current = get(selectedPointId);
-  let idx = items.indexOf(current || "");
-  if (idx === -1) idx = 0;
-  else idx = (idx + dir + items.length) % items.length;
-  const newId = items[idx];
-
-  selectedPointId.set(newId);
-  multiSelectedPointIds.set([newId]);
-
-  if (newId.startsWith("point-")) {
-    const parts = newId.split("-");
-    const lineNum = Number(parts[1]);
-    if (lineNum > 0) selectedLineId.set(lines[lineNum - 1].id || null);
-    else selectedLineId.set(null);
-  } else selectedLineId.set(null);
-
-  syncSelectionToUI(controlTabRef);
 }
 
 export function cycleSequenceSelection(dir: number, controlTabRef: any) {

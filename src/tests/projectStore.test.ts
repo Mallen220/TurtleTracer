@@ -1,10 +1,18 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, beforeEach } from "vitest";
+import { get } from "svelte/store";
 import {
   normalizeLines,
   sanitizeSequence,
   renumberDefaultPathNames,
+  resetProject,
+  startPointStore,
+  linesStore,
+  sequenceStore,
+  shapesStore,
+  extraDataStore,
 } from "../lib/projectStore";
+import { getDefaultStartPoint } from "../config";
 import type {
   Line,
   SequenceItem,
@@ -127,5 +135,23 @@ describe("projectStore Utilities", () => {
       expect(result[0].name).toBe("Start");
       expect(result[1].name).toBe("End");
     });
+  });
+});
+
+describe("resetProject", () => {
+  it("restores the default path and clears project data", () => {
+    linesStore.set([]);
+    shapesStore.set([]);
+    extraDataStore.set({ plugin: { value: 1 } });
+
+    resetProject();
+
+    const lines = get(linesStore);
+    expect(get(startPointStore)).toEqual(getDefaultStartPoint());
+    expect(lines.length).toBeGreaterThan(0);
+    expect(get(sequenceStore)).toEqual(
+      lines.map((l) => ({ kind: "path", lineId: l.id })),
+    );
+    expect(get(extraDataStore)).toEqual({});
   });
 });

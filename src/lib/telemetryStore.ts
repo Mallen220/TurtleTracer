@@ -140,9 +140,6 @@ export const telemetryOffset = writable<number>(0);
 export const liveTelemetryData = writable<TelemetryPoint[] | null>(null);
 export const importedTelemetryData = writable<TelemetryPoint[] | null>(null);
 
-// Backward-compatible alias for older references. Prefer importedTelemetryData.
-export const telemetryData = importedTelemetryData;
-
 /**
  * Calculates ghost robot pose at the current playback time from imported telemetry data.
  */

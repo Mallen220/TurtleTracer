@@ -70,19 +70,12 @@
   function handleNameInput(e: Event) {
     const target = e.target as HTMLInputElement;
     item.name = target.value;
-    // Note: WaypointTable handles `handleRotateRename` in `onUpdate` wrapper usually?
-    // Wait, in WaypointTable I changed it to:
-    // onUpdate={(updatedItem) => { sequence[seqIndex] = updatedItem; ... }}
-    // For Wait, I handled linked updates.
-    // For Rotate, I should check if I need to handle linked updates.
-    // `handleRotateRename` is the equivalent.
     onUpdate(item);
   }
 
   function handleDegreesInput(e: Event) {
     const target = e.target as HTMLInputElement;
     (item as any).degrees = Number.parseFloat(target.value);
-    // `updateLinkedRotations` is needed here.
     onUpdate(item);
   }
 

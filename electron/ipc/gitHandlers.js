@@ -4,6 +4,40 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import simpleGit from "simple-git";
 
+function classifyStatus({ index, working_dir: workingDir }) {
+  if (workingDir === "?" || workingDir === "U") return "untracked";
+  if (workingDir !== " ") return "modified";
+  if (index !== " " && index !== "?") return "staged";
+  return "clean";
+}
+
+/**
+ * Git status of every changed file in the repository containing `directory`,
+ * keyed by real (symlink-resolved) absolute path. Files that aren't listed
+ * are clean. Returns {} if the directory isn't in a git repository.
+ */
+export async function getGitStatuses(directory) {
+  const statuses = {};
+  try {
+    const git = simpleGit(directory);
+    if (!(await git.checkIsRepo())) return statuses;
+
+    const status = await git.status();
+    const rawRoot = await git.revparse(["--show-toplevel"]);
+    const rootDir = await fs.realpath(rawRoot.trim());
+
+    for (const fileStatus of status.files) {
+      const absPath = path.resolve(rootDir, fileStatus.path);
+      // Deleted files have no real path, so fall back to the plain one.
+      const key = await fs.realpath(absPath).catch(() => absPath);
+      statuses[key] = classifyStatus(fileStatus);
+    }
+  } catch (e) {
+    console.warn("Error checking git status:", e);
+  }
+  return statuses;
+}
+
 export function registerGitHandlers() {
   ipcMain.handle("git:show", async (event, filePath) => {
     try {
@@ -27,49 +61,7 @@ export function registerGitHandlers() {
   });
 
   ipcMain.handle("git:status", async (event, directory) => {
-    if (
-      !directory ||
-      typeof directory !== "string" ||
-      directory.trim() === ""
-    ) {
-      return {};
-    }
-    let gitStatuses = {};
-    try {
-      const git = simpleGit(directory);
-      if (await git.checkIsRepo()) {
-        const status = await git.status();
-        const rawRoot = await git.revparse(["--show-toplevel"]);
-        const rootDir = await fs.realpath(rawRoot.trim());
-
-        for (const fileStatus of status.files) {
-          const absPath = path.resolve(rootDir, fileStatus.path);
-          // Ensure we use the realpath for the key to match the app's file paths
-          let realAbsPath = absPath;
-          try {
-            realAbsPath = await fs.realpath(absPath);
-          } catch {
-            // File might be deleted, use absPath as fallback
-          }
-
-          let statusStr = "clean";
-
-          if (fileStatus.working_dir === "?" || fileStatus.working_dir === "U")
-            statusStr = "untracked";
-          else if (
-            fileStatus.working_dir !== " " &&
-            fileStatus.working_dir !== "?"
-          )
-            statusStr = "modified";
-          else if (fileStatus.index !== " " && fileStatus.index !== "?")
-            statusStr = "staged";
-
-          gitStatuses[realAbsPath] = statusStr;
-        }
-      }
-    } catch (e) {
-      console.warn("Error checking git status:", e);
-    }
-    return gitStatuses;
+    if (typeof directory !== "string" || directory.trim() === "") return {};
+    return getGitStatuses(directory);
   });
 }

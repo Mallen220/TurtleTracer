@@ -68,7 +68,7 @@ export function toFieldCoordinate(
 /**
  * Converts inches to centimeters.
  */
-export function inchToCm(inches: number): number {
+function inchToCm(inches: number): number {
   return inches * 2.54;
 }
 

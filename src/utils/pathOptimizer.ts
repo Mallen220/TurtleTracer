@@ -192,7 +192,7 @@ export class PathOptimizer {
         }
 
         // 2. Check last control point vs endPoint (end of line)
-        const lastCP = line.controlPoints.at(-1);
+        const lastCP = line.controlPoints.at(-1)!;
         dx = lastCP.x - line.endPoint.x;
         dy = lastCP.y - line.endPoint.y;
         dist = Math.hypot(dx, dy);

@@ -2,8 +2,8 @@
 import { ipcMain, BrowserWindow, dialog } from "electron";
 import fs from "node:fs/promises";
 import path from "node:path";
-import simpleGit from "simple-git";
 import { isProjectFilePath, validateArbitraryPath } from "../utils.js";
+import { getGitStatuses } from "./gitHandlers.js";
 
 export function registerFileHandlers() {
   ipcMain.handle("file:copy", async (event, srcPath, destPath) => {
@@ -69,41 +69,7 @@ export function registerFileHandlers() {
         (dirent) => dirent.isDirectory() || isProjectFilePath(dirent.name),
       );
 
-      let gitStatuses = {};
-      try {
-        const git = simpleGit(directory);
-        if (await git.checkIsRepo()) {
-          const status = await git.status();
-          const rawRoot = await git.revparse(["--show-toplevel"]);
-          const rootDir = await fs.realpath(rawRoot.trim());
-
-          for (const fileStatus of status.files) {
-            const absPath = path.resolve(rootDir, fileStatus.path);
-            let realAbsPath = absPath;
-            try {
-              realAbsPath = await fs.realpath(absPath);
-            } catch {
-              // File might be deleted
-            }
-            let statusStr = "clean";
-            if (
-              fileStatus.working_dir === "?" ||
-              fileStatus.working_dir === "U"
-            )
-              statusStr = "untracked";
-            else if (
-              fileStatus.working_dir !== " " &&
-              fileStatus.working_dir !== "?"
-            )
-              statusStr = "modified";
-            else if (fileStatus.index !== " " && fileStatus.index !== "?")
-              statusStr = "staged";
-            gitStatuses[realAbsPath] = statusStr;
-          }
-        }
-      } catch (e) {
-        console.warn("Error checking git status:", e);
-      }
+      const gitStatuses = await getGitStatuses(resolvedDir);
 
       const fileDetails = await Promise.all(
         projectFilesAndDirs.map(async (dirent) => {

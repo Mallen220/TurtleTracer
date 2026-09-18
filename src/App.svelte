@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import { get } from "svelte/store";
   import * as d3 from "d3";
   import debounce from "lodash/debounce";
@@ -8,7 +8,6 @@
   const IDENTITY_SCALE = d3.scaleLinear();
 
   // Components
-  import { DEFAULT_SETTINGS } from "./config/defaults";
   import ControlTab from "./lib/ControlTab.svelte";
   import Navbar from "./lib/Navbar.svelte";
   import LeftSidebar from "./lib/components/LeftSidebar.svelte";
@@ -54,13 +53,11 @@
     collisionMarkers,
     showFileManager,
     fileManagerNewFileMode,
-    projectMetadataStore,
     currentDirectoryStore,
     showPluginManager,
     showTelemetryDialog,
     selectedLineId,
-    // alias the import so the original name can be used safely below
-    showUpdateAvailableDialog as _showUpdateAvailableDialog,
+    showUpdateAvailableDialog,
     updateDataStore,
     showRatingDialog,
     ratingDialogAutoOpened,
@@ -69,8 +66,6 @@
     notification,
   } from "./stores";
 
-  // keep a locally-named binding for the watchers and template
-  const showUpdateAvailableDialog = _showUpdateAvailableDialog;
   import {
     startPointStore,
     linesStore,
@@ -94,18 +89,15 @@
     loopRangeStore,
     loopRangeActiveStore,
     isDraggingStore,
+    timePredictionStore,
+    resetProject,
+    scaleShapesToField,
   } from "./lib/projectStore";
   import { diffMode, committedData } from "./lib/diffStore";
 
-  import { resetPath } from "./utils/projectLifecycle";
-
   // Utils
   import { createAnimationController } from "./utils/animation";
-  import {
-    calculatePathTime,
-    getAnimationDuration,
-    calculateRobotState,
-  } from "./utils";
+  import { calculatePathTime, calculateRobotState } from "./utils";
   import { validatePath } from "./utils/validation";
   import { loadSettings, saveSettings } from "./utils/settingsPersistence";
   import { createHistory, type AppState } from "./utils/history";
@@ -114,6 +106,7 @@
     saveFileAs,
     handleExternalFileOpen,
     handleAutoExport,
+    joinPath,
   } from "./utils/fileHandlers";
   import { splitPathAtPercent } from "./utils/pathEditing";
   import { scanEventsInDirectory } from "./utils/eventScanner";
@@ -127,13 +120,14 @@
     DEFAULT_PROJECT_EXTENSION,
     isSupportedProjectFileName,
   } from "./utils/fileExtensions";
-  import { POTATO_THEME_CSS, firePotatoConfetti } from "./utils/potatoTheme";
+  import { firePotatoConfetti } from "./utils/potatoTheme";
+  import { applyTheme, applyFontSize } from "./lib/appearance";
 
   // Register Default Components/Tabs
   registerCoreUI();
 
   // Types
-  import type { Settings } from "./types/index";
+  import type { Settings, Line, Point, TimePrediction } from "./types/index";
   import {
     FIELD_SIZE,
     DEFAULT_ROBOT_LENGTH,
@@ -178,50 +172,24 @@
     }
   }
 
-  // Delegated handler: open external links in the user's default browser when running in Electron
-  function handleLinkClick(e: MouseEvent) {
-    const target = e.target as HTMLElement;
-    if (!target || !("closest" in target)) return;
-    const anchor = target.closest("a") as HTMLAnchorElement | null;
-    if (!anchor || !anchor.href) return;
-
-    // Allow other handlers to prevent default behavior first
-    if (e.defaultPrevented) return;
-
-    // Special exception: allow links marked as internal
-    if (anchor.hasAttribute("data-internal")) return;
-
-    const href = anchor.href;
-    const isExternal =
-      href.startsWith("http://") || href.startsWith("https://");
-    if (isExternal && electronAPI?.openExternal) {
-      e.preventDefault();
-      electronAPI
-        .openExternal(href)
-        .catch((err) => console.warn("openExternal failed", err));
-    }
-  }
-
   async function fetchGitStatus() {
     const dir = get(currentDirectoryStore);
     if (!dir) return;
     const currentSettings = get(settingsStore);
     if (!currentSettings.gitIntegration) return;
 
-    if ((electronAPI as any)?.gitStatus) {
-      try {
-        const statuses = await (electronAPI as any).gitStatus(dir);
-        gitStatusStore.set(statuses);
-      } catch (e) {
-        console.warn("Failed to check git status on focus", e);
-      }
+    if (!electronAPI?.gitStatus) return;
+    try {
+      gitStatusStore.set(await electronAPI.gitStatus(dir));
+    } catch (e) {
+      console.warn("Failed to check git status", e);
     }
   }
 
   onMount(() => {
-    document.addEventListener("click", handleLinkClick);
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("focus", fetchGitStatus);
+    document.addEventListener("click", clearWaitSelectionOnOutsideClick);
     checkMsStoreTracking();
 
     if (electronAPI && electronAPI.onUpdateAvailable) {
@@ -253,35 +221,43 @@
 
     return () => {
       clearInterval(ratingInterval);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("focus", fetchGitStatus);
-      if (gitRefreshUnsub) gitRefreshUnsub();
+      document.removeEventListener("click", clearWaitSelectionOnOutsideClick);
     };
   });
 
-  // Automatically refresh git status when directory or file changes
-  let gitRefreshUnsub: () => void;
-  let libraryCheckUnsub: () => void;
-  onMount(() => {
-    gitRefreshUnsub = currentDirectoryStore.subscribe(() => {
-      fetchGitStatus();
-    });
-
-    libraryCheckUnsub = currentDirectoryStore.subscribe((dir) => {
-      if (dir) {
-        checkLibraryVersion(dir, electronAPI, notification.set);
-      }
-    });
-
-    return () => {
-      if (libraryCheckUnsub) libraryCheckUnsub();
-    };
+  // Refresh git status when the folder, open file or git setting changes.
+  $effect(() => {
+    void [
+      $currentDirectoryStore,
+      $currentFilePath,
+      $settingsStore.gitIntegration,
+    ];
+    fetchGitStatus();
   });
 
   $effect(() => {
-    // Also refresh when git integration is toggled or file path changes
-    const _ = [$settingsStore.gitIntegration, $currentFilePath];
-    fetchGitStatus();
+    if ($currentDirectoryStore) {
+      checkLibraryVersion(
+        $currentDirectoryStore,
+        electronAPI,
+        notification.set,
+      );
+    }
   });
+
+  /** Adds the time since the last call to the saved total usage time. */
+  async function recordUsageTime() {
+    const now = Date.now();
+    const elapsed = now - sessionStartTime;
+    sessionStartTime = now;
+    settingsStore.update((s) => ({
+      ...s,
+      totalUsageTime: (s.totalUsageTime || 0) + elapsed,
+    }));
+    await saveSettings(get(settingsStore));
+  }
 
   function tryShowRatingDialog() {
     // Disable rating dialog in browser mode
@@ -320,33 +296,17 @@
       return;
     }
 
-    const currentSessionUsage = now - sessionStartTime;
-    const totalUsageMs = (settings.totalUsageTime || 0) + currentSessionUsage;
-
-    // Save total usage time periodically
-    settingsStore.update((s) => ({
-      ...s,
-      totalUsageTime: totalUsageMs,
-    }));
-    sessionStartTime = now; // Reset session start time to avoid double counting
-    saveSettings(get(settingsStore)).catch((e) =>
+    recordUsageTime().catch((e) =>
       console.error("Failed to save usage time", e),
     );
 
-    const tenHoursMs = 10 * 60 * 60 * 1000; //10 Hours rating delay
-
-    if (totalUsageMs >= tenHoursMs) {
+    // Only ask for a rating after 10 hours of total use.
+    const tenHoursMs = 10 * 60 * 60 * 1000;
+    if ((get(settingsStore).totalUsageTime || 0) >= tenHoursMs) {
       ratingDialogAutoOpened.set(true);
       showRatingDialog.set(true);
     }
   }
-
-  onDestroy(() => {
-    document.removeEventListener("click", handleLinkClick);
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-    window.removeEventListener("focus", fetchGitStatus);
-    if (autosaveIntervalId) clearInterval(autosaveIntervalId);
-  });
 
   // --- Drag and Drop Logic ---
   let isDraggingFile = $state(false);
@@ -375,67 +335,40 @@
     saveNameResolve = null;
   }
 
+  /**
+   * Saves the project before the user moves on to something else. A project
+   * that has never been saved is named and put in the project folder.
+   * Returns false if the save failed or the user cancelled.
+   */
+  async function saveBeforeContinuing(): Promise<boolean> {
+    const savedDir = get(currentFilePath)
+      ? null
+      : await electronAPI?.getSavedDirectory?.();
+    if (!savedDir) return saveProject();
+
+    const name = await openSaveNamePrompt();
+    if (!name) return false;
+    return saveProject({
+      path: joinPath(savedDir, `${name}${DEFAULT_PROJECT_EXTENSION}`),
+    });
+  }
+
   // --- Unsaved Changes Dialog Logic ---
+  function continuePendingAction() {
+    if (pendingAction === "close") electronAPI?.sendCloseApproved?.();
+    else performReset();
+    pendingAction = null;
+  }
+
   async function handleUnsavedSave() {
     showUnsavedChangesDialog = false;
-    const api = (globalThis as any).electronAPI;
-    const currentPath = get(currentFilePath);
-    let success = false;
-
-    if (!currentPath && api && api.getSavedDirectory) {
-      // Try to use default directory + prompt
-      const savedDir = await api.getSavedDirectory();
-      if (savedDir) {
-        const name = await openSaveNamePrompt();
-        if (name) {
-          const sep = savedDir.includes("\\") ? "\\" : "/";
-          const cleanDir = savedDir.endsWith(sep)
-            ? savedDir.slice(0, -1)
-            : savedDir;
-          const fullPath = `${cleanDir}${sep}${name}${DEFAULT_PROJECT_EXTENSION}`;
-          success = await saveProject(
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            false,
-            fullPath,
-          );
-        } else {
-          // User cancelled name input
-          return;
-        }
-      } else {
-        success = await saveProject();
-      }
-    } else {
-      success = await saveProject();
-    }
-
-    if (success) {
-      if (pendingAction === "close") {
-        if (api?.sendCloseApproved) {
-          api.sendCloseApproved();
-        }
-      } else {
-        performReset();
-      }
-    }
-    pendingAction = null;
+    if (await saveBeforeContinuing()) continuePendingAction();
+    else pendingAction = null;
   }
 
   function handleUnsavedDiscard() {
     showUnsavedChangesDialog = false;
-    if (pendingAction === "close") {
-      const api = (globalThis as any).electronAPI;
-      if (api?.sendCloseApproved) {
-        api.sendCloseApproved();
-      }
-    } else {
-      performReset();
-    }
-    pendingAction = null;
+    continuePendingAction();
   }
 
   function handleUnsavedCancel() {
@@ -444,10 +377,9 @@
   }
 
   function performReset() {
-    resetPath();
-    // Clear file association for the new project
+    resetProject();
+    // A new project isn't saved anywhere yet.
     currentFilePath.set(null);
-    projectMetadataStore.set({ filepath: "" });
 
     recordChange("New Project");
     // Mark as clean new project
@@ -489,9 +421,7 @@
 
       if (e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0];
-        // Refresh electronAPI reference from window to ensure it's available
-        const api = (globalThis as any).electronAPI;
-
+        const api = electronAPI;
         if (!api) return;
 
         // Case-insensitive check for supported extension
@@ -523,41 +453,7 @@
                 "You have unsaved changes. Press OK to save them before opening. Press Cancel to proceed without saving.",
               )
             ) {
-              const currentPath = get(currentFilePath);
-              let success = false;
-
-              if (!currentPath && api.getSavedDirectory) {
-                // Try to use default directory + prompt
-                const savedDir = await api.getSavedDirectory();
-                if (savedDir) {
-                  const name = await openSaveNamePrompt();
-                  if (name) {
-                    const sep = savedDir.includes("\\") ? "\\" : "/";
-                    const cleanDir = savedDir.endsWith(sep)
-                      ? savedDir.slice(0, -1)
-                      : savedDir;
-                    const fullPath = `${cleanDir}${sep}${name}${DEFAULT_PROJECT_EXTENSION}`;
-                    success = await saveProject(
-                      undefined,
-                      undefined,
-                      undefined,
-                      undefined,
-                      undefined,
-                      false,
-                      fullPath,
-                    );
-                  } else {
-                    // User cancelled name input
-                    return;
-                  }
-                } else {
-                  success = await saveProject();
-                }
-              } else {
-                success = await saveProject();
-              }
-
-              if (!success) return; // Save failed or cancelled
+              if (!(await saveBeforeContinuing())) return;
             } else if (
               !confirm(
                 "This will discard your unsaved changes. Are you sure you want to open the new file?",
@@ -578,23 +474,9 @@
   }
 
   // --- Autosave Logic ---
-  let autosaveIntervalId: any = $state(null);
-
   function performAutosave() {
-    const path = get(currentFilePath);
-    if (path && get(isUnsaved)) {
-      saveProject(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        false,
-        undefined,
-        {
-          quiet: true,
-        },
-      );
+    if (get(currentFilePath) && get(isUnsaved)) {
+      saveProject({ quiet: true });
     }
   }
 
@@ -609,38 +491,21 @@
   }
 
   async function handleAppCloseRequested() {
-    // Accumulate total usage time on close
-    const now = Date.now();
-    const currentSessionUsage = now - sessionStartTime;
-    settingsStore.update((s) => ({
-      ...s,
-      totalUsageTime: (s.totalUsageTime || 0) + currentSessionUsage,
-    }));
-    sessionStartTime = now;
     try {
-      await saveSettings(get(settingsStore));
-    } catch {}
+      await recordUsageTime();
+    } catch (e) {
+      console.error("Failed to save usage time", e);
+    }
 
     const unsaved = get(isUnsaved);
     const autosaveMode = settings?.autosaveMode;
 
-    if (autosaveMode === "close") {
-      // Autosave and close
-      const path = get(currentFilePath);
-      if (path && unsaved) {
-        await saveProject();
-        if (electronAPI?.sendCloseApproved) {
-          electronAPI.sendCloseApproved();
-        }
-        return;
-      } else if (!unsaved) {
-        // Nothing to save
-        if (electronAPI && electronAPI.sendCloseApproved) {
-          electronAPI.sendCloseApproved();
-        }
-        return;
-      }
-      // If unsaved and no path (new file), fall through to prompt
+    // With "save on close", a project that has a file is saved silently.
+    // A new, never-saved project still gets the prompt.
+    if (autosaveMode === "close" && unsaved && get(currentFilePath)) {
+      await saveProject();
+      electronAPI?.sendCloseApproved?.();
+      return;
     }
 
     if (unsaved) {
@@ -654,10 +519,8 @@
   // --- Layout State ---
   let showSidebar = $state(true);
 
-  // DEBUG: force open Whats New during development to validate feature loading
+  // Shown on first launch to pick a project folder.
   let setupMode = $state(false);
-  // Set this to true to force the setup dialog for testing
-  const TEST_SETUP_DIALOG = false;
   let activeControlTab: "path" | "field" | "table" = $state("path");
   let controlTabRef: any = $state(null);
   // DOM container for the ControlTab; used to size/position the stats panel
@@ -670,7 +533,6 @@
     right: 0,
     bottom: 0,
   });
-  let _controlTabObserver: ResizeObserver | null = $state(null);
 
   function updateControlRect() {
     if (!controlTabContainer) return;
@@ -685,16 +547,16 @@
     };
   }
 
-  onMount(() => {
-    updateControlRect();
-    _controlTabObserver = new ResizeObserver(updateControlRect);
-    if (controlTabContainer) _controlTabObserver.observe(controlTabContainer);
+  $effect(() => {
+    if (!controlTabContainer) return;
+    const observer = new ResizeObserver(updateControlRect);
+    observer.observe(controlTabContainer);
     window.addEventListener("resize", updateControlRect);
-  });
-
-  onDestroy(() => {
-    if (_controlTabObserver) _controlTabObserver.disconnect();
-    window.removeEventListener("resize", updateControlRect);
+    updateControlRect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateControlRect);
+    };
   });
 
   let statsOpen = $state(false);
@@ -715,8 +577,8 @@
     | undefined = $state();
 
   // --- Preview Optimization ---
-  let previewOptimizedLines: any[] | null = $state(null);
-  let timePrediction: any = $state(null);
+  let previewOptimizedLines = $state<Line[] | null>(null);
+  let timePrediction = $state.raw<TimePrediction | null>(null);
 
   // --- History ---
   const history = createHistory();
@@ -739,10 +601,6 @@
     return JSON.stringify(getAppState());
   }
 
-  function onRecordChange(action?: string) {
-    recordChange(action);
-  }
-
   // Exported for tests
   export async function recordChange(description: string = "Change") {
     ensureSequenceConsistency();
@@ -753,22 +611,12 @@
     if (isLoaded) animationController?.seekToPercent(0);
 
     // Autosave on change
-    if (isLoaded && settings?.autosaveMode === "change") {
-      const path = get(currentFilePath);
-      if (path) {
-        saveProject(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          false,
-          undefined,
-          { quiet: true },
-        ).then(() => {
-          fetchGitStatus();
-        });
-      }
+    if (
+      isLoaded &&
+      settings?.autosaveMode === "change" &&
+      get(currentFilePath)
+    ) {
+      saveProject({ quiet: true }).then(fetchGitStatus);
     }
 
     // Auto-export on any change when enabled
@@ -828,79 +676,41 @@
     }
   }
 
+  function restoreHistoryState(state: AppState) {
+    startPointStore.set(state.startPoint);
+    linesStore.set(state.lines);
+    shapesStore.set(state.shapes);
+    sequenceStore.set(state.sequence);
+
+    // Undoing a reset can bring back macros that are no longer loaded.
+    const loadedMacros = get(macrosStore);
+    for (const item of state.sequence ?? []) {
+      if (item.kind === "macro" && !loadedMacros.has(item.filePath)) {
+        loadMacro(item.filePath);
+      }
+    }
+
+    // Onion layer visibility is a view preference, so undo/redo leave it alone.
+    const showOnion = get(settingsStore).showOnionLayers;
+    settingsStore.set({
+      ...state.settings,
+      showOnionLayers:
+        typeof showOnion === "boolean"
+          ? showOnion
+          : state.settings?.showOnionLayers,
+    });
+
+    isUnsaved.set(getCurrentState() !== lastSavedState);
+  }
+
   function undoAction() {
     const prev = history.undo();
-    if (prev) {
-      startPointStore.set(prev.startPoint);
-      linesStore.set(prev.lines);
-      shapesStore.set(prev.shapes);
-      sequenceStore.set(prev.sequence);
-
-      // Check for macros that need reloading (e.g. after undoing a reset)
-      const currentMacros = get(macrosStore);
-      if (prev.sequence) {
-        prev.sequence.forEach((item) => {
-          if (item.kind === "macro") {
-            // If missing from cache, trigger load
-            if (!currentMacros.has(item.filePath)) {
-              loadMacro(item.filePath);
-            }
-          }
-        });
-      }
-
-      // Preserve the current onion layer visibility when undoing so that
-      // toggling onion layers isn't overwritten by history operations.
-      const currentShowOnion = get(settingsStore).showOnionLayers;
-      const preservedShowOnion =
-        typeof currentShowOnion === "boolean"
-          ? currentShowOnion
-          : prev.settings?.showOnionLayers;
-      settingsStore.set({
-        ...prev.settings,
-        showOnionLayers: preservedShowOnion,
-      });
-
-      const currentState = getCurrentState();
-      isUnsaved.set(currentState !== lastSavedState);
-      // FieldRenderer will update reactively via stores
-    }
+    if (prev) restoreHistoryState(prev);
   }
 
   function redoAction() {
     const next = history.redo();
-    if (next) {
-      startPointStore.set(next.startPoint);
-      linesStore.set(next.lines);
-      shapesStore.set(next.shapes);
-      sequenceStore.set(next.sequence);
-
-      // Check for macros that need reloading
-      const currentMacros = get(macrosStore);
-      if (next.sequence) {
-        next.sequence.forEach((item) => {
-          if (item.kind === "macro") {
-            if (!currentMacros.has(item.filePath)) {
-              loadMacro(item.filePath);
-            }
-          }
-        });
-      }
-
-      // Preserve onion layer visibility when redoing as well.
-      const currentShowOnion = get(settingsStore).showOnionLayers;
-      const preservedShowOnion =
-        typeof currentShowOnion === "boolean"
-          ? currentShowOnion
-          : next.settings?.showOnionLayers;
-      settingsStore.set({
-        ...next.settings,
-        showOnionLayers: preservedShowOnion,
-      });
-
-      const currentState = getCurrentState();
-      isUnsaved.set(currentState !== lastSavedState);
-    }
+    if (next) restoreHistoryState(next);
   }
 
   function closeWhatsNew() {
@@ -926,28 +736,7 @@
     const savedSettings = await loadSettings();
     settingsStore.set({ ...savedSettings });
 
-    if (
-      (savedSettings.fieldWidth !== DEFAULT_SETTINGS.fieldWidth ||
-        savedSettings.fieldHeight !== DEFAULT_SETTINGS.fieldHeight) &&
-      !savedSettings.customMaps?.some((m) => m.id === savedSettings.fieldMap)
-    ) {
-      const scaleX =
-        (savedSettings.fieldWidth ?? 144) /
-        (DEFAULT_SETTINGS.fieldWidth ?? 144);
-      const scaleY =
-        (savedSettings.fieldHeight ?? 144) /
-        (DEFAULT_SETTINGS.fieldHeight ?? 144);
-      shapesStore.update((shapes) =>
-        shapes.map((shape) => ({
-          ...shape,
-          vertices: shape.vertices.map((v) => ({
-            ...v,
-            x: v.x * scaleX,
-            y: v.y * scaleY,
-          })),
-        })),
-      );
-    }
+    shapesStore.update((shapes) => scaleShapesToField(shapes, savedSettings));
 
     // Stabilize
     setTimeout(async () => {
@@ -979,7 +768,7 @@
         }
       }
 
-      if (needsSetup || TEST_SETUP_DIALOG) {
+      if (needsSetup) {
         setupMode = true;
       } else {
         // Check for What's New
@@ -1004,11 +793,6 @@
       // Rating dialog logic
       tryShowRatingDialog();
     }, 500);
-
-    // Expose debug trigger for testing setup dialog
-    (globalThis as any).triggerSetupDialog = () => {
-      setupMode = true;
-    };
 
     // Electron Menu Action Listener
     if (electronAPI) {
@@ -1043,8 +827,7 @@
               saveFileAs();
               break;
             case "open-file":
-              const input = document.getElementById("file-upload");
-              if (input) input.click();
+              document.getElementById("file-upload")?.click();
               break;
             case "export-gif":
               exportGif();
@@ -1077,7 +860,6 @@
             case "open-shortcuts":
               showShortcuts.set(true);
               break;
-            // ... other cases ...
           }
         });
       }
@@ -1139,16 +921,12 @@
   }
 
   function handleSplitPath() {
-    if (!(timePrediction?.totalTime > 0)) return;
-    const currentLines = get(linesStore);
-    const currentSequence = get(sequenceStore);
-    const currentPercent = get(percentStore);
-
+    if (!timePrediction?.totalTime) return;
     const res = splitPathAtPercent(
-      currentPercent,
+      get(percentStore),
       timePrediction,
-      currentLines,
-      currentSequence,
+      get(linesStore),
+      get(sequenceStore),
     );
 
     if (res) {
@@ -1169,8 +947,6 @@
   // When in vertical (mobile) mode, hide the control tab from layout after
   // its closing animation completes so the field can resize to the freed area.
   let controlTabHidden = $state(false);
-  let hideControlTabTimeout: ReturnType<typeof setTimeout> | null =
-    $state(null);
 
   function startResize(mode: "horizontal" | "vertical") {
     if (
@@ -1238,8 +1014,8 @@
     resizeMode = null;
   }
 
-  // --- Document Click Handler (Wait Selection) ---
-  function handleDocClick(e: MouseEvent) {
+  // Clicking anywhere outside a selected wait deselects it.
+  function clearWaitSelectionOnOutsideClick(e: MouseEvent) {
     const sel = get(selectedPointId);
     if (!sel || !sel.startsWith("wait-")) return;
     let el = e.target as Element | null;
@@ -1251,12 +1027,6 @@
     }
     selectedPointId.set(null);
   }
-  onDestroy(() => {
-    if (typeof document !== "undefined")
-      document.removeEventListener("click", handleDocClick);
-  });
-  if (typeof document !== "undefined")
-    document.addEventListener("click", handleDocClick);
 
   // --- Export GIF ---
   // Need reference to Two instance from FieldRenderer
@@ -1268,34 +1038,16 @@
   // --- Export Dialog Logic ---
   let exportDialog: ExportCodeDialog | undefined = $state();
 
-  // --- Apply Custom Theme Class ---
-  // Keep track of the previously-applied custom theme class so it can be removed when switching themes.
-  let currentCustomThemeClass: string | null = $state(null);
-
   let settings = $derived($settingsStore);
-  // Manage Time-based Autosave
+  // Time-based autosave
   $effect(() => {
-    if (autosaveIntervalId) {
-      clearInterval(autosaveIntervalId);
-      autosaveIntervalId = null;
-    }
-
-    if (settings?.autosaveMode === "time" && settings?.autosaveInterval) {
-      const intervalMs = settings.autosaveInterval * 60 * 1000;
-      autosaveIntervalId = setInterval(performAutosave, intervalMs);
-    }
+    if (settings?.autosaveMode !== "time" || !settings.autosaveInterval) return;
+    const id = setInterval(performAutosave, settings.autosaveInterval * 60_000);
+    return () => clearInterval(id);
   });
   let effectiveShowSidebar = $derived(
     $isPresentationMode ? false : showSidebar,
   );
-  $effect(() => {
-    if (controlTabContainer && _controlTabObserver) {
-      try {
-        _controlTabObserver.observe(controlTabContainer);
-        updateControlRect();
-      } catch {}
-    }
-  });
   $effect(() => {
     if (!effectiveShowSidebar && statsOpen) statsOpen = false;
   });
@@ -1367,14 +1119,17 @@
   let canRedo = $derived($canRedoStore);
   // --- Animation Logic ---
   $effect(() => {
+    // Too slow to recompute on every frame of a drag; it catches up on drop.
     if (!$isDraggingStore) {
-      timePrediction = calculatePathTime(
+      const prediction = calculatePathTime(
         startPoint,
         lines,
         settings,
         sequence,
         macros,
       );
+      timePrediction = prediction;
+      timePredictionStore.set(prediction);
     }
   });
   // Continuous validation when path/settings change
@@ -1423,21 +1178,16 @@
         )
       : null,
   );
-  let currentTotalTime = $derived(
-    timePrediction?.totalTime ? timePrediction.totalTime / 1000 : 0,
-  );
-  let committedTotalTime = $derived(
-    committedTimePrediction ? committedTimePrediction.totalTime / 1000 : 0,
-  );
-  // If in diff mode, duration is the max of both paths
+  // Durations are in seconds.
+  let currentTotalTime = $derived(timePrediction?.totalTime ?? 0);
+  let committedTotalTime = $derived(committedTimePrediction?.totalTime ?? 0);
+  // In diff mode both paths play on one timeline, as long as the longer one.
   let effectiveDuration = $derived(
     isDiffMode
       ? Math.max(currentTotalTime, committedTotalTime)
       : currentTotalTime,
   );
-  let animationDuration = $derived(
-    getAnimationDuration(effectiveDuration, playbackSpeed),
-  );
+  let animationDuration = $derived(effectiveDuration / playbackSpeed);
   $effect(() => {
     if (animationController) {
       animationController.setDuration(animationDuration);
@@ -1447,8 +1197,6 @@
         loopRange[1],
         loopRangeActive,
       );
-      // If playing state changes externally (e.g. store update), sync controller?
-      // Actually controller drives percent. `playing` store drives controller.
     }
   });
   // Sync playing store -> controller
@@ -1460,115 +1208,91 @@
         animationController.pause();
     }
   });
+  /**
+   * The robot's pose (in inches) `globalTime` seconds into playback. In diff
+   * mode both paths share one timeline, so the shorter one waits at its end.
+   */
+  function robotPoseAt(
+    globalTime: number,
+    prediction: TimePrediction,
+    totalTime: number,
+    pathLines: Line[],
+    start: Point,
+  ) {
+    const pathPercent =
+      totalTime > 0 ? Math.min(100, (globalTime / totalTime) * 100) : 0;
+    return calculateRobotState(
+      pathPercent,
+      prediction.timeline,
+      pathLines,
+      start,
+      IDENTITY_SCALE,
+      IDENTITY_SCALE,
+    );
+  }
+
+  const hasPath = $derived(lines.length > 0 || sequence.length > 0);
+
   $effect(() => {
-    if (timePrediction?.timeline && (lines.length > 0 || sequence.length > 0)) {
-      // Calculate Global Time based on effective duration
-      const globalTime = (percent / 100) * effectiveDuration;
-
-      // 1. Current Robot State
-      // Map global time to current path percent
-      let currentPercent = 0;
-      if (currentTotalTime > 0) {
-        currentPercent = (globalTime / currentTotalTime) * 100;
-        if (currentPercent > 100) currentPercent = 100;
-      }
-
-      // Pass identity scales to get inches
-      const state = calculateRobotState(
-        currentPercent,
-        timePrediction.timeline,
-        lines,
-        startPoint,
-        IDENTITY_SCALE,
-        IDENTITY_SCALE,
-      );
-      robotXYStore.set({ x: state.x, y: state.y });
-      robotHeadingStore.set(state.heading);
-
-      // 2. Committed Robot State (if in diff mode)
-      if (isDiffMode && committed && committedTimePrediction) {
-        let committedPercent = 0;
-        if (committedTotalTime > 0) {
-          committedPercent = (globalTime / committedTotalTime) * 100;
-          if (committedPercent > 100) committedPercent = 100;
-        }
-
-        const commState = calculateRobotState(
-          committedPercent,
-          committedTimePrediction.timeline,
-          committed.lines,
-          committed.startPoint,
-          IDENTITY_SCALE,
-          IDENTITY_SCALE,
-        );
-        committedRobotState = {
-          x: commState.x,
-          y: commState.y,
-          heading: commState.heading,
-        };
-      } else {
-        committedRobotState = null;
-      }
-    } else {
-      // Store position in inches
+    if (!timePrediction?.timeline || !hasPath) {
+      // Nothing to animate: show the robot at the start point.
       robotXYStore.set({ x: startPoint.x, y: startPoint.y });
-      let h = 0;
-      if (startPoint.heading === "constant") h = -startPoint.degrees;
-      else if (startPoint.heading === "linear") h = -startPoint.startDeg;
-      // Tangential defaults to 0 if no lines
-      robotHeadingStore.set(h);
+      let heading = 0;
+      if (startPoint.heading === "constant") heading = -startPoint.degrees;
+      else if (startPoint.heading === "linear") heading = -startPoint.startDeg;
+      robotHeadingStore.set(heading);
       committedRobotState = null;
+      return;
     }
+
+    const globalTime = (percent / 100) * effectiveDuration;
+    const state = robotPoseAt(
+      globalTime,
+      timePrediction,
+      currentTotalTime,
+      lines,
+      startPoint,
+    );
+    robotXYStore.set({ x: state.x, y: state.y });
+    robotHeadingStore.set(state.heading);
+
+    committedRobotState =
+      isDiffMode && committed && committedTimePrediction
+        ? robotPoseAt(
+            globalTime,
+            committedTimePrediction,
+            committedTotalTime,
+            committed.lines,
+            committed.startPoint,
+          )
+        : null;
   });
 
   $effect(() => {
-    if (
-      hoverPercent !== null &&
-      timePrediction?.timeline &&
-      (lines.length > 0 || sequence.length > 0)
-    ) {
-      const globalTime = (hoverPercent / 100) * effectiveDuration;
-      let currentPercent = 0;
-      if (currentTotalTime > 0) {
-        currentPercent = (globalTime / currentTotalTime) * 100;
-        if (currentPercent > 100) currentPercent = 100;
-      }
-      const state = calculateRobotState(
-        currentPercent,
-        timePrediction.timeline,
-        lines,
-        startPoint,
-        IDENTITY_SCALE,
-        IDENTITY_SCALE,
-      );
-      hoverRobotXYStore.set({ x: state.x, y: state.y });
-      hoverRobotHeadingStore.set(state.heading);
-    } else {
+    if (hoverPercent === null || !timePrediction?.timeline || !hasPath) {
       hoverRobotXYStore.set(null);
       hoverRobotHeadingStore.set(null);
+      return;
     }
+    const state = robotPoseAt(
+      (hoverPercent / 100) * effectiveDuration,
+      timePrediction,
+      currentTotalTime,
+      lines,
+      startPoint,
+    );
+    hoverRobotXYStore.set({ x: state.x, y: state.y });
+    hoverRobotHeadingStore.set(state.heading);
   });
   $effect(() => {
-    if (isLargeScreen) {
-      // Ensure visible on large screens
+    if (isLargeScreen || effectiveShowSidebar) {
       controlTabHidden = false;
-      if (hideControlTabTimeout) {
-        clearTimeout(hideControlTabTimeout);
-        hideControlTabTimeout = null;
-      }
-    } else if (effectiveShowSidebar) {
-      // On small screens, when sidebar is closed, wait for animation then hide
-      if (hideControlTabTimeout) {
-        clearTimeout(hideControlTabTimeout);
-        hideControlTabTimeout = null;
-      }
-      controlTabHidden = false;
-    } else {
-      if (hideControlTabTimeout) clearTimeout(hideControlTabTimeout);
-      hideControlTabTimeout = setTimeout(() => {
-        controlTabHidden = true;
-      }, 320); // slightly longer than the 300ms transition
+      return;
     }
+    // On small screens, remove the closed control tab from the layout once
+    // its 300ms slide-out has finished, so the field can use the space.
+    const id = setTimeout(() => (controlTabHidden = true), 320);
+    return () => clearTimeout(id);
   });
   let fieldRenderWidth = $derived(
     $isPresentationMode ? mainContentWidth : fieldDrawSize,
@@ -1602,96 +1326,17 @@
       exportDialogState.update((s) => ({ ...s, isOpen: false }));
     }
   });
-  // --- Apply Theme ---
   $effect(() => {
-    // Depend on themesStore so re-run when plugins load
-    const registeredThemes = $themesStore;
-    if (settings) {
-      // Check for Potato Mode first!
-      const isAprilFools =
-        new Date().getMonth() === 3 && new Date().getDate() === 1;
-      const isPotatoMode =
-        settings.robotImage === "/JefferyThePotato.png" || isAprilFools;
-
-      // Remove any existing custom theme style
-      const existingStyle = document.getElementById("custom-theme-style");
-      if (existingStyle) existingStyle.remove();
-
-      if (isPotatoMode) {
-        const style = document.createElement("style");
-        style.id = "custom-theme-style";
-        style.textContent = POTATO_THEME_CSS;
-        document.head.appendChild(style);
-
-        // Potato mode works best with light mode base (colors are overridden anyway)
-        document.documentElement.classList.remove("dark");
-        document.documentElement.classList.add("potato-mode");
-
-        // Ensure we clear any earlier custom theme classes
-        if (currentCustomThemeClass) {
-          document.documentElement.classList.remove(currentCustomThemeClass);
-          currentCustomThemeClass = null;
-        }
-      } else {
-        document.documentElement.classList.remove("potato-mode");
-
-        let t = settings.theme || "auto";
-
-        // Check if it's a custom theme
-        const customTheme = registeredThemes.find((th) => th.name === t);
-
-        if (customTheme) {
-          const style = document.createElement("style");
-          style.id = "custom-theme-style";
-          style.textContent = customTheme.css;
-          document.head.appendChild(style);
-
-          // Add a theme-specific class so we can scope CSS for multiple custom themes
-          const themeClass = `theme-${t
-            .toLowerCase()
-            .replaceAll(/[^a-z0-9]+/g, "-")}`;
-          if (
-            currentCustomThemeClass &&
-            currentCustomThemeClass !== themeClass
-          ) {
-            document.documentElement.classList.remove(currentCustomThemeClass);
-          }
-          document.documentElement.classList.add(themeClass);
-          currentCustomThemeClass = themeClass;
-
-          // Custom themes should start from the dark mode base to avoid Tailwind's
-          // default light mode styling applying to the app.
-          document.documentElement.classList.add("dark");
-        } else {
-          if (currentCustomThemeClass) {
-            document.documentElement.classList.remove(currentCustomThemeClass);
-            currentCustomThemeClass = null;
-          }
-
-          if (t === "auto") {
-            t = globalThis.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light";
-          }
-          if (t === "dark") document.documentElement.classList.add("dark");
-          else document.documentElement.classList.remove("dark");
-        }
-      }
-    }
-  });
-  // --- Apply Program Font Size ---
-  $effect(() => {
-    if (settings?.programFontSize) {
-      document.documentElement.style.fontSize = `${settings.programFontSize}%`;
-    } else {
-      document.documentElement.style.fontSize = "100%";
-    }
+    if (!settings) return;
+    applyTheme(settings, $themesStore);
+    applyFontSize(settings);
   });
 
-  const SvelteComponent_1 = $derived(
+  // Plugins can replace these components.
+  const FieldRendererComponent = $derived(
     $componentRegistry.FieldRenderer || FieldRenderer,
   );
-  const SvelteComponent_2 = $derived(
+  const ControlTabComponent = $derived(
     $componentRegistry.ControlTab || ControlTab,
   );
 </script>
@@ -1766,7 +1411,14 @@
     robotLengthPx={x(robotLength)}
     robotWidthPx={x(robotWidth)}
     robotStateFunction={(p) =>
-      calculateRobotState(p, timePrediction.timeline, lines, startPoint, x, y)}
+      calculateRobotState(
+        p,
+        timePrediction?.timeline ?? [],
+        lines,
+        startPoint,
+        x,
+        y,
+      )}
     {electronAPI}
     onclose={() => showExportGif.set(false)}
   />
@@ -1786,7 +1438,7 @@
       y: $startPointStore.y,
       heading: calculateRobotState(
         0,
-        timePrediction.timeline,
+        timePrediction?.timeline ?? [],
         lines,
         startPoint,
         IDENTITY_SCALE,
@@ -1972,14 +1624,14 @@
             title="Field workspace tutorial target"
             tabindex={$startTutorial ? 0 : -1}
           ></button>
-          <SvelteComponent_1
+          <FieldRendererComponent
             bind:this={fieldRenderer}
             width={fieldRenderWidth}
             height={fieldRenderHeight}
             {timePrediction}
             {committedRobotState}
             {previewOptimizedLines}
-            {onRecordChange}
+            onRecordChange={recordChange}
           />
         </div>
       </div>
@@ -2048,7 +1700,7 @@
           ></div>
         {/if}
 
-        <SvelteComponent_2
+        <ControlTabComponent
           bind:this={controlTabRef}
           bind:playing={$playingStore}
           {play}
@@ -2073,7 +1725,7 @@
           bind:statsOpen
           bind:activeTab={activeControlTab}
           onPreviewChange={handlePreviewChange}
-          totalSeconds={effectiveDuration * 1000}
+          totalSeconds={effectiveDuration}
           splitPath={handleSplitPath}
         />
       </div>

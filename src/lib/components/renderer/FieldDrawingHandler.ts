@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Line, Point, SequenceItem } from "../../../types";
+import type { Line, Point, SequenceItem, Settings } from "../../../types";
 import { generateLinesFromDrawing } from "../../../utils/pathEditing";
 
 export interface DrawingPoint {
@@ -53,11 +53,11 @@ export function continueDrawing(
   gridConfig: DrawingGridConfig,
   minDistance = 2,
 ): boolean {
-  if (points.length === 0) return false;
+  const lastPoint = points.at(-1);
+  if (!lastPoint) return false;
 
   const inchX = snapDrawingCoordinate(rawX, gridConfig);
   const inchY = snapDrawingCoordinate(rawY, gridConfig);
-  const lastPoint = points.at(-1);
 
   const dx = inchX - lastPoint.x;
   const dy = inchY - lastPoint.y;
@@ -78,11 +78,8 @@ export function completeDrawingStroke(
   startPoint: Point,
   lines: Line[],
   sequence: SequenceItem[],
-  settings: unknown,
+  settings: Pick<Settings, "drawToolTolerance" | "drawToolTension">,
 ): { startPoint: Point; lines: Line[]; sequence: SequenceItem[] } | null {
-  if (points.length <= 1) {
-    return null;
-  }
   return generateLinesFromDrawing(
     points,
     startPoint,

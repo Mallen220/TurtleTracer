@@ -14,11 +14,7 @@ import {
   getAngularDifference,
   getInitialTangentialHeading,
 } from "../utils/math";
-
-// Helper to make unique IDs
-function makeId() {
-  return Math.random().toString(36).slice(2, 9);
-}
+import { makeId } from "../utils/nameGenerator";
 
 function unwrapAngle(target: number, reference: number): number {
   const diff = getAngularDifference(reference, target);
@@ -198,7 +194,7 @@ function transformMacroData(
  * Expands a macro into a list of lines and a sequence of items.
  * Handles bridge generation and rotation alignment.
  */
-export function normalizePath(p: string): string {
+function normalizePath(p: string): string {
   if (!p) return "";
   return p.replaceAll(`\\`, "/").toLowerCase();
 }
@@ -660,19 +656,14 @@ export function regenerateProjectMacros(
             newSequence[newSequence.length - 1] = newItem;
           }
 
-          // Update current point to end of last line
-          const lastLine = preservedLines.at(-1);
-          currentPoint = lastLine.endPoint;
-          currentHeading = getLineEndHeading(
-            lastLine,
-            preservedLines.length > 1
-              ? preservedLines.at(-2).endPoint
-              : currentPoint,
-          );
-          if (lastLine.endPoint.heading === "constant")
-            currentHeading = lastLine.endPoint.degrees;
-          else if (lastLine.endPoint.heading === "linear")
-            currentHeading = lastLine.endPoint.endDeg;
+          // Continue from the end of the last preserved line
+          const lastLine = preservedLines.at(-1)!;
+          const lineStart = preservedLines.at(-2)?.endPoint ?? currentPoint;
+          const end = lastLine.endPoint;
+          if (end.heading === "constant") currentHeading = end.degrees;
+          else if (end.heading === "linear") currentHeading = end.endDeg;
+          else currentHeading = getLineEndHeading(lastLine, lineStart);
+          currentPoint = end;
         }
       }
     }

@@ -538,7 +538,6 @@
               <h6
                 class="text-sm font-bold text-neutral-800 dark:text-neutral-100 flex items-center gap-2"
               >
-                <!-- <span class="flex items-center justify-center size-5 bg-blue-600 text-white rounded-full text-[10px]">NEW</span> -->
                 Create Custom Tool
               </h6>
               <button

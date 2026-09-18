@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { makeId } from "../../../utils/nameGenerator";
   import { createTriangle } from "../../../utils";
   import {
     snapToGrid,
@@ -90,7 +91,7 @@
 
   function handleSavePreset(name: string) {
     const newPreset: ObstaclePreset = {
-      id: `preset-${Math.random().toString(36).slice(2)}`,
+      id: makeId("preset"),
       name: name,
       shapes: $state.snapshot(shapes), // Deep copy
     };
@@ -487,12 +488,6 @@
                           }}
                         />
                       </div>
-                      <!-- {#if $snapToGrid && $showGrid}
-                        <span
-                          class="text-xs text-green-500"
-                          title="Snapping enabled">✓</span
-                        >
-                      {/if} -->
                       <div class="flex items-center gap-1 ml-auto">
                         <button
                           title="Add Vertex After"

@@ -2,7 +2,8 @@
 /**
  * Geometry utility functions for obstacle detection and polygon operations
  */
-import type { BasePoint } from "../types";
+import type { BasePoint, Line } from "../types";
+import { findClosestT, getCurvePoint, getDistance } from "./math";
 
 /**
  * Determines if a point is inside a polygon using ray casting algorithm
@@ -168,11 +169,32 @@ export function convexHull(points: BasePoint[]): BasePoint[] {
   const hull: BasePoint[] = [pivot];
 
   for (const point of sorted) {
-    while (hull.length >= 2 && cross(hull.at(-2), hull.at(-1), point) <= 0) {
+    while (hull.length >= 2 && cross(hull.at(-2)!, hull.at(-1)!, point) <= 0) {
       hull.pop();
     }
     hull.push(point);
   }
 
   return hull;
+}
+
+/**
+ * The visible path line closest to `pt`: its index, how far along it (t)
+ * the closest point is, and the distance to that point.
+ */
+export function closestPointOnPath(
+  lines: Line[],
+  startPoint: BasePoint,
+  pt: { x: number; y: number },
+): { lineIdx: number; t: number; dist: number } | null {
+  let best: { lineIdx: number; t: number; dist: number } | null = null;
+  lines.forEach((line, idx) => {
+    if (line.hidden) return;
+    const prev = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+    const curve = [prev, ...line.controlPoints, line.endPoint];
+    const t = findClosestT(pt, curve);
+    const dist = getDistance(pt, getCurvePoint(t, curve));
+    if (!best || dist < best.dist) best = { lineIdx: idx, t, dist };
+  });
+  return best;
 }

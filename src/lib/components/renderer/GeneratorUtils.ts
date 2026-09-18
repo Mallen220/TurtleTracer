@@ -1,6 +1,8 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
 import { Anchor } from "two.js/src/anchor";
+import type { Path } from "two.js/src/path";
+import type { Line as PathLine } from "two.js/src/shapes/line";
 import { getCurvePoint, quadraticToCubic } from "../../../utils/math";
 import type { Line, Point } from "../../../types";
 
@@ -125,6 +127,21 @@ export function createPathAnchors(
       ),
     ];
   }
+}
+
+/** A Two.js shape for a path line: a straight line, or a curve through its anchors. */
+export function createLineElement(
+  line: Line,
+  startPoint: Point,
+  ctx: RenderContext,
+): Path | PathLine {
+  const anchors = createPathAnchors(line, startPoint, ctx);
+  if (line.controlPoints.length === 0) {
+    return new Two.Line(anchors[0].x, anchors[0].y, anchors[1].x, anchors[1].y);
+  }
+  const curve = new Two.Path(anchors);
+  curve.automatic = false;
+  return curve;
 }
 
 /**

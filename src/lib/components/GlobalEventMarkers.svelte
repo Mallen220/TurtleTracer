@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { makeId } from "../../utils/nameGenerator";
   import type {
     Line,
     SequenceItem,
@@ -294,7 +295,7 @@
     const def = actionRegistry.get(item.kind);
 
     const newMarker: EventMarker = {
-      id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+      id: makeId("event"),
       name: "",
       type: "parametric",
       position: 0.5,

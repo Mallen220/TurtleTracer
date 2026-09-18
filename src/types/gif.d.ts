@@ -12,6 +12,7 @@ declare module "gif.js" {
     addFrame(element: any, opts?: { copy?: boolean; delay?: number }): void;
     on(event: string, cb: (arg?: any) => void): void;
     render(): void;
+    abort(): void;
   }
   export default GIF;
 }

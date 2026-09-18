@@ -2,6 +2,7 @@
 import type { Line, Point } from "../../../types/index";
 import { getRandomColor } from "../../../utils";
 import { getTransformedCoordinates } from "./CoordinateTransform";
+import { makeId } from "../../../utils/nameGenerator";
 
 export interface CreatePathAtPointOptions {
   inchX: number;
@@ -53,7 +54,7 @@ export function createPathAtPoint(options: CreatePathAtPointOptions): Line {
   }
 
   return {
-    id: `line-${Math.random().toString(36).slice(2)}`,
+    id: makeId("line"),
     name: "",
     endPoint,
     controlPoints: [],

@@ -7,7 +7,19 @@
     SequenceItem,
     SequenceMacroItem,
   } from "../../types/index";
-  import { loadMacro, ensureSequenceConsistency } from "../projectStore";
+  import {
+    ensureSequenceConsistency,
+    timePredictionStore,
+  } from "../projectStore";
+  import {
+    isSequenceItemLocked,
+    linesInSequenceOrder,
+    moveSequenceItem as moveItem,
+    unlinkMacro as unlinkMacroItems,
+    isMacroDrag,
+    getDroppedMacroPath,
+    insertMacro as insertMacroItem,
+  } from "../sequenceOperations";
   import {
     reorderSequence,
     getClosestTarget,
@@ -66,9 +78,8 @@
   import { getButtonFilledClass } from "../../utils/buttonStyles";
   import { getShortcutFromSettings } from "../../utils";
   import { toUser, toField } from "../../utils/coordinates";
-  import { calculatePathTime, formatTime } from "../../utils/timeCalculator";
+  import { formatTime } from "../../utils/timeCalculator";
   import DebugPanel from "./common/DebugPanel.svelte";
-  import { isSupportedProjectFileName } from "../../utils/fileExtensions";
 
   let {
     startPoint = $bindable(),
@@ -93,9 +104,7 @@
   let showDebug = $derived((settings as any)?.showDebugSequence);
 
   // Compute segment statistics for contextual display
-  let timePrediction = $derived(
-    calculatePathTime(startPoint, lines, settings || ({} as any), sequence),
-  );
+  let timePrediction = $derived($timePredictionStore);
 
   let pathStatsMap = $derived.by(() => {
     const map = new Map();
@@ -356,66 +365,20 @@
   function handleWindowDrop(e: DragEvent) {
     if (!isActive) return;
 
-    // Check for internal macro data OR OS files that could be macros
-    let isMacroDrop = e.dataTransfer?.types
-      ? ["application/x-turtle-tracer-macro", "application/x-pedro-macro"].some(
-          (t) => e.dataTransfer?.types.includes(t),
-        )
-      : false;
-
-    // Optional: detect OS file drops as macros if active
-    const hasFiles = e.dataTransfer?.types.includes("Files");
-    if (
-      !isMacroDrop &&
-      hasFiles &&
-      e.dataTransfer?.files &&
-      e.dataTransfer.files.length > 0
-    ) {
-      const file = e.dataTransfer.files[0];
-      // Note: isSupportedProjectFileName should be imported if not already
-      if (
-        typeof isSupportedProjectFileName === "function" &&
-        isSupportedProjectFileName(file.name)
-      ) {
-        isMacroDrop = true;
-      }
-    }
-
-    if (isMacroDrop) {
+    if (isMacroDrag(e)) {
       e.preventDefault();
       e.stopPropagation();
-
-      let filePath =
-        e.dataTransfer?.getData("application/x-turtle-tracer-macro") ||
-        e.dataTransfer?.getData("application/x-pedro-macro");
-
-      // Handle OS file path if no internal data
-      if (
-        !filePath &&
-        hasFiles &&
-        e.dataTransfer?.files &&
-        e.dataTransfer.files.length > 0
-      ) {
-        filePath = (e.dataTransfer.files[0] as any).path;
-      }
-
-      if (!filePath) {
-        handleDragEnd();
-        return;
-      }
-
-      const target = getClosestTarget(e, "tr[data-seq-index]", document.body);
-      let dropIndex = sequence.length;
-      if (target) {
-        const idx = Number.parseInt(
-          target.element.getAttribute("data-seq-index") || "",
+      const filePath = getDroppedMacroPath(e);
+      if (filePath) {
+        const target = getClosestTarget(e, "tr[data-seq-index]", document.body);
+        const index = Number.parseInt(
+          target?.element.getAttribute("data-seq-index") ?? "",
         );
-        if (!Number.isNaN(idx)) {
-          dropIndex = target.position === "bottom" ? idx + 1 : idx;
-        }
+        const dropIndex = Number.isNaN(index)
+          ? sequence.length
+          : index + (target?.position === "bottom" ? 1 : 0);
+        insertMacro(dropIndex, filePath);
       }
-
-      insertMacro(dropIndex, filePath);
       handleDragEnd();
       return;
     }
@@ -425,24 +388,20 @@
     e.stopPropagation();
 
     if (
-      dragOverIndex === null ||
-      dragPosition === null ||
-      draggingIndex === dragOverIndex
+      dragOverIndex !== null &&
+      dragPosition !== null &&
+      draggingIndex !== dragOverIndex
     ) {
-      handleDragEnd();
-      return;
+      const newSequence = reorderSequence(
+        sequence,
+        draggingIndex,
+        dragOverIndex,
+        dragPosition,
+      );
+      sequence = newSequence;
+      syncLinesToSequence(newSequence);
+      recordChange();
     }
-
-    const newSequence = reorderSequence(
-      sequence,
-      draggingIndex,
-      dragOverIndex,
-      dragPosition,
-    );
-    sequence = newSequence;
-    syncLinesToSequence(newSequence);
-    recordChange();
-
     handleDragEnd();
   }
 
@@ -453,28 +412,7 @@
   }
 
   function syncLinesToSequence(newSeq: SequenceItem[]) {
-    const pathOrder = newSeq
-      .filter((item) => item.kind === "path")
-      .map((item) => item.lineId);
-
-    const byId = new Map(lines.map((l) => [l.id, l]));
-    const reordered: Line[] = [];
-
-    pathOrder.forEach((id) => {
-      const l = byId.get(id);
-      if (l) {
-        reordered.push(l);
-        byId.delete(id);
-      }
-    });
-
-    // Append any lines that are not currently in the sequence to preserve data
-    reordered.push(...(byId.values() as Iterable<Line>));
-
-    lines = reordered;
-
-    // Renumber default path names
-    lines = renumberDefaultPathNames(lines);
+    lines = linesInSequenceOrder(lines, newSeq);
   }
 
   // Watch for missing sequence entries and repair once to keep UI in sync
@@ -522,44 +460,13 @@
 
   function unlinkMacro(macroItem: SequenceMacroItem, seqIndex: number) {
     if (macroItem.locked) return;
-
-    // 1. Remove macro tracking from lines
-    lines = lines.map((line) => {
-      if (line.macroId === macroItem.id) {
-        return {
-          ...line,
-          isMacroElement: false,
-          macroId: undefined,
-          locked: false,
-          endPoint: {
-            ...line.endPoint,
-            isMacroElement: false,
-            macroId: undefined,
-            locked: false,
-          },
-          controlPoints: line.controlPoints.map((cp) => ({
-            ...cp,
-            isMacroElement: false,
-            macroId: undefined,
-            locked: false,
-          })),
-        };
-      }
-      return line;
-    });
-
-    // 2. Extract nested sequence and unlock it
-    const nestedSequence = (macroItem.sequence || []).map((item) => ({
-      ...item,
-      locked: false,
-    }));
-
-    // 3. Update main sequence
-    const newSeq = [...sequence];
-    newSeq.splice(seqIndex, 1, ...nestedSequence);
-    sequence = newSeq;
-
-    if (recordChange) recordChange();
+    ({ lines, sequence } = unlinkMacroItems(
+      lines,
+      sequence,
+      macroItem,
+      seqIndex,
+    ));
+    recordChange("Unlink Macro");
   }
 
   function deleteSequenceItem(index: number) {
@@ -900,10 +807,6 @@
   }
 
   // Utility to safely get locked flag for sequence items without using inline `as` casts inside templates
-  function getIsLocked(i: SequenceItem) {
-    return (i as any).locked ?? false;
-  }
-
   // Helper to accept updates coming from child row components (binds avoid inline typed params)
   function handleUpdateFromComponent(idx: number, updatedItem: any) {
     // Create a new array reference to ensure Svelte reactivity triggers,
@@ -985,14 +888,11 @@
 
       const fieldW = settings?.fieldWidth ?? 144;
       const fieldH = settings?.fieldHeight ?? 144;
-      // Clamp to field?
       newLine.endPoint.x = Math.max(0, Math.min(fieldW, newLine.endPoint.x));
       newLine.endPoint.y = Math.max(0, Math.min(fieldH, newLine.endPoint.y));
 
-      // Adjust control points
-      // CP_new = New.Start + (CP_old - Old.Start)
-      // effectively CP_new = CP_old + (New.Start - Old.Start) = CP_old + (Old.End - Old.Start) = CP_old + delta
-      // Wait, CP is absolute.
+      // The copy starts where the original ends, so shift its control points
+      // by the same amount.
       newLine.controlPoints = line.controlPoints.map((cp) => ({
         ...cp,
         x: Math.max(0, Math.min(fieldW, cp.x + dx)),
@@ -1138,55 +1038,19 @@
     return getButtonFilledClass(color);
   }
 
-  function insertMacro(index: number, filePath: string) {
-    // Extract name from path
-    const parts = filePath.split(/[/\\]/);
-    const fileName = parts.pop() || filePath;
-    const baseName = fileName.replaceAll(/\.(pp|turt)$/gi, "");
-
-    const newMacro: SequenceMacroItem = {
-      kind: "macro",
-      id: makeId(),
-      filePath,
-      name: baseName,
-      locked: false,
-    };
-
-    const newSeq = [...sequence];
-    newSeq.splice(index, 0, newMacro);
-    sequence = newSeq;
-    syncLinesToSequence(newSeq);
+  async function insertMacro(index: number, filePath: string) {
+    const result = await insertMacroItem(sequence, filePath, index);
+    if (!result) return;
+    sequence = result.sequence;
+    syncLinesToSequence(result.sequence);
     recordChange();
-
-    // Trigger load
-    loadMacro(filePath);
   }
 
   function moveSequenceItem(seqIndex: number, delta: number) {
-    const targetIndex = seqIndex + delta;
-    if (targetIndex < 0 || targetIndex >= sequence.length) return;
-
-    // Prevent moving if either the source or target is a locked path or a locked wait
-    const isLockedSequenceItem = (index: number) => {
-      const it = sequence[index];
-      if (!it) return false;
-      if (it.kind === "path") {
-        const ln = lines.find((l) => l.id === it.lineId);
-        return ln?.locked ?? false;
-      }
-      // wait, rotate, macro
-      return (it as any).locked ?? false;
-    };
-
-    if (isLockedSequenceItem(seqIndex) || isLockedSequenceItem(targetIndex))
-      return;
-
-    const newSeq = [...sequence];
-    const [item] = newSeq.splice(seqIndex, 1);
-    newSeq.splice(targetIndex, 0, item);
-    sequence = newSeq;
-
-    syncLinesToSequence(newSeq);
+    const moved = moveItem(sequence, lines, seqIndex, delta);
+    if (!moved) return;
+    sequence = moved;
+    syncLinesToSequence(moved);
     recordChange();
   }
 </script>
@@ -1681,7 +1545,7 @@
           <DynamicComponent
             {item}
             index={seqIndex}
-            isLocked={getIsLocked(item)}
+            isLocked={isSequenceItemLocked(item, lines)}
             {dragOverIndex}
             {dragPosition}
             {draggingIndex}

@@ -55,7 +55,7 @@ describe("getAlignmentMenuItems", () => {
     );
     const alignY = items.find((i) => i.label === "Align Horizontal (Y)");
 
-    alignY.onClick();
+    alignY?.onClick?.();
     // start (10, 10), line1 end (20, 30). Avg Y = 20.
     expect(onUpdate).toHaveBeenCalled();
     expect(startPoint.y).toBe(20);
@@ -79,7 +79,7 @@ describe("getAlignmentMenuItems", () => {
     );
     const alignX = items.find((i) => i.label === "Align Vertical (X)");
 
-    alignX.onClick();
+    alignX?.onClick?.();
     // start (10, 10), line1 end (20, 30). Avg X = 15.
     expect(onUpdate).toHaveBeenCalled();
     expect(startPoint.x).toBe(15);
@@ -117,7 +117,7 @@ describe("getAlignmentMenuItems", () => {
     );
     const distX = items.find((i) => i.label === "Distribute Horizontally (X)");
 
-    distX.onClick();
+    distX?.onClick?.();
 
     // Check sorting and step (step = (50-10)/2 = 20)
     // start: 10, lines[1].end: 30, lines[0].end: 50.
@@ -140,7 +140,7 @@ describe("getAlignmentMenuItems", () => {
     );
     const distY = items.find((i) => i.label === "Distribute Vertically (Y)");
 
-    distY.onClick();
+    distY?.onClick?.();
 
     expect(startPoint.y).toBe(10);
     expect(lines[1].endPoint.y).toBe(30);

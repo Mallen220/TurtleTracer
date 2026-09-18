@@ -89,7 +89,7 @@ describe("Defaults Utilities", () => {
       const lines = getDefaultLines();
       const line = lines[0];
 
-      expect(line.id).toMatch(/^line-[a-z0-9]+$/);
+      expect(line.id).toMatch(/^line-[a-z0-9-]+$/);
       expect(line.name).toBe("DriveToShoot");
 
       expect(line.endPoint).toEqual({

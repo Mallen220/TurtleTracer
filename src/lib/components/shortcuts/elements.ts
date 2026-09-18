@@ -11,10 +11,11 @@ import type { Line, SequenceItem } from "../../../types/index";
 import random from "lodash/random";
 import { getRandomColor } from "../../../utils";
 import { getSelectedSequenceIndex } from "./utils";
+import { makeId } from "../../../utils/nameGenerator";
 
 export function addNewLine(recordChange: (action?: string) => void) {
   const newLine: Line = {
-    id: `line-${Math.random().toString(36).slice(2)}`,
+    id: makeId("line"),
     name: "",
     endPoint: {
       x: random(36, 108),
@@ -52,7 +53,7 @@ export function addNewLine(recordChange: (action?: string) => void) {
 export function addWait(recordChange: (action?: string) => void) {
   const wait: SequenceItem = {
     kind: "wait",
-    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    id: makeId(),
     name: "",
     durationMs: 1000,
     locked: false,
@@ -77,7 +78,7 @@ export function addWait(recordChange: (action?: string) => void) {
 export function addRotate(recordChange: (action?: string) => void) {
   const rotate: SequenceItem = {
     kind: "rotate",
-    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    id: makeId(),
     name: "",
     degrees: 0,
     locked: false,
@@ -155,7 +156,7 @@ export function addEventMarker(recordChange: (action?: string) => void) {
 
   const lines = get(linesStore);
   const selLine = get(selectedLineId);
-  const targetId = selLine || (lines.length > 0 ? lines.at(-1).id : null);
+  const targetId = selLine || lines.at(-1)?.id;
   const targetLine = targetId ? lines.find((l) => l.id === targetId) : null;
 
   if (targetLine) {
@@ -180,9 +181,8 @@ export function addEventMarker(recordChange: (action?: string) => void) {
 
 export function addControlPoint(recordChange: (action?: string) => void) {
   const lines = get(linesStore);
-  if (lines.length === 0) return;
-  const targetId = get(selectedLineId) || lines.at(-1).id;
-  const targetLine = lines.find((l) => l.id === targetId) || lines.at(-1);
+  const targetLine =
+    lines.find((l) => l.id === get(selectedLineId)) ?? lines.at(-1);
   if (targetLine) {
     if (targetLine.locked) return; // Don't allow adding control points to locked lines
 
@@ -205,8 +205,8 @@ export function addControlPoint(recordChange: (action?: string) => void) {
 export function removeControlPoint(recordChange: (action?: string) => void) {
   const lines = get(linesStore);
   if (lines.length > 0) {
-    const targetId = get(selectedLineId) || lines.at(-1).id;
-    const targetLine = lines.find((l) => l.id === targetId) || lines.at(-1);
+    const targetLine =
+      lines.find((l) => l.id === get(selectedLineId)) ?? lines.at(-1);
     if (targetLine && targetLine.controlPoints.length > 0) {
       if (targetLine.locked) return; // Don't allow removing control points from locked lines
       const lineIndex = lines.findIndex((l) => l.id === targetLine.id);

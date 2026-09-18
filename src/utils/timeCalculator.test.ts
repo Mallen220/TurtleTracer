@@ -7,7 +7,6 @@ import {
   calculateGlobalChainMeta,
   calculatePathTime,
   formatTime,
-  getAnimationDuration,
 } from "./timeCalculator";
 
 const defaultSettings = {
@@ -51,17 +50,6 @@ describe("formatTime", () => {
     expect(formatTime(-5)).toBe("0.000s");
     expect(formatTime(Infinity)).toBe("Infinite");
     expect(formatTime(Number.NaN)).toBe("Infinite");
-  });
-});
-
-describe("getAnimationDuration", () => {
-  test("returns base duration", () => {
-    expect(getAnimationDuration(5)).toBe(5000);
-  });
-
-  test("applies speed factor", () => {
-    expect(getAnimationDuration(5, 2)).toBe(2500);
-    expect(getAnimationDuration(5, 0.5)).toBe(10000);
   });
 });
 

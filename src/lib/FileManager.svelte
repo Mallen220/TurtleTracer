@@ -1,11 +1,26 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts" module>
-</script>
-
-<script lang="ts">
+  import { makeId } from "../utils/nameGenerator";
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
   import { get } from "svelte/store";
+  import { saveProject } from "../utils/fileHandlers";
+  import { saveAutoPathsDirectory } from "../utils/directorySettings";
+  import { hookRegistry } from "./registries";
+  import { mirrorPathData, reversePathData } from "../utils/pathTransform";
+  import { scanEventsInDirectory } from "../utils/eventScanner";
+  import { getElectronAPI } from "../utils/platform";
+  import FileManagerToolbar from "./components/filemanager/FileManagerToolbar.svelte";
+  import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
+  import FileList from "./components/filemanager/FileList.svelte";
+  import FileGrid from "./components/filemanager/FileGrid.svelte";
+  import LoadingSpinner from "./components/common/LoadingSpinner.svelte";
+  import { tick } from "svelte";
+  import { saveSettings } from "../utils/settingsPersistence";
+  import { filePreviews } from "./components/filemanager/fileBrowser.svelte";
+</script>
+
+<script lang="ts">
   import type {
     FileInfo,
     Point,
@@ -29,11 +44,6 @@
     loadProjectData,
     updateAllMacroReferences,
   } from "./projectStore";
-  import { saveProject } from "../utils/fileHandlers";
-  import { saveAutoPathsDirectory } from "../utils/directorySettings";
-  import { hookRegistry } from "./registries";
-  import { mirrorPathData, reversePathData } from "../utils/pathTransform";
-  import { scanEventsInDirectory } from "../utils/eventScanner";
   import {
     DEFAULT_PROJECT_EXTENSION,
     ensureDefaultProjectExtension,
@@ -41,13 +51,7 @@
     isSupportedProjectFileName,
     stripProjectExtension,
   } from "../utils/fileExtensions";
-  import { getElectronAPI } from "../utils/platform";
 
-  import FileManagerToolbar from "./components/filemanager/FileManagerToolbar.svelte";
-  import FileManagerBreadcrumbs from "./components/filemanager/FileManagerBreadcrumbs.svelte";
-  import FileList from "./components/filemanager/FileList.svelte";
-  import FileGrid from "./components/filemanager/FileGrid.svelte";
-  import LoadingSpinner from "./components/common/LoadingSpinner.svelte";
   import {
     FolderIcon,
     CloudArrowDownIcon,
@@ -78,8 +82,6 @@
   // Renaming state
   let renamingFile: FileInfo | null = $state(null);
   // Reference to child components for preview refreshes
-  let fileGrid: any = $state();
-  let fileList: any = $state();
 
   // New file state
   let creatingNewFile = $state(false);
@@ -143,7 +145,6 @@
   let isResizing = false;
 
   // New file input reference for programmatic focus
-  import { tick } from "svelte";
   let newFileInput: HTMLInputElement | null = $state(null);
   let newFolderInput: HTMLInputElement | null = $state(null);
 
@@ -167,7 +168,6 @@
     globalThis.removeEventListener("mouseup", stopResize);
   }
 
-  import { saveSettings } from "../utils/settingsPersistence";
   interface Props {
     isOpen?: boolean;
     startPoint: Point;
@@ -205,7 +205,7 @@
       return {
         ...line,
         name: stripSuffix(baseName),
-        id: line.id || `line-${Math.random().toString(36).slice(2)}`,
+        id: line.id || makeId("line"),
         waitBeforeMs: Math.max(
           0,
           Number(
@@ -380,12 +380,9 @@
     try {
       await refreshDirectory();
 
-      // After directory is refreshed, request previews to refresh for both list and grid
-      fileList?.refreshAllFailed?.();
-      fileList?.refreshAll?.();
-
-      fileGrid?.refreshAllFailed?.();
-      fileGrid?.refreshAll?.();
+      for (const f of files) {
+        if (!f.isDirectory) filePreviews.reload(f.path);
+      }
 
       showToast("Refreshed files and previews", "success");
     } catch (err) {
@@ -611,16 +608,7 @@
           isUnsaved.set(true);
           const openPath = get(currentFilePath);
           if (openPath) {
-            await saveProject(
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              false,
-              openPath,
-              { quiet: true },
-            );
+            await saveProject({ path: openPath, quiet: true });
           }
         }
 
@@ -700,16 +688,7 @@
           isUnsaved.set(true);
           const openPath = get(currentFilePath);
           if (openPath) {
-            await saveProject(
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              false,
-              openPath,
-              { quiet: true },
-            );
+            await saveProject({ path: openPath, quiet: true });
           }
         }
 
@@ -744,16 +723,7 @@
       get(isUnsaved) &&
       get(currentFilePath)
     ) {
-      await saveProject(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        false,
-        undefined,
-        { quiet: true },
-      );
+      await saveProject({ quiet: true });
     }
 
     try {
@@ -777,8 +747,7 @@
       selectedFile = file;
       showToast(`Loaded: ${file.name}`, "success");
 
-      // Refresh the file preview so the latest content is reflected
-      if (fileGrid && file && file.path) fileGrid.refreshPreview(file.path);
+      filePreviews.reload(file.path);
     } catch (error) {
       showToast(`Error loading file: ${getErrorMessage(error)}`, "error");
     }
@@ -881,11 +850,7 @@
       // Reload macro if it's being used somewhere
       loadMacro(targetFile.path, true);
 
-      // Updated saved file — refresh its preview
-      if (targetFile?.path) {
-        fileGrid?.refreshPreview?.(targetFile.path);
-        fileList?.refreshPreview?.(targetFile.path);
-      }
+      if (targetFile?.path) filePreviews.reload(targetFile.path);
     } catch (error) {
       showToast(`Failed to save: ${getErrorMessage(error)}`, "error");
     }
@@ -932,16 +897,7 @@
       get(isUnsaved) &&
       get(currentFilePath)
     ) {
-      await saveProject(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        false,
-        undefined,
-        { quiet: true },
-      );
+      await saveProject({ quiet: true });
     }
 
     try {
@@ -981,8 +937,7 @@
         isUnsaved.set(false);
         showToast(`Created: ${fileName}`, "success");
 
-        // New file created — ensure preview is generated
-        if (newFile.path) fileGrid?.refreshPreview?.(newFile.path);
+        if (newFile.path) filePreviews.reload(newFile.path);
       }
     } catch (error) {
       showToast(`Failed to create: ${getErrorMessage(error)}`, "error");
@@ -1056,12 +1011,8 @@
 
       showToast(`${actionLabel}: ${newName}`, "success");
 
-      // Refresh preview for the newly created copy/mirror
       const newFile = files.find((f) => f.name === newName);
-      if (newFile?.path) {
-        fileGrid?.refreshPreview?.(newFile.path);
-        fileList?.refreshPreview?.(newFile.path);
-      }
+      if (newFile?.path) filePreviews.reload(newFile.path);
     } catch (error) {
       showToast(`Failed to duplicate: ${getErrorMessage(error)}`, "error");
     }
@@ -1298,14 +1249,7 @@
         onsortchange={(val) => (sortMode = val)}
         onviewchange={(val) => {
           viewMode = val;
-          // If switching to list/grid view, retry any previously failed previews so icons repopulate reliably
-          if (viewMode === "list") {
-            fileList?.refreshAllFailed?.();
-            fileList?.refreshAll?.();
-          } else if (viewMode === "grid") {
-            fileGrid?.refreshAllFailed?.();
-            fileGrid?.refreshAll?.();
-          }
+          filePreviews.reloadFailed();
         }}
       />
     </div>
@@ -1521,7 +1465,6 @@
         </div>
       {:else if viewMode === "list"}
         <FileList
-          bind:this={fileList}
           files={filteredFiles}
           selectedFilePath={selectedFile?.path ?? null}
           {sortMode}
@@ -1538,7 +1481,6 @@
         />
       {:else}
         <FileGrid
-          bind:this={fileGrid}
           files={filteredFiles}
           selectedFilePath={selectedFile?.path ?? null}
           {sortMode}

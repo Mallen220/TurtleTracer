@@ -892,6 +892,32 @@ describe("codeExporter", () => {
       expect(code).not.toContain("Math.toRadians(" + "buildPose");
     });
 
+    it("converts a facingPoint target through buildPose in FTC coordinates", async () => {
+      const facing: Line = {
+        ...line1,
+        endPoint: {
+          x: 40,
+          y: 40,
+          heading: "facingPoint",
+          targetX: 20,
+          targetY: 30,
+          reverse: false,
+        },
+      };
+      const code = await generateJavaCode(
+        startPoint,
+        [facing],
+        false,
+        undefined,
+        undefined,
+        "Panels",
+        "FTC",
+        "imperial",
+      );
+      // Pedro (20, 30) is FTC (42, -52); buildPose converts it back.
+      expect(code).toContain(".facingPoint(buildPose(42.000, -52.000, 0.000))");
+    });
+
     it("should export Sequential code using buildPose and p.of with FTC coordinates and metric units", async () => {
       const lines = [line1];
       const code = await generateSequentialCommandCode(

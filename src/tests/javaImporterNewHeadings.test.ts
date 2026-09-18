@@ -82,4 +82,47 @@ describe("Heading Extractor - New Formats", () => {
     expect((data.lines[6].endPoint as any).targetX).toBe(70);
     expect((data.lines[6].endPoint as any).targetY).toBe(80);
   });
+
+  it("treats bare heading numbers as radians", () => {
+    const data = importJavaProject(`
+      class A { void b() {
+        p = follower.pathBuilder()
+          .addPath(new BezierLine(new Pose(1, 2), new Pose(3, 4)))
+          .setLinearHeadingInterpolation(${Math.PI / 2}, ${-Math.PI})
+          .build();
+      } }
+    `);
+    const end = data.lines[0].endPoint as any;
+    expect(end.startDeg).toBeCloseTo(90);
+    expect(end.endDeg).toBeCloseTo(-180);
+  });
+
+  it("resolves pose.getHeading() references", () => {
+    const data = importJavaProject(`
+      class A {
+        private final Pose startPose = new Pose(9, 60, Math.toRadians(30));
+        private final Pose endPose = new Pose(37, 50, Math.toRadians(120));
+        void b() {
+          p = follower.pathBuilder()
+            .addPath(new BezierLine(startPose, endPose))
+            .setConstantHeadingInterpolation(endPose.getHeading())
+            .build();
+        }
+      }
+    `);
+    expect((data.lines[0].endPoint as any).degrees).toBe(120);
+  });
+
+  it("reads turnTo(Math.toRadians(x)) as x degrees", () => {
+    const data = importJavaProject(`
+      class A { Command c() {
+        return new SequentialGroup(
+          new InstantCommand(() -> follower.turnTo(Math.toRadians(-45)))
+        );
+      } }
+    `);
+    const rotates = data.sequence.filter((s) => s.kind === "rotate");
+    expect(rotates).toHaveLength(1);
+    expect((rotates[0] as any).degrees).toBe(-45);
+  });
 });

@@ -71,7 +71,8 @@
   } from "../types/index";
   import { tick } from "svelte";
   import PlaybackControls from "./components/PlaybackControls.svelte";
-  import { calculatePathTime, getShortcutFromSettings } from "../utils";
+  import { getShortcutFromSettings } from "../utils";
+  import { timePredictionStore } from "./projectStore";
   import { tabRegistry, timelineTransformerRegistry } from "./registries";
   import { diffMode } from "./diffStore";
   import { actionRegistry } from "./actionRegistry";
@@ -430,9 +431,7 @@
   });
   let activeTabInstance = $derived(tabInstances[activeTab]);
   // Compute timeline markers for the UI (passed to PlaybackControls)
-  let timePrediction = $derived(
-    calculatePathTime(startPoint, lines, settings, sequence),
-  );
+  let timePrediction = $derived($timePredictionStore);
   let timelineItems = $derived(
     (() => {
       const items: {

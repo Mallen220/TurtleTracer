@@ -6,6 +6,7 @@ import type {
   Shape,
   Settings,
   SequenceItem,
+  KeyBinding,
 } from "../../../types";
 import { toUser } from "../../../utils/coordinates";
 import { getDisplayShortcut } from "../../../utils/shortcuts";
@@ -17,6 +18,7 @@ import {
   type ParsedObstacle,
 } from "./ElementIdParser";
 import { getTransformedCoordinates } from "./CoordinateTransform";
+import { makeId } from "../../../utils/nameGenerator";
 
 export interface ContextMenuItemDescriptor {
   label?: string;
@@ -63,6 +65,62 @@ export interface BuildContextMenuParams {
   fieldCoordinates: { x: number; y: number };
   registryItems?: RegistryContextMenuItem[];
   callbacks: BuildContextMenuCallbacks;
+}
+
+type SimpleHeadingMode = "tangential" | "constant" | "linear";
+
+const HEADING_MODES: { mode: SimpleHeadingMode; label: string }[] = [
+  { mode: "tangential", label: "Tangential" },
+  { mode: "constant", label: "Constant" },
+  { mode: "linear", label: "Linear" },
+];
+
+/**
+ * Returns a copy of `p` using the given heading mode. Values from the old mode
+ * are carried over where they apply, and anything specific to it is dropped.
+ */
+function withHeadingMode(p: Point, mode: SimpleHeadingMode): Point {
+  const base = {
+    x: p.x,
+    y: p.y,
+    locked: p.locked,
+    isMacroElement: p.isMacroElement,
+    macroId: p.macroId,
+    originalId: p.originalId,
+  };
+  switch (mode) {
+    case "tangential":
+      return { ...base, heading: "tangential", reverse: p.reverse ?? false };
+    case "constant":
+      return { ...base, heading: "constant", degrees: p.degrees ?? 0 };
+    case "linear":
+      return {
+        ...base,
+        heading: "linear",
+        startDeg: p.startDeg ?? 0,
+        endDeg: p.endDeg ?? 0,
+      };
+  }
+}
+
+function headingModeItems(
+  current: Point["heading"] | undefined,
+  keyBindings: KeyBinding[],
+  apply: (mode: SimpleHeadingMode, label: string) => void,
+): ContextMenuItemDescriptor[] {
+  return [
+    { separator: true },
+    {
+      label: "Heading Mode",
+      disabled: true,
+      shortcut: getDisplayShortcut("toggleHeadingMode", keyBindings),
+    },
+    ...HEADING_MODES.map(({ mode, label }) => ({
+      label,
+      disabled: current === mode,
+      onClick: () => apply(mode, label),
+    })),
+  ];
 }
 
 /**
@@ -157,7 +215,6 @@ export function buildFieldContextMenuItems(
           },
         });
 
-        // EndPoint specific actions
         if (isEndPoint) {
           menuItems.push({
             label: "Add Wait Command",
@@ -167,19 +224,17 @@ export function buildFieldContextMenuItems(
               if (!lineId) return;
 
               callbacks.updateSequence((seq) => {
-                const newSeq = [...seq];
-                const idx = newSeq.findIndex(
-                  (s) => s.kind === "path" && (s as any).lineId === lineId,
+                const idx = seq.findIndex(
+                  (s) => s.kind === "path" && s.lineId === lineId,
                 );
-                if (idx !== -1) {
-                  newSeq.splice(idx + 1, 0, {
-                    kind: "wait",
-                    id: `wait-${Math.random().toString(36).slice(2)}`,
-                    name: "Wait",
-                    durationMs: 1000,
-                  } as SequenceItem);
-                }
-                return newSeq;
+                if (idx === -1) return seq;
+                const wait: SequenceItem = {
+                  kind: "wait",
+                  id: makeId("wait"),
+                  name: "Wait",
+                  durationMs: 1000,
+                };
+                return [...seq.slice(0, idx + 1), wait, ...seq.slice(idx + 1)];
               });
               callbacks.onRecordChange("Add Wait Command");
             },
@@ -190,191 +245,42 @@ export function buildFieldContextMenuItems(
             shortcut: getDisplayShortcut("removeSelected", keyBindings),
             danger: true,
             onClick: () => {
-              callbacks.updateLines((l) => {
-                const newLines = [...l];
-                newLines.splice(lineIndex, 1);
-                return newLines;
-              });
+              callbacks.updateLines((l) => l.filter((_, i) => i !== lineIndex));
               callbacks.onRecordChange("Delete Path");
               callbacks.setSelectedLineId(null);
             },
           });
 
-          const currentHeading = lines[lineIndex]?.endPoint.heading;
-          const headingShortcut = getDisplayShortcut(
-            "toggleHeadingMode",
-            keyBindings,
+          menuItems.push(
+            ...headingModeItems(
+              lines[lineIndex]?.endPoint.heading,
+              keyBindings,
+              (mode, label) => {
+                callbacks.updateLines((l) =>
+                  l.map((line, i) =>
+                    i === lineIndex
+                      ? {
+                          ...line,
+                          endPoint: withHeadingMode(line.endPoint, mode),
+                        }
+                      : line,
+                  ),
+                );
+                callbacks.onRecordChange(`Set Heading ${label}`);
+              },
+            ),
           );
-          menuItems.push({ separator: true });
-          menuItems.push({
-            label: "Heading Mode",
-            disabled: true,
-            shortcut: headingShortcut,
-          });
-          menuItems.push({
-            label: "Tangential",
-            disabled: currentHeading === "tangential",
-            onClick: () => {
-              callbacks.updateLines((l) => {
-                const newLines = [...l];
-                const line = { ...newLines[lineIndex] };
-                if (!line) return l;
-                const ep = line.endPoint;
-                const base = {
-                  x: ep.x,
-                  y: ep.y,
-                  locked: ep.locked,
-                  isMacroElement: ep.isMacroElement,
-                  macroId: ep.macroId,
-                  originalId: ep.originalId,
-                };
-                line.endPoint = {
-                  ...base,
-                  heading: "tangential",
-                  reverse: (ep as any).reverse ?? false,
-                };
-                newLines[lineIndex] = line;
-                return newLines;
-              });
-              callbacks.onRecordChange("Set Heading Tangential");
-            },
-          });
-          menuItems.push({
-            label: "Constant",
-            disabled: currentHeading === "constant",
-            onClick: () => {
-              callbacks.updateLines((l) => {
-                const newLines = [...l];
-                const line = { ...newLines[lineIndex] };
-                if (!line) return l;
-                const ep = line.endPoint;
-                const base = {
-                  x: ep.x,
-                  y: ep.y,
-                  locked: ep.locked,
-                  isMacroElement: ep.isMacroElement,
-                  macroId: ep.macroId,
-                  originalId: ep.originalId,
-                };
-                line.endPoint = {
-                  ...base,
-                  heading: "constant",
-                  degrees: (ep as any).degrees ?? 0,
-                };
-                newLines[lineIndex] = line;
-                return newLines;
-              });
-              callbacks.onRecordChange("Set Heading Constant");
-            },
-          });
-          menuItems.push({
-            label: "Linear",
-            disabled: currentHeading === "linear",
-            onClick: () => {
-              callbacks.updateLines((l) => {
-                const newLines = [...l];
-                const line = { ...newLines[lineIndex] };
-                if (!line) return l;
-                const ep = line.endPoint;
-                const base = {
-                  x: ep.x,
-                  y: ep.y,
-                  locked: ep.locked,
-                  isMacroElement: ep.isMacroElement,
-                  macroId: ep.macroId,
-                  originalId: ep.originalId,
-                };
-                line.endPoint = {
-                  ...base,
-                  heading: "linear",
-                  startDeg: (ep as any).startDeg ?? 0,
-                  endDeg: (ep as any).endDeg ?? 0,
-                };
-                newLines[lineIndex] = line;
-                return newLines;
-              });
-              callbacks.onRecordChange("Set Heading Linear");
-            },
-          });
         } else if (isStartPoint) {
-          const currentHeading = startPoint.heading;
-          const headingShortcut = getDisplayShortcut(
-            "toggleHeadingMode",
-            keyBindings,
+          menuItems.push(
+            ...headingModeItems(
+              startPoint.heading,
+              keyBindings,
+              (mode, label) => {
+                callbacks.updateStartPoint((p) => withHeadingMode(p, mode));
+                callbacks.onRecordChange(`Set Start ${label}`);
+              },
+            ),
           );
-          menuItems.push({ separator: true });
-          menuItems.push({
-            label: "Heading Mode",
-            disabled: true,
-            shortcut: headingShortcut,
-          });
-          menuItems.push({
-            label: "Tangential",
-            disabled: currentHeading === "tangential",
-            onClick: () => {
-              callbacks.updateStartPoint((p) => {
-                const base = {
-                  x: p.x,
-                  y: p.y,
-                  locked: p.locked,
-                  isMacroElement: p.isMacroElement,
-                  macroId: p.macroId,
-                  originalId: p.originalId,
-                };
-                return {
-                  ...base,
-                  heading: "tangential",
-                  reverse: (p as any).reverse ?? false,
-                };
-              });
-              callbacks.onRecordChange("Set Start Tangential");
-            },
-          });
-          menuItems.push({
-            label: "Constant",
-            disabled: currentHeading === "constant",
-            onClick: () => {
-              callbacks.updateStartPoint((p) => {
-                const base = {
-                  x: p.x,
-                  y: p.y,
-                  locked: p.locked,
-                  isMacroElement: p.isMacroElement,
-                  macroId: p.macroId,
-                  originalId: p.originalId,
-                };
-                return {
-                  ...base,
-                  heading: "constant",
-                  degrees: (p as any).degrees ?? 0,
-                };
-              });
-              callbacks.onRecordChange("Set Start Constant");
-            },
-          });
-          menuItems.push({
-            label: "Linear",
-            disabled: currentHeading === "linear",
-            onClick: () => {
-              callbacks.updateStartPoint((p) => {
-                const base = {
-                  x: p.x,
-                  y: p.y,
-                  locked: p.locked,
-                  isMacroElement: p.isMacroElement,
-                  macroId: p.macroId,
-                  originalId: p.originalId,
-                };
-                return {
-                  ...base,
-                  heading: "linear",
-                  startDeg: (p as any).startDeg ?? 0,
-                  endDeg: (p as any).endDeg ?? 0,
-                };
-              });
-              callbacks.onRecordChange("Set Start Linear");
-            },
-          });
         }
       } else if (parsed.type === "obstacle") {
         const { shapeIndex } = parsed as ParsedObstacle;

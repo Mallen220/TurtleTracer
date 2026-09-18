@@ -212,10 +212,8 @@ export function flipPathData(
   };
 
   const flipHeading = (point: Point) => {
-    // If heading is linear or constant, flipping horizontal negates degrees (e.g. 30 -> 150? No, wait)
-    // Actually, mathematical angle in this app is generally 0 pointing right.
-    // Horizontal flip: mirror across Y axis (x -> -x). Angle: 180 - angle.
-    // Vertical flip: mirror across X axis (y -> -y). Angle: -angle or 360 - angle.
+    // Angles are measured from the +x axis. Mirroring left-right maps an
+    // angle to 180 - angle; mirroring top-bottom maps it to -angle.
 
     let newPoint = { ...point };
 
@@ -299,10 +297,10 @@ export function reversePathData(data: {
   const r = structuredClone(data);
   const originalLines: Line[] = data.lines || [];
 
-  if (originalLines.length === 0) return r;
+  const lastLine = originalLines.at(-1);
+  if (!lastLine) return r;
 
   // 1. New Start Point is the last End Point
-  const lastLine = originalLines.at(-1);
   const newStartPoint = structuredClone(lastLine.endPoint);
 
   // Adjust new start point heading properties
