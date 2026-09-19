@@ -1,7 +1,13 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Line, Settings, BasePoint, PiecewiseSegment } from "../../types";
 import type { PathAnalysis } from "./types";
-import { getCurvePoint, linearHeadingSweep, radiansToDegrees } from "../math";
+import {
+  getCurvePoint,
+  getEffectiveHeadingSource,
+  linearHeadingSweep,
+  radiansToDegrees,
+  type HeadingSource,
+} from "../math";
 import { calculateRotationTime } from "./rotation";
 import { unwrapAngle } from "./segmentAnalyzer";
 
@@ -27,32 +33,6 @@ export interface HeadingProfileInput {
   isChained: boolean;
   /** Whether the chain's heading applies instead of the line's own. */
   isGlobalOverride: boolean;
-}
-
-// The heading fields shared by points, piecewise segments and a chain's
-// global heading.
-type HeadingSource = {
-  heading?: string;
-  degrees?: number;
-  startDeg?: number;
-  endDeg?: number;
-  targetX?: number;
-  targetY?: number;
-  reverse?: boolean;
-  segments?: PiecewiseSegment[];
-};
-
-function globalHeadingOf(root: Line): HeadingSource {
-  return {
-    heading: root.globalHeading,
-    degrees: root.globalDegrees,
-    startDeg: root.globalStartDeg,
-    endDeg: root.globalEndDeg,
-    targetX: root.globalTargetX,
-    targetY: root.globalTargetY,
-    reverse: root.globalReverse,
-    segments: root.globalSegments,
-  };
 }
 
 const TANGENT_STEP = 0.005;
@@ -111,8 +91,7 @@ export function buildHeadingProfile(input: HeadingProfileInput): number[] {
   const profile: number[] = [currentHeading];
   const samples = analysis.steps.length;
   const curve = [prevPoint, ...line.controlPoints, line.endPoint];
-  const source: HeadingSource =
-    isGlobalOverride && rootLine ? globalHeadingOf(rootLine) : line.endPoint;
+  const { source } = getEffectiveHeadingSource(line, rootLine);
 
   // A global heading is spread over the whole chain, so progress is
   // measured along the chain rather than along this line.

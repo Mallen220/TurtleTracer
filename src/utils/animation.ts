@@ -7,6 +7,7 @@ import {
   radiansToDegrees,
   interpolateTFromProfile,
   locateInProfile,
+  restingHeading,
 } from "./math";
 import { getRobotCorners } from "./geometry";
 import type { Point, Line, TimelineEvent, BasePoint } from "../types";
@@ -72,61 +73,62 @@ function getInterpolatedHeading(endPoint: Point, t: number): number | null {
 }
 
 /**
- * Calculate the robot's on-screen position and heading at `percent` (0-100)
- * of the way through the timeline.
+ * The line a travel event drives and its full curve (start, control points,
+ * end). Older timelines only carry `lineIndex`, so fall back to `lines`.
  */
-export function calculateRobotState(
-  percent: number,
-  timeline: TimelineEvent[],
+export function travelCurve(
+  event: TimelineEvent,
   lines: Line[],
   startPoint: Point,
-  xScale: Scale,
-  yScale: Scale,
-): RobotState {
-  const atStart = {
-    x: xScale(startPoint.x),
-    y: yScale(startPoint.y),
-    heading: 0,
-  };
+): { line: Line; curve: BasePoint[] } | null {
+  const lineIdx = event.lineIndex ?? 0;
+  const line = event.line ?? lines[lineIdx];
+  const prevPoint =
+    event.prevPoint ??
+    (lineIdx === 0 ? startPoint : lines[lineIdx - 1]?.endPoint);
+  if (!line?.endPoint || !prevPoint) return null;
+  return { line, curve: [prevPoint, ...line.controlPoints, line.endPoint] };
+}
 
-  const lastEvent = timeline?.at(-1);
-  if (!lastEvent) return atStart;
-
-  const currentSeconds = (percent / 100) * lastEvent.endTime;
-  const event = findMotionEventAt(timeline, currentSeconds);
-  if (!event) return atStart;
+/**
+ * Where the robot is `seconds` into the timeline, during `event`: position
+ * in field inches and heading in field degrees (counter-clockwise from +x).
+ * Returns null if the event's line can't be found.
+ */
+export function robotPoseDuring(
+  event: TimelineEvent,
+  seconds: number,
+  lines: Line[],
+  startPoint: Point,
+): RobotState | null {
+  const progress =
+    event.duration > 0
+      ? clamp01((seconds - event.startTime) / event.duration)
+      : 1;
 
   if (event.type === "wait") {
     // Turning in place
     const point = event.atPoint ?? startPoint;
-    const progress = clamp01(
-      (currentSeconds - event.startTime) / event.duration,
-    );
     const heading = shortestRotation(
       event.startHeading ?? 0,
       event.targetHeading ?? 0,
       progress,
     );
-    return { x: xScale(point.x), y: yScale(point.y), heading: -heading };
+    return { x: point.x, y: point.y, heading };
   }
 
-  let line = event.line;
-  let prevPoint = event.prevPoint;
-  if (!line || !prevPoint) {
-    const lineIdx = event.lineIndex ?? 0;
-    line = lines[lineIdx];
-    prevPoint = lineIdx === 0 ? startPoint : lines[lineIdx - 1].endPoint;
-  }
-  const curve = [prevPoint, ...line.controlPoints, line.endPoint];
+  const travel = travelCurve(event, lines, startPoint);
+  if (!travel) return null;
+  const { line, curve } = travel;
 
   // Where along the line we are (0..1), and the heading if the time
   // calculator produced a heading profile for this segment.
-  let linePercent: number;
+  let t: number;
   let profileHeading: number | null = null;
   const profile = event.motionProfile;
   if (profile && profile.length > 0) {
-    const relativeTime = Math.max(0, currentSeconds - event.startTime);
-    linePercent = interpolateTFromProfile(relativeTime, profile);
+    const relativeTime = Math.max(0, seconds - event.startTime);
+    t = clamp01(interpolateTFromProfile(relativeTime, profile));
 
     const headings = event.headingProfile;
     if (headings?.length === profile.length) {
@@ -138,46 +140,71 @@ export function calculateRobotState(
       }
     }
   } else {
-    const timeProgress = (currentSeconds - event.startTime) / event.duration;
-    linePercent = easeInOutQuad(clamp01(timeProgress));
+    t = easeInOutQuad(progress);
   }
-  linePercent = clamp01(linePercent);
 
-  const posInches = getCurvePoint(linePercent, curve);
-  const x = xScale(posInches.x);
-  const y = yScale(posInches.y);
-
+  const pos = getCurvePoint(t, curve);
   if (profileHeading !== null && Number.isFinite(profileHeading)) {
-    return { x, y, heading: -profileHeading };
+    return { x: pos.x, y: pos.y, heading: profileHeading };
   }
 
   const endPoint = line.endPoint;
-  const interpolated = getInterpolatedHeading(endPoint, linePercent);
-  if (interpolated !== null) return { x, y, heading: -interpolated };
+  const interpolated = getInterpolatedHeading(endPoint, t);
+  if (interpolated !== null) {
+    return { x: pos.x, y: pos.y, heading: interpolated };
+  }
 
-  // Geometric headings are measured in screen space so they respect however
-  // the scales flip the axes.
-  let target: { x: number; y: number } | null = null;
+  let target: BasePoint | null = null;
   let offset = 0;
   if (endPoint.heading === "tangential") {
-    const step = endPoint.reverse ? -0.01 : 0.01;
-    target = getCurvePoint(linePercent + step, curve);
+    target = getCurvePoint(t + (endPoint.reverse ? -0.01 : 0.01), curve);
   } else if (endPoint.heading === "facingPoint") {
     target = { x: endPoint.targetX || 0, y: endPoint.targetY || 0 };
-    offset = endPoint.reverse ? Math.PI : 0;
+    offset = endPoint.reverse ? 180 : 0;
   }
-
   let heading = 0;
-  if (target && (target.x !== posInches.x || target.y !== posInches.y)) {
-    const angle = Math.atan2(yScale(target.y) - y, xScale(target.x) - x);
-    heading = radiansToDegrees(angle + offset);
+  if (target && (target.x !== pos.x || target.y !== pos.y)) {
+    heading =
+      radiansToDegrees(Math.atan2(target.y - pos.y, target.x - pos.x)) + offset;
   }
-  return { x, y, heading };
+  return { x: pos.x, y: pos.y, heading };
+}
+
+/**
+ * The robot's on-screen position and heading at `percent` (0-100) of the
+ * way through the timeline. Screen headings are clockwise, so they're the
+ * negative of field headings.
+ */
+export function calculateRobotState(
+  percent: number,
+  timeline: TimelineEvent[],
+  lines: Line[],
+  startPoint: Point,
+  xScale: Scale,
+  yScale: Scale,
+): RobotState {
+  const lastEvent = timeline?.at(-1);
+  const seconds = lastEvent ? (percent / 100) * lastEvent.endTime : 0;
+  const event = lastEvent && findMotionEventAt(timeline, seconds);
+  const pose = event
+    ? robotPoseDuring(event, seconds, lines, startPoint)
+    : null;
+  if (!pose) {
+    // Nothing to play: the robot sits at the start, facing as set there.
+    return {
+      x: xScale(startPoint.x),
+      y: yScale(startPoint.y),
+      heading: -restingHeading(startPoint),
+    };
+  }
+  return { x: xScale(pose.x), y: yScale(pose.y), heading: -pose.heading };
 }
 
 /**
  * Create an animation controller for the robot simulation
  */
+export type AnimationController = ReturnType<typeof createAnimationController>;
+
 export function createAnimationController(
   totalDuration: number,
   onPercentChange: (percent: number) => void,

@@ -1,4 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+// Times a whole project: walks the sequence and builds the timeline of
+// travel, turn-in-place and wait events that playback and export use.
 import type {
   Point,
   Line,
@@ -7,140 +9,296 @@ import type {
   SequenceItem,
   TimelineEvent,
 } from "../../types";
-import { getLineStartHeading, getInitialTangentialHeading } from "../math";
+import {
+  getLineStartHeading,
+  getLineEndHeading,
+  restingHeading,
+} from "../math";
 import {
   calculateGlobalChainMeta,
-  calculateSegmentVelocities,
   calculateEndHeadingAndRotation,
+  continuesChain,
+  cornerSpeed,
+  type ChainInfo,
 } from "./chainMeta";
 import { analyzePathSegment, unwrapAngle } from "./segmentAnalyzer";
 import { buildHeadingProfile } from "./headingProfile";
 import { calculateRotationTime } from "./rotation";
 import { calculateMotionProfileDetailed } from "./motionProfile";
 import { actionRegistry } from "../../lib/actionRegistry";
-import { makeId } from "../nameGenerator";
+import { MAX_MACRO_DEPTH } from "../../lib/macroUtils";
+
+/** The steps that get run: the sequence, or every line in order without one. */
+function stepsToRun(lines: Line[], sequence?: SequenceItem[]): SequenceItem[] {
+  return sequence?.length
+    ? sequence
+    : lines.map((l): SequenceItem => ({ kind: "path", lineId: l.id! }));
+}
+
+/**
+ * The first path the robot drives, looking inside macros, and the list of
+ * steps it's in (which decides its chain).
+ */
+function firstDrivenPath(
+  steps: SequenceItem[],
+  lineById: Map<string, Line>,
+  depth = 0,
+): { line: Line; steps: SequenceItem[] } | null {
+  if (depth > MAX_MACRO_DEPTH) return null;
+  for (const item of steps) {
+    if (item.kind === "path") {
+      const line = lineById.get(item.lineId);
+      if (line?.endPoint) return { line, steps };
+    } else if (item.kind === "macro" && item.sequence?.length) {
+      const found = firstDrivenPath(item.sequence, lineById, depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/**
+ * The heading the robot has before it does anything. Once there are paths,
+ * it starts facing the way the first one it drives begins; anything before
+ * that path (waits, turns) happens from there. With no path, the start
+ * point's own heading applies.
+ */
+export function startingHeading(
+  startPoint: Point,
+  lines: Line[],
+  sequence?: SequenceItem[],
+): number {
+  const lineById = new Map(lines.map((l) => [l.id!, l]));
+  const first = firstDrivenPath(stepsToRun(lines, sequence), lineById);
+  if (!first) return restingHeading(startPoint);
+
+  const chain = calculateGlobalChainMeta(first.steps, lines, startPoint).get(
+    first.line.id!,
+  );
+  const heading = getLineStartHeading(
+    first.line,
+    startPoint,
+    chain?.rootLine,
+    chain?.chainTotalLength,
+    chain?.distanceBefore,
+  );
+  return Number.isFinite(heading) ? heading : 0;
+}
 
 export function calculatePathTime(
   startPoint: Point,
   lines: Line[],
   settings: Settings,
   sequence?: SequenceItem[],
-  _macros?: Map<string, import("../../types").TurtleData>,
 ): TimePrediction {
   const useMotionProfile =
     settings.maxVelocity !== undefined &&
     settings.maxAcceleration !== undefined;
-
-  // Guard aVelocity globally in this scope
+  // A turn rate of zero would make every turn take forever.
   const safeSettings = {
     ...settings,
     aVelocity: Math.max(settings.aVelocity, 0.001),
   };
 
+  const lineById = new Map(lines.map((l) => [l.id!, l]));
+  const lineIndexById = new Map<string, number>();
+  lines.forEach((l, i) => {
+    if (!lineIndexById.has(l.id!)) lineIndexById.set(l.id!, i);
+  });
+
+  const timeline: TimelineEvent[] = [];
   const segmentLengths: number[] = [];
   const segmentTimes: number[] = [];
-  const timeline: TimelineEvent[] = [];
-
-  const globalChainMeta = sequence
-    ? calculateGlobalChainMeta(sequence, lines, startPoint)
-    : new Map();
-
   let currentTime = 0;
-  let currentHeading = 0;
-  let isFirstPathItem = true;
-
-  // Initialize heading based on start point settings
-  // But OVERRIDE if the first path in the sequence has a global chain override
-  let startOverrideFound = false;
-  if (sequence && sequence.length > 0) {
-    const firstPathItem = sequence.find((it) => it.kind === "path");
-    if (firstPathItem) {
-      const lineId = (firstPathItem as any).lineId;
-      const line = lines.find((l) => l.id === lineId);
-      if (line && sequence) {
-        const meta = globalChainMeta.get(line.id!);
-        const rootLine = meta?.rootLine;
-        if (rootLine?.globalHeading && rootLine.globalHeading !== "none") {
-          const effectiveHeading = rootLine.globalHeading;
-          if (effectiveHeading === "tangential") {
-            const nextP =
-              line.controlPoints.length > 0
-                ? line.controlPoints[0]
-                : line.endPoint;
-            currentHeading = getInitialTangentialHeading(startPoint, nextP);
-            startOverrideFound = true;
-          } else if (effectiveHeading === "constant") {
-            const deg = rootLine.globalDegrees || 0;
-            const rev = rootLine.globalReverse;
-            currentHeading = rev ? deg + 180 : deg;
-            startOverrideFound = true;
-          } else if (effectiveHeading === "linear") {
-            const deg = rootLine.globalStartDeg || 0;
-            const rev = rootLine.globalReverse;
-            currentHeading = rev ? deg + 180 : deg;
-            startOverrideFound = true;
-          } else if (effectiveHeading === "facingPoint") {
-            const tx = rootLine.globalTargetX || 0;
-            const ty = rootLine.globalTargetY || 0;
-            const rev = rootLine.globalReverse;
-            let angle =
-              Math.atan2(ty - startPoint.y, tx - startPoint.x) *
-              (180 / Math.PI);
-            if (rev) angle += 180;
-            currentHeading = angle;
-            startOverrideFound = true;
-          }
-        }
-      }
-    }
-  }
-
-  if (!startOverrideFound) {
-    if (startPoint.heading === "linear") currentHeading = startPoint.startDeg;
-    else if (startPoint.heading === "constant")
-      currentHeading = startPoint.degrees;
-    else if (startPoint.heading === "tangential") {
-      if (lines.length > 0) {
-        const firstLine = lines[0];
-        const nextP =
-          firstLine.controlPoints.length > 0
-            ? firstLine.controlPoints[0]
-            : firstLine.endPoint;
-        currentHeading = getInitialTangentialHeading(startPoint, nextP);
-      } else {
-        currentHeading = 0;
-      }
-    }
-  }
-
-  if (!Number.isFinite(currentHeading)) currentHeading = 0;
-
   let lastPoint: Point = startPoint;
 
-  const processSequence = (
+  let currentHeading = startingHeading(startPoint, lines, sequence);
+
+  /** Adds the turn (if needed) and the travel for the path at `idx`. */
+  function drivePath(
     seq: SequenceItem[],
-    contextLines: Line[],
-    recursionDepth: number = 0,
-  ) => {
-    if (recursionDepth > 10) {
+    idx: number,
+    line: Line,
+    chains: Map<string, ChainInfo>,
+  ) {
+    const prevPoint = lastPoint;
+    const isChained = continuesChain(seq, idx, lineById);
+    const chainMeta = chains.get(line.id!);
+    const rootLine = chainMeta?.rootLine;
+
+    // Turn in place first if the path needs to start facing elsewhere.
+    // Chained paths don't stop; they turn while driving instead.
+    const startHeadingRaw = getLineStartHeading(
+      line,
+      prevPoint,
+      rootLine,
+      chainMeta?.chainTotalLength,
+      chainMeta?.distanceBefore,
+    );
+    let startHeading = unwrapAngle(startHeadingRaw, currentHeading);
+    if (!Number.isFinite(startHeading)) startHeading = currentHeading;
+    if (Math.abs(currentHeading - startHeading) > 0.1 && !isChained) {
+      const turnTime = calculateRotationTime(
+        Math.abs(currentHeading - startHeading),
+        safeSettings,
+      );
+      timeline.push({
+        type: "wait",
+        duration: turnTime,
+        startTime: currentTime,
+        endTime: currentTime + turnTime,
+        startHeading: currentHeading,
+        targetHeading: startHeading,
+        atPoint: prevPoint,
+      });
+      currentTime += turnTime;
+      currentHeading = startHeading;
+    }
+
+    const analysis = analyzePathSegment(
+      prevPoint,
+      line.controlPoints,
+      line.endPoint,
+      100,
+      currentHeading,
+    );
+    const length = analysis.length;
+    segmentLengths.push(length);
+
+    let translationTime: number;
+    let motionProfile: number[] | undefined;
+    let velocityProfile: number[] | undefined;
+    if (useMotionProfile) {
+      // Through a chain the robot keeps some speed at the joins, less the
+      // sharper the corner.
+      const maxVelocity = safeSettings.maxVelocity || 100;
+      let entryVelocity = 0;
+      const prevItem = seq[idx - 1];
+      if (
+        isChained &&
+        prevItem?.kind === "path" &&
+        lineById.has(prevItem.lineId)
+      ) {
+        entryVelocity = cornerSpeed(
+          maxVelocity,
+          currentHeading,
+          startHeadingRaw,
+        );
+      }
+      let exitVelocity = 0;
+      const nextItem = seq[idx + 1];
+      const nextLine =
+        nextItem?.kind === "path" ? lineById.get(nextItem.lineId) : undefined;
+      if (nextLine && continuesChain(seq, idx + 1, lineById)) {
+        const nextChain = chains.get(nextLine.id!);
+        exitVelocity = cornerSpeed(
+          maxVelocity,
+          getLineEndHeading(line, prevPoint),
+          getLineStartHeading(
+            nextLine,
+            line.endPoint,
+            nextChain?.rootLine,
+            nextChain?.chainTotalLength,
+            nextChain?.distanceBefore,
+          ),
+        );
+      }
+
+      const result = calculateMotionProfileDetailed(
+        analysis.steps,
+        safeSettings,
+        entryVelocity,
+        exitVelocity,
+      );
+      translationTime = result.totalTime;
+      motionProfile = result.profile;
+      velocityProfile = result.velocityProfile;
+    } else {
+      translationTime =
+        length / ((safeSettings.xVelocity + safeSettings.yVelocity) / 2);
+    }
+
+    const { endHeading, rotationRequired } = calculateEndHeadingAndRotation(
+      line,
+      prevPoint,
+      rootLine,
+      chainMeta,
+      currentHeading,
+      length,
+      isChained,
+      analysis,
+    );
+    const rotationTime = calculateRotationTime(
+      isChained ? Math.abs(endHeading - currentHeading) : rotationRequired,
+      safeSettings,
+    );
+
+    // If turning takes longer than driving, the drive is slowed to match.
+    const segmentTime = Math.max(translationTime, rotationTime);
+    if (motionProfile && segmentTime > translationTime && translationTime > 0) {
+      const scale = segmentTime / translationTime;
+      motionProfile = motionProfile.map((t) => t * scale);
+    }
+
+    const isGlobalOverride = !!(
+      rootLine?.globalHeading && rootLine.globalHeading !== "none"
+    );
+    // Built from the final (possibly slowed) profile so headings line up
+    // with the robot's position.
+    const headingProfile =
+      useMotionProfile && motionProfile
+        ? buildHeadingProfile({
+            line,
+            prevPoint,
+            rootLine,
+            chainMeta,
+            currentHeading,
+            endHeading,
+            physicalRotationTime: rotationTime,
+            analysis,
+            motionProfile,
+            settings: safeSettings,
+            length,
+            isChained,
+            isGlobalOverride,
+          })
+        : undefined;
+
+    segmentTimes.push(segmentTime);
+    timeline.push({
+      type: "travel",
+      duration: segmentTime,
+      startTime: currentTime,
+      endTime: currentTime + segmentTime,
+      lineIndex: lineIndexById.get(line.id!) ?? -1,
+      line,
+      prevPoint,
+      motionProfile,
+      velocityProfile,
+      headingProfile,
+      isGlobalOverride,
+      rootLine,
+      globalHeading: (isGlobalOverride
+        ? rootLine!.globalHeading!
+        : line.endPoint.heading) as any,
+    });
+    currentTime += segmentTime;
+
+    // Carry on from the heading the profile actually ended at; with a chain
+    // heading it can differ from `endHeading`.
+    currentHeading = headingProfile?.at(-1) ?? endHeading;
+    lastPoint = line.endPoint;
+  }
+
+  function processSequence(seq: SequenceItem[], depth: number) {
+    if (depth > MAX_MACRO_DEPTH) {
       console.warn("Max recursion depth reached for macro expansion");
       return;
     }
-
-    const lineById = new Map<string, Line>();
-    contextLines.forEach((ln) => {
-      if (!ln.id) ln.id = makeId("line");
-      lineById.set(ln.id, ln);
-    });
-
-    const globalChainMeta = calculateGlobalChainMeta(
-      seq,
-      contextLines,
-      lastPoint,
-    );
+    const chains = calculateGlobalChainMeta(seq, lines, lastPoint);
 
     seq.forEach((item, idx) => {
-      // Registry Check
+      // Waits, turns and plugin actions time themselves.
       const action = actionRegistry.get(item.kind);
       if (action?.calculateTime) {
         const res = action.calculateTime(item, {
@@ -148,268 +306,43 @@ export function calculatePathTime(
           currentHeading,
           lastPoint,
           settings: safeSettings,
-          lines: contextLines,
+          lines,
         });
-        res.events.forEach((ev) => timeline.push(ev));
+        timeline.push(...res.events);
         currentTime += res.duration;
-        if (res.endHeading !== undefined) {
-          currentHeading = res.endHeading;
-          isFirstPathItem = false;
-        }
+        if (res.endHeading !== undefined) currentHeading = res.endHeading;
         if (res.endPoint) lastPoint = res.endPoint;
         return;
       }
 
       if (item.kind === "macro") {
+        // The macro's steps were expanded into item.sequence (and its lines
+        // into the project's lines) when the macro was loaded.
         const startTime = currentTime;
-
-        // Use the pre-expanded sequence in the item, which refreshMacros has populated.
-        // The lines for this macro should already be in contextLines (which are all project lines).
-        if (item.sequence && item.sequence.length > 0) {
-          processSequence(item.sequence, contextLines, recursionDepth + 1);
-        }
-
-        const endTime = currentTime;
-        const duration = endTime - startTime;
-
-        if (duration > 0) {
+        if (item.sequence?.length) processSequence(item.sequence, depth + 1);
+        if (currentTime > startTime) {
           timeline.push({
             type: "macro",
             name: item.name || "Macro",
-            duration,
+            duration: currentTime - startTime,
             startTime,
-            endTime,
+            endTime: currentTime,
           });
         }
-
         return;
       }
 
-      const line = lineById.get((item as any).lineId);
-      if (!line?.endPoint) {
-        return;
-      }
-      const prevPoint = lastPoint;
-
-      const prevItem = idx > 0 ? seq[idx - 1] : null;
-      const isChained = !!(
-        prevItem?.kind === "path" &&
-        ((item as any).isChain === true || line.isChain === true)
-      );
-
-      const chainMeta = globalChainMeta.get(line.id!);
-      const rootLine = chainMeta?.rootLine;
-
-      // --- ROTATION CHECK (Initial Turn-to-Face or Wait) ---
-      // Unwind requiredStartHeading relative to currentHeading
-      let requiredStartHeadingRaw = getLineStartHeading(
-        line,
-        prevPoint,
-        rootLine,
-        chainMeta?.chainTotalLength,
-        chainMeta?.distanceBefore,
-      );
-      // Unwind: find value closest to currentHeading
-      let requiredStartHeading = unwrapAngle(
-        requiredStartHeadingRaw,
-        currentHeading,
-      );
-
-      if (!Number.isFinite(requiredStartHeading))
-        requiredStartHeading = currentHeading;
-
-      if (isFirstPathItem) {
-        currentHeading = requiredStartHeading;
-        isFirstPathItem = false;
-      }
-
-      let diff = Math.abs(currentHeading - requiredStartHeading);
-
-      // Use a small epsilon
-      if (diff > 0.1 && !isChained) {
-        // Convert diff to rotation time WITH ACCELERATION logic for Wait events
-        const rotTime = calculateRotationTime(diff, safeSettings);
-
-        timeline.push({
-          type: "wait",
-          duration: rotTime,
-          startTime: currentTime,
-          endTime: currentTime + rotTime,
-          startHeading: currentHeading,
-          targetHeading: requiredStartHeading,
-          atPoint: prevPoint,
-        });
-        currentTime += rotTime;
-        currentHeading = requiredStartHeading;
-      } else if (isChained) {
-        // If chained, we don't stop.
-        // However, we want to rotate to requiredStartHeading smoothly.
-        // Since the robot can drive and rotate, we will factor this into the travel time check below.
-        // We will NOT insert a wait block. We just leave currentHeading as is for the start of travel.
-      }
-
-      // --- TRAVEL ANALYSIS ---
-      // Pass currentHeading to start tracking
-      const analysis = analyzePathSegment(
-        prevPoint,
-        line.controlPoints as any,
-        line.endPoint as any,
-        100,
-        currentHeading,
-      );
-      const length = analysis.length;
-      segmentLengths.push(length);
-
-      let translationTime = 0;
-      let motionProfile: number[] | undefined = undefined;
-      let velocityProfile: number[] | undefined = undefined;
-      let headingProfile: number[] | undefined = undefined;
-
-      const nextItem = seq[idx + 1];
-      const isChainedToNext =
-        nextItem?.kind === "path" &&
-        ((nextItem as any).isChain === true ||
-          (lineById.get((nextItem as any).lineId) as any)?.isChain === true);
-
-      if (useMotionProfile) {
-        let entryVelocity = 0;
-        let exitVelocity = 0;
-
-        const maxVelGlobal = safeSettings.maxVelocity || 100;
-
-        const velocities = calculateSegmentVelocities(
-          idx,
-          seq,
-          lineById,
-          globalChainMeta,
-          currentHeading,
-          prevPoint,
-          rootLine,
-          chainMeta,
-          line,
-          maxVelGlobal,
-          isChained,
-          isChainedToNext,
-        );
-        entryVelocity = velocities.entryVelocity;
-        exitVelocity = velocities.exitVelocity;
-
-        const result = calculateMotionProfileDetailed(
-          analysis.steps,
-          safeSettings,
-          entryVelocity,
-          exitVelocity,
-        );
-        translationTime = result.totalTime;
-        motionProfile = result.profile;
-        velocityProfile = result.velocityProfile;
-      } else {
-        const avgVelocity =
-          (safeSettings.xVelocity + safeSettings.yVelocity) / 2;
-        translationTime = length / avgVelocity;
-      }
-
-      // Calculate Rotation Time (for non-profile logic)
-      const rotationAnalysis = calculateEndHeadingAndRotation(
-        line,
-        prevPoint,
-        rootLine,
-        chainMeta,
-        currentHeading,
-        length,
-        isChained,
-        analysis,
-      );
-      let endHeading = rotationAnalysis.endHeading;
-      let rotationRequired = rotationAnalysis.rotationRequired;
-
-      const totalRotationRequiredForSegment = isChained
-        ? Math.abs(endHeading - currentHeading)
-        : rotationRequired;
-      const physicalRotationTime = calculateRotationTime(
-        totalRotationRequiredForSegment,
-        safeSettings,
-      );
-
-      const segmentTime = Math.max(translationTime, physicalRotationTime);
-
-      if (
-        useMotionProfile &&
-        motionProfile &&
-        segmentTime > translationTime &&
-        translationTime > 0
-      ) {
-        const scale = segmentTime / translationTime;
-        motionProfile = motionProfile.map((t) => t * scale);
-      }
-
-      const isGlobalOverride = !!(
-        rootLine?.globalHeading && rootLine.globalHeading !== "none"
-      );
-
-      // Build heading profile AFTER motion profile is scaled/finalized so we have accurate times
-      if (useMotionProfile && motionProfile) {
-        headingProfile = buildHeadingProfile({
-          line,
-          prevPoint,
-          rootLine,
-          chainMeta,
-          currentHeading,
-          endHeading,
-          physicalRotationTime,
-          analysis,
-          motionProfile,
-          settings: safeSettings,
-          length,
-          isChained,
-          isGlobalOverride,
-        });
-      }
-
-      // Cleaned up the duplicate declarations that caused tests to fail.
-
-      segmentTimes.push(segmentTime);
-      const lineIndex = contextLines.findIndex((l) => l.id === line.id);
-      timeline.push({
-        type: "travel",
-        duration: segmentTime,
-        startTime: currentTime,
-        endTime: currentTime + segmentTime,
-        lineIndex,
-        line: line, // Pass direct reference
-        prevPoint: prevPoint as Point, // Pass direct reference
-        motionProfile: motionProfile,
-        velocityProfile: velocityProfile,
-        headingProfile: headingProfile,
-        isGlobalOverride: isGlobalOverride,
-        rootLine: rootLine,
-        globalHeading: (isGlobalOverride
-          ? rootLine!.globalHeading!
-          : line.endPoint.heading) as any,
-      });
-      currentTime += segmentTime;
-
-      // Update state: seed from actual last heading profile value if available
-      // so the next segment always continues from wherever we truly ended up
-      // (which can differ from endHeading when using global chain interpolation).
-      currentHeading = headingProfile?.at(-1) ?? endHeading;
-      lastPoint = line.endPoint as Point;
+      const line = item.kind === "path" ? lineById.get(item.lineId) : undefined;
+      if (line?.endPoint) drivePath(seq, idx, line, chains);
     });
-  };
+  }
 
-  const initialSeq = sequence?.length
-    ? sequence
-    : lines.map((ln) => ({ kind: "path", lineId: ln.id! }) as SequenceItem);
-
-  processSequence(initialSeq, lines);
-
-  const totalTime = currentTime;
-  const totalDistance = segmentLengths.reduce((sum, length) => sum + length, 0);
+  processSequence(stepsToRun(lines, sequence), 0);
 
   return {
-    totalTime,
+    totalTime: currentTime,
     segmentTimes,
-    totalDistance,
+    totalDistance: segmentLengths.reduce((sum, length) => sum + length, 0),
     timeline,
   };
 }

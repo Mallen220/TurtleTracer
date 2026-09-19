@@ -2,8 +2,8 @@
 import prettier from "prettier";
 import prettierJavaPlugin from "prettier-plugin-java";
 import type { Point, Line, SequenceItem, TurtleData } from "../../types";
-import { getLineStartHeading } from "../../utils/math";
 import { actionRegistry } from "../../lib/actionRegistry";
+import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
 import { generateTrackerEventRegistrationCode } from "./eventMarkerUtils";
 import { type CoordinateSystem } from "../../utils/coordinates";
 
@@ -139,21 +139,6 @@ function stateMachineCode(
   code += `\n        case ${state}:`;
   code += `\n          requestOpModeStop();\n          pathState = -1;\n          break;`;
   return code;
-}
-
-/**
- * The heading the robot starts at: along the first path if it's tangential,
- * otherwise an explicit start heading, otherwise the first path's heading.
- */
-function startHeadingForExport(startPoint: Point, lines: Line[]): number {
-  const first = lines[0];
-  if (first?.endPoint.heading === "tangential") {
-    return getLineStartHeading(first, startPoint);
-  }
-  if (startPoint.heading === "constant") return startPoint.degrees;
-  if (first) return getLineStartHeading(first, startPoint);
-  if (startPoint.heading === "linear") return startPoint.startDeg;
-  return 90;
 }
 
 type TelemetryImpl = "Standard" | "Dashboard" | "Panels" | "None";
@@ -297,7 +282,7 @@ export async function generateJavaCode(
     const startPose = poseCode(
       startPoint,
       opts,
-      startHeadingForExport(startPoint, lines),
+      startingHeading(startPoint, lines, sequence),
     );
 
     file = `

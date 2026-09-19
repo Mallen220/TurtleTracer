@@ -444,15 +444,12 @@ test("calculatePathTime processes heading loops and handles macros gracefully", 
     "simple",
   );
 
-  const macros = new Map<string, any>();
-
   // Just trigger the loop
   const time = calculatePathTime(
     startPoint,
     lines,
     defaultSettings as any,
     sequence,
-    macros,
   );
   expect(time.totalTime).toBeGreaterThan(0);
 });

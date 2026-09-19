@@ -7,6 +7,7 @@ import {
   getUniqueEventMarkerNames,
 } from "./eventMarkerUtils";
 import { actionRegistry } from "../../lib/actionRegistry";
+import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
 import { type CoordinateSystem } from "../../utils/coordinates";
 import {
   DEFAULT_PROJECT_EXTENSION,
@@ -71,11 +72,12 @@ export async function generateSequentialCommandCode(
   const poseName = (idx: number) =>
     idx < 0 ? "startPoint" : identifierFor(lines[idx].name, `point${idx + 1}`);
 
-  let startDegrees = 0;
-  if (startPoint.heading === "constant") startDegrees = startPoint.degrees ?? 0;
-  else if (startPoint.heading === "linear")
-    startDegrees = startPoint.startDeg ?? 0;
-  declarePose("startPoint", startPoint, startDegrees);
+  // The same start heading playback uses.
+  declarePose(
+    "startPoint",
+    startPoint,
+    startingHeading(startPoint, lines, sequence),
+  );
 
   const declared = new Set(["startPoint"]);
   lines.forEach((line, lineIdx) => {

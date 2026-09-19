@@ -36,7 +36,7 @@ describe("animation", () => {
       const state = calculateRobotState(0, [], [], startPoint, xScale, yScale);
       expect(state.x).toBeCloseTo(xScale(0));
       expect(state.y).toBeCloseTo(yScale(0));
-      expect(state.heading).toBe(0);
+      expect(state.heading).toBeCloseTo(0);
     });
 
     it("should calculate state at start of simple line", () => {

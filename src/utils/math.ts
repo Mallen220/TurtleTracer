@@ -5,7 +5,8 @@ type Point2D = { x: number; y: number };
 
 // The fields of Point / PiecewiseSegment / a line's global override that
 // describe how the robot should be facing.
-type HeadingSource = {
+/** The heading fields shared by points, piecewise segments and chain headings. */
+export type HeadingSource = {
   heading?: Point["heading"] | "none";
   degrees?: number;
   startDeg?: number;
@@ -65,6 +66,15 @@ export function interpolateTFromProfile(
 
   const { index, fraction } = locateInProfile(relativeTime, profile);
   return (index + fraction) / (profile.length - 1);
+}
+
+/** The reverse of interpolateTFromProfile: the time at curve parameter t. */
+export function timeAtProfileT(t: number, profile: number[]): number {
+  const steps = profile.length - 1;
+  if (steps < 1) return 0;
+  const raw = t * steps;
+  const i = Math.min(Math.floor(raw), steps - 1);
+  return profile[i] + (raw - i) * (profile[i + 1] - profile[i]);
 }
 
 function normalizeAngle(angle: number): number {
@@ -282,7 +292,7 @@ function getLinearSegmentHeading(seg: PiecewiseSegment, t: number): number {
  * A chained line can override its own heading with the chain's global
  * heading. Returns whichever source actually applies.
  */
-function getEffectiveHeadingSource(line: Line, globalOverride?: Line) {
+export function getEffectiveHeadingSource(line: Line, globalOverride?: Line) {
   if (
     !globalOverride?.globalHeading ||
     globalOverride.globalHeading === "none"
@@ -340,6 +350,22 @@ export function getLineStartHeading(
   }
 
   return getHeadingAtLineStart(source, line, previousPoint);
+}
+
+/**
+ * The heading a point's own settings give when there's no path to follow:
+ * its (start) angle, or the way it faces. Tangential has no direction on its
+ * own, so it's 0, or 180 reversed.
+ */
+export function restingHeading(point: Point): number {
+  if (point.heading === "linear") return point.startDeg;
+  if (point.heading === "piecewise") {
+    const first = point.segments?.[0];
+    if (!first) return 0;
+    if (first.heading === "linear") return first.startDeg;
+    return getPointHeading(first, point, point);
+  }
+  return getPointHeading(point, point, point);
 }
 
 export function getInitialTangentialHeading(
