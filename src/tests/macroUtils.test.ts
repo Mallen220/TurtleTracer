@@ -1,90 +1,106 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
-import { updateCurrentHeading } from "../lib/macroUtils";
-import type { Line, Point } from "../types";
+import { expandMacro } from "../lib/macroUtils";
+import type {
+  Line,
+  Point,
+  SequenceMacroItem,
+  Transformation,
+  TurtleData,
+} from "../types";
 
-describe("updateCurrentHeading", () => {
-  it("returns tangent correctly when heading is tangential", () => {
-    const line: Line = {
-      id: "l1",
-      endPoint: { x: 10, y: 10, heading: "tangential", reverse: false },
-      controlPoints: [],
-      color: "red",
-    };
-    const currentPoint: Point = {
-      x: 0,
-      y: 0,
-      heading: "linear",
-      startDeg: 0,
-      endDeg: 0,
-    };
-    const currentHeading = 0;
-    // from 0,0 to 10,10 the angle is 45 degrees
-    const updated = updateCurrentHeading(line, currentPoint, currentHeading);
-    expect(updated).toBe(45);
+const start: Point = { x: 0, y: 0, heading: "constant", degrees: 0 };
+
+const line = (id: string, endPoint: Point): Line => ({
+  id,
+  endPoint,
+  controlPoints: [],
+  color: "red",
+});
+
+function expand(lines: Line[], transformations: Transformation[] = []) {
+  const macro: SequenceMacroItem = {
+    kind: "macro",
+    id: "m",
+    name: "M",
+    filePath: "/m.turt",
+    transformations,
+  };
+  const data: TurtleData = {
+    startPoint: start,
+    lines,
+    shapes: [],
+    sequence: lines.map((l) => ({ kind: "path", lineId: l.id! })),
+  };
+  return expandMacro(macro, start, 0, data, new Map(), new Set());
+}
+
+const rotations = (result: ReturnType<typeof expand>) =>
+  result.sequence.filter((s) => s.kind === "rotate");
+
+describe("expandMacro headings", () => {
+  it("ends facing along a tangential path", () => {
+    const result = expand([
+      line("a", { x: 10, y: 10, heading: "tangential", reverse: false }),
+    ]);
+    expect(result.endHeading).toBeCloseTo(45);
   });
 
-  it("returns endPoint.degrees when heading is constant", () => {
-    const line: Line = {
-      id: "l2",
-      endPoint: { x: 10, y: 10, heading: "constant", degrees: 135 },
-      controlPoints: [],
-      color: "blue",
-    };
-    const currentPoint: Point = {
-      x: 0,
-      y: 0,
-      heading: "linear",
-      startDeg: 0,
-      endDeg: 0,
-    };
-    const currentHeading = 45;
-    const updated = updateCurrentHeading(line, currentPoint, currentHeading);
-    expect(updated).toBe(135);
+  it("ends at a constant or linear path's final heading", () => {
+    expect(
+      expand([line("a", { x: 10, y: 0, heading: "constant", degrees: 135 })])
+        .endHeading,
+    ).toBe(135);
+    expect(
+      expand([
+        line("a", {
+          x: 10,
+          y: 0,
+          heading: "linear",
+          startDeg: 0,
+          endDeg: 180,
+        }),
+      ]).endHeading,
+    ).toBe(180);
   });
 
-  it("returns endPoint.endDeg when heading is linear", () => {
-    const line: Line = {
-      id: "l3",
-      endPoint: {
+  it("tracks the heading through a facingPoint path", () => {
+    // Facing (10, 20) from (10, 0) ends at 90 degrees; the next path starts
+    // at 90, so no turn in place is needed between them.
+    const result = expand([
+      line("a", {
         x: 10,
-        y: 10,
-        heading: "linear",
-        startDeg: 90,
-        endDeg: 180,
-      },
-      controlPoints: [],
-      color: "green",
-    };
-    const currentPoint: Point = {
-      x: 0,
-      y: 0,
-      heading: "linear",
-      startDeg: 0,
-      endDeg: 0,
-    };
-    const currentHeading = 45;
-    const updated = updateCurrentHeading(line, currentPoint, currentHeading);
-    expect(updated).toBe(180);
+        y: 0,
+        heading: "facingPoint",
+        targetX: 10,
+        targetY: 20,
+      }),
+      line("b", { x: 20, y: 0, heading: "constant", degrees: 90 }),
+    ]);
+    expect(result.endHeading).toBe(90);
+    expect(rotations(result).map((r) => r.id)).not.toContain(
+      "rotate-align-macro-m-b",
+    );
   });
 
-  it("returns currentHeading when heading is unrecognized", () => {
-    // Cast to any to simulate an invalid/unrecognized heading type
-    const line = {
-      id: "l4",
-      endPoint: { x: 10, y: 10, heading: "unrecognized" },
-      controlPoints: [],
-      color: "yellow",
-    } as any;
-    const currentPoint: Point = {
-      x: 0,
-      y: 0,
-      heading: "linear",
-      startDeg: 0,
-      endDeg: 0,
-    };
-    const currentHeading = 45;
-    const updated = updateCurrentHeading(line, currentPoint, currentHeading);
-    expect(updated).toBe(45);
+  it("moves a facingPoint target with the macro", () => {
+    const result = expand(
+      [
+        line("a", {
+          x: 10,
+          y: 0,
+          heading: "facingPoint",
+          targetX: 30,
+          targetY: 5,
+        }),
+      ],
+      [{ type: "translate", dx: 5, dy: 7 }],
+    );
+    expect(result.lines.at(-1)!.endPoint).toMatchObject({
+      x: 15,
+      y: 7,
+      targetX: 35,
+      targetY: 12,
+    });
   });
 });

@@ -21,7 +21,6 @@ import { getRandomColor } from "../utils";
 import { regenerateProjectMacros } from "./macroUtils";
 import { notification } from "../stores";
 import { hookRegistry } from "./registries";
-import { actionRegistry } from "./actionRegistry";
 import { currentFilePath } from "../stores";
 import { getElectronAPI } from "../utils/platform";
 import { makeId } from "../utils/nameGenerator";
@@ -58,26 +57,23 @@ export function sanitizeSequence(
 
   // Remove path entries that reference lines not present
   const pruned = candidate.filter(
-    (s) =>
-      !actionRegistry.get(s.kind)?.isPath || lineIds.has((s as any).lineId),
+    (s) => s.kind !== "path" || lineIds.has(s.lineId),
   );
 
   // Append any lines that are missing from the sequence
   const presentIds = new Set(
-    pruned
-      .filter((s) => actionRegistry.get(s.kind)?.isPath)
-      .map((s) => (s as any).lineId),
+    pruned.flatMap((s) => (s.kind === "path" ? [s.lineId] : [])),
   );
   const missing = lines.filter(
-    (l) => !presentIds.has(l.id) && !l.isMacroElement,
+    (l) => !presentIds.has(l.id!) && !l.isMacroElement,
   );
 
   // Ensure isChain is synced from lines for ALL path items in the sequence
   const fullySanitized = [
     ...pruned.map((s) => {
-      if (actionRegistry.get(s.kind)?.isPath) {
-        const line = lines.find((l) => l.id === (s as any).lineId);
-        if (line && line.isChain !== (s as any).isChain) {
+      if (s.kind === "path") {
+        const line = lines.find((l) => l.id === s.lineId);
+        if (line && line.isChain !== s.isChain) {
           return { ...s, isChain: line.isChain };
         }
       }
@@ -253,7 +249,7 @@ export function refreshMacros() {
   const macros = get(macrosStore);
 
   // Optimization: Check if any macros exist or if there are leftover macro elements before doing heavy work
-  const hasMacro = sequence.some((s) => actionRegistry.get(s.kind)?.isMacro);
+  const hasMacro = sequence.some((s) => s.kind === "macro");
   const hasMacroElements = lines.some((l) => l.isMacroElement);
 
   if (!hasMacro && !hasMacroElements) return;
@@ -328,7 +324,7 @@ export async function loadMacro(filePath: string, force = false) {
         const promises: Promise<void>[] = [];
         if (data.sequence?.length > 0) {
           for (const item of data.sequence) {
-            if (actionRegistry.get(item.kind)?.isMacro) {
+            if (item.kind === "macro") {
               const resolvePath = api.resolvePath;
               if (resolvePath) {
                 // Resolve potential relative paths against the current macro file path
