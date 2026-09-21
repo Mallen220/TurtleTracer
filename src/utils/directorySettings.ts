@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { getElectronAPI } from "./platform";
 import type { DirectorySettings } from "../types";
 
 // Default directory settings
@@ -8,8 +9,8 @@ const DEFAULT_DIRECTORY_SETTINGS: DirectorySettings = {
 
 // Get the path for the directory settings file
 async function getDirectorySettingsPath(): Promise<string> {
-  const electronAPI = (globalThis as any).electronAPI;
-  if (electronAPI && !electronAPI.isVirtual) {
+  const electronAPI = getElectronAPI();
+  if (electronAPI?.getAppDataPath && !electronAPI.isVirtual) {
     const appDataPath = await electronAPI.getAppDataPath();
     return `${appDataPath}/directory-settings.json`;
   }
@@ -21,7 +22,7 @@ export async function saveDirectorySettings(
   settings: DirectorySettings,
 ): Promise<void> {
   try {
-    const electronAPI = (globalThis as any).electronAPI;
+    const electronAPI = getElectronAPI();
 
     // Use localStorage for browser environment
     if (!electronAPI || electronAPI.isVirtual) {
@@ -60,7 +61,7 @@ export function parseDirectorySettings(json: string): DirectorySettings {
 // Load directory settings
 export async function loadDirectorySettings(): Promise<DirectorySettings> {
   try {
-    const electronAPI = (globalThis as any).electronAPI;
+    const electronAPI = getElectronAPI();
 
     // Use localStorage for browser environment
     if (!electronAPI || electronAPI.isVirtual) {

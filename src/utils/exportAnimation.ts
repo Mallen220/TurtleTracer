@@ -7,6 +7,7 @@ import GIF from "gif.js";
 import gifWorkerUrl from "gif.js/dist/gif.worker.js?url";
 import * as UPNG from "upng-js";
 import type Two from "two.js";
+import type { AnimationController } from "./animation";
 
 function makeAbortError() {
   const e = new Error("Aborted");
@@ -16,7 +17,7 @@ function makeAbortError() {
 
 export interface ExportAnimationOptions {
   two: Two; // Two.js instance
-  animationController: any; // controller from createAnimationController
+  animationController: AnimationController;
   durationSec: number; // total duration in seconds
   fps?: number; // frames per second
   scale?: number; // resolution scale (0.1 to 1.0+)
@@ -379,7 +380,7 @@ function getCanvasSize({ two, scale = 1 }: ExportAnimationOptions) {
 }
 
 function getSvgElement(two: Two): SVGElement {
-  return (two.renderer as any).domElement as SVGElement;
+  return two.renderer.domElement as SVGElement;
 }
 
 /**
@@ -404,16 +405,16 @@ async function captureFrames(
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
-  const wasPlaying = animationController.isPlaying?.() ?? false;
-  const startPercent = animationController.getPercent?.() ?? 0;
-  animationController.pause?.();
+  const wasPlaying = animationController.isPlaying();
+  const startPercent = animationController.getPercent();
+  animationController.pause();
 
   try {
     const { backgroundImage, robotImage } = await prepareResources(options);
     for (let i = 0; i < frameCount; i++) {
       if (signal?.aborted) throw makeAbortError();
       const percent = (i / (frameCount - 1)) * 100;
-      animationController.seekToPercent?.(percent);
+      animationController.seekToPercent(percent);
       two.update();
       await renderFrameToCanvas(
         ctx,
@@ -429,8 +430,8 @@ async function captureFrames(
       onProgress?.(((i + 1) / frameCount) * progressShare);
     }
   } finally {
-    animationController.seekToPercent?.(startPercent);
-    if (wasPlaying) animationController.play?.();
+    animationController.seekToPercent(startPercent);
+    if (wasPlaying) animationController.play();
   }
 }
 

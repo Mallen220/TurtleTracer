@@ -7,6 +7,10 @@
     exportPathToApng,
   } from "../../../utils/exportAnimation";
   import { CloseIcon, PhotoIcon } from "../icons";
+  import { saveBlob } from "../../../utils/file";
+  import type Two from "two.js";
+  import type { AnimationController } from "../../../utils/animation";
+  import type { Settings } from "../../../types";
 
   let format: "gif" | "apng" = $state("gif");
   let fps = $state(15);
@@ -160,35 +164,10 @@
     const ext = format === "gif" ? "gif" : "png";
     const label = format === "gif" ? "GIF" : "Animated PNG";
 
-    if (
-      electronAPI &&
-      electronAPI.showSaveDialog &&
-      electronAPI.writeFileBase64
-    ) {
-      const dest = await electronAPI.showSaveDialog({
-        defaultPath: `path.${ext}`,
-        filters: [{ name: label, extensions: [ext] }],
-      });
-      if (dest) {
-        const reader = new FileReader();
-        reader.onload = async () => {
-          const b64 = (reader.result as string).split(",")[1];
-          await electronAPI.writeFileBase64!(dest, b64);
-          statusMessage = "Saved successfully!";
-          setTimeout(close, 2000);
-        };
-        reader.readAsDataURL(previewBlob);
-      }
-    } else {
-      const a = document.createElement("a");
-      a.href = previewUrl!;
-      a.download = `path.${ext}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      statusMessage = "Downloaded!";
-      setTimeout(close, 2000);
-    }
+    const result = await saveBlob(previewBlob, `path.${ext}`, label);
+    if (result === "cancelled") return;
+    statusMessage = result === "saved" ? "Saved successfully!" : "Downloaded!";
+    setTimeout(close, 2000);
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -200,9 +179,9 @@
 
   interface Props {
     show?: boolean;
-    twoInstance: any;
-    animationController: any;
-    settings: any;
+    twoInstance: Two;
+    animationController: AnimationController;
+    settings: Settings;
     robotLengthPx: number;
     robotWidthPx: number;
     robotStateFunction: (percent: number) => {
@@ -210,7 +189,6 @@
       y: number;
       heading: number;
     };
-    electronAPI: any;
     onclose?: () => void;
   }
 
@@ -222,7 +200,6 @@
     robotLengthPx,
     robotWidthPx,
     robotStateFunction,
-    electronAPI,
     onclose,
   }: Props = $props();
 

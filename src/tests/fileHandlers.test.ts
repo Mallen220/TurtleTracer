@@ -15,7 +15,7 @@ import {
 import { DEFAULT_SETTINGS } from "../config/defaults";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
-import type { SequenceMacroItem } from "../types";
+import type { SequenceMacroItem, TurtleData } from "../types";
 import pkg from "../../package.json";
 
 const macroKind = (): SequenceMacroItem["kind"] =>
@@ -438,7 +438,7 @@ describe("fileHandlers", () => {
         currentSequence,
         currentSettings,
         currentShapes,
-        {},
+        {} as TurtleData,
         "/project/dir/auto.turt",
       );
 

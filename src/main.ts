@@ -9,9 +9,8 @@ if (isBrowser) {
   document.body.classList.add("is-browser");
 }
 
-if (typeof globalThis !== "undefined" && !(globalThis as any).electronAPI) {
-  (globalThis as any).electronAPI = browserFileSystem;
-}
+// In a plain browser, files live in IndexedDB instead of on disk.
+globalThis.electronAPI ??= browserFileSystem;
 
 const app = mount(App, {
   target: document.body!,

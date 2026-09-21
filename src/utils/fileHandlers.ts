@@ -21,7 +21,14 @@ import {
 } from "../lib/projectStore";
 import { loadTrajectoryFromFile, downloadTrajectory } from "./index";
 import { exporterRegistry } from "../lib/exporters";
-import type { Line, Point, SequenceItem, Settings, Shape } from "../types";
+import type {
+  Line,
+  Point,
+  SequenceItem,
+  Settings,
+  Shape,
+  TurtleData,
+} from "../types";
 import { makeId } from "./nameGenerator";
 import { getLineStartHeading, getLineEndHeading } from "./math";
 import {
@@ -31,7 +38,8 @@ import {
   isSupportedProjectFileName,
   stripProjectExtension,
 } from "./fileExtensions";
-import { getElectronAPI } from "./platform";
+import { diskPathOf, getElectronAPI } from "./platform";
+import { hookRegistry } from "../lib/registries";
 import pkg from "../../package.json";
 
 export interface SaveOptions {
@@ -43,9 +51,9 @@ export interface SaveOptions {
   quiet?: boolean;
 }
 
-const fileNameOf = (path: string) => path.split(/[\\/]/).pop() || "";
+export const fileNameOf = (path: string) => path.split(/[\\/]/).pop() || "";
 
-const directoryOf = (path: string) =>
+export const directoryOf = (path: string) =>
   path.slice(0, Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")));
 
 /** Joins a directory and file name using whichever separator the directory uses. */
@@ -61,7 +69,9 @@ export function joinPath(dir: string, name: string): string {
 function withPathHeadings(startPoint: Point, lines: Line[]): Point {
   if (!lines || lines.length === 0) return startPoint;
 
-  const { degrees: _degrees, ...rest } = startPoint as any;
+  const { degrees: _degrees, ...rest } = startPoint as Point & {
+    degrees?: number;
+  };
   return {
     ...rest,
     heading: "linear",
@@ -70,7 +80,7 @@ function withPathHeadings(startPoint: Point, lines: Line[]): Point {
       lines.at(-1),
       lines.at(-2)?.endPoint ?? startPoint,
     ),
-  };
+  } as Point;
 }
 
 function addToRecentFiles(path: string) {
@@ -84,7 +94,7 @@ function addToRecentFiles(path: string) {
 }
 
 /** Saves the current file first if the user has "save on close" autosave on. */
-async function autosaveBeforeLeaving() {
+export async function autosaveBeforeLeaving() {
   if (
     get(settingsStore).autosaveMode === "close" &&
     get(isUnsaved) &&
@@ -118,8 +128,9 @@ function createProjectData(
 }
 
 /**
- * Project data built from the current stores, ready to be written to disk.
- * Macro paths are made relative to `targetPath` so projects can be moved.
+ * Project data built from the current stores, exactly as it's written to
+ * disk. Macro paths are made relative to `targetPath` so projects can be
+ * moved.
  */
 async function buildProjectFile(targetPath?: string) {
   const electronAPI = getElectronAPI();
@@ -135,17 +146,39 @@ async function buildProjectFile(targetPath?: string) {
       }
     }
   }
-  return createProjectData(
+  const data = createProjectData(
     withPathHeadings(get(startPointStore), lines),
     lines,
     get(shapesStore),
-    sequence,
+    sequence.length > 0
+      ? sequence
+      : lines.map((l): SequenceItem => ({ kind: "path", lineId: l.id! })),
     get(extraDataStore),
   );
+  encodeLinkedNames(data);
+  return data;
+}
+
+/** Project data to save at `targetPath`, after plugins' onSave hooks have run. */
+async function projectFileForSave(targetPath: string) {
+  const data = await buildProjectFile(targetPath);
+  await hookRegistry.run("onSave", data);
+  return data;
+}
+
+/** Writes the project to `path` without making it the open file. */
+export async function writeProjectCopy(path: string) {
+  const data = await projectFileForSave(path);
+  await getElectronAPI()!.writeFile(path, JSON.stringify(data, null, 2));
+}
+
+/** The project file's contents, as saving it to `targetPath` would write. */
+export async function projectFileJson(targetPath?: string): Promise<string> {
+  return JSON.stringify(await buildProjectFile(targetPath), null, 2);
 }
 
 /** Loads project `data` as the open file at `path`. */
-async function openProject(data: any, path: string) {
+async function openProject(data: TurtleData, path: string) {
   await loadProjectData(data, path);
   currentFilePath.set(path);
   addToRecentFiles(path);
@@ -282,14 +315,7 @@ export async function saveProject({
     targetPath = ensureDefaultProjectExtension(targetPath);
 
     ensureIds();
-    const projectData = await buildProjectFile(targetPath);
-    if (projectData.sequence.length === 0) {
-      projectData.sequence = projectData.lines.map((l) => ({
-        kind: "path",
-        lineId: l.id!,
-      }));
-    }
-    encodeLinkedNames(projectData);
+    const projectData = await projectFileForSave(targetPath);
 
     const savedPath = await writeProjectFile(
       JSON.stringify(projectData, null, 2),
@@ -320,7 +346,7 @@ export async function saveProject({
 
     // Other open projects may use this file as a macro.
     if (get(macrosStore).has(savedPath)) {
-      updateMacroContent(savedPath, projectData as any);
+      updateMacroContent(savedPath, projectData);
     }
 
     const dir = get(currentDirectoryStore);
@@ -336,10 +362,10 @@ export async function saveProject({
       savedPath,
     );
     return true;
-  } catch (err: any) {
+  } catch (err) {
     console.error("Save error:", err);
     notification.set({
-      message: `Save failed: ${err.message}`,
+      message: `Save failed: ${(err as Error).message}`,
       type: "error",
     });
     return false;
@@ -378,12 +404,7 @@ export async function exportAsProjectFile() {
   const electronAPI = getElectronAPI();
   const defaultName = `${currentFileBaseName()}${DEFAULT_PROJECT_EXTENSION}`;
 
-  if (
-    electronAPI &&
-    !electronAPI.isVirtual &&
-    electronAPI.showSaveDialog &&
-    electronAPI.writeFile
-  ) {
+  if (electronAPI && !electronAPI.isVirtual && electronAPI.showSaveDialog) {
     const chosen = await electronAPI.showSaveDialog({
       title: "Export .turt File",
       defaultPath: defaultName,
@@ -391,9 +412,7 @@ export async function exportAsProjectFile() {
     });
     if (!chosen) return;
 
-    const path = ensureDefaultProjectExtension(chosen);
-    const projectData = await buildProjectFile(path);
-    await electronAPI.writeFile(path, JSON.stringify(projectData, null, 2));
+    await writeProjectCopy(ensureDefaultProjectExtension(chosen));
     return;
   }
 
@@ -510,7 +529,7 @@ export async function loadFile(evt: Event) {
     reader.readAsText(file);
   } else {
     loadTrajectoryFromFile(evt, async (data) => {
-      const path: string | undefined = (file as any).path;
+      const path = diskPathOf(file);
       if (path) {
         addToRecentFiles(path);
         currentFilePath.set(path);
@@ -522,7 +541,7 @@ export async function loadFile(evt: Event) {
   input.value = "";
 }
 
-async function autoExportCurrentProject(data: any, path: string) {
+async function autoExportCurrentProject(data: TurtleData, path: string) {
   await handleAutoExport(
     get(startPointStore),
     get(linesStore),
@@ -544,7 +563,7 @@ export async function handleAutoExport(
   sequence: SequenceItem[],
   settings: Settings,
   shapes: Shape[],
-  projectData: any,
+  projectData: TurtleData,
   targetPath: string,
 ) {
   const electronAPI = getElectronAPI();
@@ -598,11 +617,11 @@ export async function handleAutoExport(
       type: "success",
       timeout: 2000,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error("Auto Export Failed:", err);
     // A warning rather than an error, so it isn't mistaken for a failed save.
     notification.set({
-      message: `Auto Export Failed: ${err.message}`,
+      message: `Auto Export Failed: ${(err as Error).message}`,
       type: "warning",
       timeout: 5000,
     });

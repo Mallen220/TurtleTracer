@@ -5,6 +5,7 @@ import {
   LEGACY_PROJECT_EXTENSION,
   isSupportedProjectFileName,
 } from "./fileExtensions";
+import { getElectronAPI } from "./platform";
 
 /**
  * File save/load utilities for the visualizer
@@ -19,7 +20,7 @@ export interface SaveData {
   extraData?: Record<string, any>;
 }
 
-function triggerDownload(
+export function triggerDownload(
   content: string,
   type: string,
   filename: string,
@@ -81,28 +82,6 @@ export function downloadTrajectory(
 }
 
 /**
- * Download trajectory data as a text file
- */
-export function downloadTrajectoryAsText(
-  startPoint: Point,
-  lines: Line[],
-  shapes: Shape[],
-  sequence: SequenceItem[],
-  extraData?: Record<string, any>,
-  filename: string = "trajectory.txt",
-): void {
-  const jsonString = createTrajectoryJson(
-    startPoint,
-    lines,
-    shapes,
-    sequence,
-    extraData,
-  );
-
-  triggerDownload(jsonString, "text/plain", filename);
-}
-
-/**
  * Load trajectory from a file input event
  */
 export function loadTrajectoryFromFile(
@@ -138,38 +117,40 @@ export function loadTrajectoryFromFile(
 }
 
 /**
- * Update the robot image displayed on the canvas
+ * Saves binary data: through a native save dialog in the desktop app, or as
+ * a browser download. `typeLabel` names the file type in the dialog.
  */
-export function updateRobotImageDisplay(): void {
-  const robotImage = document.querySelector(
-    'img[alt="Robot"]',
-  ) as HTMLImageElement;
-  let storedImage: string | null = null;
-  try {
-    const storage = globalThis.localStorage as Storage | undefined;
-    const prototypeGetItem = (Storage as any)?.prototype?.getItem;
-    if (
-      typeof prototypeGetItem === "function" &&
-      (prototypeGetItem as any).mock
-    ) {
-      // In tests, the prototype method can be mocked/spied; call it directly so
-      // assertions on Storage.prototype.getItem remain reliable.
-      storedImage = prototypeGetItem.call(storage, "robot.png");
-    } else {
-      storedImage = storage?.getItem?.("robot.png") ?? null;
-    }
-  } catch {
-    // Ignore storage access issues in restricted/test environments.
+export async function saveBlob(
+  blob: Blob,
+  fileName: string,
+  typeLabel: string,
+): Promise<"saved" | "downloaded" | "cancelled"> {
+  const api = getElectronAPI();
+  if (!api?.showSaveDialog || !api.writeFileBase64) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    return "downloaded";
   }
-  if (robotImage && storedImage) {
-    robotImage.src = storedImage;
-  }
+
+  const extension = fileName.split(".").pop() ?? "";
+  const dest = await api.showSaveDialog({
+    defaultPath: fileName,
+    filters: [{ name: typeLabel, extensions: [extension] }],
+  });
+  if (!dest) return "cancelled";
+  const dataUrl = await imageToBase64(blob);
+  await api.writeFileBase64(dest, dataUrl.split(",")[1]);
+  return "saved";
 }
 
-/**
- * Convert image file to base64 string
- */
-export function imageToBase64(file: File): Promise<string> {
+/** Reads a file or blob as a base64 `data:` URL. */
+export function imageToBase64(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
