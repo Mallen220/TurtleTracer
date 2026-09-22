@@ -1,6 +1,5 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { onMount } from "svelte";
   import { cubicInOut } from "svelte/easing";
   import {
     CloseIcon,
@@ -12,7 +11,10 @@
     DiscordIcon,
   } from "../icons/index";
   import { fade, fly } from "svelte/transition";
-  import { resetSettings } from "../../../utils/settingsPersistence";
+  import {
+    resetSettings,
+    saveSettings,
+  } from "../../../utils/settingsPersistence";
   import { DEFAULT_SETTINGS } from "../../../config/defaults";
   import type { Settings } from "../../../types/index";
   import { settingsActiveTab } from "../../../stores";
@@ -26,6 +28,17 @@
   import CodeExportSettingsTab from "../settings/tabs/CodeExportSettingsTab.svelte";
   import AdvancedSettingsTab from "../settings/tabs/AdvancedSettingsTab.svelte";
   import AboutSettingsTab from "../settings/tabs/AboutSettingsTab.svelte";
+  import packageJson from "../../../../package.json";
+
+  interface Props {
+    isOpen?: boolean;
+    settings?: Settings;
+  }
+
+  let {
+    isOpen = $bindable(false),
+    settings = $bindable({ ...DEFAULT_SETTINGS }),
+  }: Props = $props();
 
   type TabId =
     | "general"
@@ -39,9 +52,7 @@
   let activeTab: TabId = $state("general");
   let searchQuery = $state("");
 
-  // Get version from package. json
-  import packageJson from "../../../../package.json";
-  let appVersion = packageJson.version;
+  const appVersion = packageJson.version;
 
   let downloadCount: number | null = $state(null);
 
@@ -98,70 +109,43 @@
     isBrowser ? allTabs.filter((t) => t.id !== "code-export") : allTabs,
   );
 
-  onMount(async () => {
-    try {
-      let page = 1;
-      let count = 0;
-      let hasMore = true;
-      let completed = true; // will be false if any page fails to fetch fully
+  // Total installer downloads across all GitHub releases, shown in the
+  // footer. Fetched the first time the dialog opens, not at app start.
+  let downloadCountRequested = false;
+  $effect(() => {
+    if (isOpen && !downloadCountRequested) {
+      downloadCountRequested = true;
+      fetchDownloadCount().then((count) => (downloadCount = count));
+    }
+  });
 
-      while (hasMore) {
+  interface Release {
+    assets: { name: string; download_count?: number }[];
+  }
+  const INSTALLER = /\.(exe|dmg|deb|rpm|appimage|pkg|zip|tar\.gz)(?:\.|$)/;
+
+  /** Null if any page failed, rather than showing a partial count. */
+  async function fetchDownloadCount(): Promise<number | null> {
+    let count = 0;
+    try {
+      for (let page = 1; ; page++) {
         const response = await fetch(
           `https://api.github.com/repos/Mallen220/TurtleTracer/releases?per_page=100&page=${page}`,
         );
-
-        if (response.ok) {
-          const releases = await response.json();
-          if (releases.length === 0) {
-            hasMore = false;
-          } else {
-            releases.forEach((release: any) => {
-              release.assets.forEach((asset: any) => {
-                const name = asset.name.toLowerCase();
-                const releaseAssetRegex =
-                  /\.(exe|dmg|deb|rpm|appimage|pkg|zip|tar\.gz)(?:\.|$)/;
-                if (releaseAssetRegex.test(name)) {
-                  count += asset.download_count || 0;
-                }
-              });
-            });
-            page++;
+        if (!response.ok) return null;
+        const releases: Release[] = await response.json();
+        if (releases.length === 0) return count;
+        for (const asset of releases.flatMap((r) => r.assets)) {
+          if (INSTALLER.test(asset.name.toLowerCase())) {
+            count += asset.download_count || 0;
           }
-        } else {
-          completed = false;
-          hasMore = false;
-          break;
         }
-      }
-
-      if (completed) {
-        downloadCount = count;
-      } else {
-        console.warn(
-          "Incomplete fetch of releases — download count may be partial or unavailable",
-        );
-        downloadCount = null;
       }
     } catch (e) {
       console.error("Failed to fetch download count", e);
+      return null;
     }
-  });
-  // Display units state
-
-  // Display value for angular velocity
-
-  // Display value for max angular acceleration
-
-  import { saveSettings } from "../../../utils/settingsPersistence";
-  interface Props {
-    isOpen?: boolean;
-    settings?: Settings;
   }
-
-  let {
-    isOpen = $bindable(false),
-    settings = $bindable({ ...DEFAULT_SETTINGS }),
-  }: Props = $props();
 
   async function handleSave() {
     await saveSettings(settings);
@@ -174,15 +158,12 @@
         "Are you sure you want to reset all settings to defaults? This cannot be undone.",
       )
     ) {
-      const defaultSettings = await resetSettings();
-      // Update the bound settings object
-      Object.keys(defaultSettings).forEach((key) => {
-        (settings as any)[key] = (defaultSettings as any)[key];
-      });
-
-      // Prevent the UI from immediately triggering the onboarding tutorial
-      (settings as any).hasSeenOnboarding = true;
-      settings = { ...settings };
+      // Don't send the user back through the onboarding tutorial.
+      settings = {
+        ...settings,
+        ...(await resetSettings()),
+        hasSeenOnboarding: true,
+      };
       try {
         await saveSettings(settings);
       } catch (e) {
