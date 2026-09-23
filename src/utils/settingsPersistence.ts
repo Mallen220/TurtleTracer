@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { DEFAULT_SETTINGS } from "../config/defaults";
-import type { Settings } from "../types";
+import { getElectronAPI as getPlatformElectronAPI } from "./platform";
+import type { ElectronAPI, Settings } from "../types";
 
 // Versioning for settings schema
 const SETTINGS_VERSION = "1.0.0";
@@ -15,21 +16,9 @@ interface StoredSettings {
   lastUpdated: string;
 }
 
-// Helper to get electronAPI safely (allows mocking in tests)
-function getElectronAPI() {
-  const api = (globalThis as any).electronAPI as {
-    getAppDataPath: () => Promise<string>;
-    readFile: (filePath: string) => Promise<string>;
-    writeFile: (filePath: string, content: string) => Promise<boolean>;
-    fileExists: (filePath: string) => Promise<boolean>;
-    isVirtual?: boolean;
-  };
-
-  if (api?.isVirtual) {
-    return undefined;
-  }
-
-  return api || undefined;
+// Helper to get electronAPI safely (disallows virtual in settings persistence)
+function getElectronAPI(): ElectronAPI | undefined {
+  return getPlatformElectronAPI({ allowVirtual: false });
 }
 
 // Get the settings file path
@@ -38,7 +27,7 @@ async function getSettingsPaths(): Promise<{
   legacy: string;
 }> {
   const api = getElectronAPI();
-  if (!api) {
+  if (!api?.getAppDataPath) {
     console.warn("Electron API not available, using default settings");
     return { current: "", legacy: "" };
   }
@@ -85,8 +74,21 @@ export function mergeSettings(source: any): Settings {
       // Skip if source value is undefined/null (will use default)
       if (sourceVal === undefined || sourceVal === null) return;
 
-      // Special-case merging for keyBindings so newly added defaults appear
-      if (key === "keyBindings" && Array.isArray(sourceVal)) {
+      // Special-case merging for obstaclePresets so all default presets are guaranteed present & up to date, while user custom presets are preserved
+      if (key === "obstaclePresets" && Array.isArray(sourceVal)) {
+        const defaultPresets = defaults.obstaclePresets || [];
+        const storedPresets = sourceVal as any[];
+
+        const defaultIds = new Set(defaultPresets.map((p) => p.id));
+
+        // Start with defaultPresets (always up to date with official seasons)
+        // Then append any custom user presets that aren't in defaultPresets
+        const customPresets = storedPresets.filter(
+          (p) => p && typeof p === "object" && p.id && !defaultIds.has(p.id),
+        );
+
+        migrated.obstaclePresets = [...defaultPresets, ...customPresets];
+      } else if (key === "keyBindings" && Array.isArray(sourceVal)) {
         const defaultBindings = defaults.keyBindings || [];
         const storedBindings = sourceVal as any[];
 

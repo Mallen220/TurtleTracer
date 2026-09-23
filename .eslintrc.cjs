@@ -17,6 +17,7 @@ module.exports = {
     "build/",
     "playwright-report/",
     "test-results/",
+    "plugins/turtle.d.ts",
   ],
   extends: ["plugin:prettier/recommended"],
   rules: {
@@ -47,6 +48,9 @@ module.exports = {
     "unicorn/no-zero-fractions": "error",
     "unicorn/prefer-number-properties": "error",
     "unicorn/prefer-string-raw": "error",
+    "unicorn/prefer-at": "error",
+    "unicorn/prefer-modern-math-apis": "error",
+    // "unicorn/prefer-single-call": "error",
   },
   overrides: [
     {

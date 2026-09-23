@@ -18,7 +18,7 @@ const EXTENSIONS = {
 
 const IGNORED_FILES = new Set(["vite.config.d.ts"]);
 
-const COMMENT_STYLES = {
+const _COMMENT_STYLES = {
   LINE: { start: "// ", end: "", prefix: "" },
   BLOCK: { start: "/*", end: "*/", prefix: " * " }, // Kept for reference or removal
   HTML: { start: "<!-- ", end: " -->", prefix: "" },

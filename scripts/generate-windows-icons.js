@@ -13,7 +13,7 @@ function hasPackage(name) {
   try {
     require.resolve(name);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -140,7 +140,9 @@ async function main() {
   console.log("Windows tile asset generation complete.");
 }
 
-main().catch((err) => {
+try {
+  await main();
+} catch (err) {
   console.error(err);
   process.exit(1);
-});
+}

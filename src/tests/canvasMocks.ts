@@ -29,7 +29,7 @@ export function setupCanvasMocks() {
     height: 100,
     getContext: vi.fn().mockReturnValue(mockCtx),
     toDataURL: vi.fn().mockReturnValue("data:image/png;base64,dummy"),
-    toBlob: vi.fn((cb, type, quality) => {
+    toBlob: vi.fn((cb, type, _quality) => {
       cb(new Blob(["canvas-data"], { type }));
     }),
   };

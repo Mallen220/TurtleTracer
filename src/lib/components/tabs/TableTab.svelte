@@ -39,11 +39,6 @@
     }
   });
 
-  function handleOptimizationApply(newLines: Line[]) {
-    lines = newLines;
-    recordChange?.();
-  }
-
   // Exported methods
   export function copyTable() {
     if (waypointTableRef && waypointTableRef.copyTableToClipboard) {

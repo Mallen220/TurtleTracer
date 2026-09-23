@@ -204,7 +204,7 @@ async function prepareResources(
           resolve();
         };
       });
-    } catch (e) {
+    } catch {
       backgroundImage = null;
     }
   }
@@ -228,7 +228,7 @@ async function prepareResources(
           resolve();
         };
       });
-    } catch (e) {
+    } catch {
       robotImage = null;
     }
   }
@@ -466,13 +466,13 @@ export async function exportPathToGif(
     // Capture fallback data
     try {
       framesDataURLs.push(canvas.toDataURL("image/png"));
-    } catch (e) {}
+    } catch {}
 
     try {
       // Use distributed centiseconds delays (converted to ms)
       const delay = (frameCs[i] || 0) * 10;
       gif.addFrame(ctx, { copy: true, delay });
-    } catch (e) {}
+    } catch {}
 
     if (onProgress) {
       onProgress(((i + 1) / frames) * 0.5);
@@ -493,7 +493,7 @@ export async function exportPathToGif(
     const onAbort = () => {
       try {
         (gif as any).abort?.();
-      } catch (e) {}
+      } catch {}
       reject(makeAbortError());
     };
 
@@ -530,7 +530,7 @@ export async function exportPathToGif(
                 try {
                   const delay = (frameCs[i] || 0) * 10;
                   gif2.addFrame(ctx, { copy: true, delay });
-                } catch (e) {}
+                } catch {}
                 res();
               };
               im.onerror = () =>

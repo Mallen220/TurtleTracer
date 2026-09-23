@@ -3,7 +3,10 @@ import prettier from "prettier";
 import prettierJavaPlugin from "prettier-plugin-java";
 import type { Point, Line, SequenceItem, TurtleData } from "../../types";
 import pkg from "../../../package.json";
-import { generateEventMarkerCode } from "./eventMarkerUtils";
+import {
+  generateTrackerEventRegistrationCode,
+  getUniqueEventMarkerNames,
+} from "./eventMarkerUtils";
 import { actionRegistry } from "../../lib/actionRegistry";
 import {
   toUser,
@@ -91,7 +94,7 @@ export async function generateSequentialCommandCode(
               ? `cmToInches(${(userPt.y * 2.54).toFixed(3)})`
               : userPt.y.toFixed(3);
           allPoseInitializations.push(
-            `        ${variableName} = buildPose(${px}, ${py}, Math.toRadians(${userHead.toFixed(3)}));`,
+            `        ${variableName} = buildPose(${px}, ${py}, ${userHead.toFixed(3)});`,
           );
         } else {
           const px =
@@ -103,7 +106,7 @@ export async function generateSequentialCommandCode(
               ? `cmToInches(${(point.y * 2.54).toFixed(3)})`
               : point.y.toFixed(3);
           allPoseInitializations.push(
-            `        ${variableName} = new Pose(${px}, ${py}, Math.toRadians(${degrees}));`,
+            `        ${variableName} = p.of(${px}, ${py}, ${degrees});`,
           );
         }
       } else {
@@ -169,7 +172,7 @@ export async function generateSequentialCommandCode(
 
         if (hardcodeValues) {
           allPoseInitializations.push(
-            `        ${uniqueControlVar} = new Pose(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)});`,
+            `        ${uniqueControlVar} = p.of(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)}, 0.0);`,
           );
         } else {
           allPoseInitializations.push(
@@ -185,32 +188,6 @@ export async function generateSequentialCommandCode(
         );
       });
     }
-  });
-
-  // Pre-calculate chain information
-  const chainInfos = lines.map((line, idx) => {
-    let rootIdx = idx;
-    if (line.isChain) {
-      for (let i = idx; i >= 0; i--) {
-        if (!lines[i].isChain) {
-          rootIdx = i;
-          break;
-        }
-      }
-    }
-
-    // Find total count in this chain
-    let totalInChain = 1;
-    // Walk forward from root
-    for (let i = rootIdx + 1; i < lines.length; i++) {
-      if (lines[i].isChain) totalInChain++;
-      else break;
-    }
-
-    // Find local index within chain
-    let localIdx = idx - rootIdx;
-
-    return { localIdx, totalInChain };
   });
 
   // Generate path chain declarations
@@ -244,7 +221,7 @@ export async function generateSequentialCommandCode(
         return "";
       }
 
-      return `    private PathChain ${pathName};`;
+      return `    private Path ${pathName};`;
     })
     .filter(Boolean)
     .join("\n");
@@ -254,8 +231,6 @@ export async function generateSequentialCommandCode(
   const SequentialGroupClass = isNextFTC
     ? "SequentialGroup"
     : "SequentialCommandGroup";
-  const WaitCmdClass = isNextFTC ? "Delay" : "WaitCommand";
-  const InstantCmdClass = "InstantCommand";
   const FollowPathCmdClass = isNextFTC ? "FollowPath" : "FollowPathCommand";
 
   // Generate addCommands calls with event handling; iterate sequence if provided
@@ -282,7 +257,7 @@ export async function generateSequentialCommandCode(
 
   const seq = flattenSequence(sequence?.length ? sequence : defaultSequence);
 
-  seq.forEach((item, idx) => {
+  seq.forEach((item) => {
     // Registry Check
     const action = actionRegistry.get(item.kind);
     if (action?.toSequentialCommand) {
@@ -304,7 +279,7 @@ export async function generateSequentialCommandCode(
       return;
     }
 
-    // The name of the entire PathChain is the pathName of the root path
+    // The name of the entire Path is the pathName of the root path
     const pathName = pathChainVariables[lineIdx];
 
     // Construct FollowPath instantiation
@@ -316,10 +291,7 @@ export async function generateSequentialCommandCode(
   });
 
   // Generate path building
-  const pathBuildersArr: string[] = [];
-  let currentBuilderStr = "";
-
-  lines.forEach((line, idx) => {
+  const pathData = lines.map((line, idx) => {
     const startPoseVar =
       idx === 0 ? "startPoint" : poseVariableNames.get(`point${idx}`);
     // Fallback if something is wrong, though logic aligns with declaration loop
@@ -333,21 +305,23 @@ export async function generateSequentialCommandCode(
 
     const pathName = pathChainVariables[idx];
 
-    const isCurve = line.controlPoints.length > 0;
-    const curveType = isCurve ? "BezierCurve" : "BezierLine";
+    const isCurve = line.controlPoints && line.controlPoints.length > 0;
 
     // Build control points string (instantiate inline as new Pose(x, y))
     let controlPointsStr = "";
     if (isCurve) {
       const controlPoints: string[] = [];
       line.controlPoints.forEach((cp) => {
-        controlPoints.push(`new Pose(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)})`);
+        controlPoints.push(`p.of(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)}, 0.0)`);
       });
       controlPointsStr = controlPoints.join(", ") + ", ";
     }
 
-    let headingConfig = "";
-    // Helper to generate a HeadingInterpolator string representation (e.g. "HeadingInterpolator.tangent")
+    const pathCall = isCurve
+      ? `curve(${actualStartPose}, ${controlPointsStr}${endPoseVar})`
+      : `line(${actualStartPose}, ${endPoseVar})`;
+
+    // Helper to generate an Interpolator string representation (e.g. "Interpolator.tangent")
     const generateInterpolatorString = (
       pointDef: any,
       startPoseVarInner: string,
@@ -356,11 +330,9 @@ export async function generateSequentialCommandCode(
       let config = "";
       if (coordinateSystem === "FTC") {
         if (pointDef.heading === "constant") {
-          // If hardcode values is disabled, we don't have access to .getHeading() on the fly easily for just the segment string unless we map it
-          // But Piecewise with variables might be tricky, so we rely on hardcoding or variables.
           if (hardcodeValues || pointDef.degrees !== undefined)
             config = `Math.toRadians(${toUserHeading(pointDef.degrees || 0, "FTC").toFixed(3)})`;
-          else config = `${endPoseVarInner}.getHeading()`;
+          else config = `${endPoseVarInner}.heading()`;
         } else if (pointDef.heading === "linear") {
           if (
             hardcodeValues ||
@@ -368,18 +340,18 @@ export async function generateSequentialCommandCode(
           )
             config = `Math.toRadians(${toUserHeading(pointDef.startDeg || 0, "FTC").toFixed(3)}), Math.toRadians(${toUserHeading(pointDef.endDeg || 0, "FTC").toFixed(3)})`;
           else
-            config = `${startPoseVarInner}.getHeading(), ${endPoseVarInner}.getHeading()`;
+            config = `${startPoseVarInner}.heading(), ${endPoseVarInner}.heading()`;
         } else if (pointDef.heading === "facingPoint") {
           const uTarget = toUser(
             { x: pointDef.targetX || 0, y: pointDef.targetY || 0 },
             "FTC",
           );
-          config = `new Pose(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)})`;
+          config = `p.of(${uTarget.x.toFixed(3)}, ${uTarget.y.toFixed(3)}, 0.0)`;
         }
       } else if (pointDef.heading === "constant") {
         if (hardcodeValues || pointDef.degrees !== undefined)
           config = `Math.toRadians(${pointDef.degrees || 0})`;
-        else config = `${endPoseVarInner}.getHeading()`;
+        else config = `${endPoseVarInner}.heading()`;
       } else if (pointDef.heading === "linear") {
         if (
           hardcodeValues ||
@@ -387,7 +359,7 @@ export async function generateSequentialCommandCode(
         )
           config = `Math.toRadians(${pointDef.startDeg || 0}), Math.toRadians(${pointDef.endDeg || 0})`;
         else
-          config = `${startPoseVarInner}.getHeading(), ${endPoseVarInner}.getHeading()`;
+          config = `${startPoseVarInner}.heading(), ${endPoseVarInner}.heading()`;
       } else if (pointDef.heading === "facingPoint") {
         const targetX = pointDef.targetX || 0;
         const targetY = pointDef.targetY || 0;
@@ -399,29 +371,29 @@ export async function generateSequentialCommandCode(
           codeUnits === "metric"
             ? `cmToInches(${(targetY * 2.54).toFixed(3)})`
             : targetY.toFixed(3);
-        config = `new Pose(${hx}, ${hy})`;
+        config = `p.of(${hx}, ${hy}, 0.0)`;
       }
 
       let baseName = "";
       if (pointDef.heading === "constant") {
-        baseName = `HeadingInterpolator.constant(${config})`;
+        baseName = `Interpolator.constant(${config})`;
       } else if (pointDef.heading === "linear") {
-        baseName = `HeadingInterpolator.linear(${config})`;
+        baseName = `Interpolator.linear(${config})`;
       } else if (pointDef.heading === "tangential") {
-        baseName = `HeadingInterpolator.tangent`;
+        baseName = `Interpolator.tangent`;
       } else if (pointDef.heading === "facingPoint") {
-        baseName = `HeadingInterpolator.facingPoint(${config})`;
+        baseName = `Interpolator.facingPoint(${config})`;
       }
 
       if (pointDef.reverse) {
         if (pointDef.heading === "tangential")
-          return "HeadingInterpolator.reversedTangent";
+          return "Interpolator.tangent.reverse()";
         if (pointDef.heading === "linear")
-          return `HeadingInterpolator.reversedLinear(${config})`;
+          return `Interpolator.linear(${config}).reverse()`;
         if (pointDef.heading === "constant")
-          return `HeadingInterpolator.reversedConstant(${config})`;
+          return `Interpolator.constant(${config}).reverse()`;
         if (pointDef.heading === "facingPoint")
-          return `HeadingInterpolator.reversedFacingPoint(${config})`;
+          return `Interpolator.facingPoint(${config}).reverse()`;
       }
       return baseName;
     };
@@ -438,10 +410,13 @@ export async function generateSequentialCommandCode(
               actualStartPose,
               endPoseVar,
             );
-            return `\n                new HeadingInterpolator.PiecewiseNode(${seg.tStart}, ${seg.tEnd}, ${interpStr})`;
+            return `.until(${seg.tEnd}, ${interpStr})`;
           })
-          .join(",");
-        return `.setHeadingInterpolation(HeadingInterpolator.piecewise(${segmentsStr}\n            ))`;
+          .join("\n            ");
+        if (targetConfig.reverse) {
+          return `.heading(Interpolator.piecewise()\n            ${segmentsStr}\n            .reverse())`;
+        }
+        return `.heading(Interpolator.piecewise()\n            ${segmentsStr}\n        )`;
       }
 
       let hConfig = generateInterpolatorString(
@@ -450,7 +425,7 @@ export async function generateSequentialCommandCode(
         endPoseVar,
       );
       let args = "";
-      if (hConfig.includes("(")) {
+      if (hConfig.includes("(") && !hConfig.endsWith(".reverse()")) {
         args = hConfig.slice(
           hConfig.indexOf("(") + 1,
           hConfig.lastIndexOf(")"),
@@ -459,28 +434,26 @@ export async function generateSequentialCommandCode(
 
       if (targetConfig.reverse) {
         if (targetConfig.heading === "constant") {
-          return `.setHeadingInterpolation(HeadingInterpolator.constant(${args}))\n            .setReversed()`;
+          return `.heading(${hConfig})`;
         } else if (targetConfig.heading === "linear") {
-          return `.setHeadingInterpolation(HeadingInterpolator.linear(${args}))\n            .setReversed()`;
+          return `.heading(${hConfig})`;
         } else if (targetConfig.heading === "tangential") {
-          return `.setHeadingInterpolation(HeadingInterpolator.tangent)\n            .setReversed()`;
+          return `.reverseTangent()`;
         } else if (targetConfig.heading === "facingPoint") {
-          return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))\n            .setReversed()`;
+          return `.heading(${hConfig})`;
         }
       } else if (targetConfig.heading === "constant") {
-        return `.setConstantHeadingInterpolation(${args})`;
+        return `.constant(${args})`;
       } else if (targetConfig.heading === "linear") {
-        return `.setLinearHeadingInterpolation(${args})`;
+        return `.linear(${args})`;
       } else if (targetConfig.heading === "tangential") {
-        return `.setTangentHeadingInterpolation()`;
+        return `.tangent()`;
       } else if (targetConfig.heading === "facingPoint") {
-        return `.setHeadingInterpolation(HeadingInterpolator.facingPoint(${args}))`;
+        return `.facingPoint(${args})`;
       }
       return "";
     };
 
-    const isChainRoot =
-      !line.isChain && idx + 1 < lines.length && lines[idx + 1].isChain;
     let hasGlobalHeading = false;
 
     let tempIdx = idx;
@@ -502,11 +475,7 @@ export async function generateSequentialCommandCode(
           targetY: rootLine.globalTargetY,
           segments: rootLine.globalSegments,
         };
-        const globalInterpStr = constructHeadingMethod(globalConfig).replaceAll(
-          /set(Constant|Linear|Tangent|Heading)Interpolation\(/g,
-          "setGlobalHeadingInterpolation(",
-        );
-        globalHeadingCode = `\n            ${globalInterpStr}`;
+        globalHeadingCode = `\n            ${constructHeadingMethod(globalConfig)}`;
       }
     }
 
@@ -514,38 +483,46 @@ export async function generateSequentialCommandCode(
       headingMethodCode = constructHeadingMethod(line.endPoint);
     }
 
-    // Add event markers to the path builder
-    const _startP =
-      idx === 0 ? startPoint : lines[idx - 1]?.endPoint || startPoint;
-    const _cps = [_startP, ...line.controlPoints, line.endPoint];
-    const _info = chainInfos[idx];
-
-    const eventMarkerCode = generateEventMarkerCode(
-      line.eventMarkers,
-      "            ",
-      _cps,
-      _info.localIdx,
-      _info.totalInChain,
-    );
-
-    if (line.isChain) {
-      currentBuilderStr += `
-            .addPath(new ${curveType}(${actualStartPose}, ${controlPointsStr}${endPoseVar}))
-            ${headingMethodCode}${eventMarkerCode}`;
-    } else {
-      if (currentBuilderStr !== "") {
-        currentBuilderStr += "\n            .build();";
-        pathBuildersArr.push(currentBuilderStr);
-      }
-      currentBuilderStr = `        ${pathName} = follower.pathBuilder()
-            .addPath(new ${curveType}(${actualStartPose}, ${controlPointsStr}${endPoseVar}))
-            ${headingMethodCode}${eventMarkerCode}${globalHeadingCode}`;
-    }
+    return {
+      line,
+      pathName,
+      pathCall,
+      headingMethodCode,
+      globalHeadingCode,
+    };
   });
 
-  if (currentBuilderStr !== "") {
-    currentBuilderStr += "\n            .build();";
-    pathBuildersArr.push(currentBuilderStr);
+  const pathBuildersArr: string[] = [];
+  let i = 0;
+  while (i < pathData.length) {
+    const rootPd = pathData[i];
+    const chainMembers = [rootPd];
+    let j = i + 1;
+    while (j < pathData.length && pathData[j].line.isChain) {
+      chainMembers.push(pathData[j]);
+      j++;
+    }
+
+    if (chainMembers.length === 1) {
+      const headingStr = rootPd.headingMethodCode
+        ? `\n            ${rootPd.headingMethodCode}`
+        : "";
+      pathBuildersArr.push(
+        `        ${rootPd.pathName} = ${rootPd.pathCall}${headingStr};`,
+      );
+    } else {
+      const childCalls = chainMembers.map((m) => {
+        const headingStr = m.headingMethodCode
+          ? `\n                ${m.headingMethodCode}`
+          : "";
+        return `            ${m.pathCall}${headingStr}`;
+      });
+      pathBuildersArr.push(
+        `        ${rootPd.pathName} = path(\n${childCalls.join(",\n")}\n        )${rootPd.globalHeadingCode};`,
+      );
+    }
+
+    i = j;
   }
 
   const pathBuilders = pathBuildersArr.join("\n\n");
@@ -556,14 +533,18 @@ export async function generateSequentialCommandCode(
     imports = `
 import dev.nextftc.core.commands.Command;
 import dev.nextftc.core.commands.groups.SequentialGroup;
+import dev.nextftc.core.commands.groups.ParallelRaceGroup;
 import dev.nextftc.core.commands.delays.Delay;
+import dev.nextftc.core.commands.delays.WaitUntil;
 import dev.nextftc.core.commands.utility.InstantCommand;
 import org.firstinspires.ftc.teamcode.pedroPathing.FollowPath;
 `;
   } else {
     imports = `
 import com.seattlesolvers.solverslib.command.SequentialCommandGroup;
+import com.seattlesolvers.solverslib.command.ParallelRaceGroup;
 import com.seattlesolvers.solverslib.command.WaitCommand;
+import com.seattlesolvers.solverslib.command.WaitUntilCommand;
 import com.seattlesolvers.solverslib.command.InstantCommand;
 import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
 `;
@@ -571,7 +552,7 @@ import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
 
   const ppReaderImport = hardcodeValues
     ? ""
-    : "import com.turtletracerlib.PedroPathReader;";
+    : "import com.turtletracerlib.TurtleTracerReader;";
   const ppReaderInit = hardcodeValues
     ? ""
     : (() => {
@@ -580,8 +561,27 @@ import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
           stripProjectExtension(rawName || "AutoPath") || "AutoPath";
         const ext =
           getProjectExtensionFromPath(rawName) || DEFAULT_PROJECT_EXTENSION;
-        return `PedroPathReader pp = new PedroPathReader("${baseName}${ext}", hw.appContext);`;
+        return `TurtleTracerReader pp = new TurtleTracerReader("${baseName}${ext}", hw.appContext);`;
       })();
+
+  const hasEventMarkers = lines.some(
+    (line) => line.eventMarkers && line.eventMarkers.length > 0,
+  );
+  const markerNames = getUniqueEventMarkerNames(lines);
+
+  const getEventBindingCode = (isNextFTC: boolean) => {
+    if (!hasEventMarkers) return "";
+    const telemetryArg = isNextFTC ? "null" : "telemetry";
+    if (!hardcodeValues && markerNames.length > 0) {
+      return `\n        pp${markerNames.map((name) => `.onEvent("${name}", NamedCommands.getCommand("${name}"))`).join("\n          ")};
+
+        ProgressTracker tracker = new ProgressTracker(follower, ${telemetryArg});
+        pp.registerEvents(tracker);`;
+    } else if (hardcodeValues) {
+      return `\n        ProgressTracker tracker = new ProgressTracker(follower, ${telemetryArg});${generateTrackerEventRegistrationCode(lines, "        ", coordinateSystem, codeUnits)}`;
+    }
+    return "";
+  };
 
   let sequentialCommandCode = "";
 
@@ -591,21 +591,24 @@ ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
 package ${packageName};
 
+import com.pedropathing.api.PoseFactory;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
-import com.pedropathing.paths.HeadingInterpolator;
+import com.pedropathing.paths.Path;
+import static com.pedropathing.api.Paths.curve;
+import static com.pedropathing.api.Paths.line;
+import static com.pedropathing.api.Paths.path;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.interpolator.Interpolator;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 ${imports}
-${ppReaderImport}
+${hasEventMarkers ? "import com.turtletracerlib.pathing.ProgressTracker;\nimport com.turtletracerlib.pathing.NamedCommands;\n" : ""}${ppReaderImport}
 import java.io.IOException;
 import ${packageName.split(".").slice(0, 4).join(".")}.Subsystems.Drivetrain;
 
 public class ${className} extends Command {
 
     private final Follower follower;
+    private final PoseFactory p = PoseFactory.degrees();
     private Command group;
 
     // Poses
@@ -617,12 +620,12 @@ ${pathChainDeclarations}
     public ${className}(final Drivetrain drive, HardwareMap hw) throws IOException {
         this.follower = drive.getFollower();
 
-        ${ppReaderInit}
+        ${ppReaderInit}${getEventBindingCode(true)}
 
         // Load poses
 ${allPoseInitializations.join("\n")}
 
-        follower.setStartingPose(startPoint);
+        follower.setPose(startPoint);
     }
 
     public void buildPaths() {
@@ -652,6 +655,25 @@ ${commands.join(",\n")}
     public boolean isDone() {
         return group != null && group.isDone();
     }
+
+    ${
+      coordinateSystem === "FTC"
+        ? `
+    private Pose buildPose(double x, double y, double heading) {
+        return p.of(y + 72.0, 72.0 - x, heading);
+    }
+    `
+        : ""
+    }
+    ${
+      codeUnits === "metric"
+        ? `
+    private double cmToInches(double cm) {
+        return cm / 2.54;
+    }
+`
+        : ""
+    }
 }
 `;
   } else {
@@ -660,26 +682,26 @@ ${AUTO_GENERATED_FILE_WARNING_MESSAGE}
 
 package ${packageName};
 
+import com.pedropathing.api.PoseFactory;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
-import com.pedropathing.paths.HeadingInterpolator;
+import com.pedropathing.paths.Path;
+import static com.pedropathing.api.Paths.curve;
+import static com.pedropathing.api.Paths.line;
+import static com.pedropathing.api.Paths.path;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.interpolator.Interpolator;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.pedropathing.ftc.InvertedFTCCoordinates;
-import com.pedropathing.geometry.PedroCoordinates;
-import com.pedropathing.ftc.PoseConverter;
 ${imports}
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 ${ppReaderImport}
-import com.turtletracerlib.pathing.NamedCommands;
+${hasEventMarkers ? "import com.turtletracerlib.pathing.ProgressTracker;\n" : ""}import com.turtletracerlib.pathing.NamedCommands;
 import java.io.IOException;
 import ${packageName.split(".").slice(0, 4).join(".")}.Subsystems.Drivetrain;
 
 public class ${className} extends ${SequentialGroupClass} {
 
     private final Follower follower;
+    private final PoseFactory p = PoseFactory.degrees();
 
     // Poses
 ${allPoseDeclarations.join("\n")}
@@ -690,12 +712,12 @@ ${pathChainDeclarations}
     public ${className}(final Drivetrain drive, HardwareMap hw, Telemetry telemetry) throws IOException {
         this.follower = drive.getFollower();
 
-        ${ppReaderInit}
+        ${ppReaderInit}${getEventBindingCode(false)}
 
         // Load poses
 ${allPoseInitializations.join("\n")}
 
-        follower.setStartingPose(startPoint);
+        follower.setPose(startPoint);
 
         buildPaths();
 
@@ -712,15 +734,7 @@ ${commands.join(",\n")}
       coordinateSystem === "FTC"
         ? `
     private Pose buildPose(double x, double y, double heading) {
-        return PoseConverter.pose2DToPose(
-            new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
-                org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH,
-                x, y,
-                org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS,
-                heading
-            ),
-            InvertedFTCCoordinates.INSTANCE
-        ).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+        return p.of(y + 72.0, 72.0 - x, heading);
     }
     `
         : ""

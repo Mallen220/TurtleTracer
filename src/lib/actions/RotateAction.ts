@@ -138,7 +138,7 @@ export const RotateAction: ActionDefinition = {
 
     let code = `
         case ${stateStep}:
-          follower.turnTo(${radians.toFixed(3)});
+          follower.hold(follower.pose().withHeading(${radians.toFixed(3)}));
           setPathState(${stateStep + 1});
           break;
 
@@ -173,8 +173,8 @@ export const RotateAction: ActionDefinition = {
       : [];
 
     if (markers.length === 0) {
-      return `new ${InstantCmdClass}(() -> follower.turnTo(${radians.toFixed(3)})),
-                new ${WaitUntilCmdClass}(() -> !follower.isTurning())`;
+      return `new ${InstantCmdClass}(() -> follower.hold(follower.pose().withHeading(${radians.toFixed(3)}))),
+                new ${WaitUntilCmdClass}(() -> !follower.isBusy())`;
     }
 
     // Sort markers
@@ -182,6 +182,7 @@ export const RotateAction: ActionDefinition = {
 
     const firstMarker = markers[0];
     let turnCommand = `new ${InstantCmdClass}(() -> {
+                        follower.hold(follower.pose().withHeading(${radians.toFixed(3)}));
                         progressTracker.turn(${radians.toFixed(3)}, "${firstMarker.name}", ${firstMarker.position.toFixed(3)});`;
 
     // Register remaining markers
@@ -193,7 +194,7 @@ export const RotateAction: ActionDefinition = {
                     })`;
 
     let eventSequence = `new ${ParallelRaceClass}(
-                    new ${WaitUntilCmdClass}(() -> !follower.isTurning()),
+                    new ${WaitUntilCmdClass}(() -> !follower.isBusy()),
                     new ${SequentialGroupClass}(`;
 
     markers.forEach((marker, idx) => {
@@ -204,7 +205,7 @@ export const RotateAction: ActionDefinition = {
     });
 
     eventSequence += `,
-                        new ${WaitUntilCmdClass}(() -> !follower.isTurning())`;
+                        new ${WaitUntilCmdClass}(() -> !follower.isBusy())`;
 
     eventSequence += `
                     ))`;

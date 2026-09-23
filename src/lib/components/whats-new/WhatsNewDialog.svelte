@@ -2,6 +2,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import MarkdownIt from "markdown-it";
+  import DOMPurify from "dompurify";
   import { features, getAllFeatures, type FeatureHighlight } from "./features";
   import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "../icons";
 
@@ -13,7 +14,7 @@
   let { show = $bindable(false), onclose }: Props = $props();
 
   const md = new MarkdownIt({
-    html: true,
+    html: false,
     linkify: true,
     typographer: true,
   });
@@ -338,7 +339,7 @@
                       class="prose dark:prose-invert max-w-none text-neutral-600 dark:text-neutral-300 prose-purple prose-headings:text-neutral-900 dark:prose-headings:text-white prose-a:text-purple-600 dark:prose-a:text-purple-400 text-lg md:text-xl leading-relaxed"
                     >
                       <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                      {@html md.render(feature.content)}
+                      {@html DOMPurify.sanitize(md.render(feature.content))}
                     </div>
                   </div>
 
@@ -372,7 +373,7 @@
                 class="prose dark:prose-invert max-w-none prose-purple text-lg md:text-xl leading-relaxed text-neutral-600 dark:text-neutral-300"
               >
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                {@html activeContentHtml}
+                {@html DOMPurify.sanitize(activeContentHtml)}
               </div>
             </div>
           {/if}

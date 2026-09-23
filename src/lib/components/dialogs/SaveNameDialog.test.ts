@@ -131,35 +131,6 @@ describe("SaveNameDialog", () => {
 
     const input = screen.getByRole("textbox");
 
-    // Fire generic event
-    let stopPropagationCalled = false;
-    let stopImmediatePropagationCalled = false;
-
-    // Custom wrapper to intercept
-    input.addEventListener(
-      "keydown",
-      (e) => {
-        const origStop = e.stopPropagation;
-        const origStopImm = e.stopImmediatePropagation;
-        e.stopPropagation = () => {
-          stopPropagationCalled = true;
-          origStop.call(e);
-        };
-        e.stopImmediatePropagation = () => {
-          stopImmediatePropagationCalled = true;
-          origStopImm.call(e);
-        };
-      },
-      { capture: true },
-    ); // Use capture so we get it before Svelte handler
-
-    await fireEvent.keyDown(input, { key: "a" });
-
-    // Svelte handles it in bubble phase, wait for event processing
-    await new Promise((r) => setTimeout(r, 0));
-
-    // The spy didn't work before because the event was dispatched and the handler called its own methods on it.
-    // An easier way is just testing if the event escapes the input.
     let bubbled = false;
     document.addEventListener("keydown", () => (bubbled = true));
     await fireEvent.keyDown(input, { key: "b" });

@@ -12,7 +12,7 @@ export function generatePreviewPathElements(
   ctx: RenderContext,
 ) {
   let _previewPaths: Path[] = [];
-  const { x, y, uiLength } = ctx;
+  const { uiLength } = ctx;
 
   if (previewOptimizedLines && previewOptimizedLines.length > 0) {
     previewOptimizedLines.forEach((line, idx) => {

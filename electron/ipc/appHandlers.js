@@ -63,7 +63,7 @@ export function registerAppHandlers(state) {
     }
   });
 
-  ipcMain.handle("update:check", async (event) => {
+  ipcMain.handle("update:check", async (_event) => {
     try {
       if (!state.appUpdater) {
         const win =

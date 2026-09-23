@@ -227,7 +227,7 @@ describe("FileUI Components", () => {
       const img = screen.getByRole("img", { name: "Field Map" });
       expect(img).toHaveAttribute("src", "/fields/custom.png");
       await fireEvent.error(img);
-      expect(img).toHaveAttribute("src", "/fields/decode.webp");
+      expect(img).toHaveAttribute("src", "/fields/biobuzz.webp");
     });
   });
 

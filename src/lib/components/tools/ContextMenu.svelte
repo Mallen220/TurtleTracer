@@ -8,7 +8,7 @@
     x: number;
     y: number;
     items?: {
-      label: string;
+      label?: string;
       action?: string;
       onClick?: () => void;
       icon?: any;

@@ -7,8 +7,7 @@ export function generateFacingLineElements(lines: Line[], ctx: RenderContext) {
 
   if (!robotXY || !timePrediction?.timeline?.length) return [];
 
-  const totalDuration =
-    timePrediction.timeline[timePrediction.timeline.length - 1]?.endTime || 0;
+  const totalDuration = timePrediction.timeline.at(-1)?.endTime || 0;
   const currentSeconds = (percentStore! / 100) * totalDuration;
 
   // Determine the currently active travel event

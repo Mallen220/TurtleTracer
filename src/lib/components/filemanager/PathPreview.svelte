@@ -155,7 +155,7 @@
 
     <!-- End Point -->
     {#if lines.length > 0}
-      {@const end = lines[lines.length - 1].endPoint}
+      {@const end = lines.at(-1).endPoint}
       <circle cx={scaleX(end.x)} cy={scaleY(end.y)} r="3" fill="#ef4444" />
     {/if}
   </svg>

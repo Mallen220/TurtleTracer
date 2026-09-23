@@ -58,7 +58,7 @@ export function buildHeadingProfile(
           );
         }
         const dt =
-          (motionProfile[i] ?? motionProfile[motionProfile.length - 1]) -
+          (motionProfile[i] ?? motionProfile.at(-1)) -
           (motionProfile[i - 1] ?? 0);
         const maxRot = maxAngVelDegPerSec * dt;
         simH += Math.max(-maxRot, Math.min(maxRot, idealTarget - simH));

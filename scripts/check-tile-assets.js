@@ -13,7 +13,7 @@ async function main() {
     try {
       require.resolve("sharp");
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   })();
@@ -78,7 +78,9 @@ async function main() {
   console.log("Tile asset check passed.");
 }
 
-main().catch((err) => {
+try {
+  await main();
+} catch (err) {
   console.error(err);
   process.exit(1);
-});
+}

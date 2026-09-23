@@ -144,6 +144,7 @@
     optimizationFailed = false;
     optimizationError = "";
     isStopping = false;
+    showPreview = true;
 
     if (settings) {
       const linesToOptimize = $state.snapshot(lines).map((l, idx) => {
@@ -215,7 +216,7 @@
 
       progress = 0;
       optimizedLines = null;
-      showPreview = false;
+      showPreview = true;
       optimizationFailed = false;
       optimizationError = "";
       if (onPreviewChange) onPreviewChange(null);
@@ -230,7 +231,7 @@
     isOpen = false;
     progress = 0;
     optimizedLines = null;
-    showPreview = false;
+    showPreview = true;
     if (onPreviewChange) onPreviewChange(null);
     if (onClose) onClose();
   }
@@ -375,7 +376,7 @@
         </div>
       {/if}
 
-      {#if !isRunning && !optimizationFailed}
+      {#if !isRunning && !optimizationFailed && optimizedLines !== null}
         <div class="flex gap-2 my-2">
           <button
             onclick={togglePreview}

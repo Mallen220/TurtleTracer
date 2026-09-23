@@ -135,7 +135,7 @@ export function getAlignmentMenuItems(
         if (pointsToUpdate.length > 2) {
           pointsToUpdate.sort((a, b) => a.point.x - b.point.x);
           const minX = pointsToUpdate[0].point.x;
-          const maxX = pointsToUpdate[pointsToUpdate.length - 1].point.x;
+          const maxX = pointsToUpdate.at(-1).point.x;
           const step = (maxX - minX) / (pointsToUpdate.length - 1);
 
           pointsToUpdate.forEach((item, index) => {
@@ -180,7 +180,7 @@ export function getAlignmentMenuItems(
         if (pointsToUpdate.length > 2) {
           pointsToUpdate.sort((a, b) => a.point.y - b.point.y);
           const minY = pointsToUpdate[0].point.y;
-          const maxY = pointsToUpdate[pointsToUpdate.length - 1].point.y;
+          const maxY = pointsToUpdate.at(-1).point.y;
           const step = (maxY - minY) / (pointsToUpdate.length - 1);
 
           pointsToUpdate.forEach((item, index) => {

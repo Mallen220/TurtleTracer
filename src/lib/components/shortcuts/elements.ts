@@ -155,8 +155,7 @@ export function addEventMarker(recordChange: (action?: string) => void) {
 
   const lines = get(linesStore);
   const selLine = get(selectedLineId);
-  const targetId =
-    selLine || (lines.length > 0 ? lines[lines.length - 1].id : null);
+  const targetId = selLine || (lines.length > 0 ? lines.at(-1).id : null);
   const targetLine = targetId ? lines.find((l) => l.id === targetId) : null;
 
   if (targetLine) {
@@ -182,9 +181,8 @@ export function addEventMarker(recordChange: (action?: string) => void) {
 export function addControlPoint(recordChange: (action?: string) => void) {
   const lines = get(linesStore);
   if (lines.length === 0) return;
-  const targetId = get(selectedLineId) || lines[lines.length - 1].id;
-  const targetLine =
-    lines.find((l) => l.id === targetId) || lines[lines.length - 1];
+  const targetId = get(selectedLineId) || lines.at(-1).id;
+  const targetLine = lines.find((l) => l.id === targetId) || lines.at(-1);
   if (targetLine) {
     if (targetLine.locked) return; // Don't allow adding control points to locked lines
 
@@ -207,9 +205,8 @@ export function addControlPoint(recordChange: (action?: string) => void) {
 export function removeControlPoint(recordChange: (action?: string) => void) {
   const lines = get(linesStore);
   if (lines.length > 0) {
-    const targetId = get(selectedLineId) || lines[lines.length - 1].id;
-    const targetLine =
-      lines.find((l) => l.id === targetId) || lines[lines.length - 1];
+    const targetId = get(selectedLineId) || lines.at(-1).id;
+    const targetLine = lines.find((l) => l.id === targetId) || lines.at(-1);
     if (targetLine && targetLine.controlPoints.length > 0) {
       if (targetLine.locked) return; // Don't allow removing control points from locked lines
       const lineIndex = lines.findIndex((l) => l.id === targetLine.id);

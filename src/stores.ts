@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { writable } from "svelte/store";
+import { writable, derived, get } from "svelte/store";
 import type {
   CollisionMarker,
   Notification,
@@ -53,13 +53,73 @@ export const updateDataStore = writable<UpdateData | null>(null);
 // expose some stores globally (fallback for bundler issues)
 if (typeof globalThis.window !== globalThis.undefined) {
   // these names are intentionally global to support legacy references in compiled code
-  (globalThis.window as any).showUpdateAvailableDialog =
-    showUpdateAvailableDialog;
+  (
+    globalThis.window as unknown as { showUpdateAvailableDialog?: unknown }
+  ).showUpdateAvailableDialog = showUpdateAvailableDialog;
 }
 
 // File Manager Stores
 export const showFileManager = writable(false);
 export const fileManagerNewFileMode = writable(false);
+
+// Consolidated Dialog Stores Map
+export const dialogStores = {
+  settings: showSettings,
+  fileManager: showFileManager,
+  pluginManager: showPluginManager,
+  shortcuts: showShortcuts,
+  exportImage: showExportImage,
+  whatsNew: showWhatsNew,
+  exportGif: showExportGif,
+  telemetry: showTelemetryDialog,
+  strategySheet: showStrategySheet,
+  feedback: showFeedbackDialog,
+  rating: showRatingDialog,
+  transform: showTransformDialog,
+  updateAvailable: showUpdateAvailableDialog,
+  history: showHistory,
+};
+
+// Derived helper: true if any dialog is currently visible
+export const isAnyDialogOpen = derived(
+  [
+    showSettings,
+    showFileManager,
+    showPluginManager,
+    showShortcuts,
+    showExportImage,
+    showWhatsNew,
+    showExportGif,
+    showTelemetryDialog,
+    showStrategySheet,
+    showFeedbackDialog,
+    showRatingDialog,
+    showTransformDialog,
+    showUpdateAvailableDialog,
+    showHistory,
+    exportDialogState,
+  ],
+  (dialogs) => dialogs.slice(0, 14).some(Boolean) || dialogs[14].isOpen,
+);
+
+/**
+ * Closes all open modal dialogs.
+ * @returns true if at least one dialog was open and dismissed, false otherwise.
+ */
+export function closeAllDialogs(): boolean {
+  let closedAny = false;
+  for (const store of Object.values(dialogStores)) {
+    if (get(store)) {
+      store.set(false);
+      closedAny = true;
+    }
+  }
+  if (get(exportDialogState).isOpen) {
+    exportDialogState.update((s) => ({ ...s, isOpen: false }));
+    closedAny = true;
+  }
+  return closedAny;
+}
 
 // Currently selected line id (used to add control points to selected path)
 export const selectedLineId = writable<string | null>(null);
@@ -73,6 +133,16 @@ export const selectedPointId = writable<string | null>(null);
 
 // Currently selected multiple point ids (for batch actions like dragging and deleting)
 export const multiSelectedPointIds = writable<string[]>([]);
+
+/**
+ * Deselects all selected points and lines across the editor.
+ */
+export function clearAllSelections(): void {
+  selectedPointId.set(null);
+  multiSelectedPointIds.set([]);
+  selectedLineId.set(null);
+  multiSelectedLineIds.set([]);
+}
 
 // Collision markers for validation
 export const collisionMarkers = writable<CollisionMarker[]>([]);

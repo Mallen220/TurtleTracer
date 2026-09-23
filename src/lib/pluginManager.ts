@@ -162,7 +162,7 @@ export class PluginManager {
         // Return a new proxy for any other property access to handle nested objects
         return new Proxy(() => {}, handler);
       },
-      apply(target: any, thisArg: any, argumentsList: any[]) {
+      apply(_target: any, _thisArg: any, _argumentsList: any[]) {
         // Return a new proxy when called as a function
         return new Proxy(() => {}, handler);
       },
@@ -199,7 +199,7 @@ export class PluginManager {
         `"use strict";\n${code}`,
       );
       fn(proxyAPI, proxyAPI, ...shadowValues);
-    } catch (e) {
+    } catch {
       // Ignore errors during metadata extraction
     }
 
@@ -231,7 +231,7 @@ export class PluginManager {
           id: `custom-${name.toLowerCase().replaceAll(/[^a-z0-9]/g, "-")}`,
           name: name,
           description: `Custom exporter provided by plugin ${filename}`,
-          exportCode: (data: any, settings: any) => handler(data),
+          exportCode: (data: any, _settings: any) => handler(data),
         });
       },
       registerTheme: (name: string, css: string) => {
@@ -292,7 +292,7 @@ export class PluginManager {
                   return feature.contextMenu!.condition
                     ? feature.contextMenu!.condition(args)
                     : true;
-                } catch (e) {
+                } catch {
                   return false;
                 }
               },

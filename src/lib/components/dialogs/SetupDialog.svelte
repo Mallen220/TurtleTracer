@@ -20,7 +20,9 @@
           show = false;
           onsetupComplete?.();
         }
-      } catch (err) {}
+      } catch (err) {
+        console.error("Failed to select directory:", err);
+      }
     }
   }
 </script>

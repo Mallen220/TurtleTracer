@@ -46,8 +46,19 @@
 
       <div class="flex gap-4 text-sm font-medium mb-8">
         <a
+          href="https://www.turtletracer.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-blue-600 dark:text-blue-400 hover:underline"
+          >Documentation</a
+        >
+        <DotIcon
+          className="-mx-1 text-neutral-300 dark:text-neutral-600 shrink-0"
+        />
+        <a
           href="https://github.com/Mallen220/TurtleTracer"
           target="_blank"
+          rel="noopener noreferrer"
           class="text-blue-600 dark:text-blue-400 hover:underline">GitHub</a
         >
         <DotIcon
@@ -56,6 +67,7 @@
         <a
           href="https://discord.gg/chHSzS4ewF"
           target="_blank"
+          rel="noopener noreferrer"
           class="text-blue-600 dark:text-blue-400 hover:underline">Discord</a
         >
       </div>

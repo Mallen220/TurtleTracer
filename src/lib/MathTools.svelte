@@ -159,7 +159,7 @@
       const centerY = y(actualProtractorPos.y);
       const dx = mouseX - centerX;
       const dy = mouseY - centerY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      const distance = Math.hypot(dx, dy);
       const clampedRadius = Math.min(
         MAX_PROTRACTOR_RADIUS,
         Math.max(MIN_PROTRACTOR_RADIUS, distance),
@@ -208,7 +208,7 @@
       const dx = midPx.x - cornerPx.x;
       const dy = midPx.y - cornerPx.y;
       // Normalize and scale
-      const len = Math.sqrt(dx * dx + dy * dy);
+      const len = Math.hypot(dx, dy);
       const offset = 15; // Distance from line
       if (len < 0.001) return { x: midPx.x, y: midPx.y - 15 }; // Fallback
       return {
@@ -242,7 +242,7 @@
       for (let pos = 0; pos <= FIELD_SIZE; pos += spacing) {
         positions.push(Number(pos.toFixed(6)));
       }
-      if (positions[positions.length - 1] !== FIELD_SIZE) {
+      if (positions.at(-1) !== FIELD_SIZE) {
         positions.push(FIELD_SIZE);
       }
       return positions;

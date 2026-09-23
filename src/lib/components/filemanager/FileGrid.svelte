@@ -434,7 +434,7 @@
         }
       }
     } catch (err) {
-      // Ignored
+      console.error("Failed to parse dragged file data:", err);
     }
   }
   $effect(() => {

@@ -358,7 +358,7 @@ export function importJavaProject(javaCode: string): TurtleData {
 
             if (pathPoints.length >= 2) {
               const startPt = pathPoints[0];
-              const endPt = pathPoints[pathPoints.length - 1];
+              const endPt = pathPoints.at(-1);
               const controlPts: ControlPoint[] = pathPoints
                 .slice(1, -1)
                 .map((p) => ({ x: p.x, y: p.y }));
@@ -371,7 +371,7 @@ export function importJavaProject(javaCode: string): TurtleData {
                   ? `${pathName} - ${pathIdx + 1}`
                   : pathName;
               if (args.length > 1) {
-                const lastArgToks = args[args.length - 1];
+                const lastArgToks = args.at(-1);
                 const pName = lastArgToks.find(
                   (t) =>
                     t !== "new" &&

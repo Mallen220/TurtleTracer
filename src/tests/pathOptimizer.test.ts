@@ -364,6 +364,6 @@ describe("PathOptimizer", () => {
     const boundaryMarkers = markers.filter((m) => m.type === "boundary");
     expect(boundaryMarkers.length).toBeGreaterThanOrEqual(2);
     expect(boundaryMarkers[0]?.segmentIndex).toBe(0);
-    expect(boundaryMarkers[boundaryMarkers.length - 1]?.segmentIndex).toBe(1);
+    expect(boundaryMarkers.at(-1)?.segmentIndex).toBe(1);
   });
 });

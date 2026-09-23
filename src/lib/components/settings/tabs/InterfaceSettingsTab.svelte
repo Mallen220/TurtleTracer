@@ -263,8 +263,8 @@
           max="500"
           value={settings.fieldWidth ?? 144}
           oninput={(e) => {
-            const val = parseFloat(e.currentTarget.value);
-            if (!isNaN(val)) {
+            const val = Number.parseFloat(e.currentTarget.value);
+            if (!Number.isNaN(val)) {
               const oldWidth = settings.fieldWidth ?? 144;
               const currentHeight = settings.fieldHeight ?? 144;
               stretchObstacles(oldWidth, currentHeight, val, currentHeight);
@@ -287,8 +287,8 @@
           max="500"
           value={settings.fieldHeight ?? 144}
           oninput={(e) => {
-            const val = parseFloat(e.currentTarget.value);
-            if (!isNaN(val)) {
+            const val = Number.parseFloat(e.currentTarget.value);
+            if (!Number.isNaN(val)) {
               const oldHeight = settings.fieldHeight ?? 144;
               const currentWidth = settings.fieldWidth ?? 144;
               stretchObstacles(currentWidth, oldHeight, currentWidth, val);

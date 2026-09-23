@@ -10,8 +10,8 @@ vi.mock("./utils", () => ({
 
 // Mock pointLinking
 vi.mock("../../../utils/pointLinking", () => ({
-  updateLinkedWaits: vi.fn((seq, id) => seq),
-  updateLinkedRotations: vi.fn((seq, id) => seq),
+  updateLinkedWaits: vi.fn((seq, _id) => seq),
+  updateLinkedRotations: vi.fn((seq, _id) => seq),
 }));
 
 // Stores setup

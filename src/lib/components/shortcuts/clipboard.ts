@@ -269,7 +269,6 @@ export function paste(recordChange: (action?: string) => void) {
 
   const sequence = get(sequenceStore);
   const lines = get(linesStore);
-  const startPoint = get(startPointStore);
 
   const clipKind = (clipboard as any).kind;
   const clipDef = clipKind ? actionRegistry.get(clipKind) : null;
@@ -321,28 +320,7 @@ export function paste(recordChange: (action?: string) => void) {
     const originalLine = clipboard as Line;
 
     // Paste path: determine insertion point and clone the line
-
-    // Determine insertion point
     const insertIdx = getSelectedSequenceIndex(); // index in sequence
-    let prevPoint: { x: number; y: number } = startPoint;
-
-    if (insertIdx !== null) {
-      // Find path element at or before insertIdx
-      for (let i = insertIdx; i >= 0; i--) {
-        if (actionRegistry.get(sequence[i].kind)?.isPath) {
-          const lineId = (sequence[i] as any).lineId;
-          const l = lines.find((line) => line.id === lineId);
-          if (l) {
-            prevPoint = l.endPoint;
-            break;
-          }
-        }
-      }
-    } else if (lines.length > 0) {
-      prevPoint = lines[lines.length - 1].endPoint;
-    }
-
-    // Clone originalLine; the placement above accounts for insertion index.
 
     const newLine = JSON.parse(JSON.stringify(originalLine));
     newLine.id = `line-${Math.random().toString(36).slice(2)}`;

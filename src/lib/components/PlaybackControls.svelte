@@ -157,10 +157,6 @@
     showSpeedMenu = false;
   }
 
-  function handleMenuKey(e: KeyboardEvent) {
-    if (e.key === "Escape") showSpeedMenu = false;
-  }
-
   let shiftHeld = $state(false);
 
   function step(amount: number) {
@@ -337,7 +333,7 @@
     draggingMarkerPercent = pct;
   }
 
-  function handleWindowMouseUp(e: MouseEvent) {
+  function handleWindowMouseUp() {
     if (draggingMarkerIndex !== null) {
       // Commit change
       if (draggingMarkerId) {
@@ -551,7 +547,7 @@
           tabindex="0"
           onmousedown={(e) => handleMarkerDragStart(e, index, item)}
           oncontextmenu={(e) => handleContextMenu(e, item.id)}
-          onclick={(e) => {
+          onclick={() => {
             if (ignoreClick) return;
             if (draggingMarkerIndex === null) handleSeek(item.percent);
           }}

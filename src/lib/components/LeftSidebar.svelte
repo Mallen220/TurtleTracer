@@ -383,6 +383,7 @@
               {#if item.iconComponent}
                 <item.iconComponent className="sidebar-icon flex-none" />
               {:else}
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 {@html item.iconSvg}
               {/if}
             </div>

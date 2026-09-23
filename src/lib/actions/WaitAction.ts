@@ -129,7 +129,7 @@ export const WaitAction: ActionDefinition = {
           break;
 
         case ${stateStep + 1}:
-          if(pathTimer.getMilliseconds() > ${waitMs}) {
+          if(pathTimer.milliseconds() > ${waitMs}) {
             setPathState(${stateStep + 2});
           }
           break;`;

@@ -20,7 +20,6 @@ const windows = new Set();
 let server;
 let serverPort = 17218;
 let appUpdater;
-process.windowsStore = false; // TOGGLE THIS: Set to true to simulate Microsoft Store mode for development
 
 // Global references to prevent Electron Menu garbage collection (macOS WeakPtr bug)
 globalThis.appMenu = null;
@@ -103,7 +102,7 @@ if (process.windowsStore) {
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (gotTheLock) {
-  app.on("second-instance", (event, commandLine, workingDirectory) => {
+  app.on("second-instance", (event, commandLine, _workingDirectory) => {
     // Someone tried to run a second instance. Prefer focusing an existing window
     // to avoid racing with the local server or creating orphan windows.
     try {
@@ -126,7 +125,7 @@ if (gotTheLock) {
 
       // Check for file arguments in the second instance command line
       // Windows/Linux: The file path is usually the last argument or specifically passed
-      const lastArg = commandLine[commandLine.length - 1];
+      const lastArg = commandLine.at(-1);
       if (isProjectFilePath(lastArg)) {
         handleOpenedFile(lastArg);
       }
@@ -140,7 +139,7 @@ if (gotTheLock) {
   app.on("ready", async () => {
     // Check for file arguments on initial launch (Windows/Linux)
     if (process.platform !== "darwin" && process.argv.length >= 2) {
-      const lastArg = process.argv[process.argv.length - 1];
+      const lastArg = process.argv.at(-1);
       if (isProjectFilePath(lastArg)) {
         pendingFilePath = lastArg;
       }
@@ -361,7 +360,7 @@ const createWindow = async () => {
   // Handle "Save As" dialog native behavior
   newWindow.webContents.session.on(
     "will-download",
-    (event, item, webContents) => {
+    (event, item, _webContents) => {
       item.on("updated", (event, state) => {
         if (state === "interrupted") {
           console.log("Download is interrupted but can be resumed");

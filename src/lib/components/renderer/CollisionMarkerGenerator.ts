@@ -20,7 +20,7 @@ export function generateCollisionElements(
   const { x, y, uiLength } = ctx;
 
   if (markers && markers.length > 0) {
-    markers.forEach((marker, idx) => {
+    markers.forEach((marker) => {
       const group = new Two.Group();
       const isBoundary = marker.type === "boundary";
       const isZeroLength = marker.type === "zero-length";

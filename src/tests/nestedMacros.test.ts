@@ -24,12 +24,6 @@ const macroKind = (): SequenceMacroItem["kind"] =>
     ?.kind as SequenceMacroItem["kind"]) ?? "macro";
 
 describe("Nested Macros and Recursion", () => {
-  const startPoint: Point = {
-    x: 0,
-    y: 0,
-    heading: "tangential",
-    reverse: false,
-  };
   const prevPoint: Point = {
     x: 10,
     y: 10,

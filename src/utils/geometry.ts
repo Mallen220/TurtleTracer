@@ -82,7 +82,7 @@ export function pointToLineDistance(
   const dx = point[0] - xx;
   const dy = point[1] - yy;
 
-  return Math.sqrt(dx * dx + dy * dy);
+  return Math.hypot(dx, dy);
 }
 
 /**
@@ -168,10 +168,7 @@ export function convexHull(points: BasePoint[]): BasePoint[] {
   const hull: BasePoint[] = [pivot];
 
   for (const point of sorted) {
-    while (
-      hull.length >= 2 &&
-      cross(hull[hull.length - 2], hull[hull.length - 1], point) <= 0
-    ) {
+    while (hull.length >= 2 && cross(hull.at(-2), hull.at(-1), point) <= 0) {
       hull.pop();
     }
     hull.push(point);

@@ -179,7 +179,7 @@ export class PathOptimizer {
         const firstCP = line.controlPoints[0];
         let dx = firstCP.x - prevPoint.x;
         let dy = firstCP.y - prevPoint.y;
-        let dist = Math.sqrt(dx * dx + dy * dy);
+        let dist = Math.hypot(dx, dy);
 
         if (dist < MIN_DIST) {
           if (dist < 0.0001) {
@@ -192,10 +192,10 @@ export class PathOptimizer {
         }
 
         // 2. Check last control point vs endPoint (end of line)
-        const lastCP = line.controlPoints[line.controlPoints.length - 1];
+        const lastCP = line.controlPoints.at(-1);
         dx = lastCP.x - line.endPoint.x;
         dy = lastCP.y - line.endPoint.y;
-        dist = Math.sqrt(dx * dx + dy * dy);
+        dist = Math.hypot(dx, dy);
 
         if (dist < MIN_DIST) {
           if (dist < 0.0001) {
@@ -252,7 +252,7 @@ export class PathOptimizer {
     const effectiveTimeline = timeline.filter((ev) => ev.type !== "macro");
     if (effectiveTimeline.length === 0) return [];
 
-    const lastEvent = effectiveTimeline[effectiveTimeline.length - 1];
+    const lastEvent = effectiveTimeline.at(-1);
     if (!lastEvent) return [];
 
     const totalTime = lastEvent.endTime;

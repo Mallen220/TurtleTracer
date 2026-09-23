@@ -1,7 +1,7 @@
 {
   "name": "turtle-tracer",
   "private": true,
-  "version": "2.2.1",
+  "version": "2.3.0",
   "main": "electron/main.js",
   "author": "Matthew Allen <FTCTurtleTracer@gmail.com>",
   "email": "FTCTurtleTracer@gmail.com",
@@ -30,7 +30,8 @@
     "fix:headers": "node scripts/add-copyright.js",
     "fix:notice": "node scripts/generate-file-notice.js",
     "badges:coverage": "node scripts/update-coverage-badge.js",
-    "version:bump": "npm run coverage && node scripts/bump-version.js && npm run lighthouse",
+    "release": "npm run coverage && node scripts/bump-version.js && npm run lighthouse",
+    "version:bump": "npm run release",
     "electron-builder": "electron-builder",
     "playwright": "playwright"
   },
@@ -50,7 +51,7 @@
     "@vitest/coverage-v8": "2.1.9",
     "autoprefixer": "10.4.27",
     "cli-progress": "3.12.0",
-    "electron": "39.8.6",
+    "electron": "^39.8.6",
     "electron-builder": "24.13.3",
     "electron-installer-dmg": "5.0.1",
     "eslint": "8.57.1",

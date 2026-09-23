@@ -48,7 +48,7 @@ let frameCount = 0;
 
 // Only start interval if in browser environment
 if (typeof globalThis !== "undefined") {
-  setInterval(() => {
+  const fpsInterval = setInterval(() => {
     if (frameCount > 0) {
       telemetryState.update((s) => ({ ...s, fps: frameCount }));
       frameCount = 0;
@@ -60,6 +60,13 @@ if (typeof globalThis !== "undefined") {
       });
     }
   }, 1000);
+  if (
+    typeof fpsInterval === "object" &&
+    fpsInterval &&
+    "unref" in fpsInterval
+  ) {
+    (fpsInterval as NodeJS.Timeout).unref();
+  }
 }
 
 export function processTelemetryMessage(raw: string) {
@@ -135,3 +142,29 @@ export const importedTelemetryData = writable<TelemetryPoint[] | null>(null);
 
 // Backward-compatible alias for older references. Prefer importedTelemetryData.
 export const telemetryData = importedTelemetryData;
+
+/**
+ * Calculates ghost robot pose at the current playback time from imported telemetry data.
+ */
+export function calculateTelemetryGhostState(
+  importedData: TelemetryPoint[] | null,
+  isVisible: boolean,
+  totalTime: number,
+  percent: number,
+  offset = 0,
+): { x: number; y: number; heading: number } | null {
+  if (!importedData || importedData.length === 0 || !isVisible) {
+    return null;
+  }
+  const baseTime = importedData[0].time;
+  const playbackTime = totalTime > 0 ? (percent / 100) * totalTime : 0;
+  const targetTime = baseTime + playbackTime + offset;
+  let target = importedData[0];
+  for (const pt of importedData) {
+    if (pt.time >= targetTime) {
+      target = pt;
+      break;
+    }
+  }
+  return { x: target.x, y: target.y, heading: target.heading };
+}

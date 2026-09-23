@@ -166,8 +166,8 @@ describe("Macro Integration", () => {
 
     const code = await generateJavaCode(startPoint, lines, true, sequence);
 
-    // Code should contain followPath for Line1 AND MacroLine1
-    expect(code).toContain("follower.followPath(paths.Line1");
-    expect(code).toContain("follower.followPath(paths.MacroLine1");
+    // Code should contain follow for Line1 AND MacroLine1
+    expect(code).toContain("follower.follow(paths.Line1");
+    expect(code).toContain("follower.follow(paths.MacroLine1");
   });
 });

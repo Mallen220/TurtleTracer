@@ -203,7 +203,7 @@
       // Clamping logic: if < 0, first event; if > total, last event
       if (globalTime < 0 && timeline.length > 0) targetEvent = timeline[0];
       else if (globalTime > timePrediction.totalTime && timeline.length > 0)
-        targetEvent = timeline[timeline.length - 1];
+        targetEvent = timeline.at(-1);
     }
 
     if (!targetEvent) return;
@@ -554,7 +554,6 @@
       timeline.forEach((ev) => {
         if (ev.type === "wait" && ev.waitId) {
           const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
-          const def = seqItem ? actionRegistry.get(seqItem.kind) : null;
           if (
             (seqItem?.kind === "wait" || seqItem?.kind === "rotate") &&
             seqItem.eventMarkers
@@ -592,10 +591,6 @@
 
       return transformedItems;
     })(),
-  );
-  // Use the registry for tabs
-  let currentTab = $derived(
-    $tabRegistry.find((t) => t.id === activeTab) || $tabRegistry[0],
   );
   let shouldShowTelemetry = $derived(
     settings?.showTelemetryTab && !(isBrowser && isOnline),
@@ -647,6 +642,7 @@
               onclick={() => (activeTab = tab.id)}
             >
               {#if tab.icon}
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 {@html tab.icon}
               {:else if tab.iconComponent}
                 <tab.iconComponent className="size-4" />

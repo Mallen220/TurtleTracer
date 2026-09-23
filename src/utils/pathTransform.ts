@@ -302,7 +302,7 @@ export function reversePathData(data: {
   if (originalLines.length === 0) return r;
 
   // 1. New Start Point is the last End Point
-  const lastLine = originalLines[originalLines.length - 1];
+  const lastLine = originalLines.at(-1);
   const newStartPoint = structuredClone(lastLine.endPoint);
 
   // Adjust new start point heading properties

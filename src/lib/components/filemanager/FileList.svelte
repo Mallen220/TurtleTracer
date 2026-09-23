@@ -38,9 +38,6 @@
   // Debugging toggle for preview failures (enable to see logs)
   const PREVIEW_DEBUG = true;
 
-  // Number of top files to proactively preload when icons are enabled
-  const PRELOAD_COUNT = 30;
-
   let lastRenamingPath: string | null = $state(null);
 
   function formatFileSize(bytes: number): string {
@@ -219,7 +216,7 @@
         }
       }
     } catch (err) {
-      // Ignored
+      console.error("Failed to parse dragged file data:", err);
     }
   }
 
@@ -256,15 +253,6 @@
     if (!contextMenu) return;
     const file = contextMenu.file;
     contextMenu = null;
-
-    const eventMap: Record<string, any> = {
-      open: "open",
-      rename: "rename-start",
-      delete: "delete",
-      duplicate: "duplicate",
-      mirror: "mirror",
-      "save-to": "save-to",
-    };
 
     if (action === "rename") {
       onrenameStart?.(file);

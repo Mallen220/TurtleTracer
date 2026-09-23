@@ -263,7 +263,69 @@ describe("Validation Utils", () => {
     ]);
     expect(mocks.notificationSet).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: expect.stringContaining("1 obstacle"),
+        message: "Found 1 issue! (1 obstacle)",
+      }),
+    );
+  });
+
+  it("should format plural issues and multiple obstacle counts correctly", () => {
+    const startPoint: Point = {
+      x: 0,
+      y: 0,
+      heading: "tangential",
+      reverse: false,
+    };
+    const lines: Line[] = [
+      {
+        id: "1",
+        name: "L1",
+        color: "black",
+        endPoint: { x: 10, y: 10, heading: "tangential", reverse: false },
+        controlPoints: [],
+      },
+    ];
+
+    mocks.getCollisions.mockReturnValue([
+      { x: 5, y: 5, time: 1, segmentIndex: 0, type: "obstacle" },
+      { x: 8, y: 8, time: 2, segmentIndex: 0, type: "obstacle" },
+    ]);
+
+    validatePath(startPoint, lines, dummySettings, dummySequence, dummyShapes);
+
+    expect(mocks.notificationSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Found 2 issues! (2 obstacles)",
+      }),
+    );
+  });
+
+  it("should format plural boundary violations correctly", () => {
+    const startPoint: Point = {
+      x: 0,
+      y: 0,
+      heading: "tangential",
+      reverse: false,
+    };
+    const lines: Line[] = [
+      {
+        id: "1",
+        name: "L1",
+        color: "black",
+        endPoint: { x: 10, y: 10, heading: "tangential", reverse: false },
+        controlPoints: [],
+      },
+    ];
+
+    mocks.getCollisions.mockReturnValue([
+      { x: 5, y: 5, time: 1, segmentIndex: 0, type: "boundary" },
+      { x: 8, y: 8, time: 2, segmentIndex: 0, type: "boundary" },
+    ]);
+
+    validatePath(startPoint, lines, dummySettings, dummySequence, dummyShapes);
+
+    expect(mocks.notificationSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Found 2 issues! (2 boundaries)",
       }),
     );
   });

@@ -45,13 +45,13 @@ export function calculateRobotState(
   }
 
   // Calculate current time in seconds based on percent (0-100)
-  const totalDuration = timeline[timeline.length - 1].endTime;
+  const totalDuration = timeline.at(-1).endTime;
   const currentSeconds = (percent / 100) * totalDuration;
 
   // Find the active event for this time using binary search
   let left = 0;
   let right = timeline.length - 1;
-  let activeEvent = timeline[timeline.length - 1];
+  let activeEvent = timeline.at(-1);
 
   while (left <= right) {
     const mid = (left + right) >> 1;
@@ -551,7 +551,7 @@ export function generateOnionLayers(
       const pos = getCurvePoint(t, curvePoints);
       const dx = pos.x - prevPos.x;
       const dy = pos.y - prevPos.y;
-      lineLength += Math.sqrt(dx * dx + dy * dy);
+      lineLength += Math.hypot(dx, dy);
       prevPos = pos;
     }
 
@@ -582,7 +582,7 @@ export function generateOnionLayers(
       const pos = getCurvePoint(t, curvePoints);
       const dx = pos.x - prevPos.x;
       const dy = pos.y - prevPos.y;
-      const segmentLength = Math.sqrt(dx * dx + dy * dy);
+      const segmentLength = Math.hypot(dx, dy);
 
       accumulatedLength += segmentLength;
 

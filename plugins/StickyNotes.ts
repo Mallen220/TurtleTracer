@@ -15,7 +15,6 @@ interface StickyNote {
 }
 
 (function () {
-  const PLUGIN_ID = "sticky-notes-plugin";
   const CONTAINER_ID = "sticky-notes-root";
 
   const isDomAvailable = () =>
@@ -25,14 +24,12 @@ interface StickyNote {
 
   // State
   let noteElements = new Map<string, HTMLElement>();
-  let isDragging = false;
   let draggedNoteId: string | null = null;
-  let dragOffset = { x: 0, y: 0 };
   let isEditingId: string | null = null;
 
   // Store references
-  let unsubscribeData: (() => void) | null = null;
-  let unsubscribeView: (() => void) | null = null;
+  let _unsubscribeData: (() => void) | null = null;
+  let _unsubscribeView: (() => void) | null = null;
 
   // Initialization
   function init() {
@@ -101,12 +98,12 @@ interface StickyNote {
         const { extraDataStore } = turtle.stores.project;
         const { fieldViewStore } = turtle.stores.app;
 
-        unsubscribeData = extraDataStore.subscribe((data: any) => {
+        _unsubscribeData = extraDataStore.subscribe((data: any) => {
           const view = turtle.stores.get(fieldViewStore);
           render(data.stickyNotes || [], view);
         });
 
-        unsubscribeView = fieldViewStore.subscribe((view: any) => {
+        _unsubscribeView = fieldViewStore.subscribe((view: any) => {
           const data = turtle.stores.get(extraDataStore);
           render(data.stickyNotes || [], view);
         });
@@ -372,7 +369,7 @@ interface StickyNote {
     textarea.placeholder = "Write something...";
     textarea.value = note.text;
 
-    textarea.addEventListener("input", (e) => {
+    textarea.addEventListener("input", () => {
       // Note input updates are immediate; debounce may be added later
     });
     textarea.addEventListener("change", (e) => {
@@ -438,7 +435,6 @@ interface StickyNote {
   }
 
   function startDrag(e: MouseEvent, id: string, el: HTMLElement) {
-    isDragging = true;
     draggedNoteId = id;
 
     // Calculate offset from mouse to element top-left
@@ -463,11 +459,10 @@ interface StickyNote {
       el.style.top = `${startTop + dy}px`;
     };
 
-    const upHandler = (ev: MouseEvent) => {
+    const upHandler = () => {
       document.removeEventListener("mousemove", moveHandler);
       document.removeEventListener("mouseup", upHandler);
 
-      isDragging = false;
       draggedNoteId = null;
       el.style.zIndex = "auto";
       el.style.cursor = "grab";
