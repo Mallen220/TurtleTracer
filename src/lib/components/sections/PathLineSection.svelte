@@ -2,10 +2,12 @@
 <script lang="ts">
   import { untrack } from "svelte";
 
-  import type { Line } from "../../../types/index";
+  import type { ActionDefinition, Line } from "../../../types/index";
   import { snapToGrid, showGrid, gridSize } from "../../../stores";
   import ControlPointsSection from "./ControlPointsSection.svelte";
-  import HeadingControls from "../HeadingControls.svelte";
+  import HeadingControls, {
+    type HeadingFields,
+  } from "../HeadingControls.svelte";
   import ColorPicker from "../tools/ColorPicker.svelte";
   import {
     selectedLineId,
@@ -14,6 +16,7 @@
   } from "../../../stores";
   import { startPointStore } from "../../projectStore";
   import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
+  import InsertAfterBar from "./InsertAfterBar.svelte";
   import {
     handleWaypointRename,
     isLineLinked,
@@ -27,8 +30,6 @@
   } from "../../../utils/coordinates";
   import { tooltipPortal } from "../../actions/portal";
   import { onMount } from "svelte";
-  import { actionRegistry } from "../../actionRegistry";
-  import { getSmallButtonClass } from "../../../utils/buttonStyles";
   import {
     ChevronRightIcon,
     EyeIcon,
@@ -37,7 +38,6 @@
     UnlockIcon,
     ArrowUpIcon,
     ArrowDownIcon,
-    PlusIcon,
     LinkIcon,
   } from "../icons";
 
@@ -48,10 +48,8 @@
     collapsed: boolean;
     collapsedControlPoints: boolean;
     onRemove: () => void;
-    onInsertAfter: () => void;
-    onAddWaitAfter: () => void;
-    onAddRotateAfter: () => void;
-    onAddAction?: ((def: any) => void) | undefined;
+    /** Inserts a step of that kind right after this path. */
+    onAddAction: (def: ActionDefinition) => void;
     recordChange: (action?: string) => void;
     onMoveUp: () => void;
     onMoveDown: () => void;
@@ -67,10 +65,7 @@
     collapsed = $bindable(),
     collapsedControlPoints = $bindable(),
     onRemove,
-    onInsertAfter,
-    onAddWaitAfter,
-    onAddRotateAfter,
-    onAddAction = undefined,
+    onAddAction,
     recordChange,
     onMoveUp,
     onMoveDown,
@@ -225,7 +220,7 @@
     isPartOfChain && !isOverriddenByGlobalHeading,
   );
 
-  let pseudoGlobalEndPoint = $state({
+  let pseudoGlobalEndPoint = $state<HeadingFields>({
     heading: "tangential",
     reverse: false,
     degrees: 0,
@@ -233,7 +228,7 @@
     endDeg: 0,
     targetX: 72,
     targetY: 72,
-    segments: [] as any[],
+    segments: [],
   });
 
   // Watch STORE -> SIDEBAR (Sync only when store changes externally)
@@ -250,7 +245,7 @@
 
     untrack(() => {
       // Apply to our local pseudo-object for the UI
-      if (gh !== undefined) {
+      if (gh !== undefined && gh !== "none") {
         pseudoGlobalEndPoint.heading = gh;
         pseudoGlobalEndPoint.reverse = gr ?? false;
         pseudoGlobalEndPoint.degrees = gd ?? 0;
@@ -275,7 +270,7 @@
     const targetIdx = chainRootIndex === -1 ? idx : chainRootIndex;
     const targetLine = lines[targetIdx];
 
-    targetLine.globalHeading = pseudoGlobalEndPoint.heading as any;
+    targetLine.globalHeading = pseudoGlobalEndPoint.heading;
     targetLine.globalReverse = pseudoGlobalEndPoint.reverse;
     targetLine.globalDegrees = pseudoGlobalEndPoint.degrees;
     targetLine.globalStartDeg = pseudoGlobalEndPoint.startDeg;
@@ -762,34 +757,7 @@
         }}
       />
 
-      <!-- Action Bar -->
-      <div
-        class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50 flex-wrap"
-      >
-        <span class="text-xs font-medium text-neutral-400 mr-auto"
-          >Insert after:</span
-        >
-
-        {#each Object.values($actionRegistry) as def (def.kind)}
-          {#if def.createDefault || def.isPath}
-            {@const color = def.buttonColor || "gray"}
-            <button
-              onclick={() => {
-                if (onAddAction) onAddAction(def);
-                else if (def.isPath) onInsertAfter();
-                else if (def.isWait) onAddWaitAfter();
-                else if (def.isRotate) onAddRotateAfter();
-              }}
-              class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 ${getSmallButtonClass(color)}`}
-              title={`Add ${def.label} After`}
-              aria-label={`Add ${def.label} After`}
-            >
-              <PlusIcon className="size-3" />
-              {def.label}
-            </button>
-          {/if}
-        {/each}
-      </div>
+      <InsertAfterBar {onAddAction} />
     </div>
   {/if}
 </div>

@@ -1,6 +1,9 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { focusOnRequest } from "../actions/focusOnRequest";
   import type {
+    ActionDefinition,
+    MenuEntry,
     Point,
     Line,
     ControlPoint,
@@ -19,6 +22,9 @@
     isMacroDrag,
     getDroppedMacroPath,
     insertMacro as insertMacroItem,
+    sequenceItemKey,
+    toggleChain as toggleChainAt,
+    duplicateStep,
   } from "../sequenceOperations";
   import {
     reorderSequence,
@@ -38,7 +44,6 @@
     multiSelectedLineIds,
     selectedPointId,
     multiSelectedPointIds,
-    focusRequest,
     notification,
   } from "../../stores";
   import { tick } from "svelte";
@@ -61,11 +66,7 @@
     InfoIcon,
     LinkIcon,
   } from "./icons";
-  import {
-    makeId,
-    generateName,
-    renumberDefaultPathNames,
-  } from "../../utils/nameGenerator";
+  import { renumberDefaultPathNames } from "../../utils/nameGenerator";
   import {
     updateLinkedWaypoints,
     handleWaypointRename,
@@ -73,7 +74,6 @@
     isLineLinked,
     updateLinkedRotations,
   } from "../../utils/pointLinking";
-  import { getRandomColor } from "../../utils/draw";
   import { actionRegistry } from "../actionRegistry";
   import { getButtonFilledClass } from "../../utils/buttonStyles";
   import { getShortcutFromSettings } from "../../utils";
@@ -101,7 +101,14 @@
     isActive?: boolean;
   } = $props();
 
-  let showDebug = $derived((settings as any)?.showDebugSequence);
+  /** Steps the row menu can insert, with their labels. */
+  const INSERTABLE = [
+    ["wait", "Wait"],
+    ["rotate", "Rotate"],
+    ["path", "Path"],
+  ] as const;
+
+  let showDebug = $derived(settings?.showDebugSequence);
 
   // Compute segment statistics for contextual display
   let timePrediction = $derived($timePredictionStore);
@@ -154,70 +161,6 @@
     ($ids) => new Set($ids),
   );
 
-  // Focus Handling Action
-  function focusOnRequest(
-    node: HTMLElement,
-    params: { id: string; field: string },
-  ) {
-    const unsubscribe = focusRequest.subscribe((req) => {
-      if (
-        isActive &&
-        req &&
-        req.id === params.id &&
-        req.field === params.field
-      ) {
-        node.focus();
-        if (node instanceof HTMLInputElement) node.select();
-      }
-    });
-    return {
-      update(newParams: { id: string; field: string }) {
-        params = newParams;
-      },
-      destroy() {
-        unsubscribe();
-      },
-    };
-  }
-
-  // Optimization dialog refs and programmatic control
-  let optDialogRef: any = null;
-  let optIsRunning: boolean = false;
-  let optOptimizedLines: Line[] | null = null;
-  let optFailed: boolean = false;
-
-  export async function openAndStartOptimization() {
-    if (optDialogRef && optDialogRef.startOptimization)
-      optDialogRef.startOptimization();
-  }
-
-  export function stopOptimization() {
-    if (optDialogRef && optDialogRef.stopOptimization)
-      optDialogRef.stopOptimization();
-  }
-
-  export function applyOptimization() {
-    if (optDialogRef && optDialogRef.handleApply) optDialogRef.handleApply();
-  }
-
-  export function discardOptimization() {
-    if (optDialogRef && optDialogRef.handleClose) optDialogRef.handleClose();
-  }
-
-  export function retryOptimization() {
-    if (optDialogRef && optDialogRef.startOptimization)
-      optDialogRef.startOptimization();
-  }
-
-  export function getOptimizationStatus() {
-    return {
-      isOpen: true,
-      isRunning: optIsRunning,
-      optimizedLines: optOptimizedLines,
-      optimizationFailed: optFailed,
-    };
-  }
-
   // Use snap stores to determine step size for inputs
   let stepSize = $derived($snapToGrid && $showGrid ? $gridSize : 0.1);
 
@@ -264,14 +207,12 @@
   }
 
   // Helper to find the index in the real `sequence` array for a display item
-  function findSequenceIndex(item: any) {
+  function findSequenceIndex(item: SequenceItem) {
     if (!Array.isArray(sequence)) return -1;
-    return sequence.findIndex((s) => {
-      if (s.kind !== item.kind) return false;
-      const def = actionRegistry.get(s.kind);
-      if (def?.isPath) return (s as any).lineId === (item as any).lineId;
-      return (s as any).id === (item as any).id;
-    });
+    const key = sequenceItemKey(item);
+    return sequence.findIndex(
+      (s) => s.kind === item.kind && sequenceItemKey(s) === key,
+    );
   }
 
   // Ensure UI shows any lines that might be missing from the sequence (robustness)
@@ -281,9 +222,7 @@
         // Keep original sequence order and append any missing path items for lines
         const seqCopy = Array.isArray(sequence) ? [...sequence] : [];
         const pathIds = new Set(
-          seqCopy
-            .filter((s) => actionRegistry.get((s as any).kind)?.isPath)
-            .map((s) => (s as any).lineId),
+          seqCopy.flatMap((s) => (s.kind === "path" ? [s.lineId] : [])),
         );
         lines.forEach((l) => {
           if (l.id && !pathIds.has(l.id) && !l.isMacroElement) {
@@ -303,13 +242,10 @@
       ? lines.map((l) => l.id).filter((id): id is string => id != null)
       : [],
   );
+  // The line ids the sequence refers to.
   let debugSequenceIds = $derived(
     Array.isArray(sequence)
-      ? sequence.map((s) =>
-          actionRegistry.get(s.kind)?.isPath
-            ? (s as any).lineId
-            : (s as any).id,
-        )
+      ? sequence.flatMap((s) => (s.kind === "path" ? [s.lineId] : []))
       : [],
   );
   let debugMissing = $derived(
@@ -436,7 +372,7 @@
 
     // Remove sequence entries that reference this line
     const newSeq = sequence.filter(
-      (item) => !(item.kind === "path" && (item as any).lineId === lineId),
+      (item) => !(item.kind === "path" && item.lineId === lineId),
     );
     sequence = newSeq;
     syncLinesToSequence(newSeq);
@@ -474,34 +410,17 @@
     if (!item) return;
 
     if (item.kind === "path") {
-      deleteLine((item as any).lineId);
+      deleteLine(item.lineId);
       return;
     }
 
-    if ((item as any).locked) return;
+    if (item.locked) return;
 
     sequence.splice(index, 1);
     sequence = [...sequence];
     syncLinesToSequence(sequence);
     if (recordChange) recordChange();
     selectedPointId.set(null);
-  }
-
-  function toggleWaitLock(index: number) {
-    const item = sequence[index];
-    if (
-      item.kind === "wait" ||
-      item.kind === "rotate" ||
-      item.kind === "macro"
-    ) {
-      const newSeq = [...sequence];
-      newSeq[index] = {
-        ...item,
-        locked: !(item.locked ?? false),
-      } as SequenceItem;
-      sequence = newSeq;
-      if (recordChange) recordChange();
-    }
   }
 
   let copyButtonText = $state("Copy Table");
@@ -572,7 +491,7 @@
   let contextMenuOpen = $state(false);
   let contextMenuX = $state(0);
   let contextMenuY = $state(0);
-  let contextMenuItems: any[] = $state([]);
+  let contextMenuItems: MenuEntry[] = $state([]);
 
   let hoveredLinkId: string | null = $state(null);
   let hoveredStatsLineId: string | null = $state(null);
@@ -619,18 +538,10 @@
           },
         },
         { separator: true },
-        {
-          label: "Insert Wait After",
-          onClick: () => insertWait(0),
-        },
-        {
-          label: "Insert Rotate After",
-          onClick: () => insertRotate(0),
-        },
-        {
-          label: "Insert Path After",
-          onClick: () => insertPath(0),
-        },
+        ...INSERTABLE.map(([kind, label]) => ({
+          label: `Insert ${label} After`,
+          onClick: () => insertAction(kind, 0),
+        })),
       ];
       contextMenuX = event.clientX;
       contextMenuY = event.clientY;
@@ -676,36 +587,23 @@
     items.push({
       label: "Duplicate",
       onClick: () => duplicateItem(seqIndex),
-      disabled: isLocked && item.kind === "path",
+      disabled: item.kind === "macro" || (isLocked && item.kind === "path"),
     });
 
     items.push({ separator: true });
 
-    // Insert options
-    items.push({
-      label: "Insert Wait Before",
-      onClick: () => insertWait(seqIndex),
-    });
-    items.push({
-      label: "Insert Wait After",
-      onClick: () => insertWait(seqIndex + 1),
-    });
-    items.push({
-      label: "Insert Rotate Before",
-      onClick: () => insertRotate(seqIndex),
-    });
-    items.push({
-      label: "Insert Rotate After",
-      onClick: () => insertRotate(seqIndex + 1),
-    });
-    items.push({
-      label: "Insert Path Before",
-      onClick: () => insertPath(seqIndex),
-    });
-    items.push({
-      label: "Insert Path After",
-      onClick: () => insertPath(seqIndex + 1),
-    });
+    for (const [kind, label] of INSERTABLE) {
+      items.push(
+        {
+          label: `Insert ${label} Before`,
+          onClick: () => insertAction(kind, seqIndex),
+        },
+        {
+          label: `Insert ${label} After`,
+          onClick: () => insertAction(kind, seqIndex + 1),
+        },
+      );
+    }
 
     items.push({ separator: true });
 
@@ -714,9 +612,7 @@
       label: "Delete",
       onClick: () => deleteSequenceItem(seqIndex),
       danger: true,
-      disabled:
-        isLocked ||
-        (lines.length <= 1 && !!actionRegistry.get(item.kind)?.isPath),
+      disabled: isLocked || (lines.length <= 1 && item.kind === "path"),
     });
 
     contextMenuItems = items;
@@ -726,61 +622,14 @@
   }
 
   function toggleChain(seqIndex: number) {
-    const item = sequence[seqIndex];
-    if (item && item.kind === "path") {
-      const newIsChain = !(item as any).isChain;
-
-      if (!newIsChain) {
-        // Find the root of the former chain
-        let rootIdx = seqIndex;
-        while (
-          rootIdx > 0 &&
-          sequence[rootIdx - 1].kind === "path" &&
-          (sequence[rootIdx] as any).isChain
-        ) {
-          rootIdx--;
-        }
-
-        // Find the end of the former chain
-        let endIdx = seqIndex;
-        while (
-          endIdx + 1 < sequence.length &&
-          sequence[endIdx + 1].kind === "path" &&
-          (sequence[endIdx + 1] as any).isChain
-        ) {
-          endIdx++;
-        }
-
-        // Reset globalHeading for all paths in the former chain island
-        for (let i = rootIdx; i <= endIdx; i++) {
-          const sItem = sequence[i];
-          if (sItem.kind === "path") {
-            const lIdx = lines.findIndex((l) => l.id === (sItem as any).lineId);
-            if (lIdx !== -1 && lines[lIdx].globalHeading !== undefined) {
-              lines[lIdx] = { ...lines[lIdx], globalHeading: undefined };
-            }
-          }
-        }
-      }
-
-      const newSeq = [...sequence];
-      newSeq[seqIndex] = { ...item, isChain: newIsChain };
-      sequence = newSeq;
-
-      // Also update the line object
-      const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
-      if (lineIdx !== -1) {
-        lines[lineIdx] = { ...lines[lineIdx], isChain: newIsChain };
-        lines = [...lines];
-      }
-      recordChange();
-    }
+    ({ lines, sequence } = toggleChainAt(lines, sequence, seqIndex));
+    recordChange();
   }
 
   function toggleLock(seqIndex: number) {
     const item = sequence[seqIndex];
     if (item.kind === "path") {
-      const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
+      const lineIdx = lines.findIndex((l) => l.id === item.lineId);
       if (lineIdx !== -1) {
         lines[lineIdx] = { ...lines[lineIdx], locked: !lines[lineIdx].locked };
         lines = [...lines]; // Trigger reactivity
@@ -797,28 +646,18 @@
     if (recordChange) recordChange();
   }
 
-  // Bound handlers to avoid inline typed parameters in markup
-  function onDragStartFor(idx: number, e: DragEvent) {
-    handleDragStart(e, idx);
-  }
-
-  function handleContextMenuFor(idx: number, e: MouseEvent) {
-    handleContextMenu(e, idx);
-  }
-
-  // Utility to safely get locked flag for sequence items without using inline `as` casts inside templates
-  // Helper to accept updates coming from child row components (binds avoid inline typed params)
-  function handleUpdateFromComponent(idx: number, updatedItem: any) {
+  // Edits from the wait, turn and macro rows
+  function handleUpdateFromComponent(idx: number, updatedItem: SequenceItem) {
     // Create a new array reference to ensure Svelte reactivity triggers,
     // especially for ControlTab which binds to sequence.
     const newSeq = [...sequence];
     newSeq[idx] = updatedItem;
 
-    const def = actionRegistry.get(newSeq[idx].kind);
-    if (def?.isWait) {
-      sequence = updateLinkedWaits(newSeq, (newSeq[idx] as any).id);
-    } else if (def?.isRotate) {
-      sequence = updateLinkedRotations(newSeq, (newSeq[idx] as any).id);
+    // Waits and turns that share a name share their settings.
+    if (updatedItem.kind === "wait") {
+      sequence = updateLinkedWaits(newSeq, updatedItem.id);
+    } else if (updatedItem.kind === "rotate") {
+      sequence = updateLinkedRotations(newSeq, updatedItem.id);
     } else {
       sequence = newSeq;
     }
@@ -826,210 +665,51 @@
   }
 
   function duplicateItem(seqIndex: number) {
-    const item = sequence[seqIndex];
-    if (!item) return;
-
-    if (item.kind === "wait") {
-      const newItem = $state.snapshot(item);
-      newItem.id = makeId();
-      newItem.locked = false; // unlock duplicate?
-      // Preserve empty name when duplicating unnamed waits
-      if (item.name && item.name.trim() !== "") {
-        newItem.name = generateName(
-          item.name,
-          sequence.map((s) => (s.kind === "wait" ? s.name : "") || ""),
-        );
-      } else {
-        newItem.name = "";
-      }
-
-      const newSeq = [...sequence];
-      newSeq.splice(seqIndex + 1, 0, newItem);
-      sequence = newSeq;
-      recordChange();
-    } else if (item.kind === "path") {
-      // Logic for duplicating path (similar to insertLineAfter but copying properties)
-      const line = lines.find((l) => l.id === (item as any).lineId);
-      if (!line) return;
-
-      const newLine = $state.snapshot(line);
-      newLine.id = makeId();
-      newLine.locked = false;
-      // Preserve empty name when duplicating unnamed paths
-      if (line.name && line.name.trim() !== "") {
-        newLine.name = generateName(
-          line.name,
-          lines.map((l) => l.name || ""),
-        );
-      } else {
-        newLine.name = "";
-      }
-
-      let prevPoint = startPoint;
-      if (seqIndex > 0) {
-        for (let i = seqIndex - 1; i >= 0; i--) {
-          if (sequence[i].kind === "path") {
-            const pl = lines.find((l) => l.id === (sequence[i] as any).lineId);
-            if (pl) {
-              prevPoint = pl.endPoint;
-              break;
-            }
-          }
-        }
-      }
-
-      const dx = line.endPoint.x - prevPoint.x;
-      const dy = line.endPoint.y - prevPoint.y;
-
-      // New start point is line.endPoint.
-      // New end point is line.endPoint + delta.
-      newLine.endPoint.x = line.endPoint.x + dx;
-      newLine.endPoint.y = line.endPoint.y + dy;
-
-      const fieldW = settings?.fieldWidth ?? 144;
-      const fieldH = settings?.fieldHeight ?? 144;
-      newLine.endPoint.x = Math.max(0, Math.min(fieldW, newLine.endPoint.x));
-      newLine.endPoint.y = Math.max(0, Math.min(fieldH, newLine.endPoint.y));
-
-      // The copy starts where the original ends, so shift its control points
-      // by the same amount.
-      newLine.controlPoints = line.controlPoints.map((cp) => ({
-        ...cp,
-        x: Math.max(0, Math.min(fieldW, cp.x + dx)),
-        y: Math.max(0, Math.min(fieldH, cp.y + dy)),
-      }));
-
-      // Insert
-      const lineIdx = lines.findIndex((l) => l.id === item.lineId);
-      lines.splice(lineIdx + 1, 0, newLine);
-      lines = [...lines]; // trigger reactivity
-
-      const newSeq = [...sequence];
-      newSeq.splice(seqIndex + 1, 0, { kind: "path", lineId: newLine.id! });
-      sequence = newSeq;
-
-      lines = renumberDefaultPathNames(lines);
-      recordChange();
-    }
+    const result = duplicateStep(
+      $state.snapshot({ startPoint, lines, sequence }) as {
+        startPoint: Point;
+        lines: Line[];
+        sequence: SequenceItem[];
+      },
+      seqIndex,
+      {
+        width: settings?.fieldWidth ?? 144,
+        height: settings?.fieldHeight ?? 144,
+      },
+    );
+    if (!result) return;
+    lines = result.lines;
+    sequence = result.sequence;
+    recordChange();
   }
 
+  /** Inserts a new step of `kind` at `index`, as that action defines it. */
   function insertAction(kind: string, index: number) {
-    const def = actionRegistry.get(kind);
-    if (def && def.onInsert) {
-      def.onInsert({
-        index,
-        sequence,
-        lines,
-        startPoint,
-        triggerReactivity: () => {
-          sequence = [...sequence];
-          lines = renumberDefaultPathNames([...lines]);
-          recordChange();
-        },
-      });
-    }
+    actionRegistry.get(kind)?.onInsert?.({
+      index,
+      sequence,
+      lines,
+      startPoint,
+      triggerReactivity: () => {
+        sequence = [...sequence];
+        lines = renumberDefaultPathNames([...lines]);
+        recordChange();
+      },
+    });
   }
 
-  // Generic wrappers for inserting common actions. These delegate to the action registry
-  // so each action's onInsert handler performs the correct mutation and reactivity.
-  function insertWait(index: number) {
-    insertAction("wait", index);
-  }
-
-  function insertRotate(index: number) {
-    insertAction("rotate", index);
-  }
-
-  function insertPath(index: number) {
-    const def = actionRegistry.get("path");
-    if (def && def.onInsert) {
-      insertAction("path", index);
-      return;
-    }
-
-    // Fallback if the action isn't registered yet — replicate PathAction insertion logic locally
-    let insertAfterLineId: string | null = null;
-    let refPoint: Point = startPoint;
-
-    for (let i = index - 1; i >= 0; i--) {
-      if (sequence[i].kind === "path") {
-        insertAfterLineId = (sequence[i] as any).lineId;
-        const l = lines.find((x) => x.id === insertAfterLineId);
-        if (l) refPoint = l.endPoint;
-        break;
-      }
-    }
-
-    const fieldW = settings?.fieldWidth ?? 144;
-    const fieldH = settings?.fieldHeight ?? 144;
-
-    let endPoint: Point;
-    if (refPoint.heading === "linear") {
-      const linRef = refPoint as Extract<Point, { heading: "linear" }>;
-      const deg = linRef.endDeg ?? linRef.startDeg ?? 0;
-      endPoint = {
-        x: Math.max(0, Math.min(fieldW, (refPoint.x || 0) + 10)),
-        y: Math.max(0, Math.min(fieldH, (refPoint.y || 0) + 10)),
-        heading: "linear",
-        startDeg: deg,
-        endDeg: deg,
-      };
-    } else if (refPoint.heading === "constant") {
-      endPoint = {
-        x: Math.max(0, Math.min(fieldW, (refPoint.x || 0) + 10)),
-        y: Math.max(0, Math.min(fieldH, (refPoint.y || 0) + 10)),
-        heading: "constant",
-        degrees:
-          (refPoint as Extract<Point, { heading: "constant" }>).degrees ?? 0,
-      };
-    } else {
-      endPoint = {
-        x: Math.max(0, Math.min(fieldW, (refPoint.x || 0) + 10)),
-        y: Math.max(0, Math.min(fieldH, (refPoint.y || 0) + 10)),
-        heading: "tangential",
-        reverse: (refPoint as any).reverse ?? false,
-      };
-    }
-
-    const newLine: Line = {
-      id: makeId(),
-      name: "",
-      endPoint,
-      controlPoints: [],
-      color: getRandomColor(),
-      eventMarkers: [],
-      waitBeforeMs: 0,
-      waitAfterMs: 0,
-      waitBeforeName: "",
-      waitAfterName: "",
-    };
-
-    // Compute insertion index in lines
-    let lineInsertIdx = 0;
-    if (insertAfterLineId) {
-      const idx = lines.findIndex((l) => l.id === insertAfterLineId);
-      if (idx !== -1) lineInsertIdx = idx + 1;
-    }
-
-    lines.splice(lineInsertIdx, 0, newLine);
-    lines = renumberDefaultPathNames(lines);
-
-    const newSeq = [...sequence];
-    newSeq.splice(index, 0, { kind: "path", lineId: newLine.id! });
-    sequence = newSeq;
-
-    if (recordChange) recordChange();
-  }
-
-  function handleAddAction(def: any) {
+  function handleAddAction(def: ActionDefinition) {
     if (def.createDefault) {
       const newItem = def.createDefault();
       const newSeq = [...sequence];
       newSeq.push(newItem);
       sequence = newSeq;
       syncLinesToSequence(newSeq);
-      if (def.isWait) sequence = updateLinkedWaits(sequence, newItem.id);
-      if (def.isRotate) sequence = updateLinkedRotations(sequence, newItem.id);
+      if (newItem.kind === "wait") {
+        sequence = updateLinkedWaits(sequence, newItem.id);
+      } else if (newItem.kind === "rotate") {
+        sequence = updateLinkedRotations(sequence, newItem.id);
+      }
       recordChange();
     }
   }
@@ -1163,7 +843,11 @@
             )}
             aria-label="Start Point X"
             onchange={(e) => handleInput(e, startPoint, "x")}
-            use:focusOnRequest={{ id: "point-0-0", field: "x" }}
+            use:focusOnRequest={{
+              id: "point-0-0",
+              field: "x",
+              enabled: isActive,
+            }}
             disabled={startPoint.locked}
           />
         </td>
@@ -1178,7 +862,11 @@
             )}
             aria-label="Start Point Y"
             onchange={(e) => handleInput(e, startPoint, "y")}
-            use:focusOnRequest={{ id: "point-0-0", field: "y" }}
+            use:focusOnRequest={{
+              id: "point-0-0",
+              field: "y",
+              enabled: isActive,
+            }}
             disabled={startPoint.locked}
           />
         </td>
@@ -1209,17 +897,17 @@
                 <button
                   class="absolute left-[36px] -top-2 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded p-0.5 z-10 transition-colors bg-white dark:bg-neutral-900 shadow-sm border border-neutral-200 dark:border-neutral-800"
                   onclick={() => toggleChain(seqIndex)}
-                  title={(item as any).isChain
+                  title={item.isChain
                     ? "Unchain paths"
                     : "Chain paths together"}
                   aria-label="Toggle Path Chain"
                 >
                   <LinkIcon
-                    className={`w-3.5 h-3.5 ${(item as any).isChain ? "text-green-500 dark:text-green-400" : "text-neutral-400 opacity-50"}`}
-                    strokeWidth={(item as any).isChain ? 2.5 : 1.5}
+                    className={`w-3.5 h-3.5 ${item.isChain ? "text-green-500 dark:text-green-400" : "text-neutral-400 opacity-50"}`}
+                    strokeWidth={item.isChain ? 2.5 : 1.5}
                   />
                 </button>
-                {#if (item as any).isChain}
+                {#if item.isChain}
                   <div
                     class="absolute left-[42px] top-[-10px] w-[2px] h-[20px] bg-green-500 dark:bg-green-400 -z-10 opacity-30"
                   ></div>
@@ -1286,6 +974,7 @@
                       use:focusOnRequest={{
                         id: line.id || "",
                         field: "name",
+                        enabled: isActive,
                       }}
                       disabled={line.locked}
                       placeholder="Path {lineIdx + 1}"
@@ -1368,7 +1057,11 @@
                     aria-label="{line.name || `Path ${lineIdx + 1}`} X"
                     onchange={(e) =>
                       handleInput(e, line.endPoint, "x", line.id)}
-                    use:focusOnRequest={{ id: endPointId, field: "x" }}
+                    use:focusOnRequest={{
+                      id: endPointId,
+                      field: "x",
+                      enabled: isActive,
+                    }}
                     disabled={line.locked}
                   />
                   <span class="text-xs text-neutral-500"
@@ -1388,7 +1081,11 @@
                   )}
                   aria-label="{line.name || `Path ${lineIdx + 1}`} Y"
                   onchange={(e) => handleInput(e, line.endPoint, "y", line.id)}
-                  use:focusOnRequest={{ id: endPointId, field: "y" }}
+                  use:focusOnRequest={{
+                    id: endPointId,
+                    field: "y",
+                    enabled: isActive,
+                  }}
                   disabled={line.locked}
                 />
               </td>
@@ -1493,7 +1190,11 @@
                     aria-label="Control Point {j + 1} X for {line.name ||
                       `Path ${lineIdx + 1}`}"
                     onchange={(e) => handleInput(e, cp, "x")}
-                    use:focusOnRequest={{ id: pointId, field: "x" }}
+                    use:focusOnRequest={{
+                      id: pointId,
+                      field: "x",
+                      enabled: isActive,
+                    }}
                     disabled={line.locked}
                   />
                 </td>
@@ -1509,7 +1210,11 @@
                     aria-label="Control Point {j + 1} Y for {line.name ||
                       `Path ${lineIdx + 1}`}"
                     onchange={(e) => handleInput(e, cp, "y")}
-                    use:focusOnRequest={{ id: pointId, field: "y" }}
+                    use:focusOnRequest={{
+                      id: pointId,
+                      field: "y",
+                      enabled: isActive,
+                    }}
                     disabled={line.locked}
                   />
                 </td>
@@ -1549,17 +1254,18 @@
             {dragOverIndex}
             {dragPosition}
             {draggingIndex}
-            onUpdate={handleUpdateFromComponent.bind(null, seqIndex)}
-            onLock={() => toggleWaitLock(seqIndex)}
+            onUpdate={(updated: SequenceItem) =>
+              handleUpdateFromComponent(seqIndex, updated)}
+            onLock={() => toggleLock(seqIndex)}
             onDelete={() => deleteSequenceItem(seqIndex)}
             onUnlink={() => {
               if (item.kind === "macro") {
                 unlinkMacro(item, seqIndex);
               }
             }}
-            onDragStart={onDragStartFor.bind(null, seqIndex)}
+            onDragStart={(e: DragEvent) => handleDragStart(e, seqIndex)}
             onDragEnd={handleDragEnd}
-            onContextMenu={handleContextMenuFor.bind(null, seqIndex)}
+            onContextMenu={(e: MouseEvent) => handleContextMenu(e, seqIndex)}
             {sequence}
           />
         {/if}
@@ -1607,7 +1313,7 @@
   <!-- Persistent Add Buttons -->
   <div class="flex gap-2 flex-shrink-0">
     <button
-      onclick={() => insertPath(sequence.length)}
+      onclick={() => insertAction("path", sequence.length)}
       class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
       aria-label="Add new path segment"
       title={`Add new path segment${getShortcutFromSettings(settings, "add-path")}`}

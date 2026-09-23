@@ -1,7 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Edits to the sequence that both the path list and the table offer.
 import { get } from "svelte/store";
-import type { Line, SequenceItem, SequenceMacroItem } from "../types";
+import type { Line, Point, SequenceItem, SequenceMacroItem } from "../types";
 import {
   loadMacro,
   macrosStore,
@@ -9,8 +9,59 @@ import {
 } from "./projectStore";
 import { wouldCreateCycle } from "./macroUtils";
 import { currentFilePath, notification } from "../stores";
-import { makeId } from "../utils/nameGenerator";
+import { generateName, makeId } from "../utils/nameGenerator";
 import { isSupportedProjectFileName } from "../utils/fileExtensions";
+
+/** What identifies an item in the sequence: a path's line id, else its own id. */
+export function sequenceItemKey(item: SequenceItem): string {
+  return item.kind === "path" ? item.lineId : item.id;
+}
+
+/**
+ * Chains or unchains the path at `index` to the one before it. Unchaining
+ * clears the chain-wide heading of every path that was in that chain.
+ */
+export function toggleChain(
+  lines: Line[],
+  sequence: SequenceItem[],
+  index: number,
+): { lines: Line[]; sequence: SequenceItem[] } {
+  const item = sequence[index];
+  if (item?.kind !== "path") return { lines, sequence };
+  const chain = !item.isChain;
+  let newLines = [...lines];
+
+  if (!chain) {
+    const chainedToPrevious = (i: number) => {
+      const s = sequence[i];
+      return (
+        s?.kind === "path" && !!s.isChain && sequence[i - 1]?.kind === "path"
+      );
+    };
+    let first = index;
+    while (first > 0 && chainedToPrevious(first)) first--;
+    let last = index;
+    while (chainedToPrevious(last + 1)) last++;
+
+    const chainLineIds = new Set(
+      sequence
+        .slice(first, last + 1)
+        .flatMap((s) => (s.kind === "path" ? [s.lineId] : [])),
+    );
+    newLines = newLines.map((l) =>
+      chainLineIds.has(l.id!) && l.globalHeading !== undefined
+        ? { ...l, globalHeading: undefined }
+        : l,
+    );
+  }
+
+  const newSequence = [...sequence];
+  newSequence[index] = { ...item, isChain: chain };
+  newLines = newLines.map((l) =>
+    l.id === item.lineId ? { ...l, isChain: chain } : l,
+  );
+  return { lines: newLines, sequence: newSequence };
+}
 
 /** Paths are locked through their line; other items carry their own flag. */
 export function isSequenceItemLocked(
@@ -174,5 +225,80 @@ export async function insertMacro(
   return {
     sequence: [...sequence.slice(0, at), macro, ...sequence.slice(at)],
     macro,
+  };
+}
+
+/** A name for a copy that doesn't clash. Unnamed items stay unnamed. */
+export function copyName(name: string | undefined, existingNames: string[]) {
+  return name?.trim() ? generateName(name, existingNames) : "";
+}
+
+/**
+ * A copy of the wait, turn or path at `index`, placed right after it. A
+ * copied path makes the same move again from where the original ends, kept
+ * on the field. Copies are unlocked and get names that don't clash. Returns
+ * null for anything else (macros).
+ */
+export function duplicateStep(
+  project: { startPoint: Point; lines: Line[]; sequence: SequenceItem[] },
+  index: number,
+  field = { width: 144, height: 144 },
+): { lines: Line[]; sequence: SequenceItem[]; copy: SequenceItem } | null {
+  const { startPoint, lines, sequence } = project;
+  const item = sequence[index];
+  const after = <T>(items: T[], i: number, value: T) =>
+    items.toSpliced(i + 1, 0, value);
+
+  if (item?.kind === "wait" || item?.kind === "rotate") {
+    const names = sequence.flatMap((s) =>
+      s.kind === item.kind ? [s.name] : [],
+    );
+    const copy = {
+      ...structuredClone(item),
+      id: makeId(),
+      name: copyName(item.name, names),
+      locked: false,
+    };
+    return { lines, sequence: after(sequence, index, copy), copy };
+  }
+
+  if (item?.kind !== "path") return null;
+  const lineIndex = lines.findIndex((l) => l.id === item.lineId);
+  const line = lines[lineIndex];
+  if (!line) return null;
+
+  const lineById = new Map(lines.map((l) => [l.id, l]));
+  const previousPath = sequence
+    .slice(0, index)
+    .findLast((s) => s.kind === "path" && lineById.has(s.lineId));
+  const start =
+    previousPath?.kind === "path"
+      ? lineById.get(previousPath.lineId)!.endPoint
+      : startPoint;
+  const dx = line.endPoint.x - start.x;
+  const dy = line.endPoint.y - start.y;
+  const shift = <P extends { x: number; y: number }>(p: P): P => ({
+    ...p,
+    x: Math.max(0, Math.min(field.width, p.x + dx)),
+    y: Math.max(0, Math.min(field.height, p.y + dy)),
+  });
+
+  const copyLine: Line = {
+    ...structuredClone(line),
+    id: makeId(),
+    name: copyName(
+      line.name,
+      lines.map((l) => l.name || ""),
+    ),
+    locked: false,
+  };
+  copyLine.endPoint = shift(copyLine.endPoint);
+  copyLine.controlPoints = copyLine.controlPoints.map(shift);
+
+  const copy: SequenceItem = { kind: "path", lineId: copyLine.id! };
+  return {
+    lines: renumberDefaultPathNames(after(lines, lineIndex, copyLine)),
+    sequence: after(sequence, index, copy),
+    copy,
   };
 }

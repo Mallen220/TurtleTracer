@@ -1,13 +1,9 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { focusOnRequest } from "../../actions/focusOnRequest";
   import { makeId } from "../../../utils/nameGenerator";
   import { createTriangle } from "../../../utils";
-  import {
-    snapToGrid,
-    showGrid,
-    gridSize,
-    focusRequest,
-  } from "../../../stores";
+  import { snapToGrid, showGrid, gridSize } from "../../../stores";
   import { settingsStore, shapesStore } from "../../projectStore";
   import {
     toUserCoordinate,
@@ -50,32 +46,6 @@
 
   let selectedPresetId: string = $state("");
   let showSaveDialog = $state(false);
-
-  // Focus Handling Action
-  function focusOnRequest(
-    node: HTMLElement,
-    params: { id: string; field: string },
-  ) {
-    const unsubscribe = focusRequest.subscribe((req) => {
-      if (
-        isActive &&
-        req &&
-        req.id === params.id &&
-        req.field === params.field
-      ) {
-        node.focus();
-        if (node instanceof HTMLInputElement) node.select();
-      }
-    });
-    return {
-      update(newParams: { id: string; field: string }) {
-        params = newParams;
-      },
-      destroy() {
-        unsubscribe();
-      },
-    };
-  }
 
   let snapToGridTitle = $derived(
     $snapToGrid && $showGrid ? `Snapping to ${$gridSize} grid` : "No snapping",
@@ -444,6 +414,7 @@
                           use:focusOnRequest={{
                             id: `obstacle-${shapeIdx}-${vertexIdx}`,
                             field: "x",
+                            enabled: isActive,
                           }}
                         />
                       </div>
@@ -485,6 +456,7 @@
                           use:focusOnRequest={{
                             id: `obstacle-${shapeIdx}-${vertexIdx}`,
                             field: "y",
+                            enabled: isActive,
                           }}
                         />
                       </div>

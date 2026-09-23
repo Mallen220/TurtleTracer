@@ -1,354 +1,98 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import { selectedPointId, selectedLineId } from "../../../stores";
-  import DeleteButtonWithConfirm from "../common/DeleteButtonWithConfirm.svelte";
-  import type { SequenceWaitItem, SequenceItem } from "../../../types/index";
+  import SequenceItemCard from "./SequenceItemCard.svelte";
+  import type {
+    ActionDefinition,
+    SequenceWaitItem,
+    SequenceItem,
+  } from "../../../types/index";
   import {
     isWaitLinked,
     handleWaitRename,
     updateLinkedWaits,
   } from "../../../utils/pointLinking";
-  import { tooltipPortal } from "../../actions/portal";
-  import { actionRegistry } from "../../actionRegistry";
-  import { getSmallButtonClass } from "../../../utils/buttonStyles";
-  import ChevronDownIcon from "../icons/ChevronDownIcon.svelte";
-  import ChevronUpIcon from "../icons/ChevronUpIcon.svelte";
-  import EyeIcon from "../icons/EyeIcon.svelte";
-  import EyeSlashIcon from "../icons/EyeSlashIcon.svelte";
-  import InfoIcon from "../icons/InfoIcon.svelte";
-  import LockIcon from "../icons/LockIcon.svelte";
-  import PlusIcon from "../icons/PlusIcon.svelte";
-  import UnlockIcon from "../icons/UnlockIcon.svelte";
   import ClockIcon from "../icons/ClockIcon.svelte";
-
-  // Markers collapsed state (for "Collapse All" deep behavior)
 
   interface Props {
     wait: SequenceWaitItem;
     sequence: SequenceItem[];
-    // Collapsed state
     collapsed?: boolean;
     onRemove: () => void;
-    onInsertAfter: () => void; // Deprecated in favor of onAddAction, but kept for compatibility if needed
-    onAddPathAfter: () => void; // Deprecated
-    onAddRotateAfter: () => void; // Deprecated
-    onAddAction?: ((def: any) => void) | undefined;
+    onAddAction?: (def: ActionDefinition) => void;
     onMoveUp: () => void;
     onMoveDown: () => void;
     canMoveUp?: boolean;
     canMoveDown?: boolean;
-    recordChange?: (() => void) | undefined;
+    recordChange?: () => void;
   }
 
   let {
-    wait = $bindable(),
+    wait,
     sequence = $bindable(),
     collapsed = $bindable(false),
+    recordChange,
     onRemove,
-    onInsertAfter,
-    onAddPathAfter,
-    onAddRotateAfter,
-    onAddAction = undefined,
+    onAddAction,
     onMoveUp,
     onMoveDown,
-    canMoveUp = true,
-    canMoveDown = true,
-    recordChange = undefined,
+    canMoveUp,
+    canMoveDown,
   }: Props = $props();
 
-  let isSelected = $derived($selectedPointId === `wait-${wait.id}`);
-  let isHidden = $derived(wait.hidden ?? false);
   let linked = $derived(isWaitLinked(sequence, wait.id));
 
-  let hoveredWaitId: string | null = $state(null);
-  let hoveredWaitAnchor: HTMLElement | null = $state(null);
-
-  function handleWaitHoverEnter(e: MouseEvent, id: string | null) {
-    hoveredWaitId = id;
-    hoveredWaitAnchor = e.currentTarget as HTMLElement;
-  }
-  function handleWaitHoverLeave() {
-    hoveredWaitId = null;
-    hoveredWaitAnchor = null;
-  }
-
-  function toggleCollapsed() {
-    collapsed = !collapsed;
-  }
-
-  function handleNameInput(e: Event) {
-    const input = e.target as HTMLInputElement;
-    const newName = input.value;
-    sequence = handleWaitRename(sequence, wait.id, newName);
-  }
-
-  function handleBlur() {
-    if (recordChange) recordChange();
-  }
-
-  function handleDurationChange(e: Event) {
-    const target = e.currentTarget as HTMLInputElement;
-    const val = Number.parseFloat(target.value);
-    if (!Number.isNaN(val) && val >= 0) {
-      wait.durationMs = val;
-    } else {
-      wait.durationMs = 0;
-    }
-    if (linked) {
-      sequence = updateLinkedWaits(sequence, wait.id);
-    } else {
-      sequence = [...sequence];
-    }
-    if (recordChange) recordChange();
+  function setDuration(e: Event & { currentTarget: HTMLInputElement }) {
+    const ms = Number.parseFloat(e.currentTarget.value);
+    const durationMs = Number.isNaN(ms) || ms < 0 ? 0 : ms;
+    const updated = sequence.map((s) =>
+      s.kind === "wait" && s.id === wait.id ? { ...s, durationMs } : s,
+    );
+    // Waits with the same name share their duration.
+    sequence = linked ? updateLinkedWaits(updated, wait.id) : updated;
+    recordChange?.();
   }
 </script>
 
-<div
-  role="button"
-  tabindex="0"
-  aria-pressed={isSelected}
-  class={`bg-white dark:bg-neutral-800 rounded-xl shadow-sm border transition-all duration-200 ${
-    isSelected
-      ? "border-amber-400 ring-1 ring-amber-400/20"
-      : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600"
-  } ${isHidden ? "opacity-50 grayscale-[50%]" : ""}`}
-  onclick={(e) => {
-    e.stopPropagation();
-    if (!wait.locked) {
-      selectedPointId.set(`wait-${wait.id}`);
-      selectedLineId.set(null);
-    }
-  }}
-  onkeydown={(e) => {
-    e.stopPropagation();
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      if (!wait.locked) {
-        selectedPointId.set(`wait-${wait.id}`);
-        selectedLineId.set(null);
-      }
-    }
-  }}
+<SequenceItemCard
+  item={wait}
+  bind:sequence
+  bind:collapsed
+  label="Wait"
+  accent="amber"
+  onRename={(name) => (sequence = handleWaitRename(sequence, wait.id, name))}
+  linkedNote={linked
+    ? `Waits with the same name share their duration. This one shares it with others named '${wait.name}'.`
+    : null}
+  {recordChange}
+  {onRemove}
+  {onAddAction}
+  {onMoveUp}
+  {onMoveDown}
+  {canMoveUp}
+  {canMoveDown}
 >
-  <!-- Card Header -->
-  <div class="flex items-center justify-between p-3 gap-3">
-    <!-- Left: Title & Name -->
-    <div class="flex items-center gap-3 flex-1 min-w-0">
-      <button
-        onclick={(e) => {
-          e.stopPropagation();
-          toggleCollapsed();
-        }}
-        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-        title="{collapsed ? 'Expand' : 'Collapse'} wait"
-        aria-label="{collapsed ? 'Expand' : 'Collapse'} wait"
-        aria-expanded={!collapsed}
-      >
-        <ChevronDownIcon
-          strokeWidth={2.5}
-          className="size-3.5 transition-transform duration-200 {collapsed
-            ? '-rotate-90'
-            : 'rotate-0'}"
-        />
-        <span
-          class="text-xs font-bold uppercase tracking-wider text-amber-500 whitespace-nowrap"
-          >Wait</span
-        >
-      </button>
-
-      <div class="flex items-center gap-2 flex-1 min-w-0">
-        <div class="relative flex-1 min-w-0">
-          <input
-            value={wait.name}
-            placeholder="Wait"
-            aria-label="Wait name"
-            title="Edit wait name"
-            class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder-neutral-400 truncate"
-            class:text-amber-500={hoveredWaitId === wait.id}
-            disabled={wait.locked}
-            oninput={handleNameInput}
-            onblur={handleBlur}
-            onclick={(e) => {
-              e.stopPropagation();
-            }}
-          />
-          {#if linked}
-            <div
-              role="presentation"
-              class="absolute right-2 top-1/2 -translate-y-1/2 text-amber-500 cursor-help"
-              onmouseenter={(e) => handleWaitHoverEnter(e, wait.id)}
-              onmouseleave={handleWaitHoverLeave}
-            >
-              <InfoIcon className="w-3.5 h-3.5" />
-              {#if hoveredWaitId === wait.id}
-                <div
-                  use:tooltipPortal={hoveredWaitAnchor}
-                  class="w-64 p-2 bg-amber-100 dark:bg-amber-900 border border-amber-300 dark:border-amber-700 rounded shadow-lg text-xs text-amber-900 dark:text-amber-100 z-50 pointer-events-none"
-                >
-                  <strong>Linked Wait</strong><br />
-                  Logic: Same Name = Shared Duration.<br />
-                  This wait event shares its duration with other waits named '{wait.name}'.
-                </div>
-              {/if}
-            </div>
-          {/if}
-        </div>
-      </div>
-    </div>
-
-    <!-- Right: Controls -->
-    <div class="flex items-center gap-1">
-      <button
-        onclick={(e) => {
-          e.stopPropagation();
-          const idx = sequence.findIndex((s) => (s as any).id === wait.id);
-          if (idx !== -1) {
-            const currentWait = sequence[idx] as any;
-            const newWait = { ...currentWait, hidden: !isHidden };
-            sequence[idx] = newWait;
-            sequence = [...sequence];
-            wait = newWait;
-          }
-          if (recordChange) recordChange();
-        }}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-        title={isHidden ? "Show Wait" : "Hide Wait"}
-        aria-label={isHidden ? "Show Wait" : "Hide Wait"}
-      >
-        {#if isHidden}
-          <EyeSlashIcon className="size-4 text-neutral-400" strokeWidth={2} />
-        {:else}
-          <EyeIcon className="size-4" strokeWidth={2} />
-        {/if}
-      </button>
-
-      <button
-        title={wait.locked ? "Unlock Wait" : "Lock Wait"}
-        aria-label={wait.locked ? "Unlock Wait" : "Lock Wait"}
-        onclick={(e) => {
-          e.stopPropagation();
-          const idx = sequence.findIndex((s) => (s as any).id === wait.id);
-          if (idx !== -1) {
-            const currentWait = sequence[idx] as any;
-            const newWait = { ...currentWait, locked: !currentWait.locked };
-            sequence[idx] = newWait;
-            sequence = [...sequence];
-            wait = newWait;
-          }
-          if (recordChange) recordChange();
-        }}
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-      >
-        {#if wait.locked}
-          <LockIcon className="size-4 text-amber-500" />
-        {:else}
-          <UnlockIcon className="size-4" strokeWidth={2} />
-        {/if}
-      </button>
-
-      <div
-        class="h-4 w-px bg-neutral-200 dark:bg-neutral-700 mx-1"
-        role="presentation"
-        aria-hidden="true"
-      ></div>
-
-      <div
-        class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
-      >
-        <button
-          onclick={(e) => {
-            e.stopPropagation();
-            if (!wait.locked && canMoveUp && onMoveUp) onMoveUp();
-          }}
-          disabled={!canMoveUp || wait.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-          title="Move Up"
-          aria-label="Move Up"
-        >
-          <ChevronUpIcon className="size-3.5" />
-        </button>
-        <button
-          onclick={(e) => {
-            e.stopPropagation();
-            if (!wait.locked && canMoveDown && onMoveDown) onMoveDown();
-          }}
-          disabled={!canMoveDown || wait.locked}
-          class="p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-          title="Move Down"
-          aria-label="Move Down"
-        >
-          <ChevronDownIcon className="size-3.5" />
-        </button>
-      </div>
-
-      <DeleteButtonWithConfirm
-        onclick={() => {
-          if (!wait.locked && onRemove) onRemove();
-        }}
+  <div class="space-y-2">
+    <label
+      for="wait-duration-{wait.id}"
+      class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
+    >
+      Duration (ms)
+    </label>
+    <div class="relative">
+      <ClockIcon
+        className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-neutral-400"
+      />
+      <input
+        id="wait-duration-{wait.id}"
+        class="w-full pl-9 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+        type="number"
+        min="0"
+        step="50"
+        value={wait.durationMs}
+        onchange={setDuration}
+        onclick={(e) => e.stopPropagation()}
         disabled={wait.locked}
-        title="Remove Wait"
       />
     </div>
   </div>
-
-  {#if !collapsed}
-    <div class="px-3 pb-3 space-y-4">
-      <!-- Duration Input -->
-      <div class="space-y-2">
-        <label
-          for="wait-duration-{wait.id}"
-          class="text-xs font-semibold text-neutral-500 uppercase tracking-wide block"
-        >
-          Duration (ms)
-        </label>
-        <div class="relative">
-          <ClockIcon
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-neutral-400"
-          />
-          <input
-            id="wait-duration-{wait.id}"
-            class="w-full pl-9 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-            type="number"
-            min="0"
-            step="50"
-            value={wait.durationMs}
-            onchange={handleDurationChange}
-            onclick={(e) => {
-              e.stopPropagation();
-            }}
-            disabled={wait.locked}
-          />
-        </div>
-      </div>
-
-      <!-- Action Bar -->
-      <div
-        class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700/50 flex-wrap"
-      >
-        <span class="text-xs font-medium text-neutral-400 mr-auto"
-          >Insert after:</span
-        >
-        {#each Object.values($actionRegistry) as def (def.kind)}
-          {#if def.createDefault || def.isPath}
-            {@const color = def.buttonColor || "gray"}
-            <button
-              onclick={(e) => {
-                e.stopPropagation();
-                if (onAddAction) onAddAction(def);
-                else if (def.isPath) onAddPathAfter();
-                else if (def.isWait) onInsertAfter();
-                else if (def.isRotate) onAddRotateAfter();
-              }}
-              class={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${getSmallButtonClass(color)}`}
-              title={`Add ${def.label} After`}
-              aria-label={`Add ${def.label} After`}
-            >
-              <PlusIcon className="size-3" strokeWidth={2} />
-              {def.label}
-            </button>
-          {/if}
-        {/each}
-      </div>
-    </div>
-  {/if}
-</div>
+</SequenceItemCard>
