@@ -1,10 +1,31 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
+<!--
+  Edits how the robot turns along a path: the heading style and its angles,
+  or for piecewise headings, a list of segments each with its own style.
+-->
+<script lang="ts" module>
+  import type { PiecewiseSegment, Point } from "../../types";
+
+  /**
+   * The heading fields of a point or piecewise segment. They're edited in
+   * place while switching styles, so every style's fields are optional here.
+   */
+  export interface HeadingFields {
+    heading: Point["heading"];
+    degrees?: number;
+    startDeg?: number;
+    endDeg?: number;
+    targetX?: number;
+    targetY?: number;
+    reverse?: boolean;
+    segments?: PiecewiseSegment[];
+  }
+</script>
+
 <script lang="ts">
-  import { transformAngle } from "../../utils/math";
-  import HeadingIndicator from "./common/HeadingIndicator.svelte";
+  import InsetNumberInput from "./common/InsetNumberInput.svelte";
   import {
     ArrowCircleIcon,
-    TriangleWarningIcon,
     ArrowRightIcon,
     ChevronDownIcon,
     ChevronUpIcon,
@@ -19,9 +40,10 @@
   } from "../../utils/dragDrop";
 
   interface Props {
-    endPoint: any;
+    endPoint: HeadingFields;
     locked?: boolean;
     tabindex?: number | undefined;
+    /** Inside a piecewise segment, where piecewise isn't offered. */
     nested?: boolean;
     onchange?: () => void;
     oncommit?: () => void;
@@ -36,107 +58,100 @@
     oncommit,
   }: Props = $props();
 
-  // Helper to handle constant heading input safely
-  function handleConstantInput(e: Event) {
-    const target = e.target as HTMLInputElement;
-    const value = Number.parseFloat(target.value);
-    if (!Number.isNaN(value)) {
-      endPoint.degrees = value;
-    }
-    onchange?.();
-  }
-
-  function handleConstantBlur(e: Event) {
-    const target = e.target as HTMLInputElement;
-    if (target.value === "" || Number.isNaN(Number.parseFloat(target.value))) {
-      endPoint.degrees = 0;
-      target.value = "0";
-    }
-    oncommit?.();
-  }
-
-  let constantInput: HTMLInputElement | undefined = $state();
-  let startInput: HTMLInputElement | undefined = $state();
-  let endInput: HTMLInputElement | undefined = $state();
+  let fieldsRow: HTMLElement | undefined = $state();
   let reverseInput: HTMLInputElement | undefined = $state();
 
+  function changed() {
+    onchange?.();
+    oncommit?.();
+  }
+
   export function focus() {
-    if (endPoint.heading === "constant" && constantInput) constantInput.focus();
-    else if (endPoint.heading === "linear" && startInput) startInput.focus();
-    else if (endPoint.heading === "tangential" && reverseInput)
-      reverseInput.focus();
+    if (endPoint.heading === "tangential") reverseInput?.focus();
+    else
+      fieldsRow
+        ?.querySelector<HTMLInputElement>("input[data-primary]")
+        ?.focus();
   }
 
-  let isStartOutOfBounds = $derived(
-    endPoint.heading === "linear" &&
-      (endPoint.startDeg > 180 || endPoint.startDeg <= -180),
-  );
-  let isEndOutOfBounds = $derived(
-    endPoint.heading === "linear" &&
-      (endPoint.endDeg > 180 || endPoint.endDeg <= -180),
-  );
-  let isConstantOutOfBounds = $derived(
-    endPoint.heading === "constant" &&
-      (endPoint.degrees > 180 || endPoint.degrees <= -180),
-  );
-
-  function normalizeStart() {
-    endPoint.startDeg = transformAngle(endPoint.startDeg);
-    onchange?.();
-    oncommit?.();
-  }
-
-  function normalizeEnd() {
-    endPoint.endDeg = transformAngle(endPoint.endDeg);
-    onchange?.();
-    oncommit?.();
-  }
-
-  function normalizeConstant() {
-    endPoint.degrees = transformAngle(endPoint.degrees);
-    onchange?.();
-    oncommit?.();
-  }
-
-  function updateTransition(i: number, valStr: string) {
-    const val = Number.parseFloat(valStr);
-    if (!Number.isNaN(val)) {
-      endPoint.segments[i].tStart = val;
-      endPoint.segments[i - 1].tEnd = val;
-      onchange?.();
+  /** Switches style, filling in any fields the new style needs. */
+  function setStyle(heading: HeadingFields["heading"]) {
+    endPoint.heading = heading;
+    if (heading === "linear") {
+      endPoint.startDeg ??= endPoint.degrees ?? 0;
+      endPoint.endDeg ??= endPoint.degrees ?? 0;
+    } else if (heading === "constant") {
+      endPoint.degrees ??= endPoint.endDeg ?? endPoint.startDeg ?? 0;
+    } else if (heading === "facingPoint") {
+      endPoint.targetX ??= 72;
+      endPoint.targetY ??= 72;
+    } else if (heading === "piecewise" && !endPoint.segments?.length) {
+      endPoint.segments = [
+        {
+          tStart: 0,
+          tEnd: 1,
+          heading: "tangential",
+          reverse: endPoint.reverse ?? false,
+        },
+      ];
     }
+    changed();
+  }
+
+  // ---- Piecewise segments ----
+  // Segments cover t = 0 to 1 in order; each one's tEnd is the next one's
+  // tStart. Reordering swaps headings but leaves the transition points put.
+
+  let segments = $derived(endPoint.segments ?? []);
+  let isPiecewiseCollapsed = $state(false);
+
+  function setTransition(i: number, text: string) {
+    const t = Number.parseFloat(text);
+    if (Number.isNaN(t)) return;
+    segments[i].tStart = t;
+    segments[i - 1].tEnd = t;
+    onchange?.();
   }
 
   function removeTransition(i: number) {
-    endPoint.segments[i - 1].tEnd = endPoint.segments[i].tEnd;
-    endPoint.segments.splice(i, 1);
-    onchange?.();
-    oncommit?.();
+    segments[i - 1].tEnd = segments[i].tEnd;
+    endPoint.segments = segments.toSpliced(i, 1);
+    changed();
   }
 
-  function addSegment() {
-    const lastSeg = endPoint.segments.at(-1);
-    const midp = (lastSeg.tStart + lastSeg.tEnd) / 2;
-    const originalEnd = lastSeg.tEnd;
-    lastSeg.tEnd = midp;
-
-    endPoint.segments.push({
-      ...$state.snapshot(lastSeg),
-      tStart: midp,
-      tEnd: originalEnd,
-    });
-    endPoint.segments = [...endPoint.segments];
-    onchange?.();
-    oncommit?.();
+  function addTransition() {
+    const last = segments.at(-1)!;
+    const mid = (last.tStart + last.tEnd) / 2;
+    endPoint.segments = [
+      ...segments.slice(0, -1),
+      { ...$state.snapshot(last), tEnd: mid },
+      { ...$state.snapshot(last), tStart: mid },
+    ];
+    changed();
   }
 
-  let isPiecewiseCollapsed = $state(false);
+  function reorder(reordered: PiecewiseSegment[]) {
+    endPoint.segments = reordered.map((seg, i) => ({
+      ...seg,
+      tStart: segments[i].tStart,
+      tEnd: segments[i].tEnd,
+    }));
+    changed();
+  }
 
-  // Drag and drop state
+  function moveSegment(index: number, delta: number) {
+    const target = index + delta;
+    if (target < 0 || target >= segments.length) return;
+    const next = [...segments];
+    [next[index], next[target]] = [next[target], next[index]];
+    reorder(next);
+  }
+
+  // Dragging segments by their handles
   let draggingIndex: number | null = $state(null);
   let dragOverIndex: number | null = $state(null);
   let dragPosition: DragPosition | null = $state(null);
-  let containerRef: HTMLElement | undefined = $state();
+  let segmentList: HTMLElement | undefined = $state();
 
   function handleDragStart(e: DragEvent, index: number) {
     if (locked) {
@@ -144,64 +159,35 @@
       return;
     }
     draggingIndex = index;
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = "move";
-    }
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
   }
 
   function handleWindowDragOver(e: DragEvent) {
-    if (draggingIndex === null) return;
-    if (!containerRef) return;
+    if (draggingIndex === null || !segmentList) return;
     e.preventDefault();
 
-    const target = getClosestTarget(e, "div[data-seg-index]", containerRef);
+    const target = getClosestTarget(e, "div[data-seg-index]", segmentList);
     if (!target) return;
-
     const index = Number.parseInt(
       target.element.getAttribute("data-seg-index") || "",
     );
     if (Number.isNaN(index)) return;
-
-    if (dragOverIndex !== index || dragPosition !== target.position) {
-      dragOverIndex = index;
-      dragPosition = target.position;
-    }
+    dragOverIndex = index;
+    dragPosition = target.position;
   }
 
   function handleWindowDrop(e: DragEvent) {
     if (draggingIndex === null) return;
     e.preventDefault();
-
     if (
-      dragOverIndex === null ||
-      dragPosition === null ||
-      draggingIndex === dragOverIndex
+      dragOverIndex !== null &&
+      dragPosition !== null &&
+      draggingIndex !== dragOverIndex
     ) {
-      handleDragEnd();
-      return;
+      reorder(
+        reorderSequence(segments, draggingIndex, dragOverIndex, dragPosition),
+      );
     }
-
-    // Preserve the original tStart/tEnd bounds
-    const oldBounds = endPoint.segments.map((s: any) => ({
-      tStart: s.tStart,
-      tEnd: s.tEnd,
-    }));
-
-    endPoint.segments = reorderSequence(
-      endPoint.segments,
-      draggingIndex,
-      dragOverIndex,
-      dragPosition,
-    );
-
-    // Reapply bounds purely temporally top-to-bottom
-    endPoint.segments.forEach((seg: any, i: number) => {
-      seg.tStart = oldBounds[i].tStart;
-      seg.tEnd = oldBounds[i].tEnd;
-    });
-
-    onchange?.();
-    oncommit?.();
     handleDragEnd();
   }
 
@@ -210,76 +196,16 @@
     dragOverIndex = null;
     dragPosition = null;
   }
-
-  function moveSegment(index: number, delta: number) {
-    const targetIndex = index + delta;
-    if (targetIndex < 0 || targetIndex >= endPoint.segments.length) return;
-
-    const oldBounds = endPoint.segments.map((s: any) => ({
-      tStart: s.tStart,
-      tEnd: s.tEnd,
-    }));
-
-    const newSegments = [...endPoint.segments];
-    const temp = newSegments[index];
-    newSegments[index] = newSegments[targetIndex];
-    newSegments[targetIndex] = temp;
-
-    newSegments.forEach((seg: any, i: number) => {
-      seg.tStart = oldBounds[i].tStart;
-      seg.tEnd = oldBounds[i].tEnd;
-    });
-
-    endPoint.segments = newSegments;
-    onchange?.();
-    oncommit?.();
-  }
 </script>
 
 <svelte:window ondragover={handleWindowDragOver} ondrop={handleWindowDrop} />
 
-<div class="flex gap-2 w-full">
+<div bind:this={fieldsRow} class="flex gap-2 w-full">
   <select
     aria-label="Heading style"
     value={endPoint.heading}
-    onchange={(e) => {
-      // Notify parent that a change occurred and commit it so timeline and
-      // playback recalculate immediately.
-      // Also ensure required numeric fields exist when switching types so
-      // calculateRobotState doesn't encounter undefined values.
-      const val = e.currentTarget.value;
-      endPoint.heading = val;
-      if (val === "linear") {
-        // Initialize linear-specific fields if missing
-        if (typeof endPoint.startDeg !== "number")
-          endPoint.startDeg = endPoint.degrees ?? 0;
-        if (typeof endPoint.endDeg !== "number")
-          endPoint.endDeg = endPoint.degrees ?? 0;
-      } else if (val === "constant") {
-        // Ensure constant degree exists (prefer endDeg/startDeg if present)
-        if (typeof endPoint.degrees !== "number") {
-          endPoint.degrees = endPoint.endDeg ?? endPoint.startDeg ?? 0;
-        }
-      } else if (val === "facingPoint") {
-        // Initialize facingPoint coordinates
-        if (typeof endPoint.targetX !== "number") endPoint.targetX = 72;
-        if (typeof endPoint.targetY !== "number") endPoint.targetY = 72;
-      } else if (val === "piecewise") {
-        if (!endPoint.segments || endPoint.segments.length === 0) {
-          endPoint.segments = [
-            {
-              tStart: 0,
-              tEnd: 1,
-              heading: "tangential",
-              reverse: endPoint.reverse ?? false,
-            },
-          ];
-        }
-      }
-
-      onchange?.();
-      oncommit?.();
-    }}
+    onchange={(e) =>
+      setStyle(e.currentTarget.value as HeadingFields["heading"])}
     class="w-full pl-3 pr-8 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all flex-1"
     title="The heading style of the robot.
   With constant heading, the robot maintains the same heading throughout the line.
@@ -310,8 +236,7 @@
       checked={endPoint.reverse}
       onchange={(e) => {
         endPoint.reverse = e.currentTarget.checked;
-        onchange?.();
-        oncommit?.();
+        changed();
       }}
       disabled={locked}
       {tabindex}
@@ -325,131 +250,51 @@
 
   {#if endPoint.heading === "linear"}
     <div class="flex items-center gap-2 flex-[2]">
-      <div class="relative flex-1">
-        <HeadingIndicator
-          degrees={endPoint.startDeg}
-          size={16}
-          className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-400 dark:text-neutral-500"
-        />
-        <span
-          class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
-          >Start</span
-        >
-        <input
-          bind:this={startInput}
-          class="w-full pl-12 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-          class:pr-6={isStartOutOfBounds}
-          class:pr-1={!isStartOutOfBounds}
-          class:border-yellow-500={isStartOutOfBounds}
-          class:dark:border-yellow-500={isStartOutOfBounds}
-          step="1"
-          type="number"
-          value={endPoint.startDeg}
-          oninput={(e) => {
-            const val = Number.parseFloat(e.currentTarget.value);
-            if (!Number.isNaN(val)) endPoint.startDeg = val;
-            onchange?.();
-          }}
-          onblur={() => oncommit?.()}
-          title="The heading the robot starts this line at (in degrees)"
-          aria-label="Start Heading"
-          disabled={locked}
-          {tabindex}
-        />
-        {#if isStartOutOfBounds && !locked}
-          <button
-            onclick={normalizeStart}
-            title="Angle is out of bounds. Click to normalize to [-180, 180]."
-            aria-label="Angle is out of bounds. Click to normalize to [-180, 180]."
-            class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
-          >
-            <TriangleWarningIcon className="size-3" />
-          </button>
-        {/if}
-      </div>
-      <div class="relative flex-1">
-        <HeadingIndicator
-          degrees={endPoint.endDeg}
-          size={16}
-          className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-400 dark:text-neutral-500"
-        />
-        <span
-          class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
-          >End</span
-        >
-        <input
-          bind:this={endInput}
-          class="w-full pl-8 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-          class:pr-6={isEndOutOfBounds}
-          class:pr-1={!isEndOutOfBounds}
-          class:border-yellow-500={isEndOutOfBounds}
-          class:dark:border-yellow-500={isEndOutOfBounds}
-          step="1"
-          type="number"
-          value={endPoint.endDeg}
-          oninput={(e) => {
-            const val = Number.parseFloat(e.currentTarget.value);
-            if (!Number.isNaN(val)) endPoint.endDeg = val;
-            onchange?.();
-          }}
-          onblur={() => oncommit?.()}
-          title="The heading the robot ends this line at (in degrees)"
-          aria-label="End Heading"
-          disabled={locked}
-          {tabindex}
-        />
-        {#if isEndOutOfBounds && !locked}
-          <button
-            onclick={normalizeEnd}
-            title="Angle is out of bounds. Click to normalize to [-180, 180]."
-            aria-label="Angle is out of bounds. Click to normalize to [-180, 180]."
-            class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
-          >
-            <TriangleWarningIcon className="size-3" />
-          </button>
-        {/if}
-      </div>
+      <InsetNumberInput
+        bind:value={endPoint.startDeg}
+        label="Start"
+        inset="pl-12"
+        ariaLabel="Start Heading"
+        title="The heading the robot starts this line at (in degrees)"
+        indicator={endPoint.startDeg ?? 0}
+        isAngle
+        primary
+        disabled={locked}
+        {tabindex}
+        {onchange}
+        {oncommit}
+      />
+      <InsetNumberInput
+        bind:value={endPoint.endDeg}
+        label="End"
+        inset="pl-8"
+        ariaLabel="End Heading"
+        title="The heading the robot ends this line at (in degrees)"
+        indicator={endPoint.endDeg ?? 0}
+        isAngle
+        disabled={locked}
+        {tabindex}
+        {onchange}
+        {oncommit}
+      />
     </div>
   {:else if endPoint.heading === "constant"}
     <div class="flex items-center gap-2 flex-[2]">
-      <div class="relative flex-1">
-        <HeadingIndicator
-          degrees={(endPoint.degrees || 0) + (endPoint.reverse ? 180 : 0)}
-          size={16}
-          className="absolute -top-7 left-1/2 -translate-x-1/2 text-neutral-400 dark:text-neutral-500"
-        />
-        <span
-          class="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-neutral-400 select-none"
-          >°</span
-        >
-        <input
-          bind:this={constantInput}
-          class="w-full pl-6 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-          class:pr-6={isConstantOutOfBounds}
-          class:pr-2={!isConstantOutOfBounds}
-          class:border-yellow-500={isConstantOutOfBounds}
-          class:dark:border-yellow-500={isConstantOutOfBounds}
-          step="1"
-          type="number"
-          value={endPoint.degrees || 0}
-          oninput={handleConstantInput}
-          onblur={handleConstantBlur}
-          title="The constant heading the robot maintains throughout this line (in degrees)"
-          aria-label="Constant Heading"
-          disabled={locked}
-          {tabindex}
-        />
-        {#if isConstantOutOfBounds && !locked}
-          <button
-            onclick={normalizeConstant}
-            title="Angle is out of bounds. Click to normalize to [-180, 180]."
-            aria-label="Angle is out of bounds. Click to normalize to [-180, 180]."
-            class="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 transition-colors"
-          >
-            <TriangleWarningIcon className="size-3" />
-          </button>
-        {/if}
-      </div>
+      <InsetNumberInput
+        bind:value={endPoint.degrees}
+        label="°"
+        labelClass="text-xs"
+        inset="pl-6"
+        ariaLabel="Constant Heading"
+        title="The constant heading the robot maintains throughout this line (in degrees)"
+        indicator={(endPoint.degrees || 0) + (endPoint.reverse ? 180 : 0)}
+        isAngle
+        primary
+        disabled={locked}
+        {tabindex}
+        {onchange}
+        {oncommit}
+      />
     </div>
   {:else if endPoint.heading === "tangential"}
     <div
@@ -467,50 +312,31 @@
     </div>
   {:else if endPoint.heading === "facingPoint"}
     <div class="flex items-center gap-2 flex-[2]">
-      <div class="relative flex-1">
-        <span
-          class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
-          >X</span
-        >
-        <input
-          class="w-full pl-6 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all pr-1"
-          step="0.1"
-          type="number"
-          value={endPoint.targetX}
-          oninput={(e) => {
-            const val = Number.parseFloat(e.currentTarget.value);
-            if (!Number.isNaN(val)) endPoint.targetX = val;
-            onchange?.();
-          }}
-          onblur={() => oncommit?.()}
-          title="The X coordinate of the point to face"
-          aria-label="Target X"
-          disabled={locked}
-          {tabindex}
-        />
-      </div>
-      <div class="relative flex-1">
-        <span
-          class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-neutral-400 select-none uppercase tracking-wider"
-          >Y</span
-        >
-        <input
-          class="w-full pl-6 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all pr-1"
-          step="0.1"
-          type="number"
-          value={endPoint.targetY}
-          oninput={(e) => {
-            const val = Number.parseFloat(e.currentTarget.value);
-            if (!Number.isNaN(val)) endPoint.targetY = val;
-            onchange?.();
-          }}
-          onblur={() => oncommit?.()}
-          title="The Y coordinate of the point to face"
-          aria-label="Target Y"
-          disabled={locked}
-          {tabindex}
-        />
-      </div>
+      <InsetNumberInput
+        bind:value={endPoint.targetX}
+        label="X"
+        inset="pl-6"
+        step={0.1}
+        ariaLabel="Target X"
+        title="The X coordinate of the point to face"
+        primary
+        disabled={locked}
+        {tabindex}
+        {onchange}
+        {oncommit}
+      />
+      <InsetNumberInput
+        bind:value={endPoint.targetY}
+        label="Y"
+        inset="pl-6"
+        step={0.1}
+        ariaLabel="Target Y"
+        title="The Y coordinate of the point to face"
+        disabled={locked}
+        {tabindex}
+        {onchange}
+        {oncommit}
+      />
     </div>
   {/if}
 </div>
@@ -529,13 +355,13 @@
           : 'rotate-0'}"
         strokeWidth={2.5}
       />
-      Piecewise Segments ({endPoint.segments?.length || 0})
+      Piecewise Segments ({segments.length})
     </button>
   </div>
 
   {#if !isPiecewiseCollapsed}
-    <div bind:this={containerRef} class="flex flex-col gap-0 w-full mt-1 pl-3">
-      {#each endPoint.segments || [] as segment, i}
+    <div bind:this={segmentList} class="flex flex-col gap-0 w-full mt-1 pl-3">
+      {#each segments as segment, i}
         <div class="flex items-center -ml-[13px]">
           <div
             class="w-2.5 h-2.5 rounded-full bg-purple-500 mr-2 z-10 shrink-0"
@@ -559,7 +385,7 @@
                 min="0"
                 max="1"
                 value={segment.tStart}
-                oninput={(e) => updateTransition(i, e.currentTarget.value)}
+                oninput={(e) => setTransition(i, e.currentTarget.value)}
                 onblur={() => oncommit?.()}
                 disabled={locked}
                 class="w-14 px-1 py-0.5 text-xs bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded focus:ring-1 focus:ring-purple-500 outline-none"
@@ -630,7 +456,7 @@
                   moveSegment(i, 1);
                 }}
                 class="p-0.5 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 rounded-b focus:outline-none focus:ring-2 focus:ring-purple-500"
-                disabled={i === endPoint.segments.length - 1 || locked}
+                disabled={i === segments.length - 1 || locked}
               >
                 <ChevronDownIcon className="size-3" />
               </button>
@@ -639,11 +465,11 @@
             <!-- Segment Body -->
             <div class="flex-1 min-w-0 pr-1 py-1">
               <HeadingControls
-                bind:endPoint={endPoint.segments[i]}
+                bind:endPoint={segments[i]}
                 {locked}
                 nested={true}
-                onchange={() => onchange?.()}
-                oncommit={() => oncommit?.()}
+                {onchange}
+                {oncommit}
               />
             </div>
           </div>
@@ -665,7 +491,7 @@
         <div class="ml-4 mt-2">
           <button
             class="text-[11px] bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 px-3 py-1 rounded-full transition-colors font-semibold shadow-sm border border-neutral-200 dark:border-neutral-700 flex items-center gap-1 w-fit"
-            onclick={addSegment}
+            onclick={addTransition}
           >
             <svg
               class="w-3 h-3"
