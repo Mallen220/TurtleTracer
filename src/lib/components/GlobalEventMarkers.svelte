@@ -1,13 +1,14 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { tick } from "svelte";
   import { makeId } from "../../utils/nameGenerator";
   import type {
     Line,
     SequenceItem,
-    SequenceWaitItem,
     EventMarker,
+    TimePrediction,
+    TimelineEvent,
   } from "../../types";
-  import { tick } from "svelte";
   import TrashIcon from "./icons/TrashIcon.svelte";
   import ZapIcon from "./icons/ZapIcon.svelte";
   import SectionHeader from "./common/SectionHeader.svelte";
@@ -15,109 +16,18 @@
   import { hoveredMarkerId, diskEventNamesStore } from "../../stores";
   import { DotIcon } from "./icons";
   import SearchableDropdown from "./common/SearchableDropdown.svelte";
-  import { actionRegistry } from "../actionRegistry";
-  import { findClosestT, getCurvePoint } from "../../utils/math";
+  import {
+    findClosestT,
+    getCurvePoint,
+    interpolateTFromProfile,
+  } from "../../utils/math";
   import { startPointStore } from "../projectStore";
-
-  function getParametricIndexDisplay(marker: GlobalMarker) {
-    if (marker.parentType !== "path") return 0;
-    const localT = marker.ref.poseGuess ?? getAutoPoseGuess(marker);
-    const lIdx = lines.findIndex((l) => l.id === marker.parentId);
-    return (lIdx === -1 ? marker.parentIndex : lIdx) + localT;
-  }
-
-  function updateMarkerFromParametricIndex(
-    marker: GlobalMarker,
-    value: number,
-  ) {
-    if (marker.parentType !== "path") return;
-
-    const finalIdx = Math.max(0, Math.min(lines.length - 1, Math.floor(value)));
-    const finalT = Math.max(0, Math.min(1, value - Math.floor(value)));
-
-    marker.ref.poseGuess = finalT;
-
-    // Update X, Y position to match parametric index
-    const prevPt =
-      finalIdx === 0 ? $startPointStore : lines[finalIdx - 1].endPoint;
-    const cps = [
-      prevPt,
-      ...(lines[finalIdx].controlPoints || []),
-      lines[finalIdx].endPoint,
-    ];
-    const pt = getCurvePoint(finalT, cps);
-    marker.ref.poseX = Math.round(pt.x * 100) / 100;
-    marker.ref.poseY = Math.round(pt.y * 100) / 100;
-
-    if (lines[finalIdx].id !== marker.parentId) {
-      // Move marker to new parent line
-      const oldLine = lines.find((l) => l.id === marker.parentId);
-      const newLine = lines[finalIdx];
-
-      if (oldLine && oldLine.eventMarkers) {
-        const mIdx = oldLine.eventMarkers.findIndex(
-          (ev) => ev.id === marker.originalId,
-        );
-        if (mIdx !== -1) {
-          const m = oldLine.eventMarkers.splice(mIdx, 1)[0];
-          oldLine.eventMarkers = [...oldLine.eventMarkers];
-
-          if (!newLine.eventMarkers) newLine.eventMarkers = [];
-          newLine.eventMarkers.push(m);
-          newLine.eventMarkers = [...newLine.eventMarkers];
-        }
-      }
-    }
-    lines = [...lines];
-  }
-
-  function getAutoPoseGuess(marker: GlobalMarker) {
-    if (marker.parentType !== "path") return 0.5;
-    const lIdx = lines.findIndex((l) => l.id === marker.parentId);
-    if (lIdx === -1) return 0.5;
-    const line = lines[lIdx];
-
-    // Find previous point for Bezier
-    let prevPoint: any = $startPointStore;
-    if (lIdx > 0) {
-      prevPoint = lines[lIdx - 1].endPoint;
-    }
-
-    const cps = [prevPoint, ...line.controlPoints, line.endPoint];
-    return findClosestT(
-      { x: marker.ref.poseX ?? 0, y: marker.ref.poseY ?? 0 },
-      cps,
-    );
-  }
-
-  function getGlobalPoseGuess(marker: GlobalMarker) {
-    const localT = marker.ref.poseGuess ?? getAutoPoseGuess(marker);
-    if (marker.parentType !== "path") return localT;
-
-    const lIdx = lines.findIndex((l) => l.id === marker.parentId);
-    if (lIdx === -1) return localT;
-
-    // Find chain root and count
-    let rootIdx = lIdx;
-    while (rootIdx > 0 && lines[rootIdx].isChain) {
-      rootIdx--;
-    }
-
-    let totalInChain = 1;
-    for (let i = rootIdx + 1; i < lines.length; i++) {
-      if (lines[i].isChain) totalInChain++;
-      else break;
-    }
-
-    const localIdx = lIdx - rootIdx;
-    return (localIdx + localT) / totalInChain;
-  }
 
   interface Props {
     sequence: SequenceItem[];
     lines: Line[];
     collapsedMarkers: boolean;
-    timePrediction?: any;
+    timePrediction?: TimePrediction | null;
   }
 
   let {
@@ -127,59 +37,172 @@
     timePrediction,
   }: Props = $props();
 
+  // Waits and rotates both own markers the same way.
+  type Step = SequenceItem & { id: string; eventMarkers?: EventMarker[] };
+
+  /**
+   * A marker as listed here: every marker in the project, in the order it
+   * fires. Its position is "step index + position within that step".
+   */
   interface GlobalMarker {
     id: string;
     originalId: string;
     name: string;
     globalPosition: number;
-    globalTime: number; // in ms
+    globalTime: number; // ms
     parentType: "path" | "wait" | "rotate";
     parentId: string;
     parentIndex: number;
     parentName: string;
     ref: EventMarker;
-    segmentStartTime?: number; // in ms
-    segmentEndTime?: number; // in ms
+    segmentStartTime?: number; // ms
+    segmentEndTime?: number; // ms
   }
 
-  // Keep track of dragging marker to prevent re-sorting while dragging
-  let draggingMarkerId: string | null = $state(null);
-  let cachedSortedMarkers: GlobalMarker[] = [];
+  const roundToHundredth = (v: number) => Math.round(v * 100) / 100;
 
-  // Helper to build a mapping of marker index to sequence index
-  function getSequenceMapping(seq: SequenceItem[]): {
-    map: number[];
-    count: number;
-  } {
-    const map: number[] = [];
-    seq.forEach((item, index) => {
-      const def = actionRegistry.get(item.kind);
-      if (!def?.isMacro) {
-        map.push(index);
-      }
-    });
-    return { map, count: map.length };
+  const lineStart = (idx: number) =>
+    idx === 0 ? $startPointStore : lines[idx - 1].endPoint;
+
+  const curveOf = (idx: number) => [
+    lineStart(idx),
+    ...(lines[idx].controlPoints || []),
+    lines[idx].endPoint,
+  ];
+
+  /** Sequence indexes of the items markers can be attached to (not macros). */
+  function markerOwnerIndexes(seq: SequenceItem[]): number[] {
+    return seq.flatMap((item, index) => (item.kind === "macro" ? [] : [index]));
   }
 
+  /** Adds a marker to a line, pointing it at that line. */
+  function attachToLine(line: Line, marker: EventMarker) {
+    const { waitId: _w, rotateId: _r, ...rest } = marker;
+    line.eventMarkers = [
+      ...(line.eventMarkers ?? []),
+      { ...rest, lineIndex: lines.findIndex((l) => l.id === line.id) },
+    ];
+    lines = [...lines];
+  }
+
+  /** Adds a marker to a wait or rotate step, pointing it at that step. */
+  function attachToStep(step: Step, marker: EventMarker) {
+    const { waitId: _w, rotateId: _r, lineIndex: _l, ...rest } = marker;
+    const owner =
+      step.kind === "wait" ? { waitId: step.id } : { rotateId: step.id };
+    step.eventMarkers = [...(step.eventMarkers ?? []), { ...rest, ...owner }];
+    sequence = [...sequence];
+  }
+
+  function attachToItem(item: SequenceItem, marker: EventMarker) {
+    if (item.kind === "path") {
+      const line = lines.find((l) => l.id === item.lineId);
+      if (line) attachToLine(line, marker);
+    } else if (item.kind === "wait" || item.kind === "rotate") {
+      attachToStep(item, marker);
+    }
+  }
+
+  function removeMarkerById(markerId: string): boolean {
+    for (const owner of [...lines, ...(sequence as Step[])]) {
+      const markers = owner.eventMarkers;
+      if (!markers?.some((m) => m.id === markerId)) continue;
+      owner.eventMarkers = markers.filter((m) => m.id !== markerId);
+      if ("endPoint" in owner) lines = [...lines];
+      else sequence = [...sequence];
+      return true;
+    }
+    return false;
+  }
+
+  function removeMarker(marker: GlobalMarker) {
+    return removeMarkerById(marker.originalId);
+  }
+
+  function notifyChanged(marker: GlobalMarker) {
+    if (marker.parentType === "path") lines = [...lines];
+    else sequence = [...sequence];
+  }
+
+  // --- Pose markers: position on the path ---
+
+  /** How far along its line (0..1) a pose marker's point is closest to. */
+  function getAutoPoseGuess(marker: GlobalMarker) {
+    if (marker.parentType !== "path") return 0.5;
+    const idx = lines.findIndex((l) => l.id === marker.parentId);
+    if (idx === -1) return 0.5;
+    return findClosestT(
+      { x: marker.ref.poseX ?? 0, y: marker.ref.poseY ?? 0 },
+      curveOf(idx),
+    );
+  }
+
+  /** The pose marker's position as a fraction of its whole chain. */
+  function getGlobalPoseGuess(marker: GlobalMarker) {
+    const localT = marker.ref.poseGuess ?? getAutoPoseGuess(marker);
+    if (marker.parentType !== "path") return localT;
+    const idx = lines.findIndex((l) => l.id === marker.parentId);
+    if (idx === -1) return localT;
+
+    let root = idx;
+    while (root > 0 && lines[root].isChain) root--;
+    let end = root + 1;
+    while (end < lines.length && lines[end].isChain) end++;
+    return (idx - root + localT) / (end - root);
+  }
+
+  /** "Line index + t" for a pose marker, e.g. 2.5 is halfway along line 3. */
+  function getParametricIndexDisplay(marker: GlobalMarker) {
+    if (marker.parentType !== "path") return 0;
+    const localT = marker.ref.poseGuess ?? getAutoPoseGuess(marker);
+    const idx = lines.findIndex((l) => l.id === marker.parentId);
+    return (idx === -1 ? marker.parentIndex : idx) + localT;
+  }
+
+  /** Moves a pose marker to "line index + t", possibly onto another line. */
+  function updateMarkerFromParametricIndex(
+    marker: GlobalMarker,
+    value: number,
+  ) {
+    if (marker.parentType !== "path") return;
+
+    const idx = Math.max(0, Math.min(lines.length - 1, Math.floor(value)));
+    const t = Math.max(0, Math.min(1, value - Math.floor(value)));
+    const pt = getCurvePoint(t, curveOf(idx));
+    marker.ref.poseGuess = t;
+    marker.ref.poseX = roundToHundredth(pt.x);
+    marker.ref.poseY = roundToHundredth(pt.y);
+
+    const newLine = lines[idx];
+    if (newLine.id !== marker.parentId && removeMarker(marker)) {
+      newLine.eventMarkers = [...(newLine.eventMarkers ?? []), marker.ref];
+    }
+    lines = [...lines];
+  }
+
+  // --- The combined marker list ---
+
+  // Start and end time (ms) of every path, wait and rotate, by id. Rotates
+  // appear in the timeline as "wait" events.
   let segmentTimesMap = $derived.by(() => {
     const map = new Map<string, { start: number; end: number }>();
-    if (timePrediction?.timeline) {
-      timePrediction.timeline.forEach((ev: any) => {
-        let id: string | undefined;
-        if (ev.type === "travel") id = ev.line?.id;
-        else if (ev.type === "wait") id = ev.waitId;
-        else if (ev.type === "rotate") id = ev.rotateId;
-
-        if (id) {
-          map.set(id, {
-            start: ev.startTime * 1000,
-            end: ev.endTime * 1000,
-          });
-        }
-      });
+    for (const ev of timePrediction?.timeline ?? []) {
+      const id =
+        ev.type === "travel"
+          ? ev.line?.id
+          : ev.type === "wait"
+            ? ev.waitId
+            : undefined;
+      if (id)
+        map.set(id, { start: ev.startTime * 1000, end: ev.endTime * 1000 });
     }
     return map;
   });
+
+  // While a slider is being dragged, keep the list in the order it had when
+  // the drag started so rows don't jump around under the mouse.
+  let draggingMarkerId: string | null = $state(null);
+  let cachedSortedMarkers: GlobalMarker[] = [];
 
   function getAllMarkers(
     seq: SequenceItem[],
@@ -188,113 +211,65 @@
     timesMap: Map<string, { start: number; end: number }>,
   ): GlobalMarker[] {
     const markers: GlobalMarker[] = [];
-    let markerIndex = 0;
+    let ownerIndex = 0;
 
     seq.forEach((item, index) => {
-      const def = actionRegistry.get(item.kind);
-      if (def?.isMacro) return; // Skip macros
+      if (item.kind === "macro") return;
 
-      if (def?.isPath) {
-        const line = linesList.find((l) => l.id === (item as any).lineId);
-        if (line && line.eventMarkers) {
-          const times = timesMap.get(line.id!);
-          line.eventMarkers.forEach((m) => {
-            const mTime = m.endTime ?? m.time ?? 0;
-            markers.push({
-              id: m.id,
-              originalId: m.id,
-              name: m.name,
-              globalPosition: markerIndex + m.position,
-              globalTime:
-                m.type === "temporal"
-                  ? mTime
-                  : times
-                    ? times.start + m.position * (times.end - times.start)
-                    : 0,
-              parentType: "path",
-              parentId: line.id!,
-              parentIndex: index,
-              parentName: line.name || `Path ${index + 1}`,
-              ref: m,
-              segmentStartTime: times?.start,
-              segmentEndTime: times?.end,
-            });
-          });
-        }
-      } else if (def?.isWait || def?.isRotate) {
-        const wait = item as any;
-        if (wait.eventMarkers) {
-          const times = timesMap.get(wait.id);
-          wait.eventMarkers.forEach((m: EventMarker) => {
-            const mTime = m.endTime ?? m.time ?? 0;
-            markers.push({
-              id: m.id,
-              originalId: m.id,
-              name: m.name,
-              globalPosition: markerIndex + m.position,
-              globalTime:
-                m.type === "temporal"
-                  ? mTime
-                  : times
-                    ? times.start + m.position * (times.end - times.start)
-                    : 0,
-              parentType: def.isWait ? "wait" : "rotate",
-              parentId: wait.id,
-              parentIndex: index,
-              parentName:
-                wait.name || `${def.isWait ? "Wait" : "Rotate"} ${index + 1}`,
-              ref: m,
-              segmentStartTime: times?.start,
-              segmentEndTime: times?.end,
-            });
-          });
-        }
+      let owner: { id?: string; eventMarkers?: EventMarker[] } | undefined;
+      let parentType: GlobalMarker["parentType"];
+      let parentName: string;
+      if (item.kind === "path") {
+        const line = linesList.find((l) => l.id === item.lineId);
+        owner = line;
+        parentType = "path";
+        parentName = line?.name || `Path ${index + 1}`;
+      } else {
+        owner = item;
+        parentType = item.kind;
+        parentName =
+          item.name ||
+          `${item.kind === "wait" ? "Wait" : "Rotate"} ${index + 1}`;
       }
 
-      markerIndex++;
+      const times = owner?.id ? timesMap.get(owner.id) : undefined;
+      for (const m of owner?.eventMarkers ?? []) {
+        markers.push({
+          id: m.id,
+          originalId: m.id,
+          name: m.name,
+          globalPosition: ownerIndex + m.position,
+          globalTime:
+            m.type === "temporal"
+              ? (m.endTime ?? m.time ?? 0)
+              : times
+                ? times.start + m.position * (times.end - times.start)
+                : 0,
+          parentType,
+          parentId: owner!.id!,
+          parentIndex: index,
+          parentName,
+          ref: m,
+          segmentStartTime: times?.start,
+          segmentEndTime: times?.end,
+        });
+      }
+      ownerIndex++;
     });
 
-    // Sort by global position
-    const sorted = markers.sort((a, b) => a.globalPosition - b.globalPosition);
+    markers.sort((a, b) => a.globalPosition - b.globalPosition);
+    if (!draggingId || cachedSortedMarkers.length === 0) return markers;
 
-    if (draggingId) {
-      if (cachedSortedMarkers.length === 0) return sorted; // Fallback
-
-      // Map cached ID order to current marker data
-      const idMap = new Map(sorted.map((m) => [m.id, m]));
-      const result: GlobalMarker[] = [];
-
-      // Use cached order
-      cachedSortedMarkers.forEach((cached) => {
-        const current = idMap.get(cached.id);
-        if (current) {
-          result.push(current);
-          idMap.delete(cached.id);
-        }
-      });
-
-      // Append any new markers that weren't in cache
-      idMap.forEach((m) => result.push(m));
-
-      return result;
-    }
-
-    return sorted;
+    const order = new Map(cachedSortedMarkers.map((m, i) => [m.id, i]));
+    const rank = (m: GlobalMarker) => order.get(m.id) ?? Infinity;
+    return markers.sort((a, b) => rank(a) - rank(b));
   }
 
   function addMarker() {
-    let targetIndex = 0;
-
-    const { map, count } = getSequenceMapping(sequence);
-    if (count === 0) return;
-
-    // Default: Add to the last non-macro item in the sequence
-    targetIndex = map[count - 1];
-
-    const item = sequence[targetIndex];
-    const def = actionRegistry.get(item.kind);
-
-    const newMarker: EventMarker = {
+    // New markers go on the last step that can have markers.
+    const target = sequence[markerOwnerIndexes(sequence).at(-1) ?? -1];
+    if (!target) return;
+    attachToItem(target, {
       id: makeId("event"),
       name: "",
       type: "parametric",
@@ -305,313 +280,157 @@
       poseY: 72,
       poseHeading: 0,
       poseGuess: undefined,
-    };
-
-    if (def?.isPath) {
-      const line = lines.find((l) => l.id === (item as any).lineId);
-      if (line) {
-        if (!line.eventMarkers) line.eventMarkers = [];
-        newMarker.lineIndex = lines.findIndex((l) => l.id === line.id);
-        line.eventMarkers = [...line.eventMarkers, newMarker];
-        lines = [...lines];
-      }
-    } else if (def?.isWait) {
-      const wait = item as SequenceWaitItem;
-      if (!wait.eventMarkers) wait.eventMarkers = [];
-      newMarker.waitId = wait.id;
-      wait.eventMarkers = [...wait.eventMarkers, newMarker];
-      sequence = [...sequence];
-    } else if (def?.isRotate) {
-      const rotate = item as any;
-      if (!rotate.eventMarkers) rotate.eventMarkers = [];
-      newMarker.rotateId = rotate.id;
-      rotate.eventMarkers = [...rotate.eventMarkers, newMarker];
-      sequence = [...sequence];
-    }
+    });
   }
 
-  function removeMarkerById(markerId: string) {
-    // Search in lines
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line.eventMarkers) {
-        const initialLen = line.eventMarkers.length;
-        line.eventMarkers = line.eventMarkers.filter((m) => m.id !== markerId);
-        if (line.eventMarkers.length !== initialLen) {
-          lines = [...lines];
-          return true;
-        }
-      }
-    }
-    // Search in sequence
-    for (let i = 0; i < sequence.length; i++) {
-      const item = sequence[i] as any;
-      if (item.eventMarkers) {
-        const initialLen = item.eventMarkers.length;
-        item.eventMarkers = item.eventMarkers.filter(
-          (m: EventMarker) => m.id !== markerId,
-        );
-        if (item.eventMarkers.length !== initialLen) {
-          sequence = [...sequence];
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  function removeMarker(marker: GlobalMarker) {
-    return removeMarkerById(marker.originalId);
-  }
-
+  /**
+   * Moves a marker to a global position (step index + position within the
+   * step), which may move it to a different step.
+   */
   function updateMarkerPosition(
     marker: GlobalMarker,
-    newVal: number,
+    value: number,
     clampLocal: boolean,
   ) {
-    const { map, count } = getSequenceMapping(sequence);
-    const max = count;
-
-    if (newVal < 0) newVal = 0;
-    if (newVal > max) newVal = max;
-
-    let newMarkerIdx = Math.floor(newVal);
-    let newLocalPos = newVal - newMarkerIdx;
-
-    if (newMarkerIdx >= count) {
-      newMarkerIdx = count - 1;
-      newLocalPos = 1;
+    const owners = markerOwnerIndexes(sequence);
+    const clamped = Math.max(0, Math.min(owners.length, value));
+    let ownerIdx = Math.floor(clamped);
+    let localPos = clamped - ownerIdx;
+    if (ownerIdx >= owners.length) {
+      ownerIdx = owners.length - 1;
+      localPos = 1;
     }
 
-    const newIndex = map[newMarkerIdx];
-
-    if (newIndex === marker.parentIndex) {
-      if (clampLocal) {
-        if (newLocalPos < 0) newLocalPos = 0;
-        if (newLocalPos > 1) newLocalPos = 1;
-      }
-
-      marker.ref.position = newLocalPos;
-      if (marker.parentType === "path") lines = [...lines];
-      else sequence = [...sequence];
+    const seqIndex = owners[ownerIdx];
+    if (seqIndex === marker.parentIndex) {
+      marker.ref.position = clampLocal
+        ? Math.max(0, Math.min(1, localPos))
+        : localPos;
+      notifyChanged(marker);
     } else {
       removeMarker(marker);
-
-      const newItem = sequence[newIndex];
-      const newMarkerData = {
-        ...marker.ref,
-        position: newLocalPos,
-      };
-
-      const def = actionRegistry.get(newItem.kind);
-
-      if (def?.isPath) {
-        const line = lines.find((l) => l.id === (newItem as any).lineId);
-        if (line) {
-          if (!line.eventMarkers) line.eventMarkers = [];
-          if (newMarkerData.waitId) delete newMarkerData.waitId;
-          if (newMarkerData.rotateId) delete newMarkerData.rotateId;
-          newMarkerData.lineIndex = lines.findIndex((l) => l.id === line.id);
-
-          line.eventMarkers = [...line.eventMarkers, newMarkerData];
-          lines = [...lines];
-        }
-      } else if (def?.isWait || def?.isRotate) {
-        const item = newItem as any;
-        if (!item.eventMarkers) item.eventMarkers = [];
-        if (newMarkerData.lineIndex !== undefined)
-          delete newMarkerData.lineIndex;
-        if (def.isWait) {
-          newMarkerData.waitId = item.id;
-          delete newMarkerData.rotateId;
-        } else {
-          newMarkerData.rotateId = item.id;
-          delete newMarkerData.waitId;
-        }
-
-        item.eventMarkers = [...item.eventMarkers, newMarkerData];
-        sequence = [...sequence];
-      }
+      attachToItem(sequence[seqIndex], { ...marker.ref, position: localPos });
     }
   }
 
+  /**
+   * The timeline event a time (in seconds) falls in. Markers belong on paths
+   * where possible, so the nearest path is preferred when the time lands on
+   * something else.
+   */
+  function findEventForTime(timeline: TimelineEvent[], seconds: number) {
+    let event = timeline.find(
+      (ev) => seconds >= ev.startTime && seconds <= ev.endTime,
+    );
+    if (event?.type !== "travel") {
+      const travel = timeline.filter((e) => e.type === "travel");
+      const distance = (e: TimelineEvent) =>
+        Math.min(
+          Math.abs(seconds - e.startTime),
+          Math.abs(seconds - e.endTime),
+        );
+      const nearest = travel.reduce<TimelineEvent | undefined>(
+        (best, e) => (!best || distance(e) < distance(best) ? e : best),
+        undefined,
+      );
+      event = nearest ?? event;
+    }
+    return event ?? (seconds < 0 ? timeline[0] : timeline.at(-1));
+  }
+
+  /** Moves a marker to a time (ms), which may move it to a different step. */
   function updateMarkerTime(marker: GlobalMarker, newTimeMs: number) {
-    if (!timePrediction || timePrediction.totalTime <= 0) {
-      marker.ref.endTime = newTimeMs;
-      marker.ref.time = newTimeMs;
-      if (marker.parentType === "path") lines = [...lines];
-      else sequence = [...sequence];
+    const timeline = timePrediction?.timeline;
+    if (!timeline || !timePrediction || timePrediction.totalTime <= 0) {
+      marker.ref.endTime = marker.ref.time = newTimeMs;
+      notifyChanged(marker);
       return;
     }
 
-    const globalTime = newTimeMs / 1000;
-    const timeline = timePrediction.timeline;
-    let targetEvent: any = null;
+    const seconds = newTimeMs / 1000;
+    const event = findEventForTime(timeline, seconds);
+    if (!event) return;
 
-    // First, find the exact matching event in the timeline
-    for (let i = 0; i < timeline.length; i++) {
-      const ev = timeline[i];
-      if (globalTime >= ev.startTime && globalTime <= ev.endTime) {
-        targetEvent = ev;
-        break;
-      }
-    }
-
-    // If no exact event found (e.g. past end), or if we landed on a non-travel event,
-    // look for the closest travel (path) event.
-    if (!targetEvent || targetEvent.type !== "travel") {
-      const travelEvents = timeline.filter((e: any) => e.type === "travel");
-      if (travelEvents.length > 0) {
-        let bestDist = Infinity;
-        let bestTravel = travelEvents[0];
-        travelEvents.forEach((te: any) => {
-          const dist = Math.min(
-            Math.abs(globalTime - te.startTime),
-            Math.abs(globalTime - te.endTime),
-          );
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestTravel = te;
-          }
-        });
-
-        // Only switch if the "better" travel event is reasonably close or if we were on a non-travel event
-        if (!targetEvent || bestDist < 0.1 || targetEvent.type !== "travel") {
-          targetEvent = bestTravel;
-        }
-      }
-    }
-
-    if (!targetEvent) {
-      if (globalTime < 0 && timeline.length > 0) targetEvent = timeline[0];
-      else if (globalTime > timePrediction.totalTime && timeline.length > 0)
-        targetEvent = timeline.at(-1);
-    }
-
-    if (!targetEvent) return;
-
-    let targetLine: Line | null = null;
-    let targetWait: any | null = null;
-
-    if (targetEvent.type === "travel") {
-      targetLine = targetEvent.line || lines[targetEvent.lineIndex];
-    } else if (targetEvent.type === "wait") {
-      const waitId = targetEvent.waitId;
-      if (waitId) {
-        targetWait = sequence.find((s) => (s as any).id === waitId);
-      }
-    } else if (targetEvent.type === "rotate") {
-      const rotateId = targetEvent.rotateId;
-      if (rotateId) {
-        targetWait = sequence.find((s) => (s as any).id === rotateId);
-      }
-    }
+    const targetLine =
+      event.type === "travel"
+        ? (event.line ?? lines[event.lineIndex ?? -1])
+        : undefined;
+    const targetStep =
+      event.type === "wait"
+        ? (sequence.find((s) => (s as Step).id === event.waitId) as
+            | Step
+            | undefined)
+        : undefined;
 
     let localPos = 0;
-    if (targetEvent.duration > 0) {
-      if (targetLine && targetEvent.motionProfile) {
-        const profile = targetEvent.motionProfile;
-        const steps = profile.length - 1;
-        const relTime = globalTime - targetEvent.startTime;
-        let stepIndex = -1;
-        for (let i = 0; i < steps; i++) {
-          if (relTime >= profile[i] && relTime <= profile[i + 1]) {
-            stepIndex = i;
-            const t0 = profile[i];
-            const t1 = profile[i + 1];
-            const ratio = (relTime - t0) / (t1 - t0);
-            localPos = (i + ratio) / steps;
-            break;
-          }
-        }
-        if (stepIndex === -1) {
-          localPos = relTime <= 0 ? 0 : 1;
-        }
-      } else {
-        localPos = (globalTime - targetEvent.startTime) / targetEvent.duration;
-      }
+    if (event.duration > 0) {
+      const relative = seconds - event.startTime;
+      localPos =
+        targetLine && event.motionProfile
+          ? interpolateTFromProfile(relative, event.motionProfile)
+          : relative / event.duration;
     }
     localPos = Math.max(0, Math.min(1, localPos));
 
-    const isSameParent =
+    const sameParent =
       (targetLine &&
         marker.parentType === "path" &&
         targetLine.id === marker.parentId) ||
-      (targetWait &&
-        (marker.parentType === "wait" || marker.parentType === "rotate") &&
-        targetWait.id === marker.parentId);
+      (targetStep &&
+        marker.parentType !== "path" &&
+        targetStep.id === marker.parentId);
 
-    if (isSameParent) {
-      marker.ref.endTime = newTimeMs;
-      marker.ref.time = newTimeMs;
+    if (sameParent) {
+      marker.ref.endTime = marker.ref.time = newTimeMs;
       marker.ref.position = localPos;
-      if (marker.parentType === "path") lines = [...lines];
-      else sequence = [...sequence];
-    } else {
-      removeMarker(marker);
-      const newMarkerData = {
-        ...marker.ref,
-        endTime: newTimeMs,
-        time: newTimeMs,
-        position: localPos,
-      };
-
-      if (targetLine) {
-        if (!targetLine.eventMarkers) targetLine.eventMarkers = [];
-        delete newMarkerData.waitId;
-        delete newMarkerData.rotateId;
-        newMarkerData.lineIndex = lines.findIndex(
-          (l) => l.id === targetLine!.id,
-        );
-        targetLine.eventMarkers = [...targetLine.eventMarkers, newMarkerData];
-        lines = [...lines];
-      } else if (targetWait) {
-        if (!targetWait.eventMarkers) targetWait.eventMarkers = [];
-        if (newMarkerData.lineIndex !== undefined)
-          delete newMarkerData.lineIndex;
-        if (targetWait.kind === "wait") {
-          newMarkerData.waitId = targetWait.id;
-          delete newMarkerData.rotateId;
-        } else {
-          newMarkerData.rotateId = targetWait.id;
-          delete newMarkerData.waitId;
-        }
-        targetWait.eventMarkers = [...targetWait.eventMarkers, newMarkerData];
-        sequence = [...sequence];
-      }
+      notifyChanged(marker);
+      return;
     }
+
+    const moved = {
+      ...marker.ref,
+      endTime: newTimeMs,
+      time: newTimeMs,
+      position: localPos,
+    };
+    removeMarker(marker);
+    if (targetLine) attachToLine(targetLine, moved);
+    else if (targetStep) attachToStep(targetStep, moved);
   }
 
-  function handleGlobalPositionInput(marker: GlobalMarker, newVal: number) {
-    if (!draggingMarkerId) {
-      draggingMarkerId = marker.id;
-      cachedSortedMarkers = [...allMarkers];
-    }
-    const latestMarker = allMarkers.find((m) => m.id === marker.id) || marker;
-    updateMarkerPosition(latestMarker, newVal, false);
+  // Sliders call *Input while dragging and *Commit when released.
+  function startDragging(marker: GlobalMarker) {
+    if (draggingMarkerId) return;
+    draggingMarkerId = marker.id;
+    cachedSortedMarkers = [...allMarkers];
   }
 
-  function handleGlobalPositionCommit(marker: GlobalMarker, newVal: number) {
+  function stopDragging() {
     draggingMarkerId = null;
     cachedSortedMarkers = [];
-    const latestMarker = allMarkers.find((m) => m.id === marker.id) || marker;
-    updateMarkerPosition(latestMarker, newVal, true);
   }
 
-  function handleGlobalTimeInput(marker: GlobalMarker, newVal: number) {
-    if (!draggingMarkerId) {
-      draggingMarkerId = marker.id;
-      cachedSortedMarkers = [...allMarkers];
-    }
-    const latestMarker = allMarkers.find((m) => m.id === marker.id) || marker;
-    updateMarkerTime(latestMarker, newVal);
+  const latest = (marker: GlobalMarker) =>
+    allMarkers.find((m) => m.id === marker.id) ?? marker;
+
+  function handleGlobalPositionInput(marker: GlobalMarker, value: number) {
+    startDragging(marker);
+    updateMarkerPosition(latest(marker), value, false);
   }
 
-  function handleGlobalTimeCommit(marker: GlobalMarker, newVal: number) {
-    draggingMarkerId = null;
-    cachedSortedMarkers = [];
-    const latestMarker = allMarkers.find((m) => m.id === marker.id) || marker;
-    updateMarkerTime(latestMarker, newVal);
+  function handleGlobalPositionCommit(marker: GlobalMarker, value: number) {
+    stopDragging();
+    updateMarkerPosition(latest(marker), value, true);
+  }
+
+  function handleGlobalTimeInput(marker: GlobalMarker, value: number) {
+    startDragging(marker);
+    updateMarkerTime(latest(marker), value);
+  }
+
+  function handleGlobalTimeCommit(marker: GlobalMarker, value: number) {
+    stopDragging();
+    updateMarkerTime(latest(marker), value);
   }
 
   export async function scrollToMarker(markerId: string) {
@@ -619,27 +438,24 @@
       collapsedMarkers = false;
       await tick();
     }
-    const el = document.getElementById(`global-marker-${markerId}`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    document
+      .getElementById(`global-marker-${markerId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   let allMarkers = $derived(
     getAllMarkers(sequence, lines, draggingMarkerId, segmentTimesMap),
   );
 
-  let currentProjectEvents = $derived(
-    Array.from(new Set(allMarkers.map((m) => m.name))),
-  );
+  // Event names used here or in other project files, for autocomplete.
   let availableEvents = $derived(
-    Array.from(
-      new Set(
-        [...$diskEventNamesStore, ...currentProjectEvents].filter(
-          (n) => n && n.trim() !== "",
+    [
+      ...new Set(
+        [...$diskEventNamesStore, ...allMarkers.map((m) => m.name)].filter(
+          (n) => n?.trim(),
         ),
       ),
-    ).sort(),
+    ].sort(),
   );
   let nonMacroCount = $derived(
     sequence.filter((s) => s.kind !== "macro").length,

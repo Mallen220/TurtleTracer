@@ -65,23 +65,18 @@
     Point,
     Line,
     BasePoint,
+    EventMarker,
     Settings,
     Shape,
     SequenceItem,
   } from "../types/index";
+  import { interpolateTFromProfile, timeAtProfileT } from "../utils/math";
   import { tick } from "svelte";
   import PlaybackControls from "./components/PlaybackControls.svelte";
   import { getShortcutFromSettings } from "../utils";
   import { timePredictionStore } from "./projectStore";
   import { tabRegistry, timelineTransformerRegistry } from "./registries";
   import { diffMode } from "./diffStore";
-  import { actionRegistry } from "./actionRegistry";
-
-  export const robotLength: number = 16; // Can be removed?
-  export const robotWidth: number = 16; // Can be removed?
-  export const resetPlaybackSpeed = undefined as unknown as () => void;
-
-  export const resetAnimation = undefined as unknown as () => void;
 
   // Optimization Interface
   let tabInstances: Record<string, any> = $state({});
@@ -182,188 +177,96 @@
     }
   }
 
-  function handleMarkerChange(detail: { id: string; percent: number }) {
-    const { id, percent } = detail;
-    if (!timePrediction || timePrediction.totalTime <= 0) return;
+  type Step = Extract<SequenceItem, { kind: "wait" | "rotate" }>;
 
-    const globalTime = (percent / 100) * timePrediction.totalTime;
+  const stepWithId = (id: string | undefined): Step | undefined =>
+    id
+      ? (sequence.find(
+          (s) => (s.kind === "wait" || s.kind === "rotate") && s.id === id,
+        ) as Step | undefined)
+      : undefined;
 
-    // Find segment in timeline
-    const timeline = timePrediction.timeline;
-    let targetEvent: any = null;
-
-    for (let i = 0; i < timeline.length; i++) {
-      const ev = timeline[i];
-      if (globalTime >= ev.startTime && globalTime <= ev.endTime) {
-        targetEvent = ev;
-        break;
-      }
+  /** Removes the marker from whichever path or step has it, and returns it. */
+  function takeMarker(id: string): EventMarker | null {
+    for (const owner of [
+      ...lines,
+      ...sequence.filter(
+        (s): s is Step => s.kind !== "path" && s.kind !== "macro",
+      ),
+    ]) {
+      const idx = owner.eventMarkers?.findIndex((m) => m.id === id) ?? -1;
+      if (idx !== -1) return owner.eventMarkers!.splice(idx, 1)[0];
     }
-
-    if (!targetEvent) {
-      // Clamping logic: if < 0, first event; if > total, last event
-      if (globalTime < 0 && timeline.length > 0) targetEvent = timeline[0];
-      else if (globalTime > timePrediction.totalTime && timeline.length > 0)
-        targetEvent = timeline.at(-1);
-    }
-
-    if (!targetEvent) return;
-
-    // Determine target segment (line or wait)
-    let targetLine: Line | null = null;
-    let targetWait: any | null = null; // wait or rotate
-
-    if (targetEvent.type === "travel") {
-      targetLine =
-        (targetEvent as any).line ||
-        lines[(targetEvent as any).lineIndex as number];
-    } else if (targetEvent.type === "wait") {
-      // Find wait/rotate in sequence
-      const waitId = (targetEvent as any).waitId;
-      if (waitId) {
-        const item = sequence.find((s) => (s as any).id === waitId);
-        if (item) targetWait = item;
-      }
-    }
-
-    // Determine local position (0-1)
-    let localPos = 0;
-    if (targetEvent.duration > 0) {
-      if (targetLine && targetEvent.motionProfile) {
-        const profile = targetEvent.motionProfile;
-        const steps = profile.length - 1;
-        const relTime = globalTime - targetEvent.startTime;
-
-        // Find i such that profile[i] <= relTime < profile[i+1]
-        let stepIndex = -1;
-        for (let i = 0; i < steps; i++) {
-          if (relTime >= profile[i] && relTime <= profile[i + 1]) {
-            stepIndex = i;
-            // Interpolate
-            const t0 = profile[i];
-            const t1 = profile[i + 1];
-            const ratio = (relTime - t0) / (t1 - t0);
-            localPos = (i + ratio) / steps;
-            break;
-          }
-        }
-        if (stepIndex === -1) {
-          if (relTime <= 0) localPos = 0;
-          else localPos = 1;
-        }
-      } else {
-        // Fallback: linear mapping
-        localPos = (globalTime - targetEvent.startTime) / targetEvent.duration;
-      }
-    }
-    localPos = Math.max(0, Math.min(1, localPos));
-
-    // Now update the marker
-    // 1. Find the marker in the old location
-    let found = false;
-    let oldMarker: any = null;
-
-    // Check lines
-    for (const l of lines) {
-      if (l.eventMarkers) {
-        const idx = l.eventMarkers.findIndex((m) => m.id === id);
-        if (idx !== -1) {
-          oldMarker = l.eventMarkers[idx];
-          l.eventMarkers.splice(idx, 1);
-          found = true;
-          lines = [...lines]; // Reactivity
-          break;
-        }
-      }
-    }
-
-    // Check sequence (waits/rotates)
-    if (!found) {
-      for (const s of sequence) {
-        if ((s.kind === "wait" || s.kind === "rotate") && s.eventMarkers) {
-          const idx = s.eventMarkers.findIndex((m: any) => m.id === id);
-          if (idx !== -1) {
-            oldMarker = s.eventMarkers[idx];
-            s.eventMarkers.splice(idx, 1);
-            found = true;
-            sequence = [...sequence]; // Reactivity
-            break;
-          }
-        }
-      }
-    }
-
-    if (found && oldMarker) {
-      // Update properties
-      oldMarker.position = localPos;
-
-      // Update endTime if temporal
-      if (oldMarker.type === "temporal") {
-        oldMarker.endTime = globalTime * 1000;
-        oldMarker.time = oldMarker.endTime; // Maintain legacy property
-      }
-
-      // Remove old association fields
-      delete oldMarker.lineIndex;
-      delete oldMarker.waitId;
-      delete oldMarker.rotateId;
-
-      // Add to new parent
-      if (targetLine) {
-        if (!targetLine.eventMarkers) targetLine.eventMarkers = [];
-        targetLine.eventMarkers.push(oldMarker);
-        // lineIndex is optional but good for internal consistency if used
-        oldMarker.lineIndex = lines.findIndex((l) => l.id === targetLine!.id);
-        lines = [...lines];
-      } else if (targetWait) {
-        if (!targetWait.eventMarkers) targetWait.eventMarkers = [];
-        targetWait.eventMarkers.push(oldMarker);
-        if (targetWait.kind === "wait") oldMarker.waitId = targetWait.id;
-        if (targetWait.kind === "rotate") oldMarker.rotateId = targetWait.id;
-        sequence = [...sequence];
-      }
-
-      recordChange();
-    }
+    return null;
   }
 
-  function handleMarkerAction(detail: { id: string; action: string }) {
-    const { id, action } = detail;
-    if (action === "delete") {
-      let found = false;
+  /** Moves a marker dragged on the timeline to whatever runs at that time. */
+  function handleMarkerChange({
+    id,
+    percent,
+  }: {
+    id: string;
+    percent: number;
+  }) {
+    if (!timePrediction || timePrediction.totalTime <= 0) return;
+    const { timeline, totalTime } = timePrediction;
+    const time = (percent / 100) * totalTime;
 
-      // Check lines
-      for (const l of lines) {
-        if (l.eventMarkers) {
-          const idx = l.eventMarkers.findIndex((m) => m.id === id);
-          if (idx !== -1) {
-            l.eventMarkers.splice(idx, 1);
-            found = true;
-            lines = [...lines]; // Reactivity
-            break;
-          }
-        }
-      }
+    const event =
+      timeline.find((ev) => time >= ev.startTime && time <= ev.endTime) ??
+      (time < 0 ? timeline[0] : time > totalTime ? timeline.at(-1) : undefined);
+    if (!event) return;
 
-      // Check sequence (waits/rotates)
-      if (!found) {
-        for (const s of sequence) {
-          if ((s.kind === "wait" || s.kind === "rotate") && s.eventMarkers) {
-            const idx = s.eventMarkers.findIndex((m: any) => m.id === id);
-            if (idx !== -1) {
-              s.eventMarkers.splice(idx, 1);
-              found = true;
-              sequence = [...sequence]; // Reactivity
-              break;
-            }
-          }
-        }
-      }
+    const targetLine =
+      event.type === "travel"
+        ? (event.line ?? lines[event.lineIndex ?? -1])
+        : undefined;
+    const targetStep =
+      event.type === "wait" ? stepWithId(event.waitId) : undefined;
+    // Automatic turns have no sequence item to hold a marker.
+    if (!targetLine && !targetStep) return;
 
-      if (found) {
-        recordChange("Delete Marker");
-      }
+    // Where along the path or step (0 to 1) the marker now sits.
+    let position = 0;
+    if (event.duration > 0) {
+      const relativeTime = time - event.startTime;
+      position =
+        targetLine && event.motionProfile
+          ? interpolateTFromProfile(relativeTime, event.motionProfile)
+          : relativeTime / event.duration;
     }
+    position = Math.max(0, Math.min(1, position));
+
+    const marker = takeMarker(id);
+    if (!marker) return;
+
+    marker.position = position;
+    if (marker.type === "temporal") {
+      marker.endTime = time * 1000;
+      marker.time = marker.endTime; // older files read `time`
+    }
+    delete marker.lineIndex;
+    delete marker.waitId;
+    delete marker.rotateId;
+
+    if (targetLine) {
+      targetLine.eventMarkers = [...(targetLine.eventMarkers ?? []), marker];
+      marker.lineIndex = lines.findIndex((l) => l.id === targetLine.id);
+    } else if (targetStep) {
+      targetStep.eventMarkers = [...(targetStep.eventMarkers ?? []), marker];
+      if (targetStep.kind === "wait") marker.waitId = targetStep.id;
+      else marker.rotateId = targetStep.id;
+    }
+    lines = [...lines];
+    sequence = [...sequence];
+    recordChange();
+  }
+
+  function handleMarkerAction({ id, action }: { id: string; action: string }) {
+    if (action !== "delete" || !takeMarker(id)) return;
+    lines = [...lines];
+    sequence = [...sequence];
+    recordChange("Delete Marker");
   }
 
   import { isBrowser } from "../utils/platform";
@@ -461,7 +364,7 @@
         if (ev.type === "travel") {
           const startPct = toPct(ev.startTime);
           const lineIndex = ev.lineIndex as number;
-          const line = (ev as any).line || lines[lineIndex]; // Use timeline line if available
+          const line = ev.line ?? lines[lineIndex];
           const color = line?.color || "#ffffff";
           const name =
             line?.name ||
@@ -474,20 +377,11 @@
           let explicit = undefined as boolean | undefined;
           let itemName = ev.name || "Wait";
 
-          if (ev.waitId) {
-            const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
-            if (seqItem) {
-              const def = actionRegistry.get(seqItem.kind);
-              if (def?.isRotate) {
-                isRotate = true;
-                explicit = true;
-                itemName = "Rotate";
-              } else if (def?.isWait) {
-                isRotate = false;
-                explicit = true;
-                itemName = "Wait";
-              }
-            }
+          const step = stepWithId(ev.waitId);
+          if (step) {
+            isRotate = step.kind === "rotate";
+            explicit = true;
+            itemName = isRotate ? "Rotate" : "Wait";
           }
           if (
             !isRotate &&
@@ -519,23 +413,12 @@
 
       timeline.forEach((ev) => {
         if (ev.type === "travel") {
-          const line = (ev as any).line || lines[ev.lineIndex as number];
+          const line = ev.line ?? lines[ev.lineIndex ?? -1];
           if (line?.eventMarkers) {
-            line.eventMarkers.forEach((m: any) => {
-              let timeOffset = 0;
-              if (ev.motionProfile) {
-                const steps = ev.motionProfile.length - 1;
-                if (steps > 0) {
-                  const rawIdx = m.position * steps;
-                  const i = Math.min(Math.floor(rawIdx), steps - 1);
-                  const f = rawIdx - i;
-                  const t0 = ev.motionProfile[i];
-                  const t1 = ev.motionProfile[i + 1];
-                  timeOffset = t0 + f * (t1 - t0);
-                }
-              } else {
-                timeOffset = ev.duration * m.position;
-              }
+            line.eventMarkers.forEach((m) => {
+              const timeOffset = ev.motionProfile
+                ? timeAtProfileT(m.position, ev.motionProfile)
+                : ev.duration * m.position;
               const absTime = ev.startTime + timeOffset;
               items.push({
                 type: "marker",
@@ -551,13 +434,10 @@
       });
 
       timeline.forEach((ev) => {
-        if (ev.type === "wait" && ev.waitId) {
-          const seqItem = sequence.find((s) => (s as any).id === ev.waitId);
-          if (
-            (seqItem?.kind === "wait" || seqItem?.kind === "rotate") &&
-            seqItem.eventMarkers
-          ) {
-            seqItem.eventMarkers.forEach((m: any) => {
+        if (ev.type === "wait") {
+          const seqItem = stepWithId(ev.waitId);
+          if (seqItem?.eventMarkers) {
+            seqItem.eventMarkers.forEach((m) => {
               const timeOffset = ev.duration * m.position;
               const absTime = ev.startTime + timeOffset;
               items.push({
