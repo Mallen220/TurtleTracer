@@ -1,7 +1,13 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
 import { type RenderContext, setupTextLabel } from "./GeneratorUtils";
-import type { Line, Point, Shape, SequenceItem } from "../../../types";
+import type {
+  Line,
+  PiecewiseSegment,
+  Point,
+  Shape,
+  SequenceItem,
+} from "../../../types";
 import { POINT_RADIUS } from "../../../config";
 import { calculateGlobalChainMeta } from "../../../utils/timeCalculator";
 
@@ -88,7 +94,7 @@ export function generatePointElements(
     let targetX: number | undefined;
     let targetY: number | undefined;
     let headingType: string | undefined;
-    let segments: any[] | undefined;
+    let segments: PiecewiseSegment[] | undefined;
 
     if (isGlobalOverride) {
       headingType = rootLine!.globalHeading;
@@ -98,8 +104,8 @@ export function generatePointElements(
     } else {
       // Standard local heading
       headingType = line.endPoint!.heading;
-      targetX = (line.endPoint as any).targetX;
-      targetY = (line.endPoint as any).targetY;
+      targetX = line.endPoint.targetX;
+      targetY = line.endPoint.targetY;
       segments = line.endPoint!.segments;
     }
 

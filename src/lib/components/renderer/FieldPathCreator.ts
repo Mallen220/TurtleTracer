@@ -49,7 +49,7 @@ export function createPathAtPoint(options: CreatePathAtPointOptions): Line {
       x: inchX,
       y: inchY,
       heading: "tangential",
-      reverse: (prevEndPoint as any).reverse ?? false,
+      reverse: prevEndPoint.reverse ?? false,
     };
   }
 

@@ -7,6 +7,7 @@ import type {
   SequenceItem,
   Settings,
   Shape,
+  Notification,
 } from "../../../types/index";
 import {
   gridSize as defaultGridSize,
@@ -71,7 +72,7 @@ export interface InteractionStores {
   multiSelectedLineIds?: Writable<string[]>;
   hoveredMarkerId?: Writable<string | null>;
   fieldPan?: Writable<{ x: number; y: number }>;
-  notification?: Writable<any>;
+  notification?: Writable<Notification | null>;
   isDrawingMode?: Writable<boolean>;
   linesStore?: Writable<Line[]>;
   shapesStore?: Writable<Shape[]>;
@@ -130,7 +131,7 @@ export class FieldInteractionController {
   private multiSelectedLineIds: Writable<string[]>;
   private hoveredMarkerId: Writable<string | null>;
   private fieldPan: Writable<{ x: number; y: number }>;
-  private notification: Writable<any>;
+  private notification: Writable<Notification | null>;
   private isDrawingMode: Writable<boolean>;
   private linesStore: Writable<Line[]>;
   private shapesStore: Writable<Shape[]>;
@@ -394,8 +395,8 @@ export class FieldInteractionController {
       const dims = calculateBoxPixelDimensions(bounds, x, y);
 
       this.boxSelectElement.translation.set(dims.centerX, dims.centerY);
-      (this.boxSelectElement as any).width = dims.width;
-      (this.boxSelectElement as any).height = dims.height;
+      this.boxSelectElement.width = dims.width;
+      this.boxSelectElement.height = dims.height;
 
       two.update();
       return;

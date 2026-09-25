@@ -4,7 +4,7 @@ import {
   buildStandardPathElements,
   buildDiffPathElements,
 } from "./FieldPathLayer";
-import type { Line, Point } from "../../../types";
+import type { Line, Point, TimePrediction } from "../../../types";
 
 describe("FieldPathLayer", () => {
   const startPoint: Point = { x: 0, y: 0, heading: "tangential" };
@@ -64,7 +64,7 @@ describe("FieldPathLayer", () => {
             prevPoint: startPoint,
           },
         ],
-      };
+      } as unknown as TimePrediction;
 
       const res = buildStandardPathElements({
         effectiveTimePrediction: timelinePrediction,

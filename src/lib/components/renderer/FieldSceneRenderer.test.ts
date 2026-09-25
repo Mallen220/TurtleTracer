@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi } from "vitest";
+import type { Shape } from "two.js/src/shape";
 import { syncFieldScene } from "./FieldSceneRenderer";
 
 describe("FieldSceneRenderer", () => {
@@ -14,7 +15,7 @@ describe("FieldSceneRenderer", () => {
       update: vi.fn(),
     };
 
-    const dummyEl = { id: "dummy" };
+    const dummyEl = { id: "dummy" } as unknown as Shape;
 
     syncFieldScene({
       two: mockTwo,

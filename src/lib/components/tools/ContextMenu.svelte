@@ -3,20 +3,12 @@
   import { onMount, tick } from "svelte";
   import { fade } from "svelte/transition";
   import { menuNavigation } from "../../actions/menuNavigation";
+  import type { MenuEntry } from "../../../types";
 
   interface Props {
     x: number;
     y: number;
-    items?: {
-      label?: string;
-      action?: string;
-      onClick?: () => void;
-      icon?: any;
-      separator?: boolean;
-      danger?: boolean;
-      disabled?: boolean;
-      shortcut?: string;
-    }[];
+    items?: MenuEntry[];
     onclose?: () => void;
     onaction?: (action: string) => void;
   }
@@ -122,10 +114,14 @@
         role="menuitem"
       >
         <span class="flex items-center gap-2">
-          {#if item.icon}
-            {#if typeof item.icon === "object" || typeof item.icon === "function"}
-              <item.icon class="size-4" />
-            {/if}
+          {#if typeof item.icon === "string"}
+            <!-- Plugin icons, like the navbar's; plugins already run their own code. -->
+            <span class="size-4 flex items-center" aria-hidden="true">
+              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+              {@html item.icon}
+            </span>
+          {:else if item.icon}
+            <item.icon class="size-4" />
           {/if}
           {item.label}
         </span>

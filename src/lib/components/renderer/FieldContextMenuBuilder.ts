@@ -7,6 +7,8 @@ import type {
   Settings,
   SequenceItem,
   KeyBinding,
+  MenuEntry,
+  ContextMenuItem,
 } from "../../../types";
 import { toUser } from "../../../utils/coordinates";
 import { getDisplayShortcut } from "../../../utils/shortcuts";
@@ -19,24 +21,6 @@ import {
 } from "./ElementIdParser";
 import { getTransformedCoordinates } from "./CoordinateTransform";
 import { makeId } from "../../../utils/nameGenerator";
-
-export interface ContextMenuItemDescriptor {
-  label?: string;
-  action?: string;
-  onClick?: () => void;
-  icon?: any;
-  separator?: boolean;
-  danger?: boolean;
-  disabled?: boolean;
-  shortcut?: string;
-}
-
-export interface RegistryContextMenuItem {
-  condition?: (pos: { x: number; y: number }) => boolean;
-  label: string;
-  icon?: any;
-  onClick: (pos: { x: number; y: number }) => void;
-}
 
 export interface BuildContextMenuCallbacks {
   onRecordChange: (desc?: string) => void;
@@ -63,7 +47,7 @@ export interface BuildContextMenuParams {
   shapes: Shape[];
   settings: Settings;
   fieldCoordinates: { x: number; y: number };
-  registryItems?: RegistryContextMenuItem[];
+  registryItems?: ContextMenuItem[];
   callbacks: BuildContextMenuCallbacks;
 }
 
@@ -107,7 +91,7 @@ function headingModeItems(
   current: Point["heading"] | undefined,
   keyBindings: KeyBinding[],
   apply: (mode: SimpleHeadingMode, label: string) => void,
-): ContextMenuItemDescriptor[] {
+): MenuEntry[] {
   return [
     { separator: true },
     {
@@ -129,7 +113,7 @@ function headingModeItems(
  */
 export function buildFieldContextMenuItems(
   params: BuildContextMenuParams,
-): ContextMenuItemDescriptor[] {
+): MenuEntry[] {
   const {
     currentElem,
     multiSelectedPointIds,
@@ -146,7 +130,7 @@ export function buildFieldContextMenuItems(
     ? settings.keyBindings
     : DEFAULT_KEY_BINDINGS;
 
-  const menuItems: ContextMenuItemDescriptor[] = [];
+  const menuItems: MenuEntry[] = [];
 
   const multiSel = multiSelectedPointIds;
   const isClickOnMultiSel = currentElem ? multiSel.includes(currentElem) : true;
@@ -373,12 +357,12 @@ export interface OpenContextMenuParams {
   lines: Line[];
   shapes: Shape[];
   settings: Settings;
-  registryItems: RegistryContextMenuItem[];
+  registryItems: ContextMenuItem[];
   callbacks: BuildContextMenuCallbacks;
 }
 
 export interface OpenContextMenuResult {
-  items: ContextMenuItemDescriptor[];
+  items: MenuEntry[];
   x: number;
   y: number;
 }

@@ -1,17 +1,17 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
-import type { Line, Point, SequenceItem } from "../../../types";
+import type { Line, Point } from "../../../types";
 import { getCurvePoint } from "../../../utils/math";
 
 import { type RenderContext } from "./GeneratorUtils";
+import type { DiffResult, ProjectData } from "../../diffStore";
 
 export function generateDiffEventMarkerElements(
   isDiffMode: boolean,
-  diffData: any,
-  oldData: any,
+  diffData: DiffResult | null,
+  oldData: ProjectData | null,
   lines: Line[],
   startPoint: Point,
-  sequence: SequenceItem[],
   ctx: RenderContext,
 ) {
   if (!isDiffMode || !diffData) return [];
@@ -20,11 +20,7 @@ export function generateDiffEventMarkerElements(
   const elems: InstanceType<typeof Two.Group>[] = [];
 
   // Helper to extract marker positions from a dataset
-  const getMarkerMap = (
-    dataLines: Line[],
-    dataStart: Point,
-    _dataSequence: SequenceItem[],
-  ) => {
+  const getMarkerMap = (dataLines: Line[], dataStart: Point) => {
     const map = new Map<string, { x: number; y: number }>();
 
     // Lines
@@ -53,12 +49,12 @@ export function generateDiffEventMarkerElements(
     return map;
   };
 
-  const currentMap = getMarkerMap(lines, startPoint, sequence);
+  const currentMap = getMarkerMap(lines, startPoint);
   const oldMap = oldData
-    ? getMarkerMap(oldData.lines, oldData.startPoint, oldData.sequence)
-    : new Map();
+    ? getMarkerMap(oldData.lines, oldData.startPoint)
+    : new Map<string, { x: number; y: number }>();
 
-  diffData.eventDiff.forEach((change: any) => {
+  diffData.eventDiff.forEach((change) => {
     // Helper to create marker
     const createMarker = (
       pos: { x: number; y: number },

@@ -1,11 +1,11 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { LINE_WIDTH } from "../../../config";
-import type { Line, Point } from "../../../types";
+import type { Line, Point, TimePrediction } from "../../../types";
 import { generatePathElements } from "./PathGenerator";
 import type { RenderContext } from "./GeneratorUtils";
 
 export interface StandardPathParams {
-  effectiveTimePrediction: any;
+  effectiveTimePrediction: TimePrediction | null;
   lines: Line[];
   sequencedLines: Line[];
   startPoint: Point;
@@ -17,7 +17,7 @@ export interface StandardPathParams {
 /**
  * Builds Two.js elements for standard simulation or fallback path rendering.
  */
-export function buildStandardPathElements(params: StandardPathParams): any[] {
+export function buildStandardPathElements(params: StandardPathParams) {
   const {
     effectiveTimePrediction,
     lines,
@@ -33,13 +33,11 @@ export function buildStandardPathElements(params: StandardPathParams): any[] {
   // Start with standard lines for the basic "lines" array.
   // To include macro/bridge lines, iterate timeline travel events directly when available.
   if (effectiveTimePrediction?.timeline) {
-    const paths: any[] = [];
-
     const travelEvents = effectiveTimePrediction.timeline.filter(
-      (e: any) => e.type === "travel" && e.line,
+      (e) => e.type === "travel" && e.line,
     );
 
-    travelEvents.forEach((ev: any, idx: number) => {
+    return travelEvents.flatMap((ev, idx) => {
       const line = ev.line!;
       const start = ev.prevPoint!;
 
@@ -49,7 +47,7 @@ export function buildStandardPathElements(params: StandardPathParams): any[] {
         ? ctx.uiLength(LINE_WIDTH * 2.5)
         : ctx.uiLength(LINE_WIDTH);
 
-      const elems = generatePathElements(
+      return generatePathElements(
         [line],
         start,
         (l) => l.color || "#60a5fa",
@@ -58,10 +56,7 @@ export function buildStandardPathElements(params: StandardPathParams): any[] {
         ctx,
         isMainLine,
       );
-      paths.push(...elems);
     });
-
-    return paths;
   }
 
   // Fallback if no simulation (e.g. initial load or error)
@@ -91,7 +86,7 @@ export interface DiffPathParams {
 /**
  * Builds Two.js elements for diff mode (old committed paths vs current paths).
  */
-export function buildDiffPathElements(params: DiffPathParams): any[] {
+export function buildDiffPathElements(params: DiffPathParams) {
   const { isDiffMode, oldData, sequencedLines, startPoint, diffData, ctx } =
     params;
 

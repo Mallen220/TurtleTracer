@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { CollisionMarker } from "../../types";
 import { render } from "@testing-library/svelte";
 import FieldRenderer from "./FieldRenderer.svelte";
 import { get } from "svelte/store";
@@ -67,7 +68,7 @@ describe("FieldRenderer", () => {
       { x: 10, y: 10, type: "robot", time: 1 },
       { x: 20, y: 20, type: "zero-length", time: 2 },
       { x: 30, y: 30, type: "keep-in", time: 3 },
-    ];
+    ] as CollisionMarker[];
 
     const lines: any[] = [];
     const startPoint: any = { x: 0, y: 0 };

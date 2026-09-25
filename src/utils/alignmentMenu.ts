@@ -1,14 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Line, Point, BasePoint } from "../types";
+import type { Line, Point, BasePoint, MenuEntry } from "../types";
 
 type Axis = "x" | "y";
-
-type MenuItem = {
-  label?: string;
-  disabled?: boolean;
-  separator?: boolean;
-  onClick?: () => void;
-};
 
 /**
  * Looks up the points behind selection ids like "point-<line>-<index>",
@@ -61,13 +54,13 @@ export function getAlignmentMenuItems(
   lines: Line[],
   onUpdate: (newLines: Line[], newStartPoint: Point) => void,
   onRecordChange: (action?: string) => void,
-): MenuItem[] {
+): MenuEntry[] {
   const makeItem = (
     label: string,
     historyLabel: string,
     minPoints: number,
     apply: (points: BasePoint[]) => void,
-  ): MenuItem => ({
+  ): MenuEntry => ({
     label,
     onClick: () => {
       const points = getEditablePoints(multiSel, startPoint, lines);
@@ -78,7 +71,7 @@ export function getAlignmentMenuItems(
     },
   });
 
-  const items: MenuItem[] = [
+  const items: MenuEntry[] = [
     { label: `Selected Points: ${multiSel.length}`, disabled: true },
     { separator: true },
     makeItem("Align Horizontal (Y)", "Align Horizontal", 1, (pts) =>

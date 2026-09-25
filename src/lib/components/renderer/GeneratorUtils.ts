@@ -4,14 +4,20 @@ import { Anchor } from "two.js/src/anchor";
 import type { Path } from "two.js/src/path";
 import type { Line as PathLine } from "two.js/src/shapes/line";
 import { getCurvePoint, quadraticToCubic } from "../../../utils/math";
-import type { Line, Point } from "../../../types";
+import type {
+  Line,
+  Point,
+  Settings,
+  TimelineEvent,
+  TimePrediction,
+} from "../../../types";
 
 export interface RenderContext {
   x: d3.ScaleLinear<number, number>;
   y: d3.ScaleLinear<number, number>;
   uiLength: (inches: number) => number;
-  settings: any;
-  timePrediction: any;
+  settings: Settings;
+  timePrediction: TimePrediction | null | undefined;
   percentStore: number;
   dimmedIds: string[];
   multiSelectedPointIds: string[];
@@ -19,14 +25,16 @@ export interface RenderContext {
   hoveredMarkerId?: string | null;
   selectedLineId?: string | null;
   selectedPointId?: string | null;
-  actionRegistry?: any;
   robotXY?: { x: number; y: number } | null;
 }
 
 /**
  * Finds the active timeline event based on the current animation progress.
  */
-export function findActiveEvent(timePrediction: any, percentStore: number) {
+export function findActiveEvent(
+  timePrediction: TimePrediction | null | undefined,
+  percentStore: number,
+): TimelineEvent | null | undefined {
   if (!timePrediction?.timeline?.length) return null;
 
   const totalDuration = timePrediction.timeline.at(-1)?.endTime || 0;
@@ -34,7 +42,7 @@ export function findActiveEvent(timePrediction: any, percentStore: number) {
 
   return (
     timePrediction.timeline.find(
-      (e: any) => currentSeconds >= e.startTime && currentSeconds <= e.endTime,
+      (e) => currentSeconds >= e.startTime && currentSeconds <= e.endTime,
     ) ?? timePrediction.timeline.at(-1)
   );
 }

@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
+import type { Anchor } from "two.js/src/anchor";
 import type { Path } from "two.js/src/path";
 import type { Line as PathLine } from "two.js/src/shapes/line";
 import type { Line, Point } from "../../../types";
@@ -33,7 +34,7 @@ export function generatePathElements(
       // Try to find corresponding timeline event for velocity data
       // lineIndex matches the index in 'lines' array
       const event = timePrediction.timeline.find(
-        (e: any) => e.type === "travel" && e.lineIndex === idx,
+        (e) => e.type === "travel" && e.lineIndex === idx,
       );
 
       if (event?.velocityProfile && event.velocityProfile.length > 0) {
@@ -45,12 +46,12 @@ export function generatePathElements(
         let cps = [_startPoint, ...line.controlPoints, line.endPoint];
         let prevPt = getCurvePoint(0, cps);
 
-        let currentAnchors: any[] = [];
+        let currentAnchors: Anchor[] = [];
         let currentColor: string | null = null;
         let segmentCounter = 0;
 
         const createHeatmapSegment = (
-          anchors: any[],
+          anchors: Anchor[],
           color: string,
           segIdx: number,
         ) => {

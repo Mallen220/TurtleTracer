@@ -1,9 +1,14 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
+import type { CollisionMarker, TimePrediction } from "../../../types";
 import Two from "two.js";
 import { generatePointElements } from "../../../lib/components/renderer/PointGenerator";
 import { generateCollisionElements } from "../../../lib/components/renderer/CollisionMarkerGenerator";
 import { generateEventMarkerElements } from "../../../lib/components/renderer/EventMarkerGenerator";
+import {
+  actionRegistry,
+  type ActionDefinition,
+} from "../../../lib/actionRegistry";
 
 describe("Renderer Generators", () => {
   const x = (val: number) => val * 10;
@@ -25,19 +30,6 @@ describe("Renderer Generators", () => {
     multiSelectedPointIds: ["point-0-0"],
     uiZoomScale: 1,
     timePrediction: { timeline: [] },
-    actionRegistry: {
-      get: (kind: string) => {
-        if (kind === "wait") {
-          return {
-            isWait: true,
-            renderField: () => {
-              return [new Two.Circle(0, 0, 5)];
-            },
-          };
-        }
-        return null;
-      },
-    },
   };
 
   it("generatePointElements should generate elements correctly", () => {
@@ -84,8 +76,8 @@ describe("Renderer Generators", () => {
       { type: "boundary", x: 20, y: 20 },
       { type: "zero-length", x: 30, y: 30 },
       { type: "keep-in", x: 40, y: 40 },
-    ];
-    const prediction = { timeline: [] };
+    ] as CollisionMarker[];
+    const prediction = { timeline: [] } as unknown as TimePrediction;
 
     const elems = generateCollisionElements(
       markers,
@@ -109,7 +101,9 @@ describe("Renderer Generators", () => {
         controlPoints: [],
       } as any,
     ];
-    const markers = [{ type: "obstacle", x: 5, y: 5, time: 1, endTime: 2 }];
+    const markers = [
+      { type: "obstacle", x: 5, y: 5, time: 1, endTime: 2 },
+    ] as CollisionMarker[];
     const prediction = {
       timeline: [
         { type: "wait", startTime: 1, endTime: 1.5, atPoint: { x: 0, y: 0 } },
@@ -122,7 +116,7 @@ describe("Renderer Generators", () => {
           prevPoint: { x: 0, y: 0 },
         },
       ],
-    };
+    } as unknown as TimePrediction;
 
     const elems = generateCollisionElements(
       markers,
@@ -171,13 +165,21 @@ describe("Renderer Generators", () => {
       },
     };
 
-    const elems = generateEventMarkerElements(
-      lines,
-      startPoint,
-      sequence,
-      ctxWithPrediction as any,
-    );
-
-    expect(elems.length).toBe(2);
+    actionRegistry.register({
+      kind: "wait",
+      label: "Wait",
+      renderField: () => [new Two.Circle(0, 0, 5)],
+    } as unknown as ActionDefinition);
+    try {
+      const elems = generateEventMarkerElements(
+        lines,
+        startPoint,
+        sequence,
+        ctxWithPrediction as any,
+      );
+      expect(elems.length).toBe(2);
+    } finally {
+      actionRegistry.unregister("wait");
+    }
   });
 });

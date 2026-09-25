@@ -36,4 +36,19 @@ describe("ContextMenu", () => {
       (props: any) => render(ContextMenu as any, props),
     );
   });
+
+  it("shows a plugin's SVG string icon", () => {
+    render(ContextMenu, {
+      x: 0,
+      y: 0,
+      items: [
+        {
+          label: "From plugin",
+          icon: '<svg data-testid="plugin-icon"><circle r="1" /></svg>',
+        },
+      ],
+    });
+    expect(screen.getByText("From plugin")).toBeTruthy();
+    expect(screen.getByTestId("plugin-icon")).toBeTruthy();
+  });
 });

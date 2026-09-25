@@ -28,7 +28,6 @@
     fieldContextMenuRegistry,
     fieldRenderRegistry,
   } from "../registries";
-  import { actionRegistry } from "../actionRegistry";
   import ContextMenu from "./tools/ContextMenu.svelte";
   import VelocityTooltip from "./VelocityTooltip.svelte";
   import {
@@ -67,7 +66,6 @@
     dimmedLinesStore,
     showTransformDialog,
   } from "../../stores";
-  import { updateRobotImageDisplay } from "../../utils";
   import { calculateDrivetrainSpeeds } from "../../utils/drivetrain";
   import {
     calculateWheelZoom,
@@ -79,7 +77,6 @@
   import {
     buildContextMenuForEvent,
     createContextMenuStoreCallbacks,
-    type ContextMenuItemDescriptor,
   } from "./renderer/FieldContextMenuBuilder";
   import {
     calculatePanToField,
@@ -88,7 +85,7 @@
   } from "./renderer/FieldViewport";
   import { FieldInteractionController } from "./renderer/FieldInteractionController";
   import { type RenderContext } from "./renderer/GeneratorUtils";
-  import type { Line } from "../../types/index";
+  import type { Line, MenuEntry, TimePrediction } from "../../types/index";
   import MathTools from "../MathTools.svelte";
   import FieldCoordinates from "./FieldCoordinates.svelte";
   import RobotOverlay from "./renderer/RobotOverlay.svelte";
@@ -100,7 +97,7 @@
     // State from props
     width?: number;
     height?: number;
-    timePrediction?: any;
+    timePrediction?: TimePrediction | null;
     committedRobotState?: {
       x: number;
       y: number;
@@ -150,7 +147,7 @@
   let showContextMenu = $state(false);
   let contextMenuX = $state(0);
   let contextMenuY = $state(0);
-  let contextMenuItems: ContextMenuItemDescriptor[] = $state([]);
+  let contextMenuItems: MenuEntry[] = $state([]);
 
   let isDrawing = $state(false);
   let drawPoints: { x: number; y: number }[] = $state([]);
@@ -214,8 +211,8 @@
 
   onMount(() => {
     two = new Two({ fitted: true, type: Two.Types.svg }).appendTo(twoElement!);
-    if ((two!.renderer as any)?.domElement) {
-      const svgEl = (two!.renderer as any).domElement as HTMLElement;
+    const svgEl = two.renderer.domElement as HTMLElement | undefined;
+    if (svgEl) {
       svgEl.style.position = "absolute";
       svgEl.style.top = "0";
       svgEl.style.left = "0";
@@ -223,8 +220,6 @@
       svgEl.style.height = "100%";
       svgEl.style.zIndex = "15";
     }
-
-    updateRobotImageDisplay();
 
     // Trigger hook for plugins to initialize overlays
     hookRegistry.run("fieldOverlayInit", overlayContainer);
@@ -360,8 +355,8 @@
   let lines = $derived($linesStore);
   let sequencedLines = $derived(
     $sequenceStore
-      .filter((s) => actionRegistry.get(s.kind)?.isPath)
-      .map((s) => lines.find((l) => l.id === (s as any).lineId))
+      .flatMap((s) => (s.kind === "path" ? [s.lineId] : []))
+      .map((id) => lines.find((l) => l.id === id))
       .filter((l): l is Line => !!l),
   );
   let effectiveTimePrediction = $derived(
@@ -411,9 +406,15 @@
   // start position or first path changes — fixing cases where heading looked
   // "locked" to an old value after moving the start point.
   $effect(() => {
-    const updatedDeg = getUpdatedLinearStartHeading(startPoint, lines);
+    const updatedDeg = getUpdatedLinearStartHeading(
+      startPoint,
+      lines,
+      $sequenceStore,
+    );
     if (updatedDeg !== null) {
-      startPointStore.update((p) => ({ ...p, startDeg: updatedDeg }) as any);
+      startPointStore.update((p) =>
+        p.heading === "linear" ? { ...p, startDeg: updatedDeg } : p,
+      );
     }
   });
   // Telemetry state:
