@@ -4,14 +4,15 @@ import {
   linesStore,
   sequenceStore,
   startPointStore,
+  settingsStore,
   renumberDefaultPathNames,
 } from "../../projectStore";
+import { copyName, duplicateStep } from "../../sequenceOperations";
 import { selectedLineId, selectedPointId, notification } from "../../../stores";
-import { actionRegistry } from "../../actionRegistry";
 import type { Line, SequenceItem } from "../../../types/index";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
 import { parseSelectionId, findSequenceItem } from "./itemUtils";
-import { makeId, generateName } from "../../../utils/nameGenerator";
+import { makeId } from "../../../utils/nameGenerator";
 
 type WaitOrRotate = "wait" | "rotate";
 
@@ -19,16 +20,8 @@ type WaitOrRotate = "wait" | "rotate";
 // system clipboard.
 export let clipboard: SequenceItem | Line | null = null;
 
-// Unnamed items stay unnamed when copied.
-function copyName(name: string | undefined, existingNames: string[]) {
-  return name?.trim() ? generateName(name, existingNames) : "";
-}
-
 function getWaitOrRotateKind(item: SequenceItem): WaitOrRotate | null {
-  const def = actionRegistry.get(item.kind);
-  if (def?.isWait) return "wait";
-  if (def?.isRotate) return "rotate";
-  return null;
+  return item.kind === "wait" || item.kind === "rotate" ? item.kind : null;
 }
 
 /** A copy of a wait/rotate item with a new id and a name that doesn't clash. */
@@ -74,6 +67,7 @@ function insertAfter<T>(items: T[], index: number | null, item: T): T[] {
   return [...items.slice(0, index + 1), item, ...items.slice(index + 1)];
 }
 
+/** Ctrl+D: copies the selected wait, turn or path right after it. */
 export function duplicate(recordChange: (action?: string) => void) {
   if (isUIElementFocused()) return;
   const sel = get(selectedPointId);
@@ -83,56 +77,42 @@ export function duplicate(recordChange: (action?: string) => void) {
   const lines = get(linesStore);
   const info = parseSelectionId(sel);
 
+  let index: number | null;
   if (info.type === "wait" || info.type === "rotate") {
-    const item = findSequenceItem(sequence, info.id, info.type);
-    const insertIdx = getSelectedSequenceIndex();
-    if (!item || insertIdx === null) return;
-
-    const newItem = cloneSequenceItem(item, info.type, sequence);
-    sequenceStore.set(insertAfter(sequence, insertIdx, newItem));
-    selectedPointId.set(`${info.type}-${newItem.id}`);
-    recordChange("Duplicate Selection");
-    return;
+    index = getSelectedSequenceIndex();
+  } else {
+    const line = getTargetLine(sel, lines);
+    index = sequence.findIndex(
+      (s) => s.kind === "path" && s.lineId === line?.id,
+    );
   }
+  if (index === null || index < 0) return;
 
-  const originalLine = getTargetLine(sel, lines);
-  if (!originalLine) return;
-  const lineIndex = lines.indexOf(originalLine);
+  const { fieldWidth, fieldHeight } = get(settingsStore);
+  const result = duplicateStep(
+    { startPoint: get(startPointStore), lines, sequence },
+    index,
+    { width: fieldWidth ?? 144, height: fieldHeight ?? 144 },
+  );
+  if (!result) return;
 
-  // The copy makes the same move again, starting from where the original ends.
-  const start =
-    lineIndex > 0 ? lines[lineIndex - 1].endPoint : get(startPointStore);
-  const dx = originalLine.endPoint.x - start.x;
-  const dy = originalLine.endPoint.y - start.y;
-
-  const newLine = cloneLine(originalLine, lines);
-  for (const p of [newLine.endPoint, ...newLine.controlPoints]) {
-    p.x += dx;
-    p.y += dy;
+  linesStore.set(result.lines);
+  sequenceStore.set(result.sequence);
+  const { copy } = result;
+  if (copy.kind === "path") {
+    selectedLineId.set(copy.lineId);
+    const lineNum = result.lines.findIndex((l) => l.id === copy.lineId) + 1;
+    selectedPointId.set(`point-${lineNum}-0`);
+  } else if (copy.kind === "wait" || copy.kind === "rotate") {
+    selectedPointId.set(`${copy.kind}-${copy.id}`);
   }
-
-  linesStore.set(
-    renumberDefaultPathNames(insertAfter(lines, lineIndex, newLine)),
-  );
-
-  const seqIdx = sequence.findIndex(
-    (s) =>
-      actionRegistry.get(s.kind)?.isPath &&
-      (s as { lineId?: string }).lineId === originalLine.id,
-  );
-  sequenceStore.set(
-    insertAfter(sequence, seqIdx === -1 ? null : seqIdx, {
-      kind: "path",
-      lineId: newLine.id!,
-    }),
-  );
-
-  selectedLineId.set(newLine.id!);
-  selectedPointId.set(`point-${lineIndex + 2}-0`);
   recordChange("Duplicate Selection");
 }
 
-export function copy(activeControlTab: string, controlTabRef: any) {
+/** The tabs that copy their own content (code, table) instead of a selection. */
+type CopySource = { copyCode?: () => void; copyTable?: () => void } | null;
+
+export function copy(activeControlTab: string, controlTabRef?: CopySource) {
   if (isUIElementFocused()) return;
 
   // The code and table tabs copy their own contents instead.
@@ -167,7 +147,7 @@ export function copy(activeControlTab: string, controlTabRef: any) {
 
 export function cut(
   activeControlTab: string,
-  controlTabRef: any,
+  controlTabRef: CopySource | undefined,
   removeSelected: () => void,
 ) {
   if (isUIElementFocused()) return;
@@ -211,11 +191,9 @@ export function paste(recordChange: (action?: string) => void) {
   if (insertIdx !== null) {
     const pathBefore = sequence
       .slice(0, insertIdx + 1)
-      .findLast((s) => actionRegistry.get(s.kind)?.isPath);
+      .findLast((s) => s.kind === "path");
     lineIndex = pathBefore
-      ? lines.findIndex(
-          (l) => l.id === (pathBefore as { lineId?: string }).lineId,
-        )
+      ? lines.findIndex((l) => l.id === pathBefore.lineId)
       : -1;
   }
 

@@ -38,7 +38,7 @@ describe("shortcutActions", () => {
         copyCode: vi.fn(),
         copyTable: vi.fn(),
         downloadJava: vi.fn(),
-      },
+      } as unknown as ShortcutActionContext["controlTabRef"],
       getActiveControlTab: () => activeTab,
       setActiveControlTab: (t) => {
         activeTab = t;

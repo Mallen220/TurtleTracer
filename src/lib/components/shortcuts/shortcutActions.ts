@@ -1,5 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { get } from "svelte/store";
+import type ControlTab from "../../ControlTab.svelte";
+import type { Settings } from "../../../types";
 import {
   showGrid,
   snapToGrid,
@@ -107,13 +109,13 @@ export interface ShortcutActionContext {
   stepBackward: () => void;
   splitPath?: () => void;
   recordChange: (action?: string) => void;
-  controlTabRef?: any;
+  controlTabRef?: ControlTabInstance | null;
   getActiveControlTab: () => "path" | "field" | "table" | "code";
   setActiveControlTab: (tab: "path" | "field" | "table" | "code") => void;
   toggleStats?: () => void;
   toggleSidebar?: () => void;
   toggleControlTab?: () => void;
-  fieldRenderer?: any;
+  fieldRenderer?: { panToField?: (x: number, y: number) => void } | null;
   openWhatsNew?: () => void;
   toggleCommandPalette: () => void;
   closeCommandPalette: () => void;
@@ -122,6 +124,8 @@ export interface ShortcutActionContext {
   fetchFiles: () => void;
   isPlaying: () => boolean;
 }
+
+type ControlTabInstance = ReturnType<typeof ControlTab>;
 
 export type ActionHandler = (...args: any[]) => void;
 
@@ -428,7 +432,7 @@ export function buildActionHandlers(
     toggleDebugSequence: () =>
       settingsStore.update((s) => ({
         ...s,
-        showDebugSequence: !(s as any).showDebugSequence,
+        showDebugSequence: !s.showDebugSequence,
       })),
     toggleFieldBoundaries: () =>
       settingsStore.update((s) => ({
@@ -440,7 +444,8 @@ export function buildActionHandlers(
         ...s,
         restrictDraggingToField: !s.restrictDraggingToField,
       })),
-    setTheme: (theme: any) => settingsStore.update((s) => ({ ...s, theme })),
+    setTheme: (theme: Settings["theme"]) =>
+      settingsStore.update((s) => ({ ...s, theme })),
     setAutosave: (mode: any, interval?: any) => {
       if (mode === "never")
         settingsStore.update((s) => ({ ...s, autosaveMode: "never" }));
@@ -511,7 +516,7 @@ export function buildActionHandlers(
     cycleTheme: () => {
       settingsStore.update((s) => {
         const themes: ("light" | "dark" | "auto")[] = ["light", "dark", "auto"];
-        const currentIndex = themes.indexOf(s.theme as any);
+        const currentIndex = themes.indexOf(s.theme as (typeof themes)[number]);
         const nextIndex = (currentIndex + 1) % themes.length;
         return { ...s, theme: themes[nextIndex] };
       });

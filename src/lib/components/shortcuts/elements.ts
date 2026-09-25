@@ -1,153 +1,83 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { get } from "svelte/store";
-import {
-  linesStore,
-  sequenceStore,
-  renumberDefaultPathNames,
-} from "../../projectStore";
+import { linesStore, sequenceStore, startPointStore } from "../../projectStore";
 import { selectedLineId, selectedPointId } from "../../../stores";
-import { actionRegistry } from "../../actionRegistry";
-import type { Line, SequenceItem } from "../../../types/index";
+import type { EventMarker, InsertionContext } from "../../../types/index";
+import { insertPath } from "../../actions/PathAction";
+import { WaitAction } from "../../actions/WaitAction";
+import { RotateAction } from "../../actions/RotateAction";
+import { parseSelectionId, findSequenceItemIndex } from "./itemUtils";
 import random from "lodash/random";
-import { getRandomColor } from "../../../utils";
 import { getSelectedSequenceIndex } from "./utils";
 import { makeId } from "../../../utils/nameGenerator";
 
-export function addNewLine(recordChange: (action?: string) => void) {
-  const newLine: Line = {
-    id: makeId("line"),
-    name: "",
-    endPoint: {
-      x: random(36, 108),
-      y: random(36, 108),
-      heading: "tangential",
-      reverse: false,
-    },
-    controlPoints: [],
-    color: getRandomColor(),
-    locked: false,
-  };
+/**
+ * Inserts a new step right after the selected one (or at the end) and
+ * selects it.
+ */
+function insertStep(
+  label: string,
+  insert: (ctx: InsertionContext) => void,
+  recordChange: (action?: string) => void,
+) {
+  const sequence = [...get(sequenceStore)];
+  const lines = [...get(linesStore)];
+  const index = (getSelectedSequenceIndex() ?? sequence.length - 1) + 1;
+  insert({
+    index,
+    sequence,
+    lines,
+    startPoint: get(startPointStore),
+    triggerReactivity: () => {},
+  });
+  linesStore.set(lines);
+  sequenceStore.set(sequence);
 
-  const insertIdx = getSelectedSequenceIndex();
-  if (insertIdx === null) {
-    linesStore.update((l) => renumberDefaultPathNames([...l, newLine]));
-    sequenceStore.update((s) => [...s, { kind: "path", lineId: newLine.id! }]);
-    selectedLineId.set(newLine.id!);
-    const newIndex = get(linesStore).length - 1;
-    selectedPointId.set(`point-${newIndex + 1}-0`);
-  } else {
-    linesStore.update((l) => renumberDefaultPathNames([...l, newLine]));
-    sequenceStore.update((s) => {
-      const s2 = [...s];
-      s2.splice(insertIdx + 1, 0, { kind: "path", lineId: newLine.id! });
-      return s2;
-    });
-    selectedLineId.set(newLine.id!);
-    const newIndex = get(linesStore).length - 1;
-    selectedPointId.set(`point-${newIndex + 1}-0`);
+  const added = sequence[index];
+  if (added?.kind === "path") {
+    const lineNum = lines.findIndex((l) => l.id === added.lineId) + 1;
+    selectedLineId.set(added.lineId);
+    selectedPointId.set(`point-${lineNum}-0`);
+  } else if (added) {
+    selectedPointId.set(`${added.kind}-${added.id}`);
+    selectedLineId.set(null);
   }
-
-  recordChange("Add Path");
+  recordChange(`Add ${label}`);
 }
 
-export function addWait(recordChange: (action?: string) => void) {
-  const wait: SequenceItem = {
-    kind: "wait",
-    id: makeId(),
-    name: "",
-    durationMs: 1000,
-    locked: false,
-  };
+/** P: a new path to a random spot near the middle of the field. */
+export const addNewLine = (recordChange: (action?: string) => void) =>
+  insertStep(
+    "Path",
+    (ctx) =>
+      insertPath(ctx, () => ({ x: random(36, 108), y: random(36, 108) })),
+    recordChange,
+  );
+export const addWait = (recordChange: (action?: string) => void) =>
+  insertStep("Wait", (ctx) => WaitAction.onInsert?.(ctx), recordChange);
+export const addRotate = (recordChange: (action?: string) => void) =>
+  insertStep("Rotate", (ctx) => RotateAction.onInsert?.(ctx), recordChange);
 
-  const insertIdx = getSelectedSequenceIndex();
-  if (insertIdx === null) {
-    sequenceStore.update((s) => [...s, wait]);
-  } else {
-    sequenceStore.update((s) => {
-      const s2 = [...s];
-      s2.splice(insertIdx + 1, 0, wait);
-      return s2;
-    });
-  }
+const newMarker = (): EventMarker => ({
+  id: makeId("event"),
+  name: "",
+  position: 0.5,
+});
 
-  selectedPointId.set(`wait-${wait.id}`);
-  selectedLineId.set(null);
-  recordChange("Add Wait");
-}
-
-export function addRotate(recordChange: (action?: string) => void) {
-  const rotate: SequenceItem = {
-    kind: "rotate",
-    id: makeId(),
-    name: "",
-    degrees: 0,
-    locked: false,
-  };
-
-  const insertIdx = getSelectedSequenceIndex();
-  if (insertIdx === null) {
-    sequenceStore.update((s) => [...s, rotate]);
-  } else {
-    sequenceStore.update((s) => {
-      const s2 = [...s];
-      s2.splice(insertIdx + 1, 0, rotate);
-      return s2;
-    });
-  }
-
-  selectedPointId.set(`rotate-${rotate.id}`);
-  selectedLineId.set(null);
-  recordChange("Add Rotate");
-}
-
+/** Adds an event marker to the selected wait, turn or path. */
 export function addEventMarker(recordChange: (action?: string) => void) {
-  const selPoint = get(selectedPointId);
   const sequence = get(sequenceStore);
+  const selection = parseSelectionId(get(selectedPointId) ?? "");
 
-  if (selPoint?.startsWith("wait-")) {
-    const waitId = selPoint.slice(5);
-    const waitItem = sequence.find(
-      (s) => actionRegistry.get(s.kind)?.isWait && (s as any).id === waitId,
-    ) as any;
-
-    if (waitItem) {
-      if (waitItem.locked) return;
-      const newMarkers = [
-        ...(waitItem.eventMarkers || []),
-        {
-          id: `event-${Date.now()}`,
-          name: "",
-          position: 0.5,
-        },
-      ];
-      const itemIdx = sequence.findIndex((s) => (s as any).id === waitId);
-      if (itemIdx !== -1) {
-        sequence[itemIdx] = { ...waitItem, eventMarkers: newMarkers };
-        sequenceStore.set([...sequence]);
-        selectedPointId.set(`event-wait-${waitId}-${newMarkers.length - 1}`);
-        recordChange("Add Event Marker");
-      }
-      return;
-    }
-  }
-
-  if (selPoint?.startsWith("rotate-")) {
-    const rotateId = selPoint.slice(7);
-    const rotateItem = sequence.find(
-      (s) => actionRegistry.get(s.kind)?.isRotate && (s as any).id === rotateId,
-    ) as any;
-
-    if (rotateItem) {
-      if (rotateItem.locked) return;
-      rotateItem.eventMarkers = rotateItem.eventMarkers || [];
-      rotateItem.eventMarkers.push({
-        id: `event-${Date.now()}`,
-        name: "",
-        position: 0.5,
-      });
-      sequenceStore.set(sequence);
+  if (selection.type === "wait" || selection.type === "rotate") {
+    const index = findSequenceItemIndex(sequence, selection.id, selection.type);
+    const item = sequence[index];
+    if (item?.kind === "wait" || item?.kind === "rotate") {
+      if (item.locked) return;
+      const eventMarkers = [...(item.eventMarkers ?? []), newMarker()];
+      sequenceStore.set(sequence.with(index, { ...item, eventMarkers }));
       selectedPointId.set(
-        `event-rotate-${rotateId}-${rotateItem.eventMarkers.length - 1}`,
+        `event-${item.kind}-${item.id}-${eventMarkers.length - 1}`,
       );
       recordChange("Add Event Marker");
       return;
@@ -155,28 +85,15 @@ export function addEventMarker(recordChange: (action?: string) => void) {
   }
 
   const lines = get(linesStore);
-  const selLine = get(selectedLineId);
-  const targetId = selLine || lines.at(-1)?.id;
-  const targetLine = targetId ? lines.find((l) => l.id === targetId) : null;
+  const targetId = get(selectedLineId) || lines.at(-1)?.id;
+  const lineIdx = lines.findIndex((l) => l.id === targetId);
+  const line = lines[lineIdx];
+  if (!line || line.locked) return;
 
-  if (targetLine) {
-    if (targetLine.locked) return; // Don't allow adding event markers to locked lines
-    const newMarkers = [
-      ...(targetLine.eventMarkers || []),
-      {
-        id: `event-${Date.now()}`,
-        name: "",
-        position: 0.5,
-      },
-    ];
-    const lineIdx = lines.findIndex((l) => l.id === targetId);
-    if (lineIdx !== -1) {
-      lines[lineIdx] = { ...targetLine, eventMarkers: newMarkers };
-      linesStore.set([...lines]);
-      selectedPointId.set(`event-${lineIdx}-${newMarkers.length - 1}`);
-      recordChange("Add Event Marker");
-    }
-  }
+  const eventMarkers = [...(line.eventMarkers ?? []), newMarker()];
+  linesStore.set(lines.with(lineIdx, { ...line, eventMarkers }));
+  selectedPointId.set(`event-${lineIdx}-${eventMarkers.length - 1}`);
+  recordChange("Add Event Marker");
 }
 
 export function addControlPoint(recordChange: (action?: string) => void) {

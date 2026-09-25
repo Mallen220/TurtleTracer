@@ -22,6 +22,12 @@ vi.mock("../../projectStore", () => ({
   startPointStore: { subscribe: vi.fn(), set: vi.fn(), update: vi.fn() },
   linesStore: { subscribe: vi.fn(), set: vi.fn(), update: vi.fn() },
   sequenceStore: { subscribe: vi.fn(), set: vi.fn(), update: vi.fn() },
+  settingsStore: {
+    subscribe: (run: (value: object) => void) => {
+      run({ fieldWidth: 144, fieldHeight: 144 });
+      return () => {};
+    },
+  },
   renumberDefaultPathNames: vi.fn((lines) => lines),
 }));
 
