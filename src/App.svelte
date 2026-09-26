@@ -112,7 +112,7 @@
   import { scanEventsInDirectory } from "./utils/eventScanner";
   import { checkLibraryVersion } from "./utils/libraryVersionChecker";
   import { PluginManager } from "./lib/pluginManager";
-  import { isBrowser, getElectronAPI } from "./utils/platform";
+  import { isBrowser, getElectronAPI, diskPathOf } from "./utils/platform";
   import { themesStore } from "./lib/pluginsStore";
   import { registerCoreUI } from "./lib/coreRegistrations";
   import { componentRegistry } from "./lib/registries";
@@ -430,14 +430,7 @@
           return;
         }
 
-        let path = (file as any).path;
-        if (!path && api.getPathForFile) {
-          try {
-            path = api.getPathForFile(file);
-          } catch (e) {
-            console.warn("getPathForFile failed:", e);
-          }
-        }
+        const path = diskPathOf(file);
 
         if (!path) {
           alert(
@@ -648,7 +641,7 @@
           get(shapesStore),
           projectData,
           path,
-        ).catch((e: any) => {
+        ).catch((e) => {
           console.error("Auto-export during change failed", e);
         });
       }
@@ -899,7 +892,7 @@
     animationController?.seekToPercent(val);
   }
 
-  function handlePreviewChange(newLines: any) {
+  function handlePreviewChange(newLines: Line[] | null) {
     previewOptimizedLines = newLines;
   }
 
@@ -912,9 +905,6 @@
     const p = Math.max(0, percent - 1);
     percentStore.set(p);
     handleSeek(p);
-  }
-  function resetPlaybackSpeed() {
-    playbackSpeedStore.set(1);
   }
   function setPlaybackSpeed(val: number) {
     playbackSpeedStore.set(val);
@@ -1055,7 +1045,6 @@
   let startPoint = $derived($startPointStore);
   let lines = $derived($linesStore);
   let sequence = $derived($sequenceStore);
-  let macros = $derived($macrosStore);
   let percent = $derived($percentStore);
   let hoverPercent = $derived($hoverPercentStore);
   let playing = $derived($playingStore);
@@ -1126,7 +1115,6 @@
         lines,
         settings,
         sequence,
-        macros,
       );
       timePrediction = prediction;
       timePredictionStore.set(prediction);
@@ -1174,7 +1162,6 @@
           committed.lines,
           committed.settings,
           committed.sequence,
-          macros,
         )
       : null,
   );
@@ -1402,7 +1389,7 @@
   {fieldRenderer}
 />
 
-{#if $showExportGif && fieldRenderer}
+{#if $showExportGif && fieldRenderer && animationController}
   <ExportGifDialog
     bind:show={$showExportGif}
     twoInstance={fieldRenderer.getTwoInstance()}
@@ -1419,7 +1406,6 @@
         x,
         y,
       )}
-    {electronAPI}
     onclose={() => showExportGif.set(false)}
   />
 {/if}
@@ -1445,7 +1431,6 @@
         IDENTITY_SCALE,
       ).heading,
     }}
-    {electronAPI}
     onclose={() => showExportImage.set(false)}
   />
 {/if}
@@ -1510,14 +1495,7 @@
 <PluginManagerDialog bind:isOpen={$showPluginManager} />
 
 {#if $showFileManager}
-  <FileManager
-    bind:isOpen={$showFileManager}
-    bind:startPoint={$startPointStore}
-    bind:lines={$linesStore}
-    bind:shapes={$shapesStore}
-    bind:sequence={$sequenceStore}
-    bind:settings={$settingsStore}
-  />
+  <FileManager bind:isOpen={$showFileManager} bind:settings={$settingsStore} />
 {/if}
 
 <ExportCodeDialog
@@ -1708,8 +1686,6 @@
           bind:startPoint={$startPointStore}
           bind:lines={$linesStore}
           bind:sequence={$sequenceStore}
-          bind:robotLength
-          bind:robotWidth
           bind:settings={$settingsStore}
           bind:percent={$percentStore}
           bind:robotXY={$robotXYStore}
@@ -1717,10 +1693,8 @@
           bind:shapes={$shapesStore}
           {handleSeek}
           bind:loopAnimation={$loopAnimationStore}
-          {resetAnimation}
           {recordChange}
           playbackSpeed={$playbackSpeedStore}
-          {resetPlaybackSpeed}
           {setPlaybackSpeed}
           bind:statsOpen
           bind:activeTab={activeControlTab}
