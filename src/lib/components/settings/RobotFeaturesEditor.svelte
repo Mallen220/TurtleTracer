@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { makeId } from "../../../utils/nameGenerator";
   import type { Settings, RobotFeature } from "../../../types/index";
   import { PlusIcon, CloseIcon, EyeIcon, EyeSlashIcon } from "../icons";
   import ColorPicker from "../tools/ColorPicker.svelte";
@@ -19,7 +20,7 @@
 
   function addFeature(type: RobotFeature["type"]) {
     const newFeature: RobotFeature = {
-      id: `feature-${Math.random().toString(36).slice(2)}`,
+      id: makeId("feature"),
       name: `New ${type}`,
       type,
       x: 0,

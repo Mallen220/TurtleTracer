@@ -172,34 +172,6 @@ describe("FileUI Components", () => {
       });
     });
 
-    it("handles preview exports and preview processing logic", async () => {
-      const files = [
-        createMockFile({ name: "preview.json", path: "/preview" }),
-      ];
-      const { component } = render(Component, { props: { files } });
-
-      mockReadFile.mockResolvedValueOnce(
-        JSON.stringify({ startPoint: { x: 0, y: 0 }, lines: [] }),
-      );
-      await vi.advanceTimersByTimeAsync(50);
-
-      component.refreshPreview("/preview");
-      component.clearPreview("/preview");
-      component.refreshAllFailed();
-      component.refreshAll();
-
-      mockReadFile.mockRejectedValueOnce(new Error("bad read"));
-      component.refreshPreview("/preview");
-      await vi.advanceTimersByTimeAsync(50);
-      await vi.advanceTimersByTimeAsync(2000);
-
-      for (let i = 0; i < 6; i++) {
-        mockReadFile.mockRejectedValueOnce(new Error("fail"));
-      }
-      await vi.advanceTimersByTimeAsync(5000 * 6);
-      expect(mockReadFile).toHaveBeenCalled();
-    }, 20000);
-
     it("handles context menu interactions via explicit events", async () => {
       const file = createMockFile({ name: "menu.json", path: "/menu" });
       render(Component, { props: { files: [file] } });

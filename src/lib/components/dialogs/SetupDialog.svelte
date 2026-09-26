@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { getElectronAPI } from "../../../utils/platform";
   import { saveAutoPathsDirectory } from "../../../utils/directorySettings";
   import { RocketIcon, FolderIcon } from "../icons";
 
@@ -11,7 +12,7 @@
   let { show = $bindable(false), onsetupComplete }: Props = $props();
 
   async function selectDirectory() {
-    const electronAPI = (globalThis as any).electronAPI;
+    const electronAPI = getElectronAPI();
     if (electronAPI && electronAPI.setDirectory) {
       try {
         const selected = await electronAPI.setDirectory();

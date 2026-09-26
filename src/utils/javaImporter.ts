@@ -1,4 +1,11 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+// Imports paths from a Pedro Pathing Java file (such as one exported by this
+// app). This is a best-effort reader, not a Java interpreter: it recognises
+// the common ways of writing poses, paths, headings, waits and turns.
+//
+// Tokens come from java-parser's syntax tree. Identifiers, numbers and
+// brackets are in source order, but commas are often moved to the end of an
+// argument list, so commas are ignored everywhere below.
 import { parse } from "java-parser";
 import { getRandomColor } from "./draw";
 import { makeId } from "./nameGenerator";
@@ -8,128 +15,344 @@ import type {
   Point,
   Line,
   SequenceItem,
-  Shape,
-  ControlPoint,
+  EventMarker,
 } from "../types";
+
+const IDENTIFIER = /^[a-zA-Z_]\w*$/;
 
 const toDegrees = (rad: number) => (rad * 180) / Math.PI;
 
-function parsePoseCreation(tokens: string[]): Partial<Point> | null {
-  const argsStart = tokens.indexOf("(");
-  // Find matching closing paren
-  let argsEnd = -1;
+const defaultStartPoint = (): Point => ({
+  x: 0,
+  y: 0,
+  heading: "linear",
+  startDeg: 0,
+  endDeg: 0,
+});
+
+/** Index of the ")" that closes the "(" at `open`, or -1. */
+function findClosingParen(tokens: string[], open: number): number {
   let depth = 0;
-  for (let i = argsStart; i < tokens.length; i++) {
+  for (let i = open; i < tokens.length; i++) {
     if (tokens[i] === "(") depth++;
     if (tokens[i] === ")") depth--;
-    if (depth === 0 && i > argsStart) {
-      argsEnd = i;
-      break;
-    }
+    if (depth === 0) return i;
   }
+  return -1;
+}
 
-  if (argsStart === -1 || argsEnd === -1) return null;
+/** The tokens inside the first parenthesised group at or after `from`. */
+function argsAfter(tokens: string[], from = 0): string[] {
+  const open = tokens.indexOf("(", from);
+  if (open === -1) return [];
+  const close = findClosingParen(tokens, open);
+  return close === -1 ? [] : tokens.slice(open + 1, close);
+}
 
-  const argsTokens = tokens.slice(argsStart + 1, argsEnd);
+type Arg =
+  | { kind: "number"; value: number } // a plain literal
+  | { kind: "degrees"; value: number } // x from Math.toRadians(x)
+  | { kind: "headingOf"; pose: string } // pose.getHeading()
+  | { kind: "name"; name: string };
 
-  // Group tokens by semantic boundaries. The Java Parser puts commas at the END of the parameter list often (due to AST structure)
-  // Example tokens: [ '56.000', '8.000', 'Math', '.', 'toRadians', '(', '180.000', ')', ',', ',' ]
-  let currentGroup: string[] = [];
-  for (let i = 0; i < argsTokens.length; i++) {
-    const t = argsTokens[i];
+/** Reads the values in an argument list, skipping anything unrecognised. */
+function readArgs(tokens: string[]): Arg[] {
+  const args: Arg[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
 
-    // We can just ignore commas, and rely on number/Math parsing to group things
-    if (t !== ",") {
-      currentGroup.push(t);
-    }
-  }
-
-  // Now process the single list of meaningful tokens
-  const parsedArgs = [];
-  for (let i = 0; i < currentGroup.length; i++) {
-    const t = currentGroup[i];
     if (
       t === "Math" &&
-      currentGroup[i + 1] === "." &&
-      currentGroup[i + 2] === "toRadians"
+      tokens[i + 1] === "." &&
+      tokens[i + 2] === "toRadians"
     ) {
-      const parenStart = currentGroup.indexOf("(", i);
-      const parenEnd = currentGroup.indexOf(")", parenStart);
-      if (parenStart !== -1 && parenEnd !== -1) {
-        const numStr = currentGroup.slice(parenStart + 1, parenEnd).join("");
-        const num = Number.parseFloat(numStr);
-        parsedArgs.push({ value: num, isRadians: true });
-        i += parenEnd - i; // skip ahead
-      }
-    } else {
-      // Check if it's a number
-      // Sometimes negative numbers are split: "-", "9.0"
-      let numStr = t;
-      let offset = 0;
-      if (t === "-" && i + 1 < currentGroup.length) {
-        numStr += currentGroup[i + 1];
-        offset = 1;
-      }
-      if (!Number.isNaN(Number.parseFloat(numStr))) {
-        parsedArgs.push({ value: Number.parseFloat(numStr), isRadians: false });
-        i += offset;
-      } else if (/^[a-zA-Z_]\w*$/.test(t)) {
-        parsedArgs.push({ value: t, isRadians: false, isIdentifier: true });
-      }
+      const close = findClosingParen(tokens, i + 3);
+      if (close === -1) break;
+      const value = Number.parseFloat(tokens.slice(i + 4, close).join(""));
+      if (Number.isFinite(value)) args.push({ kind: "degrees", value });
+      i = close;
+    } else if (
+      IDENTIFIER.test(t) &&
+      tokens[i + 1] === "." &&
+      tokens[i + 2] === "getHeading"
+    ) {
+      args.push({ kind: "headingOf", pose: t });
+      i += 4; // skip ". getHeading ( )"
+    } else if (Number.isFinite(Number.parseFloat(t))) {
+      args.push({ kind: "number", value: Number.parseFloat(t) });
+    } else if (t === "-" && Number.isFinite(Number.parseFloat(tokens[i + 1]))) {
+      args.push({ kind: "number", value: -Number.parseFloat(tokens[i + 1]) });
+      i++;
+    } else if (IDENTIFIER.test(t)) {
+      args.push({ kind: "name", name: t });
     }
   }
+  return args;
+}
 
-  // If the args are just a single identifier (e.g., `new Point(startPose)`)
-  // We can't fully parse it here without the `points` map.
-  // We'll return it as a special case and let the caller resolve it.
-  if (parsedArgs.length === 1 && parsedArgs[0].isIdentifier) {
-    return { identifier: parsedArgs[0].value } as any;
+/** The heading a pose was declared with, in degrees. */
+function headingOfPose(pose: Point | undefined): number | null {
+  return pose?.degrees ?? pose?.startDeg ?? null;
+}
+
+/** Converts an argument to degrees. Plain numbers are radians, as in Pedro Pathing. */
+function toAngle(arg: Arg, points: Map<string, Point>): number | null {
+  switch (arg.kind) {
+    case "degrees":
+      return arg.value;
+    case "number":
+      return toDegrees(arg.value);
+    case "headingOf":
+      return headingOfPose(points.get(arg.pose)) ?? 0;
+    default:
+      return null;
+  }
+}
+
+function readAngles(tokens: string[], points: Map<string, Point>): number[] {
+  return readArgs(tokens)
+    .map((arg) => toAngle(arg, points))
+    .filter((a): a is number => a !== null);
+}
+
+/**
+ * Parses the first `(...)` in `tokens` as pose arguments: `(x, y)`,
+ * `(x, y, heading)` or `(otherPose)`. Returns null if it isn't one.
+ */
+function parsePose(tokens: string[], points: Map<string, Point>): Point | null {
+  const args = readArgs(argsAfter(tokens));
+  const [xArg, yArg, headingArg] = args.filter((a) => a.kind !== "name");
+
+  if (xArg && yArg && "value" in xArg && "value" in yArg) {
+    const pose = { x: xArg.value, y: yArg.value } as Point;
+    const degrees = headingArg ? toAngle(headingArg, points) : null;
+    return degrees === null
+      ? pose
+      : ({ ...pose, heading: "constant", degrees } as Point);
   }
 
-  const nums = parsedArgs.filter((a) => !a.isIdentifier).map((a) => a);
-
-  if (nums.length >= 2) {
-    const pt: Partial<Point> = {
-      x: nums[0].value as number,
-      y: nums[1].value as number,
-    };
-    if (nums.length >= 3) {
-      const h = nums[2];
-      pt.heading = "constant";
-      pt.degrees = h.isRadians
-        ? (h.value as number)
-        : toDegrees(h.value as number);
-    }
-    return pt;
-  }
-
-  if (parsedArgs.length === 1 && !parsedArgs[0].isIdentifier) {
-    return {
-      x: parsedArgs[0].isRadians
-        ? (parsedArgs[0].value as number)
-        : toDegrees(parsedArgs[0].value as number),
-    };
+  if (args.length === 1 && args[0].kind === "name") {
+    const ref = points.get(args[0].name);
+    return ref ? { ...ref } : null;
   }
   return null;
 }
 
-export function resolveHeading(
-  val: Partial<Point> | null,
-  pointsMap: Map<string, Point>,
-): number | null {
-  if (!val) return null;
-  if ((val as any).isHeadingCall && (val as any).identifier) {
-    const ref = pointsMap.get((val as any).identifier);
-    if (ref && (ref as any).degrees !== undefined) {
-      return (ref as any).degrees; // stored in degrees
-    } else if (ref && (ref as any).startDeg !== undefined) {
-      return (ref as any).startDeg;
-    }
-    return 0;
-  } else if (val.x !== undefined && val.y === undefined) {
-    return val.x; // Single parsed numeric value returned as x
+const createsPose = (tokens: string[]) =>
+  tokens.includes("new") &&
+  (tokens.includes("Pose") || tokens.includes("Point"));
+
+/** Records `name = new Pose(...)` style assignments in `points`. */
+function recordPoseAssignment(tokens: string[], points: Map<string, Point>) {
+  const eqIdx = tokens.indexOf("=");
+  if (eqIdx === -1) return;
+  const name = tokens[0];
+  const value = tokens.slice(eqIdx + 1);
+
+  if (createsPose(value)) {
+    const pose = parsePose(value, points);
+    if (pose) points.set(name, pose);
+  } else if (value.includes("pp") && value.includes("get")) {
+    // pp.get("name") loads a pose at runtime; we can't know where it is.
+    points.set(name, defaultStartPoint());
   }
-  return null;
+}
+
+/**
+ * Splits the arguments of `new BezierLine(...)` / `new BezierCurve(...)`
+ * into one token list per point: either a single name or a `new Pose(...)`.
+ */
+function splitBezierArgs(tokens: string[]): string[][] {
+  const args: string[][] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i] === ",") continue;
+    if (tokens[i] !== "new") {
+      args.push([tokens[i]]);
+      continue;
+    }
+    const close = findClosingParen(tokens, tokens.indexOf("(", i));
+    if (close === -1) break;
+    args.push(tokens.slice(i, close + 1).filter((t) => t !== ","));
+    i = close;
+  }
+  return args;
+}
+
+const nameIn = (tokens: string[]) =>
+  tokens.find(
+    (t) => t !== "new" && t !== "Pose" && t !== "Point" && IDENTIFIER.test(t),
+  );
+
+function resolvePathPoint(
+  argTokens: string[],
+  points: Map<string, Point>,
+): Point | null {
+  if (createsPose(argTokens)) {
+    return parsePose(argTokens, points) ?? ({ x: 0, y: 0 } as Point);
+  }
+  const name = nameIn(argTokens);
+  if (!name) return null;
+  return points.get(name) ?? ({ x: 0, y: 0 } as Point);
+}
+
+/** Index of `method`, or of `HeadingInterpolator` if it's used with `variant`. */
+function findHeadingCall(
+  tokens: string[],
+  method: string,
+  variant: string,
+): number {
+  if (tokens.includes(method)) return tokens.indexOf(method);
+  if (tokens.includes("HeadingInterpolator") && tokens.includes(variant)) {
+    return tokens.indexOf("HeadingInterpolator");
+  }
+  return -1;
+}
+
+/** Works out the heading mode of a path from its builder calls. */
+function readHeading(
+  pathTokens: string[],
+  endPoint: Point,
+  points: Map<string, Point>,
+): Point {
+  const base = { ...endPoint };
+
+  const linearAt = findHeadingCall(
+    pathTokens,
+    "setLinearHeadingInterpolation",
+    "linear",
+  );
+  if (linearAt !== -1) {
+    const [startDeg = 0, endDeg = 0] = readAngles(
+      argsAfter(pathTokens, linearAt),
+      points,
+    );
+    return { ...base, heading: "linear", startDeg, endDeg } as Point;
+  }
+
+  if (
+    findHeadingCall(pathTokens, "setTangentHeadingInterpolation", "tangent") !==
+    -1
+  ) {
+    return { ...base, heading: "tangential" } as Point;
+  }
+
+  const constantAt = findHeadingCall(
+    pathTokens,
+    "setConstantHeadingInterpolation",
+    "constant",
+  );
+  if (constantAt !== -1) {
+    const [degrees = 0] = readAngles(argsAfter(pathTokens, constantAt), points);
+    return { ...base, heading: "constant", degrees } as Point;
+  }
+
+  const facingAt = pathTokens.indexOf("facingPoint");
+  if (facingAt !== -1) {
+    const target = parsePose(pathTokens.slice(facingAt), points);
+    return {
+      ...base,
+      heading: "facingPoint",
+      targetX: target?.x ?? 0,
+      targetY: target?.y ?? 0,
+    } as Point;
+  }
+
+  return base;
+}
+
+/** `addEventMarker(0.5, "Name")` calls in a path's builder chain. */
+function readEventMarkers(pathTokens: string[]): EventMarker[] {
+  const markers: EventMarker[] = [];
+  pathTokens.forEach((t, i) => {
+    if (t !== "addEventMarker") return;
+    const args = argsAfter(pathTokens, i);
+    const position = args.find((a) => Number.isFinite(Number.parseFloat(a)));
+    const name = args.find((a) => a.includes('"'));
+    if (position && name) {
+      markers.push({
+        id: makeId(),
+        name: name.replaceAll('"', ""),
+        position: Number.parseFloat(position),
+      });
+    }
+  });
+  return markers;
+}
+
+/** Turns one `x = follower.pathBuilder().addPath(...)...build()` statement into lines. */
+function readPathChain(
+  tokens: string[],
+  points: Map<string, Point>,
+  lineCount: number,
+): Line[] {
+  const chainName = tokens.includes("=") ? tokens[0] : `Path ${lineCount + 1}`;
+
+  const addPathAt = tokens.flatMap((t, i) => (t === "addPath" ? [i] : []));
+  const lines: Line[] = [];
+
+  addPathAt.forEach((start, pathIdx) => {
+    const pathTokens = tokens.slice(start, addPathAt[pathIdx + 1]);
+    const curveAt = pathTokens.findIndex(
+      (t) => t === "BezierLine" || t === "BezierCurve",
+    );
+    if (curveAt === -1) return;
+
+    const args = splitBezierArgs(argsAfter(pathTokens, curveAt));
+    const pathPoints = args
+      .map((arg) => resolvePathPoint(arg, points))
+      .filter((p): p is Point => p !== null);
+    if (pathPoints.length < 2) return;
+
+    // Name the line after its end pose's variable when there is one.
+    const defaultName =
+      addPathAt.length > 1 ? `${chainName} - ${pathIdx + 1}` : chainName;
+    const name =
+      (args.length > 1 ? nameIn(args.at(-1)!) : undefined) ?? defaultName;
+
+    const endPoint = readHeading(pathTokens, { ...pathPoints.at(-1)! }, points);
+    endPoint.reverse = pathTokens.includes("setReversed");
+
+    lines.push({
+      id: makeId(),
+      name,
+      startPoint: pathPoints[0],
+      endPoint,
+      controlPoints: pathPoints.slice(1, -1).map(({ x, y }) => ({ x, y })),
+      color: getRandomColor(),
+      isChain: pathIdx > 0,
+      eventMarkers: readEventMarkers(pathTokens),
+    });
+  });
+
+  return lines;
+}
+
+/** Milliseconds for `new WaitCommand(ms)` or `new Delay(seconds)`, else null. */
+function readWait(tokens: string[]): number | null {
+  if (tokens[0] !== "new") return null;
+  const type = tokens[1];
+  if (type !== "WaitCommand" && type !== "Delay") return null;
+
+  const value = Number.parseFloat(argsAfter(tokens).join(""));
+  if (!Number.isFinite(value)) return null;
+  // WaitCommand takes milliseconds. Delay takes seconds, but small numbers
+  // are the only reliable sign of that, since people also pass milliseconds.
+  return Math.round(type === "Delay" && value < 100 ? value * 1000 : value);
+}
+
+/** Heading in degrees for a `() -> follower.turnTo(...)` lambda, else null. */
+function readTurn(tokens: string[], points: Map<string, Point>): number | null {
+  const isZeroArgLambda = tokens[0] === "(" && tokens[2] === "->";
+  if (
+    !isZeroArgLambda ||
+    !tokens.includes("follower") ||
+    tokens.includes("WaitUntilCommand")
+  ) {
+    return null;
+  }
+  const turnAt = tokens.indexOf("turnTo");
+  if (turnAt === -1 || tokens[turnAt - 1] === "!") return null;
+  return readAngles(argsAfter(tokens, turnAt), points)[0] ?? 0;
 }
 
 export function importJavaProject(javaCode: string): TurtleData {
@@ -139,7 +362,7 @@ export function importJavaProject(javaCode: string): TurtleData {
   } catch (e) {
     console.error("Failed to parse Java code:", e);
     return {
-      startPoint: { x: 0, y: 0, heading: "linear", startDeg: 0, endDeg: 0 },
+      startPoint: defaultStartPoint(),
       lines: [],
       sequence: [],
       shapes: [],
@@ -147,558 +370,82 @@ export function importJavaProject(javaCode: string): TurtleData {
   }
 
   const points = new Map<string, Point>();
-  let startPoint: Point | null = null;
-  const lines: Line[] = [];
-  const sequence: SequenceItem[] = [];
-  const tempSequence: SequenceItem[] = [];
-  const shapes: Shape[] = [];
+  // Assigned inside the AST callbacks below.
+  let startPoint = null as Point | null;
 
-  // Parse fields/variables
+  // Pass 1: named poses and the starting pose.
   walkAST(ast, {
     variableDeclarator: (node) => {
-      const tokens = extractTokens(node);
-      const name = tokens[0];
-      const eqIdx = tokens.indexOf("=");
-      if (eqIdx !== -1) {
-        const valTokens = tokens.slice(eqIdx + 1);
-        if (
-          valTokens.includes("new") &&
-          (valTokens.includes("Pose") || valTokens.includes("Point"))
-        ) {
-          const pt = parsePoseCreation(valTokens);
-          if (pt) points.set(name, pt as Point);
-        }
-      }
+      recordPoseAssignment(extractTokens(node), points);
     },
     statementExpression: (node) => {
       const tokens = extractTokens(node);
-      // Look for: startPoint = pp.get("startPoint") or startPose = new Pose(...)
-      const eqIdx = tokens.indexOf("=");
-      if (eqIdx !== -1) {
-        const name = tokens[0]; // simplistic but mostly works
-        const valTokens = tokens.slice(eqIdx + 1);
-        if (
-          valTokens.includes("new") &&
-          (valTokens.includes("Pose") || valTokens.includes("Point"))
-        ) {
-          const pt = parsePoseCreation(valTokens);
-          if (pt) points.set(name, pt as Point);
-        } else if (valTokens.includes("pp") && valTokens.includes("get")) {
-          // Fallback for pp.get("name") - we can't get coords, just dummy
-          points.set(name, {
-            x: 0,
-            y: 0,
-            heading: "linear",
-            startDeg: 0,
-            endDeg: 0,
-          });
-        }
-      }
+      recordPoseAssignment(tokens, points);
 
-      // Look for follower.setStartingPose(...)
       if (tokens.includes("setStartingPose")) {
-        if (
-          tokens.includes("new") &&
-          (tokens.includes("Pose") || tokens.includes("Point"))
-        ) {
-          const pt = parsePoseCreation(tokens);
-          if (pt) startPoint = { ...pt, locked: false } as Point;
-        } else {
-          const startParen = tokens.indexOf("(");
-          if (startParen !== -1) {
-            const varName = tokens[startParen + 1];
-            if (points.has(varName)) {
-              startPoint = { ...points.get(varName)!, locked: false } as Point;
-            }
-          }
-        }
+        const pose = createsPose(tokens)
+          ? parsePose(tokens, points)
+          : points.get(argsAfter(tokens, tokens.indexOf("setStartingPose"))[0]);
+        if (pose) startPoint = { ...pose, locked: false };
       }
     },
   });
 
-  // Parse path constructions
+  // Pass 2: path chains.
+  const lines: Line[] = [];
   walkAST(ast, {
     statementExpression: (node) => {
       const tokens = extractTokens(node);
-
-      if (
+      const isPathChain =
         (tokens.includes("pathBuilder") || tokens.includes("addPath")) &&
-        tokens.includes("build")
-      ) {
-        const eqIdx = tokens.indexOf("=");
-        const pathName = eqIdx === -1 ? `Path ${lines.length + 1}` : tokens[0];
-
-        // Find all addPath occurrences in this builder chain
-        const addPathIndices: number[] = [];
-        for (let i = 0; i < tokens.length; i++) {
-          if (tokens[i] === "addPath") {
-            addPathIndices.push(i);
-          }
-        }
-
-        // Process each path in the chain
-        for (let pathIdx = 0; pathIdx < addPathIndices.length; pathIdx++) {
-          const startTokenIdx = addPathIndices[pathIdx];
-          const endTokenIdx =
-            pathIdx < addPathIndices.length - 1
-              ? addPathIndices[pathIdx + 1]
-              : tokens.length;
-          const pathTokens = tokens.slice(startTokenIdx, endTokenIdx);
-
-          const pathTypeIdx = pathTokens.findIndex(
-            (t) => t === "BezierLine" || t === "BezierCurve",
-          );
-
-          if (pathTypeIdx !== -1) {
-            // Find the balanced parentheses for the Bezier function
-            let argsStart = -1;
-            for (let i = pathTypeIdx; i < pathTokens.length; i++) {
-              if (pathTokens[i] === "(") {
-                argsStart = i;
-                break;
-              }
-            }
-
-            if (argsStart === -1) continue;
-
-            let pcount = 0;
-            let argsEnd = argsStart;
-            for (let i = argsStart; i < pathTokens.length; i++) {
-              if (pathTokens[i] === "(") pcount++;
-              if (pathTokens[i] === ")") pcount--;
-              if (pcount === 0 && i > argsStart) {
-                argsEnd = i;
-                break;
-              }
-            }
-
-            const innerTokens = pathTokens.slice(argsStart + 1, argsEnd);
-
-            // Split args
-            // Wait, the commas might be at the end, due to how tokens are extracted (like Postorder).
-            // But looking at the AST, the tokens might be grouped or commas might be just next to identifiers.
-            // Let's just collect identifiers and 'new' poses
-            // The Java parser token output puts identifiers next to each other and commas at the end.
-            // For example: `[ 'startPoint', 'OuttakePreload', ',' ]` or `[ 'startPoint', 'OuttakePreload', ',', 'OuttakeThree', ',', ',' ]`
-            // Let's filter out commas and just find valid point identifiers or new Poses
-            const args: string[][] = [];
-            let currentArgTokens: string[] = [];
-            let inNewPose = false;
-            for (let i = 0; i < innerTokens.length; i++) {
-              const t = innerTokens[i];
-              if (t === ",") continue;
-
-              if (t === "new") {
-                inNewPose = true;
-                currentArgTokens.push(t);
-              } else if (inNewPose) {
-                currentArgTokens.push(t);
-                // keep reading until closing paren for this pose
-                // we'll count parens locally
-                let pcount = 0;
-                let startedParens = false;
-                for (let j = i; j < innerTokens.length; j++) {
-                  const jt = innerTokens[j];
-                  if (jt === ",") continue;
-                  if (j !== i) currentArgTokens.push(jt);
-
-                  if (jt === "(") {
-                    startedParens = true;
-                    pcount++;
-                  }
-                  if (jt === ")") pcount--;
-                  if (startedParens && pcount === 0) {
-                    args.push([...currentArgTokens]);
-                    currentArgTokens = [];
-                    inNewPose = false;
-                    i += j - i; // skip ahead to the end of the pose
-                    break;
-                  }
-                }
-              } else {
-                // just an identifier
-                args.push([t]);
-              }
-            }
-
-            const pathPoints: Point[] = [];
-
-            for (const argToks of args) {
-              if (
-                argToks.includes("new") &&
-                (argToks.includes("Pose") || argToks.includes("Point"))
-              ) {
-                const pt = parsePoseCreation(argToks);
-                if (pt) {
-                  if ((pt as any).identifier) {
-                    const ref = points.get((pt as any).identifier);
-                    if (ref) pathPoints.push({ ...ref });
-                    else pathPoints.push({ x: 0, y: 0 } as Point);
-                  } else {
-                    pathPoints.push(pt as Point);
-                  }
-                } else {
-                  pathPoints.push({ x: 0, y: 0 } as Point);
-                }
-              } else {
-                const name = argToks.find(
-                  (t) =>
-                    t !== "new" &&
-                    t !== "Pose" &&
-                    t !== "Point" &&
-                    /^[a-zA-Z_]\w*$/.test(t),
-                );
-                if (name && points.has(name)) {
-                  pathPoints.push(points.get(name)!);
-                } else if (name) {
-                  pathPoints.push({ x: 0, y: 0 } as Point); // Unknown point
-                }
-              }
-            }
-
-            if (pathPoints.length >= 2) {
-              const startPt = pathPoints[0];
-              const endPt = pathPoints.at(-1);
-              const controlPts: ControlPoint[] = pathPoints
-                .slice(1, -1)
-                .map((p) => ({ x: p.x, y: p.y }));
-
-              // To map the name properly: Look for the name of the end point if possible
-              // In addPath(new BezierLine(start, end)), 'end' is the last identifier.
-              // Let's find what the last identifier string was from our argument parsing
-              let pointName =
-                addPathIndices.length > 1
-                  ? `${pathName} - ${pathIdx + 1}`
-                  : pathName;
-              if (args.length > 1) {
-                const lastArgToks = args.at(-1);
-                const pName = lastArgToks.find(
-                  (t) =>
-                    t !== "new" &&
-                    t !== "Pose" &&
-                    t !== "Point" &&
-                    /^[a-zA-Z_]\w*$/.test(t),
-                );
-                if (pName) {
-                  pointName = pName;
-                }
-              }
-
-              const lineId = makeId();
-              const line: Line = {
-                id: lineId,
-                name: pointName,
-                startPoint: startPt,
-                endPoint: { ...endPt }, // Clone to allow modifying heading just for this line
-                controlPoints: controlPts,
-                color: getRandomColor(),
-                isChain: pathIdx > 0,
-                eventMarkers: [],
-              };
-
-              if (
-                pathTokens.includes("setLinearHeadingInterpolation") ||
-                (pathTokens.includes("HeadingInterpolator") &&
-                  pathTokens.includes("linear"))
-              ) {
-                line.endPoint.heading = "linear";
-                const hIdx = pathTokens.includes(
-                  "setLinearHeadingInterpolation",
-                )
-                  ? pathTokens.indexOf("setLinearHeadingInterpolation")
-                  : pathTokens.indexOf("HeadingInterpolator");
-                const argsTokens = pathTokens.slice(hIdx);
-                const extracted = parsePoseCreation(argsTokens);
-
-                if (extracted && (extracted as any).x !== undefined) {
-                  (line.endPoint as any).startDeg = extracted.x;
-                  (line.endPoint as any).endDeg = extracted.y;
-                } else {
-                  (line.endPoint as any).startDeg = 0;
-                  (line.endPoint as any).endDeg = 0;
-                }
-              } else if (
-                pathTokens.includes("setTangentHeadingInterpolation") ||
-                (pathTokens.includes("HeadingInterpolator") &&
-                  pathTokens.includes("tangent"))
-              ) {
-                line.endPoint.heading = "tangential";
-              } else if (
-                pathTokens.includes("setConstantHeadingInterpolation") ||
-                (pathTokens.includes("HeadingInterpolator") &&
-                  pathTokens.includes("constant"))
-              ) {
-                line.endPoint.heading = "constant";
-                const hIdx = pathTokens.includes(
-                  "setConstantHeadingInterpolation",
-                )
-                  ? pathTokens.indexOf("setConstantHeadingInterpolation")
-                  : pathTokens.indexOf("HeadingInterpolator");
-
-                const pStart = pathTokens.indexOf("(", hIdx);
-                let pEnd = pStart;
-                let overallDepth = 0;
-                for (let i = pStart; i < pathTokens.length; i++) {
-                  if (pathTokens[i] === "(") overallDepth++;
-                  if (pathTokens[i] === ")") overallDepth--;
-                  if (overallDepth === 0 && i > pStart) {
-                    pEnd = i;
-                    break;
-                  }
-                }
-                const argsTokens = pathTokens.slice(pStart, pEnd + 1);
-
-                const extracted = parsePoseCreation(argsTokens);
-
-                if (
-                  extracted &&
-                  (extracted as any).x !== undefined &&
-                  (extracted as any).y === undefined
-                ) {
-                  (line.endPoint as any).degrees = extracted.x;
-                } else {
-                  const ext = resolveHeading(extracted, points);
-                  (line.endPoint as any).degrees = ext === null ? 0 : ext;
-                }
-              } else if (
-                pathTokens.includes("facingPoint") ||
-                (pathTokens.includes("HeadingInterpolator") &&
-                  pathTokens.includes("facingPoint"))
-              ) {
-                line.endPoint.heading = "facingPoint";
-                const hIdx = pathTokens.indexOf("facingPoint");
-
-                const pStart = pathTokens.indexOf("(", hIdx);
-                let pEnd = pStart;
-                let overallDepth = 0;
-                for (let i = pStart; i < pathTokens.length; i++) {
-                  if (pathTokens[i] === "(") overallDepth++;
-                  if (pathTokens[i] === ")") overallDepth--;
-                  if (overallDepth === 0 && i > pStart) {
-                    pEnd = i;
-                    break;
-                  }
-                }
-                const argsTokens = pathTokens.slice(pStart, pEnd + 1);
-
-                const extracted = parsePoseCreation(argsTokens);
-
-                if (
-                  extracted &&
-                  (extracted as any).x !== undefined &&
-                  (extracted as any).y !== undefined
-                ) {
-                  (line.endPoint as any).targetX = extracted.x;
-                  (line.endPoint as any).targetY = extracted.y;
-                } else {
-                  (line.endPoint as any).targetX = 0;
-                  (line.endPoint as any).targetY = 0;
-                }
-              }
-
-              // Find event markers
-              const markerIndices = [];
-              for (let i = 0; i < pathTokens.length; i++) {
-                if (pathTokens[i] === "addEventMarker") markerIndices.push(i);
-              }
-
-              markerIndices.forEach((idx) => {
-                const tStart = pathTokens.indexOf("(", idx);
-                if (tStart === -1) return;
-
-                let pcount = 0;
-                let tEnd = tStart;
-                for (let i = tStart; i < pathTokens.length; i++) {
-                  if (pathTokens[i] === "(") pcount++;
-                  if (pathTokens[i] === ")") pcount--;
-                  if (pcount === 0 && i > tStart) {
-                    tEnd = i;
-                    break;
-                  }
-                }
-
-                const mToks = pathTokens.slice(tStart + 1, tEnd);
-                // mToks should look like [ '1.000', '"ShootCenter"', ',' ] or similar
-                const numStr = mToks.find(
-                  (t) => !Number.isNaN(Number.parseFloat(t)),
-                );
-                const strTok = mToks.find((t) => t.includes('"'));
-
-                if (numStr && strTok) {
-                  line.eventMarkers!.push({
-                    id: makeId(),
-                    name: strTok.replaceAll(`"`, ""),
-                    position: Number.parseFloat(numStr),
-                  });
-                }
-              });
-
-              const isReversed = pathTokens.includes("setReversed");
-              (line.endPoint as any).reverse = isReversed;
-
-              lines.push(line);
-
-              sequence.push({
-                kind: "path",
-                lineId: lineId,
-                isChain: pathIdx > 0,
-              } as any);
-            }
-          }
-        }
-      }
+        tokens.includes("build");
+      if (isPathChain)
+        lines.push(...readPathChain(tokens, points, lines.length));
     },
   });
 
+  // Pass 3: waits and turns in the command sequence.
+  const commands: SequenceItem[] = [];
   walkAST(ast, {
-    // We look for any context where a wait/rotate might be wrapped into the commands block.
-    unqualifiedClassInstanceCreationExpression: (node, ctx) => {
-      const tokens = extractTokens(node);
-      if (
-        tokens[0] === "new" &&
-        (tokens[1] === "WaitCommand" || tokens[1] === "Delay")
-      ) {
-        // If we've already processed this exact node logic, skip.
-        const waitIdx = 1;
-        const parenStart = tokens.indexOf("(", waitIdx);
-        const parenEnd = tokens.indexOf(")", parenStart);
-        if (parenStart !== -1 && parenEnd !== -1) {
-          const timeStr = tokens.slice(parenStart + 1, parenEnd).join("");
-          if (!Number.isNaN(Number.parseFloat(timeStr))) {
-            let time = Number.parseFloat(timeStr);
-            // Often, if the library uses `new WaitCommand(1000)`, it's in ms.
-            // If they use `new Delay(1.5)`, it's seconds, but `Delay(1500)` would be ms.
-            // We assume if it's Delay and < 100 it's probably seconds.
-            // The provided `.java` examples use `new Delay(0.110)` and `new WaitCommand(110)`.
-            // WaitCommand is ms.
-            // Let's implement robust translation based on numeric size since FTC is often ambiguous.
-            // Actually, `.java` from visualizer creates `new Delay(seconds)` and `WaitCommand(ms)`.
-            if (tokens[1] === "Delay" && time < 100) {
-              // The visualizer generates `new Delay(ms / 1000.0)`
-              time *= 1000;
-            }
-
-            tempSequence.push({
-              kind: "wait",
-              durationMs: Math.round(time),
-              id: makeId(),
-            } as any);
-          }
-        }
-      } else if (
-        tokens[0] === "new" &&
-        tokens[1] === "InstantCommand" &&
-        tokens.includes("follower") &&
-        tokens.includes("turnTo") &&
-        !tokens.includes("WaitUntilCommand")
-      ) {
-        const turnIdx = tokens.indexOf("turnTo");
-        const parenStart = tokens.indexOf("(", turnIdx);
-        const parenEnd = tokens.indexOf(")", parenStart);
-        if (parenStart !== -1 && parenEnd !== -1) {
-          const innerTokens = tokens.slice(parenStart + 1, parenEnd);
-          const pt = parsePoseCreation(innerTokens);
-          let targetHeading = 0;
-
-          if (
-            pt &&
-            (pt as any).x !== undefined &&
-            (pt as any).y === undefined
-          ) {
-            targetHeading = (pt as any).x; // we know parsePoseCreation converts single Math.toRadians -> degrees inside the x payload
-          } else if (pt && (pt as any).x !== undefined) {
-            targetHeading = (pt as any).x;
-          } else if (!Number.isNaN(Number.parseFloat(innerTokens.join("")))) {
-            // For `.turnTo(2.094)`, `innerTokens` is `[ '2.094' ]`. We should treat this as radians if the framework `turnTo` is always rads.
-            // Pedro pathing `follower.turnTo(radians)`.
-            targetHeading = toDegrees(Number.parseFloat(innerTokens.join("")));
-          }
-
-          tempSequence.push({
-            kind: "rotate",
-            degrees: Math.round(targetHeading),
-            id: makeId(),
-            name: "Rotate",
-          } as any);
-          ctx.justProcessedRotate = targetHeading; // Set context flag to avoid inner lambda processing it again
-        }
+    unqualifiedClassInstanceCreationExpression: (node) => {
+      const durationMs = readWait(extractTokens(node));
+      if (durationMs !== null) {
+        commands.push({ kind: "wait", id: makeId(), name: "", durationMs });
       }
     },
-    lambdaExpression: (node, ctx) => {
-      const tokens = extractTokens(node);
-
-      if (
-        tokens.includes("follower") &&
-        tokens.includes("turnTo") &&
-        !tokens.includes("WaitUntilCommand") &&
-        tokens[0] === "(" &&
-        tokens[2] === "->"
-      ) {
-        const turnIdx = tokens.indexOf("turnTo");
-        if (tokens[turnIdx - 1] === "!") return;
-
-        const parenStart = tokens.indexOf("(", turnIdx);
-        const parenEnd = tokens.indexOf(")", parenStart);
-        if (parenStart !== -1 && parenEnd !== -1) {
-          const innerTokens = tokens.slice(parenStart + 1, parenEnd);
-          const pt = parsePoseCreation(innerTokens);
-          let targetHeading = 0;
-
-          if (
-            pt &&
-            (pt as any).x !== undefined &&
-            (pt as any).y === undefined
-          ) {
-            targetHeading = (pt as any).x;
-          } else if (pt && (pt as any).x !== undefined) {
-            targetHeading = (pt as any).x;
-          } else if (!Number.isNaN(Number.parseFloat(innerTokens.join("")))) {
-            targetHeading = toDegrees(Number.parseFloat(innerTokens.join("")));
-          }
-
-          // If the outer InstantCommand just processed this exact rotation, skip it
-          if (ctx.justProcessedRotate === targetHeading) {
-            ctx.justProcessedRotate = undefined; // clear flag
-            return;
-          }
-          tempSequence.push({
-            kind: "rotate",
-            degrees: Math.round(targetHeading),
-            id: makeId(),
-            name: "Rotate",
-          } as any);
-        }
+    lambdaExpression: (node) => {
+      const degrees = readTurn(extractTokens(node), points);
+      if (degrees !== null) {
+        commands.push({
+          kind: "rotate",
+          id: makeId(),
+          name: "Rotate",
+          degrees: Math.round(degrees),
+        });
       }
     },
   });
 
-  sequence.push(...tempSequence);
+  const sequence: SequenceItem[] = [
+    ...lines.map(
+      (line): SequenceItem => ({
+        kind: "path",
+        lineId: line.id!,
+        isChain: line.isChain,
+      }),
+    ),
+    ...commands,
+  ];
 
-  if (!startPoint) {
-    if (lines.length > 0 && lines[0].startPoint) {
-      startPoint = { ...lines[0].startPoint };
-    } else {
-      startPoint = {
-        x: 0,
-        y: 0,
-        heading: "linear",
-        startDeg: 0,
-        endDeg: 0,
-      } as Point;
-    }
-  }
-
-  // Ensure heading is set
-  if (!startPoint.heading) {
-    (startPoint as any).heading = "linear";
-    (startPoint as any).startDeg = 0;
-    (startPoint as any).endDeg = 0;
-  }
-
+  // Without setStartingPose, start where the first path does. Poses written
+  // as just (x, y) have no heading, so give those a neutral one.
+  const start = startPoint ?? lines[0]?.startPoint ?? defaultStartPoint();
   return {
-    startPoint,
+    startPoint: (start as Partial<Point>).heading
+      ? { ...start }
+      : { ...defaultStartPoint(), x: start.x, y: start.y },
     lines,
     sequence,
-    shapes,
+    shapes: [],
   };
 }

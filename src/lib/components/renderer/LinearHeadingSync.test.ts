@@ -83,4 +83,29 @@ describe("LinearHeadingSync", () => {
     expect(derived).not.toBeNull();
     expect(derived).toBeCloseTo(0, 1);
   });
+
+  it("follows the first path in the sequence, not the first in the list", () => {
+    const pt: Point = { x: 0, y: 0, heading: "linear", startDeg: 0, endDeg: 0 };
+    const listedFirst: Line = {
+      id: "a",
+      endPoint: { x: 10, y: 0, heading: "linear", startDeg: 0, endDeg: 0 },
+      controlPoints: [],
+      color: "#f00",
+    };
+    const drivenFirst: Line = {
+      id: "b",
+      endPoint: { x: 0, y: 10, heading: "linear", startDeg: 90, endDeg: 90 },
+      controlPoints: [],
+      color: "#f00",
+    };
+    const derived = getUpdatedLinearStartHeading(
+      pt,
+      [listedFirst, drivenFirst],
+      [
+        { kind: "path", lineId: "b" },
+        { kind: "path", lineId: "a" },
+      ],
+    );
+    expect(derived).toBe(90);
+  });
 });

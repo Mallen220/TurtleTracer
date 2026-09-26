@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { parseStepEventId } from "./ElementIdParser";
 import type { Line, Shape } from "../../../types";
 import { normalizeEventElementId } from "./ElementIdParser";
 
@@ -120,11 +121,11 @@ export function resolveSelectionOnDown(params: {
       nextSelectedLineId = lines[lineIdx].id as string;
       nextSelectedPointId = clickedElem;
     }
-  } else if (clickedElem.startsWith("wait-event-")) {
-    const parts = clickedElem.split("-");
-    const waitId = parts[2];
-    if (waitId) {
-      nextSelectedPointId = `wait-${waitId}`;
+  } else {
+    // Selecting a wait or rotate's marker selects the step itself.
+    const step = parseStepEventId(clickedElem);
+    if (step) {
+      nextSelectedPointId = `${step.kind}-${step.itemId}`;
       nextSelectedLineId = null;
     }
   }

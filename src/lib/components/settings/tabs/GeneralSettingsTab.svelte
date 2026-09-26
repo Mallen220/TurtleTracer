@@ -1,8 +1,10 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { getElectronAPI } from "../../../../utils/platform";
+  import { settingsEditor } from "../settingsEditor";
+  import { triggerDownload } from "../../../../utils/file";
   import { fade } from "svelte/transition";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
-  import { DEFAULT_SETTINGS } from "../../../../config/defaults";
   import type { Settings } from "../../../../types/index";
   import {
     showPluginManager,
@@ -28,13 +30,18 @@
     isOpen = $bindable(),
   }: Props = $props();
 
+  const { set, resettable } = settingsEditor(
+    () => settings,
+    (next) => (settings = next),
+  );
+
   let isCheckingForUpdates = $state(false);
   let isOnline = $state(
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
 
   async function handleCheckForUpdates() {
-    const electronAPI = (globalThis as any).electronAPI;
+    const electronAPI = getElectronAPI();
     if (electronAPI && electronAPI.checkForUpdates) {
       isCheckingForUpdates = true;
       try {
@@ -84,24 +91,16 @@
 
   async function handleExport() {
     try {
-      const dataStr = JSON.stringify(settings, null, 2);
-      const blob = new Blob([dataStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const downloadAnchorNode = document.createElement("a");
-      downloadAnchorNode.setAttribute("href", url);
-      downloadAnchorNode.setAttribute(
-        "download",
+      triggerDownload(
+        JSON.stringify(settings, null, 2),
+        "application/json",
         "turtle-tracer-settings.json",
       );
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
       notification.set({
         message: "Settings exported",
         type: "success",
         timeout: 3000,
       });
-      downloadAnchorNode.remove();
-      URL.revokeObjectURL(url);
     } catch (e) {
       notification.set({
         message: "Failed to export settings: " + (e as Error).message,
@@ -158,11 +157,7 @@
 
   <SettingsItem
     label="Autosave Mode"
-    isModified={settings.autosaveMode !== DEFAULT_SETTINGS.autosaveMode}
-    onReset={() => {
-      settings.autosaveMode = DEFAULT_SETTINGS.autosaveMode;
-      settings = { ...settings };
-    }}
+    {...resettable("autosaveMode")}
     description="Choose when to automatically save the project"
     {searchQuery}
     layout="col"
@@ -171,10 +166,7 @@
     <select
       id="autosave-mode"
       value={settings.autosaveMode}
-      onchange={(e) => {
-        settings.autosaveMode = e.currentTarget.value as any;
-        settings = { ...settings };
-      }}
+      onchange={(e) => set("autosaveMode", e.currentTarget.value as any)}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="never">Never</option>
@@ -188,12 +180,7 @@
     <div transition:fade>
       <SettingsItem
         label="Autosave Interval"
-        isModified={settings.autosaveInterval !==
-          DEFAULT_SETTINGS.autosaveInterval}
-        onReset={() => {
-          settings.autosaveInterval = DEFAULT_SETTINGS.autosaveInterval;
-          settings = { ...settings };
-        }}
+        {...resettable("autosaveInterval")}
         description={`Save every ${settings.autosaveInterval} minutes`}
         {searchQuery}
         layout="col"
@@ -202,10 +189,8 @@
         <select
           id="autosave-interval"
           value={settings.autosaveInterval}
-          onchange={(e) => {
-            settings.autosaveInterval = Number.parseInt(e.currentTarget.value);
-            settings = { ...settings };
-          }}
+          onchange={(e) =>
+            set("autosaveInterval", Number.parseInt(e.currentTarget.value))}
           class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {#each [1, 5, 10, 15, 20, 40, 60] as interval}
@@ -300,11 +285,7 @@
 
     <SettingsItem
       label="Git Integration"
-      isModified={settings.gitIntegration !== DEFAULT_SETTINGS.gitIntegration}
-      onReset={() => {
-        settings.gitIntegration = DEFAULT_SETTINGS.gitIntegration;
-        settings = { ...settings };
-      }}
+      {...resettable("gitIntegration")}
       description="Show git status indicators for files"
       {searchQuery}
       layout="row"

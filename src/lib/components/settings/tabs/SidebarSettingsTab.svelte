@@ -1,6 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Component } from "svelte";
+  import { settingsEditor } from "../settingsEditor";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import DeleteButtonWithConfirm from "../../common/DeleteButtonWithConfirm.svelte";
   import { menuNavigation } from "../../../actions/menuNavigation";
@@ -10,7 +10,11 @@
     CustomSidebarItem,
     Settings,
   } from "../../../../types/index";
-  import { SIDEBAR_ITEMS } from "../../../../config/sidebarItems";
+  import {
+    SIDEBAR_ITEMS,
+    CUSTOM_ICON_CHOICES,
+    CUSTOM_ICON_MAP,
+  } from "../../../../config/sidebarItems";
   import { availableCommands } from "../../../../stores";
   import * as ICONS from "../../icons";
 
@@ -21,20 +25,21 @@
 
   let { settings = $bindable(), searchQuery }: Props = $props();
 
+  const { set, setNumber, resettable } = settingsEditor(
+    () => settings,
+    (next) => (settings = next),
+  );
+
   const DEFAULT_SIDEBAR_LAYOUT =
     DEFAULT_SETTINGS.sidebarItems ?? SIDEBAR_ITEMS.map((i) => i.id);
 
-  function arraysEqual<T>(a: T[] | undefined, b: T[]) {
-    if (!a) return false;
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i += 1) {
-      if (a[i] !== b[i]) return false;
-    }
-    return true;
-  }
+  /** Ids of the items shown in the sidebar, in order. */
+  let layout = $derived(
+    settings.sidebarItems ?? SIDEBAR_ITEMS.map((i) => i.id),
+  );
 
   let isSidebarLayoutModified = $derived(
-    !arraysEqual(settings.sidebarItems, DEFAULT_SIDEBAR_LAYOUT),
+    settings.sidebarItems?.join() !== DEFAULT_SIDEBAR_LAYOUT.join(),
   );
   let hasCustomSidebarTools = $derived(
     (settings.customSidebarItems?.length ?? 0) > 0,
@@ -48,15 +53,16 @@
     ) {
       return;
     }
-    settings.sidebarItems = [...(DEFAULT_SETTINGS.sidebarItems || [])];
-    settings.customSidebarItems = [];
-    settings = { ...settings };
+    settings = {
+      ...settings,
+      sidebarItems: [...(DEFAULT_SETTINGS.sidebarItems || [])],
+      customSidebarItems: [],
+    };
   }
 
   let activeSidebarList = $derived(
     (() => {
-      const ids = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
-      return ids.map((id) => {
+      return layout.map((id) => {
         let item:
           | (typeof SIDEBAR_ITEMS)[number]
           | CustomSidebarItem
@@ -95,20 +101,8 @@
 
   function handleDrop(e: DragEvent, dropIndex: number) {
     e.preventDefault();
-    if (dragSourceIndex === null || dragSourceIndex === dropIndex) {
-      dragSourceIndex = null;
-      dragOverIndex = null;
-      return;
-    }
-    if (!settings.sidebarItems)
-      settings.sidebarItems = SIDEBAR_ITEMS.map((i) => i.id);
-    const arr = [...settings.sidebarItems];
-    const [moved] = arr.splice(dragSourceIndex, 1);
-    arr.splice(dropIndex, 0, moved);
-    settings.sidebarItems = arr;
-    settings = { ...settings };
-    dragSourceIndex = null;
-    dragOverIndex = null;
+    if (dragSourceIndex !== null) moveSidebarItem(dragSourceIndex, dropIndex);
+    handleDragEnd();
   }
 
   function handleDragEnd() {
@@ -116,44 +110,17 @@
     dragOverIndex = null;
   }
 
-  function moveSidebarItemUp(index: number) {
-    if (!settings.sidebarItems)
-      settings.sidebarItems = SIDEBAR_ITEMS.map((i) => i.id);
-    if (index === 0) return;
-    const arr = [...settings.sidebarItems];
-    [arr[index - 1], arr[index]] = [arr[index], arr[index - 1]];
-    settings.sidebarItems = arr;
-    settings = { ...settings };
-  }
-
-  function moveSidebarItemDown(index: number) {
-    if (!settings.sidebarItems)
-      settings.sidebarItems = SIDEBAR_ITEMS.map((i) => i.id);
-    if (index >= settings.sidebarItems.length - 1) return;
-    const arr = [...settings.sidebarItems];
-    [arr[index], arr[index + 1]] = [arr[index + 1], arr[index]];
-    settings.sidebarItems = arr;
-    settings = { ...settings };
-  }
-
-  function removeSidebarItem(index: number) {
-    if (!settings.sidebarItems) return;
-    const arr = [...settings.sidebarItems];
-    arr.splice(index, 1);
-    settings.sidebarItems = arr;
-    settings = { ...settings };
-  }
-
-  function addSidebarItem(id: string) {
-    if (!settings.sidebarItems)
-      settings.sidebarItems = SIDEBAR_ITEMS.map((i) => i.id);
-    settings.sidebarItems = [...settings.sidebarItems, id];
-    settings = { ...settings };
+  function moveSidebarItem(from: number, to: number) {
+    if (from === to || to < 0 || to >= layout.length) return;
+    const items = [...layout];
+    const [moved] = items.splice(from, 1);
+    items.splice(to, 0, moved);
+    set("sidebarItems", items);
   }
 
   let unusedAvailableTools = $derived(
     (() => {
-      const active = settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
+      const active = layout;
       const builtIn = SIDEBAR_ITEMS.filter(
         (i) =>
           i.type !== "separator" &&
@@ -168,14 +135,13 @@
   );
 
   function deleteCustomItem(id: string) {
-    if (!settings.customSidebarItems) return;
-    settings.customSidebarItems = settings.customSidebarItems.filter(
-      (i) => i.id !== id,
-    );
-    if (settings.sidebarItems) {
-      settings.sidebarItems = settings.sidebarItems.filter((i) => i !== id);
-    }
-    settings = { ...settings };
+    settings = {
+      ...settings,
+      customSidebarItems: settings.customSidebarItems?.filter(
+        (i) => i.id !== id,
+      ),
+      sidebarItems: settings.sidebarItems?.filter((i) => i !== id),
+    };
   }
 
   let showCustomSidebarForm = $state(false);
@@ -183,17 +149,7 @@
   let customActionLabel = $state("");
   let commandSearchQuery = $state("");
 
-  const ICON_COMPONENT_MAP: Record<string, Component<any>> = {
-    ...ICONS,
-    Arrow: ICONS.ArrowRightIcon,
-    Plus: ICONS.PlusIcon,
-    Save: ICONS.SaveIcon,
-    Trash: ICONS.TrashIcon,
-    Folder: ICONS.FolderIcon,
-    Wrench: ICONS.WrenchIcon,
-  };
-
-  const CUSTOM_ICONS = Object.entries(ICON_COMPONENT_MAP)
+  const CUSTOM_ICONS = Object.entries(CUSTOM_ICON_CHOICES)
     .map(([name, component]) => ({ name, component }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -259,38 +215,16 @@
       commandId: customActionSelection,
       iconSvg: customActionIconKey,
     };
-    if (!settings.customSidebarItems) settings.customSidebarItems = [];
-    settings.customSidebarItems.push(newItem);
-    if (!settings.sidebarItems)
-      settings.sidebarItems = SIDEBAR_ITEMS.map((i) => i.id);
-    settings.sidebarItems.push(newId);
-
-    settings = { ...settings };
+    settings = {
+      ...settings,
+      customSidebarItems: [...(settings.customSidebarItems ?? []), newItem],
+      sidebarItems: [...layout, newId],
+    };
     showCustomSidebarForm = false;
     customActionSelection = "";
     customActionLabel = "";
     customIconSearch = "";
     isIconMenuOpen = false;
-  }
-
-  function handleNumberInput(
-    value: string,
-    property: keyof Settings,
-    min?: number,
-    max?: number,
-    restoreDefaultIfEmpty = false,
-  ) {
-    if (value === "" && restoreDefaultIfEmpty) {
-      (settings as any)[property] = DEFAULT_SETTINGS[property];
-      settings = { ...settings };
-      return;
-    }
-    let num = Number.parseFloat(value);
-    if (Number.isNaN(num)) num = 0;
-    if (min !== undefined) num = Math.max(min, num);
-    if (max !== undefined) num = Math.min(max, num);
-    (settings as any)[property] = num;
-    settings = { ...settings };
   }
 </script>
 
@@ -313,11 +247,7 @@
   <SettingsItem
     label="Sidebar Icon Size"
     description="Adjust the size of the icons in the sidebar (16px - 32px)."
-    isModified={settings.sidebarIconSize !== DEFAULT_SETTINGS.sidebarIconSize}
-    onReset={() => {
-      settings.sidebarIconSize = DEFAULT_SETTINGS.sidebarIconSize;
-      settings = { ...settings };
-    }}
+    {...resettable("sidebarIconSize")}
     layout="row"
     {searchQuery}
   >
@@ -329,7 +259,7 @@
         step="1"
         value={settings.sidebarIconSize || 20}
         oninput={(e) =>
-          handleNumberInput(e.currentTarget.value, "sidebarIconSize", 16, 32)}
+          setNumber("sidebarIconSize", e.currentTarget.value, 16, 32)}
         class="w-32 accent-blue-500"
       />
       <span
@@ -343,10 +273,8 @@
   <SettingsItem
     label="Active Sidebar Layout"
     isModified={isSidebarLayoutModified}
-    onReset={() => {
-      settings.sidebarItems = [...(DEFAULT_SETTINGS.sidebarItems || [])];
-      settings = { ...settings };
-    }}
+    onReset={() =>
+      set("sidebarItems", [...(DEFAULT_SETTINGS.sidebarItems || [])])}
     description="Drag rows to reorder, use arrows for precision, or click × to remove."
     {searchQuery}
   >
@@ -384,8 +312,8 @@
             {#if item.iconComponent}
               <item.iconComponent className="size-5" />
             {:else if item.icon}
-              {#if ICON_COMPONENT_MAP[item.icon]}
-                {@const SvelteComponent = ICON_COMPONENT_MAP[item.icon]}
+              {#if CUSTOM_ICON_MAP[item.icon]}
+                {@const SvelteComponent = CUSTOM_ICON_MAP[item.icon]}
                 <SvelteComponent className="size-5" />
               {:else}
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -411,7 +339,7 @@
           <!-- Controls -->
           <div class="flex items-center gap-0.5">
             <button
-              onclick={() => moveSidebarItemUp(idx)}
+              onclick={() => moveSidebarItem(idx, idx - 1)}
               disabled={idx === 0}
               class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Move up"
@@ -419,7 +347,7 @@
               <ICONS.ChevronUpIcon className="size-4" />
             </button>
             <button
-              onclick={() => moveSidebarItemDown(idx)}
+              onclick={() => moveSidebarItem(idx, idx + 1)}
               disabled={idx === activeSidebarList.length - 1}
               class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Move down"
@@ -427,7 +355,11 @@
               <ICONS.ChevronDownIcon className="size-4" />
             </button>
             <button
-              onclick={() => removeSidebarItem(idx)}
+              onclick={() =>
+                set(
+                  "sidebarItems",
+                  layout.filter((_, i) => i !== idx),
+                )}
               class="p-1 hover:bg-red-100 dark:hover:bg-red-900/40 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
               title="Remove from sidebar"
             >
@@ -450,7 +382,7 @@
             class="flex items-center border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 rounded-md shadow-sm group overflow-hidden"
           >
             <button
-              onclick={() => addSidebarItem(available.id)}
+              onclick={() => set("sidebarItems", [...layout, available.id])}
               class="flex-grow flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-white dark:hover:bg-neutral-700 transition-colors min-w-0"
             >
               <span
@@ -459,9 +391,9 @@
                 {#if available.iconComponent}
                   <available.iconComponent className="size-4" />
                 {:else if available.iconSvg}
-                  {#if ICON_COMPONENT_MAP[available.iconSvg]}
+                  {#if CUSTOM_ICON_MAP[available.iconSvg]}
                     {@const SvelteComponent_1 =
-                      ICON_COMPONENT_MAP[available.iconSvg]}
+                      CUSTOM_ICON_MAP[available.iconSvg]}
                     <SvelteComponent_1 className="size-4" />
                   {:else}
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -527,8 +459,8 @@
             Create Custom Sidebar Tool
           </button>
         {:else}
-          {@const SvelteComponent_2 = ICON_COMPONENT_MAP[customActionIconKey]}
-          {@const SvelteComponent_3 = ICON_COMPONENT_MAP[customActionIconKey]}
+          {@const SvelteComponent_2 = CUSTOM_ICON_MAP[customActionIconKey]}
+          {@const SvelteComponent_3 = CUSTOM_ICON_MAP[customActionIconKey]}
           <div
             class="p-5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl mt-3 shadow-sm transition-all"
           >
@@ -538,7 +470,6 @@
               <h6
                 class="text-sm font-bold text-neutral-800 dark:text-neutral-100 flex items-center gap-2"
               >
-                <!-- <span class="flex items-center justify-center size-5 bg-blue-600 text-white rounded-full text-[10px]">NEW</span> -->
                 Create Custom Tool
               </h6>
               <button

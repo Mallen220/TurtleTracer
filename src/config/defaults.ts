@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import type { Point, Line, Shape, Settings } from "../types";
 import { DEFAULT_KEY_BINDINGS } from "./keybindings";
+import { makeId } from "../utils/nameGenerator";
 
 /**
  * Default robot dimensions
@@ -274,7 +275,7 @@ export function getDefaultStartPoint(): Point {
 export function getDefaultLines(): Line[] {
   return [
     {
-      id: `line-${Math.random().toString(36).slice(2)}`,
+      id: makeId("line"),
       name: "DriveToShoot",
       endPoint: {
         x: 60,

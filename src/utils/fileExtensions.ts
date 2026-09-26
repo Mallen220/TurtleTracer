@@ -1,12 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 export const DEFAULT_PROJECT_EXTENSION = ".turt";
 export const LEGACY_PROJECT_EXTENSION = ".pp";
-export const SUPPORTED_PROJECT_EXTENSIONS = [
+const SUPPORTED_PROJECT_EXTENSIONS = [
   DEFAULT_PROJECT_EXTENSION,
   LEGACY_PROJECT_EXTENSION,
 ] as const;
-
-export const SUPPORTED_PROJECT_EXTENSION_FILTERS = ["turt", "pp"] as const;
 
 export function isSupportedProjectFileName(name: string): boolean {
   const lower = name.toLowerCase();

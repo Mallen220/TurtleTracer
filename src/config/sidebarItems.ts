@@ -40,6 +40,7 @@ import {
   KeyboardIcon,
   RobotPlaceholderIcon,
 } from "../lib/components/icons";
+import * as ICONS from "../lib/components/icons";
 
 export interface SidebarItemConfig {
   id: string;
@@ -295,3 +296,29 @@ export const SIDEBAR_ITEMS: SidebarItemConfig[] = [
     iconComponent: ExportGifIcon,
   },
 ];
+
+/** Icons users can choose for their own sidebar buttons, by name. */
+export const CUSTOM_ICON_CHOICES: Record<string, Component<any>> = {
+  ...ICONS,
+  Arrow: ICONS.ArrowRightIcon,
+  Plus: ICONS.PlusIcon,
+  Save: ICONS.SaveIcon,
+  Trash: ICONS.TrashIcon,
+  Folder: ICONS.FolderIcon,
+  Wrench: ICONS.WrenchIcon,
+};
+
+/** Every icon name a saved custom button may use, including older short names. */
+export const CUSTOM_ICON_MAP: Record<string, Component<any>> = {
+  ...CUSTOM_ICON_CHOICES,
+  List: ICONS.ListIcon,
+  Play: ICONS.PlayIcon,
+  Code: ICONS.CodeIcon,
+  Terminal: ICONS.TerminalIcon,
+  Star: ICONS.StarIcon,
+  Bolt: ICONS.ZapIcon,
+  Eye: ICONS.EyeIcon,
+  Zap: ICONS.ZapIcon,
+  Box: ICONS.BoxIcon,
+  Compass: ICONS.CompassIcon,
+};

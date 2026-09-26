@@ -23,28 +23,30 @@ export const isBrowser =
   !/Electron/i.test(navigator.userAgent);
 
 /**
- * Access electronAPI safely across Node, browser, Electron and test mock environments.
+ * The desktop app's preload API, or the in-browser stand-in. Pass
+ * `allowVirtual: false` to get only the real desktop API.
  */
 export function getElectronAPI(options?: {
   allowVirtual?: boolean;
 }): ElectronAPI | undefined {
-  const allowVirtual = options?.allowVirtual ?? true;
-  if (typeof globalThis !== "undefined") {
-    const api =
-      (globalThis as any).electronAPI ??
-      (globalThis as any).window?.electronAPI;
-    if (api) {
-      if (!allowVirtual && api.isVirtual) {
-        return undefined;
-      }
-      return api as ElectronAPI;
-    }
+  const api = globalThis.electronAPI ?? globalThis.window?.electronAPI;
+  if (!api || (options?.allowVirtual === false && api.isVirtual)) {
+    return undefined;
   }
-  if (typeof globalThis !== "undefined" && globalThis.electronAPI) {
-    if (!allowVirtual && globalThis.electronAPI.isVirtual) {
-      return undefined;
-    }
-    return globalThis.electronAPI;
+  return api;
+}
+
+/**
+ * Where a file the user dropped or picked lives on disk, in the desktop app.
+ * Electron 32+ no longer sets `File.path`, so ask the preload API instead.
+ */
+export function diskPathOf(file: File): string | undefined {
+  const legacyPath = (file as File & { path?: string }).path;
+  if (legacyPath) return legacyPath;
+  try {
+    return getElectronAPI()?.getPathForFile?.(file) || undefined;
+  } catch (e) {
+    console.warn("getPathForFile failed:", e);
+    return undefined;
   }
-  return undefined;
 }

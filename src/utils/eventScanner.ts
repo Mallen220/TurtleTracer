@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { getElectronAPI } from "./platform";
 import { diskEventNamesStore } from "../stores";
 import type { Line, SequenceItem, EventMarker, Point } from "../types";
 import { isSupportedProjectFileName } from "./fileExtensions";
@@ -57,7 +58,7 @@ export function scanForEvents(
 }
 
 export async function scanEventsInDirectory(directory: string) {
-  const electronAPI = (globalThis as any).electronAPI;
+  const electronAPI = getElectronAPI();
   if (!electronAPI?.listFiles || !electronAPI.readFile) return;
 
   try {

@@ -520,6 +520,20 @@ interface HookRegistry {
   clear: () => void;
 }
 
+/** One row of a right-click menu (ContextMenu.svelte). */
+interface MenuEntry {
+  label?: string;
+  /** Passed to the menu's `onaction` when there's no `onClick`. */
+  action?: string;
+  onClick?: () => void;
+  /** A component, or an SVG string from a plugin. */
+  icon?: Component<{ class?: string }> | string;
+  separator?: boolean;
+  danger?: boolean;
+  disabled?: boolean;
+  shortcut?: string;
+}
+
 interface ContextMenuItem {
   id: string;
   label: string;
@@ -541,7 +555,7 @@ interface ProjectStore {
   linesStore: Writable<Line[]>;
   shapesStore: Writable<Shape[]>;
   sequenceStore: Writable<SequenceItem[]>;
-  settingsStore: Writable<any>; // Using any for Settings to avoid circular or huge types for now
+  settingsStore: Writable<Settings>;
   extraDataStore: Writable<Record<string, any>>;
 }
 
@@ -759,13 +773,13 @@ interface FieldRenderContext {
   x: (val: number) => number;
   y: (val: number) => number;
   uiLength: (inches: number) => number;
-  settings: any;
+  settings: Settings;
 
   hoveredId: string | null;
   selectedId: string | null;
   selectedPointId: string | null;
 
-  timePrediction?: any;
+  timePrediction?: TimePrediction;
 }
 
 interface CodeExportContext {
@@ -785,7 +799,7 @@ interface TimeCalculationContext {
   currentTime: number;
   currentHeading: number;
   lastPoint: Point;
-  settings: any;
+  settings: Settings;
   lines: Line[];
 }
 
@@ -905,6 +919,13 @@ interface ElectronTelemetryAPI {
   onStatus: (callback: (status: any) => void) => void;
 }
 
+/** The parts of Electron's save dialog options the app uses. */
+interface SaveDialogOptions {
+  title?: string;
+  defaultPath?: string;
+  filters?: { name: string; extensions: string[] }[];
+}
+
 interface ElectronAPI {
   // Utils
   getPathForFile?: (file: File) => string;
@@ -938,7 +959,7 @@ interface ElectronAPI {
   ) => Promise<{ success: boolean; newPath: string }>;
 
   // Show native save dialog
-  showSaveDialog?: (options?: any) => Promise<string | null>;
+  showSaveDialog?: (options?: SaveDialogOptions) => Promise<string | null>;
 
   // Write binary content encoded as base64 to disk
   writeFileBase64?: (

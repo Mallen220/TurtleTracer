@@ -12,9 +12,18 @@ import type {
 import RotateTableRow from "../components/table/RotateTableRow.svelte";
 import RotateSection from "../components/sections/RotateSection.svelte";
 import type { SequenceItem, SequenceRotateItem } from "../../types";
-import { POINT_RADIUS } from "../../config";
+import { stationaryMarkerElements } from "./stationaryMarkers";
 import { calculateRotationTime, unwrapAngle } from "../../utils/timeCalculator";
 import { makeId } from "../../utils/nameGenerator";
+
+/** A new turn to 0°. */
+export const createRotate = (): SequenceRotateItem => ({
+  kind: "rotate",
+  id: makeId(),
+  name: "",
+  degrees: 0,
+  locked: false,
+});
 
 export const RotateAction: ActionDefinition = {
   kind: "rotate",
@@ -29,103 +38,40 @@ export const RotateAction: ActionDefinition = {
   component: RotateTableRow,
   sectionComponent: RotateSection,
 
-  createDefault: () => ({
-    kind: "rotate",
-    id: makeId(),
-    name: "",
-    degrees: 0,
-    locked: false,
-  }),
+  createDefault: createRotate,
 
   onInsert: (ctx: InsertionContext) => {
-    const newRotate: SequenceItem = {
-      kind: "rotate",
-      id: makeId(),
-      name: "",
-      degrees: 0,
-      locked: false,
-    };
-
-    ctx.sequence.splice(ctx.index, 0, newRotate);
+    ctx.sequence.splice(ctx.index, 0, createRotate());
     ctx.triggerReactivity();
   },
 
-  renderField: (item: SequenceItem, context: FieldRenderContext) => {
-    const rotateItem = item as SequenceRotateItem;
-    const { timePrediction, x, y, uiLength, hoveredId, selectedPointId } =
-      context;
-
-    if (!timePrediction?.timeline) return [];
-
-    const elements: any[] = [];
-
-    // Iterate through timeline to find occurrences of this rotate
-    timePrediction.timeline.forEach((ev: any) => {
-      // Check if this timeline event corresponds to our rotate item
-      // Note: Rotate events appear as type "wait" with waitId matching the rotate ID in timeline generation currently
-      if (ev.type !== "wait" || ev.waitId !== rotateItem.id || !ev.atPoint)
-        return;
-
-      // Only render if there are event markers on this rotate
-      if (rotateItem.eventMarkers && rotateItem.eventMarkers.length > 0) {
-        const point = ev.atPoint;
-
-        rotateItem.eventMarkers.forEach((marker: any, idx: number) => {
-          const isHovered = hoveredId === marker.id;
-          const radiusMult = isHovered ? 1.3 : 0.9;
-
-          const markerGroup = new Two.Group();
-          markerGroup.id = `rotate-event-${rotateItem.id}-${idx}`;
-
-          const markerCircle = new Two.Circle(
-            x(point.x),
-            y(point.y),
-            uiLength(POINT_RADIUS * radiusMult),
-          );
-          markerCircle.id = `rotate-event-circle-${rotateItem.id}-${idx}`;
-
-          const rotateSelected = selectedPointId === `rotate-${rotateItem.id}`;
-
-          if (rotateSelected) {
-            markerCircle.fill = "#f97316";
-            markerCircle.stroke = "#fffbeb";
-            markerCircle.linewidth = uiLength(0.6);
-          } else {
-            markerCircle.fill = isHovered ? "#06b6d4" : "#67e8f9";
-            markerCircle.stroke = "#ffffff";
-            markerCircle.linewidth = uiLength(0.3);
-          }
-
-          const arrowSize = uiLength(isHovered ? 1 : 0.6);
-          const arrowPoints = [
-            new Two.Anchor(
-              x(point.x) - arrowSize / 3,
-              y(point.y) - arrowSize / 3,
-            ),
-            new Two.Anchor(
-              x(point.x) + arrowSize / 3,
-              y(point.y) - arrowSize / 3,
-            ),
-            new Two.Anchor(x(point.x) + arrowSize / 3, y(point.y)),
-            new Two.Anchor(x(point.x), y(point.y)),
-            new Two.Anchor(x(point.x), y(point.y) + arrowSize / 3),
-          ];
-          const arrow = new Two.Path(arrowPoints, false);
-          arrow.fill = "none";
-          arrow.stroke = rotateSelected ? "#fffbeb" : "#ffffff";
-          arrow.linewidth = uiLength(0.3);
-          arrow.cap = "round";
-          arrow.join = "round";
-          arrow.id = `rotate-event-arrow-${rotateItem.id}-${idx}`;
-
-          markerGroup.add(markerCircle, arrow);
-          elements.push(markerGroup);
-        });
-      }
-    });
-
-    return elements;
-  },
+  renderField: (item: SequenceItem, context: FieldRenderContext) =>
+    stationaryMarkerElements(item as SequenceRotateItem, context, {
+      prefix: "rotate",
+      fill: "#67e8f9",
+      hoverFill: "#06b6d4",
+      glyphName: "arrow",
+      // A small hooked arrow
+      glyph: (px, py, size, color, uiLength) => {
+        const d = size / 3;
+        const arrow = new Two.Path(
+          [
+            new Two.Anchor(px - d, py - d),
+            new Two.Anchor(px + d, py - d),
+            new Two.Anchor(px + d, py),
+            new Two.Anchor(px, py),
+            new Two.Anchor(px, py + d),
+          ],
+          false,
+        );
+        arrow.fill = "none";
+        arrow.stroke = color;
+        arrow.linewidth = uiLength(0.3);
+        arrow.cap = "round";
+        arrow.join = "round";
+        return arrow;
+      },
+    }),
 
   toJavaCode: (
     item: SequenceItem,
@@ -168,17 +114,14 @@ export const RotateAction: ActionDefinition = {
       ? "SequentialGroup"
       : "SequentialCommandGroup";
 
-    const markers: any[] = Array.isArray(rotateItem.eventMarkers)
-      ? [...rotateItem.eventMarkers]
-      : [];
+    const markers = (rotateItem.eventMarkers ?? []).toSorted(
+      (a, b) => (a.position || 0) - (b.position || 0),
+    );
 
     if (markers.length === 0) {
       return `new ${InstantCmdClass}(() -> follower.hold(follower.pose().withHeading(${radians.toFixed(3)}))),
                 new ${WaitUntilCmdClass}(() -> !follower.isBusy())`;
     }
-
-    // Sort markers
-    markers.sort((a, b) => (a.position || 0) - (b.position || 0));
 
     const firstMarker = markers[0];
     let turnCommand = `new ${InstantCmdClass}(() -> {

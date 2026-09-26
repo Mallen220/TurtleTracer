@@ -2,7 +2,7 @@
 import { get } from "svelte/store";
 import { linesStore, sequenceStore, startPointStore } from "../../projectStore";
 import { selectedLineId, selectedPointId, notification } from "../../../stores";
-import { actionRegistry } from "../../actionRegistry";
+import { toggleChain } from "../../sequenceOperations";
 import {
   updateLinkedWaits,
   updateLinkedRotations,
@@ -65,7 +65,7 @@ export function modifyValue(
     const kind = info.type === "event-wait" ? "wait" : "rotate";
     const itemIdx = findSequenceItemIndex(sequence, info.id, kind);
     if (itemIdx !== -1) {
-      const item = sequence[itemIdx] as any;
+      const item = findSequenceItem(sequence, info.id, kind);
       if (item?.eventMarkers?.[info.evIdx] && !item.locked) {
         const newPos = updateEventMarkerPosition(
           item.eventMarkers[info.evIdx],
@@ -276,17 +276,9 @@ export function toggleLock(recordChange: (action?: string) => void) {
   if (info.type === "wait" || info.type === "rotate") {
     const kind = info.type === "wait" ? "wait" : "rotate";
     sequenceStore.update((seq) =>
-      seq.map((s) => {
-        if (
-          actionRegistry.get(s.kind)?.[
-            kind === "wait" ? "isWait" : "isRotate"
-          ] &&
-          (s as any).id === info.id
-        ) {
-          return { ...s, locked: !(s as any).locked };
-        }
-        return s;
-      }),
+      seq.map((s) =>
+        s.kind === kind && s.id === info.id ? { ...s, locked: !s.locked } : s,
+      ),
     );
     recordChange("Toggle Lock");
     return;
@@ -335,55 +327,18 @@ export function togglePathChain(recordChange: (action?: string) => void) {
   const selId = get(selectedLineId);
   if (!selId) return;
 
-  const sequence = [...get(sequenceStore)];
-  const lines = [...get(linesStore)];
+  const sequence = get(sequenceStore);
+  const lines = get(linesStore);
   const sIdx = sequence.findIndex(
     (s) => s.kind === "path" && s.lineId === selId,
   );
   if (sIdx === -1 || sIdx === 0) return; // Cannot chain the first path
 
-  const item = sequence[sIdx] as any;
-  const newIsChain = !item.isChain;
-
-  if (!newIsChain) {
-    // Reset globalHeading for all paths in the former chain island
-    let rootIdx = sIdx;
-    while (
-      rootIdx > 0 &&
-      sequence[rootIdx - 1].kind === "path" &&
-      (sequence[rootIdx] as any).isChain
-    ) {
-      rootIdx--;
-    }
-
-    let endIdx = sIdx;
-    while (
-      endIdx + 1 < sequence.length &&
-      sequence[endIdx + 1].kind === "path" &&
-      (sequence[endIdx + 1] as any).isChain
-    ) {
-      endIdx++;
-    }
-
-    for (let i = rootIdx; i <= endIdx; i++) {
-      const sItem = sequence[i];
-      if (sItem.kind === "path") {
-        const lIdx = lines.findIndex((l) => l.id === (sItem as any).lineId);
-        if (lIdx !== -1 && lines[lIdx].globalHeading !== undefined) {
-          lines[lIdx] = { ...lines[lIdx], globalHeading: undefined };
-        }
-      }
-    }
-  }
-
-  sequence[sIdx] = { ...item, isChain: newIsChain };
-  const lIdx = lines.findIndex((l) => l.id === selId);
-  if (lIdx !== -1) {
-    lines[lIdx] = { ...lines[lIdx], isChain: newIsChain };
-  }
-
-  linesStore.set([...lines]);
-  sequenceStore.set([...sequence]);
+  const result = toggleChain(lines, sequence, sIdx);
+  const newItem = result.sequence[sIdx];
+  const newIsChain = newItem.kind === "path" && !!newItem.isChain;
+  linesStore.set(result.lines);
+  sequenceStore.set(result.sequence);
   recordChange("Toggle Path Chain");
 
   notification.set({

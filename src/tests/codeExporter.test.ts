@@ -343,6 +343,28 @@ describe("codeExporter", () => {
       expect(code).toContain("follower.setPose(p.of(10.000, 10.000, 45.000))");
     });
 
+    it("starts facing the first path driven, even after a wait", async () => {
+      const listedFirst = setupTangentTest(); // 45 degrees
+      const drivenFirst: Line = {
+        id: "north",
+        name: "north",
+        controlPoints: [],
+        endPoint: { x: 10, y: 30, heading: "constant", degrees: 90 },
+        color: "#000000",
+      };
+      const code = await generateJavaCode(
+        startPoint,
+        [listedFirst, drivenFirst],
+        true,
+        [
+          { kind: "wait", id: "w", name: "", durationMs: 500 },
+          { kind: "path", lineId: "north" },
+          { kind: "path", lineId: listedFirst.id! },
+        ],
+      );
+      expect(code).toContain("follower.setPose(p.of(10.000, 10.000, 90.000))");
+    });
+
     it("should use default start heading if lines array is empty", async () => {
       // construct a point without the constant-heading `degrees` field so it
       // matches the linear variant of Point.
@@ -645,7 +667,8 @@ describe("codeExporter", () => {
       expect(code).toContain(
         "private final PoseFactory p = PoseFactory.degrees();",
       );
-      expect(code).toContain("startPoint = p.of(10.000, 10.000, 0);"); // startPoint
+      // Starts facing the way the first path (constant 90) begins
+      expect(code).toContain("startPoint = p.of(10.000, 10.000, 90);");
       // Check line1 (constant 90)
       expect(code).toContain("line1 = p.of(20.000, 20.000, 90);");
       // Check line2 (linear 90 -> 180). End point should use endDeg (180)
@@ -890,6 +913,32 @@ describe("codeExporter", () => {
       expect(code).toContain("return p.of(y + 72.0, 72.0 - x, heading);");
       expect(code).toContain("follower.setPose(buildPose(");
       expect(code).not.toContain("Math.toRadians(" + "buildPose");
+    });
+
+    it("converts a facingPoint target through buildPose in FTC coordinates", async () => {
+      const facing: Line = {
+        ...line1,
+        endPoint: {
+          x: 40,
+          y: 40,
+          heading: "facingPoint",
+          targetX: 20,
+          targetY: 30,
+          reverse: false,
+        },
+      };
+      const code = await generateJavaCode(
+        startPoint,
+        [facing],
+        false,
+        undefined,
+        undefined,
+        "Panels",
+        "FTC",
+        "imperial",
+      );
+      // Pedro (20, 30) is FTC (42, -52); buildPose converts it back.
+      expect(code).toContain(".facingPoint(buildPose(42.000, -52.000, 0.000))");
     });
 
     it("should export Sequential code using buildPose and p.of with FTC coordinates and metric units", async () => {

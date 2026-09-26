@@ -1,8 +1,9 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { getElectronAPI } from "../../../../utils/platform";
+  import { settingsEditor } from "../settingsEditor";
   import { fade } from "svelte/transition";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
-  import { DEFAULT_SETTINGS } from "../../../../config/defaults";
   import type { Settings } from "../../../../types/index";
   import { currentFilePath, currentDirectoryStore } from "../../../../stores";
   import * as ICONS from "../../icons";
@@ -15,6 +16,11 @@
 
   let { settings = $bindable(), searchQuery }: Props = $props();
 
+  const { set, resettable } = settingsEditor(
+    () => settings,
+    (next) => (settings = next),
+  );
+
   function getBasePath(): string | null {
     let curFile;
     currentFilePath.subscribe((v) => (curFile = v))();
@@ -26,13 +32,17 @@
   }
 
   async function handleBrowse() {
-    const electronAPI = (globalThis as any).electronAPI;
+    const electronAPI = getElectronAPI();
     if (!electronAPI || !electronAPI.selectDirectory) return;
 
     const path = await electronAPI.selectDirectory();
     if (path) {
       const base = getBasePath();
-      if (settings.autoExportPathMode === "relative" && base) {
+      if (
+        settings.autoExportPathMode === "relative" &&
+        base &&
+        electronAPI.makeRelativePath
+      ) {
         settings.autoExportPath = await electronAPI.makeRelativePath(
           base,
           path,
@@ -44,7 +54,7 @@
   }
 
   async function handleModeChange(newMode: "relative" | "absolute") {
-    const electronAPI = (globalThis as any).electronAPI;
+    const electronAPI = getElectronAPI();
     const currentMode = settings.autoExportPathMode || "relative";
 
     if (currentMode === newMode) return;
@@ -58,15 +68,15 @@
       settings.autoExportPath.trim() !== ""
     ) {
       if (newMode === "absolute") {
-        settings.autoExportPath = await electronAPI.resolvePath(
-          base,
-          settings.autoExportPath,
-        );
+        settings.autoExportPath =
+          (await electronAPI.resolvePath?.(base, settings.autoExportPath)) ??
+          settings.autoExportPath;
       } else if (newMode === "relative") {
-        settings.autoExportPath = await electronAPI.makeRelativePath(
-          base,
-          settings.autoExportPath,
-        );
+        settings.autoExportPath =
+          (await electronAPI.makeRelativePath?.(
+            base,
+            settings.autoExportPath,
+          )) ?? settings.autoExportPath;
       }
     }
 
@@ -85,11 +95,7 @@
     {/if}
     <SettingsItem
       label="Auto Export Code"
-      isModified={settings.autoExportCode !== DEFAULT_SETTINGS.autoExportCode}
-      onReset={() => {
-        settings.autoExportCode = DEFAULT_SETTINGS.autoExportCode;
-        settings = { ...settings };
-      }}
+      {...resettable("autoExportCode")}
       description="Automatically export code when project is saved"
       {searchQuery}
       layout="row"
@@ -97,10 +103,7 @@
       <input
         type="checkbox"
         checked={settings.autoExportCode}
-        onchange={(e) => {
-          settings.autoExportCode = e.currentTarget.checked;
-          settings = { ...settings };
-        }}
+        onchange={(e) => set("autoExportCode", e.currentTarget.checked)}
         class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
       />
     </SettingsItem>
@@ -109,12 +112,7 @@
       <div transition:fade>
         <SettingsItem
           label="Export Path Mode"
-          isModified={settings.autoExportPathMode !==
-            DEFAULT_SETTINGS.autoExportPathMode}
-          onReset={() => {
-            settings.autoExportPathMode = DEFAULT_SETTINGS.autoExportPathMode;
-            settings = { ...settings };
-          }}
+          {...resettable("autoExportPathMode")}
           description="How the path is stored relative to the project file"
           {searchQuery}
           layout="row"
@@ -145,12 +143,7 @@
 
         <SettingsItem
           label="Export Path"
-          isModified={settings.autoExportPath !==
-            DEFAULT_SETTINGS.autoExportPath}
-          onReset={() => {
-            settings.autoExportPath = DEFAULT_SETTINGS.autoExportPath;
-            settings = { ...settings };
-          }}
+          {...resettable("autoExportPath")}
           description="Directory to save exported code"
           {searchQuery}
           layout="col"
@@ -159,10 +152,7 @@
             <input
               type="text"
               value={settings.autoExportPath}
-              oninput={(e) => {
-                settings.autoExportPath = e.currentTarget.value;
-                settings = { ...settings };
-              }}
+              oninput={(e) => set("autoExportPath", e.currentTarget.value)}
               class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
               placeholder="GeneratedCode"
             />
@@ -187,22 +177,15 @@
 
         <SettingsItem
           label="Export Format"
-          isModified={settings.autoExportFormat !==
-            DEFAULT_SETTINGS.autoExportFormat}
-          onReset={() => {
-            settings.autoExportFormat = DEFAULT_SETTINGS.autoExportFormat;
-            settings = { ...settings };
-          }}
+          {...resettable("autoExportFormat")}
           description="Format of the generated code"
           {searchQuery}
           layout="col"
         >
           <select
             value={settings.autoExportFormat}
-            onchange={(e) => {
-              settings.autoExportFormat = e.currentTarget.value as any;
-              settings = { ...settings };
-            }}
+            onchange={(e) =>
+              set("autoExportFormat", e.currentTarget.value as any)}
             class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="java">Java Class</option>
@@ -214,21 +197,14 @@
 
         <SettingsItem
           label="Code Units"
-          isModified={settings.codeUnits !== DEFAULT_SETTINGS.codeUnits}
-          onReset={() => {
-            settings.codeUnits = DEFAULT_SETTINGS.codeUnits;
-            settings = { ...settings };
-          }}
+          {...resettable("codeUnits")}
           description="Unit system generated in code"
           {searchQuery}
           layout="col"
         >
           <select
             value={settings.codeUnits}
-            onchange={(e) => {
-              settings.codeUnits = e.currentTarget.value as any;
-              settings = { ...settings };
-            }}
+            onchange={(e) => set("codeUnits", e.currentTarget.value as any)}
             class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="imperial">Imperial (Inches)</option>
@@ -252,13 +228,7 @@
           <div transition:fade>
             <SettingsItem
               label="Generate Full Class"
-              isModified={settings.autoExportFullClass !==
-                DEFAULT_SETTINGS.autoExportFullClass}
-              onReset={() => {
-                settings.autoExportFullClass =
-                  DEFAULT_SETTINGS.autoExportFullClass;
-                settings = { ...settings };
-              }}
+              {...resettable("autoExportFullClass")}
               description="Include class definition and imports"
               {searchQuery}
               layout="row"
@@ -266,34 +236,23 @@
               <input
                 type="checkbox"
                 checked={settings.autoExportFullClass}
-                onchange={(e) => {
-                  settings.autoExportFullClass = e.currentTarget.checked;
-                  settings = { ...settings };
-                }}
+                onchange={(e) =>
+                  set("autoExportFullClass", e.currentTarget.checked)}
                 class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
               />
             </SettingsItem>
 
             <SettingsItem
               label="Telemetry Implementation"
-              isModified={settings.telemetryImplementation !==
-                DEFAULT_SETTINGS.telemetryImplementation}
-              onReset={() => {
-                settings.telemetryImplementation =
-                  DEFAULT_SETTINGS.telemetryImplementation;
-                settings = { ...settings };
-              }}
+              {...resettable("telemetryImplementation")}
               description="Select telemetry backend for generated code"
               {searchQuery}
               layout="col"
             >
               <select
                 value={settings.telemetryImplementation}
-                onchange={(e) => {
-                  settings.telemetryImplementation = e.currentTarget
-                    .value as any;
-                  settings = { ...settings };
-                }}
+                onchange={(e) =>
+                  set("telemetryImplementation", e.currentTarget.value as any)}
                 class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="Panels">Panels (Bylazar)</option>
@@ -307,24 +266,15 @@
           <div transition:fade>
             <SettingsItem
               label="Target Library"
-              isModified={settings.autoExportTargetLibrary !==
-                DEFAULT_SETTINGS.autoExportTargetLibrary}
-              onReset={() => {
-                settings.autoExportTargetLibrary =
-                  DEFAULT_SETTINGS.autoExportTargetLibrary;
-                settings = { ...settings };
-              }}
+              {...resettable("autoExportTargetLibrary")}
               description="Command-based library to target"
               {searchQuery}
               layout="col"
             >
               <select
                 value={settings.autoExportTargetLibrary}
-                onchange={(e) => {
-                  settings.autoExportTargetLibrary = e.currentTarget
-                    .value as any;
-                  settings = { ...settings };
-                }}
+                onchange={(e) =>
+                  set("autoExportTargetLibrary", e.currentTarget.value as any)}
                 class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="SolversLib">SolversLib</option>
@@ -334,13 +284,7 @@
 
             <SettingsItem
               label="Embed Pose Data"
-              isModified={settings.autoExportEmbedPoseData !==
-                DEFAULT_SETTINGS.autoExportEmbedPoseData}
-              onReset={() => {
-                settings.autoExportEmbedPoseData =
-                  DEFAULT_SETTINGS.autoExportEmbedPoseData;
-                settings = { ...settings };
-              }}
+              {...resettable("autoExportEmbedPoseData")}
               description="Embed pose data directly in the code (no .turt file)"
               {searchQuery}
               layout="row"
@@ -348,10 +292,8 @@
               <input
                 type="checkbox"
                 checked={settings.autoExportEmbedPoseData}
-                onchange={(e) => {
-                  settings.autoExportEmbedPoseData = e.currentTarget.checked;
-                  settings = { ...settings };
-                }}
+                onchange={(e) =>
+                  set("autoExportEmbedPoseData", e.currentTarget.checked)}
                 class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
               />
             </SettingsItem>
@@ -362,12 +304,7 @@
           <div transition:fade>
             <SettingsItem
               label="Package Name"
-              isModified={settings.javaPackageName !==
-                DEFAULT_SETTINGS.javaPackageName}
-              onReset={() => {
-                settings.javaPackageName = DEFAULT_SETTINGS.javaPackageName;
-                settings = { ...settings };
-              }}
+              {...resettable("javaPackageName")}
               description="Java package for the generated class"
               {searchQuery}
               layout="col"
@@ -375,10 +312,7 @@
               <input
                 type="text"
                 value={settings.javaPackageName}
-                oninput={(e) => {
-                  settings.javaPackageName = e.currentTarget.value;
-                  settings = { ...settings };
-                }}
+                oninput={(e) => set("javaPackageName", e.currentTarget.value)}
                 class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                 placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
               />

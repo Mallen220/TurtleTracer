@@ -1,6 +1,8 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { onMount } from "svelte";
   import type { Component } from "svelte";
+  import type { Writable } from "svelte/store";
   import {
     UndoIcon,
     ClockIcon,
@@ -19,8 +21,18 @@
     GithubIcon,
     DiscordIcon,
     SidebarCollapseIcon,
+    MagnetIcon,
+    FolderIcon,
+    StarIcon,
+    PresentationModeIcon,
+    RocketIcon,
+    QuestionMarkIcon,
+    PhotoIcon,
+    ExportGifIcon,
+    PuzzleIcon,
+    SearchIcon,
   } from "./icons";
-
+  import SidebarButton from "./SidebarButton.svelte";
   import {
     showFileManager,
     showFeedbackDialog,
@@ -44,106 +56,16 @@
   } from "../../stores";
   import { settingsStore } from "../projectStore";
   import { getShortcutFromSettings } from "../../utils";
-  import type { Settings } from "../../types";
+  import type { Settings, CustomSidebarItem } from "../../types";
   import type { createHistory } from "../../utils/history";
   import { menuNavigation } from "../actions/menuNavigation";
   import { isBrowser } from "../../utils/platform";
   import {
-    MagnetIcon,
-    FolderIcon,
-    ListIcon,
-    ArrowRightIcon,
-    CodeIcon,
-    TerminalIcon,
-    StarIcon,
-    WrenchIcon,
-    PlayIcon,
-    PlusIcon,
-    SaveIcon,
-    TrashIcon,
-    EyeIcon,
-    ZapIcon,
-    BoxIcon,
-    CompassIcon,
-    PresentationModeIcon,
-    RocketIcon,
-    QuestionMarkIcon,
-    PhotoIcon,
-    ExportGifIcon,
-    PuzzleIcon,
-    SearchIcon,
-  } from "./icons";
-  import * as ICONS from "./icons";
-  import {
     SIDEBAR_ITEMS,
+    CUSTOM_ICON_MAP,
     type SidebarItemConfig,
   } from "../../config/sidebarItems";
-  import type { CustomSidebarItem } from "../../types";
 
-  type SidebarEntry = {
-    id: string;
-    label: string;
-    type?: SidebarItemConfig["type"];
-    settingKey?: string;
-    shortcutKey?: string;
-    commandId?: string;
-    iconSvg?: string;
-    iconComponent?: Component;
-  };
-
-  const ICON_COMPONENT_MAP: Record<string, any> = {
-    ...ICONS,
-    List: ListIcon,
-    Play: PlayIcon,
-    Arrow: ArrowRightIcon,
-    Code: CodeIcon,
-    Terminal: TerminalIcon,
-    Star: StarIcon,
-    Bolt: ZapIcon,
-    Wrench: WrenchIcon,
-    Plus: PlusIcon,
-    Folder: FolderIcon,
-    Save: SaveIcon,
-    Trash: TrashIcon,
-    Eye: EyeIcon,
-    Zap: ZapIcon,
-    Box: BoxIcon,
-    Compass: CompassIcon,
-  };
-
-  let activeSidebarItems: SidebarEntry[] = $state([]);
-
-  function toggleSetting(key: string) {
-    (settings as any)[key] = !(settings as any)[key];
-    settingsStore.update((s) => ({ ...s, [key]: (settings as any)[key] }));
-  }
-
-  function checkSettingActive(key?: string): boolean {
-    return key ? !!(settings as any)[key] : false;
-  }
-
-  let historyButtonRef: HTMLElement | undefined = $state();
-  let historyDropdownRef: HTMLElement | undefined = $state();
-
-  function handleClickOutside(event: MouseEvent) {
-    if (
-      $showHistory &&
-      historyDropdownRef &&
-      !historyDropdownRef.contains(event.target as Node) &&
-      historyButtonRef &&
-      !historyButtonRef.contains(event.target as Node)
-    ) {
-      showHistory.set(false);
-    }
-  }
-
-  function handleKeyDown(event: KeyboardEvent) {
-    if ($showHistory && event.key === "Escape") {
-      showHistory.set(false);
-    }
-  }
-
-  import { onMount, onDestroy } from "svelte";
   interface Props {
     undoAction: () => any;
     redoAction: () => any;
@@ -164,145 +86,418 @@
     settings = $bindable(),
   }: Props = $props();
 
-  onMount(() => {
-    document.addEventListener("click", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-  });
+  type SidebarEntry = {
+    id: string;
+    label: string;
+    type?: SidebarItemConfig["type"];
+    settingKey?: string;
+    shortcutKey?: string;
+    commandId?: string;
+    iconSvg?: string;
+    iconComponent?: Component;
+  };
 
-  onDestroy(() => {
-    document.removeEventListener("click", handleClickOutside);
-    document.removeEventListener("keydown", handleKeyDown);
-  });
+  const MIN_WIDTH = 160;
+  const MAX_WIDTH = 450;
 
-  let isResizing = $state(false);
+  let sidebarWidth = $derived(settings.sidebarWidth || 240);
+  let sidebarExpanded = $derived(settings.sidebarExpanded || false);
 
-  function startResizing(e: MouseEvent) {
-    if (!sidebarExpanded) return;
-    isResizing = true;
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", stopResizing);
-    document.body.style.cursor = "col-resize";
-    e.preventDefault();
+  // These items don't work in the browser build.
+  const DESKTOP_ONLY = new Set(["pluginManager", "feedback", "autoExportCode"]);
+
+  let activeSidebarItems = $derived(
+    (settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id))
+      .map(
+        (id) =>
+          (SIDEBAR_ITEMS.find((item) => item.id === id) ??
+            settings.customSidebarItems?.find(
+              (item: CustomSidebarItem) => item.id === id,
+            )) as SidebarEntry | undefined,
+      )
+      .filter((item): item is SidebarEntry => item !== undefined)
+      .filter((item) => !(isBrowser && DESKTOP_ONLY.has(item.id))),
+  );
+
+  const shortcut = (actionId?: string) =>
+    actionId ? getShortcutFromSettings(settings, actionId) : "";
+
+  function setSetting(key: keyof Settings, value: unknown) {
+    settingsStore.update((s) => ({ ...s, [key]: value }));
   }
+  const toggleSetting = (key: string) =>
+    setSetting(key as keyof Settings, !(settings as any)[key]);
+  const toggle = (store: Writable<boolean>) => () => store.update((v) => !v);
 
-  function handleMouseMove(e: MouseEvent) {
-    if (!isResizing) return;
-    const newWidth = Math.max(160, Math.min(450, e.clientX));
-    settingsStore.update((s) => ({ ...s, sidebarWidth: newWidth }));
-  }
-
-  function stopResizing() {
-    if (isResizing) {
-      isResizing = false;
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", stopResizing);
-      document.body.style.cursor = "";
-    }
-  }
-
-  function toggleSidebar() {
-    const newState = !sidebarExpanded;
-    settingsStore.update((s) => ({ ...s, sidebarExpanded: newState }));
-  }
-
-  let dragSourceIndex: number | null = $state(null);
-  let dragOverIndex: number | null = $state(null);
-
-  function handleDragStart(e: DragEvent, index: number) {
-    if (!sidebarExpanded) return;
-    dragSourceIndex = index;
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", String(index));
-    }
-  }
-
-  function handleDragOver(e: DragEvent, index: number) {
-    if (!sidebarExpanded) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-    dragOverIndex = index;
-  }
-
-  function handleDragLeave(idx: number) {
-    if (dragOverIndex === idx) dragOverIndex = null;
-  }
-
-  function handleDrop(e: DragEvent, dropIndex: number) {
-    if (!sidebarExpanded) return;
-    e.preventDefault();
-    if (dragSourceIndex === null || dragSourceIndex === dropIndex) {
-      dragSourceIndex = null;
-      dragOverIndex = null;
-      return;
-    }
-
-    const currentItems =
-      settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id);
-    const arr = [...currentItems];
-    const [moved] = arr.splice(dragSourceIndex, 1);
-    arr.splice(dropIndex, 0, moved);
-
-    settingsStore.update((s) => ({
-      ...s,
-      sidebarItems: arr,
-    }));
-
-    dragSourceIndex = null;
-    dragOverIndex = null;
-  }
-
-  function handleDragEnd() {
-    dragSourceIndex = null;
-    dragOverIndex = null;
-  }
   let historyStore = $derived(history?.historyStore);
   let undoDescription = $derived(history?.undoDescriptionStore);
   let redoDescription = $derived(history?.redoDescriptionStore);
-  $effect(() => {
-    activeSidebarItems = (
-      settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id)
-    )
-      .map((id) => {
-        let item: SidebarItemConfig | CustomSidebarItem | undefined =
-          SIDEBAR_ITEMS.find((item) => item.id === id);
-        if (!item && settings.customSidebarItems) {
-          item = settings.customSidebarItems.find((i) => i.id === id);
-        }
-        return item as SidebarEntry | undefined;
-      })
-      .filter((item): item is SidebarEntry => item !== undefined)
-      .filter((item) => {
-        if (isBrowser) {
-          if (item.id === "pluginManager") return false;
-          if (item.id === "feedback") return false;
-          if (item.id === "autoExportCode") return false;
-        }
-        return true;
-      });
+
+  function historyTooltip(
+    verb: "Undo" | "Redo",
+    possible: boolean,
+    description: string | null | undefined,
+  ) {
+    const title = possible
+      ? description
+        ? `${verb}: ${description}`
+        : verb
+      : `Nothing to ${verb}`;
+    return `${title}${shortcut(verb.toLowerCase())}`;
+  }
+  let undoTooltip = $derived(historyTooltip("Undo", canUndo, $undoDescription));
+  let redoTooltip = $derived(historyTooltip("Redo", canRedo, $redoDescription));
+
+  type ButtonSpec = {
+    icon?: Component<any>;
+    iconClass?: string;
+    title: string;
+    "aria-label"?: string;
+    onclick?: () => void;
+    href?: string;
+    active?: boolean;
+    disabled?: boolean;
+    id?: string;
+    extraClass?: string;
+  };
+
+  /**
+   * How to draw an item's main button. Items with extra controls (history,
+   * protractor, grid, onion skin) add those in the template.
+   */
+  function buttonFor(item: SidebarEntry): ButtonSpec | null {
+    const icon = item.iconComponent;
+    const titled = (text: string, shortcutId?: string) =>
+      `${text}${shortcut(shortcutId)}`;
+
+    if (item.type === "setting" && item.settingKey) {
+      return {
+        icon,
+        iconClass: "sidebar-icon flex-none",
+        title: titled(item.label, item.shortcutKey),
+        active: !!(settings as any)[item.settingKey],
+        onclick: () => toggleSetting(item.settingKey!),
+      };
+    }
+    if (item.commandId) {
+      // A custom button that runs a command palette command.
+      return {
+        icon: icon ?? CUSTOM_ICON_MAP[item.iconSvg ?? ""] ?? StarIcon,
+        iconClass: "sidebar-icon flex-none",
+        title: item.label,
+        onclick: () => executeCommandBus.set(item.commandId ?? null),
+      };
+    }
+
+    switch (item.id) {
+      case "fileManager":
+        return {
+          id: "sidebar-file-manager-btn",
+          icon: icon ?? FolderIcon,
+          iconClass: "sidebar-icon flex-none",
+          title: titled("Open File Manager", "toggle-file-manager"),
+          "aria-label": "Open File Manager",
+          onclick: () => showFileManager.set(true),
+          extraClass: "hover:text-purple-600 dark:hover:text-purple-400",
+        };
+      case "keyboardShortcuts":
+        return {
+          icon,
+          title: titled(item.label, item.shortcutKey),
+          onclick: () => showShortcuts.set(true),
+        };
+      case "commandPalette":
+        return {
+          icon: SearchIcon,
+          title: item.label,
+          onclick: () => executeCommandBus.set("toggle-command-palette"),
+        };
+      case "undo":
+        return {
+          icon: icon ?? UndoIcon,
+          title: undoTooltip,
+          "aria-label": undoTooltip,
+          onclick: undoAction,
+          disabled: !canUndo,
+        };
+      case "redo":
+        return {
+          icon: RedoIcon,
+          title: redoTooltip,
+          "aria-label": redoTooltip,
+          onclick: redoAction,
+          disabled: !canRedo,
+        };
+      case "drawPath":
+        return {
+          icon,
+          title: titled("Draw Path", "toggle-draw"),
+          "aria-label": "Draw Path",
+          active: $isDrawingMode,
+          onclick: toggle(isDrawingMode),
+        };
+      case "ruler":
+        return {
+          icon: RulerIcon,
+          title: titled("Toggle Ruler", "toggle-ruler"),
+          "aria-label": "Toggle Ruler",
+          active: $showRuler,
+          onclick: toggle(showRuler),
+        };
+      case "protractor":
+        return {
+          icon: ProtractorIcon,
+          title: titled("Toggle Protractor", "toggle-protractor"),
+          "aria-label": "Toggle Protractor",
+          active: $showProtractor,
+          onclick: toggle(showProtractor),
+        };
+      case "grid":
+        return {
+          icon: GridIcon,
+          title: titled("Toggle Grid", "toggle-grid"),
+          "aria-label": "Toggle Grid",
+          active: $showGrid,
+          onclick: toggle(showGrid),
+        };
+      case "onionSkin":
+        return {
+          icon: OnionSkinIcon,
+          title: titled("Toggle Onion Skin", "toggle-onion"),
+          "aria-label": "Toggle Onion Skin",
+          active: !!settings.showOnionLayers,
+          onclick: () => toggleSetting("showOnionLayers"),
+        };
+      case "velocityHeatmap":
+        return {
+          icon: VelocityHeatmapIcon,
+          title: "Toggle Velocity Heatmap",
+          "aria-label": "Toggle Velocity Heatmap",
+          active: !!settings.showVelocityHeatmap,
+          onclick: () => toggleSetting("showVelocityHeatmap"),
+        };
+      case "lockView":
+        return {
+          icon: settings.lockFieldView ? LockIcon : UnlockIcon,
+          title: titled("Toggle Field View Lock", "toggle-lock-view"),
+          "aria-label": "Toggle Field View Lock",
+          active: !!settings.lockFieldView,
+          onclick: () => toggleSetting("lockFieldView"),
+        };
+      case "newPath":
+        return {
+          id: "sidebar-new-path-btn",
+          icon: DocumentPlusIcon,
+          iconClass: "sidebar-icon flex-none",
+          title: titled("New Path", "new-file"),
+          "aria-label": "New Path",
+          onclick: () => resetProject(),
+        };
+      case "settings":
+        return {
+          id: "sidebar-settings-btn",
+          icon: CogIcon,
+          title: titled("Settings", "open-settings"),
+          "aria-label": "Settings",
+          onclick: () => showSettings.set(true),
+        };
+      case "feedback":
+        return {
+          id: "sidebar-feedback-btn",
+          icon: FeedbackIcon,
+          iconClass:
+            "sidebar-icon-small flex-none text-purple-600 dark:text-purple-400",
+          title: "Report Issue / Rating",
+          "aria-label": "Report Issue / Rating",
+          onclick: () => showFeedbackDialog.set(true),
+        };
+      case "discord":
+        return {
+          icon: DiscordIcon,
+          iconClass: "sidebar-icon-small flex-none dark:fill-white",
+          title: "Discord Server",
+          "aria-label": "Discord Server Invite",
+          href: "https://discord.gg/chHSzS4ewF",
+        };
+      case "github":
+        return {
+          icon: GithubIcon,
+          iconClass: "sidebar-icon-small flex-none dark:fill-white",
+          title: "GitHub Repo",
+          "aria-label": "GitHub Repository",
+          href: "https://github.com/Mallen220/TurtleTracer",
+        };
+      case "presentationMode":
+        return {
+          icon: icon ?? PresentationModeIcon,
+          title: "Presentation Mode",
+          active: $isPresentationMode,
+          onclick: toggle(isPresentationMode),
+        };
+      case "pluginManager":
+        return {
+          icon: icon ?? PuzzleIcon,
+          title: "Plugin Manager",
+          onclick: () => showPluginManager.set(true),
+        };
+      case "whatsNew":
+        return {
+          icon: icon ?? RocketIcon,
+          title: "What's New & Docs",
+          onclick: () => showWhatsNew.set(true),
+        };
+      case "onboarding":
+        return {
+          icon: QuestionMarkIcon,
+          title: "Restart Tutorial",
+          onclick: () => startTutorial.set(true),
+        };
+      case "exportImage":
+        return {
+          icon: PhotoIcon,
+          title: "Export as Image",
+          onclick: () => showExportImage.set(true),
+        };
+      case "exportGif":
+        return {
+          icon: ExportGifIcon,
+          title: "Export as GIF",
+          onclick: () => showExportGif.set(true),
+        };
+      default:
+        return null;
+    }
+  }
+
+  // Items that show extra controls underneath their button.
+  const STACKED_ITEMS = new Set(["protractor", "grid", "onionSkin"]);
+
+  // --- History dropdown ---
+  let historyContainer: HTMLElement | undefined = $state();
+
+  onMount(() => {
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if ($showHistory && !historyContainer?.contains(event.target as Node)) {
+        showHistory.set(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if ($showHistory && event.key === "Escape") showHistory.set(false);
+    };
+    document.addEventListener("click", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("click", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
   });
-  let undoTooltip = $derived(
-    (() => {
-      let title = canUndo ? "Undo" : "Nothing to Undo";
-      if (canUndo && $undoDescription) {
-        title = `Undo: ${$undoDescription}`;
-      }
-      const shortcut = getShortcutFromSettings(settings, "undo");
-      return shortcut ? `${title}${shortcut}` : title;
-    })(),
-  );
-  let redoTooltip = $derived(
-    (() => {
-      let title = canRedo ? "Redo" : "Nothing to Redo";
-      if (canRedo && $redoDescription) {
-        title = `Redo: ${$redoDescription}`;
-      }
-      const shortcut = getShortcutFromSettings(settings, "redo");
-      return shortcut ? `${title}${shortcut}` : title;
-    })(),
-  );
-  let sidebarWidth = $derived(settings.sidebarWidth || 240);
-  let sidebarExpanded = $derived(settings.sidebarExpanded || false);
+
+  // --- Resizing ---
+  let isResizing = $state(false);
+
+  function setWidth(width: number) {
+    setSetting("sidebarWidth", Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width)));
+  }
+
+  function startResizing(e: MouseEvent) {
+    if (!sidebarExpanded) return;
+    e.preventDefault();
+    isResizing = true;
+    document.body.style.cursor = "col-resize";
+
+    const onMove = (ev: MouseEvent) => setWidth(ev.clientX);
+    const onUp = () => {
+      isResizing = false;
+      document.body.style.cursor = "";
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
+
+  // --- Reordering items by drag and drop (only when expanded) ---
+  let dragSourceIndex: number | null = $state(null);
+  let dragOverIndex: number | null = $state(null);
+
+  function endDrag() {
+    dragSourceIndex = null;
+    dragOverIndex = null;
+  }
+
+  function moveItem(from: number, to: number) {
+    const ids = [...(settings.sidebarItems || SIDEBAR_ITEMS.map((i) => i.id))];
+    const [moved] = ids.splice(from, 1);
+    ids.splice(to, 0, moved);
+    setSetting("sidebarItems", ids);
+  }
+
+  /** Svelte action that makes a sidebar row draggable for reordering. */
+  function reorderable(node: HTMLElement, index: number) {
+    let idx = index;
+    const handlers: Record<string, (e: DragEvent) => void> = {
+      dragstart: (e) => {
+        if (!sidebarExpanded) return;
+        dragSourceIndex = idx;
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", String(idx));
+        }
+      },
+      dragover: (e) => {
+        if (!sidebarExpanded) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+        dragOverIndex = idx;
+      },
+      dragleave: () => {
+        if (dragOverIndex === idx) dragOverIndex = null;
+      },
+      drop: (e) => {
+        if (!sidebarExpanded) return;
+        e.preventDefault();
+        if (dragSourceIndex !== null && dragSourceIndex !== idx) {
+          moveItem(dragSourceIndex, idx);
+        }
+        endDrag();
+      },
+      dragend: endDrag,
+    };
+    for (const [type, fn] of Object.entries(handlers)) {
+      node.addEventListener(type, fn as EventListener);
+    }
+    return {
+      update(newIndex: number) {
+        idx = newIndex;
+      },
+      destroy() {
+        for (const [type, fn] of Object.entries(handlers)) {
+          node.removeEventListener(type, fn as EventListener);
+        }
+      },
+    };
+  }
+
+  const isDropTarget = (idx: number) =>
+    dragOverIndex === idx && dragSourceIndex !== idx;
+
+  function rowClass(idx: number, stacked = false) {
+    return [
+      "w-full flex transition-all",
+      stacked ? "flex-col items-center" : "justify-center",
+      isDropTarget(idx)
+        ? "ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20"
+        : "",
+      dragSourceIndex === idx ? "opacity-30 scale-95" : "",
+    ].join(" ");
+  }
+
+  const formatTime = (timestamp: number) =>
+    new Date(timestamp).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
 </script>
 
 <aside
@@ -321,619 +516,132 @@
     class="flex-grow w-full flex flex-col items-center py-2 gap-1.5 overflow-y-auto no-scrollbar"
   >
     {#each activeSidebarItems as item, idx}
-      {#if item.type === "separator"}
+      {#if item.type === "separator" || item.type === "spacer"}
         <div
           draggable={sidebarExpanded}
-          ondragstart={(e) => handleDragStart(e, idx)}
-          ondragover={(e) => handleDragOver(e, idx)}
-          ondragleave={() => handleDragLeave(idx)}
-          ondrop={(e) => handleDrop(e, idx)}
-          ondragend={handleDragEnd}
+          use:reorderable={idx}
           role="presentation"
           aria-hidden="true"
-          class="w-8 h-px bg-neutral-200 dark:bg-neutral-700 my-1 transition-all {dragOverIndex ===
-            idx && dragSourceIndex !== idx
-            ? 'scale-x-150 bg-blue-400 dark:bg-blue-500'
+          class="transition-all {item.type === 'separator'
+            ? 'w-8 h-px bg-neutral-200 dark:bg-neutral-700 my-1'
+            : 'flex-grow w-full'} {isDropTarget(idx)
+            ? item.type === 'separator'
+              ? 'scale-x-150 bg-blue-400 dark:bg-blue-500'
+              : 'bg-blue-50/50 dark:bg-blue-900/10'
             : ''} {dragSourceIndex === idx ? 'opacity-30' : ''}"
         ></div>
-      {:else if item.type === "spacer"}
-        <div
-          draggable={sidebarExpanded}
-          ondragstart={(e) => handleDragStart(e, idx)}
-          ondragover={(e) => handleDragOver(e, idx)}
-          ondragleave={() => handleDragLeave(idx)}
-          ondrop={(e) => handleDrop(e, idx)}
-          ondragend={handleDragEnd}
-          role="presentation"
-          aria-hidden="true"
-          class="flex-grow w-full transition-all {dragOverIndex === idx &&
-          dragSourceIndex !== idx
-            ? 'bg-blue-50/50 dark:bg-blue-900/10'
-            : ''} {dragSourceIndex === idx ? 'opacity-30' : ''}"
-        ></div>
-      {:else if item.type === "setting"}
-        {@const isActive = checkSettingActive(item.settingKey)}
-        <div
-          draggable={sidebarExpanded}
-          ondragstart={(e) => handleDragStart(e, idx)}
-          ondragover={(e) => handleDragOver(e, idx)}
-          ondragleave={() => handleDragLeave(idx)}
-          ondrop={(e) => handleDrop(e, idx)}
-          ondragend={handleDragEnd}
-          role="listitem"
-          class="w-full flex justify-center transition-all {dragOverIndex ===
-            idx && dragSourceIndex !== idx
-            ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-            : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-        >
-          <button
-            title={`${item.label}${item.shortcutKey ? getShortcutFromSettings(settings, item.shortcutKey) : ""}`}
-            aria-label={item.label}
-            aria-pressed={isActive}
-            onclick={() => item.settingKey && toggleSetting(item.settingKey)}
-            class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-              ? 'w-[calc(100%-1.1rem)] px-3'
-              : 'justify-center'} {isActive
-              ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
-          >
-            <div
-              class="sidebar-icon flex-none flex items-center justify-center"
-            >
-              {#if item.iconComponent}
-                <item.iconComponent className="sidebar-icon flex-none" />
-              {:else}
-                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                {@html item.iconSvg}
-              {/if}
-            </div>
-            {#if sidebarExpanded}
-              <span class="ml-3 text-sm font-medium truncate">{item.label}</span
-              >
-            {/if}
-          </button>
-        </div>
-      {:else if item.commandId}
-        <div
-          draggable={sidebarExpanded}
-          ondragstart={(e) => handleDragStart(e, idx)}
-          ondragover={(e) => handleDragOver(e, idx)}
-          ondragleave={() => handleDragLeave(idx)}
-          ondrop={(e) => handleDrop(e, idx)}
-          ondragend={handleDragEnd}
-          role="listitem"
-          class="w-full flex justify-center transition-all {dragOverIndex ===
-            idx && dragSourceIndex !== idx
-            ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-            : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-        >
-          <button
-            title={item.label}
-            aria-label={item.label}
-            onclick={() => executeCommandBus.set(item.commandId ?? null)}
-            class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-              ? 'w-[calc(100%-1.1rem)] px-3'
-              : 'justify-center'} text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800"
-          >
-            <div
-              class="sidebar-icon flex-none flex items-center justify-center"
-            >
-              {#if item.iconComponent}
-                <item.iconComponent className="sidebar-icon flex-none" />
-              {:else if item.iconSvg && ICON_COMPONENT_MAP[item.iconSvg]}
-                {@const SvelteComponent = ICON_COMPONENT_MAP[item.iconSvg]}
-                <SvelteComponent className="sidebar-icon flex-none" />
-              {:else}
-                <StarIcon className="sidebar-icon flex-none" />
-              {/if}
-            </div>
-            {#if sidebarExpanded}
-              <span class="ml-3 text-sm font-medium truncate">{item.label}</span
-              >
-            {/if}
-          </button>
-        </div>
-      {:else if item.type === "system"}
-        {#if item.id === "fileManager"}
-          <!-- File Manager -->
+      {:else if item.id === "history"}
+        {#if history}
           <div
+            bind:this={historyContainer}
             draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
+            use:reorderable={idx}
             role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
+            class={rowClass(idx)}
           >
-            <button
-              id="sidebar-file-manager-btn"
-              title={`Open File Manager${getShortcutFromSettings(settings, "toggle-file-manager")}`}
-              aria-label="Open File Manager"
-              onclick={() => showFileManager.set(true)}
-              class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 hover:text-purple-600 dark:hover:text-purple-400 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                {#if item.iconComponent}
-                  <item.iconComponent className="sidebar-icon flex-none" />
-                {:else}
-                  <FolderIcon className="sidebar-icon flex-none" />
-                {/if}
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "keyboardShortcuts"}
-          <!-- Keyboard Shortcuts -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title={item.shortcutKey && settings.keyBindings
-                ? `${item.label} (${getShortcutFromSettings(settings, item.shortcutKey)})`
-                : item.label}
-              aria-label={item.label}
-              onclick={() => showShortcuts.set(true)}
-              class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                {#if item.iconComponent}
-                  <item.iconComponent
-                    className="sidebar-icon-small flex-none"
-                  />
-                {/if}
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "commandPalette"}
-          <!-- Command Palette -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title={item.label}
-              aria-label={item.label}
-              onclick={() => executeCommandBus.set("toggle-command-palette")}
-              class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <SearchIcon
-                  className="sidebar-icon-small flex-none"
-                  strokeWidth={2}
-                />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "undo"}
-          <!-- Undo -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title={undoTooltip}
-              aria-label={undoTooltip}
-              onclick={undoAction}
-              disabled={!canUndo}
-              class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                {#if item.iconComponent}
-                  <item.iconComponent
-                    className="sidebar-icon-small flex-none"
-                  />
-                {:else}
-                  <UndoIcon className="sidebar-icon-small flex-none" />
-                {/if}
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "history"}
-          <!-- History Dropdown -->
-          {#if history}
-            <div
-              draggable={sidebarExpanded}
-              ondragstart={(e) => handleDragStart(e, idx)}
-              ondragover={(e) => handleDragOver(e, idx)}
-              ondragleave={() => handleDragLeave(idx)}
-              ondrop={(e) => handleDrop(e, idx)}
-              ondragend={handleDragEnd}
-              role="listitem"
-              class="w-full flex justify-center transition-all {dragOverIndex ===
-                idx && dragSourceIndex !== idx
-                ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-            >
-              <button
-                bind:this={historyButtonRef}
-                title={`History Panel${getShortcutFromSettings(settings, "toggle-history")}`}
-                aria-label="History Panel"
-                aria-haspopup="menu"
-                aria-expanded={$showHistory}
-                aria-controls="history-menu"
-                onclick={() => showHistory.set(!$showHistory)}
-                class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                  ? 'w-[calc(100%-1.1rem)] px-3'
-                  : 'justify-center'} {$showHistory
-                  ? 'bg-neutral-200 dark:bg-neutral-800'
-                  : ''}"
-              >
-                <div
-                  class="sidebar-icon flex-none flex items-center justify-center"
-                >
-                  {#if item.iconComponent}
-                    <item.iconComponent
-                      className="sidebar-icon-small flex-none"
-                    />
-                  {:else}
-                    <ClockIcon className="sidebar-icon-small flex-none" />
-                  {/if}
-                </div>
-                {#if sidebarExpanded}
-                  <span class="ml-3 text-sm font-medium truncate"
-                    >{item.label}</span
-                  >
-                {/if}
-              </button>
+            <SidebarButton
+              label={item.label}
+              expanded={sidebarExpanded}
+              icon={item.iconComponent ?? ClockIcon}
+              title={`History Panel${shortcut("toggle-history")}`}
+              aria-label="History Panel"
+              aria-haspopup="menu"
+              aria-expanded={$showHistory}
+              aria-controls="history-menu"
+              onclick={() => showHistory.set(!$showHistory)}
+              extraClass={$showHistory
+                ? "bg-neutral-200 dark:bg-neutral-800"
+                : ""}
+            />
 
-              {#if $showHistory && $historyStore}
+            {#if $showHistory && $historyStore}
+              {@const currentIndex = $historyStore.findIndex((e) => !e.future)}
+              <div
+                id="history-menu"
+                role="menu"
+                aria-label="History Menu"
+                use:menuNavigation
+                onclose={() => showHistory.set(false)}
+                class="absolute left-full ml-2 mt-0 w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
+              >
                 <div
-                  id="history-menu"
-                  role="menu"
-                  aria-label="History Menu"
-                  bind:this={historyDropdownRef}
-                  use:menuNavigation
-                  onclose={() => showHistory.set(false)}
-                  class="absolute left-full ml-2 mt-0 w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
+                  class="px-4 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider border-b border-neutral-200 dark:border-neutral-700 mb-1"
                 >
-                  <div
-                    class="px-4 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider border-b border-neutral-200 dark:border-neutral-700 mb-1"
+                  History
+                </div>
+                {#each $historyStore as entry, i}
+                  <button
+                    role="menuitem"
+                    onclick={() => {
+                      history.restore(entry.item.id);
+                      showHistory.set(false);
+                    }}
+                    class="w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between group {entry.future
+                      ? 'opacity-50 hover:opacity-100 text-neutral-600 dark:text-neutral-400'
+                      : i === currentIndex
+                        ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium'
+                        : 'text-neutral-700 dark:text-neutral-200'}"
                   >
-                    History
-                  </div>
-                  {#if $historyStore.length === 0}
-                    <div
-                      class="px-4 py-3 text-sm text-neutral-500 dark:text-neutral-400 text-center italic"
+                    <span class="truncate">{entry.item.description}</span>
+                    <span
+                      class="text-xs text-neutral-400 dark:text-neutral-500 ml-2"
                     >
-                      No history yet
-                    </div>
-                  {:else}
-                    {#each $historyStore as entry, i}
-                      <button
-                        role="menuitem"
-                        onclick={() => {
-                          history.restore(entry.item.id);
-                          showHistory.set(false);
-                        }}
-                        class="w-full text-left px-4 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between group {entry.future
-                          ? 'opacity-50 hover:opacity-100 text-neutral-600 dark:text-neutral-400'
-                          : i === 0 && !entry.future // First non-future item is 'Current'
-                            ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium'
-                            : 'text-neutral-700 dark:text-neutral-200'}"
-                      >
-                        <span class="truncate">{entry.item.description}</span>
-                        <span
-                          class="text-xs text-neutral-400 dark:text-neutral-500 ml-2"
-                        >
-                          {new Date(entry.item.timestamp).toLocaleTimeString(
-                            [],
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              second: "2-digit",
-                            },
-                          )}
-                        </span>
-                      </button>
-                    {/each}
-                  {/if}
-                </div>
-              {/if}
-            </div>
-          {/if}
-        {:else if item.id === "redo"}
-          <!-- Redo -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title={redoTooltip}
-              aria-label={redoTooltip}
-              onclick={redoAction}
-              disabled={!canRedo}
-              class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <RedoIcon className="sidebar-icon-small flex-none" />
+                      {formatTime(entry.item.timestamp)}
+                    </span>
+                  </button>
+                {:else}
+                  <div
+                    class="px-4 py-3 text-sm text-neutral-500 dark:text-neutral-400 text-center italic"
+                  >
+                    No history yet
+                  </div>
+                {/each}
               </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "drawPath"}
-          <!-- Drawing toggle -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title={`Draw Path${getShortcutFromSettings(settings, "toggle-draw")}`}
-              aria-label="Draw Path"
-              aria-pressed={$isDrawingMode}
-              onclick={() => isDrawingMode.update((v) => !v)}
-              class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} {$isDrawingMode
-                ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <item.iconComponent />
-              </div>
-              {#if sidebarExpanded}
-                <span
-                  class="ml-3 text-sm font-medium whitespace-nowrap overflow-hidden"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "ruler"}
-          <!-- View Options / Toggles -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title={`Toggle Ruler${getShortcutFromSettings(settings, "toggle-ruler")}`}
-              aria-label="Toggle Ruler"
-              aria-pressed={$showRuler}
-              onclick={() => showRuler.update((v) => !v)}
-              class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} {$showRuler
-                ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <RulerIcon className="sidebar-icon-small flex-none" />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "protractor"}
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex flex-col items-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title={`Toggle Protractor${getShortcutFromSettings(settings, "toggle-protractor")}`}
-              aria-label="Toggle Protractor"
-              aria-pressed={$showProtractor}
-              onclick={() => showProtractor.update((v) => !v)}
-              class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} {$showProtractor
-                ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <ProtractorIcon className="sidebar-icon-small flex-none" />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-            {#if $showProtractor}
-              <button
-                title={$protractorLockToRobot
-                  ? "Unlock Protractor from Robot"
-                  : "Lock Protractor to Robot"}
-                aria-label={$protractorLockToRobot
-                  ? "Unlock Protractor from Robot"
-                  : "Lock Protractor to Robot"}
-                aria-pressed={$protractorLockToRobot}
-                onclick={() => protractorLockToRobot.update((v) => !v)}
-                class="p-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                  ? 'w-[calc(100%-1.1rem)] px-3'
-                  : 'justify-center'} {$protractorLockToRobot
-                  ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                  : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
-              >
-                <div
-                  class="sidebar-icon flex-none flex items-center justify-center"
-                >
-                  {#if $protractorLockToRobot}
-                    <LockIcon className="sidebar-icon-small flex-none" />
-                  {:else}
-                    <UnlockIcon className="sidebar-icon-small flex-none" />
-                  {/if}
-                </div>
-                {#if sidebarExpanded}
-                  <span class="ml-3 text-xs truncate">Lock to Robot</span>
-                {/if}
-              </button>
             {/if}
           </div>
-        {:else if item.id === "grid"}
+        {/if}
+      {:else}
+        {@const spec = buttonFor(item)}
+        {#if spec}
           <div
             draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
+            use:reorderable={idx}
             role="listitem"
-            class="w-full flex flex-col items-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
+            class={rowClass(idx, STACKED_ITEMS.has(item.id))}
           >
-            <button
-              title={`Toggle Grid${getShortcutFromSettings(settings, "toggle-grid")}`}
-              aria-label="Toggle Grid"
-              aria-pressed={$showGrid}
-              onclick={() => showGrid.update((v) => !v)}
-              class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} {$showGrid
-                ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <GridIcon className="sidebar-icon-small flex-none" />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-            {#if $showGrid}
-              <button
-                title={`Toggle Snap${getShortcutFromSettings(settings, "toggle-snap")}`}
+            <SidebarButton
+              {...spec}
+              label={item.label}
+              expanded={sidebarExpanded}
+            />
+
+            {#if item.id === "protractor" && $showProtractor}
+              {@const lockLabel = $protractorLockToRobot
+                ? "Unlock Protractor from Robot"
+                : "Lock Protractor to Robot"}
+              <SidebarButton
+                secondary
+                label="Lock to Robot"
+                expanded={sidebarExpanded}
+                icon={$protractorLockToRobot ? LockIcon : UnlockIcon}
+                title={lockLabel}
+                aria-label={lockLabel}
+                active={$protractorLockToRobot}
+                activeClass="text-amber-500 bg-amber-50 dark:bg-amber-900/20"
+                onclick={toggle(protractorLockToRobot)}
+              />
+            {:else if item.id === "grid" && $showGrid}
+              <SidebarButton
+                secondary
+                label="Snap to Grid"
+                expanded={sidebarExpanded}
+                icon={MagnetIcon}
+                title={`Toggle Snap${shortcut("toggle-snap")}`}
                 aria-label={$snapToGrid ? "Disable Snap" : "Enable Snap"}
-                aria-pressed={$snapToGrid}
-                onclick={() => snapToGrid.update((v) => !v)}
-                class="p-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                  ? 'w-[calc(100%-1.1rem)] px-3'
-                  : 'justify-center'} {$snapToGrid
-                  ? 'text-green-500 bg-green-50 dark:bg-green-900/20'
-                  : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
-              >
-                <div
-                  class="sidebar-icon flex-none flex items-center justify-center"
-                >
-                  <MagnetIcon className="sidebar-icon-small flex-none" />
-                </div>
-                {#if sidebarExpanded}
-                  <span class="ml-3 text-xs truncate">Snap to Grid</span>
-                {/if}
-              </button>
+                active={$snapToGrid}
+                activeClass="text-green-500 bg-green-50 dark:bg-green-900/20"
+                onclick={toggle(snapToGrid)}
+              />
               <div
                 class="flex items-center {sidebarExpanded
                   ? 'w-[calc(100%-1.1rem)] px-3'
@@ -948,12 +656,9 @@
                     title="Grid Size"
                     aria-label="Grid Size"
                   >
-                    <option value={0.5}>0.5"</option>
-                    <option value={1}>1"</option>
-                    <option value={3}>3"</option>
-                    <option value={6}>6"</option>
-                    <option value={12}>12"</option>
-                    <option value={24}>24"</option>
+                    {#each [0.5, 1, 3, 6, 12, 24] as size}
+                      <option value={size}>{size}"</option>
+                    {/each}
                   </select>
                 </div>
                 {#if sidebarExpanded}
@@ -963,606 +668,48 @@
                   >
                 {/if}
               </div>
-            {/if}
-          </div>
-        {:else if item.id === "onionSkin"}
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex flex-col items-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title={`Toggle Onion Skin${getShortcutFromSettings(settings, "toggle-onion")}`}
-              aria-label="Toggle Onion Skin"
-              aria-pressed={settings.showOnionLayers}
-              onclick={() => {
-                settings.showOnionLayers = !settings.showOnionLayers;
-                settingsStore.update((s) => ({
-                  ...s,
-                  showOnionLayers: settings.showOnionLayers,
-                }));
-              }}
-              class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} {settings.showOnionLayers
-                ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <OnionSkinIcon className="sidebar-icon-small flex-none" />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-            {#if settings.showOnionLayers}
-              <button
-                title={`Toggle Current Path Only${getShortcutFromSettings(settings, "toggle-onion-current-path")}`}
+            {:else if item.id === "onionSkin" && settings.showOnionLayers}
+              <SidebarButton
+                secondary
+                label="Current Path Only"
+                expanded={sidebarExpanded}
+                title={`Toggle Current Path Only${shortcut("toggle-onion-current-path")}`}
                 aria-label={settings.onionSkinCurrentPathOnly
                   ? "Show All Paths"
                   : "Show Current Path Only"}
-                aria-pressed={settings.onionSkinCurrentPathOnly}
-                onclick={() => {
-                  settings.onionSkinCurrentPathOnly =
-                    !settings.onionSkinCurrentPathOnly;
-                  settingsStore.update((s) => ({
-                    ...s,
-                    onionSkinCurrentPathOnly: settings.onionSkinCurrentPathOnly,
-                  }));
-                }}
-                class="p-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                  ? 'w-[calc(100%-1.1rem)] px-3'
-                  : 'justify-center'} {settings.onionSkinCurrentPathOnly
-                  ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                  : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
+                active={!!settings.onionSkinCurrentPathOnly}
+                onclick={() => toggleSetting("onionSkinCurrentPathOnly")}
               >
-                <div
-                  class="sidebar-icon flex-none flex items-center justify-center"
-                >
+                {#snippet iconContent()}
                   <OnionSkinCurrentPathIcon
                     isActive={settings.onionSkinCurrentPathOnly}
                     className="sidebar-icon-small flex-none"
                   />
-                </div>
-                {#if sidebarExpanded}
-                  <span class="ml-3 text-xs truncate">Current Path Only</span>
-                {/if}
-              </button>
+                {/snippet}
+              </SidebarButton>
             {/if}
-          </div>
-        {:else if item.id === "velocityHeatmap"}
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title={`Toggle Velocity Heatmap`}
-              aria-label="Toggle Velocity Heatmap"
-              aria-pressed={settings.showVelocityHeatmap}
-              onclick={() => {
-                settings.showVelocityHeatmap = !settings.showVelocityHeatmap;
-                settingsStore.update((s) => ({
-                  ...s,
-                  showVelocityHeatmap: settings.showVelocityHeatmap,
-                }));
-              }}
-              class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} {settings.showVelocityHeatmap
-                ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <VelocityHeatmapIcon className="sidebar-icon-small flex-none" />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "lockView"}
-          <!-- Lock View -->
-          <div
-            class="w-full flex justify-center {sidebarExpanded ? 'px-2' : ''}"
-          >
-            <button
-              title={`Toggle Field View Lock${getShortcutFromSettings(settings, "toggle-lock-view")}`}
-              aria-label="Toggle Field View Lock"
-              aria-pressed={settings.lockFieldView}
-              onclick={() => {
-                settingsStore.update((s) => ({
-                  ...s,
-                  lockFieldView: !s.lockFieldView,
-                }));
-              }}
-              class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} {settings.lockFieldView
-                ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                {#if settings.lockFieldView}
-                  <LockIcon className="sidebar-icon-small flex-none" />
-                {:else}
-                  <UnlockIcon className="sidebar-icon-small flex-none" />
-                {/if}
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "newPath"}
-          <!-- New Path -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              id="sidebar-new-path-btn"
-              title={`New Path${getShortcutFromSettings(settings, "new-file")}`}
-              aria-label="New Path"
-              onclick={() => resetProject()}
-              class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <DocumentPlusIcon className="sidebar-icon flex-none" />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "settings"}
-          <!-- Settings -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              id="sidebar-settings-btn"
-              title={`Settings${getShortcutFromSettings(settings, "open-settings")}`}
-              aria-label="Settings"
-              onclick={() => showSettings.set(true)}
-              class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <CogIcon className="sidebar-icon-small flex-none" />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "feedback"}
-          <!-- Feedback / Report Bug Button -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              id="sidebar-feedback-btn"
-              title="Report Issue / Rating"
-              aria-label="Report Issue / Rating"
-              onclick={() => showFeedbackDialog.set(true)}
-              class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <FeedbackIcon
-                  className="sidebar-icon-small flex-none text-purple-600 dark:text-purple-400"
-                />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "discord"}
-          <!-- Discord Server Invite Link -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <a
-              target="_blank"
-              rel="noreferrer"
-              title="Discord Server"
-              aria-label="Discord Server Invite"
-              href="https://discord.gg/chHSzS4ewF"
-              class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <DiscordIcon
-                  className="sidebar-icon-small flex-none dark:fill-white"
-                />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </a>
-          </div>
-        {:else if item.id === "github"}
-          <!-- GitHub Repo Link -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <a
-              target="_blank"
-              rel="noreferrer"
-              title="GitHub Repo"
-              aria-label="GitHub Repository"
-              href="https://github.com/Mallen220/TurtleTracer"
-              class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <GithubIcon
-                  className="sidebar-icon-small flex-none dark:fill-white"
-                />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </a>
-          </div>
-        {:else if item.id === "presentationMode"}
-          <!-- Presentation Mode -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title="Presentation Mode"
-              aria-label="Presentation Mode"
-              onclick={() => isPresentationMode.set(!$isPresentationMode)}
-              class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} {$isPresentationMode
-                ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                {#if item.iconComponent}
-                  <item.iconComponent
-                    className="sidebar-icon-small flex-none"
-                  />
-                {:else}
-                  <PresentationModeIcon
-                    className="sidebar-icon-small flex-none"
-                  />
-                {/if}
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "pluginManager"}
-          <!-- Plugin Manager -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title="Plugin Manager"
-              aria-label="Plugin Manager"
-              onclick={() => showPluginManager.set(true)}
-              class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                {#if item.iconComponent}
-                  <item.iconComponent
-                    className="sidebar-icon-small flex-none"
-                  />
-                {:else}
-                  <PuzzleIcon className="sidebar-icon-small flex-none" />
-                {/if}
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "whatsNew"}
-          <!-- What's New & Docs -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title="What's New & Docs"
-              aria-label="What's New & Docs"
-              onclick={() => showWhatsNew.set(true)}
-              class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                {#if item.iconComponent}
-                  <item.iconComponent
-                    className="sidebar-icon-small flex-none"
-                  />
-                {:else}
-                  <RocketIcon className="sidebar-icon-small flex-none" />
-                {/if}
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "onboarding"}
-          <!-- Restart Tutorial -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title="Restart Tutorial"
-              aria-label="Restart Tutorial"
-              onclick={() => startTutorial.set(true)}
-              class="p-1.5 rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'} text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <QuestionMarkIcon className="sidebar-icon-small flex-none" />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "exportImage"}
-          <!-- Export Image -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title="Export as Image"
-              aria-label="Export as Image"
-              onclick={() => showExportImage.set(true)}
-              class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <PhotoIcon className="sidebar-icon-small flex-none" />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
-          </div>
-        {:else if item.id === "exportGif"}
-          <!-- Export GIF -->
-          <div
-            draggable={sidebarExpanded}
-            ondragstart={(e) => handleDragStart(e, idx)}
-            ondragover={(e) => handleDragOver(e, idx)}
-            ondragleave={() => handleDragLeave(idx)}
-            ondrop={(e) => handleDrop(e, idx)}
-            ondragend={handleDragEnd}
-            role="listitem"
-            class="w-full flex justify-center transition-all {dragOverIndex ===
-              idx && dragSourceIndex !== idx
-              ? 'ring-2 ring-blue-400 dark:ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : ''} {dragSourceIndex === idx ? 'opacity-30 scale-95' : ''}"
-          >
-            <button
-              title="Export as GIF"
-              aria-label="Export as GIF"
-              onclick={() => showExportGif.set(true)}
-              class="p-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-                ? 'w-[calc(100%-1.1rem)] px-3'
-                : 'justify-center'}"
-            >
-              <div
-                class="sidebar-icon flex-none flex items-center justify-center"
-              >
-                <ExportGifIcon className="sidebar-icon-small flex-none" />
-              </div>
-              {#if sidebarExpanded}
-                <span class="ml-3 text-sm font-medium truncate"
-                  >{item.label}</span
-                >
-              {/if}
-            </button>
           </div>
         {/if}
       {/if}
     {/each}
   </div>
 
-  <!-- Expansion Toggle & Bottom Actions -->
   <div
     class="w-full flex-none border-t border-neutral-200 dark:border-neutral-800 flex flex-col items-center gap-1.5 bg-neutral-50 dark:bg-neutral-900 py-2"
   >
     <div class="w-full flex justify-center">
-      <button
+      <SidebarButton
+        label="Collapse"
+        expanded={sidebarExpanded}
         title={sidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
         aria-label={sidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
         aria-expanded={sidebarExpanded}
         aria-controls="sidebar-toolbar"
-        onclick={toggleSidebar}
-        class="p-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center {sidebarExpanded
-          ? 'w-[calc(100%-1.1rem)] px-3'
-          : 'justify-center'} text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800"
+        active={false}
+        aria-pressed={undefined}
+        onclick={() => setSetting("sidebarExpanded", !sidebarExpanded)}
       >
-        <div class="sidebar-icon flex-none flex items-center justify-center">
+        {#snippet iconContent()}
           <div
             class="sidebar-icon flex items-center justify-center transition-transform duration-300 {sidebarExpanded
               ? 'rotate-180'
@@ -1570,36 +717,27 @@
           >
             <SidebarCollapseIcon className="sidebar-icon" />
           </div>
-        </div>
-        {#if sidebarExpanded}
-          <span class="ml-3 text-sm font-medium">Collapse</span>
-        {/if}
-      </button>
+        {/snippet}
+      </SidebarButton>
     </div>
   </div>
 
   {#if sidebarExpanded}
-    <!-- Dragger -->
     <button
       type="button"
       role="slider"
       title="Resize sidebar"
       aria-label="Resize sidebar"
       aria-valuenow={sidebarWidth}
-      aria-valuemin={160}
-      aria-valuemax={450}
+      aria-valuemin={MIN_WIDTH}
+      aria-valuemax={MAX_WIDTH}
       aria-valuetext="{sidebarWidth} pixels"
       aria-orientation="vertical"
       class="absolute right-0 top-0 w-1.5 h-full cursor-col-resize hover:bg-purple-500/20 transition-colors z-[60] group focus:outline-none focus:bg-purple-500/30 appearance-none border-none bg-transparent"
       onmousedown={startResizing}
       onkeydown={(e) => {
-        if (e.key === "ArrowLeft") {
-          sidebarWidth = Math.max(160, sidebarWidth - 10);
-          settingsStore.update((s) => ({ ...s, sidebarWidth }));
-        } else if (e.key === "ArrowRight") {
-          sidebarWidth = Math.min(450, sidebarWidth + 10);
-          settingsStore.update((s) => ({ ...s, sidebarWidth }));
-        }
+        if (e.key === "ArrowLeft") setWidth(sidebarWidth - 10);
+        else if (e.key === "ArrowRight") setWidth(sidebarWidth + 10);
       }}
     >
       <div

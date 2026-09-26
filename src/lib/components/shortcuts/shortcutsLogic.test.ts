@@ -22,6 +22,12 @@ vi.mock("../../projectStore", () => ({
   startPointStore: { subscribe: vi.fn(), set: vi.fn(), update: vi.fn() },
   linesStore: { subscribe: vi.fn(), set: vi.fn(), update: vi.fn() },
   sequenceStore: { subscribe: vi.fn(), set: vi.fn(), update: vi.fn() },
+  settingsStore: {
+    subscribe: (run: (value: object) => void) => {
+      run({ fieldWidth: 144, fieldHeight: 144 });
+      return () => {};
+    },
+  },
   renumberDefaultPathNames: vi.fn((lines) => lines),
 }));
 
@@ -44,14 +50,7 @@ vi.mock("../../actionRegistry", () => ({
   },
 }));
 
-import {
-  clipboard,
-  copy,
-  cut,
-  paste,
-  duplicate,
-  generateName,
-} from "./clipboard";
+import { clipboard, copy, cut, paste, duplicate } from "./clipboard";
 import {
   modifyValue,
   toggleHeadingMode,
@@ -128,13 +127,6 @@ describe("Shortcuts Logic", () => {
   });
 
   describe("clipboard", () => {
-    it("generateName handles duplicates correctly", () => {
-      const existing = ["test", "test duplicate", "test duplicate 2"];
-      expect(generateName("test", [])).toBe("test duplicate");
-      expect(generateName("test", existing)).toBe("test duplicate 3");
-      expect(generateName("test duplicate", existing)).toBe("test duplicate 3");
-    });
-
     it("copy copies a wait sequence item to clipboard", () => {
       mockSequenceStore.set([{ kind: "wait", id: "123", durationMs: 100 }]);
       mockSelectedPointId.set("wait-123");

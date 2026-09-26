@@ -1,8 +1,8 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
-<!-- src/lib/components/filemanager/PathPreview.svelte -->
 <script lang="ts">
-  import type { Point, Line } from "../../../types";
+  import type { Point, Line, BasePoint } from "../../../types";
   import * as d3 from "d3";
+  import { getCurvePoint } from "../../../utils/math";
 
   interface Props {
     startPoint: Point;
@@ -35,76 +35,46 @@
   let scaleX = $derived((v: number) => _scale(v) + offsetX);
   let scaleY = $derived((v: number) => offsetY + (iconSize - _scale(v)));
 
-  function isValidPoint(p: any): p is Point {
-    return p && typeof p.x === "number" && typeof p.y === "number";
-  }
+  const isValidPoint = (p: unknown): p is BasePoint =>
+    !!p &&
+    typeof (p as BasePoint).x === "number" &&
+    typeof (p as BasePoint).y === "number";
 
-  // Compute a point on a Bezier curve of arbitrary degree using De Casteljau's algorithm
-  function deCasteljau(controlPoints: Point[], t: number): Point {
-    // Work on a shallow copy to avoid mutating inputs
-    let pts: any[] = controlPoints.map((p) => ({ x: p.x, y: p.y }));
-    const n = pts.length;
-    for (let r = 1; r < n; r++) {
-      for (let i = 0; i < n - r; i++) {
-        pts[i] = {
-          x: pts[i].x * (1 - t) + pts[i + 1].x * t,
-          y: pts[i].y * (1 - t) + pts[i + 1].y * t,
-        };
-      }
-    }
-    return pts[0] as Point;
-  }
-
+  // Files come from disk, so skip anything malformed rather than crash.
   function getPathD(start: Point, pathLines: Line[]): string {
     if (!start) return "";
 
     let d = `M ${scaleX(start.x)} ${scaleY(start.y)}`;
-    let current: any = { x: start.x, y: start.y };
+    let current: BasePoint = start;
 
-    for (const line of pathLines || []) {
-      if (!line || !line.endPoint || !isValidPoint(line.endPoint)) continue;
+    for (const line of pathLines ?? []) {
+      if (!isValidPoint(line?.endPoint)) continue;
       const end = line.endPoint;
-      const cpRaw = Array.isArray(line.controlPoints) ? line.controlPoints : [];
-      const cps = cpRaw.filter(isValidPoint);
+      const cps = (line.controlPoints ?? []).filter(isValidPoint);
 
-      // If there are no control points, just draw a straight line
       if (cps.length === 0) {
         d += ` L ${scaleX(end.x)} ${scaleY(end.y)}`;
-        current = { x: end.x, y: end.y };
-        continue;
-      }
-
-      // Build control array for De Casteljau: [current, ...cps, end]
-      const bezierControls: Point[] = [current as Point, ...cps, end];
-
-      // Choose number of samples based on degree and icon size (more points for higher degree)
-      const degree = bezierControls.length - 1;
-      const baseSamples = 10; // higher default for smoother curves
-      const samples = Math.min(
-        48,
-        Math.max(baseSamples, Math.ceil(baseSamples * (degree / 1.5))),
-      );
-
-      // Debug log for high-degree curves
-      const PREVIEW_DEBUG = true;
-      if (PREVIEW_DEBUG && cps.length > 2) {
-        console.debug(
-          `[preview] Sampling degree ${degree} curve (control points: ${cps.length}) with ${samples} samples`,
+      } else {
+        // Approximate the curve with short straight segments, using more of
+        // them for higher-degree curves.
+        const curve = [current, ...cps, end];
+        const degree = curve.length - 1;
+        const samples = Math.min(
+          48,
+          Math.max(10, Math.ceil((10 * degree) / 1.5)),
         );
+        for (let s = 1; s <= samples; s++) {
+          const pt = getCurvePoint(s / samples, curve);
+          d += ` L ${scaleX(pt.x)} ${scaleY(pt.y)}`;
+        }
       }
-
-      // Sample the curve and emit small line segments for the preview
-      for (let s = 1; s <= samples; s++) {
-        const t = s / samples;
-        const pt = deCasteljau(bezierControls, t);
-        d += ` L ${scaleX(pt.x)} ${scaleY(pt.y)}`;
-      }
-
-      current = { x: end.x, y: end.y };
+      current = end;
     }
 
     return d;
   }
+
+  let endPoint = $derived(lines.at(-1)?.endPoint);
 </script>
 
 <div
@@ -154,9 +124,13 @@
     {/if}
 
     <!-- End Point -->
-    {#if lines.length > 0}
-      {@const end = lines.at(-1).endPoint}
-      <circle cx={scaleX(end.x)} cy={scaleY(end.y)} r="3" fill="#ef4444" />
+    {#if endPoint}
+      <circle
+        cx={scaleX(endPoint.x)}
+        cy={scaleY(endPoint.y)}
+        r="3"
+        fill="#ef4444"
+      />
     {/if}
   </svg>
 </div>

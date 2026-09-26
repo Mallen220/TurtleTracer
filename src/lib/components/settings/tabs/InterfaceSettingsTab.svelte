@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { settingsEditor } from "../settingsEditor";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import {
     DEFAULT_SETTINGS,
@@ -19,6 +20,11 @@
 
   let { settings = $bindable(), searchQuery }: Props = $props();
 
+  const { set, resettable } = settingsEditor(
+    () => settings,
+    (next) => (settings = next),
+  );
+
   let availableMaps = $derived([
     ...AVAILABLE_FIELD_MAPS,
     ...(settings.customMaps || []).map((m) => ({
@@ -27,32 +33,28 @@
     })),
   ]);
 
-  function stretchObstacles(
-    oldWidth: number,
-    oldHeight: number,
-    newWidth: number,
-    newHeight: number,
-  ) {
+  /** Changes the field size, stretching obstacles to match (except on custom maps). */
+  function resizeField(width: number, height: number) {
+    const oldWidth = settings.fieldWidth ?? 144;
+    const oldHeight = settings.fieldHeight ?? 144;
     const isCustomMap = settings.customMaps?.some(
       (m) => m.id === settings.fieldMap,
     );
-    if (isCustomMap) return;
-
-    if (oldWidth === 0 || oldHeight === 0) return;
-
-    const scaleX = newWidth / oldWidth;
-    const scaleY = newHeight / oldHeight;
-
-    shapesStore.update((shapes) => {
-      return shapes.map((shape) => ({
-        ...shape,
-        vertices: shape.vertices.map((v) => ({
-          ...v,
-          x: v.x * scaleX,
-          y: v.y * scaleY,
+    if (!isCustomMap && oldWidth !== 0 && oldHeight !== 0) {
+      const scaleX = width / oldWidth;
+      const scaleY = height / oldHeight;
+      shapesStore.update((shapes) =>
+        shapes.map((shape) => ({
+          ...shape,
+          vertices: shape.vertices.map((v) => ({
+            ...v,
+            x: v.x * scaleX,
+            y: v.y * scaleY,
+          })),
         })),
-      }));
-    });
+      );
+    }
+    settings = { ...settings, fieldWidth: width, fieldHeight: height };
   }
 
   let isCustomFieldWizardOpen = $state(false);
@@ -69,14 +71,15 @@
   }
 
   function handleDeleteCustomMap(id: string) {
-    if (confirm("Are you sure you want to delete this custom field map?")) {
-      settings.customMaps =
-        settings.customMaps?.filter((m) => m.id !== id) || [];
-      if (settings.fieldMap === id) {
-        settings.fieldMap = "centerstage.webp";
-      }
-      settings = { ...settings };
+    if (!confirm("Are you sure you want to delete this custom field map?")) {
+      return;
     }
+    settings = {
+      ...settings,
+      customMaps: settings.customMaps?.filter((m) => m.id !== id) ?? [],
+      fieldMap:
+        settings.fieldMap === id ? "centerstage.webp" : settings.fieldMap,
+    };
   }
 
   function resetFieldViewToDefault() {
@@ -85,17 +88,11 @@
   }
 
   function handleCustomFieldSave(newConfig: CustomFieldConfig) {
-    if (!settings.customMaps) settings.customMaps = [];
-
-    const index = settings.customMaps.findIndex((m) => m.id === newConfig.id);
-    if (index >= 0) {
-      settings.customMaps[index] = newConfig;
-    } else {
-      settings.customMaps.push(newConfig);
-    }
-
-    settings.fieldMap = newConfig.id;
-    settings = { ...settings };
+    const maps = settings.customMaps ?? [];
+    const index = maps.findIndex((m) => m.id === newConfig.id);
+    const customMaps =
+      index === -1 ? [...maps, newConfig] : maps.with(index, newConfig);
+    settings = { ...settings, customMaps, fieldMap: newConfig.id };
   }
 </script>
 
@@ -110,11 +107,7 @@
 
   <SettingsItem
     label="Theme"
-    isModified={settings.theme !== DEFAULT_SETTINGS.theme}
-    onReset={() => {
-      settings.theme = DEFAULT_SETTINGS.theme;
-      settings = { ...settings };
-    }}
+    {...resettable("theme")}
     description="Interface color scheme"
     {searchQuery}
     forId="theme-select"
@@ -122,10 +115,7 @@
     <select
       id="theme-select"
       value={settings.theme}
-      onchange={(e) => {
-        settings.theme = e.currentTarget.value as any;
-        settings = { ...settings };
-      }}
+      onchange={(e) => set("theme", e.currentTarget.value as any)}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="auto">Auto (System Preference)</option>
@@ -149,11 +139,7 @@
 
   <SettingsItem
     label="Program Font Size"
-    isModified={settings.programFontSize !== DEFAULT_SETTINGS.programFontSize}
-    onReset={() => {
-      settings.programFontSize = DEFAULT_SETTINGS.programFontSize;
-      settings = { ...settings };
-    }}
+    {...resettable("programFontSize")}
     description="Adjust the scale of the user interface"
     {searchQuery}
     forId="program-font-size"
@@ -166,10 +152,8 @@
         max="150"
         step="5"
         value={settings.programFontSize}
-        oninput={(e) => {
-          settings.programFontSize = Number.parseInt(e.currentTarget.value);
-          settings = { ...settings };
-        }}
+        oninput={(e) =>
+          set("programFontSize", Number.parseInt(e.currentTarget.value))}
         class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
       />
       <span
@@ -182,11 +166,7 @@
 
   <SettingsItem
     label="Field Map"
-    isModified={settings.fieldMap !== DEFAULT_SETTINGS.fieldMap}
-    onReset={() => {
-      settings.fieldMap = DEFAULT_SETTINGS.fieldMap;
-      settings = { ...settings };
-    }}
+    {...resettable("fieldMap")}
     description="Select the competition field"
     {searchQuery}
     forId="field-map-select"
@@ -195,10 +175,7 @@
       <select
         id="field-map-select"
         value={settings.fieldMap}
-        onchange={(e) => {
-          settings.fieldMap = e.currentTarget.value as any;
-          settings = { ...settings };
-        }}
+        onchange={(e) => set("fieldMap", e.currentTarget.value as any)}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         {#each availableMaps as field}
@@ -236,17 +213,11 @@
     label="Field Dimensions (inches)"
     isModified={settings.fieldWidth !== DEFAULT_SETTINGS.fieldWidth ||
       settings.fieldHeight !== DEFAULT_SETTINGS.fieldHeight}
-    onReset={() => {
-      stretchObstacles(
-        settings.fieldWidth ?? 144,
-        settings.fieldHeight ?? 144,
+    onReset={() =>
+      resizeField(
         DEFAULT_SETTINGS.fieldWidth ?? 144,
         DEFAULT_SETTINGS.fieldHeight ?? 144,
-      );
-      settings.fieldWidth = DEFAULT_SETTINGS.fieldWidth;
-      settings.fieldHeight = DEFAULT_SETTINGS.fieldHeight;
-      settings = { ...settings };
-    }}
+      )}
     description="Set the physical dimensions of the field"
     {searchQuery}
     forId="field-dimensions"
@@ -264,13 +235,8 @@
           value={settings.fieldWidth ?? 144}
           oninput={(e) => {
             const val = Number.parseFloat(e.currentTarget.value);
-            if (!Number.isNaN(val)) {
-              const oldWidth = settings.fieldWidth ?? 144;
-              const currentHeight = settings.fieldHeight ?? 144;
-              stretchObstacles(oldWidth, currentHeight, val, currentHeight);
-              settings.fieldWidth = val;
-            }
-            settings = { ...settings };
+            if (!Number.isNaN(val))
+              resizeField(val, settings.fieldHeight ?? 144);
           }}
           class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
@@ -288,13 +254,8 @@
           value={settings.fieldHeight ?? 144}
           oninput={(e) => {
             const val = Number.parseFloat(e.currentTarget.value);
-            if (!Number.isNaN(val)) {
-              const oldHeight = settings.fieldHeight ?? 144;
-              const currentWidth = settings.fieldWidth ?? 144;
-              stretchObstacles(currentWidth, oldHeight, currentWidth, val);
-              settings.fieldHeight = val;
-            }
-            settings = { ...settings };
+            if (!Number.isNaN(val))
+              resizeField(settings.fieldWidth ?? 144, val);
           }}
           class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
@@ -304,11 +265,7 @@
 
   <SettingsItem
     label="Field Orientation"
-    isModified={settings.fieldRotation !== DEFAULT_SETTINGS.fieldRotation}
-    onReset={() => {
-      settings.fieldRotation = DEFAULT_SETTINGS.fieldRotation;
-      settings = { ...settings };
-    }}
+    {...resettable("fieldRotation")}
     description="Rotate the view of the field"
     {searchQuery}
   >
@@ -319,10 +276,7 @@
           rotation
             ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500'
             : 'bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
-          onclick={() => {
-            settings.fieldRotation = rotation;
-            settings = { ...settings };
-          }}
+          onclick={() => set("fieldRotation", rotation)}
         >
           {rotation}°
         </button>
@@ -332,11 +286,7 @@
 
   <SettingsItem
     label="Coordinate System"
-    isModified={settings.coordinateSystem !== DEFAULT_SETTINGS.coordinateSystem}
-    onReset={() => {
-      settings.coordinateSystem = DEFAULT_SETTINGS.coordinateSystem;
-      settings = { ...settings };
-    }}
+    {...resettable("coordinateSystem")}
     description="Choose between standard Pedro Pathing (0-144) or FTC Center (±72)"
     {searchQuery}
     forId="coordinate-system-select"
@@ -344,10 +294,7 @@
     <select
       id="coordinate-system-select"
       value={settings.coordinateSystem}
-      onchange={(e) => {
-        settings.coordinateSystem = e.currentTarget.value as any;
-        settings = { ...settings };
-      }}
+      onchange={(e) => set("coordinateSystem", e.currentTarget.value as any)}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="Pedro">Pedro Pathing (0-144)</option>
@@ -357,11 +304,7 @@
 
   <SettingsItem
     label="Visualizer Units"
-    isModified={settings.visualizerUnits !== DEFAULT_SETTINGS.visualizerUnits}
-    onReset={() => {
-      settings.visualizerUnits = DEFAULT_SETTINGS.visualizerUnits;
-      settings = { ...settings };
-    }}
+    {...resettable("visualizerUnits")}
     description="Choose between Imperial (Inches) and Metric (cm) for the user interface"
     {searchQuery}
     forId="visualizer-units-select"
@@ -369,10 +312,7 @@
     <select
       id="visualizer-units-select"
       value={settings.visualizerUnits}
-      onchange={(e) => {
-        settings.visualizerUnits = e.currentTarget.value as any;
-        settings = { ...settings };
-      }}
+      onchange={(e) => set("visualizerUnits", e.currentTarget.value as any)}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="imperial">Imperial (Inches)</option>
@@ -382,11 +322,7 @@
 
   <SettingsItem
     label="Robot Onion Layers"
-    isModified={settings.showOnionLayers !== DEFAULT_SETTINGS.showOnionLayers}
-    onReset={() => {
-      settings.showOnionLayers = DEFAULT_SETTINGS.showOnionLayers;
-      settings = { ...settings };
-    }}
+    {...resettable("showOnionLayers")}
     description="Show robot body at intervals along the path"
     {searchQuery}
     layout="row"
@@ -394,10 +330,7 @@
     <input
       type="checkbox"
       checked={settings.showOnionLayers}
-      onchange={(e) => {
-        settings.showOnionLayers = e.currentTarget.checked;
-        settings = { ...settings };
-      }}
+      onchange={(e) => set("showOnionLayers", e.currentTarget.checked)}
       class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-indigo-500 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
     />
   </SettingsItem>
@@ -408,13 +341,7 @@
     >
       <SettingsItem
         label="Show Only on Current Path"
-        isModified={settings.onionSkinCurrentPathOnly !==
-          DEFAULT_SETTINGS.onionSkinCurrentPathOnly}
-        onReset={() => {
-          settings.onionSkinCurrentPathOnly =
-            DEFAULT_SETTINGS.onionSkinCurrentPathOnly;
-          settings = { ...settings };
-        }}
+        {...resettable("onionSkinCurrentPathOnly")}
         description="Only show onion layers for the selected path"
         {searchQuery}
         layout="row"
@@ -422,22 +349,15 @@
         <input
           type="checkbox"
           checked={settings.onionSkinCurrentPathOnly}
-          onchange={(e) => {
-            settings.onionSkinCurrentPathOnly = e.currentTarget.checked;
-            settings = { ...settings };
-          }}
+          onchange={(e) =>
+            set("onionSkinCurrentPathOnly", e.currentTarget.checked)}
           class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-indigo-500 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
         />
       </SettingsItem>
 
       <SettingsItem
         label="Onion Layer Spacing"
-        isModified={settings.onionLayerSpacing !==
-          DEFAULT_SETTINGS.onionLayerSpacing}
-        onReset={() => {
-          settings.onionLayerSpacing = DEFAULT_SETTINGS.onionLayerSpacing;
-          settings = { ...settings };
-        }}
+        {...resettable("onionLayerSpacing")}
         description="Distance in inches between each robot body trace"
         {searchQuery}
       >
@@ -448,11 +368,11 @@
             max="20"
             step="1"
             value={settings.onionLayerSpacing}
-            oninput={(e) => {
-              settings.onionLayerSpacing =
-                Number.parseFloat(e.currentTarget.value) || 0;
-              settings = { ...settings };
-            }}
+            oninput={(e) =>
+              set(
+                "onionLayerSpacing",
+                Number.parseFloat(e.currentTarget.value) || 0,
+              )}
             class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
           />
           <span
@@ -467,11 +387,7 @@
 
   <SettingsItem
     label="Smart Object Snapping"
-    isModified={settings.smartSnapping !== DEFAULT_SETTINGS.smartSnapping}
-    onReset={() => {
-      settings.smartSnapping = DEFAULT_SETTINGS.smartSnapping;
-      settings = { ...settings };
-    }}
+    {...resettable("smartSnapping")}
     description="Snap points to align with other waypoints (Hold Alt/Option to invert)"
     {searchQuery}
     layout="row"
@@ -479,22 +395,14 @@
     <input
       type="checkbox"
       checked={settings.smartSnapping}
-      onchange={(e) => {
-        settings.smartSnapping = e.currentTarget.checked;
-        settings = { ...settings };
-      }}
+      onchange={(e) => set("smartSnapping", e.currentTarget.checked)}
       class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
     />
   </SettingsItem>
 
   <SettingsItem
     label="Velocity Heatmap"
-    isModified={settings.showVelocityHeatmap !==
-      DEFAULT_SETTINGS.showVelocityHeatmap}
-    onReset={() => {
-      settings.showVelocityHeatmap = DEFAULT_SETTINGS.showVelocityHeatmap;
-      settings = { ...settings };
-    }}
+    {...resettable("showVelocityHeatmap")}
     description="Visualize robot speed along path (Green to Red)"
     {searchQuery}
     layout="row"
@@ -502,22 +410,14 @@
     <input
       type="checkbox"
       checked={settings.showVelocityHeatmap}
-      onchange={(e) => {
-        settings.showVelocityHeatmap = e.currentTarget.checked;
-        settings = { ...settings };
-      }}
+      onchange={(e) => set("showVelocityHeatmap", e.currentTarget.checked)}
       class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
     />
   </SettingsItem>
 
   <SettingsItem
     label="Velocity Tooltips"
-    isModified={settings.showVelocityTooltip !==
-      DEFAULT_SETTINGS.showVelocityTooltip}
-    onReset={() => {
-      settings.showVelocityTooltip = DEFAULT_SETTINGS.showVelocityTooltip;
-      settings = { ...settings };
-    }}
+    {...resettable("showVelocityTooltip")}
     description="Show velocity and elapsed time on hover"
     {searchQuery}
     layout="row"
@@ -525,10 +425,7 @@
     <input
       type="checkbox"
       checked={settings.showVelocityTooltip}
-      onchange={(e) => {
-        settings.showVelocityTooltip = e.currentTarget.checked;
-        settings = { ...settings };
-      }}
+      onchange={(e) => set("showVelocityTooltip", e.currentTarget.checked)}
       class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
     />
   </SettingsItem>
@@ -537,8 +434,7 @@
     label="Lock Field View"
     isModified={settings.lockFieldView !== DEFAULT_SETTINGS.lockFieldView}
     onReset={() => {
-      settings.lockFieldView = DEFAULT_SETTINGS.lockFieldView;
-      settings = { ...settings };
+      set("lockFieldView", DEFAULT_SETTINGS.lockFieldView);
       resetFieldViewToDefault();
     }}
     description="Lock the field view to prevent panning and zooming"
@@ -551,8 +447,7 @@
       id="lock-field-view"
       checked={settings.lockFieldView}
       onchange={(e) => {
-        settings.lockFieldView = e.currentTarget.checked;
-        settings = { ...settings };
+        set("lockFieldView", e.currentTarget.checked);
         resetFieldViewToDefault();
       }}
       class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-emerald-500 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
@@ -561,11 +456,7 @@
 
   <SettingsItem
     label="Follow Robot"
-    isModified={settings.followRobot !== DEFAULT_SETTINGS.followRobot}
-    onReset={() => {
-      settings.followRobot = DEFAULT_SETTINGS.followRobot;
-      settings = { ...settings };
-    }}
+    {...resettable("followRobot")}
     description="Automatically pan to keep robot centered during playback"
     {searchQuery}
     layout="row"
@@ -576,9 +467,8 @@
       type="checkbox"
       checked={settings.followRobot}
       onchange={(e) => {
-        settings.followRobot = e.currentTarget.checked;
-        settings = { ...settings };
-        followRobotStore.set(!!settings.followRobot);
+        set("followRobot", e.currentTarget.checked);
+        followRobotStore.set(e.currentTarget.checked);
       }}
       class="w-5 h-5 rounded border-neutral-300 dark:border-neutral-600 text-blue-500 focus:ring-2 focus:ring-blue-500 cursor-pointer"
     />

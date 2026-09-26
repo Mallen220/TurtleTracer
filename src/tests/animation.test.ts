@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   calculateRobotState,
   createAnimationController,
@@ -36,7 +36,7 @@ describe("animation", () => {
       const state = calculateRobotState(0, [], [], startPoint, xScale, yScale);
       expect(state.x).toBeCloseTo(xScale(0));
       expect(state.y).toBeCloseTo(yScale(0));
-      expect(state.heading).toBe(0);
+      expect(state.heading).toBeCloseTo(0);
     });
 
     it("should calculate state at start of simple line", () => {
@@ -132,6 +132,27 @@ describe("animation", () => {
       // Heading interpolation: 0 to 90 at 0.5 -> 45. Negated -> -45.
       expect(state.heading).toBeCloseTo(-45);
     });
+
+    it("should face a constant heading at the end of a line", () => {
+      const lines: Line[] = [
+        {
+          endPoint: { x: 10, y: 10, heading: "constant", degrees: 90 },
+          controlPoints: [],
+          color: "red",
+        },
+      ];
+      const state = calculateRobotState(
+        100,
+        simpleTimeline,
+        lines,
+        startPoint,
+        xScale,
+        yScale,
+      );
+      expect(state.x).toBeCloseTo(xScale(10));
+      expect(state.y).toBeCloseTo(yScale(10));
+      expect(state.heading).toBeCloseTo(-90);
+    });
   });
 
   describe("createAnimationController", () => {
@@ -147,13 +168,61 @@ describe("animation", () => {
       controller.pause();
       expect(controller.isPlaying()).toBe(false);
     });
+
+    it("should report the percent it seeks to", () => {
+      const onPercentChange = vi.fn();
+      const controller = createAnimationController(10, onPercentChange);
+      controller.seekToPercent(50);
+      expect(controller.getPercent()).toBe(50);
+      expect(onPercentChange).toHaveBeenCalledWith(50);
+    });
   });
 
   describe("generateOnionLayers", () => {
-    it("should generate layers", () => {
-      // Line length is 10. Spacing 4. Should have layers at ~4 and ~8.
+    it("should return no layers without lines", () => {
+      expect(generateOnionLayers(startPoint, [], 18, 18)).toEqual([]);
+    });
+
+    it("should place a layer every `spacing` inches", () => {
+      // Line length is 10, spacing 4: layers at 4 and 8.
       const layers = generateOnionLayers(startPoint, simpleLines, 10, 10, 4);
-      expect(layers.length).toBeGreaterThanOrEqual(2);
+      expect(layers.map((l) => l.x)).toEqual([
+        expect.closeTo(4),
+        expect.closeTo(8),
+      ]);
+    });
+
+    it("should use the same heading sign as linear headings", () => {
+      const constant: Line[] = [
+        {
+          endPoint: { x: 10, y: 0, heading: "constant", degrees: 30 },
+          controlPoints: [],
+          color: "red",
+        },
+      ];
+      const linear: Line[] = [
+        {
+          endPoint: {
+            x: 10,
+            y: 0,
+            heading: "linear",
+            startDeg: 30,
+            endDeg: 30,
+          },
+          controlPoints: [],
+          color: "red",
+        },
+      ];
+      const [constantLayer] = generateOnionLayers(
+        startPoint,
+        constant,
+        10,
+        6,
+        4,
+      );
+      const [linearLayer] = generateOnionLayers(startPoint, linear, 10, 6, 4);
+      expect(constantLayer.heading).toBeCloseTo(30);
+      expect(constantLayer.corners).toEqual(linearLayer.corners);
     });
   });
 });

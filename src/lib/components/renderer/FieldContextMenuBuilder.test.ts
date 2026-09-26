@@ -85,6 +85,7 @@ describe("FieldContextMenuBuilder", () => {
       fieldCoordinates: { x: 72, y: 72 },
       registryItems: [
         {
+          id: "custom",
           label: "Custom Action",
           onClick: registryOnClick,
         },

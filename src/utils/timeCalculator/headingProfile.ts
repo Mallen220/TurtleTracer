@@ -1,304 +1,258 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Line, Settings, BasePoint } from "../../types";
+import type { Line, Settings, BasePoint, PiecewiseSegment } from "../../types";
 import type { PathAnalysis } from "./types";
-import { getCurvePoint } from "../math";
+import {
+  getCurvePoint,
+  getEffectiveHeadingSource,
+  linearHeadingSweep,
+  radiansToDegrees,
+  type HeadingSource,
+} from "../math";
 import { calculateRotationTime } from "./rotation";
 import { unwrapAngle } from "./segmentAnalyzer";
 
-export function buildHeadingProfile(
-  line: Line,
-  prevPoint: BasePoint,
-  rootLine: Line | undefined,
-  chainMeta: any,
-  currentHeading: number,
-  endHeading: number,
-  endHeadingRaw: number,
-  physicalRotationTime: number,
-  analysis: PathAnalysis,
-  motionProfile: number[],
-  safeSettings: Settings,
-  length: number,
-  isChained: boolean,
-  isGlobalOverride: boolean,
-): number[] {
-  const headingProfile: number[] = [currentHeading];
+export interface HeadingProfileInput {
+  line: Line;
+  prevPoint: BasePoint;
+  /** First line of the chain this line belongs to. */
+  rootLine: Line | undefined;
+  /** Where this line sits within its chain, if it's chained. */
+  chainMeta?: { chainTotalLength: number; distanceBefore: number };
+  /** Heading at the start of the line. */
+  currentHeading: number;
+  /** Heading the line should end at (used for chained lines). */
+  endHeading: number;
+  /** Time needed to turn from currentHeading to endHeading. */
+  physicalRotationTime: number;
+  analysis: PathAnalysis;
+  /** Cumulative time at each analysis step. */
+  motionProfile: number[];
+  settings: Settings;
+  /** Length of this line, in inches. */
+  length: number;
+  isChained: boolean;
+  /** Whether the chain's heading applies instead of the line's own. */
+  isGlobalOverride: boolean;
+}
+
+const TANGENT_STEP = 0.005;
+
+/** Direction of travel at t (unwrapped near `current`), or null if stationary. */
+function tangentHeading(
+  curve: BasePoint[],
+  t: number,
+  reverse: boolean | undefined,
+  current: number,
+): number | null {
+  const a = getCurvePoint(Math.max(0, t - TANGENT_STEP), curve);
+  const b = getCurvePoint(Math.min(1, t + TANGENT_STEP), curve);
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) return null;
+  const angle = radiansToDegrees(Math.atan2(dy, dx));
+  return unwrapAngle(reverse ? angle + 180 : angle, current);
+}
+
+/** Heading that points from the curve at t towards the target. */
+function facingHeading(
+  curve: BasePoint[],
+  t: number,
+  source: HeadingSource,
+  current: number,
+): number {
+  const pos = getCurvePoint(t, curve);
+  const angle = radiansToDegrees(
+    Math.atan2((source.targetY || 0) - pos.y, (source.targetX || 0) - pos.x),
+  );
+  return unwrapAngle(source.reverse ? angle + 180 : angle, current);
+}
+
+/**
+ * The robot's heading at each step of the motion profile along a line,
+ * unwrapped so consecutive values never jump by more than 180 degrees.
+ */
+export function buildHeadingProfile(input: HeadingProfileInput): number[] {
+  const {
+    line,
+    prevPoint,
+    rootLine,
+    chainMeta,
+    currentHeading,
+    endHeading,
+    physicalRotationTime,
+    analysis,
+    motionProfile,
+    settings,
+    length,
+    isChained,
+    isGlobalOverride,
+  } = input;
+
+  const profile: number[] = [currentHeading];
   const samples = analysis.steps.length;
+  const curve = [prevPoint, ...line.controlPoints, line.endPoint];
+  const { source } = getEffectiveHeadingSource(line, rootLine);
 
-  const globalHeadingMode = isGlobalOverride
-    ? rootLine!.globalHeading!
-    : line.endPoint.heading;
-  const cTotalLen = chainMeta ? chainMeta.chainTotalLength : length;
-  const cDistBefore = chainMeta ? chainMeta.distanceBefore : 0;
+  // A global heading is spread over the whole chain, so progress is
+  // measured along the chain rather than along this line.
+  const chainLength = chainMeta?.chainTotalLength ?? length;
+  const distanceBefore = chainMeta?.distanceBefore ?? 0;
+  const chainT = (i: number) =>
+    chainLength > 0
+      ? (distanceBefore + (i / samples) * length) / chainLength
+      : i / samples;
 
-  const maxAngVelDegPerSec =
-    Math.max(safeSettings.aVelocity, 0.001) * (180 / Math.PI);
-  const eps = 0.005;
+  // Chained lines turn from the start heading to the end heading as fast as
+  // the robot can.
+  const turnedByStep = (i: number) => {
+    const ratio =
+      physicalRotationTime > 0
+        ? Math.min(1, motionProfile[i] / physicalRotationTime)
+        : 1;
+    return currentHeading + (endHeading - currentHeading) * ratio;
+  };
 
-  if (globalHeadingMode === "tangential") {
-    if (isChained) {
-      const cps = [prevPoint, ...line.controlPoints, line.endPoint];
-      const isReverse = (line.endPoint as any).reverse;
-      let simH = currentHeading;
+  const maxTurnRate = radiansToDegrees(Math.max(settings.aVelocity, 0.001));
+  const stepDuration = (i: number) =>
+    (motionProfile[i] ?? motionProfile.at(-1)) - (motionProfile[i - 1] ?? 0);
+
+  switch (source.heading) {
+    case "tangential":
+      if (!isChained) {
+        for (const step of analysis.steps) profile.push(step.heading);
+        break;
+      }
+      // Follow the direction of travel, limited by the maximum turn rate.
+      for (let i = 1, h = currentHeading; i <= samples; i++) {
+        const target =
+          tangentHeading(curve, i / samples, source.reverse, h) ?? h;
+        const maxTurn = maxTurnRate * stepDuration(i);
+        h += Math.max(-maxTurn, Math.min(maxTurn, target - h));
+        profile.push(h);
+      }
+      break;
+
+    case "constant": {
+      const degrees = (source.degrees || 0) + (source.reverse ? 180 : 0);
+      const target = unwrapAngle(degrees, currentHeading);
       for (let i = 1; i <= samples; i++) {
-        const t = i / samples;
-        const tA = Math.max(0, t - eps);
-        const tB = Math.min(1, t + eps);
-        const posA = getCurvePoint(tA, cps);
-        const posB = getCurvePoint(tB, cps);
-        const dx = posB.x - posA.x;
-        const dy = posB.y - posA.y;
-        let idealTarget: number;
-        if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) {
-          idealTarget = simH; // degenerate — hold current
-        } else {
-          const absTangentDeg = Math.atan2(dy, dx) * (180 / Math.PI);
-          idealTarget = unwrapAngle(
-            isReverse ? absTangentDeg + 180 : absTangentDeg,
-            simH,
-          );
-        }
-        const dt =
-          (motionProfile[i] ?? motionProfile.at(-1)) -
-          (motionProfile[i - 1] ?? 0);
-        const maxRot = maxAngVelDegPerSec * dt;
-        simH += Math.max(-maxRot, Math.min(maxRot, idealTarget - simH));
-        headingProfile.push(simH);
+        profile.push(isChained ? turnedByStep(i) : target);
       }
-    } else {
-      for (const step of analysis.steps) {
-        headingProfile.push(step.heading);
-      }
+      break;
     }
-  } else if (globalHeadingMode === "constant") {
-    const targetConstDeg = isGlobalOverride
-      ? rootLine!.globalDegrees || 0
-      : (line.endPoint as any).degrees || 0;
-    const isReverse = isGlobalOverride
-      ? rootLine!.globalReverse
-      : (line.endPoint as any).reverse;
-    const finalTargetDeg = isReverse ? targetConstDeg + 180 : targetConstDeg;
-    const targetConstHeading = unwrapAngle(finalTargetDeg, currentHeading);
 
-    if (isChained) {
+    case "linear": {
+      const start = unwrapAngle(source.startDeg || 0, currentHeading);
+      const sweep = linearHeadingSweep(
+        source.startDeg || 0,
+        source.endDeg || 0,
+        source.reverse,
+      );
       for (let i = 1; i <= samples; i++) {
-        const stepTime = motionProfile[i];
-        const ratio =
-          physicalRotationTime > 0
-            ? Math.min(1, stepTime / physicalRotationTime)
-            : 1;
-        headingProfile.push(
-          currentHeading + (endHeading - currentHeading) * ratio,
-        );
+        if (isGlobalOverride) profile.push(start + sweep * chainT(i));
+        else if (isChained) profile.push(turnedByStep(i));
+        else profile.push(start + (sweep * i) / samples);
       }
-    } else {
-      for (let i = 1; i <= samples; i++) {
-        headingProfile.push(targetConstHeading);
-      }
+      break;
     }
-  } else if (globalHeadingMode === "linear") {
-    const startDeg = isGlobalOverride
-      ? rootLine!.globalStartDeg || 0
-      : (line.endPoint as any).startDeg || 0;
-    const endDeg = isGlobalOverride
-      ? rootLine!.globalEndDeg || 0
-      : (line.endPoint as any).endDeg || 0;
-    const isReverse = isGlobalOverride
-      ? rootLine!.globalReverse
-      : (line.endPoint as any).reverse;
 
-    if (isReverse) {
-      const shortDiff = endDeg - startDeg;
-      const normalizedShort = ((shortDiff % 360) + 360) % 360;
-      const longDiff =
-        normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
-      const targetStartHeading = unwrapAngle(startDeg, currentHeading);
-
-      for (let i = 1; i <= samples; i++) {
-        if (isGlobalOverride) {
-          const t =
-            cTotalLen > 0
-              ? (cDistBefore + (i / samples) * length) / cTotalLen
-              : i / samples;
-          headingProfile.push(targetStartHeading + longDiff * t);
-        } else if (isChained) {
-          const stepTime = motionProfile[i];
-          const ratio =
-            physicalRotationTime > 0
-              ? Math.min(1, stepTime / physicalRotationTime)
-              : 1;
-          headingProfile.push(
-            currentHeading + (endHeading - currentHeading) * ratio,
-          );
-        } else {
-          const ratio = i / samples;
-          const interpolatedHeading = targetStartHeading + longDiff * ratio;
-          headingProfile.push(interpolatedHeading);
-        }
+    case "facingPoint":
+      for (let i = 1, h = currentHeading; i <= samples; i++) {
+        h = facingHeading(curve, i / samples, source, h);
+        profile.push(h);
       }
-    } else {
-      const startUnwound = unwrapAngle(startDeg, currentHeading);
-      const unwrappedEnd = unwrapAngle(endDeg, startUnwound);
-      for (let i = 1; i <= samples; i++) {
-        if (isGlobalOverride) {
-          const t =
-            cTotalLen > 0
-              ? (cDistBefore + (i / samples) * length) / cTotalLen
-              : i / samples;
-          headingProfile.push(startUnwound + (unwrappedEnd - startUnwound) * t);
-        } else if (isChained) {
-          const stepTime = motionProfile[i];
-          const ratio =
-            physicalRotationTime > 0
-              ? Math.min(1, stepTime / physicalRotationTime)
-              : 1;
-          headingProfile.push(
-            currentHeading + (endHeading - currentHeading) * ratio,
-          );
-        } else {
-          const ratio = i / samples;
-          const interpolatedHeading =
-            startUnwound + (unwrappedEnd - startUnwound) * ratio;
-          headingProfile.push(interpolatedHeading);
-        }
-      }
-    }
-  } else if (globalHeadingMode === "facingPoint") {
-    const cps = [prevPoint, ...line.controlPoints, line.endPoint];
-    const targetX = isGlobalOverride
-      ? rootLine!.globalTargetX || 0
-      : (line.endPoint as any).targetX || 0;
-    const targetY = isGlobalOverride
-      ? rootLine!.globalTargetY || 0
-      : (line.endPoint as any).targetY || 0;
-    const isReverse = isGlobalOverride
-      ? rootLine!.globalReverse
-      : (line.endPoint as any).reverse;
+      break;
 
-    let simH = currentHeading;
-    for (let i = 1; i <= samples; i++) {
-      const t = i / samples;
-      const pos = getCurvePoint(t, cps);
-      let angle =
-        Math.atan2(targetY - pos.y, targetX - pos.x) * (180 / Math.PI);
-      if (isReverse) angle += 180;
-      const targetHeading = unwrapAngle(angle, simH);
-      simH = targetHeading;
-      headingProfile.push(simH);
-    }
-  } else if (globalHeadingMode === "piecewise") {
-    const cps = [prevPoint, ...line.controlPoints, line.endPoint];
-    const segments = isGlobalOverride
-      ? rootLine!.globalSegments || []
-      : line.endPoint.segments || [];
-    let simHeading = currentHeading;
-
-    for (let i = 1; i <= samples; i++) {
-      const localRatio = i / samples;
-      const t =
-        isGlobalOverride && cTotalLen > 0
-          ? (cDistBefore + localRatio * length) / cTotalLen
-          : localRatio;
-
-      let activeSeg = null;
-      for (const seg of segments) {
-        if (t >= seg.tStart && t <= seg.tEnd) {
-          activeSeg = seg;
-          break;
-        }
-      }
-      if (!activeSeg) {
-        headingProfile.push(simHeading);
-        continue;
-      }
-
-      let targetHeading = simHeading;
-      if (activeSeg.heading === "constant") {
-        let deg = activeSeg.degrees ?? 0;
-        if (activeSeg.reverse) deg += 180;
-        targetHeading = unwrapAngle(deg, simHeading);
-      } else if (activeSeg.heading === "tangential") {
-        const tA = Math.max(0, localRatio - eps);
-        const tB = Math.min(1, localRatio + eps);
-        const posA = getCurvePoint(tA, cps);
-        const posB = getCurvePoint(tB, cps);
-        const dx = posB.x - posA.x;
-        const dy = posB.y - posA.y;
-        if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) {
-          targetHeading = simHeading;
-        } else {
-          const absTangentDeg = Math.atan2(dy, dx) * (180 / Math.PI);
-          targetHeading = unwrapAngle(
-            activeSeg.reverse ? absTangentDeg + 180 : absTangentDeg,
-            simHeading,
-          );
-        }
-      } else if (activeSeg.heading === "linear") {
-        let sDeg = activeSeg.startDeg ?? 0;
-        let eDeg = activeSeg.endDeg ?? 0;
-        let localT = 0;
-        if (activeSeg.tEnd > activeSeg.tStart) {
-          localT = (t - activeSeg.tStart) / (activeSeg.tEnd - activeSeg.tStart);
-        }
-        if (localT < 0) localT = 0;
-        if (localT > 1) localT = 1;
-
-        const startUnwound = unwrapAngle(sDeg, simHeading);
-        if (activeSeg.reverse) {
-          const shortDiff = eDeg - sDeg;
-          const normalizedShort = ((shortDiff % 360) + 360) % 360;
-          const longDiff =
-            normalizedShort <= 180 ? normalizedShort - 360 : normalizedShort;
-          targetHeading = startUnwound + longDiff * localT;
-        } else {
-          const totalDiff = eDeg - sDeg;
-          targetHeading = startUnwound + totalDiff * localT;
-        }
-      } else if (activeSeg.heading === "facingPoint") {
-        const targetX = activeSeg.targetX || 0;
-        const targetY = activeSeg.targetY || 0;
-        const pos = getCurvePoint(localRatio, cps);
-        let angle =
-          Math.atan2(targetY - pos.y, targetX - pos.x) * (180 / Math.PI);
-        if (activeSeg.reverse) angle += 180;
-        targetHeading = unwrapAngle(angle, simHeading);
-      }
-
-      const dt = motionProfile[i] - motionProfile[i - 1];
-      let nextHeading;
-
-      if (activeSeg.heading === "tangential") {
-        const maxRot = maxAngVelDegPerSec * dt;
-        nextHeading =
-          simHeading +
-          Math.max(-maxRot, Math.min(maxRot, targetHeading - simHeading));
-      } else {
-        const catchUpRequired = Math.abs(targetHeading - simHeading);
-        const stepPhysicalTime = calculateRotationTime(
-          catchUpRequired,
-          safeSettings,
-        );
-        if (stepPhysicalTime > 0 && dt < stepPhysicalTime) {
-          const ratio = dt / stepPhysicalTime;
-          nextHeading =
-            simHeading + (targetHeading - simHeading) * Math.min(1, ratio);
-        } else {
-          nextHeading = targetHeading;
-        }
-      }
-      simHeading = nextHeading;
-      headingProfile.push(simHeading);
-    }
+    case "piecewise":
+      profile.push(
+        ...piecewiseProfile(
+          source.segments ?? [],
+          curve,
+          samples,
+          currentHeading,
+          (i) => (isGlobalOverride ? chainT(i) : i / samples),
+          stepDuration,
+          maxTurnRate,
+          settings,
+        ),
+      );
+      break;
   }
 
-  if (headingProfile?.length > 1) {
-    for (let k = 1; k < headingProfile.length; k++) {
-      const prev = headingProfile[k - 1];
-      let curr = headingProfile[k];
-      while (curr - prev > 180) curr -= 360;
-      while (curr - prev < -180) curr += 360;
-      headingProfile[k] = curr;
-    }
+  // Unwrap so consecutive headings never differ by more than 180 degrees.
+  for (let k = 1; k < profile.length; k++) {
+    let curr = profile[k];
+    while (curr - profile[k - 1] > 180) curr -= 360;
+    while (curr - profile[k - 1] < -180) curr += 360;
+    profile[k] = curr;
   }
 
-  return headingProfile;
+  return profile;
+}
+
+/**
+ * Headings for a piecewise heading: each segment covers part of the path
+ * (by t), and the robot turns towards each segment's heading as fast as it
+ * physically can.
+ */
+function piecewiseProfile(
+  segments: PiecewiseSegment[],
+  curve: BasePoint[],
+  samples: number,
+  startHeading: number,
+  tAtStep: (i: number) => number,
+  stepDuration: (i: number) => number,
+  maxTurnRate: number,
+  settings: Settings,
+): number[] {
+  const headings: number[] = [];
+  let h = startHeading;
+
+  for (let i = 1; i <= samples; i++) {
+    const localT = i / samples;
+    const t = tAtStep(i);
+    const seg = segments.find((s) => t >= s.tStart && t <= s.tEnd);
+    if (!seg) {
+      headings.push(h);
+      continue;
+    }
+
+    let target = h;
+    switch (seg.heading) {
+      case "constant":
+        target = unwrapAngle((seg.degrees ?? 0) + (seg.reverse ? 180 : 0), h);
+        break;
+      case "tangential":
+        target = tangentHeading(curve, localT, seg.reverse, h) ?? h;
+        break;
+      case "linear": {
+        const span = seg.tEnd - seg.tStart;
+        const segT =
+          span > 0 ? Math.max(0, Math.min(1, (t - seg.tStart) / span)) : 0;
+        const start = seg.startDeg ?? 0;
+        target =
+          unwrapAngle(start, h) +
+          linearHeadingSweep(start, seg.endDeg ?? 0, seg.reverse) * segT;
+        break;
+      }
+      case "facingPoint":
+        target = facingHeading(curve, localT, seg, h);
+        break;
+    }
+
+    const dt = stepDuration(i);
+    if (seg.heading === "tangential") {
+      const maxTurn = maxTurnRate * dt;
+      h += Math.max(-maxTurn, Math.min(maxTurn, target - h));
+    } else {
+      // Close as much of the gap as the robot can in this step.
+      const turnTime = calculateRotationTime(Math.abs(target - h), settings);
+      h =
+        turnTime > 0 && dt < turnTime
+          ? h + (target - h) * Math.min(1, dt / turnTime)
+          : target;
+    }
+    headings.push(h);
+  }
+  return headings;
 }

@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { settingsEditor } from "../settingsEditor";
   import SettingsItem from "../../dialogs/SettingsItem.svelte";
   import { DEFAULT_SETTINGS } from "../../../../config/defaults";
   import type { Settings } from "../../../../types/index";
@@ -10,6 +11,11 @@
   }
 
   let { settings = $bindable(), searchQuery }: Props = $props();
+
+  const { set, setNumber, resettable } = settingsEditor(
+    () => settings,
+    (next) => (settings = next),
+  );
 
   let angularVelocityUnit: "rad" | "deg" = $state("rad");
 
@@ -29,116 +35,33 @@
       : 0,
   );
 
-  function handleNumberInput(
-    value: string,
-    property: keyof Settings,
-    min?: number,
-    max?: number,
-    restoreDefaultIfEmpty = false,
-  ) {
-    if (value === "" && restoreDefaultIfEmpty) {
-      (settings as any)[property] = DEFAULT_SETTINGS[property];
-      settings = { ...settings };
-      return;
-    }
-    let num = Number.parseFloat(value);
-    if (Number.isNaN(num)) num = 0;
-    if (min !== undefined) num = Math.max(min, num);
-    if (max !== undefined) num = Math.min(max, num);
-    (settings as any)[property] = num;
-    settings = { ...settings };
-  }
+  const toRadians = (deg: number) => (deg * Math.PI) / 180;
 
-  function handleXVelocityInput(e: Event) {
-    handleNumberInput(
-      (e.target as HTMLInputElement).value,
-      "xVelocity",
-      0,
-      undefined,
-      true,
-    );
-  }
-  function handleYVelocityInput(e: Event) {
-    handleNumberInput(
-      (e.target as HTMLInputElement).value,
-      "yVelocity",
-      0,
-      undefined,
-      true,
-    );
-  }
-  function handleMaxVelocityInput(e: Event) {
-    handleNumberInput(
-      (e.target as HTMLInputElement).value,
-      "maxVelocity",
-      0,
-      undefined,
-      true,
-    );
-  }
-  function handleMaxAccelerationInput(e: Event) {
-    handleNumberInput(
-      (e.target as HTMLInputElement).value,
-      "maxAcceleration",
-      0,
-      undefined,
-      true,
-    );
-  }
-  function handleMaxDecelerationInput(e: Event) {
-    handleNumberInput(
-      (e.target as HTMLInputElement).value,
-      "maxDeceleration",
-      0,
-      undefined,
-      true,
-    );
-  }
-  function handleFrictionInput(e: Event) {
-    handleNumberInput(
-      (e.target as HTMLInputElement).value,
-      "kFriction",
-      0,
-      undefined,
-      true,
-    );
-  }
-
+  // In "rad" mode the angular velocity is shown in multiples of π.
   function handleAngularVelocityInput(e: Event) {
-    const target = e.target as HTMLInputElement;
-    const val = Number.parseFloat(target.value);
+    const val = Number.parseFloat((e.target as HTMLInputElement).value);
     if (Number.isNaN(val)) return;
-
-    if (angularVelocityUnit === "rad") {
-      settings.aVelocity = val * Math.PI;
-    } else {
-      settings.aVelocity = (val * Math.PI) / 180;
-    }
-    settings = { ...settings };
+    set(
+      "aVelocity",
+      angularVelocityUnit === "rad" ? val * Math.PI : toRadians(val),
+    );
   }
 
   function handleAngularVelocityChange(e: Event) {
-    const target = e.target as HTMLInputElement;
-    if (target.value === "") {
-      settings.aVelocity = DEFAULT_SETTINGS.aVelocity;
-      settings = { ...settings };
+    if ((e.target as HTMLInputElement).value === "") {
+      set("aVelocity", DEFAULT_SETTINGS.aVelocity);
     } else {
       handleAngularVelocityInput(e);
     }
   }
 
   function handleMaxAngularAccelerationInput(e: Event) {
-    const target = e.target as HTMLInputElement;
-    let val = Number.parseFloat(target.value);
-    if (Number.isNaN(val)) val = 0;
-    if (val < 0) val = 0;
-
-    if (angularVelocityUnit === "rad") {
-      settings.maxAngularAcceleration = val;
-    } else {
-      settings.maxAngularAcceleration = (val * Math.PI) / 180;
-    }
-    settings = { ...settings };
+    const parsed = Number.parseFloat((e.target as HTMLInputElement).value);
+    const val = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+    set(
+      "maxAngularAcceleration",
+      angularVelocityUnit === "rad" ? val : toRadians(val),
+    );
   }
 </script>
 
@@ -154,11 +77,7 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <SettingsItem
       label="X Velocity (in/s)"
-      isModified={settings.xVelocity !== DEFAULT_SETTINGS.xVelocity}
-      onReset={() => {
-        settings.xVelocity = DEFAULT_SETTINGS.xVelocity;
-        settings = { ...settings };
-      }}
+      {...resettable("xVelocity")}
       {searchQuery}
       forId="x-velocity"
     >
@@ -166,23 +85,17 @@
         id="x-velocity"
         type="number"
         value={settings.xVelocity}
-        oninput={(e) => {
-          settings.xVelocity = Number.parseFloat(e.currentTarget.value) || 0;
-          settings = { ...settings };
-        }}
+        oninput={(e) =>
+          set("xVelocity", Number.parseFloat(e.currentTarget.value) || 0)}
         min="0"
         step="1"
-        onchange={handleXVelocityInput}
+        onchange={(e) => setNumber("xVelocity", e.currentTarget.value, 0)}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
     <SettingsItem
       label="Y Velocity (in/s)"
-      isModified={settings.yVelocity !== DEFAULT_SETTINGS.yVelocity}
-      onReset={() => {
-        settings.yVelocity = DEFAULT_SETTINGS.yVelocity;
-        settings = { ...settings };
-      }}
+      {...resettable("yVelocity")}
       {searchQuery}
       forId="y-velocity"
     >
@@ -190,13 +103,11 @@
         id="y-velocity"
         type="number"
         value={settings.yVelocity}
-        oninput={(e) => {
-          settings.yVelocity = Number.parseFloat(e.currentTarget.value) || 0;
-          settings = { ...settings };
-        }}
+        oninput={(e) =>
+          set("yVelocity", Number.parseFloat(e.currentTarget.value) || 0)}
         min="0"
         step="1"
-        onchange={handleYVelocityInput}
+        onchange={(e) => setNumber("yVelocity", e.currentTarget.value, 0)}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
@@ -221,11 +132,7 @@
 
   <SettingsItem
     label="Angular Velocity"
-    isModified={settings.aVelocity !== DEFAULT_SETTINGS.aVelocity}
-    onReset={() => {
-      settings.aVelocity = DEFAULT_SETTINGS.aVelocity;
-      settings = { ...settings };
-    }}
+    {...resettable("aVelocity")}
     {searchQuery}
     forId="angular-velocity"
   >
@@ -271,11 +178,7 @@
 
   <SettingsItem
     label="Max Velocity (in/s)"
-    isModified={settings.maxVelocity !== DEFAULT_SETTINGS.maxVelocity}
-    onReset={() => {
-      settings.maxVelocity = DEFAULT_SETTINGS.maxVelocity;
-      settings = { ...settings };
-    }}
+    {...resettable("maxVelocity")}
     {searchQuery}
     forId="max-velocity"
   >
@@ -283,13 +186,11 @@
       id="max-velocity"
       type="number"
       value={settings.maxVelocity}
-      oninput={(e) => {
-        settings.maxVelocity = Number.parseFloat(e.currentTarget.value) || 0;
-        settings = { ...settings };
-      }}
+      oninput={(e) =>
+        set("maxVelocity", Number.parseFloat(e.currentTarget.value) || 0)}
       min="0"
       step="1"
-      onchange={handleMaxVelocityInput}
+      onchange={(e) => setNumber("maxVelocity", e.currentTarget.value, 0)}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     />
   </SettingsItem>
@@ -297,11 +198,7 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <SettingsItem
       label="Max Acceleration (in/s²)"
-      isModified={settings.maxAcceleration !== DEFAULT_SETTINGS.maxAcceleration}
-      onReset={() => {
-        settings.maxAcceleration = DEFAULT_SETTINGS.maxAcceleration;
-        settings = { ...settings };
-      }}
+      {...resettable("maxAcceleration")}
       {searchQuery}
       forId="max-acceleration"
     >
@@ -309,24 +206,17 @@
         id="max-acceleration"
         type="number"
         value={settings.maxAcceleration}
-        oninput={(e) => {
-          settings.maxAcceleration =
-            Number.parseFloat(e.currentTarget.value) || 0;
-          settings = { ...settings };
-        }}
+        oninput={(e) =>
+          set("maxAcceleration", Number.parseFloat(e.currentTarget.value) || 0)}
         min="0"
         step="1"
-        onchange={handleMaxAccelerationInput}
+        onchange={(e) => setNumber("maxAcceleration", e.currentTarget.value, 0)}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
     <SettingsItem
       label="Max Deceleration (in/s²)"
-      isModified={settings.maxDeceleration !== DEFAULT_SETTINGS.maxDeceleration}
-      onReset={() => {
-        settings.maxDeceleration = DEFAULT_SETTINGS.maxDeceleration;
-        settings = { ...settings };
-      }}
+      {...resettable("maxDeceleration")}
       {searchQuery}
       forId="max-deceleration"
     >
@@ -334,14 +224,11 @@
         id="max-deceleration"
         type="number"
         value={settings.maxDeceleration}
-        oninput={(e) => {
-          settings.maxDeceleration =
-            Number.parseFloat(e.currentTarget.value) || 0;
-          settings = { ...settings };
-        }}
+        oninput={(e) =>
+          set("maxDeceleration", Number.parseFloat(e.currentTarget.value) || 0)}
         min="0"
         step="1"
-        onchange={handleMaxDecelerationInput}
+        onchange={(e) => setNumber("maxDeceleration", e.currentTarget.value, 0)}
         class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
@@ -349,11 +236,7 @@
 
   <SettingsItem
     label="Friction Coefficient"
-    isModified={settings.kFriction !== DEFAULT_SETTINGS.kFriction}
-    onReset={() => {
-      settings.kFriction = DEFAULT_SETTINGS.kFriction;
-      settings = { ...settings };
-    }}
+    {...resettable("kFriction")}
     description="Higher values = more resistance"
     {searchQuery}
     forId="friction-coefficient"
@@ -362,13 +245,11 @@
       id="friction-coefficient"
       type="number"
       value={settings.kFriction}
-      oninput={(e) => {
-        settings.kFriction = Number.parseFloat(e.currentTarget.value) || 0;
-        settings = { ...settings };
-      }}
+      oninput={(e) =>
+        set("kFriction", Number.parseFloat(e.currentTarget.value) || 0)}
       min="0"
       step="0.1"
-      onchange={handleFrictionInput}
+      onchange={(e) => setNumber("kFriction", e.currentTarget.value, 0)}
       class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     />
   </SettingsItem>

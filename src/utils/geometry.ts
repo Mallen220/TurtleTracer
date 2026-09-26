@@ -2,7 +2,8 @@
 /**
  * Geometry utility functions for obstacle detection and polygon operations
  */
-import type { BasePoint } from "../types";
+import type { BasePoint, Line } from "../types";
+import { findClosestT, getCurvePoint, getDistance } from "./math";
 
 /**
  * Determines if a point is inside a polygon using ray casting algorithm
@@ -25,6 +26,40 @@ export function pointInPolygon(point: number[], polygon: BasePoint[]): boolean {
   }
 
   return inside;
+}
+
+/** Which side of the line a→b the point p is on (the sign of the cross product). */
+const side = (a: BasePoint, b: BasePoint, p: BasePoint) =>
+  (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+
+/** Whether segments a1→a2 and b1→b2 cross each other. */
+function segmentsCross(
+  a1: BasePoint,
+  a2: BasePoint,
+  b1: BasePoint,
+  b2: BasePoint,
+): boolean {
+  return (
+    side(a1, a2, b1) * side(a1, a2, b2) < 0 &&
+    side(b1, b2, a1) * side(b1, b2, a2) < 0
+  );
+}
+
+/**
+ * Whether two polygons overlap: one has a corner inside the other, or their
+ * edges cross (e.g. a thin wall through the middle of the robot).
+ */
+export function polygonsOverlap(a: BasePoint[], b: BasePoint[]): boolean {
+  if (a.some((p) => pointInPolygon([p.x, p.y], b))) return true;
+  if (b.some((p) => pointInPolygon([p.x, p.y], a))) return true;
+  for (let i = 0; i < a.length; i++) {
+    const a1 = a[i];
+    const a2 = a[(i + 1) % a.length];
+    for (let j = 0; j < b.length; j++) {
+      if (segmentsCross(a1, a2, b[j], b[(j + 1) % b.length])) return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -168,11 +203,32 @@ export function convexHull(points: BasePoint[]): BasePoint[] {
   const hull: BasePoint[] = [pivot];
 
   for (const point of sorted) {
-    while (hull.length >= 2 && cross(hull.at(-2), hull.at(-1), point) <= 0) {
+    while (hull.length >= 2 && cross(hull.at(-2)!, hull.at(-1)!, point) <= 0) {
       hull.pop();
     }
     hull.push(point);
   }
 
   return hull;
+}
+
+/**
+ * The visible path line closest to `pt`: its index, how far along it (t)
+ * the closest point is, and the distance to that point.
+ */
+export function closestPointOnPath(
+  lines: Line[],
+  startPoint: BasePoint,
+  pt: { x: number; y: number },
+): { lineIdx: number; t: number; dist: number } | null {
+  let best: { lineIdx: number; t: number; dist: number } | null = null;
+  lines.forEach((line, idx) => {
+    if (line.hidden) return;
+    const prev = idx === 0 ? startPoint : lines[idx - 1].endPoint;
+    const curve = [prev, ...line.controlPoints, line.endPoint];
+    const t = findClosestT(pt, curve);
+    const dist = getDistance(pt, getCurvePoint(t, curve));
+    if (!best || dist < best.dist) best = { lineIdx: idx, t, dist };
+  });
+  return best;
 }

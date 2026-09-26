@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
+import type { Shape } from "two.js/src/shape";
 import type { Line, Point, SequenceItem } from "../../../types";
 import {
   getCurvePoint,
@@ -9,6 +10,7 @@ import {
 } from "../../../utils/math";
 
 import { type RenderContext } from "./GeneratorUtils";
+import { actionRegistry } from "../../actionRegistry";
 
 export function generateEventMarkerElements(
   lines: Line[],
@@ -16,7 +18,7 @@ export function generateEventMarkerElements(
   sequence: SequenceItem[],
   ctx: RenderContext,
 ) {
-  let twoMarkers: InstanceType<typeof Two.Group>[] = [];
+  const twoMarkers: Shape[] = [];
   const {
     x,
     y,
@@ -27,7 +29,6 @@ export function generateEventMarkerElements(
     settings,
     selectedLineId,
     selectedPointId,
-    actionRegistry,
   } = ctx;
   const multiSelectedSet = new Set(multiSelectedPointIds);
 
@@ -35,8 +36,8 @@ export function generateEventMarkerElements(
   // This handles cases where lines are out of order in the array (e.g. mixed with macros)
   const startPointMap = new Map<string, Point>();
   if (timePrediction?.timeline) {
-    timePrediction.timeline.forEach((ev: any) => {
-      if (ev.type === "travel" && ev.line && ev.prevPoint) {
+    timePrediction.timeline.forEach((ev) => {
+      if (ev.type === "travel" && ev.line?.id && ev.prevPoint) {
         startPointMap.set(ev.line.id, ev.prevPoint);
       }
     });
@@ -70,7 +71,7 @@ export function generateEventMarkerElements(
         // Use timePrediction if available for absolute positioning
         if (timePrediction?.timeline) {
           const matchingEvent = timePrediction.timeline.find(
-            (e: any) => e.type === "travel" && e.line?.id === line.id,
+            (e) => e.type === "travel" && e.line?.id === line.id,
           );
           if (matchingEvent?.duration) {
             // Calculate relative time within the segment
@@ -138,7 +139,7 @@ export function generateEventMarkerElements(
   if (timePrediction?.timeline && sequence && sequence.length > 0) {
     // Use Registry for registered actions (e.g. Wait)
     sequence.forEach((item) => {
-      if ((item as any).hidden) return;
+      if (item.hidden) return;
       const action = actionRegistry.get(item.kind);
       if (action?.renderField) {
         const elems = action.renderField(item, {
@@ -146,13 +147,13 @@ export function generateEventMarkerElements(
           y,
           uiLength,
           settings,
-          hoveredId: hoveredMarkerId,
-          selectedId: selectedLineId,
-          selectedPointId: selectedPointId,
+          hoveredId: hoveredMarkerId ?? null,
+          selectedId: selectedLineId ?? null,
+          selectedPointId: selectedPointId ?? null,
           timePrediction,
         });
         if (elems) {
-          elems.forEach((el: any) => twoMarkers.push(el));
+          twoMarkers.push(...elems);
         }
       }
     });

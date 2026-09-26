@@ -13,7 +13,6 @@ import {
   multiSelectedPointIds,
   multiSelectedLineIds,
 } from "../../../stores";
-import { actionRegistry } from "../../actionRegistry";
 import { FIELD_SIZE } from "../../../config";
 import { isUIElementFocused, getSelectedSequenceIndex } from "./utils";
 import {
@@ -109,11 +108,7 @@ export function removeSelected(recordChange: (action?: string) => void) {
         if (removedId) {
           sequenceStore.update((s) =>
             s.filter(
-              (item) =>
-                !(
-                  actionRegistry.get(item.kind)?.isPath &&
-                  (item as any).lineId === removedId
-                ),
+              (item) => !(item.kind === "path" && item.lineId === removedId),
             ),
           );
           sequenceChanged = true;
@@ -128,8 +123,8 @@ export function removeSelected(recordChange: (action?: string) => void) {
   if (waitsToDelete.length > 0) {
     sequenceStore.update((s) =>
       s.filter((item) => {
-        if (item.kind === "wait" && waitsToDelete.includes((item as any).id)) {
-          return (item as any).locked; // keep if locked
+        if (item.kind === "wait" && waitsToDelete.includes(item.id)) {
+          return item.locked; // keep if locked
         }
         return true;
       }),
@@ -141,11 +136,8 @@ export function removeSelected(recordChange: (action?: string) => void) {
   if (rotatesToDelete.length > 0) {
     sequenceStore.update((s) =>
       s.filter((item) => {
-        if (
-          item.kind === "rotate" &&
-          rotatesToDelete.includes((item as any).id)
-        ) {
-          return (item as any).locked; // keep if locked
+        if (item.kind === "rotate" && rotatesToDelete.includes(item.id)) {
+          return item.locked; // keep if locked
         }
         return true;
       }),
@@ -163,9 +155,7 @@ export function removeSelected(recordChange: (action?: string) => void) {
         if (itemIdx !== -1) {
           sequence[itemIdx] = {
             ...item,
-            eventMarkers: item.eventMarkers.filter(
-              (_: any, i: number) => i !== evIdx,
-            ),
+            eventMarkers: item.eventMarkers.filter((_, i) => i !== evIdx),
           };
           sequenceChanged = true;
         }
@@ -176,9 +166,7 @@ export function removeSelected(recordChange: (action?: string) => void) {
       if (line?.eventMarkers?.[evIdx] && !line.locked) {
         lines[lineIdx] = {
           ...line,
-          eventMarkers: line.eventMarkers.filter(
-            (_: any, i: number) => i !== evIdx,
-          ),
+          eventMarkers: line.eventMarkers.filter((_, i) => i !== evIdx),
         };
         linesChanged = true;
       }
@@ -342,8 +330,11 @@ export function movePoint(
       const kind = info.type === "event-wait" ? "wait" : "rotate";
       const itemIdx = findSequenceItemIndex(sequence, info.id, kind);
       if (itemIdx !== -1) {
-        const item = sequence[itemIdx] as any;
-        if (item?.eventMarkers?.[info.evIdx]) {
+        const item = sequence[itemIdx];
+        if (
+          (item.kind === "wait" || item.kind === "rotate") &&
+          item.eventMarkers?.[info.evIdx]
+        ) {
           const newPos = updateEventMarkerPosition(
             item.eventMarkers[info.evIdx],
             0.01 * (dx + dy),
@@ -390,9 +381,8 @@ export function getSelectableItems() {
 
   const items: string[] = ["point-0-0"];
   sequence.forEach((item) => {
-    const def = actionRegistry.get(item.kind);
-    if (def?.isPath) {
-      const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
+    if (item.kind === "path") {
+      const lineIdx = lines.findIndex((l) => l.id === item.lineId);
       if (lineIdx !== -1) {
         const line = lines[lineIdx];
         line.controlPoints.forEach((_, cpIdx) =>
@@ -400,20 +390,11 @@ export function getSelectableItems() {
         );
         items.push(`point-${lineIdx + 1}-0`);
       }
-    } else if (def?.isWait) {
-      items.push(`wait-${(item as any).id}`);
-      if ((item as any).eventMarkers) {
-        (item as any).eventMarkers.forEach((_: any, evIdx: number) =>
-          items.push(`event-wait-${(item as any).id}-${evIdx}`),
-        );
-      }
-    } else if (def?.isRotate) {
-      items.push(`rotate-${(item as any).id}`);
-      if ((item as any).eventMarkers) {
-        (item as any).eventMarkers.forEach((_: any, evIdx: number) =>
-          items.push(`event-rotate-${(item as any).id}-${evIdx}`),
-        );
-      }
+    } else if (item.kind === "wait" || item.kind === "rotate") {
+      items.push(`${item.kind}-${item.id}`);
+      item.eventMarkers?.forEach((_, evIdx) =>
+        items.push(`event-${item.kind}-${item.id}-${evIdx}`),
+      );
     }
   });
   lines.forEach((line, lineIdx) => {
@@ -428,7 +409,10 @@ export function getSelectableItems() {
   return items;
 }
 
-export function syncSelectionToUI(controlTabRef: any) {
+/** Something that can scroll the sidebar to show a sequence item. */
+type ScrollTarget = { scrollToItem?: (kind: string, id: string) => void };
+
+function syncSelectionToUI(controlTabRef: ScrollTarget | null | undefined) {
   const sel = get(selectedPointId);
   const sequence = get(sequenceStore);
   const lines = get(linesStore);
@@ -461,32 +445,10 @@ export function syncSelectionToUI(controlTabRef: any) {
   }
 }
 
-export function cycleSelection(dir: number, controlTabRef: any) {
-  if (isUIElementFocused()) return;
-  const items = getSelectableItems();
-  if (items.length === 0) return;
-
-  const lines = get(linesStore);
-  let current = get(selectedPointId);
-  let idx = items.indexOf(current || "");
-  if (idx === -1) idx = 0;
-  else idx = (idx + dir + items.length) % items.length;
-  const newId = items[idx];
-
-  selectedPointId.set(newId);
-  multiSelectedPointIds.set([newId]);
-
-  if (newId.startsWith("point-")) {
-    const parts = newId.split("-");
-    const lineNum = Number(parts[1]);
-    if (lineNum > 0) selectedLineId.set(lines[lineNum - 1].id || null);
-    else selectedLineId.set(null);
-  } else selectedLineId.set(null);
-
-  syncSelectionToUI(controlTabRef);
-}
-
-export function cycleSequenceSelection(dir: number, controlTabRef: any) {
+export function cycleSequenceSelection(
+  dir: number,
+  controlTabRef: ScrollTarget | null | undefined,
+) {
   if (isUIElementFocused()) return;
   const sequence = get(sequenceStore);
   const lines = get(linesStore);
@@ -504,22 +466,16 @@ export function cycleSequenceSelection(dir: number, controlTabRef: any) {
   const item = sequence[currentIdx];
   if (!item) return;
 
-  const def = actionRegistry.get(item.kind);
-
   let newId: string | null = null;
-  if (def?.isPath) {
-    selectedLineId.set((item as any).lineId);
-    const lineIdx = lines.findIndex((l) => l.id === (item as any).lineId);
+  if (item.kind === "path") {
+    selectedLineId.set(item.lineId);
+    const lineIdx = lines.findIndex((l) => l.id === item.lineId);
     if (lineIdx !== -1) {
       newId = `point-${lineIdx + 1}-0`;
       selectedPointId.set(newId);
     }
-  } else if (def?.isWait) {
-    newId = `wait-${(item as any).id}`;
-    selectedPointId.set(newId);
-    selectedLineId.set(null);
-  } else if (def?.isRotate) {
-    newId = `rotate-${(item as any).id}`;
+  } else if (item.kind === "wait" || item.kind === "rotate") {
+    newId = `${item.kind}-${item.id}`;
     selectedPointId.set(newId);
     selectedLineId.set(null);
   }

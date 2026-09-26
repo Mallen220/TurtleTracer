@@ -1,49 +1,32 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import Two from "two.js";
 import type { Path } from "two.js/src/path";
 import type { Line as PathLine } from "two.js/src/shapes/line";
 import type { Line, Point } from "../../../types";
-import { type RenderContext, createPathAnchors } from "./GeneratorUtils";
+import { type RenderContext, createLineElement } from "./GeneratorUtils";
 import { LINE_WIDTH } from "../../../config";
 
+/** Dashed blue outlines of the optimizer's suggested path. */
 export function generatePreviewPathElements(
   previewOptimizedLines: Line[] | null,
   startPoint: Point,
   ctx: RenderContext,
-) {
-  let _previewPaths: Path[] = [];
+): (Path | PathLine)[] {
   const { uiLength } = ctx;
+  const elements: (Path | PathLine)[] = [];
 
-  if (previewOptimizedLines && previewOptimizedLines.length > 0) {
-    previewOptimizedLines.forEach((line, idx) => {
-      if (!line?.endPoint) return;
-      let _startPoint =
-        idx === 0
-          ? startPoint
-          : previewOptimizedLines[idx - 1]?.endPoint || null;
-      if (!_startPoint) return;
+  previewOptimizedLines?.forEach((line, idx) => {
+    const start =
+      idx === 0 ? startPoint : previewOptimizedLines[idx - 1]?.endPoint;
+    if (!line?.endPoint || !start) return;
 
-      let lineElem: Path | PathLine;
-      const anchors = createPathAnchors(line, _startPoint, ctx);
-      if (line.controlPoints.length === 0) {
-        lineElem = new Two.Line(
-          anchors[0].x,
-          anchors[0].y,
-          anchors[1].x,
-          anchors[1].y,
-        );
-      } else {
-        lineElem = new Two.Path(anchors);
-        lineElem.automatic = false;
-      }
-      lineElem.id = `preview-line-${idx + 1}`;
-      lineElem.stroke = "#60a5fa";
-      lineElem.linewidth = uiLength(LINE_WIDTH);
-      lineElem.noFill();
-      lineElem.dashes = [uiLength(4), uiLength(4)];
-      lineElem.opacity = 0.7;
-      _previewPaths.push(lineElem);
-    });
-  }
-  return _previewPaths;
+    const elem = createLineElement(line, start, ctx);
+    elem.id = `preview-line-${idx + 1}`;
+    elem.stroke = "#60a5fa";
+    elem.linewidth = uiLength(LINE_WIDTH);
+    elem.noFill();
+    elem.dashes = [uiLength(4), uiLength(4)];
+    elem.opacity = 0.7;
+    elements.push(elem);
+  });
+  return elements;
 }

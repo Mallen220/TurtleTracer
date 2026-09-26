@@ -1,18 +1,19 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
+import type { Shape } from "two.js/src/shape";
 
 export interface FieldScenePayload {
   two: Two;
   width: number;
   height: number;
-  shapeElements: any[];
-  path: any[];
-  diffPathElements: any[];
-  previewPathElements: any[];
-  points: any[];
-  eventMarkerElements: any[];
-  collisionElements: any[];
-  diffEventMarkerElements: any[];
+  shapeElements: Shape[];
+  path: Shape[];
+  diffPathElements: Shape[];
+  previewPathElements: Shape[];
+  points: Shape[];
+  eventMarkerElements: Shape[];
+  collisionElements: Shape[];
+  diffEventMarkerElements: Shape[];
   snapGuides: InstanceType<typeof Two.Line>[];
   isPresentationMode: boolean;
   isDiffMode: boolean;
@@ -62,9 +63,7 @@ export function syncFieldScene(payload: FieldScenePayload): void {
 
   two.clear();
 
-  if (Array.isArray(shapeElements)) {
-    shapeElements.forEach((el) => shapeGroup.add(el));
-  }
+  shapeElements.forEach((el) => shapeGroup.add(el));
 
   path.forEach((el) => lineGroup.add(el));
   diffPathElements.forEach((el) => lineGroup.add(el));

@@ -1,10 +1,11 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import Two from "two.js";
+import type { Anchor } from "two.js/src/anchor";
 import type { Path } from "two.js/src/path";
 import type { Line as PathLine } from "two.js/src/shapes/line";
 import type { Line, Point } from "../../../types";
 import { getCurvePoint } from "../../../utils/math";
-import { type RenderContext, createPathAnchors } from "./GeneratorUtils";
+import { type RenderContext, createLineElement } from "./GeneratorUtils";
 
 export function generatePathElements(
   targetLines: Line[],
@@ -33,7 +34,7 @@ export function generatePathElements(
       // Try to find corresponding timeline event for velocity data
       // lineIndex matches the index in 'lines' array
       const event = timePrediction.timeline.find(
-        (e: any) => e.type === "travel" && e.lineIndex === idx,
+        (e) => e.type === "travel" && e.lineIndex === idx,
       );
 
       if (event?.velocityProfile && event.velocityProfile.length > 0) {
@@ -45,12 +46,12 @@ export function generatePathElements(
         let cps = [_startPoint, ...line.controlPoints, line.endPoint];
         let prevPt = getCurvePoint(0, cps);
 
-        let currentAnchors: any[] = [];
+        let currentAnchors: Anchor[] = [];
         let currentColor: string | null = null;
         let segmentCounter = 0;
 
         const createHeatmapSegment = (
-          anchors: any[],
+          anchors: Anchor[],
           color: string,
           segIdx: number,
         ) => {
@@ -160,19 +161,7 @@ export function generatePathElements(
     }
 
     // Fallback: Standard Line Rendering
-    let lineElem: Path | PathLine;
-    const anchors = createPathAnchors(line, _startPoint, ctx);
-    if (line.controlPoints.length === 0) {
-      lineElem = new Two.Line(
-        anchors[0].x,
-        anchors[0].y,
-        anchors[1].x,
-        anchors[1].y,
-      );
-    } else {
-      lineElem = new Two.Path(anchors);
-      lineElem.automatic = false;
-    }
+    const lineElem = createLineElement(line, _startPoint, ctx);
     lineElem.id = `${idPrefix}-line-${idx + 1}`;
 
     const isDimmed = line.id && dimmedIds.includes(line.id);

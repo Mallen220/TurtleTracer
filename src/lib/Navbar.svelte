@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
-  import type { Point, Line, Settings, SequenceItem } from "../types";
+  import { timePredictionStore } from "./projectStore";
+  import type { Settings } from "../types";
   import { onMount, onDestroy } from "svelte";
   import {
     currentFilePath,
@@ -11,11 +12,7 @@
     gitStatusStore,
   } from "../stores";
   import { SaveIcon } from "./components/icons";
-  import {
-    calculatePathTime,
-    getShortcutFromSettings,
-    isBrowser,
-  } from "../utils";
+  import { getShortcutFromSettings, isBrowser } from "../utils";
   import {
     ChevronUpIcon,
     PenIcon,
@@ -32,9 +29,6 @@
   import ValidationButton from "./components/tools/ValidationButton.svelte";
 
   interface Props {
-    startPoint: Point;
-    lines: Line[];
-    sequence: SequenceItem[];
     robotLength: number;
     robotWidth: number;
     settings: Settings;
@@ -46,9 +40,6 @@
   }
 
   let {
-    startPoint,
-    lines,
-    sequence,
     robotLength,
     robotWidth,
     settings = $bindable(),
@@ -68,9 +59,7 @@
   let exportMenuRef: HTMLElement | undefined = $state();
   let exportButtonRef: HTMLElement | undefined = $state();
 
-  let timePrediction = $derived(
-    calculatePathTime(startPoint, lines, settings, sequence),
-  );
+  let timePrediction = $derived($timePredictionStore);
 
   function formatEstimatedTime(totalSeconds: number): string {
     if (!Number.isFinite(totalSeconds)) return "Infinite";

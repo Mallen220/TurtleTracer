@@ -50,7 +50,6 @@ interface StickyNote {
       turtle.registries.hooks.register(
         "fieldOverlayInit",
         (container: HTMLElement) => {
-          console.log("[StickyNotes] Hook: fieldOverlayInit");
           mountContainer(container);
         },
       );
@@ -153,12 +152,7 @@ interface StickyNote {
 
       // Find parent if not provided
       const target = parent || document.getElementById("field-overlay-layer");
-      if (!target) {
-        // console.log("[StickyNotes] Overlay target not found yet.");
-        return;
-      }
-
-      console.log("[StickyNotes] Mounting container to", target);
+      if (!target) return;
 
       const container = document.createElement("div");
       container.id = CONTAINER_ID;

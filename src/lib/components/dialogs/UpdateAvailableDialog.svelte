@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { getElectronAPI } from "../../../utils/platform";
   import { onMount } from "svelte";
   import { fade, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
@@ -49,7 +50,7 @@
   let currentVersion: string | null = $state(null);
 
   onMount(async () => {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (api) {
       // Check platform
       const userAgent = globalThis.navigator.userAgent;
@@ -104,7 +105,7 @@
   }
 
   function handleDownload() {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (api && updateData) {
       if (api.downloadUpdate) {
         // Pass version and url
@@ -118,7 +119,7 @@
   }
 
   function handleSkip() {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (api && updateData && api.skipUpdate) {
       api.skipUpdate(updateData.version);
     }
@@ -126,7 +127,7 @@
   }
 
   function handleSwitchToStore() {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (api && api.openExternal) {
       // URL from README
       api.openExternal(
@@ -138,7 +139,7 @@
 
   // Open the GitHub releases page for this release (keeps dialog open)
   function handleOpenReleases(): void {
-    const api = (globalThis as any).electronAPI;
+    const api = getElectronAPI();
     if (api && api.openExternal && updateData?.url) {
       api.openExternal(updateData.url);
     } else if (updateData?.url) {

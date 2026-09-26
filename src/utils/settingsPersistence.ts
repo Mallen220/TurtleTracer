@@ -1,7 +1,12 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { DEFAULT_SETTINGS } from "../config/defaults";
 import { getElectronAPI as getPlatformElectronAPI } from "./platform";
-import type { ElectronAPI, Settings } from "../types";
+import type {
+  ElectronAPI,
+  KeyBinding,
+  ObstaclePreset,
+  Settings,
+} from "../types";
 
 // Versioning for settings schema
 const SETTINGS_VERSION = "1.0.0";
@@ -44,96 +49,72 @@ async function getSettingsPaths(): Promise<{
   }
 }
 
-export function mergeSettings(source: any): Settings {
-  const defaults = { ...DEFAULT_SETTINGS };
+type StoredValues = Record<string, unknown>;
 
-  if (!source) {
-    return defaults;
-  }
+/** Robot size used to be rWidth (length) and rHeight (width). */
+function migrateRobotSize(stored: StoredValues): StoredValues {
+  if (!("rHeight" in stored) || "rLength" in stored) return stored;
+  const { rHeight, rWidth, ...rest } = stored;
+  return { ...rest, rLength: rWidth, rWidth: rHeight };
+}
 
-  // Manual migration for rWidth/rHeight -> rLength/rWidth
-  // If stored settings has rHeight (Old Width) and rWidth (Old Length)
-  const sourceSettings = { ...source } as any;
-  if ("rHeight" in sourceSettings && !("rLength" in sourceSettings)) {
-    sourceSettings.rLength = sourceSettings.rWidth; // Old rWidth was Length
-    sourceSettings.rWidth = sourceSettings.rHeight; // Old rHeight was Width
-    delete sourceSettings.rHeight;
-  }
+/** The current built-in presets, plus the user's own. */
+function mergePresets(stored: unknown[]): ObstaclePreset[] {
+  const defaults = DEFAULT_SETTINGS.obstaclePresets ?? [];
+  const builtIn = new Set(defaults.map((p) => p.id));
+  const custom = stored.filter(
+    (p): p is ObstaclePreset =>
+      !!p &&
+      typeof p === "object" &&
+      !!(p as ObstaclePreset).id &&
+      !builtIn.has((p as ObstaclePreset).id),
+  );
+  return [...defaults, ...custom];
+}
 
-  // Always merge with defaults to ensure new settings are included
-  // and removed settings are not persisted
-  const migrated: Settings = { ...defaults };
+/** Every default binding, as the user remapped it, plus any they added. */
+function mergeKeyBindings(stored: KeyBinding[]): KeyBinding[] {
+  const defaults = DEFAULT_SETTINGS.keyBindings ?? [];
+  const storedById = new Map(stored.map((b) => [b.id, b]));
+  const defaultIds = new Set(defaults.map((d) => d.id));
+  return [
+    ...defaults.map((d) => ({ ...d, ...storedById.get(d.id) })),
+    ...stored.filter((b) => !defaultIds.has(b.id)),
+  ];
+}
 
-  // Copy only the properties that exist in both objects
-  Object.keys(sourceSettings).forEach((key) => {
-    if (key in migrated) {
-      // Type checking to avoid illegal values
-      const defaultVal = (defaults as any)[key];
-      const sourceVal = sourceSettings[key];
+/**
+ * Stored settings laid over the defaults. Keys the app no longer has are
+ * dropped, and so are values of the wrong type.
+ */
+export function mergeSettings(source: unknown): Settings {
+  const merged: Settings & StoredValues = { ...DEFAULT_SETTINGS };
+  if (!source || typeof source !== "object") return merged;
 
-      // Skip if source value is undefined/null (will use default)
-      if (sourceVal === undefined || sourceVal === null) return;
+  const stored = migrateRobotSize({ ...(source as StoredValues) });
+  for (const [key, value] of Object.entries(stored)) {
+    if (!(key in merged) || value === undefined || value === null) continue;
+    const defaultValue = merged[key];
 
-      // Special-case merging for obstaclePresets so all default presets are guaranteed present & up to date, while user custom presets are preserved
-      if (key === "obstaclePresets" && Array.isArray(sourceVal)) {
-        const defaultPresets = defaults.obstaclePresets || [];
-        const storedPresets = sourceVal as any[];
-
-        const defaultIds = new Set(defaultPresets.map((p) => p.id));
-
-        // Start with defaultPresets (always up to date with official seasons)
-        // Then append any custom user presets that aren't in defaultPresets
-        const customPresets = storedPresets.filter(
-          (p) => p && typeof p === "object" && p.id && !defaultIds.has(p.id),
+    if (key === "obstaclePresets" && Array.isArray(value)) {
+      merged[key] = mergePresets(value);
+    } else if (key === "keyBindings" && Array.isArray(value)) {
+      merged[key] = mergeKeyBindings(value);
+    } else if (defaultValue !== undefined && defaultValue !== null) {
+      if (typeof defaultValue !== typeof value) {
+        console.warn(
+          `Ignoring setting ${key} due to type mismatch: expected ${typeof defaultValue}, got ${typeof value}`,
         );
-
-        migrated.obstaclePresets = [...defaultPresets, ...customPresets];
-      } else if (key === "keyBindings" && Array.isArray(sourceVal)) {
-        const defaultBindings = defaults.keyBindings || [];
-        const storedBindings = sourceVal as any[];
-
-        // Map stored bindings by id for quick lookup
-        const storedMap = new Map<string, any>();
-        storedBindings.forEach((b) => storedMap.set(b.id, b));
-
-        // Start with defaults, override with stored values when ids match
-        const merged = defaultBindings.map((d) => {
-          const s = storedMap.get(d.id);
-          return s ? { ...d, ...s } : d;
-        });
-
-        // Append any stored-only bindings (user added) that aren't in defaults
-        storedBindings.forEach((b) => {
-          if (!defaultBindings.find((d) => d.id === b.id)) merged.push(b);
-        });
-
-        migrated.keyBindings = merged;
+      } else if (Array.isArray(defaultValue) && !Array.isArray(value)) {
+        console.warn(`Ignoring setting ${key}: expected array`);
       } else {
-        // General type check
-        if (defaultVal !== undefined && defaultVal !== null) {
-          const defaultType = typeof defaultVal;
-          const sourceType = typeof sourceVal;
-
-          if (defaultType !== sourceType) {
-            console.warn(
-              `Ignoring setting ${key} due to type mismatch: expected ${defaultType}, got ${sourceType}`,
-            );
-            return;
-          }
-
-          // Additional check for arrays (typeof returns 'object' for both)
-          if (Array.isArray(defaultVal) && !Array.isArray(sourceVal)) {
-            console.warn(`Ignoring setting ${key}: expected array`);
-            return;
-          }
-        }
-
-        (migrated as any)[key] = sourceVal;
+        merged[key] = value;
       }
+    } else {
+      merged[key] = value;
     }
-  });
-
-  return migrated;
+  }
+  return merged;
 }
 
 function migrateSettings(stored: Partial<StoredSettings>): Settings {
@@ -251,19 +232,4 @@ export async function resetSettings(): Promise<Settings> {
   const defaults = { ...DEFAULT_SETTINGS };
   await saveSettings(defaults);
   return defaults;
-}
-
-// Check if settings file exists
-export async function settingsFileExists(): Promise<boolean> {
-  const api = getElectronAPI();
-  if (!api) return false;
-
-  try {
-    const paths = await getSettingsPaths();
-    if (paths.current && (await api.fileExists(paths.current))) return true;
-    return paths.legacy ? await api.fileExists(paths.legacy) : false;
-  } catch (error) {
-    console.error("Error checking settings file:", error);
-    return false;
-  }
 }

@@ -1,5 +1,13 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Line, Point, SequenceItem, Shape } from "../../../types/index";
+import type {
+  CollisionMarker,
+  Line,
+  Point,
+  SequenceItem,
+  Shape,
+  TimePrediction,
+} from "../../../types/index";
+import type { DiffResult, ProjectData } from "../../diffStore";
 import type { RenderContext } from "./GeneratorUtils";
 import {
   buildStandardPathElements,
@@ -13,7 +21,6 @@ import { generateDiffEventMarkerElements } from "./DiffEventMarkerGenerator";
 import { generateCollisionElements } from "./CollisionMarkerGenerator";
 import { generateOnionLayerElements } from "./OnionLayerGenerator";
 import { generateFacingLineElements } from "./FacingLineGenerator";
-import { actionRegistry } from "../../actionRegistry";
 
 export interface FieldSceneDataOptions {
   lines: Line[];
@@ -21,12 +28,12 @@ export interface FieldSceneDataOptions {
   startPoint: Point;
   shapes: Shape[];
   sequence: SequenceItem[];
-  markers: any[];
+  markers: CollisionMarker[];
   isDiffMode: boolean;
-  diffData: any;
-  oldData: any;
+  diffData: DiffResult | null;
+  oldData: ProjectData | null;
   previewOptimizedLines: Line[] | null;
-  effectiveTimePrediction: any;
+  effectiveTimePrediction: TimePrediction | null;
   selectedLineId: string | null;
   selectedPointId: string | null;
   hoveredMarkerId: string | null;
@@ -103,7 +110,6 @@ export function generateAllSceneElements(
     oldData,
     lines,
     startPoint,
-    sequence,
     {
       ...ctx,
       hoveredMarkerId,
@@ -126,7 +132,6 @@ export function generateAllSceneElements(
       hoveredMarkerId,
       selectedLineId,
       selectedPointId,
-      actionRegistry,
     },
   );
   const collisionElements = generateCollisionElements(

@@ -4,18 +4,21 @@
   import { get } from "svelte/store";
   import { scale } from "svelte/transition";
   import { exportPathToImage } from "../../../utils/exportAnimation";
+  import { saveBlob } from "../../../utils/file";
+  import type Two from "two.js";
+  import type { Group } from "two.js/src/group";
+  import type { Settings } from "../../../types";
   import { FIELD_SIZE } from "../../../config";
   import { fieldZoom, fieldPan } from "../../../stores";
   import { CloseIcon, SpinnerIcon, ArrowDownTrayIcon } from "../icons";
 
   interface Props {
     show?: boolean;
-    twoInstance: any;
-    settings: any;
+    twoInstance: Two;
+    settings: Settings;
     robotLengthPx: number;
     robotWidthPx: number;
     robotState: { x: number; y: number; heading: number };
-    electronAPI: any;
     // D3 Scales passed as functions
     xScale?: (v: number) => number;
     yScale?: (v: number) => number;
@@ -29,7 +32,6 @@
     robotLengthPx,
     robotWidthPx,
     robotState,
-    electronAPI,
     xScale = (v) => v,
     yScale = (v) => v,
     onclose,
@@ -66,13 +68,11 @@
   }
 
   function toggleValidationVisibility(visible: boolean) {
-    if (!twoInstance || !twoInstance.scene) return;
-    twoInstance.scene.children.forEach((child: any) => {
-      // Hide validation markers and snap guides
-      if (child.id === "collision-group" || child.id === "snap-group") {
-        child.visible = visible;
-      }
-    });
+    // Collision markers and snap guides don't belong in the picture.
+    for (const id of ["collision-group", "snap-group"]) {
+      const group = twoInstance?.scene?.getById(id) as Group | null;
+      if (group) group.visible = visible;
+    }
   }
 
   async function generatePreview() {
@@ -150,35 +150,10 @@
     const ext = format === "jpeg" ? "jpg" : format;
     const label = format.toUpperCase();
 
-    if (
-      electronAPI &&
-      electronAPI.showSaveDialog &&
-      electronAPI.writeFileBase64
-    ) {
-      const dest = await electronAPI.showSaveDialog({
-        defaultPath: `field_export.${ext}`,
-        filters: [{ name: label, extensions: [ext] }],
-      });
-      if (dest) {
-        const reader = new FileReader();
-        reader.onload = async () => {
-          const b64 = (reader.result as string).split(",")[1];
-          await electronAPI.writeFileBase64!(dest, b64);
-          statusMessage = "Saved successfully!";
-          setTimeout(close, 1500);
-        };
-        reader.readAsDataURL(previewBlob);
-      }
-    } else {
-      const a = document.createElement("a");
-      a.href = previewUrl!;
-      a.download = `field_export.${ext}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      statusMessage = "Downloaded!";
-      setTimeout(close, 1500);
-    }
+    const result = await saveBlob(previewBlob, `field_export.${ext}`, label);
+    if (result === "cancelled") return;
+    statusMessage = result === "saved" ? "Saved successfully!" : "Downloaded!";
+    setTimeout(close, 1500);
   }
 
   function handleKeydown(e: KeyboardEvent) {

@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { triggerDownload } from "../../../utils/file";
   import { get } from "svelte/store";
   import {
     startPointStore,
@@ -89,16 +90,11 @@
   }
 
   function exportDebugData() {
-    const dataStr = JSON.stringify(generateDebugData(), null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const downloadAnchorNode = document.createElement("a");
-    downloadAnchorNode.setAttribute("href", url);
-    downloadAnchorNode.setAttribute("download", `debug-log-${Date.now()}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-    URL.revokeObjectURL(url);
+    triggerDownload(
+      JSON.stringify(generateDebugData(), null, 2),
+      "application/json",
+      `debug-log-${Date.now()}.json`,
+    );
     notification.set({ message: "Debug log exported", type: "success" });
   }
 </script>
