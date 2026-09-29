@@ -50,7 +50,7 @@ vi.mock("../../actionRegistry", () => ({
   },
 }));
 
-import { clipboard, copy, cut, paste, duplicate } from "./clipboard";
+import { getClipboard, copy, cut, paste, duplicate } from "./clipboard";
 import {
   modifyValue,
   toggleHeadingMode,
@@ -133,7 +133,11 @@ describe("Shortcuts Logic", () => {
       copy("code", {});
 
       // Check the imported clipboard value directly instead of using require
-      expect(clipboard).toEqual({ kind: "wait", id: "123", durationMs: 100 });
+      expect(getClipboard()).toEqual({
+        kind: "wait",
+        id: "123",
+        durationMs: 100,
+      });
 
       // Our mockNotification doesn't get properly updated via Svelte's set during testing but we validated clipboard correctly
     });

@@ -18,7 +18,9 @@ type WaitOrRotate = "wait" | "rotate";
 
 // What the copy/cut/paste shortcuts are holding. This is separate from the
 // system clipboard.
-export let clipboard: SequenceItem | Line | null = null;
+let clipboard: SequenceItem | Line | null = null;
+
+export const getClipboard = () => clipboard;
 
 function getWaitOrRotateKind(item: SequenceItem): WaitOrRotate | null {
   return item.kind === "wait" || item.kind === "rotate" ? item.kind : null;

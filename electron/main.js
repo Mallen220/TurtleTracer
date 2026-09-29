@@ -78,10 +78,10 @@ if (gotTheLock) {
           if (last.isMinimized()) last.restore();
           last.focus();
         } else {
-          createWindow();
+          openWindow();
         }
       } else {
-        createWindow();
+        openWindow();
       }
 
       // Check for file arguments in the second instance command line
@@ -92,7 +92,7 @@ if (gotTheLock) {
       }
     } catch (err) {
       console.error("Error in second-instance handler:", err);
-      createWindow();
+      openWindow();
     }
   });
 
@@ -107,11 +107,12 @@ if (gotTheLock) {
     }
 
     await startServer();
-    createWindow();
+    openWindow();
     createMenu();
     updateDockMenu();
     updateJumpList();
-    ensureDefaultPlugins();
+    // Logs its own failures.
+    void ensureDefaultPlugins();
 
     // Check for updates (only once)
     setTimeout(() => {
@@ -304,13 +305,17 @@ const createWindow = async () => {
   });
 };
 
+/** Opens a window from code that can't wait for it; a failure is logged. */
+const openWindow = () =>
+  createWindow().catch((err) => console.error("Failed to create window:", err));
+
 const updateDockMenu = () => {
   if (process.platform === "darwin") {
     globalThis.dockMenu = Menu.buildFromTemplate([
       {
         label: "New Window",
         click() {
-          createWindow();
+          openWindow();
         },
       },
     ]);
@@ -376,7 +381,7 @@ const createMenu = () => {
         {
           label: "New Window",
           accelerator: "CmdOrCtrl+Shift+N",
-          click: () => createWindow(),
+          click: () => openWindow(),
         },
         {
           label: "Open...",

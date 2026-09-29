@@ -115,7 +115,7 @@ class AppUpdater {
     }
   }
 
-  async showUpdateAvailableDialog(releaseData, delay = 3000) {
+  showUpdateAvailableDialog(releaseData, delay = 3000) {
     // Wait a bit for the main window to be fully ready
     setTimeout(() => {
       const version = releaseData.tag_name.replaceAll("v", "");

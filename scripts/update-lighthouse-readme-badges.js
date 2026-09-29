@@ -9,6 +9,8 @@ import { spawn } from "node:child_process";
 const isFileModuleUrl = import.meta.url.startsWith("file:");
 const relativeOutputDir = "README_Content/lighthouse-badges";
 const defaultBadgeUrl = "http://localhost:4173/";
+const START_MARKER = "<!-- LIGHTHOUSE_BADGES_START -->";
+const END_MARKER = "<!-- LIGHTHOUSE_BADGES_END -->";
 
 function getRepoRootPath() {
   return isFileModuleUrl
@@ -92,7 +94,7 @@ function buildReadmeBadgeBlock(version) {
   const lighthouseLink = "https://github.com/GoogleChrome/lighthouse";
 
   return [
-    "  <!-- LIGHTHOUSE_BADGES_START -->",
+    `  ${START_MARKER}`,
     "  <p>",
     `    <a href="${lighthouseLink}">`,
     `      <img src="${relativeOutputDir}/lighthouse_accessibility.svg" alt="Lighthouse Accessibility Badge">`,
@@ -109,7 +111,7 @@ function buildReadmeBadgeBlock(version) {
     "  </p>",
     /* No overall badge since lighthouse-badges only generates individual ones by default */
     `  <p><sub>Lighthouse badges generated for v${version}</sub></p>`,
-    "  <!-- LIGHTHOUSE_BADGES_END -->",
+    `  ${END_MARKER}`,
   ].join("\n");
 }
 
@@ -119,16 +121,25 @@ function buildReadmeBadgeBlock(version) {
  * @returns {string}
  */
 export function replaceBetweenMarkers(content, replacement) {
-  const pattern =
-    /\s*<!-- LIGHTHOUSE_BADGES_START -->[\s\S]*?<!-- LIGHTHOUSE_BADGES_END -->/;
+  const start = content.indexOf(START_MARKER);
+  const end =
+    start === -1
+      ? -1
+      : content.indexOf(END_MARKER, start + START_MARKER.length);
 
-  if (!pattern.test(content)) {
+  if (end === -1) {
     throw new Error(
       "Could not find LIGHTHOUSE_BADGES markers in README.md. Add LIGHTHOUSE_BADGES_START and LIGHTHOUSE_BADGES_END markers first.",
     );
   }
 
-  return content.replace(pattern, `\n${replacement}`);
+  // The whitespace before the start marker goes too; the replacement brings
+  // its own indentation.
+  return (
+    content.slice(0, start).trimEnd() +
+    `\n${replacement}` +
+    content.slice(end + END_MARKER.length)
+  );
 }
 
 async function ensureOutputDirectory() {

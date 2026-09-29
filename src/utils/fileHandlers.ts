@@ -350,7 +350,7 @@ export async function saveProject({
     }
 
     const dir = get(currentDirectoryStore);
-    if (dir) scanEventsInDirectory(dir);
+    if (dir) void scanEventsInDirectory(dir);
 
     await handleAutoExport(
       get(startPointStore),

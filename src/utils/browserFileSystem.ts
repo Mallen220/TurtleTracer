@@ -264,12 +264,10 @@ export const browserFileSystem = {
     await set(dirPath, { type: "dir" });
     return true;
   },
-  getDirectoryStats: async (_dirPath: string): Promise<any> => {
-    return { size: 0, files: 0 };
-  },
-  resolvePath: async (base: string, relative: string): Promise<string> => {
-    return resolvePath(base, relative);
-  },
+  getDirectoryStats: (_dirPath: string): Promise<any> =>
+    Promise.resolve({ size: 0, files: 0 }),
+  resolvePath: (base: string, relative: string): Promise<string> =>
+    Promise.resolve(resolvePath(base, relative)),
   renameFile: async (
     oldPath: string,
     newPath: string,
@@ -294,19 +292,17 @@ export const browserFileSystem = {
     await set(dest, val);
     return true;
   },
-  showSaveDialog: async (
-    options?: SaveDialogOptions,
-  ): Promise<string | null> => {
+  showSaveDialog: (options?: SaveDialogOptions): Promise<string | null> => {
     const defaultName =
       options?.defaultPath || "trajectory" + DEFAULT_PROJECT_EXTENSION;
-    return VIRTUAL_ROOT + "/" + defaultName;
+    return Promise.resolve(VIRTUAL_ROOT + "/" + defaultName);
   },
-  openExternal: async (url: string): Promise<boolean> => {
+  openExternal: (url: string): Promise<boolean> => {
     window.open(url, "_blank");
-    return true;
+    return Promise.resolve(true);
   },
-  rendererReady: async (): Promise<void> => {},
-  makeRelativePath: async (base: string, target: string): Promise<string> => {
+  rendererReady: (): Promise<void> => Promise.resolve(),
+  makeRelativePath: (base: string, target: string): Promise<string> => {
     // simple relative path for virtual fs
     const baseParts = base.split("/").filter(Boolean);
     if (base.includes(".") && !base.endsWith("/")) baseParts.pop();
@@ -326,6 +322,6 @@ export const browserFileSystem = {
       .fill("..")
       .concat(targetParts.slice(commonLen))
       .join("/");
-    return rel || ".";
+    return Promise.resolve(rel || ".");
   },
 };

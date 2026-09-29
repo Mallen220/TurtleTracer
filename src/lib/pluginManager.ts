@@ -129,7 +129,9 @@ export class PluginManager {
     );
 
     // Reload all plugins to ensure proper cleanup/registration
-    this.reloadPlugins();
+    this.reloadPlugins().catch((err) =>
+      console.error("Failed to reload plugins", err),
+    );
   }
 
   private static refreshActiveResources() {

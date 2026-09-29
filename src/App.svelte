@@ -388,7 +388,7 @@
       const dir = await electronAPI.getSavedDirectory();
       if (!dir || dir.trim() === "") return true;
       currentDirectoryStore.set(dir);
-      scanEventsInDirectory(dir);
+      void scanEventsInDirectory(dir);
     } catch (e) {
       console.warn("Failed to check saved directory", e);
     }

@@ -23,7 +23,13 @@ globalThis.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      cache.addAll(APP_STATIC_RESOURCES);
+      try {
+        // Waiting keeps the worker installing until the files are cached.
+        await cache.addAll(APP_STATIC_RESOURCES);
+      } catch (err) {
+        // The app still works online if a file couldn't be cached.
+        console.warn("Failed to cache app resources:", err);
+      }
     })(),
   );
 });
@@ -64,7 +70,11 @@ globalThis.addEventListener("fetch", (event) => {
 
         // If we get a valid response, update the cache and return it
         if (networkResponse && networkResponse.ok) {
-          cache.put(event.request, networkResponse.clone());
+          event.waitUntil(
+            cache
+              .put(event.request, networkResponse.clone())
+              .catch((err) => console.warn("Failed to update cache:", err)),
+          );
         }
         return networkResponse;
       } catch {

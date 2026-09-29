@@ -189,7 +189,11 @@ export function buildFieldContextMenuItems(
               const userPt = toUser(pt, system);
               const text = `${userPt.x.toFixed(2)}, ${userPt.y.toFixed(2)}`;
               if (typeof navigator !== "undefined" && navigator.clipboard) {
-                navigator.clipboard.writeText(text);
+                navigator.clipboard
+                  .writeText(text)
+                  .catch((err) =>
+                    console.warn("Failed to copy to clipboard", err),
+                  );
               }
               callbacks.notify({
                 message: `Copied "${text}"`,

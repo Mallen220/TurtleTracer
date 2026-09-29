@@ -10,7 +10,10 @@ import {
 import { wouldCreateCycle } from "./macroUtils";
 import { currentFilePath, notification } from "../stores";
 import { generateName, makeId } from "../utils/nameGenerator";
+import { FIELD_SIZE } from "../config";
 import { isSupportedProjectFileName } from "../utils/fileExtensions";
+
+const DEFAULT_FIELD = { width: FIELD_SIZE, height: FIELD_SIZE };
 
 /** What identifies an item in the sequence: a path's line id, else its own id. */
 export function sequenceItemKey(item: SequenceItem): string {
@@ -242,7 +245,7 @@ export function copyName(name: string | undefined, existingNames: string[]) {
 export function duplicateStep(
   project: { startPoint: Point; lines: Line[]; sequence: SequenceItem[] },
   index: number,
-  field = { width: 144, height: 144 },
+  field = DEFAULT_FIELD,
 ): { lines: Line[]; sequence: SequenceItem[]; copy: SequenceItem } | null {
   const { startPoint, lines, sequence } = project;
   const item = sequence[index];

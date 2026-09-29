@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   copy,
-  clipboard,
+  getClipboard,
 } from "../../../../lib/components/shortcuts/clipboard";
 import * as utils from "../../../../lib/components/shortcuts/utils";
 
@@ -22,7 +22,7 @@ describe("clipboard", () => {
       const copyTable = vi.fn();
       copy("table", { copyTable });
       expect(copyTable).not.toHaveBeenCalled();
-      expect(clipboard).toBeNull();
+      expect(getClipboard()).toBeNull();
     });
   });
 });

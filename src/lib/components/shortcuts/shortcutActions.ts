@@ -94,6 +94,18 @@ import {
   toggleOnionCurrentPath,
 } from "./misc";
 
+/** Opens a page in the system browser (desktop app) or a new tab. */
+function openUrl(url: string) {
+  const api = getElectronAPI();
+  if (api?.openExternal) {
+    api
+      .openExternal(url)
+      .catch((err) => console.warn("Failed to open", url, err));
+  } else {
+    window.open(url, "_blank");
+  }
+}
+
 export interface ShortcutActionContext {
   saveProject: () => void;
   resetProject: () => void;
@@ -460,25 +472,10 @@ export function buildActionHandlers(
       else if (mode === "close")
         settingsStore.update((s) => ({ ...s, autosaveMode: "close" }));
     },
-    openDocs: () => {
-      const url =
-        "https://www.turtletracer.com/turtle-tracer-lib/installation/";
-      const api = getElectronAPI();
-      if (api?.openExternal) {
-        api.openExternal(url);
-      } else {
-        window.open(url, "_blank");
-      }
-    },
-    reportIssue: () => {
-      const url = "https://github.com/Mallen220/TurtleTracer/issues";
-      const api = getElectronAPI();
-      if (api?.openExternal) {
-        api.openExternal(url);
-      } else {
-        window.open(url, "_blank");
-      }
-    },
+    openDocs: () =>
+      openUrl("https://www.turtletracer.com/turtle-tracer-lib/installation/"),
+    reportIssue: () =>
+      openUrl("https://github.com/Mallen220/TurtleTracer/issues"),
     checkForUpdates: () => {
       const api = getElectronAPI();
       if (api?.checkForUpdates) {
@@ -486,9 +483,7 @@ export function buildActionHandlers(
           .checkForUpdates()
           .catch((err: any) => console.warn("Manual update check failed", err));
       } else {
-        const url = "https://github.com/Mallen220/TurtleTracer/releases";
-        if (api?.openExternal) api.openExternal(url);
-        else window.open(url, "_blank");
+        openUrl("https://github.com/Mallen220/TurtleTracer/releases");
       }
     },
     setFileManagerDirectory: async () => {
@@ -529,9 +524,9 @@ export function buildActionHandlers(
     setAutoSaveChange: () => handlers.setAutosave("change"),
     setAutoSaveClose: () => handlers.setAutosave("close"),
     startTutorial: () => {
-      import("../../../stores").then(({ startTutorial }) => {
-        startTutorial.set(true);
-      });
+      import("../../../stores")
+        .then(({ startTutorial }) => startTutorial.set(true))
+        .catch((err) => console.warn("Failed to start the tutorial", err));
     },
     toggleDiff: () => toggleDiff(),
     togglePluginManager: () => showPluginManager.update((v) => !v),

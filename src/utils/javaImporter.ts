@@ -58,8 +58,11 @@ type Arg =
 /** Reads the values in an argument list, skipping anything unrecognised. */
 function readArgs(tokens: string[]): Arg[] {
   const args: Arg[] = [];
-  for (let i = 0; i < tokens.length; i++) {
+  let i = 0;
+  while (i < tokens.length) {
     const t = tokens[i];
+    // Tokens consumed by this argument, including the first.
+    let consumed = 1;
 
     if (
       t === "Math" &&
@@ -70,22 +73,23 @@ function readArgs(tokens: string[]): Arg[] {
       if (close === -1) break;
       const value = Number.parseFloat(tokens.slice(i + 4, close).join(""));
       if (Number.isFinite(value)) args.push({ kind: "degrees", value });
-      i = close;
+      consumed = close - i + 1;
     } else if (
       IDENTIFIER.test(t) &&
       tokens[i + 1] === "." &&
       tokens[i + 2] === "getHeading"
     ) {
       args.push({ kind: "headingOf", pose: t });
-      i += 4; // skip ". getHeading ( )"
+      consumed = 5; // pose . getHeading ( )
     } else if (Number.isFinite(Number.parseFloat(t))) {
       args.push({ kind: "number", value: Number.parseFloat(t) });
     } else if (t === "-" && Number.isFinite(Number.parseFloat(tokens[i + 1]))) {
       args.push({ kind: "number", value: -Number.parseFloat(tokens[i + 1]) });
-      i++;
+      consumed = 2;
     } else if (IDENTIFIER.test(t)) {
       args.push({ kind: "name", name: t });
     }
+    i += consumed;
   }
   return args;
 }
@@ -164,16 +168,19 @@ function recordPoseAssignment(tokens: string[], points: Map<string, Point>) {
  */
 function splitBezierArgs(tokens: string[]): string[][] {
   const args: string[][] = [];
-  for (let i = 0; i < tokens.length; i++) {
-    if (tokens[i] === ",") continue;
-    if (tokens[i] !== "new") {
+  let i = 0;
+  while (i < tokens.length) {
+    if (tokens[i] === ",") {
+      i++;
+    } else if (tokens[i] === "new") {
+      const close = findClosingParen(tokens, tokens.indexOf("(", i));
+      if (close === -1) break;
+      args.push(tokens.slice(i, close + 1).filter((t) => t !== ","));
+      i = close + 1;
+    } else {
       args.push([tokens[i]]);
-      continue;
+      i++;
     }
-    const close = findClosingParen(tokens, tokens.indexOf("(", i));
-    if (close === -1) break;
-    args.push(tokens.slice(i, close + 1).filter((t) => t !== ","));
-    i = close;
   }
   return args;
 }
