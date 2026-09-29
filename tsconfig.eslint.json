@@ -22,6 +22,8 @@
     "e2e/**/*.ts",
     "plugins/**/*.ts",
     "plugins/**/*.d.ts",
+    "electron/**/*.js",
+    "public/sw.js",
     "**/*.d.ts",
     "scripts/**/*.ts",
     "*.ts",

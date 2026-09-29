@@ -229,13 +229,13 @@ const createWindow = async () => {
   // ever show our own UI. Links to anywhere else open in the user's browser.
   const appOrigin = `http://localhost:${serverPort}`;
   newWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (isWebUrl(url)) shell.openExternal(url);
+    if (isWebUrl(url)) openInBrowser(url);
     return { action: "deny" };
   });
   newWindow.webContents.on("will-navigate", (event, url) => {
     if (url.startsWith(`${appOrigin}/`) || url === appOrigin) return;
     event.preventDefault();
-    if (isWebUrl(url)) shell.openExternal(url);
+    if (isWebUrl(url)) openInBrowser(url);
   });
 
   if (!cachesCleared) {
@@ -252,7 +252,9 @@ const createWindow = async () => {
     }
   }
 
-  newWindow.loadURL(appOrigin);
+  newWindow.loadURL(appOrigin).catch((err) => {
+    console.error("Failed to load the app window:", err);
+  });
 
   // Disable certain Chromium keyboard shortcuts that interfere with app UX (reload, close, devtools)
   newWindow.webContents.on("before-input-event", (event, input) => {
@@ -305,9 +307,20 @@ const createWindow = async () => {
   });
 };
 
-/** Opens a window from code that can't wait for it; a failure is logged. */
-const openWindow = () =>
+/** Opens a link in the user's browser. A failure is logged, not thrown. */
+const openInBrowser = (url) => {
+  shell.openExternal(url).catch((err) => {
+    console.error("Failed to open link:", url, err);
+  });
+};
+
+/**
+ * Opens a window from code that can't wait for it. A failure is logged here,
+ * so callers get nothing back to handle.
+ */
+const openWindow = () => {
   createWindow().catch((err) => console.error("Failed to create window:", err));
+};
 
 const updateDockMenu = () => {
   if (process.platform === "darwin") {

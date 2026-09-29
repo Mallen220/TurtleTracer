@@ -149,7 +149,7 @@ export function loadPreviewWhenVisible(node: HTMLElement, file: FileInfo) {
 
 /** Svelte action: select the input's text when it appears. */
 export function selectOnMount(node: HTMLInputElement) {
-  tick().then(() => node.select());
+  void tick().then(() => node.select());
 }
 
 export function formatFileSize(bytes: number): string {

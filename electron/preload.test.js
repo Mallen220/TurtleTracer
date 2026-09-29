@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 describe("preload.js", () => {
-  it("exposes electronAPI to the main world", () => {
+  it("exposes electronAPI to the main world", async () => {
     const mockIpcRenderer = {
       invoke: vi.fn(),
       on: vi.fn(),
@@ -54,45 +54,47 @@ describe("preload.js", () => {
     const api = globalThis.electronAPI;
 
     // Call all the methods on electronAPI to get 100% coverage
-    api.getPathForFile({ name: "test.txt" });
-    api.getAppDataPath();
-    api.getDirectory();
-    api.setDirectory();
-    api.selectDirectory();
-    api.listFiles("dir");
-    api.readFile("file.txt");
-    api.writeFile("file.txt", "content");
-    api.deleteFile("file.txt");
-    api.fileExists("file.txt");
-    api.resolvePath("base", "rel");
-    api.makeRelativePath("base", "tgt");
-    api.getDirectorySettings();
-    api.saveDirectorySettings({});
-    api.getSavedDirectory();
-    api.createDirectory("dir");
-    api.getDirectoryStats("dir");
-    api.renameFile("old", "new");
-    api.showSaveDialog({});
-    api.writeFileBase64("file", "base64");
-    api.exportPP("content", "name");
-    api.copyFile("src", "dest");
-    api.gitShow("file");
-    api.gitStatus("dir");
-    api.rendererReady();
-    api.sendCloseApproved();
-    api.getAppVersion();
-    api.isWindowsStore();
-    api.openExternal("url");
-    api.listPlugins();
-    api.readPlugin("plugin");
-    api.deletePlugin("plugin");
-    api.openPluginsFolder();
-    api.transpilePlugin("code");
-    api.telemetry.connect("ip", "port", "proto");
-    api.telemetry.disconnect();
-    api.downloadUpdate("version", "url");
-    api.skipUpdate("version");
-    api.checkForUpdates();
+    await Promise.all([
+      api.getPathForFile({ name: "test.txt" }),
+      api.getAppDataPath(),
+      api.getDirectory(),
+      api.setDirectory(),
+      api.selectDirectory(),
+      api.listFiles("dir"),
+      api.readFile("file.txt"),
+      api.writeFile("file.txt", "content"),
+      api.deleteFile("file.txt"),
+      api.fileExists("file.txt"),
+      api.resolvePath("base", "rel"),
+      api.makeRelativePath("base", "tgt"),
+      api.getDirectorySettings(),
+      api.saveDirectorySettings({}),
+      api.getSavedDirectory(),
+      api.createDirectory("dir"),
+      api.getDirectoryStats("dir"),
+      api.renameFile("old", "new"),
+      api.showSaveDialog({}),
+      api.writeFileBase64("file", "base64"),
+      api.exportPP("content", "name"),
+      api.copyFile("src", "dest"),
+      api.gitShow("file"),
+      api.gitStatus("dir"),
+      api.rendererReady(),
+      api.sendCloseApproved(),
+      api.getAppVersion(),
+      api.isWindowsStore(),
+      api.openExternal("url"),
+      api.listPlugins(),
+      api.readPlugin("plugin"),
+      api.deletePlugin("plugin"),
+      api.openPluginsFolder(),
+      api.transpilePlugin("code"),
+      api.telemetry.connect("ip", "port", "proto"),
+      api.telemetry.disconnect(),
+      api.downloadUpdate("version", "url"),
+      api.skipUpdate("version"),
+      api.checkForUpdates(),
+    ]);
 
     // Call back functions
     const cb1 = vi.fn();

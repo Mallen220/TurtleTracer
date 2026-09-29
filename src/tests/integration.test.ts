@@ -148,8 +148,8 @@ describe("Field Logic and Visibility Integration", () => {
       },
     } as unknown as Event;
 
-    const onSuccess = vi.fn((data: SaveData) => {
-      loadProjectData(data);
+    const onSuccess = vi.fn(async (data: SaveData) => {
+      await loadProjectData(data);
     });
 
     const originalFileReader = globalThis.FileReader;

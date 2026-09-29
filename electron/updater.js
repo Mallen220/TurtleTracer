@@ -6,6 +6,13 @@ import { spawn } from "node:child_process";
 
 const SAFE_PATH = "/usr/bin:/bin:/usr/sbin:/sbin";
 
+/** Opens a link in the user's browser. A failure is logged, not thrown. */
+const openInBrowser = (url) => {
+  shell.openExternal(url).catch((err) => {
+    console.error("Failed to open link:", url, err);
+  });
+};
+
 class AppUpdater {
   constructor(mainWindow) {
     this.mainWindow = mainWindow;
@@ -142,7 +149,7 @@ class AppUpdater {
     try {
       if (process.platform === "win32") {
         const downloadUrl = `https://github.com/Mallen220/TurtleTracer/releases/download/v${version}/Turtle-Tracer-Setup-${version}.exe`;
-        shell.openExternal(downloadUrl);
+        openInBrowser(downloadUrl);
       } else if (process.platform === "darwin") {
         const command =
           "/usr/bin/curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | /bin/bash";
@@ -160,15 +167,15 @@ class AppUpdater {
           "/usr/bin/curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | /bin/bash";
         if (!this.openTerminalLinux(command)) {
           // Fallback
-          shell.openExternal(releasesUrl);
+          openInBrowser(releasesUrl);
         }
       } else {
         // Unknown OS
-        shell.openExternal(releasesUrl);
+        openInBrowser(releasesUrl);
       }
     } catch (err) {
       console.error("Error launching installer:", err);
-      shell.openExternal(releasesUrl);
+      openInBrowser(releasesUrl);
     }
   }
 

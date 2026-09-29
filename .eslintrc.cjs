@@ -54,7 +54,9 @@ module.exports = {
   },
   overrides: [
     {
-      files: ["**/*.ts"],
+      // Rules that need type information only work on files the TypeScript
+      // program (tsconfig.eslint.json) knows about.
+      files: ["**/*.ts", "electron/**/*.js", "public/sw.js"],
       parser: "@typescript-eslint/parser",
       parserOptions: {
         project: ["./tsconfig.eslint.json"],
@@ -65,6 +67,7 @@ module.exports = {
       rules: {
         "no-unused-vars": "off",
         "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-floating-promises": "error",
         "@typescript-eslint/prefer-optional-chain": "error",
         "@typescript-eslint/prefer-promise-reject-errors": "error",
       },

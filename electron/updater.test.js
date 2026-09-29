@@ -10,7 +10,7 @@ vi.mock("electron", () => ({
     getPath: vi.fn(() => "/fake/userData"),
   },
   shell: {
-    openExternal: vi.fn(),
+    openExternal: vi.fn(() => Promise.resolve()),
   },
 }));
 
@@ -228,6 +228,8 @@ describe("updater.js", () => {
     beforeEach(() => {
       originalPlatform = process.platform;
       mockSpawn.mockClear();
+      shell.openExternal.mockReset();
+      shell.openExternal.mockResolvedValue(undefined);
     });
 
     afterEach(() => {
@@ -279,6 +281,26 @@ describe("updater.js", () => {
 
       updater.handleDownloadAndInstall("1.0.0", "fallback_url");
       expect(shell.openExternal).toHaveBeenCalledWith("fallback_url");
+    });
+
+    it("logs a link that can't be opened instead of throwing", async () => {
+      Object.defineProperty(process, "platform", { value: "win32" });
+      shell.openExternal.mockRejectedValue(new Error("no handler"));
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      expect(() =>
+        updater.handleDownloadAndInstall("1.0.0", "fallback_url"),
+      ).not.toThrow();
+      await vi.waitFor(() =>
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "Failed to open link:",
+          expect.stringContaining("Turtle-Tracer-Setup-1.0.0.exe"),
+          expect.any(Error),
+        ),
+      );
+      consoleSpy.mockRestore();
     });
   });
 

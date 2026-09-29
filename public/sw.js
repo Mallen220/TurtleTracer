@@ -69,7 +69,7 @@ globalThis.addEventListener("fetch", (event) => {
         const networkResponse = await fetch(event.request);
 
         // If we get a valid response, update the cache and return it
-        if (networkResponse && networkResponse.ok) {
+        if (networkResponse?.ok) {
           event.waitUntil(
             cache
               .put(event.request, networkResponse.clone())
