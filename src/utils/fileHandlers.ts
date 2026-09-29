@@ -553,6 +553,20 @@ async function autoExportCurrentProject(data: TurtleData, path: string) {
   );
 }
 
+/** Auto-exports the open project at `path` after an edit, if that's turned on. */
+export function autoExportAfterChange(path: string) {
+  return autoExportCurrentProject(
+    createProjectData(
+      get(startPointStore),
+      get(linesStore),
+      get(shapesStore),
+      get(sequenceStore),
+      get(extraDataStore),
+    ),
+    path,
+  );
+}
+
 /**
  * If auto-export is on, writes the project's code (or JSON) into the export
  * folder next to `targetPath`.

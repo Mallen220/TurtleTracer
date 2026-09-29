@@ -446,6 +446,49 @@ describe("fileHandlers", () => {
       expect(mockElectronAPI.writeFile).toHaveBeenCalled();
     });
 
+    it("autoExportAfterChange exports the current project as JSON", async () => {
+      settingsStore.set({
+        ...DEFAULT_SETTINGS,
+        autoExportCode: true,
+        autoExportFormat: "json",
+        autoExportPath: "GeneratedCode",
+      });
+      mockElectronAPI.resolvePath.mockResolvedValue(
+        "/project/dir/GeneratedCode/auto.json",
+      );
+      mockElectronAPI.writeFile.mockResolvedValue(true);
+      startPointStore.set({ x: 3, y: 4, heading: "constant", degrees: 90 });
+      linesStore.set([
+        {
+          id: "line1",
+          endPoint: { x: 10, y: 20 },
+          controlPoints: [],
+          color: "#000000",
+        } as any,
+      ]);
+      sequenceStore.set([{ kind: "path", lineId: "line1" }]);
+      shapesStore.set([]);
+
+      await fileHandlers.autoExportAfterChange("/project/dir/auto.turt");
+
+      const [path, content] = mockElectronAPI.writeFile.mock.calls[0];
+      expect(path).toBe("/project/dir/GeneratedCode/auto.json");
+      const exported = JSON.parse(content as string);
+      expect(exported.version).toBe(pkg.version);
+      expect(exported.header.info).toBe("Created with Turtle Tracer");
+      expect(exported.startPoint).toMatchObject({ x: 3, y: 4, degrees: 90 });
+      expect(exported.lines).toHaveLength(1);
+      expect(exported.sequence).toEqual([{ kind: "path", lineId: "line1" }]);
+    });
+
+    it("autoExportAfterChange does nothing when auto-export is off", async () => {
+      settingsStore.set({ ...DEFAULT_SETTINGS, autoExportCode: false });
+
+      await fileHandlers.autoExportAfterChange("/project/dir/auto.turt");
+
+      expect(mockElectronAPI.writeFile).not.toHaveBeenCalled();
+    });
+
     it("alerts when JSON parsing fails (corrupt file)", async () => {
       mockElectronAPI.readFile.mockResolvedValue("invalid-json");
       mockElectronAPI.getSavedDirectory.mockResolvedValue("/project/dir");
