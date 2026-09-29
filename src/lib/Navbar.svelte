@@ -184,7 +184,7 @@
   <div class="flex items-center gap-4">
     <!-- Save (Moved to the leftmost position) -->
     <div
-      class="relative inline-flex items-center divide-x divide-neutral-200 dark:divide-neutral-700 rounded-md border border-neutral-200 dark:border-neutral-700"
+      class="relative inline-flex items-center divide-x divide-neutral-200 dark:divide-neutral-700  border border-neutral-200 dark:border-neutral-700"
     >
       <button
         id="save-project-btn"
@@ -193,7 +193,7 @@
           saveProject();
           saveDropdownOpen = false;
         }}
-        class="flex items-center justify-center p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 first:rounded-l-md"
+        class="flex items-center justify-center p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500  "
         title={`Save${getShortcutFromSettings(settings, "save-project")}`}
         aria-label="Save"
       >
@@ -202,7 +202,7 @@
 
       <button
         bind:this={saveOptionsButtonRef}
-        class="flex items-center justify-center p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 last:rounded-r-md"
+        class="flex items-center justify-center p-2 bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 last:"
         aria-expanded={saveDropdownOpen}
         aria-label="Save options"
         title="Save options"
@@ -220,7 +220,7 @@
           bind:this={saveDropdownRef}
           use:menuNavigation
           onclose={() => (saveDropdownOpen = false)}
-          class="absolute top-full mt-2 w-48 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)] {saveDropdownSide ===
+          class="absolute top-full mt-2 w-48 bg-white dark:bg-neutral-800  shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)] {saveDropdownSide ===
           'left'
             ? 'right-full'
             : 'left-full'}"
@@ -260,7 +260,7 @@
             href="https://github.com/Mallen220/TurtleTracer/releases"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-200 bg-purple-100 text-purple-700 hover:bg-purple-200 hover:border-purple-300 dark:border-purple-800 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 dark:hover:border-purple-700 transition-colors whitespace-nowrap uppercase tracking-wider"
+            class="text-[10px] font-bold px-2 py-0.5  border border-purple-200 bg-purple-100 text-purple-700 hover:bg-purple-200 hover:border-purple-300 dark:border-purple-800 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 dark:hover:border-purple-700 transition-colors whitespace-nowrap uppercase tracking-wider"
             title="Faster, more stable, and better support/features"
           >
             Download Desktop App
@@ -324,7 +324,7 @@
         title={action.title}
         aria-label={action.title}
         onclick={action.onClick}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="p-2  hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html action.icon}
@@ -382,7 +382,7 @@
         title={action.title}
         aria-label={action.title}
         onclick={action.onClick}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors hidden md:block focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="p-2  hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors hidden md:block focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html action.icon}
@@ -401,7 +401,7 @@
         id="export-project-btn"
         bind:this={exportButtonRef}
         onclick={() => (exportMenuOpen = !exportMenuOpen)}
-        class="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md shadow-sm transition-colors text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
+        class="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2  shadow-sm transition-colors text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
       >
         <span>Export</span>
         <ChevronUpIcon
@@ -415,7 +415,7 @@
           bind:this={exportMenuRef}
           use:menuNavigation
           onclose={() => (exportMenuOpen = false)}
-          class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)]"
+          class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-neutral-800  shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1rem)]"
         >
           <button
             onclick={() => handleExport("java")}
@@ -495,7 +495,7 @@
         title={action.title}
         aria-label={action.title}
         onclick={action.onClick}
-        class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="p-2  hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html action.icon}
@@ -508,7 +508,7 @@
       title={`${showSidebar ? "Hide Sidebar" : "Show Sidebar"}${getShortcutFromSettings(settings, "toggle-sidebar")}`}
       aria-label={showSidebar ? "Hide Sidebar" : "Show Sidebar"}
       onclick={() => (showSidebar = !showSidebar)}
-      class="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+      class="p-2  hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
     >
       {#if showSidebar && isLargeScreen}
         <!-- Sidebar visible: show icon with left pane -->

@@ -178,7 +178,7 @@
     aria-labelledby="whats-new-title"
   >
     <div
-      class="bg-white dark:bg-neutral-800 md:rounded-xl shadow-2xl w-full h-full md:h-auto md:w-full md:max-w-5xl md:max-h-[70vh] flex overflow-hidden border-0 md:border border-neutral-200 dark:border-neutral-700 transition-all duration-200"
+      class="bg-white dark:bg-neutral-800 md: shadow-2xl w-full h-full md:h-auto md:w-full md:max-w-5xl md:max-h-[70vh] flex overflow-hidden border-0 md:border border-neutral-200 dark:border-neutral-700 transition-all duration-200"
     >
       <!-- Adobe Style Split View -->
       <!-- Left Sidebar / Menu -->
@@ -195,7 +195,7 @@
             {#if viewMode === "releases"}
               <button
                 onclick={() => (viewMode = "features")}
-                class="p-1 -ml-1 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                class="p-1 -ml-1 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors  hover:bg-neutral-100 dark:hover:bg-neutral-700"
                 aria-label="Back"
               >
                 <ChevronLeftIcon className="h-5 w-5" />
@@ -228,7 +228,7 @@
             </div>
             {#each parsedFeatures as feature}
               <button
-                class="w-full text-left px-3 py-2.5 rounded-lg text-base transition-all border {activeFeatureId ===
+                class="w-full text-left px-3 py-2.5  text-base transition-all border {activeFeatureId ===
                 feature.id
                   ? 'bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 shadow-sm text-purple-600 dark:text-purple-400 font-bold'
                   : 'border-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50'}"
@@ -240,7 +240,7 @@
           {:else}
             {#each allReleases as release}
               <button
-                class="w-full text-left px-3 py-2.5 rounded-lg text-base transition-all border {activeReleaseId ===
+                class="w-full text-left px-3 py-2.5  text-base transition-all border {activeReleaseId ===
                 release.id
                   ? 'bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600 shadow-sm text-purple-600 dark:text-purple-400 font-bold'
                   : 'border-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50'}"
@@ -305,7 +305,7 @@
             title="Close"
             onclick={close}
             aria-label="Close"
-            class="hidden md:block p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            class="hidden md:block p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors  hover:bg-neutral-100 dark:hover:bg-neutral-800"
           >
             <CloseIcon className="h-5 w-5" />
           </button>
@@ -348,7 +348,7 @@
                   >
                     {#if i < parsedFeatures.length - 1}
                       <button
-                        class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md transition-all flex items-center gap-2"
+                        class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold  shadow-md transition-all flex items-center gap-2"
                         onclick={() =>
                           (activeFeatureId = parsedFeatures[i + 1].id)}
                       >
@@ -357,7 +357,7 @@
                       </button>
                     {:else}
                       <button
-                        class="px-6 py-2.5 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-800 dark:text-white font-bold rounded-lg transition-all"
+                        class="px-6 py-2.5 bg-neutral-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-800 dark:text-white font-bold  transition-all"
                         onclick={close}
                       >
                         Done

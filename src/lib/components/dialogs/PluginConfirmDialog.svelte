@@ -38,7 +38,7 @@
     aria-modal="true"
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-lg shadow-xl w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-700"
+      class="bg-white dark:bg-neutral-800  shadow-xl w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-700"
     >
       <h2 class="text-xl font-bold mb-4 text-neutral-900 dark:text-white">
         {title}
@@ -52,13 +52,13 @@
       <div class="flex justify-end gap-3">
         <button
           onclick={handleCancel}
-          class="px-4 py-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 transition-colors"
+          class="px-4 py-2  hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 transition-colors"
         >
           {cancelText}
         </button>
         <button
           onclick={handleConfirm}
-          class="px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
+          class="px-4 py-2  bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
         >
           {confirmText}
         </button>

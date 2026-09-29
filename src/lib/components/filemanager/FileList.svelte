@@ -156,7 +156,7 @@
       {#each group.files as file (file.path)}
         <div
           use:loadPreviewWhenVisible={file}
-          class="group flex items-center p-2 rounded-md cursor-pointer transition-colors border border-transparent
+          class="group flex items-center p-2  cursor-pointer transition-colors border border-transparent
           {selectedFilePath === file.path
             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800'
             : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}
@@ -288,7 +288,7 @@
             class="ml-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center"
           >
             <button
-              class="p-1 rounded-full bg-white/80 dark:bg-neutral-800/80 shadow-sm text-neutral-600 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+              class="p-1  bg-white/80 dark:bg-neutral-800/80 shadow-sm text-neutral-600 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
               onclick={(e: MouseEvent) => {
                 e.stopPropagation();
                 handleContextMenu(e, file);

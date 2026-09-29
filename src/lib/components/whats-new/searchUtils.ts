@@ -30,7 +30,7 @@ export function highlightSnippet(text: string, query: string): string {
 
     // Append match (escaped and wrapped)
     const match = text.slice(i, i + query.length);
-    result += `<span class="bg-yellow-200 dark:bg-yellow-800 text-neutral-900 dark:text-neutral-100 rounded-sm px-0.5">${escapeHtml(match)}</span>`;
+    result += `<span class="bg-yellow-200 dark:bg-yellow-800 text-neutral-900 dark:text-neutral-100  px-0.5">${escapeHtml(match)}</span>`;
 
     lastIndex = i + query.length;
   }
@@ -100,7 +100,7 @@ export function highlightText(root: Element, query: string): void {
       }
       const mark = document.createElement("mark");
       mark.className =
-        "bg-yellow-200 dark:bg-yellow-800 text-neutral-900 dark:text-neutral-100 rounded-sm px-0.5";
+        "bg-yellow-200 dark:bg-yellow-800 text-neutral-900 dark:text-neutral-100  px-0.5";
       mark.textContent = text.slice(i, i + q.length);
       fragment.appendChild(mark);
 

@@ -291,7 +291,7 @@
           ondragleave={() => {
             if (dragOverIndex === idx) dragOverIndex = null;
           }}
-          class="flex items-center gap-2 bg-white dark:bg-neutral-800 border p-2 rounded-lg shadow-sm transition-all {dragOverIndex ===
+          class="flex items-center gap-2 bg-white dark:bg-neutral-800 border p-2  shadow-sm transition-all {dragOverIndex ===
             idx && dragSourceIndex !== idx
             ? 'border-blue-400 dark:border-blue-500 ring-1 ring-blue-300 dark:ring-blue-700 bg-blue-50 dark:bg-blue-900/20'
             : 'border-neutral-200 dark:border-neutral-700'} {dragSourceIndex ===
@@ -323,7 +323,7 @@
               <ICONS.MinusCircleIcon className="size-4" />
             {:else if item.id === "spacer"}
               <div
-                class="h-4 w-4 border-2 border-dashed border-neutral-300 rounded-full"
+                class="h-4 w-4 border-2 border-dashed border-neutral-300  "
               ></div>
             {:else}
               <ICONS.PlusIcon className="size-4" />
@@ -379,7 +379,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {#each unusedAvailableTools as available}
           <div
-            class="flex items-center border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 rounded-md shadow-sm group overflow-hidden"
+            class="flex items-center border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800  shadow-sm group overflow-hidden"
           >
             <button
               onclick={() => set("sidebarItems", [...layout, available.id])}
@@ -438,7 +438,7 @@
           </h5>
           <button
             onclick={resetSidebarSettings}
-            class="inline-flex items-center gap-2 px-2.5 py-1 text-xs font-semibold text-red-600 bg-red-50 hover:text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            class="inline-flex items-center gap-2 px-2.5 py-1 text-xs font-semibold text-red-600 bg-red-50 hover:text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30  transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             disabled={!isSidebarLayoutModified && !hasCustomSidebarTools}
           >
             <ICONS.ResetIcon className="size-4" />
@@ -453,7 +453,7 @@
         {#if !showCustomSidebarForm}
           <button
             onclick={() => (showCustomSidebarForm = true)}
-            class="w-full flex items-center justify-center gap-2 py-2 px-4 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:border-blue-300 transition-colors"
+            class="w-full flex items-center justify-center gap-2 py-2 px-4 border-2 border-dashed border-neutral-300 dark:border-neutral-700  text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 hover:border-blue-300 transition-colors"
           >
             <ICONS.PlusIcon className="size-4" />
             Create Custom Sidebar Tool
@@ -462,7 +462,7 @@
           {@const SvelteComponent_2 = CUSTOM_ICON_MAP[customActionIconKey]}
           {@const SvelteComponent_3 = CUSTOM_ICON_MAP[customActionIconKey]}
           <div
-            class="p-5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl mt-3 shadow-sm transition-all"
+            class="p-5 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700  mt-3 shadow-sm transition-all"
           >
             <div
               class="flex items-center justify-between mb-5 border-b border-neutral-200 dark:border-neutral-700 pb-3"
@@ -491,7 +491,7 @@
 
                 {#if customActionSelection && selectedCommand}
                   <div
-                    class="flex items-center justify-between p-3 bg-white dark:bg-neutral-900 border border-blue-200 dark:border-blue-900/50 rounded-lg group"
+                    class="flex items-center justify-between p-3 bg-white dark:bg-neutral-900 border border-blue-200 dark:border-blue-900/50  group"
                   >
                     <div class="flex flex-col">
                       <span
@@ -524,11 +524,11 @@
                       type="text"
                       bind:value={commandSearchQuery}
                       placeholder="Search command palette..."
-                      class="w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                      class="w-full pl-9 pr-3 py-2.5 text-sm  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                     />
                   </div>
                   <div
-                    class="max-h-48 overflow-y-auto border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 divide-y divide-neutral-100 dark:divide-neutral-800 empty:hidden"
+                    class="max-h-48 overflow-y-auto border border-neutral-200 dark:border-neutral-700  bg-white dark:bg-neutral-900 divide-y divide-neutral-100 dark:divide-neutral-800 empty:hidden"
                   >
                     {#each filteredSidebarCommands.slice(0, 10) as cmd}
                       <button
@@ -577,7 +577,7 @@
                       bind:value={customActionLabel}
                       type="text"
                       placeholder="e.g. My Tool"
-                      class="w-full px-3 py-2 text-sm rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                      class="w-full px-3 py-2 text-sm  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                     />
                   </div>
 
@@ -591,7 +591,7 @@
                     <div class="relative" bind:this={iconMenuContainer}>
                       <button
                         type="button"
-                        class="w-full flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm transition-all focus:ring-2 focus:ring-blue-500 outline-none"
+                        class="w-full flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-600  text-sm transition-all focus:ring-2 focus:ring-blue-500 outline-none"
                         onclick={() => {
                           isIconMenuOpen = !isIconMenuOpen;
                         }}
@@ -612,7 +612,7 @@
                       </button>
                       {#if isIconMenuOpen}
                         <div
-                          class="absolute z-20 top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-xl overflow-hidden"
+                          class="absolute z-20 top-full left-0 right-0 mt-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700  shadow-xl overflow-hidden"
                           use:menuNavigation
                           tabindex="-1"
                           onclose={() => (isIconMenuOpen = false)}
@@ -624,7 +624,7 @@
                               type="text"
                               bind:value={customIconSearch}
                               placeholder="Search icons by name..."
-                              class="w-full px-3 py-2 text-sm rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              class="w-full px-3 py-2 text-sm  border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             <div
                               class="mt-1 text-[10px] uppercase tracking-wider text-neutral-400"
@@ -643,7 +643,7 @@
                               {#each filteredCustomIcons as iconDef}
                                 <button
                                   type="button"
-                                  class="aspect-square flex items-center justify-center rounded-lg border transition-colors {iconDef.name ===
+                                  class="aspect-square flex items-center justify-center  border transition-colors {iconDef.name ===
                                   customActionIconKey
                                     ? 'bg-blue-50 dark:bg-blue-900/25 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
                                     : 'bg-transparent border-transparent text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
@@ -673,7 +673,7 @@
 
                 <!-- Live Preview Card -->
                 <div
-                  class="p-4 bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-xl flex items-center gap-5"
+                  class="p-4 bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800  flex items-center gap-5"
                 >
                   <div class="flex flex-col items-center gap-1">
                     <span
@@ -681,7 +681,7 @@
                       >Preview</span
                     >
                     <div
-                      class="size-12 flex flex-col items-center justify-center bg-neutral-100 dark:bg-neutral-800 rounded-lg shadow-inner text-blue-600 dark:text-blue-400 border border-white dark:border-neutral-700"
+                      class="size-12 flex flex-col items-center justify-center bg-neutral-100 dark:bg-neutral-800  shadow-inner text-blue-600 dark:text-blue-400 border border-white dark:border-neutral-700"
                     >
                       <SvelteComponent_3 className="size-6" />
                     </div>
@@ -706,13 +706,13 @@
                 <button
                   onclick={addNewCustomItem}
                   disabled={!customActionSelection || !customActionLabel}
-                  class="flex-1 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 active:scale-95 disabled:opacity-30 disabled:scale-100 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20"
+                  class="flex-1 py-2.5 bg-blue-600 text-white text-sm font-bold  hover:bg-blue-700 active:scale-95 disabled:opacity-30 disabled:scale-100 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20"
                 >
                   Create Tool
                 </button>
                 <button
                   onclick={() => (showCustomSidebarForm = false)}
-                  class="px-4 py-2.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 text-sm font-bold rounded-lg hover:bg-neutral-300 dark:hover:bg-neutral-600 active:scale-95 transition-all"
+                  class="px-4 py-2.5 bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 text-sm font-bold  hover:bg-neutral-300 dark:hover:bg-neutral-600 active:scale-95 transition-all"
                 >
                   Cancel
                 </button>

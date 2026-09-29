@@ -55,7 +55,7 @@
 
   // Base classes + state dependent classes
   let baseClasses = $derived(
-    `p-1.5 rounded-md transition-all duration-200 disabled:opacity-30 flex items-center justify-center ${className}`,
+    `p-1.5  transition-all duration-200 disabled:opacity-30 flex items-center justify-center ${className}`,
   );
   let stateClasses = $derived(
     confirming

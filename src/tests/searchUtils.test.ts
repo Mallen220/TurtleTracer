@@ -48,14 +48,14 @@ describe("WhatsNew Search Utils", () => {
     it("should wrap match in span", () => {
       const result = highlightSnippet("hello world", "world");
       expect(result).toContain(
-        'hello <span class="bg-yellow-200 dark:bg-yellow-800 text-neutral-900 dark:text-neutral-100 rounded-sm px-0.5">world</span>',
+        'hello <span class="bg-yellow-200 dark:bg-yellow-800 text-neutral-900 dark:text-neutral-100  px-0.5">world</span>',
       );
     });
 
     it("should handle case insensitive match", () => {
       const result = highlightSnippet("Hello World", "world");
       expect(result).toContain(
-        'Hello <span class="bg-yellow-200 dark:bg-yellow-800 text-neutral-900 dark:text-neutral-100 rounded-sm px-0.5">World</span>',
+        'Hello <span class="bg-yellow-200 dark:bg-yellow-800 text-neutral-900 dark:text-neutral-100  px-0.5">World</span>',
       );
     });
 
@@ -108,7 +108,7 @@ describe("WhatsNew Search Utils", () => {
       highlightText(root, "test");
 
       expect(root.innerHTML).toContain(
-        '<mark class="bg-yellow-200 dark:bg-yellow-800 text-neutral-900 dark:text-neutral-100 rounded-sm px-0.5">test</mark>',
+        '<mark class="bg-yellow-200 dark:bg-yellow-800 text-neutral-900 dark:text-neutral-100  px-0.5">test</mark>',
       );
     });
 

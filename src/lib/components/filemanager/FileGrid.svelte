@@ -191,7 +191,7 @@
     >
       {#each group.files as file (file.path)}
         <div
-          class="group flex flex-col items-center p-2 rounded-md cursor-pointer transition-all border relative
+          class="group flex flex-col items-center p-2  cursor-pointer transition-all border relative
           {selectedFilePath === file.path
             ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 ring-1 ring-blue-300 dark:ring-blue-700'
             : 'bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm'}
@@ -219,7 +219,7 @@
             <!-- Git Status Badge -->
             {#if showGitStatus && file.gitStatus && file.gitStatus !== "clean"}
               <div
-                class="group/tooltip absolute top-1 left-1 z-10 p-1 rounded-full shadow-sm border cursor-help
+                class="group/tooltip absolute top-1 left-1 z-10 p-1  shadow-sm border cursor-help
                   {file.gitStatus === 'modified'
                   ? 'bg-amber-100 border-amber-200 text-amber-700 dark:bg-amber-900/80 dark:border-amber-700/50 dark:text-amber-300'
                   : file.gitStatus === 'staged'
@@ -285,7 +285,7 @@
 
             <!-- Kebab menu overlay (visible on hover) -->
             <button
-              class="absolute top-1 right-1 p-1 rounded-full bg-white/80 dark:bg-neutral-800/80 shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              class="absolute top-1 right-1 p-1  bg-white/80 dark:bg-neutral-800/80 shadow-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
               aria-label="More actions"
               onclick={(e) => {
                 e.stopPropagation();

@@ -367,7 +367,7 @@
 
 <div
   id="playback-controls"
-  class="w-full bg-neutral-50 dark:bg-neutral-900 rounded-lg p-3 flex flex-col justify-start items-center gap-2 shadow-lg"
+  class="w-full bg-neutral-50 dark:bg-neutral-900  p-3 flex flex-col justify-start items-center gap-2 shadow-lg"
 >
   <!-- Timeline (Top Row) -->
   <div
@@ -376,7 +376,7 @@
   >
     <!-- Timeline Track & Highlights -->
     <div
-      class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2.5 w-full pointer-events-none overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700 shadow-inner"
+      class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2.5 w-full pointer-events-none overflow-hidden  bg-neutral-200 dark:bg-neutral-700 shadow-inner"
     >
       {#each timelineItems as item}
         {#if item.type === "wait"}
@@ -420,7 +420,7 @@
           >
             <!-- Small rotate icon (explicit rotates are pink) -->
             <ArrowCircleIcon
-              className="w-4 h-4 rounded-full bg-white dark:bg-neutral-900 text-pink-500"
+              className="w-4 h-4  bg-white dark:bg-neutral-900 text-pink-500"
             />
           </div>
         {/if}
@@ -431,12 +431,12 @@
     {#if loopRangeActive}
       <!-- Excluded region left -->
       <div
-        class="absolute top-0 bottom-0 bg-black/30 dark:bg-black/50 z-[15] pointer-events-none rounded-l-full"
+        class="absolute top-0 bottom-0 bg-black/30 dark:bg-black/50 z-[15] pointer-events-none  "
         style="left: 0%; width: {loopRange[0]}%;"
       ></div>
       <!-- Excluded region right -->
       <div
-        class="absolute top-0 bottom-0 bg-black/30 dark:bg-black/50 z-[15] pointer-events-none rounded-r-full"
+        class="absolute top-0 bottom-0 bg-black/30 dark:bg-black/50 z-[15] pointer-events-none "
         style="left: {loopRange[1]}%; width: {100 - loopRange[1]}%;"
       ></div>
 
@@ -450,12 +450,12 @@
         aria-orientation="horizontal"
         aria-valuenow={loopRange[0]}
         tabindex="0"
-        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20  focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         style="left: {loopRange[0]}%; transform: translateX(-50%);"
         onmousedown={(e) => startDragLoopHandle(e, "min")}
       >
         <div
-          class="absolute inset-0 m-auto w-2 h-4 rounded-sm bg-purple-500 hover:bg-purple-400 shadow-md"
+          class="absolute inset-0 m-auto w-2 h-4  bg-purple-500 hover:bg-purple-400 shadow-md"
         ></div>
       </div>
       <!-- B Handle -->
@@ -468,12 +468,12 @@
         aria-orientation="horizontal"
         aria-valuenow={loopRange[1]}
         tabindex="0"
-        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="absolute top-1/2 -translate-y-1/2 w-6 h-6 z-20  focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         style="left: {loopRange[1]}%; transform: translateX(-50%);"
         onmousedown={(e) => startDragLoopHandle(e, "max")}
       >
         <div
-          class="absolute inset-0 m-auto w-2 h-4 rounded-sm bg-purple-500 hover:bg-purple-400 shadow-md"
+          class="absolute inset-0 m-auto w-2 h-4  bg-purple-500 hover:bg-purple-400 shadow-md"
         ></div>
       </div>
     {/if}
@@ -505,7 +505,7 @@
       max="100"
       step="0.000001"
       aria-label="Animation progress"
-      class="w-full appearance-none slider focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 rounded-full bg-transparent dark:bg-transparent relative z-10 timeline-slider"
+      class="w-full appearance-none slider focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900  bg-transparent dark:bg-transparent relative z-10 timeline-slider"
       style={draggingMarkerIndex === null ? "" : "pointer-events: none;"}
       oninput={handleSeekInput}
       onkeydown={handleSliderKeydown}
@@ -518,7 +518,7 @@
     {#each timelineItems as item, index}
       {#if item.type === "marker"}
         <div
-          class="absolute z-20 group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
+          class="absolute z-20 group  focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900"
           role="button"
           tabindex="0"
           onmousedown={(e) => handleMarkerDragStart(e, index, item)}
@@ -557,7 +557,7 @@
         </div>
       {:else if item.type === "dot"}
         <div
-          class="absolute z-20 group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900 flex items-center justify-center"
+          class="absolute z-20 group  focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-neutral-900 flex items-center justify-center"
           role="button"
           tabindex="0"
           onclick={() => handleSeek(item.percent)}
@@ -569,7 +569,7 @@
         >
           <!-- Visual Dot (14x14px) to preserve exact original look -->
           <div
-            class="rounded-full ring-2 ring-black/5 dark:ring-white/20"
+            class=" ring-2 ring-black/5 dark:ring-white/20"
             style={`width: 14px; height: 14px; background: ${item.color};`}
           ></div>
           <!-- Tooltip (CSS Hover) -->
@@ -596,7 +596,7 @@
           e.stopPropagation();
           toggleSpeedMenu();
         }}
-        class="flex items-center gap-2 px-3 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-sm text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
+        class="flex items-center gap-2 px-3 py-1  bg-neutral-100 dark:bg-neutral-800 text-sm text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
         tabindex="0"
       >
         <span class="font-medium">{(playbackSpeed ?? 1).toFixed(2)}x</span>
@@ -612,7 +612,7 @@
         <ul
           role="menu"
           aria-label="Playback speeds"
-          class="absolute left-0 bottom-full mb-2 w-36 rounded-md bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 shadow-lg z-50 overflow-hidden"
+          class="absolute left-0 bottom-full mb-2 w-36  bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 shadow-lg z-50 overflow-hidden"
           onclick={(e) => e.stopPropagation()}
           onkeydown={(e) => e.stopPropagation()}
           use:menuNavigation
@@ -653,7 +653,7 @@
         title="Split Path Here"
         aria-label="Split Path Here"
         onclick={splitPath}
-        class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="p-1  text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <ScissorsIcon className="size-5" />
       </button>
@@ -663,7 +663,7 @@
         title="Skip to Start"
         aria-label="Skip to Start"
         onclick={() => handleSeek(0)}
-        class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="p-1  text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <SkipToStartIcon className="size-4" />
       </button>
@@ -673,7 +673,7 @@
         title="Step Back"
         aria-label="Step Back"
         onclick={() => step(-0.5)}
-        class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="p-1  text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <ChevronLeftIcon className="size-5" />
       </button>
@@ -692,7 +692,7 @@
             play();
           }
         }}
-        class="p-1 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
+        class="p-1  bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
       >
         {#if !playing}
           <PlayIcon
@@ -709,7 +709,7 @@
         title="Step Forward"
         aria-label="Step Forward"
         onclick={() => step(0.5)}
-        class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="p-1  text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <ChevronRightIcon className="size-5" />
       </button>
@@ -719,7 +719,7 @@
         title="Skip to End"
         aria-label="Skip to End"
         onclick={() => handleSeek(100)}
-        class="p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="p-1  text-neutral-400 hover:text-neutral-600 dark:text-neutral-500 dark:hover:text-neutral-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
       >
         <SkipToEndIcon className="size-4" />
       </button>
@@ -753,7 +753,7 @@
             loopRangeStore.set([Math.floor(percent), 100]);
           }
         }}
-        class="px-2 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="px-2 py-1 text-[10px] font-bold  uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         class:bg-purple-100={loopRangeActive}
         class:text-purple-700={loopRangeActive}
         class:dark:bg-purple-900={loopRangeActive}
@@ -773,7 +773,7 @@
         onclick={() => (loopAnimation = !loopAnimation)}
         class:opacity-100={loopAnimation}
         class:opacity-50={!loopAnimation}
-        class="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
+        class=" focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
         aria-live="polite"
       >
         <ArrowCircleIcon className="size-6 stroke-blue-500" strokeWidth={2} />

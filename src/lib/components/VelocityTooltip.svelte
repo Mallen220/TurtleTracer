@@ -27,7 +27,7 @@
 
 {#if visible}
   <div
-    class="absolute pointer-events-none select-none z-[3000] bg-white/95 dark:bg-neutral-800/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg border border-neutral-200 dark:border-neutral-700 transition-opacity duration-150 transform -translate-x-1/2 -translate-y-full mt-[-10px]"
+    class="absolute pointer-events-none select-none z-[3000] bg-white/95 dark:bg-neutral-800/95 backdrop-blur-sm px-3 py-2  shadow-lg border border-neutral-200 dark:border-neutral-700 transition-opacity duration-150 transform -translate-x-1/2 -translate-y-full mt-[-10px]"
     style="left: {x}px; top: {y}px;"
     role="tooltip"
   >

@@ -249,7 +249,7 @@
   >
     <div
       transition:fly={{ y: 20, duration: 300, easing: cubicInOut }}
-      class="bg-white dark:bg-neutral-900 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
+      class="bg-white dark:bg-neutral-900  shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
     >
       <!-- Header -->
       <div
@@ -274,7 +274,7 @@
         <div class="flex items-center justify-center gap-2 mb-4">
           {#each [1, 2, 3] as s}
             <div
-              class={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === s ? "bg-blue-600 text-white" : step > s ? "bg-green-500 text-white" : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500"}`}
+              class={`w-8 h-8  flex items-center justify-center text-sm font-bold ${step === s ? "bg-blue-600 text-white" : step > s ? "bg-green-500 text-white" : "bg-neutral-200 dark:bg-neutral-800 text-neutral-500"}`}
             >
               {step > s ? "✓" : s}
             </div>
@@ -288,7 +288,7 @@
 
         {#if step === 1}
           <div
-            class="flex flex-col items-center justify-center h-64 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg bg-neutral-50 dark:bg-neutral-800/50"
+            class="flex flex-col items-center justify-center h-64 border-2 border-dashed border-neutral-300 dark:border-neutral-700  bg-neutral-50 dark:bg-neutral-800/50"
           >
             <PhotoIcon className="h-12 w-12 text-neutral-400 mb-4" />
             <div class="w-full max-w-sm mb-4">
@@ -302,7 +302,7 @@
                 type="text"
                 bind:value={mapName}
                 placeholder="e.g. My Practice Field"
-                class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <p class="text-neutral-600 dark:text-neutral-400 mb-4">
@@ -311,7 +311,7 @@
             <button
               onclick={() =>
                 document.getElementById("wizard-image-input")?.click()}
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white  cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               Select Image
             </button>
@@ -335,7 +335,7 @@
         {:else}
           <div class="flex flex-col lg:flex-row gap-4 h-full min-h-[400px]">
             <div
-              class="flex-1 relative bg-neutral-100 dark:bg-neutral-900 rounded-lg overflow-hidden flex items-center justify-center border border-neutral-200 dark:border-neutral-700 p-4"
+              class="flex-1 relative bg-neutral-100 dark:bg-neutral-900  overflow-hidden flex items-center justify-center border border-neutral-200 dark:border-neutral-700 p-4"
             >
               <div
                 class="relative select-none touch-none"
@@ -367,7 +367,7 @@
                     <!-- Handles -->
                     <!-- N -->
                     <div
-                      class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ns-resize"
+                      class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500  cursor-ns-resize"
                       role="button"
                       tabindex="0"
                       aria-label="Resize North"
@@ -382,7 +382,7 @@
                     ></div>
                     <!-- S -->
                     <div
-                      class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ns-resize"
+                      class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500  cursor-ns-resize"
                       role="button"
                       tabindex="0"
                       aria-label="Resize South"
@@ -397,7 +397,7 @@
                     ></div>
                     <!-- W -->
                     <div
-                      class="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ew-resize"
+                      class="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500  cursor-ew-resize"
                       role="button"
                       tabindex="0"
                       aria-label="Resize West"
@@ -412,7 +412,7 @@
                     ></div>
                     <!-- E -->
                     <div
-                      class="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-ew-resize"
+                      class="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500  cursor-ew-resize"
                       role="button"
                       tabindex="0"
                       aria-label="Resize East"
@@ -427,7 +427,7 @@
                     ></div>
                     <!-- NW -->
                     <div
-                      class="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize"
+                      class="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500  cursor-nwse-resize"
                       role="button"
                       tabindex="0"
                       aria-label="Resize North West"
@@ -442,7 +442,7 @@
                     ></div>
                     <!-- NE -->
                     <div
-                      class="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize"
+                      class="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500  cursor-nesw-resize"
                       role="button"
                       tabindex="0"
                       aria-label="Resize North East"
@@ -457,7 +457,7 @@
                     ></div>
                     <!-- SW -->
                     <div
-                      class="absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nesw-resize"
+                      class="absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500  cursor-nesw-resize"
                       role="button"
                       tabindex="0"
                       aria-label="Resize South West"
@@ -472,7 +472,7 @@
                     ></div>
                     <!-- SE -->
                     <div
-                      class="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-nwse-resize"
+                      class="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-500  cursor-nwse-resize"
                       role="button"
                       tabindex="0"
                       aria-label="Resize South East"
@@ -494,7 +494,7 @@
             <div class="w-full lg:w-80 flex flex-col gap-4">
               {#if step === 2}
                 <div
-                  class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg h-full flex flex-col"
+                  class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800  h-full flex flex-col"
                 >
                   <h3 class="font-bold text-blue-900 dark:text-blue-100 mb-2">
                     Step 2: Calibrate Field Bounds
@@ -525,7 +525,7 @@
                 </div>
               {:else if step === 3}
                 <div
-                  class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+                  class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800  "
                 >
                   <h3 class="font-bold text-green-900 dark:text-green-100 mb-2">
                     Step 3: Review

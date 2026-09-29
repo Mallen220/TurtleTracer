@@ -36,10 +36,10 @@
     aria-labelledby="setup-title"
   >
     <div
-      class="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col p-8 md:p-12 items-center text-center animate-fade-in border border-neutral-200 dark:border-neutral-700 max-h-[90vh] overflow-y-auto"
+      class="bg-white dark:bg-neutral-800   shadow-2xl w-full max-w-2xl flex flex-col p-8 md:p-12 items-center text-center animate-fade-in border border-neutral-200 dark:border-neutral-700 max-h-[90vh] overflow-y-auto"
     >
       <div
-        class="w-20 h-20 shrink-0 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mb-8"
+        class="w-20 h-20 shrink-0 bg-green-100 dark:bg-green-900/30  flex items-center justify-center text-green-600 dark:text-green-400 mb-8"
       >
         <FolderIcon className="w-6 h-6" />
       </div>
@@ -57,12 +57,12 @@
         <br /><br />
         For most FTC projects, the best place is:<br />
         <code
-          class="bg-neutral-100 dark:bg-neutral-900/50 px-3 py-1.5 rounded-lg text-green-700 dark:text-green-300 font-mono text-sm mt-3 inline-block"
+          class="bg-neutral-100 dark:bg-neutral-900/50 px-3 py-1.5  text-green-700 dark:text-green-300 font-mono text-sm mt-3 inline-block"
           >TeamCode/src/main/assets/AutoPaths/</code
         >
       </p>
       <div
-        class="bg-green-50 dark:bg-green-900/20 p-5 rounded-2xl mb-8 w-full max-w-lg text-left border border-green-100 dark:border-green-800/50"
+        class="bg-green-50 dark:bg-green-900/20 p-5   mb-8 w-full max-w-lg text-left border border-green-100 dark:border-green-800/50"
       >
         <h3
           class="text-lg font-bold text-neutral-900 dark:text-white mb-2 flex items-center gap-2"
@@ -84,7 +84,7 @@
         </p>
       </div>
       <button
-        class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:shadow-green-500/20 transform hover:-translate-y-1 transition-all duration-200 flex items-center gap-3 text-lg w-full sm:w-auto justify-center"
+        class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-bold  shadow-lg hover:shadow-xl hover:shadow-green-500/20 transform hover:-translate-y-1 transition-all duration-200 flex items-center gap-3 text-lg w-full sm:w-auto justify-center"
         onclick={selectDirectory}
       >
         <FolderIcon className="w-6 h-6" />

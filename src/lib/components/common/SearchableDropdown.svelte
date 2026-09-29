@@ -147,7 +147,7 @@
     <div
       bind:this={listElement}
       transition:slide={{ duration: 150 }}
-      class="absolute z-50 left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md shadow-lg"
+      class="absolute z-50 left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700  shadow-lg"
       role="listbox"
       id="dropdown-list"
     >

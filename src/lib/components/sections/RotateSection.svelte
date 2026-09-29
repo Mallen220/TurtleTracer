@@ -86,7 +86,7 @@
       />
       <input
         id="rotate-heading-{rotate.id}"
-        class="w-full pl-9 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+        class="w-full pl-9 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700  focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
         type="number"
         step="any"
         value={rotate.degrees}

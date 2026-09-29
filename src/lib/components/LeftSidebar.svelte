@@ -562,7 +562,7 @@
                 aria-label="History Menu"
                 use:menuNavigation
                 onclose={() => showHistory.set(false)}
-                class="absolute left-full ml-2 mt-0 w-64 bg-white dark:bg-neutral-800 rounded-lg shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
+                class="absolute left-full ml-2 mt-0 w-64 bg-white dark:bg-neutral-800  shadow-xl py-1 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100 max-h-[50vh] overflow-y-auto"
               >
                 <div
                   class="px-4 py-2 text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider border-b border-neutral-200 dark:border-neutral-700 mb-1"
@@ -651,7 +651,7 @@
                   class="sidebar-icon flex-none flex items-center justify-center"
                 >
                   <select
-                    class="w-10 text-xs bg-transparent text-center text-neutral-600 dark:text-neutral-300 focus:outline-none cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-md transition-colors appearance-none"
+                    class="w-10 text-xs bg-transparent text-center text-neutral-600 dark:text-neutral-300 focus:outline-none cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-700  transition-colors appearance-none"
                     bind:value={$gridSize}
                     title="Grid Size"
                     aria-label="Grid Size"

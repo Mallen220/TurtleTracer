@@ -115,15 +115,15 @@
   }
 
   const stop = (e: Event) => e.stopPropagation();
-  const iconButton = `p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2`;
-  const moveButton = `p-1 rounded-md hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2`;
+  const iconButton = `p-1.5  hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2`;
+  const moveButton = `p-1  hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2`;
 </script>
 
 <div
   role="button"
   tabindex="0"
   aria-pressed={isSelected}
-  class="bg-white dark:bg-neutral-800 rounded-xl shadow-sm border transition-all duration-200 {isSelected
+  class="bg-white dark:bg-neutral-800  shadow-sm border transition-all duration-200 {isSelected
     ? colors.selected
     : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600'} {isHidden
     ? 'opacity-50 grayscale-[50%]'
@@ -147,7 +147,7 @@
           e.stopPropagation();
           collapsed = !collapsed;
         }}
-        class="flex items-center gap-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 {colors.focus}"
+        class="flex items-center gap-2  hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 {colors.focus}"
         title="{collapsed ? 'Expand' : 'Collapse'} {label.toLowerCase()}"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} {label.toLowerCase()}"
         aria-expanded={!collapsed}
@@ -169,7 +169,7 @@
           placeholder={namePlaceholder}
           aria-label="{label} name"
           title="Edit {label.toLowerCase()} name"
-          class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-md focus:ring-2 outline-none transition-all placeholder-neutral-400 truncate {colors.input} {linkAnchor
+          class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700  focus:ring-2 outline-none transition-all placeholder-neutral-400 truncate {colors.input} {linkAnchor
             ? colors.text
             : ''}"
           disabled={item.locked}
@@ -239,7 +239,7 @@
       ></div>
 
       <div
-        class="flex items-center bg-neutral-100 dark:bg-neutral-900 rounded-lg p-0.5"
+        class="flex items-center bg-neutral-100 dark:bg-neutral-900  p-0.5"
       >
         <button
           onclick={(e) => {

@@ -160,7 +160,7 @@
   <div class="flex items-center justify-between w-full py-1">
     <button
       onclick={toggleCollapsed}
-      class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-200 uppercase tracking-wide hover:text-neutral-900 dark:hover:text-neutral-100 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors"
+      class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-200 uppercase tracking-wide hover:text-neutral-900 dark:hover:text-neutral-100  focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-colors"
       title="{collapsed ? 'Show' : 'Hide'} control points"
       aria-label="{collapsed ? 'Show' : 'Hide'} control points"
       aria-expanded={!collapsed}
@@ -211,7 +211,7 @@
           draggable={!line.locked}
           ondragstart={(e) => handleDragStart(e, idx)}
           ondragend={handleDragEnd}
-          class="flex items-center gap-3 p-2 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 transition-all duration-200 group"
+          class="flex items-center gap-3 p-2 border border-blue-200 dark:border-blue-800  bg-blue-50/50 dark:bg-blue-900/10 transition-all duration-200 group"
           class:border-t-4={dragOverIndex === idx && dragPosition === "top"}
           class:border-b-4={dragOverIndex === idx && dragPosition === "bottom"}
           class:border-blue-500={dragOverIndex === idx}

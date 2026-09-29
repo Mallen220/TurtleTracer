@@ -463,7 +463,7 @@
 </script>
 
 <div
-  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800"
+  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700  bg-white dark:bg-neutral-800"
 >
   <SectionHeader
     title="Event Markers"
@@ -491,7 +491,7 @@
           <div
             role="group"
             id={`global-marker-${marker.id}`}
-            class="flex flex-col p-2 border border-purple-200 dark:border-purple-800 rounded-md bg-purple-50/50 dark:bg-purple-900/10 gap-2"
+            class="flex flex-col p-2 border border-purple-200 dark:border-purple-800  bg-purple-50/50 dark:bg-purple-900/10 gap-2"
             onmouseenter={() => hoveredMarkerId.set(marker.id)}
             onmouseleave={() => hoveredMarkerId.set(null)}
           >
@@ -499,7 +499,7 @@
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 flex-1">
                   <div
-                    class="w-2 h-2 rounded-full bg-purple-500 shrink-0"
+                    class="w-2 h-2  bg-purple-500 shrink-0"
                   ></div>
                   <SearchableDropdown
                     value={marker.ref.name}
@@ -525,7 +525,7 @@
               <div class="flex items-center gap-2">
                 <span class="text-xs text-neutral-500">Type:</span>
                 <select
-                  class="rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-xs py-1 px-2 flex-1"
+                  class=" bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-xs py-1 px-2 flex-1"
                   value={marker.ref.type || "parametric"}
                   onchange={(e) => {
                     marker.ref.type = e.currentTarget.value as any;

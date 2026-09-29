@@ -74,7 +74,7 @@
         disabled={macro.locked}
         title="Unlink Macro"
         aria-label="Unlink Macro"
-        class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+        class="p-1.5  hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
       >
         <LinkIcon className="size-4" />
       </button>
@@ -100,7 +100,7 @@
         showTransforms = !showTransforms;
       }}
       disabled={macro.locked}
-      class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-colors w-full justify-center border disabled:opacity-50 ${
+      class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium  transition-colors w-full justify-center border disabled:opacity-50 ${
         showTransforms
           ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/30 text-blue-700 dark:text-blue-300"
           : "bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300"
@@ -115,7 +115,7 @@
         <span>Transform Geometry</span>
         {#if macro.transformations && macro.transformations.length > 0}
           <span
-            class="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5 rounded-full text-[10px]"
+            class="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-1.5  text-[10px]"
           >
             {macro.transformations.length}
           </span>

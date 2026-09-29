@@ -5,19 +5,19 @@
 
 .slider {
   @apply dark:bg-neutral-900
-  [&::-webkit-slider-runnable-track]:rounded-full 
+  [&::-webkit-slider-runnable-track]:rounded-none
   [&::-webkit-slider-runnable-track]:bg-black/10 
   [&::-webkit-slider-runnable-track]:dark:bg-neutral-700
   [&::-webkit-slider-runnable-track]:shadow-inner
   [&::-webkit-slider-thumb]:appearance-none 
   [&::-webkit-slider-thumb]:h-5 
   [&::-webkit-slider-thumb]:w-5 
-  [&::-webkit-slider-thumb]:rounded-full 
+  [&::-webkit-slider-thumb]:rounded-none
   [&::-webkit-slider-thumb]:bg-green-500;
 }
 
 code.hljs {
-  @apply rounded-md max-h-[42rem] overflow-scroll;
+  @apply max-h-[42rem] overflow-scroll;
 }
 
 @font-face {
@@ -101,13 +101,13 @@ img[alt="Robot"] {
   @apply bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono text-purple-700 dark:text-purple-300;
 }
 .prose pre {
-  @apply bg-neutral-100 dark:bg-neutral-800 p-4 rounded-lg overflow-x-auto mb-4 text-sm font-mono;
+  @apply bg-neutral-100 dark:bg-neutral-800 p-4  overflow-x-auto mb-4 text-sm font-mono;
 }
 .prose blockquote {
   @apply border-l-4 border-purple-200 dark:border-purple-900 pl-4 italic my-4;
 }
 .prose img {
-  @apply rounded-lg shadow-md max-w-full my-4 border border-neutral-200 dark:border-neutral-700;
+  @apply  shadow-md max-w-full my-4 border border-neutral-200 dark:border-neutral-700;
 }
 
 body.is-browser {
@@ -125,7 +125,7 @@ body.is-browser {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-neutral-200 dark:bg-neutral-700 rounded-full;
+  @apply bg-neutral-200 dark:bg-neutral-700  ;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   @apply bg-neutral-300 dark:bg-neutral-600;

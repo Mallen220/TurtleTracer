@@ -14,12 +14,12 @@
 </script>
 
 <div
-  class="flex flex-col items-center justify-center text-center border-2 border-dashed border-neutral-200 dark:border-neutral-700 rounded-xl bg-neutral-50/50 dark:bg-neutral-900/50 {compact
+  class="flex flex-col items-center justify-center text-center border-2 border-dashed border-neutral-200 dark:border-neutral-700  bg-neutral-50/50 dark:bg-neutral-900/50 {compact
     ? 'py-6 px-4'
     : 'py-12 px-4'}"
 >
   <div
-    class="bg-neutral-100 dark:bg-neutral-800 rounded-full mb-3 flex items-center justify-center {compact
+    class="bg-neutral-100 dark:bg-neutral-800  mb-3 flex items-center justify-center {compact
       ? 'p-2'
       : 'p-3'}"
   >

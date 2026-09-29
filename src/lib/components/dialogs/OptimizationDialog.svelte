@@ -260,7 +260,7 @@
 </script>
 
 <div
-  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden mb-4"
+  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700  bg-white dark:bg-neutral-800 overflow-hidden mb-4"
 >
   <SectionHeader title="Path Optimization" bind:collapsed={internalCollapsed} />
 
@@ -325,7 +325,7 @@
             </div>
           </summary>
           <div
-            class="max-h-32 overflow-y-auto border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 p-2 space-y-1 mt-2"
+            class="max-h-32 overflow-y-auto border border-neutral-200 dark:border-neutral-700  bg-white dark:bg-neutral-900 p-2 space-y-1 mt-2"
           >
             {#each lines as line, i (line.id || i)}
               {@const id = line.id || `idx-${i}`}
@@ -357,7 +357,7 @@
 
       {#if isRunning || optimizedLines !== null}
         <div
-          class="flex items-center justify-between bg-neutral-100 dark:bg-neutral-800 p-3 rounded-md text-sm font-mono"
+          class="flex items-center justify-between bg-neutral-100 dark:bg-neutral-800 p-3  text-sm font-mono"
         >
           <span class="text-neutral-600 dark:text-neutral-400"
             >Gen {progress}</span
@@ -389,7 +389,7 @@
 
       {#if optimizationError}
         <div
-          class="mt-2 rounded-md bg-yellow-50 border-l-4 border-yellow-400 p-3 text-sm text-yellow-800"
+          class="mt-2  bg-yellow-50 border-l-4 border-yellow-400 p-3 text-sm text-yellow-800"
         >
           <TriangleWarningIcon className="size-5 inline-block mr-2" />
           <strong>{optimizationError}</strong> The path's structure is currently invalid.
@@ -412,7 +412,7 @@
         <div class="flex gap-2">
           <button
             disabled
-            class="flex-1 px-4 py-2 bg-neutral-400 text-white rounded-md text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2"
+            class="flex-1 px-4 py-2 bg-neutral-400 text-white  text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2"
           >
             <SpinnerIcon
               className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
@@ -421,7 +421,7 @@
           </button>
           <button
             onclick={stopOptimization}
-            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors"
+            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white  text-sm font-medium transition-colors"
             disabled={isStopping}
           >
             {isStopping ? "Stopping..." : "Stop"}
@@ -432,13 +432,13 @@
           <div class="flex gap-2">
             <button
               onclick={handleClose}
-              class="flex-1 px-4 py-2 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 rounded-md text-sm font-medium transition-colors"
+              class="flex-1 px-4 py-2 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200  text-sm font-medium transition-colors"
             >
               Discard
             </button>
             <button
               onclick={startOptimization}
-              class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors"
+              class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white  text-sm font-medium transition-colors"
               disabled={isRunning}
               title={isRunning
                 ? "Optimization already running"
@@ -454,13 +454,13 @@
           <div class="flex gap-2">
             <button
               onclick={handleClose}
-              class="flex-1 px-4 py-2 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 rounded-md text-sm font-medium transition-colors"
+              class="flex-1 px-4 py-2 bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200  text-sm font-medium transition-colors"
             >
               Discard
             </button>
             <button
               onclick={handleApply}
-              class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors"
+              class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white  text-sm font-medium transition-colors"
             >
               Apply New Path
             </button>
@@ -469,7 +469,7 @@
       {:else}
         <button
           onclick={startOptimization}
-          class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2"
+          class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white  text-sm font-medium transition-colors flex items-center justify-center gap-2"
         >
           <PlayIcon className="size-4" />
           Start Optimization

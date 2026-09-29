@@ -781,7 +781,7 @@
 </div>
 
 <div
-  class="w-full overflow-auto border rounded-md border-neutral-200 dark:border-neutral-700 max-h-[70vh]"
+  class="w-full overflow-auto border  border-neutral-200 dark:border-neutral-700 max-h-[70vh]"
 >
   <table class="w-full text-left bg-white dark:bg-neutral-900 border-collapse">
     <thead
@@ -1279,7 +1279,7 @@
             class="p-8 text-center text-neutral-500 dark:text-neutral-400 border-t border-dashed border-neutral-200 dark:border-neutral-700"
           >
             <div class="flex flex-col items-center gap-4">
-              <div class="p-3 bg-neutral-100 dark:bg-neutral-800 rounded-full">
+              <div class="p-3 bg-neutral-100 dark:bg-neutral-800  ">
                 <PlusIcon
                   className="size-6 text-neutral-400 strokeWidth={1.5}"
                 />
@@ -1314,7 +1314,7 @@
   <div class="flex gap-2 flex-shrink-0">
     <button
       onclick={() => insertAction("path", sequence.length)}
-      class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-700 rounded-md shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
+      class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-700  shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 dark:focus:ring-green-700"
       aria-label="Add new path segment"
       title={`Add new path segment${getShortcutFromSettings(settings, "add-path")}`}
     >
@@ -1326,7 +1326,7 @@
       {#if def.createDefault && !def.isPath}
         <button
           onclick={() => handleAddAction(def)}
-          class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
+          class={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white  shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
           aria-label={`Add ${def.label} command`}
           title={`Add ${def.label} command${getShortcutFromSettings(settings, def.kind === "wait" ? "add-wait" : def.kind === "rotate" ? "add-rotate" : "")}`}
         >

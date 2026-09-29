@@ -96,7 +96,7 @@
   use:menuNavigation
   onclose={() => onclose?.()}
   bind:this={menuElement}
-  class="fixed z-[1200] min-w-[160px] py-1 bg-white dark:bg-neutral-800 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-700 text-sm"
+  class="fixed z-[1200] min-w-[160px] py-1 bg-white dark:bg-neutral-800  shadow-xl border border-neutral-200 dark:border-neutral-700 text-sm"
   style="top: {adjustedY}px; left: {adjustedX}px;"
   transition:fade={{ duration: 100 }}
   role="menu"

@@ -29,7 +29,7 @@
       title={def.isPath
         ? `Add Path${getShortcutFromSettings(settings, "add-path")}`
         : `Add ${def.label}`}
-      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
+      class={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white  shadow-sm transition-colors focus:outline-none focus:ring-2 ${getButtonColorClass(def.buttonColor || "gray")}`}
       aria-label={`Add ${def.label}`}
     >
       {#if def.kind === "path"}

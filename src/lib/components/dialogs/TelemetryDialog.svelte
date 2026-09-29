@@ -140,7 +140,7 @@
   >
     <div
       transition:fly={{ y: 20, duration: 300 }}
-      class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-lg flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none"
+      class="bg-white dark:bg-neutral-900  shadow-2xl w-full max-w-lg flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none"
     >
       <div
         class="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800"
@@ -160,7 +160,7 @@
             <button
               type="button"
               onclick={() => fileInput?.click()}
-              class="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/50 rounded-full text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
+              class="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/50  text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
             >
               Choose File
             </button>
@@ -186,7 +186,7 @@
 
         {#if errorMsg}
           <div
-            class="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm"
+            class="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300  text-sm"
           >
             {errorMsg}
           </div>
@@ -194,7 +194,7 @@
 
         {#if summary}
           <div
-            class="p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm flex justify-between items-center"
+            class="p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300  text-sm flex justify-between items-center"
           >
             <span>{summary}</span>
             <button
@@ -242,7 +242,7 @@
               type="number"
               step="0.1"
               bind:value={$telemetryOffset}
-              class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
             <button
               onclick={() => ($telemetryOffset = 0)}
@@ -261,7 +261,7 @@
       >
         <button
           onclick={() => (isOpen = false)}
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors"
+          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700  shadow-sm transition-colors"
         >
           Done
         </button>

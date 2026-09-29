@@ -118,10 +118,10 @@
           layout="row"
         >
           <div
-            class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 rounded-lg border border-neutral-200 dark:border-neutral-700"
+            class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1  border border-neutral-200 dark:border-neutral-700"
           >
             <button
-              class="px-3 py-1 text-xs font-medium rounded-md transition-all {settings.autoExportPathMode ===
+              class="px-3 py-1 text-xs font-medium  transition-all {settings.autoExportPathMode ===
                 'relative' || !settings.autoExportPathMode
                 ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm'
                 : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}"
@@ -130,7 +130,7 @@
               Relative
             </button>
             <button
-              class="px-3 py-1 text-xs font-medium rounded-md transition-all {settings.autoExportPathMode ===
+              class="px-3 py-1 text-xs font-medium  transition-all {settings.autoExportPathMode ===
               'absolute'
                 ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm'
                 : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'}"
@@ -153,13 +153,13 @@
               type="text"
               value={settings.autoExportPath}
               oninput={(e) => set("autoExportPath", e.currentTarget.value)}
-              class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
               placeholder="GeneratedCode"
             />
             <button
               aria-label="Browse Directory"
               onclick={handleBrowse}
-              class="px-3 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded-md text-neutral-700 dark:text-neutral-300 transition-colors"
+              class="px-3 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-600  text-neutral-700 dark:text-neutral-300 transition-colors"
               title="Browse Directory"
             >
               <!-- Folder Icon -->
@@ -186,7 +186,7 @@
             value={settings.autoExportFormat}
             onchange={(e) =>
               set("autoExportFormat", e.currentTarget.value as any)}
-            class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="java">Java Class</option>
             <option value="sequential">Sequential Command</option>
@@ -205,14 +205,14 @@
           <select
             value={settings.codeUnits}
             onchange={(e) => set("codeUnits", e.currentTarget.value as any)}
-            class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="imperial">Imperial (Inches)</option>
             <option value="metric">Metric (cm)</option>
           </select>
           {#if settings.codeUnits === "metric" && !settings.autoExportEmbedPoseData && settings.autoExportFormat === "sequential"}
             <div
-              class="mt-2 flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs rounded-lg border border-yellow-200 dark:border-yellow-800/50"
+              class="mt-2 flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs  border border-yellow-200 dark:border-yellow-800/50"
               role="alert"
             >
               <ICONS.TriangleWarningIcon className="size-4 shrink-0" />
@@ -253,7 +253,7 @@
                 value={settings.telemetryImplementation}
                 onchange={(e) =>
                   set("telemetryImplementation", e.currentTarget.value as any)}
-                class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="Panels">Panels (Bylazar)</option>
                 <option value="Standard">Standard (FTC)</option>
@@ -275,7 +275,7 @@
                 value={settings.autoExportTargetLibrary}
                 onchange={(e) =>
                   set("autoExportTargetLibrary", e.currentTarget.value as any)}
-                class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="SolversLib">SolversLib</option>
                 <option value="NextFTC">NextFTC</option>
@@ -313,7 +313,7 @@
                 type="text"
                 value={settings.javaPackageName}
                 oninput={(e) => set("javaPackageName", e.currentTarget.value)}
-                class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                 placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
               />
             </SettingsItem>

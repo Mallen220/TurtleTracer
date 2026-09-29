@@ -199,7 +199,7 @@
       onclick={(e) => {
         e.stopPropagation();
       }}
-      class="bg-white dark:bg-neutral-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border border-neutral-200 dark:border-neutral-700"
+      class="bg-white dark:bg-neutral-800  shadow-2xl w-full max-w-2xl overflow-hidden border border-neutral-200 dark:border-neutral-700"
       in:fly={{ y: 20, duration: 200, delay: 50 }}
       out:fly={{ y: 20, duration: 150 }}
     >
@@ -241,7 +241,7 @@
             disabled={isSubmitting}
             rows="5"
             placeholder="What's on your mind? Found a bug? Have a suggestion?"
-            class="w-full px-3 py-2 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 resize-none"
+            class="w-full px-3 py-2 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700  text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 resize-none"
           ></textarea>
           <div
             class="mt-2 flex items-start gap-1.5 text-xs text-neutral-500 dark:text-neutral-400"
@@ -267,20 +267,20 @@
             bind:value={contactInfo}
             disabled={isSubmitting}
             placeholder="User#1234 or email@example.com (Optional, only contacted if questions arise)"
-            class="w-full px-3 py-2 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50"
+            class="w-full px-3 py-2 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700  text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50"
           />
         </div>
 
         {#if status === "error"}
           <div
-            class="p-3 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 text-sm rounded-lg flex items-start gap-2 border border-red-200 dark:border-red-900/50"
+            class="p-3 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 text-sm  flex items-start gap-2 border border-red-200 dark:border-red-900/50"
           >
             <ErrorIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p>{errorMessage}</p>
           </div>
         {:else if status === "success"}
           <div
-            class="p-3 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 text-sm rounded-lg flex items-center gap-2 border border-green-200 dark:border-green-900/50"
+            class="p-3 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 text-sm  flex items-center gap-2 border border-green-200 dark:border-green-900/50"
           >
             <SuccessIcon className="w-5 h-5 flex-shrink-0" />
             <p>Feedback sent successfully! Thank you.</p>
@@ -307,7 +307,7 @@
           <button
             onclick={closeDialog}
             disabled={isSubmitting}
-            class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500/50 disabled:opacity-50"
+            class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700  transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500/50 disabled:opacity-50"
           >
             Cancel
           </button>
@@ -316,7 +316,7 @@
             disabled={isSubmitting ||
               status === "success" ||
               cooldownSeconds > 0}
-            class="px-5 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 shadow-sm shadow-purple-900/20 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 flex items-center gap-2"
+            class="px-5 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 shadow-sm shadow-purple-900/20  transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 flex items-center gap-2"
           >
             {#if cooldownSeconds > 0}
               Wait {Math.floor(cooldownSeconds / 60) + 1}m

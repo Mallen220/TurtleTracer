@@ -88,7 +88,7 @@
 </script>
 
 <div
-  class="space-y-4 p-3 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg border border-neutral-200 dark:border-neutral-700/50"
+  class="space-y-4 p-3 bg-neutral-50 dark:bg-neutral-900/50  border border-neutral-200 dark:border-neutral-700/50"
 >
   <div class="flex items-center justify-between">
     <h4 class="text-xs font-bold text-neutral-500 uppercase tracking-wide">
@@ -96,7 +96,7 @@
     </h4>
     {#if macro.transformations && macro.transformations.length > 0}
       <span
-        class="text-[10px] bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 px-1.5 py-0.5 rounded-full"
+        class="text-[10px] bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 px-1.5 py-0.5  "
         >{macro.transformations.length}</span
       >
     {/if}
@@ -106,7 +106,7 @@
   <div class="space-y-3">
     <!-- Tabs -->
     <div
-      class="flex gap-1 p-0.5 bg-neutral-200/50 dark:bg-neutral-800 rounded-md"
+      class="flex gap-1 p-0.5 bg-neutral-200/50 dark:bg-neutral-800  "
     >
       <button
         class="flex-1 py-1 text-xs font-medium rounded transition-all {activeTab ===
@@ -139,7 +139,7 @@
 
     <!-- Inputs -->
     <div
-      class="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md p-3"
+      class="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700  p-3"
     >
       {#if activeTab === "translate"}
         <div class="grid grid-cols-2 gap-2">

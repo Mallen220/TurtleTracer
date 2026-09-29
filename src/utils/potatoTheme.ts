@@ -83,14 +83,14 @@ button:not(.bg-transparent) svg {
 }
 
 /* Make things look a bit organic/lumpy */
-.rounded-lg, .rounded-md, .rounded-xl {
-  border-radius: 15px 25px 22px 18px / 20px 15px 25px 22px !important;
+.rounded-lg, . , . {
+  border-radius: 0px 0px 0px 0px / 0px 0px 0px 0px !important;
 }
 
 /* Scrollbars */
 ::-webkit-scrollbar-thumb {
   background: var(--potato-accent) !important;
-  border-radius: 10px !important;
+  border-radius: 0px !important;
 }
 ::-webkit-scrollbar-track {
   background: var(--potato-flesh) !important;

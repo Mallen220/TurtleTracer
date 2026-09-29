@@ -175,17 +175,17 @@
     >
       <!-- Background decorative blobs -->
       <div
-        class="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"
+        class="absolute top-0 right-0 w-64 h-64 bg-purple-500/10  blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"
       ></div>
       <div
-        class="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"
+        class="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10  blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"
       ></div>
 
       <!-- Close Button -->
       <button
         title="Close"
         onclick={close}
-        class="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all z-10"
+        class="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200  hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all z-10"
         aria-label="Close"
       >
         <CloseIcon className="w-5 h-5" />
@@ -195,7 +195,7 @@
         <!-- Top Section -->
         <div class="text-center space-y-2">
           <div
-            class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-600 dark:text-purple-400 mb-2 shadow-sm ring-1 ring-purple-100 dark:ring-purple-900/50"
+            class="inline-flex items-center justify-center w-16 h-16   bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 text-purple-600 dark:text-purple-400 mb-2 shadow-sm ring-1 ring-purple-100 dark:ring-purple-900/50"
           >
             <RocketIcon className="w-8 h-8" />
           </div>
@@ -216,13 +216,13 @@
         <!-- MS Store Recommendation (Friendly Card) -->
         {#if isWindows && !isStore}
           <div
-            class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-1 rounded-2xl"
+            class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 p-1  "
           >
             <div
-              class="bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-blue-100 dark:border-blue-900/50 rounded-xl p-4 flex items-start gap-4"
+              class="bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-blue-100 dark:border-blue-900/50  p-4 flex items-start gap-4"
             >
               <div
-                class="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-600 dark:text-blue-400 shrink-0"
+                class="bg-blue-100 dark:bg-blue-900/50 p-2  text-blue-600 dark:text-blue-400 shrink-0"
               >
                 <!-- Microsoft 4‑square logo (colored) — increased size -->
                 <MicrosoftStoreIcon className="w-6 h-6" />
@@ -262,7 +262,7 @@
             Release Notes
           </div>
           <div
-            class="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800 rounded-xl p-4 max-h-40 overflow-y-auto custom-scrollbar"
+            class="bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-100 dark:border-neutral-800  p-4 max-h-40 overflow-y-auto custom-scrollbar"
           >
             {#if isLoadingNotes}
               <div class="flex items-center justify-center h-20">
@@ -281,7 +281,7 @@
         <div class="flex flex-col gap-3 pt-2">
           <button
             onclick={handleDownload}
-            class="w-full py-3 px-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-semibold rounded-xl transition-all transform active:scale-[0.98] shadow-lg shadow-neutral-500/20 dark:shadow-none flex justify-center items-center gap-2"
+            class="w-full py-3 px-4 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-semibold  transition-all transform active:scale-[0.98] shadow-lg shadow-neutral-500/20 dark:shadow-none flex justify-center items-center gap-2"
           >
             <ArrowDownTrayIcon className="w-5 h-5" />
             Download & Install
@@ -293,7 +293,7 @@
                 onclick={handleSkip}
                 title="Skip this version"
                 aria-label="Skip this version"
-                class="px-3 py-1.5 text-sm font-medium rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/20"
+                class="px-3 py-1.5 text-sm font-medium  bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/20"
               >
                 Skip this version
               </button>
@@ -302,7 +302,7 @@
                 onclick={handleOpenReleases}
                 title="Open releases page"
                 aria-label="Open releases page"
-                class="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-50 dark:bg-gray-900/20 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900/30 border border-gray-200 dark:border-gray-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/20"
+                class="px-3 py-1.5 text-sm font-medium  bg-gray-50 dark:bg-gray-900/20 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900/30 border border-gray-200 dark:border-gray-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500/20"
               >
                 Open Releases Page
               </button>
@@ -312,7 +312,7 @@
               onclick={close}
               title="Remind me later"
               aria-label="Remind me later"
-              class="px-3 py-1.5 text-sm font-medium rounded-md bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 border border-purple-200 dark:border-purple-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/20"
+              class="px-3 py-1.5 text-sm font-medium  bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 border border-purple-200 dark:border-purple-800/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/20"
             >
               Remind me later
             </button>

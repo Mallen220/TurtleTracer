@@ -281,7 +281,7 @@ interface StickyNote {
   function createNoteElement(note: StickyNote) {
     const el = document.createElement("div");
     el.className =
-      "sticky-note shadow-lg rounded-md border border-gray-200 dark:border-gray-700 flex flex-col";
+      "sticky-note shadow-lg  border border-gray-200 dark:border-gray-700 flex flex-col";
     el.style.position = "absolute";
     el.style.width = "200px";
     el.style.pointerEvents = "auto";
@@ -290,7 +290,7 @@ interface StickyNote {
     // Header
     const header = document.createElement("div");
     header.className =
-      "sticky-header p-2 cursor-grab flex items-center justify-between rounded-t-md border-b border-black/10 select-none";
+      "sticky-header p-2 cursor-grab flex items-center justify-between   border-b border-black/10 select-none";
     header.style.backgroundColor = darkenColor(note.color, 10);
 
     const dragHandle = document.createElement("div");
@@ -304,7 +304,7 @@ interface StickyNote {
     // Color Picker
     const colorBtn = document.createElement("div");
     colorBtn.className =
-      "sticky-color-btn w-3 h-3 rounded-full cursor-pointer border border-black/20 hover:scale-110 transition-transform";
+      "sticky-color-btn w-3 h-3  cursor-pointer border border-black/20 hover:scale-110 transition-transform";
     colorBtn.style.backgroundColor = note.color;
     colorBtn.title = "Change Color";
     colorBtn.onclick = (e) => {
@@ -353,7 +353,7 @@ interface StickyNote {
 
     // Body
     const body = document.createElement("div");
-    body.className = "sticky-body p-2 flex-1 rounded-b-md";
+    body.className = "sticky-body p-2 flex-1 ";
     body.style.backgroundColor = note.color;
 
     const textarea = document.createElement("textarea");

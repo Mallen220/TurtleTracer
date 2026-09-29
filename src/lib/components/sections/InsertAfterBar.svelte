@@ -28,7 +28,7 @@
           e.stopPropagation();
           onAddAction?.(def);
         }}
-        class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus-visible:ring-2 {focusClass} {getSmallButtonClass(
+        class="flex items-center gap-1.5 px-2.5 py-1.5  text-xs font-medium focus:outline-none focus-visible:ring-2 {focusClass} {getSmallButtonClass(
           def.buttonColor || 'gray',
         )}"
         title="Add {def.label} After"

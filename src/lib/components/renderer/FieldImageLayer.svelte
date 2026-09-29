@@ -36,7 +36,7 @@
       ? `/fields/${settings.fieldMap}`
       : "/fields/biobuzz.webp"}
     alt="Field"
-    class="absolute rounded-lg z-10 max-w-none"
+    class="absolute  z-10 max-w-none"
     style={`top: ${y(fieldH)}px; left: ${x(0)}px; width: ${x(fieldW) - x(0)}px; height: ${y(0) - y(fieldH)}px;`}
     draggable="false"
     onerror={function (e) {

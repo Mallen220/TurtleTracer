@@ -130,7 +130,7 @@
 </script>
 
 <div
-  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-800 overflow-hidden"
+  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700  bg-white dark:bg-neutral-800 overflow-hidden"
 >
   <SectionHeader
     title="Obstacles"
@@ -152,7 +152,7 @@
       <div class="flex-1 min-w-0">
         <select
           bind:value={selectedPresetId}
-          class="w-full text-xs h-7 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
+          class="w-full text-xs h-7  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
         >
           <option value="">Select...</option>
           {#each $settingsStore.obstaclePresets || [] as preset}
@@ -168,7 +168,7 @@
           disabled={!selectedPresetId}
           title="Load Selected Preset"
           aria-label="Load Selected Preset"
-          class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          class="p-1 h-7 w-7 flex items-center justify-center  text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <!-- Download/Load Icon -->
           <ArrowDownTrayIcon className="size-4" />
@@ -179,7 +179,7 @@
           disabled={shapes.length === 0}
           title="Save Current as Preset"
           aria-label="Save Current as Preset"
-          class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          class="p-1 h-7 w-7 flex items-center justify-center  text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <SaveIcon className="size-4" />
         </button>
@@ -189,7 +189,7 @@
           disabled={!selectedPresetId}
           title="Delete Selected Preset"
           aria-label="Delete Selected Preset"
-          class="p-1 h-7 w-7 flex items-center justify-center rounded-md text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:text-red-500 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:hover:text-neutral-500 disabled:cursor-not-allowed transition-colors"
+          class="p-1 h-7 w-7 flex items-center justify-center  text-neutral-500 dark:text-neutral-400 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 hover:text-red-500 hover:bg-neutral-100 dark:hover:bg-neutral-700 disabled:opacity-40 disabled:hover:text-neutral-500 disabled:cursor-not-allowed transition-colors"
         >
           <TrashIcon className="size-4" />
         </button>
@@ -221,7 +221,7 @@
       {:else}
         {#each shapes as shape, shapeIdx}
           <div
-            class="flex flex-col w-full justify-start items-start gap-1 p-2 border rounded-md border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/30"
+            class="flex flex-col w-full justify-start items-start gap-1 p-2 border  border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900/30"
           >
             <div class="flex flex-row w-full justify-between items-center">
               <div class="flex flex-row items-center gap-2">
@@ -252,7 +252,7 @@
                   placeholder="{shape.type === 'keep-in'
                     ? 'Keep-In'
                     : 'Obstacle'} {shapeIdx + 1}"
-                  class="pl-1.5 rounded-md bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm font-medium h-7"
+                  class="pl-1.5  bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 text-sm font-medium h-7"
                   disabled={shape.locked ?? false}
                   onblur={() => {
                     shapes = [...shapes];
@@ -263,7 +263,7 @@
 
                 <select
                   bind:value={shape.type}
-                  class="h-7 text-xs rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  class="h-7 text-xs  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
                   disabled={shape.locked ?? false}
                   onchange={() => {
                     shapes = [...shapes];
@@ -310,7 +310,7 @@
                         : "Hide Obstacle",
                     );
                   }}
-                  class="p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
+                  class="p-1  hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
                 >
                   {#if shape.visible !== false}
                     <EyeIcon className="size-4" strokeWidth={1.5} />
@@ -340,7 +340,7 @@
                         : "Unlock Obstacle",
                     );
                   }}
-                  class="p-1 rounded-md hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
+                  class="p-1  hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-400 transition-colors"
                 >
                   {#if shape.locked}
                     <LockIcon className="size-4 text-amber-500" />

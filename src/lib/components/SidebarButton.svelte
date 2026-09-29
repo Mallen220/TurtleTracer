@@ -46,7 +46,7 @@
         : "text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800",
   );
   let classes = $derived(
-    `${secondary ? "p-1" : "p-1.5"} rounded-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center ${
+    `${secondary ? "p-1" : "p-1.5"}  transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 flex items-center ${
       expanded ? "w-[calc(100%-1.1rem)] px-3" : "justify-center"
     } ${tone} ${extraClass}`,
   );
