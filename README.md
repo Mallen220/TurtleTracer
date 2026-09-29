@@ -239,10 +239,7 @@ cd TurtleTracer
 npm install
 npm run dev
 
-# Generate and refresh Lighthouse badges in README (for your deployed URL)
-npm run badges:lighthouse -- --url https://live.turtletracer.com/
-
-# Build for your current platform
+# (Optional) Build for your current platform
 npm run dist
 ```
 
