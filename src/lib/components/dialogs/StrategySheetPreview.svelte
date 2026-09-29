@@ -465,7 +465,7 @@
     <div
       bind:this={dialogRef}
       transition:fly={{ y: 20, duration: 300 }}
-      class="bg-white dark:bg-neutral-900  shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none overflow-hidden"
+      class="bg-white dark:bg-neutral-900 shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col border border-neutral-200 dark:border-neutral-800 outline-none overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="strategy-sheet-title"
@@ -484,14 +484,14 @@
         <div class="flex items-center gap-2">
           <button
             onclick={handlePrint}
-            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700  transition-colors"
+            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
           >
             <DocumentIcon className="size-4" />
             Print
           </button>
           <button
             onclick={handleDownloadPdf}
-            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700  transition-colors"
+            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors"
           >
             <ArrowDownTrayIcon className="size-4" />
             Download PDF
@@ -500,7 +500,7 @@
             title="Close"
             onclick={handleClose}
             aria-label="Close"
-            class="p-2  text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            class="p-2 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
             <CloseIcon className="size-5" />
           </button>

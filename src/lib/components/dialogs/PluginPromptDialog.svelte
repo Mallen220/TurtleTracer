@@ -68,7 +68,7 @@
     aria-modal="true"
   >
     <div
-      class="bg-white dark:bg-neutral-800  shadow-xl w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-700"
+      class="bg-white dark:bg-neutral-800 shadow-xl w-full max-w-md p-6 border border-neutral-200 dark:border-neutral-700"
     >
       <h2 class="text-xl font-bold mb-4 text-neutral-900 dark:text-white">
         {title}
@@ -86,19 +86,19 @@
         onkeydown={handleKeydown}
         onkeyup={(e) => e.stopPropagation()}
         onkeypress={(e) => e.stopPropagation()}
-        class="w-full px-3 py-2 border  mb-6 bg-neutral-50 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+        class="w-full px-3 py-2 border mb-6 bg-neutral-50 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
       />
 
       <div class="flex justify-end gap-3">
         <button
           onclick={handleCancel}
-          class="px-4 py-2  hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 transition-colors"
+          class="px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 transition-colors"
         >
           Cancel
         </button>
         <button
           onclick={handleConfirm}
-          class="px-4 py-2  bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
+          class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
         >
           OK
         </button>

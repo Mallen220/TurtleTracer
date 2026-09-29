@@ -44,7 +44,7 @@
 </script>
 
 <div
-  class="relative size-5  overflow-hidden shadow-sm border border-neutral-300 dark:border-neutral-600 shrink-0 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-purple-500 dark:focus-within:ring-offset-neutral-900 transition-shadow"
+  class="relative size-5 overflow-hidden shadow-sm border border-neutral-300 dark:border-neutral-600 shrink-0 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-purple-500 dark:focus-within:ring-offset-neutral-900 transition-shadow"
   style:background-color={localColor}
 >
   <input

@@ -567,7 +567,7 @@
       {#if item.kind === "path" && prevItem?.kind === "path"}
         <div class="flex justify-center -my-3 z-10 relative">
           <button
-            class="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700  p-1 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shadow-sm {isChain
+            class="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 p-1 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors shadow-sm {isChain
               ? 'text-green-500 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
               : 'text-neutral-400 dark:text-neutral-500'}"
             title={isChain ? "Unchain paths" : "Chain paths"}
@@ -608,7 +608,7 @@
         role="listitem"
         data-index={sIdx}
         id={`sequence-item-${sequenceItemKey(item)}`}
-        class="w-full transition-all duration-200  {isChain
+        class="w-full transition-all duration-200 {isChain
           ? '-mt-2'
           : ''} {isChainedWithNext ? '-mb-2' : ''}"
         draggable={!isSequenceItemLocked(item, lines)}

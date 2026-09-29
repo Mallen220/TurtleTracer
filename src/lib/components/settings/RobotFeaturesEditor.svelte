@@ -115,12 +115,12 @@
 </script>
 
 <div
-  class="flex flex-col md:flex-row gap-6 mt-2 p-4 bg-neutral-50 dark:bg-neutral-800/30 border border-neutral-200 dark:border-neutral-700  "
+  class="flex flex-col md:flex-row gap-6 mt-2 p-4 bg-neutral-50 dark:bg-neutral-800/30 border border-neutral-200 dark:border-neutral-700"
 >
   <!-- Left Side: Preview Canvas -->
   <div class="flex flex-col w-full md:w-[260px] shrink-0 items-center">
     <div
-      class="relative border border-neutral-200 dark:border-neutral-700/50  bg-transparent overflow-hidden touch-none"
+      class="relative border border-neutral-200 dark:border-neutral-700/50 bg-transparent overflow-hidden touch-none"
       style="width: {PREVIEW_SIZE}px; height: {PREVIEW_SIZE}px;"
     >
       <svg width={PREVIEW_SIZE} height={PREVIEW_SIZE} class="w-full h-full">
@@ -326,7 +326,7 @@
 
     {#if !settings.robotFeatures || settings.robotFeatures.length === 0}
       <div
-        class="flex flex-col items-center justify-center h-[250px] border border-dashed border-neutral-300 dark:border-neutral-700  text-sm text-neutral-500 bg-neutral-50 dark:bg-neutral-800/50 p-4 text-center"
+        class="flex flex-col items-center justify-center h-[250px] border border-dashed border-neutral-300 dark:border-neutral-700 text-sm text-neutral-500 bg-neutral-50 dark:bg-neutral-800/50 p-4 text-center"
       >
         <div class="mb-2 opacity-50">
           <PlusIcon className="w-8 h-8 mx-auto" />
@@ -347,7 +347,7 @@
               if (e.key === "Enter" || e.key === " ")
                 selectedFeatureId = feature.id;
             }}
-            class="flex flex-col gap-2 p-3  border {selectedFeatureId ===
+            class="flex flex-col gap-2 p-3 border {selectedFeatureId ===
             feature.id
               ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
               : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800'}"

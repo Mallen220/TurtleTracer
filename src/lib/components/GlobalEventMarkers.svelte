@@ -463,7 +463,7 @@
 </script>
 
 <div
-  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700  bg-white dark:bg-neutral-800"
+  class="flex flex-col w-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800"
 >
   <SectionHeader
     title="Event Markers"
@@ -491,16 +491,14 @@
           <div
             role="group"
             id={`global-marker-${marker.id}`}
-            class="flex flex-col p-2 border border-purple-200 dark:border-purple-800  bg-purple-50/50 dark:bg-purple-900/10 gap-2"
+            class="flex flex-col p-2 border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10 gap-2"
             onmouseenter={() => hoveredMarkerId.set(marker.id)}
             onmouseleave={() => hoveredMarkerId.set(null)}
           >
             <div class="flex flex-col gap-2">
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 flex-1">
-                  <div
-                    class="w-2 h-2  bg-purple-500 shrink-0"
-                  ></div>
+                  <div class="w-2 h-2 bg-purple-500 shrink-0"></div>
                   <SearchableDropdown
                     value={marker.ref.name}
                     options={availableEvents}

@@ -149,7 +149,7 @@
   <!-- Non-modal floating panel to allow field to remain visible -->
 
   <div
-    class="z-50 flex flex-col overflow-hidden bg-white dark:bg-neutral-800  shadow-xl border border-neutral-200 dark:border-neutral-700"
+    class="z-50 flex flex-col overflow-hidden bg-white dark:bg-neutral-800 shadow-xl border border-neutral-200 dark:border-neutral-700"
     style={panelStyle}
     transition:slide={{ duration: 200 }}
     role="dialog"
@@ -170,7 +170,7 @@
 
         <!-- Tabs -->
         <div
-          class="flex bg-neutral-200 dark:bg-neutral-700  p-1 text-xs font-medium"
+          class="flex bg-neutral-200 dark:bg-neutral-700 p-1 text-xs font-medium"
         >
           <button
             class={`px-3 py-1  transition-all ${activeTab === "summary" ? "bg-white dark:bg-neutral-600 shadow-sm text-neutral-900 dark:text-white" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"}`}
@@ -199,7 +199,7 @@
       <div class="flex items-center gap-2">
         <button
           onclick={handleCopy}
-          class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300  hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           title={activeTab === "graphs"
             ? "Copy SVG to Clipboard"
             : "Copy as Markdown"}
@@ -212,7 +212,7 @@
         <button
           title="Close"
           onclick={onClose}
-          class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300  hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          class="p-2 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           aria-label="Close"
         >
           <CloseIcon className="size-5" />
@@ -227,7 +227,7 @@
         <!-- Summary Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 flex-shrink-0">
           <div
-            class="bg-neutral-100 dark:bg-neutral-700/50 p-3  flex flex-col items-center justify-center text-center"
+            class="bg-neutral-100 dark:bg-neutral-700/50 p-3 flex flex-col items-center justify-center text-center"
           >
             <span
               class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
@@ -240,7 +240,7 @@
             </span>
           </div>
           <div
-            class="bg-neutral-100 dark:bg-neutral-700/50 p-3  flex flex-col items-center justify-center text-center"
+            class="bg-neutral-100 dark:bg-neutral-700/50 p-3 flex flex-col items-center justify-center text-center"
           >
             <span
               class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
@@ -253,7 +253,7 @@
             </span>
           </div>
           <div
-            class="bg-neutral-100 dark:bg-neutral-700/50 p-3  flex flex-col items-center justify-center text-center"
+            class="bg-neutral-100 dark:bg-neutral-700/50 p-3 flex flex-col items-center justify-center text-center"
           >
             <span
               class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
@@ -266,7 +266,7 @@
             </span>
           </div>
           <div
-            class="bg-neutral-100 dark:bg-neutral-700/50 p-3  flex flex-col items-center justify-center text-center"
+            class="bg-neutral-100 dark:bg-neutral-700/50 p-3 flex flex-col items-center justify-center text-center"
           >
             <span
               class="text-xs text-neutral-500 dark:text-neutral-400 uppercase tracking-wide"
@@ -297,13 +297,13 @@
           <div class="flex flex-col gap-1">
             {#each pathStats.segments as seg}
               <div
-                class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3  hover:bg-neutral-50 dark:hover:bg-neutral-700/30 transition-colors items-start text-sm"
+                class="grid grid-cols-1 sm:grid-cols-12 gap-2 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-700/30 transition-colors items-start text-sm"
               >
                 <div
                   class="col-span-1 sm:col-span-3 flex items-center gap-2 truncate"
                 >
                   <div
-                    class="w-3 h-3  flex-none"
+                    class="w-3 h-3 flex-none"
                     style="background-color: {seg.color}"
                   ></div>
                   <span
@@ -358,7 +358,7 @@
       {:else if activeTab === "graphs"}
         <div class="overflow-y-auto flex-1 p-4 min-h-0 space-y-6">
           <div
-            class="simple-chart-container bg-white dark:bg-neutral-900  border border-neutral-200 dark:border-neutral-700 p-4"
+            class="simple-chart-container bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 p-4"
           >
             <h3
               class="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300"
@@ -376,7 +376,7 @@
           </div>
 
           <div
-            class="simple-chart-container bg-white dark:bg-neutral-900  border border-neutral-200 dark:border-neutral-700 p-4"
+            class="simple-chart-container bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 p-4"
           >
             <h3
               class="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300"
@@ -394,7 +394,7 @@
           </div>
 
           <div
-            class="simple-chart-container bg-white dark:bg-neutral-900  border border-neutral-200 dark:border-neutral-700 p-4"
+            class="simple-chart-container bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 p-4"
           >
             <h3
               class="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300"
@@ -412,7 +412,7 @@
           </div>
 
           <div
-            class="simple-chart-container bg-white dark:bg-neutral-900  border border-neutral-200 dark:border-neutral-700 p-4"
+            class="simple-chart-container bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 p-4"
           >
             <h3
               class="text-sm font-semibold mb-2 text-neutral-700 dark:text-neutral-300"

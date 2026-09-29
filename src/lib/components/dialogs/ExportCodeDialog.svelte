@@ -328,7 +328,7 @@
     <div
       bind:this={dialogRef}
       transition:fly={{ y: 20, duration: 300 }}
-      class="bg-white dark:bg-neutral-900  shadow-2xl w-full max-w-5xl flex flex-col h-[85vh] border border-neutral-200 dark:border-neutral-800 outline-none"
+      class="bg-white dark:bg-neutral-900 shadow-2xl w-full max-w-5xl flex flex-col h-[85vh] border border-neutral-200 dark:border-neutral-800 outline-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby="export-dialog-title"
@@ -374,7 +374,7 @@
                 showSearch = true;
                 tick().then(() => searchInputRef?.focus());
               }}
-              class="p-2  text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="p-2 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label="Search code"
               title="Search (Ctrl+F)"
             >
@@ -383,7 +383,7 @@
           {:else}
             <!-- Search Bar -->
             <div
-              class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800  p-1 animate-in slide-in-from-right duration-200"
+              class="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 p-1 animate-in slide-in-from-right duration-200"
             >
               <input
                 bind:this={searchInputRef}
@@ -445,7 +445,7 @@
           <!-- Close Button -->
           <button
             onclick={() => (isOpen = false)}
-            class="p-2  text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="p-2 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label="Close export dialog"
           >
             <CloseIcon strokeWidth={2} className="size-5" />
@@ -472,7 +472,7 @@
               bind:value={$settingsStore.javaPackageName}
               onkeydown={handlePackageKeydown}
               oninput={refreshCode}
-              class="px-3 py-1.5 text-sm  border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full font-mono"
+              class="px-3 py-1.5 text-sm border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full font-mono"
               placeholder="org.firstinspires.ftc.teamcode.Commands.AutoCommands"
             />
           </div>
@@ -487,14 +487,14 @@
                 Target Library
               </span>
               <div
-                class="flex p-1 bg-neutral-200 dark:bg-neutral-900  self-start"
+                class="flex p-1 bg-neutral-200 dark:bg-neutral-900 self-start"
                 role="tablist"
               >
                 <button
                   role="tab"
                   aria-selected={$settingsStore.autoExportTargetLibrary ===
                     "SolversLib"}
-                  class="px-3 py-1.5 text-xs font-medium  transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 {$settingsStore.autoExportTargetLibrary ===
+                  class="px-3 py-1.5 text-xs font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 {$settingsStore.autoExportTargetLibrary ===
                   'SolversLib'
                     ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-300 shadow-sm'
                     : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
@@ -509,7 +509,7 @@
                   role="tab"
                   aria-selected={$settingsStore.autoExportTargetLibrary ===
                     "NextFTC"}
-                  class="px-3 py-1.5 text-xs font-medium  transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {$settingsStore.autoExportTargetLibrary ===
+                  class="px-3 py-1.5 text-xs font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 {$settingsStore.autoExportTargetLibrary ===
                   'NextFTC'
                     ? 'bg-white dark:bg-neutral-700 text-purple-600 dark:text-purple-300 shadow-sm'
                     : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200'}"
@@ -536,7 +536,7 @@
                 type="text"
                 bind:value={sequentialClassName}
                 oninput={refreshCode}
-                class="px-3 py-1.5 text-sm  border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+                class="px-3 py-1.5 text-sm border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
                 placeholder="AutoPath"
               />
             </div>
@@ -567,7 +567,7 @@
             <!-- NextFTC Warning -->
             {#if $settingsStore.autoExportTargetLibrary === "NextFTC"}
               <div
-                class="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs  border border-yellow-200 dark:border-yellow-800/50"
+                class="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs border border-yellow-200 dark:border-yellow-800/50"
                 role="alert"
               >
                 <TriangleWarningIcon className="size-4 shrink-0" />
@@ -576,7 +576,7 @@
             {/if}
             {#if $settingsStore.codeUnits === "metric" && !$settingsStore.autoExportEmbedPoseData && exportFormat === "sequential"}
               <div
-                class="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs  border border-yellow-200 dark:border-yellow-800/50"
+                class="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs border border-yellow-200 dark:border-yellow-800/50"
                 role="alert"
               >
                 <TriangleWarningIcon className="size-4 shrink-0" />
@@ -687,7 +687,7 @@
         </div>
         <div class="flex gap-3">
           <button
-            class="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800  transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+            class="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
             onclick={() => (isOpen = false)}
           >
             Close
@@ -695,7 +695,7 @@
 
           {#if exportFormat !== "json"}
             <button
-              class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700  transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+              class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
               onclick={handleSaveFile}
               title="Save the generated content to a file"
               aria-label="Save the generated content to a file"
@@ -707,7 +707,7 @@
 
           {#if exportFormat === "json"}
             <button
-              class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700  transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+              class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
               onclick={exportAsProjectFile}
             >
               <DownloadIcon className="size-4" />
@@ -715,7 +715,7 @@
             </button>
           {/if}
           <button
-            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800  shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
+            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900"
             onclick={handleCopy}
             disabled={copied}
           >

@@ -265,7 +265,7 @@
 </script>
 
 <div
-  class="bg-white dark:bg-neutral-800  border border-neutral-200 dark:border-neutral-700 p-3 mb-4"
+  class="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 p-3 mb-4"
 >
   <div class="flex items-center justify-between mb-3">
     <div>
@@ -410,7 +410,7 @@
             <button
               aria-label="Export Profile"
               onclick={handleExportProfile}
-              class="ml-1 p-1.5  transition-all duration-200 flex items-center justify-center hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 w-8"
+              class="ml-1 p-1.5 transition-all duration-200 flex items-center justify-center hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 w-8"
               title="Export Profile"
             >
               <DownloadIcon className="size-4" strokeWidth={2} />

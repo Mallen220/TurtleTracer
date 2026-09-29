@@ -717,7 +717,7 @@
       style="left: {sidebarWidth}px;"
     >
       <div
-        class="bg-white dark:bg-neutral-800 p-8  shadow-2xl flex flex-col items-center border-4 border-dashed border-purple-500 animate-pulse"
+        class="bg-white dark:bg-neutral-800 p-8 shadow-2xl flex flex-col items-center border-4 border-dashed border-purple-500 animate-pulse"
       >
         <CloudArrowDownIcon
           className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
@@ -771,7 +771,7 @@
       </h2>
       <button
         onclick={() => (isOpen = false)}
-        class="p-1  hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+        class="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
         aria-label="Close"
       >
         <CloseIcon className="size-5" />
@@ -892,7 +892,7 @@
 
         {#if showAddMenu}
           <div
-            class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-800  shadow-xl border border-neutral-200 dark:border-neutral-700 py-1 flex flex-col overflow-hidden"
+            class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-800 shadow-xl border border-neutral-200 dark:border-neutral-700 py-1 flex flex-col overflow-hidden"
           >
             <button
               onclick={() => {

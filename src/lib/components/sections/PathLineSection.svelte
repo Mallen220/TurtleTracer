@@ -358,7 +358,7 @@
           e.stopPropagation();
           toggleCollapsed();
         }}
-        class="flex items-center gap-2  hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-500 transition-colors px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title="{collapsed ? 'Expand' : 'Collapse'} path"
         aria-label="{collapsed ? 'Expand' : 'Collapse'} Path {idx + 1}"
         aria-expanded={!collapsed}
@@ -381,7 +381,7 @@
             placeholder="Path Name"
             aria-label="Path name"
             title="Edit path name"
-            class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700  focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all placeholder-neutral-400 truncate"
+            class="w-full pl-2 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all placeholder-neutral-400 truncate"
             class:text-green-500={hoveredLinkId === line.id}
             disabled={line.locked}
             oninput={handleNameInput}
@@ -437,7 +437,7 @@
           line = newLine;
           if (recordChange) recordChange();
         }}
-        class="p-1.5  hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title={isHidden ? "Show Path" : "Hide Path"}
         aria-label={isHidden ? "Show Path" : "Hide Path"}
       >
@@ -457,7 +457,7 @@
           lines = [...lines];
           line = newLine;
         }}
-        class="p-1.5  hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+        class="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         title={line.locked ? "Unlock Path" : "Lock Path"}
         aria-label={line.locked ? "Unlock Path" : "Lock Path"}
       >
@@ -474,16 +474,14 @@
         aria-hidden="true"
       ></div>
 
-      <div
-        class="flex items-center bg-neutral-100 dark:bg-neutral-900  p-0.5"
-      >
+      <div class="flex items-center bg-neutral-100 dark:bg-neutral-900 p-0.5">
         <button
           onclick={(e) => {
             e.stopPropagation();
             if (!line.locked && onMoveUp) onMoveUp();
           }}
           disabled={!canMoveUp || line.locked}
-          class="p-1  hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+          class="p-1 hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
           title="Move Up"
           aria-label="Move Up"
         >
@@ -495,7 +493,7 @@
             if (!line.locked && onMoveDown) onMoveDown();
           }}
           disabled={!canMoveDown || line.locked}
-          class="p-1  hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+          class="p-1 hover:bg-white dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all shadow-sm hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
           title="Move Down"
           aria-label="Move Down"
         >
@@ -536,7 +534,7 @@
               >
               <input
                 bind:this={xInput}
-                class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700  focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 type="number"
                 min={$settingsStore.coordinateSystem === "FTC"
@@ -569,7 +567,7 @@
               >
               <input
                 bind:this={yInput}
-                class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700  focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
+                class="w-full pl-6 pr-2 py-1.5 text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
                 step={$snapToGrid && $showGrid ? $gridSize : 0.1}
                 min={$settingsStore.coordinateSystem === "FTC"
                   ? -($settingsStore.fieldWidth ?? 144) / 2
@@ -634,7 +632,7 @@
               >Heading</span
             >
             <button
-              class="w-full text-left text-sm text-neutral-400 p-2 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700/50  flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              class="w-full text-left text-sm text-neutral-400 p-2 bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700/50 flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               onclick={() => {
                 if (onScrollToItem && chainGlobalSourceLine?.id) {
                   onScrollToItem(chainGlobalSourceLine.id);

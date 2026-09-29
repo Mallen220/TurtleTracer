@@ -156,7 +156,7 @@
   >
     <div
       transition:fly={{ duration: 200, y: 20, easing: cubicInOut }}
-      class="bg-white dark:bg-neutral-900  shadow-2xl w-full max-w-md overflow-hidden border border-neutral-200 dark:border-neutral-800"
+      class="bg-white dark:bg-neutral-900 shadow-2xl w-full max-w-md overflow-hidden border border-neutral-200 dark:border-neutral-800"
     >
       <div
         class="flex justify-between items-center p-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50"
@@ -169,7 +169,7 @@
         </h2>
         <button
           onclick={() => (isOpen = false)}
-          class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700  transition-colors"
+          class="p-1 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           aria-label="Close"
         >
           <CloseIcon className="w-5 h-5 text-neutral-500" strokeWidth={2} />
@@ -242,7 +242,7 @@
                   id="translate-x"
                   type="number"
                   bind:value={translateX}
-                  class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600  focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -256,7 +256,7 @@
                   id="translate-y"
                   type="number"
                   bind:value={translateY}
-                  class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600  focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -282,7 +282,7 @@
                     id="rotate-degrees"
                     type="number"
                     bind:value={rotateDegrees}
-                    class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600  focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               {:else}
@@ -313,7 +313,7 @@
               {/if}
 
               <div
-                class="mt-4 p-4 border border-neutral-200 dark:border-neutral-700  bg-neutral-50 dark:bg-neutral-800/50"
+                class="mt-4 p-4 border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50"
               >
                 <label
                   for="pivot-mode"
@@ -373,7 +373,7 @@
                         id="pivot-x"
                         type="number"
                         bind:value={customPivotX}
-                        class="w-full px-3 py-2 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600  focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full px-3 py-2 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div>
@@ -387,7 +387,7 @@
                         id="pivot-y"
                         type="number"
                         bind:value={customPivotY}
-                        class="w-full px-3 py-2 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600  focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="w-full px-3 py-2 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </div>
@@ -403,13 +403,13 @@
       >
         <button
           onclick={() => (isOpen = false)}
-          class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700  transition-colors"
+          class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
         >
           Cancel
         </button>
         <button
           onclick={applyTransform}
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700  shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-900"
+          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-900"
         >
           Apply
         </button>

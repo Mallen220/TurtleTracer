@@ -100,7 +100,7 @@
 </script>
 
 <div
-  class="p-3 mt-2 mb-2 text-xs text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/50  border border-neutral-200 dark:border-neutral-700 shadow-sm"
+  class="p-3 mt-2 mb-2 text-xs text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 shadow-sm"
 >
   <div
     class="flex justify-between items-center mb-3 border-b border-neutral-200 dark:border-neutral-700 pb-2"

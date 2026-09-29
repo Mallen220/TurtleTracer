@@ -210,7 +210,7 @@
     transition:scale={{ duration: 200, start: 0.95 }}
   >
     <div
-      class="bg-white dark:bg-neutral-800  shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]"
+      class="bg-white dark:bg-neutral-800 shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]"
     >
       <!-- Header -->
       <div
@@ -247,7 +247,7 @@
               id="img-format"
               bind:value={format}
               onchange={generatePreview}
-              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm  focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
+              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
             >
               <option value="png">PNG</option>
               <option value="jpeg">JPEG</option>
@@ -267,7 +267,7 @@
               id="img-scale"
               bind:value={resolutionScale}
               onchange={generatePreview}
-              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm  focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
+              class="bg-neutral-100 dark:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 text-neutral-900 dark:text-white text-sm focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5"
             >
               <option value={0.25}>25%</option>
               <option value={0.5}>50%</option>
@@ -324,7 +324,7 @@
           </div>
         {:else if status === "error"}
           <div
-            class="p-4 text-sm text-red-800  bg-red-50 dark:bg-gray-800 dark:text-red-400"
+            class="p-4 text-sm text-red-800 bg-red-50 dark:bg-gray-800 dark:text-red-400"
             role="alert"
           >
             <span class="font-medium">Error!</span>
@@ -357,14 +357,14 @@
         class="flex items-center justify-end px-6 py-4 border-t border-neutral-200 dark:border-neutral-700 gap-3"
       >
         <button
-          class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700  transition-colors"
+          class="px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
           onclick={close}
         >
           Cancel
         </button>
 
         <button
-          class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700  transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           onclick={downloadImage}
           disabled={status === "generating" || !previewUrl}
         >

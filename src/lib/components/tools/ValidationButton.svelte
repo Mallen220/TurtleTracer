@@ -74,7 +74,7 @@
   <button
     title="Toggle Validation"
     onclick={toggleValidation}
-    class="flex items-center justify-center p-2 bg-transparent text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors  focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+    class="flex items-center justify-center p-2 bg-transparent text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
     aria-label="Toggle Validation"
   >
     {#if $settingsStore.validationDisabled}
@@ -92,7 +92,7 @@
 
   {#if isHovering}
     <div
-      class="absolute top-full right-0 mt-2 w-max bg-white dark:bg-neutral-800  shadow-xl p-3 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100"
+      class="absolute top-full right-0 mt-2 w-max bg-white dark:bg-neutral-800 shadow-xl p-3 z-50 border border-neutral-200 dark:border-neutral-700 animate-in fade-in zoom-in-95 duration-100"
     >
       {#if $settingsStore.validationDisabled}
         <p class="text-sm text-neutral-700 dark:text-neutral-300 font-medium">

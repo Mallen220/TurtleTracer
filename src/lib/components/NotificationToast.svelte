@@ -86,7 +86,7 @@
     out:fade={{ duration: 200 }}
   >
     <div
-      class="flex items-center w-full px-4 py-3  shadow-lg border-l-4 {getBgColor(
+      class="flex items-center w-full px-4 py-3 shadow-lg border-l-4 {getBgColor(
         currentNotification.type,
       )}"
       role="alert"
@@ -115,7 +115,7 @@
               notification.set(null);
             }
           }}
-          class="shrink-0 ml-3  bg-neutral-100 dark:bg-neutral-800 text-sm font-medium hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 {currentNotification.actionLabel ===
+          class="shrink-0 ml-3 bg-neutral-100 dark:bg-neutral-800 text-sm font-medium hover:opacity-90 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 {currentNotification.actionLabel ===
           'github'
             ? 'p-1.5'
             : 'px-3 py-1'}"
@@ -130,7 +130,7 @@
       <button
         title="Close notification"
         onclick={close}
-        class="shrink-0 ml-3 p-1  hover:bg-black/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+        class="shrink-0 ml-3 p-1 hover:bg-black/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
         aria-label="Close notification"
       >
         <CloseIcon className="size-4" />

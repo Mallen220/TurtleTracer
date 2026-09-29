@@ -219,7 +219,7 @@
   >
     <div
       transition:fly={{ duration: 300, easing: cubicInOut, y: 20 }}
-      class="flex flex-col bg-white dark:bg-neutral-900  w-full max-w-4xl h-[85vh] shadow-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800"
+      class="flex flex-col bg-white dark:bg-neutral-900 w-full max-w-4xl h-[85vh] shadow-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800"
     >
       <!-- Main Layout -->
       <div class="flex h-full">
@@ -274,7 +274,7 @@
                 type="text"
                 placeholder="Search settings..."
                 bind:value={searchQuery}
-                class="w-full pl-9 pr-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700  text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full pl-9 pr-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <SearchIcon
                 strokeWidth={1.5}
@@ -291,7 +291,7 @@
                   activeTab = tab.id;
                   searchQuery = "";
                 }}
-                class="w-full flex items-center gap-3 px-3 py-2  text-sm font-medium transition-colors {activeTab ===
+                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors {activeTab ===
                   tab.id && !searchQuery
                   ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
                   : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"
@@ -306,7 +306,7 @@
           <div class="p-4 border-t border-neutral-200 dark:border-neutral-800">
             <button
               onclick={handleReset}
-              class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30  transition-colors"
+              class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 transition-colors"
             >
               <ArrowCircleIcon className="size-4" />
               Reset Defaults
@@ -332,7 +332,7 @@
             <div class="flex gap-2 items-center">
               <button
                 onclick={handleSave}
-                class="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700  transition-colors shadow-sm"
+                class="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
               >
                 Save
               </button>
@@ -354,7 +354,7 @@
           >
             <!-- Warning Banner -->
             <div
-              class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50  flex gap-3"
+              class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 flex gap-3"
             >
               <TriangleWarningIcon
                 className="size-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"

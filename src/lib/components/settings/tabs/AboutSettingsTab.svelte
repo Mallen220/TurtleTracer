@@ -73,7 +73,7 @@
       </div>
 
       <div
-        class="w-full max-w-sm bg-neutral-50 dark:bg-neutral-800  p-4 text-left text-sm space-y-4"
+        class="w-full max-w-sm bg-neutral-50 dark:bg-neutral-800 p-4 text-left text-sm space-y-4"
       >
         <div>
           <h4 class="font-semibold mb-2">Acknowledgments</h4>

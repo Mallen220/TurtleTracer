@@ -1516,7 +1516,7 @@
     class="fixed inset-0 z-[100] bg-purple-500/20 backdrop-blur-sm border-4 border-purple-500 flex items-center justify-center pointer-events-none"
   >
     <div
-      class="bg-white dark:bg-neutral-800 p-8  shadow-2xl flex flex-col items-center animate-bounce-slight"
+      class="bg-white dark:bg-neutral-800 p-8 shadow-2xl flex flex-col items-center animate-bounce-slight"
     >
       <CloudArrowDownIcon
         className="h-16 w-16 text-purple-600 dark:text-purple-400 mb-4"
@@ -1627,7 +1627,7 @@
           title="Drag to resize. Double-click to reset. Use Arrow keys to adjust width."
         >
           <div
-            class="w-0.5 h-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors  "
+            class="w-0.5 h-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors"
           ></div>
         </button>
       {/if}
@@ -1649,7 +1649,7 @@
           title="Drag to resize. Double-click to reset. Use Arrow keys to adjust height."
         >
           <div
-            class="h-1 w-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors  "
+            class="h-1 w-8 bg-neutral-400 dark:bg-neutral-600 group-hover:bg-purple-500 dark:group-hover:bg-purple-400 group-focus-visible:bg-purple-500 dark:group-focus-visible:bg-purple-400 transition-colors"
           ></div>
         </button>
       {/if}

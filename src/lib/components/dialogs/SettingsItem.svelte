@@ -60,7 +60,7 @@
       {#if onReset && isModified}
         <button
           type="button"
-          class="p-1  text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:text-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+          class="p-1 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:text-neutral-200 dark:hover:bg-neutral-700 transition-colors"
           title="Reset to default"
           onclick={onReset}
           aria-label="Reset to default"
@@ -72,7 +72,7 @@
     {@render children?.()}
   {:else}
     <div
-      class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800  border border-neutral-200 dark:border-neutral-700"
+      class="flex items-center justify-between p-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700"
     >
       <div class="flex-1 mr-4">
         <div class="flex items-center gap-2 mb-1">
@@ -85,7 +85,7 @@
           {#if onReset && isModified}
             <button
               type="button"
-              class="p-1  text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:text-neutral-200 dark:hover:bg-neutral-700 transition-colors flex-shrink-0"
+              class="p-1 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 dark:hover:text-neutral-200 dark:hover:bg-neutral-700 transition-colors flex-shrink-0"
               title="Reset to default"
               onclick={onReset}
               aria-label="Reset to default"

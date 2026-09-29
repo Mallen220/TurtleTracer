@@ -40,7 +40,7 @@
       <!-- Stats Overview -->
       <div class="grid grid-cols-2 gap-4">
         <div
-          class="bg-white dark:bg-neutral-800 p-4  shadow-sm border border-neutral-200 dark:border-neutral-700"
+          class="bg-white dark:bg-neutral-800 p-4 shadow-sm border border-neutral-200 dark:border-neutral-700"
         >
           <p
             class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1"
@@ -64,7 +64,7 @@
         </div>
 
         <div
-          class="bg-white dark:bg-neutral-800 p-4  shadow-sm border border-neutral-200 dark:border-neutral-700"
+          class="bg-white dark:bg-neutral-800 p-4 shadow-sm border border-neutral-200 dark:border-neutral-700"
         >
           <p
             class="text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1"
@@ -100,7 +100,7 @@
         >
           Changes Log
           <span
-            class="px-2 py-0.5  bg-neutral-200 dark:bg-neutral-700 text-xs text-neutral-600 dark:text-neutral-300"
+            class="px-2 py-0.5 bg-neutral-200 dark:bg-neutral-700 text-xs text-neutral-600 dark:text-neutral-300"
           >
             {addedEvents.length + removedEvents.length + changedEvents.length}
           </span>
@@ -108,7 +108,7 @@
 
         {#if addedEvents.length === 0 && removedEvents.length === 0 && changedEvents.length === 0}
           <div
-            class="p-8 text-center bg-white dark:bg-neutral-800  border border-neutral-200 dark:border-neutral-700 border-dashed"
+            class="p-8 text-center bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 border-dashed"
           >
             <p class="text-neutral-500 dark:text-neutral-400 text-sm">
               No changes detected compared to the last commit.
@@ -116,14 +116,14 @@
           </div>
         {:else}
           <div
-            class="bg-white dark:bg-neutral-800  shadow-sm border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-100 dark:divide-neutral-700/50 overflow-hidden"
+            class="bg-white dark:bg-neutral-800 shadow-sm border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-100 dark:divide-neutral-700/50 overflow-hidden"
           >
             {#each addedEvents as item}
               <div
                 class="p-4 flex items-start gap-4 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition-colors"
               >
                 <div
-                  class="mt-1 flex-none w-6 h-6  bg-green-100 dark:bg-green-900/50 flex items-center justify-center"
+                  class="mt-1 flex-none w-6 h-6 bg-green-100 dark:bg-green-900/50 flex items-center justify-center"
                 >
                   <PlusCircleIcon
                     className="w-3 h-3 text-green-600 dark:text-green-400"
@@ -149,7 +149,7 @@
                 class="p-4 flex items-start gap-4 hover:bg-red-50/50 dark:hover:bg-red-900/10 transition-colors"
               >
                 <div
-                  class="mt-1 flex-none w-6 h-6  bg-red-100 dark:bg-red-900/50 flex items-center justify-center"
+                  class="mt-1 flex-none w-6 h-6 bg-red-100 dark:bg-red-900/50 flex items-center justify-center"
                 >
                   <MinusCircleIcon
                     className="w-3 h-3 text-red-600 dark:text-red-400"
@@ -175,7 +175,7 @@
                 class="p-4 flex items-start gap-4 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors"
               >
                 <div
-                  class="mt-1 flex-none w-6 h-6  bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center"
+                  class="mt-1 flex-none w-6 h-6 bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center"
                 >
                   <PenIcon
                     className="w-3 h-3 text-blue-600 dark:text-blue-400"
@@ -232,7 +232,7 @@
       class="flex flex-col items-center justify-center h-full gap-4 text-center p-8"
     >
       <div
-        class="w-10 h-10 border-4 border-purple-200 border-t-purple-600  animate-spin"
+        class="w-10 h-10 border-4 border-purple-200 border-t-purple-600 animate-spin"
       ></div>
       <div>
         <p class="text-neutral-900 dark:text-white font-medium">

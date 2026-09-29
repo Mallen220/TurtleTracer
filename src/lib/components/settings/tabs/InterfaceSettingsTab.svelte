@@ -116,7 +116,7 @@
       id="theme-select"
       value={settings.theme}
       onchange={(e) => set("theme", e.currentTarget.value as any)}
-      class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="auto">Auto (System Preference)</option>
       <option value="light">Light Mode</option>
@@ -154,7 +154,7 @@
         value={settings.programFontSize}
         oninput={(e) =>
           set("programFontSize", Number.parseInt(e.currentTarget.value))}
-        class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700  appearance-none cursor-pointer accent-blue-500"
+        class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 appearance-none cursor-pointer accent-blue-500"
       />
       <span
         class="text-sm font-medium text-neutral-700 dark:text-neutral-300 min-w-[3rem] text-right"
@@ -176,7 +176,7 @@
         id="field-map-select"
         value={settings.fieldMap}
         onchange={(e) => set("fieldMap", e.currentTarget.value as any)}
-        class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         {#each availableMaps as field}
           <option value={field.value}>{field.label}</option>
@@ -238,7 +238,7 @@
             if (!Number.isNaN(val))
               resizeField(val, settings.fieldHeight ?? 144);
           }}
-          class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
       <span class="text-neutral-500 mt-4">×</span>
@@ -257,7 +257,7 @@
             if (!Number.isNaN(val))
               resizeField(settings.fieldWidth ?? 144, val);
           }}
-          class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
     </div>
@@ -272,7 +272,7 @@
     <div class="grid grid-cols-4 gap-2">
       {#each [0, 90, 180, 270] as rotation}
         <button
-          class="px-3 py-2 text-sm  border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 {settings.fieldRotation ===
+          class="px-3 py-2 text-sm border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 {settings.fieldRotation ===
           rotation
             ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500'
             : 'bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
@@ -295,7 +295,7 @@
       id="coordinate-system-select"
       value={settings.coordinateSystem}
       onchange={(e) => set("coordinateSystem", e.currentTarget.value as any)}
-      class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="Pedro">Pedro Pathing (0-144)</option>
       <option value="FTC">FTC Center (±72)</option>
@@ -313,7 +313,7 @@
       id="visualizer-units-select"
       value={settings.visualizerUnits}
       onchange={(e) => set("visualizerUnits", e.currentTarget.value as any)}
-      class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="imperial">Imperial (Inches)</option>
       <option value="metric">Metric (cm)</option>
@@ -373,7 +373,7 @@
                 "onionLayerSpacing",
                 Number.parseFloat(e.currentTarget.value) || 0,
               )}
-            class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700  appearance-none cursor-pointer accent-indigo-500"
+            class="flex-1 h-2 bg-neutral-200 dark:bg-neutral-700 appearance-none cursor-pointer accent-indigo-500"
           />
           <span
             class="text-sm font-medium text-neutral-700 dark:text-neutral-300 min-w-[3rem] text-right"

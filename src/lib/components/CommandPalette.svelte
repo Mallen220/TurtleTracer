@@ -167,7 +167,7 @@
     >
       <!-- Search Bar -->
       <div
-        class="bg-white dark:bg-neutral-900   shadow-xl flex items-center px-5 py-4 border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
+        class="bg-white dark:bg-neutral-900 shadow-xl flex items-center px-5 py-4 border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
       >
         <SearchIcon
           className="size-6 text-neutral-400 mr-4 flex-shrink-0"
@@ -200,7 +200,7 @@
 
       <!-- Results List -->
       <div
-        class="bg-white dark:bg-neutral-900   shadow-xl overflow-hidden flex flex-col border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
+        class="bg-white dark:bg-neutral-900 shadow-xl overflow-hidden flex flex-col border border-neutral-200 dark:border-neutral-700 ring-1 ring-black/5"
       >
         <div
           id="command-results"
@@ -220,7 +220,7 @@
                 id="command-option-{index}"
                 role="option"
                 aria-selected={index === selectedIndex}
-                class="w-full px-4 py-4 flex items-center justify-between text-left transition-all duration-75  mb-0.5
+                class="w-full px-4 py-4 flex items-center justify-between text-left transition-all duration-75 mb-0.5
                 {index === selectedIndex
                   ? 'bg-indigo-600 text-white shadow-md transform scale-[1.00]'
                   : 'text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800'}"

@@ -167,7 +167,7 @@
       id="autosave-mode"
       value={settings.autosaveMode}
       onchange={(e) => set("autosaveMode", e.currentTarget.value as any)}
-      class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="never">Never</option>
       <option value="time">Time Based</option>
@@ -191,7 +191,7 @@
           value={settings.autosaveInterval}
           onchange={(e) =>
             set("autosaveInterval", Number.parseInt(e.currentTarget.value))}
-          class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           {#each [1, 5, 10, 15, 20, 40, 60] as interval}
             <option value={interval}>{interval} minutes</option>
@@ -228,7 +228,7 @@
       <button
         onclick={handleCheckForUpdates}
         disabled={isCheckingForUpdates}
-        class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700  transition-colors disabled:opacity-50"
+        class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50"
       >
         {isCheckingForUpdates ? "Checking..." : "Check for Updates"}
       </button>
@@ -310,7 +310,7 @@
         onclick={handleExport}
         title="Export Settings"
         aria-label="Export Settings"
-        class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700  transition-colors"
+        class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors"
       >
         Export
       </button>
@@ -318,7 +318,7 @@
         onclick={() =>
           document.getElementById("settings-import-input")?.click()}
         title="Import Settings"
-        class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700  transition-colors"
+        class="px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 transition-colors"
       >
         Import
       </button>

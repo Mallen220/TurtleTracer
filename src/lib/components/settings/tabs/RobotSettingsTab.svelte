@@ -85,7 +85,7 @@
         max="36"
         step="0.5"
         onchange={(e) => setNumber("rLength", e.currentTarget.value, 1, 36)}
-        class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
     <SettingsItem
@@ -105,7 +105,7 @@
         max="36"
         step="0.5"
         onchange={(e) => setNumber("rWidth", e.currentTarget.value, 1, 36)}
-        class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
   </div>
@@ -144,7 +144,7 @@
         step="0.5"
         onchange={(e) =>
           setNumber("safetyMargin", e.currentTarget.value, 0, 24)}
-        class="w-full px-3 py-2  border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </SettingsItem>
 
@@ -223,11 +223,11 @@
       </div>
     </div>
     <div
-      class="flex flex-col items-center gap-3 p-4 border border-neutral-300 dark:border-neutral-700  bg-neutral-50 dark:bg-neutral-800/50"
+      class="flex flex-col items-center gap-3 p-4 border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50"
     >
       <!-- Image Preview & Controls (Same as original) -->
       <div
-        class="relative w-24 h-24 border-2 border-neutral-300 dark:border-neutral-600  overflow-hidden bg-white dark:bg-neutral-900"
+        class="relative w-24 h-24 border-2 border-neutral-300 dark:border-neutral-600 overflow-hidden bg-white dark:bg-neutral-900"
       >
         {#if settings.robotImage && settings.robotImage !== "none"}
           <img
@@ -248,7 +248,7 @@
         {#if settings.robotImage && settings.robotImage !== "/robot.png" && settings.robotImage !== "none"}
           <button
             onclick={() => set("robotImage", "/robot.png")}
-            class="absolute top-1 right-1 p-1 bg-red-500 text-white  hover:bg-red-600 transition-colors"
+            class="absolute top-1 right-1 p-1 bg-red-500 text-white hover:bg-red-600 transition-colors"
           >
             <CloseIcon className="size-3" strokeWidth={3} />
           </button>
@@ -280,14 +280,14 @@
         />
         <button
           onclick={() => set("robotImage", "none")}
-          class="px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white  transition-colors"
+          class="px-3 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white transition-colors"
           disabled={settings.robotImage === "none"}
         >
           No Image (Recommended)
         </button>
         <button
           onclick={() => set("robotImage", "/robot.png")}
-          class="px-3 py-1.5 text-xs bg-neutral-500 hover:bg-neutral-600 text-white  transition-colors"
+          class="px-3 py-1.5 text-xs bg-neutral-500 hover:bg-neutral-600 text-white transition-colors"
           disabled={!settings.robotImage ||
             settings.robotImage === "/robot.png"}
         >
@@ -295,20 +295,20 @@
         </button>
         <button
           onclick={() => set("robotImage", "/JefferyThePotato.png")}
-          class="potato-tooltip px-3 py-1.5 text-xs bg-amber-700 hover:bg-amber-800 text-white  transition-colors flex items-center gap-1 overflow-hidden relative"
+          class="potato-tooltip px-3 py-1.5 text-xs bg-amber-700 hover:bg-amber-800 text-white transition-colors flex items-center gap-1 overflow-hidden relative"
           style="background-image: linear-gradient(45deg, #a16207 25%, #ca8a04 25%, #ca8a04 50%, #a16207 50%, #a16207 75%, #ca8a04 75%, #ca8a04 100%); background-size: 20px 20px;"
         >
           <span>🥔</span> Use Potato Robot
         </button>
         <button
           onclick={() => set("robotImage", "turtle")}
-          class="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white  transition-colors"
+          class="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white transition-colors"
         >
           🐢 Use Turtle Robot
         </button>
         <button
           onclick={() => document.getElementById("robot-image-input")?.click()}
-          class="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white  transition-colors"
+          class="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white transition-colors"
         >
           Upload Custom
         </button>
@@ -330,7 +330,7 @@
             class="flex gap-2"
           >
             <button
-              class="px-3 py-1.5 text-sm  transition-colors
+              class="px-3 py-1.5 text-sm transition-colors
                               {settings.robotDriveType === 'holonomic'
                 ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
                 : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"
@@ -339,7 +339,7 @@
               Holonomic
             </button>
             <button
-              class="px-3 py-1.5 text-sm  transition-colors
+              class="px-3 py-1.5 text-sm transition-colors
                               {settings.robotDriveType === 'swerve'
                 ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500 text-blue-700 dark:text-blue-300'
                 : 'bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700'}"

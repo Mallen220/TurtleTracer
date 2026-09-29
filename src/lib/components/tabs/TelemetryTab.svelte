@@ -81,7 +81,7 @@
 <div class="p-4 w-full flex flex-col gap-4 h-full">
   <!-- Connection Controls -->
   <div
-    class="flex flex-col gap-2 p-4 bg-white dark:bg-neutral-800  shadow-sm border border-neutral-200 dark:border-neutral-700"
+    class="flex flex-col gap-2 p-4 bg-white dark:bg-neutral-800 shadow-sm border border-neutral-200 dark:border-neutral-700"
   >
     <h3 class="font-semibold text-lg text-neutral-800 dark:text-neutral-100">
       Connection
@@ -135,7 +135,7 @@
     </div>
     <button
       onclick={toggleConnection}
-      class="w-full py-2  font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
+      class="w-full py-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2
             {$isConnected
         ? 'bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-500'
         : 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'}"
@@ -154,7 +154,7 @@
     <div class="flex justify-between items-center text-xs mt-1">
       <div class="flex items-center gap-1.5">
         <div
-          class="w-2 h-2  {status === 'CONNECTED'
+          class="w-2 h-2 {status === 'CONNECTED'
             ? 'bg-green-500'
             : status === 'CONNECTING'
               ? 'bg-yellow-500 animate-pulse'
@@ -174,7 +174,7 @@
 
   <!-- Data Table -->
   <div
-    class="flex-1 overflow-hidden flex flex-col bg-white dark:bg-neutral-800  shadow-sm border border-neutral-200 dark:border-neutral-700"
+    class="flex-1 overflow-hidden flex flex-col bg-white dark:bg-neutral-800 shadow-sm border border-neutral-200 dark:border-neutral-700"
   >
     <div
       class="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50"
@@ -206,7 +206,7 @@
                 >
                   {#if typeof lines[key] === "boolean"}
                     <span
-                      class="inline-block w-2.5 h-2.5  {lines[key]
+                      class="inline-block w-2.5 h-2.5 {lines[key]
                         ? 'bg-green-500'
                         : 'bg-red-500'}"
                     ></span>
