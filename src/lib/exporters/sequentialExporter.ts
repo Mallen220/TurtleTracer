@@ -1,6 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import prettier from "prettier";
-import prettierJavaPlugin from "prettier-plugin-java";
 import type { Point, Line, SequenceItem, TurtleData } from "../../types";
 import {
   generateTrackerEventRegistrationCode,
@@ -17,6 +15,7 @@ import {
 import { exporterRegistry } from "./index";
 import {
   javaLength,
+  formatJava,
   flattenMacros,
   AUTO_GENERATED_FILE_WARNING_MESSAGE,
   poseCode,
@@ -452,16 +451,7 @@ ${commands.join(",\n")}
 `;
   }
 
-  try {
-    const formattedCode = await prettier.format(sequentialCommandCode, {
-      parser: "java",
-      plugins: [prettierJavaPlugin],
-    });
-    return formattedCode;
-  } catch (error) {
-    console.error("Code formatting error:", error);
-    return sequentialCommandCode;
-  }
+  return formatJava(sequentialCommandCode);
 }
 
 exporterRegistry.register({

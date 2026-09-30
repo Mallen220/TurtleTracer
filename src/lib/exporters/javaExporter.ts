@@ -1,6 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import prettier from "prettier";
-import prettierJavaPlugin from "prettier-plugin-java";
 import type { Point, Line, SequenceItem, TurtleData } from "../../types";
 import { actionRegistry } from "../../lib/actionRegistry";
 import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
@@ -9,6 +7,7 @@ import { type CoordinateSystem } from "../../utils/coordinates";
 
 import { exporterRegistry } from "./index";
 import {
+  formatJava,
   flattenMacros,
   poseCode,
   angleCode,
@@ -375,16 +374,7 @@ export async function generateJavaCode(
     file = AUTO_GENERATED_FILE_WARNING_MESSAGE + pathsClass;
   }
 
-  try {
-    const formattedCode = await prettier.format(file, {
-      parser: "java",
-      plugins: [prettierJavaPlugin],
-    });
-    return formattedCode;
-  } catch (error) {
-    console.error("Code formatting error:", error);
-    return file;
-  }
+  return formatJava(file);
 }
 
 exporterRegistry.register({

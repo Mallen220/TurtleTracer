@@ -2,10 +2,6 @@
 // Exports the field view as a still image (PNG/JPEG/SVG) or the path
 // animation as a GIF (via gif.js) or APNG (via upng-js).
 
-import GIF from "gif.js";
-// Vite: import worker script URL so gif.js can spawn workers correctly
-import gifWorkerUrl from "gif.js/dist/gif.worker.js?url";
-import * as UPNG from "upng-js";
 import type Two from "two.js";
 import type { AnimationController } from "./animation";
 
@@ -440,6 +436,12 @@ export async function exportPathToGif(
 ): Promise<Blob> {
   const { durationSec, quality = 20, onProgress, signal } = options;
   const { width, height } = getCanvasSize(options);
+  // The encoders are only needed when exporting, so they load on demand.
+  const [{ default: GIF }, { default: gifWorkerUrl }] = await Promise.all([
+    import("gif.js"),
+    // Vite: import worker script URL so gif.js can spawn workers correctly
+    import("gif.js/dist/gif.worker.js?url"),
+  ]);
   const gif = new GIF({
     workers: 2,
     quality,
@@ -496,6 +498,7 @@ export async function exportPathToApng(
   // A colour count of 0 means lossless; otherwise the image is reduced to
   // a 256 colour palette, which is much smaller.
   const colourCount = quality <= 9 ? 0 : 256;
+  const UPNG = await import("upng-js");
   const apng = UPNG.encode(buffers, width, height, colourCount, delaysMs);
   onProgress?.(1);
 

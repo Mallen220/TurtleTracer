@@ -8,6 +8,8 @@ import { FIELD_SIZE } from "../config";
 const LARGE_SCREEN_MIN_WIDTH = 1024;
 const MIN_SIDEBAR_WIDTH = 320;
 const MIN_FIELD_PANE_WIDTH = 300;
+/** Share of the main area the field pane takes on wide screens until the divider is dragged. */
+const DEFAULT_FIELD_WIDTH_FRACTION = 0.49;
 const MIN_FIELD_HEIGHT = 200;
 /** Space kept for the control tab below the field on narrow screens. */
 const MIN_CONTROL_TAB_HEIGHT = 100;
@@ -82,7 +84,8 @@ export class FieldLayout {
         this.mainContentWidth > 0 &&
         this.isLargeScreen
       ) {
-        this.userFieldLimit = this.mainContentWidth * 0.49;
+        this.userFieldLimit =
+          this.mainContentWidth * DEFAULT_FIELD_WIDTH_FRACTION;
       }
     });
 
@@ -121,7 +124,9 @@ export class FieldLayout {
     }
     const max = this.mainContentWidth - MIN_SIDEBAR_WIDTH;
     if (max < MIN_FIELD_PANE_WIDTH) return this.mainContentWidth * 0.5;
-    const target = this.userFieldLimit ?? this.mainContentWidth * 0.55;
+    const target =
+      this.userFieldLimit ??
+      this.mainContentWidth * DEFAULT_FIELD_WIDTH_FRACTION;
     return clamp(target, MIN_FIELD_PANE_WIDTH, max);
   });
 
@@ -166,12 +171,18 @@ export class FieldLayout {
     return `${Math.max(120, Math.floor(Math.min(h, this.mainContentHeight)))}px`;
   });
 
-  /** CSS width of the field container. */
-  fieldContainerWidth = $derived(
-    this.isLargeScreen && this.effectiveShowSidebar
-      ? `${this.leftPaneWidth}px`
-      : "100%",
-  );
+  /**
+   * CSS width of the field container. Before the main area has been measured
+   * it uses the same default as a percentage, so the field doesn't animate in
+   * from zero width (which counts as a large layout shift on load).
+   */
+  fieldContainerWidth = $derived.by(() => {
+    if (!this.isLargeScreen || !this.effectiveShowSidebar) return "100%";
+    if (this.mainContentWidth === 0) {
+      return `${DEFAULT_FIELD_WIDTH_FRACTION * 100}%`;
+    }
+    return `${this.leftPaneWidth}px`;
+  });
 
   /** CSS min-height of the field container. */
   fieldContainerMinHeight = $derived(
@@ -230,7 +241,9 @@ export class FieldLayout {
     if (mode === "horizontal") {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       e.preventDefault();
-      const current = this.userFieldLimit ?? this.mainContentWidth * 0.55;
+      const current =
+        this.userFieldLimit ??
+        this.mainContentWidth * DEFAULT_FIELD_WIDTH_FRACTION;
       this.userFieldLimit = clamp(
         current + (e.key === "ArrowLeft" ? -step : step),
         MIN_FIELD_PANE_WIDTH,

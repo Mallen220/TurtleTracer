@@ -73,6 +73,13 @@ describe("FieldLayout", () => {
       expect(layout.fieldContainerHeight).toBe("100%");
     });
 
+    it("uses the default share as a percentage before the main area is measured", () => {
+      const { layout } = createLayout();
+      layout.innerWidth = 1400;
+      flushSync();
+      expect(layout.fieldContainerWidth).toBe("49%");
+    });
+
     it("draws the field as the largest square that fits", () => {
       const { layout } = wideLayout();
       // Pane is 490 wide (474 usable) and 600 tall (584 usable).

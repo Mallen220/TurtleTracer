@@ -20,6 +20,27 @@ export function javaLength(inches: number, units: CodeUnits): string {
     : inches.toFixed(3);
 }
 
+/**
+ * Formats generated Java with prettier. Prettier and its Java plugin are
+ * large, so they are loaded on first use rather than with the app. If
+ * formatting fails the unformatted source is returned.
+ */
+export async function formatJava(source: string): Promise<string> {
+  try {
+    const [{ default: prettier }, { default: javaPlugin }] = await Promise.all([
+      import("prettier"),
+      import("prettier-plugin-java"),
+    ]);
+    return await prettier.format(source, {
+      parser: "java",
+      plugins: [javaPlugin],
+    });
+  } catch (error) {
+    console.error("Code formatting error:", error);
+    return source;
+  }
+}
+
 /** The sequence with every macro replaced by its own steps, recursively. */
 export function flattenMacros(sequence: SequenceItem[]): SequenceItem[] {
   return sequence.flatMap((item) =>
