@@ -250,11 +250,16 @@
     return Number.parseFloat(str);
   }
 
+  // Escape leaves the box, which commits like any other blur unless told not to.
+  let cancelTimeEdit = false;
+
   function commitTime() {
-    const t = parseTime(timeInputValue);
-    if (!Number.isNaN(t) && totalSeconds > 0) {
-      const pct = (t / totalSeconds) * 100;
-      handleSeek(Math.max(0, Math.min(100, pct)));
+    if (!cancelTimeEdit) {
+      const t = parseTime(timeInputValue);
+      if (!Number.isNaN(t) && totalSeconds > 0) {
+        const pct = (t / totalSeconds) * 100;
+        handleSeek(Math.max(0, Math.min(100, pct)));
+      }
     }
     isEditingTime = false;
   }
@@ -264,8 +269,9 @@
       (e.target as HTMLInputElement).blur();
     }
     if (e.key === "Escape") {
-      isEditingTime = false; // Cancel
+      cancelTimeEdit = true;
       (e.target as HTMLInputElement).blur();
+      cancelTimeEdit = false;
     }
   }
 

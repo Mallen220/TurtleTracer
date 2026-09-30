@@ -298,14 +298,14 @@ export async function exportPathToImage(
         const transform = `translate(${state.x}, ${state.y}) rotate(${state.heading})`;
         const arrowTransform = `translate(-12, -12)`;
 
-        const robotSvg = `
-          <g transform="${transform}">
+        // No leading whitespace: the first child of the parsed markup is what
+        // gets added to the SVG, and it has to be the <g>, not a text node.
+        const robotSvg = `<g transform="${transform}">
             <rect x="${-rw / 2}" y="${-rh / 2}" width="${rw}" height="${rh}" fill="rgba(34, 197, 94, 0.10)" stroke="#16a34a" stroke-width="2" rx="8" />
             <g transform="${arrowTransform}">
               <path stroke="rgba(34, 197, 94, 1.0)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M8.25 4.5l7.5 7.5-7.5 7.5" style="filter: drop-shadow(0px 0px 2px rgba(255,255,255,0.8));" />
             </g>
-          </g>
-        `;
+          </g>`;
         const robotFragment = parser.parseFromString(
           `<svg xmlns="http://www.w3.org/2000/svg">${robotSvg}</svg>`,
           "image/svg+xml",

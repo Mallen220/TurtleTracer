@@ -4,14 +4,16 @@
   import { untrack } from "svelte";
   import WaypointTable from "../lib/components/WaypointTable.svelte";
   import { DEFAULT_SETTINGS } from "../config/defaults";
-  import type { Line, Point, SequenceItem } from "../types";
+  import type { Line, Point, SequenceItem, Settings } from "../types";
 
   let {
     project,
     recordChange = () => {},
+    settings = DEFAULT_SETTINGS,
   }: {
     project: { startPoint: Point; lines: Line[]; sequence: SequenceItem[] };
     recordChange?: () => void;
+    settings?: Settings;
   } = $props();
 
   let startPoint = $state(untrack(() => project.startPoint));
@@ -31,5 +33,5 @@
   {recordChange}
   shapes={[]}
   collapsedObstacles={[]}
-  settings={DEFAULT_SETTINGS}
+  {settings}
 />

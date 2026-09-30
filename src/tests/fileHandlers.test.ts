@@ -16,6 +16,7 @@ import { DEFAULT_SETTINGS } from "../config/defaults";
 import { actionRegistry } from "../lib/actionRegistry";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import type { SequenceMacroItem, TurtleData } from "../types";
+import { exporterRegistry } from "../lib/exporters";
 import pkg from "../../package.json";
 
 const macroKind = (): SequenceMacroItem["kind"] =>
@@ -690,6 +691,256 @@ describe("fileHandlers", () => {
       await new Promise((r) => setTimeout(r, 0));
 
       expect(get(isUnsaved)).toBe(false);
+    });
+  });
+});
+
+// --- Path helpers, saving options and auto export ---
+
+describe("path helpers", () => {
+  it("fileNameOf takes the last part of a path with either separator", () => {
+    expect(fileHandlers.fileNameOf("/a/b/c.turt")).toBe("c.turt");
+    expect(fileHandlers.fileNameOf(String.raw`C:\a\b\c.turt`)).toBe("c.turt");
+    expect(fileHandlers.fileNameOf("plain.turt")).toBe("plain.turt");
+    expect(fileHandlers.fileNameOf("/a/b/")).toBe("");
+  });
+
+  it("directoryOf drops the file name, whichever separator is used", () => {
+    expect(fileHandlers.directoryOf("/a/b/c.turt")).toBe("/a/b");
+    expect(fileHandlers.directoryOf(String.raw`C:\a\b\c.turt`)).toBe(
+      String.raw`C:\a\b`,
+    );
+    expect(fileHandlers.directoryOf(String.raw`C:\a/b\c.turt`)).toBe(
+      String.raw`C:\a/b`,
+    );
+  });
+
+  it("joinPath uses the directory's own separator without doubling it", () => {
+    expect(fileHandlers.joinPath("/a/b", "c.turt")).toBe("/a/b/c.turt");
+    expect(fileHandlers.joinPath("/a/b/", "c.turt")).toBe("/a/b/c.turt");
+    expect(fileHandlers.joinPath(String.raw`C:\a\b`, "c.turt")).toBe(
+      String.raw`C:\a\b\c.turt`,
+    );
+    expect(fileHandlers.joinPath("C:\\a\\b\\", "c.turt")).toBe(
+      String.raw`C:\a\b\c.turt`,
+    );
+  });
+});
+
+describe("saving and closing", () => {
+  const api = {
+    writeFile: vi.fn(),
+    readFile: vi.fn(),
+    fileExists: vi.fn(),
+    saveFile: vi.fn(),
+    showSaveDialog: vi.fn(),
+    resolvePath: vi.fn(),
+    createDirectory: vi.fn(),
+    makeRelativePath: vi.fn(),
+  };
+
+  beforeEach(() => {
+    actionRegistry.reset();
+    registerCoreUI();
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    (globalThis as any).electronAPI = api;
+    api.saveFile.mockImplementation(async (_content: string, path: string) => ({
+      success: true,
+      filepath: path,
+    }));
+    currentFilePath.set("");
+    isUnsaved.set(false);
+    notification.set(null);
+    settingsStore.set({ ...DEFAULT_SETTINGS, recentFiles: [] });
+    startPointStore.set({ x: 0, y: 0, heading: "tangential" } as any);
+    linesStore.set([]);
+    sequenceStore.set([]);
+    shapesStore.set([]);
+  });
+
+  describe("autosaveBeforeLeaving", () => {
+    const arrange = (over: {
+      mode?: string;
+      unsaved?: boolean;
+      path?: string;
+    }) => {
+      settingsStore.set({
+        ...DEFAULT_SETTINGS,
+        autosaveMode: (over.mode ?? "close") as any,
+      });
+      isUnsaved.set(over.unsaved ?? true);
+      currentFilePath.set(over.path ?? "/p/a.turt");
+    };
+
+    it("saves the open file, silently, when it has unsaved changes", async () => {
+      arrange({});
+      await fileHandlers.autosaveBeforeLeaving();
+      expect(api.saveFile).toHaveBeenCalledTimes(1);
+      expect(api.saveFile.mock.calls[0][1]).toBe("/p/a.turt");
+      expect(get(isUnsaved)).toBe(false);
+      expect(get(notification)).toBeNull();
+    });
+
+    it("does nothing unless autosave-on-close is on, there are changes and a file is open", async () => {
+      arrange({ mode: "off" });
+      await fileHandlers.autosaveBeforeLeaving();
+      arrange({ unsaved: false });
+      await fileHandlers.autosaveBeforeLeaving();
+      arrange({ path: "" });
+      await fileHandlers.autosaveBeforeLeaving();
+      expect(api.saveFile).not.toHaveBeenCalled();
+      expect(api.showSaveDialog).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("saveProject options", () => {
+    it("asks where to save when there is no file yet, and stops if cancelled", async () => {
+      api.showSaveDialog.mockResolvedValue(undefined);
+      expect(await fileHandlers.saveProject()).toBe(false);
+      expect(api.saveFile).not.toHaveBeenCalled();
+      expect(get(currentFilePath)).toBe("");
+    });
+
+    it("saveAs asks for a new location even though a file is open", async () => {
+      currentFilePath.set("/p/old.turt");
+      api.showSaveDialog.mockResolvedValue("/p/new.turt");
+      expect(await fileHandlers.saveProject({ saveAs: true })).toBe(true);
+      expect(api.showSaveDialog).toHaveBeenCalled();
+      expect(get(currentFilePath)).toBe("/p/new.turt");
+    });
+
+    it("saves to an explicit path, adds the .turt extension, and remembers the file", async () => {
+      await fileHandlers.saveProject({ path: "/p/noext" });
+      expect(api.saveFile.mock.calls[0][1]).toBe("/p/noext.turt");
+      expect(get(settingsStore).recentFiles).toEqual(["/p/noext.turt"]);
+    });
+
+    it("lists the most recently saved file first, without duplicates, at most ten", async () => {
+      const older = Array.from({ length: 12 }, (_, i) => `/p/f${i}.turt`);
+      settingsStore.set({ ...DEFAULT_SETTINGS, recentFiles: older });
+      await fileHandlers.saveProject({ path: "/p/f5.turt" });
+      const recent = get(settingsStore).recentFiles!;
+      expect(recent[0]).toBe("/p/f5.turt");
+      expect(recent.filter((f) => f === "/p/f5.turt")).toHaveLength(1);
+      expect(recent).toHaveLength(10);
+    });
+
+    it("tells the user about a success unless asked to stay quiet", async () => {
+      await fileHandlers.saveProject({ path: "/p/a.turt" });
+      expect(get(notification)).toMatchObject({
+        type: "success",
+        message: "Project saved to /p/a.turt",
+      });
+      notification.set(null);
+      await fileHandlers.saveProject({ path: "/p/a.turt", quiet: true });
+      expect(get(notification)).toBeNull();
+    });
+
+    it("warns when an old .pp project was converted", async () => {
+      await fileHandlers.saveProject({ path: "/p/old.pp" });
+      expect(get(notification)).toMatchObject({ type: "warning" });
+      expect(get(notification)!.message).toContain("Legacy .pp");
+    });
+
+    it("reports an error if writing throws", async () => {
+      api.saveFile.mockRejectedValue(new Error("disk full"));
+      expect(await fileHandlers.saveProject({ path: "/p/a.turt" })).toBe(false);
+      expect(get(notification)).toMatchObject({
+        type: "error",
+        message: "Save failed: disk full",
+      });
+    });
+  });
+
+  describe("handleAutoExport", () => {
+    const run = (
+      settings: Record<string, unknown>,
+      target = "/p/dir/Auto.turt",
+    ) =>
+      fileHandlers.handleAutoExport(
+        { x: 0, y: 0, heading: "tangential" } as any,
+        [],
+        [],
+        { ...DEFAULT_SETTINGS, ...settings } as any,
+        [],
+        { shapes: [] } as any,
+        target,
+      );
+
+    beforeEach(() => {
+      api.resolvePath.mockImplementation(
+        async (_from: string, rel: string) => `/p/dir/${rel}`,
+      );
+      exporterRegistry.reset();
+    });
+
+    it("does nothing when auto export is off, or the desktop API can't resolve paths", async () => {
+      await run({ autoExportCode: false });
+      (globalThis as any).electronAPI = { ...api, resolvePath: undefined };
+      await run({ autoExportCode: true, autoExportFormat: "json" });
+      expect(api.writeFile).not.toHaveBeenCalled();
+    });
+
+    it("writes the code from the chosen exporter into the export folder", async () => {
+      const exportCode = vi.fn(async () => "// generated");
+      exporterRegistry.register({ id: "java", name: "Java", exportCode });
+      await run({
+        autoExportCode: true,
+        autoExportFormat: "java",
+        autoExportPath: "Out",
+        autoExportFullClass: false,
+        javaPackageName: "org.team",
+      });
+      expect(api.createDirectory).toHaveBeenCalledWith("/p/dir/Out");
+      expect(api.writeFile).toHaveBeenCalledWith(
+        "/p/dir/Out/Auto.java",
+        "// generated",
+      );
+      const options = (exportCode.mock.calls[0] as any)[1];
+      expect(options).toMatchObject({
+        fileName: "Auto",
+        exportFullCode: false,
+        packageName: "org.team",
+        targetLibrary: "SolversLib",
+      });
+      expect(get(notification)).toMatchObject({
+        type: "success",
+        message: "Code auto-exported to Auto.java",
+      });
+    });
+
+    it("uses a .txt extension for point lists and GeneratedCode as the default folder", async () => {
+      exporterRegistry.register({
+        id: "points",
+        name: "Points",
+        exportCode: () => "1,2",
+      });
+      await run({
+        autoExportCode: true,
+        autoExportFormat: "points",
+        autoExportPath: "",
+      });
+      expect(api.writeFile).toHaveBeenCalledWith(
+        "/p/dir/GeneratedCode/Auto.txt",
+        "1,2",
+      );
+    });
+
+    it("warns, rather than failing the save, when the format doesn't exist", async () => {
+      await run({ autoExportCode: true, autoExportFormat: "nonsense" });
+      expect(api.writeFile).not.toHaveBeenCalled();
+      expect(get(notification)).toMatchObject({ type: "warning" });
+      expect(get(notification)!.message).toContain("nonsense");
+    });
+
+    it("warns when the file can't be written", async () => {
+      api.writeFile.mockRejectedValue(new Error("read-only"));
+      await run({ autoExportCode: true, autoExportFormat: "json" });
+      expect(get(notification)).toMatchObject({
+        type: "warning",
+        message: "Auto Export Failed: read-only",
+      });
     });
   });
 });

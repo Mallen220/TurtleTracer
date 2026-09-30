@@ -4,6 +4,18 @@ import { dismissOpenDialog, deselectAllElements } from "./dialogDismissal";
 import {
   showSettings,
   showFileManager,
+  showPluginManager,
+  showShortcuts,
+  showExportImage,
+  showWhatsNew,
+  showExportGif,
+  exportDialogState,
+  showTelemetryDialog,
+  showStrategySheet,
+  showFeedbackDialog,
+  showRatingDialog,
+  showTransformDialog,
+  showUpdateAvailableDialog,
   selectedPointId,
   multiSelectedPointIds,
   selectedLineId,
@@ -45,5 +57,59 @@ describe("dialogDismissal", () => {
     expect(get(multiSelectedPointIds)).toEqual([]);
     expect(get(selectedLineId)).toBeNull();
     expect(get(multiSelectedLineIds)).toEqual([]);
+  });
+
+  describe("each kind of dialog", () => {
+    // In the order Escape closes them when several are open.
+    const flags = [
+      ["settings", showSettings],
+      ["file manager", showFileManager],
+      ["plugin manager", showPluginManager],
+      ["keyboard shortcuts", showShortcuts],
+      ["export image", showExportImage],
+      ["what's new", showWhatsNew],
+      ["export GIF", showExportGif],
+      ["telemetry", showTelemetryDialog],
+      ["strategy sheet", showStrategySheet],
+      ["feedback", showFeedbackDialog],
+      ["rating", showRatingDialog],
+      ["transform", showTransformDialog],
+      ["update available", showUpdateAvailableDialog],
+    ] as const;
+
+    beforeEach(() => {
+      for (const [, flag] of flags) flag.set(false);
+      exportDialogState.update((s) => ({ ...s, isOpen: false }));
+    });
+
+    it.each(flags)("closes the %s dialog", (_name, flag) => {
+      flag.set(true);
+      expect(dismissOpenDialog()).toBe(true);
+      expect(get(flag)).toBe(false);
+    });
+
+    it("closes the export code dialog without losing its other settings", () => {
+      exportDialogState.update((s) => ({ ...s, isOpen: true }));
+      const before = get(exportDialogState);
+      expect(dismissOpenDialog()).toBe(true);
+      expect(get(exportDialogState)).toEqual({ ...before, isOpen: false });
+    });
+
+    it("closes one dialog per call, working down the list", () => {
+      showSettings.set(true);
+      showRatingDialog.set(true);
+      showUpdateAvailableDialog.set(true);
+
+      expect(dismissOpenDialog()).toBe(true);
+      expect(get(showSettings)).toBe(false);
+      expect(get(showRatingDialog)).toBe(true);
+
+      expect(dismissOpenDialog()).toBe(true);
+      expect(get(showRatingDialog)).toBe(false);
+      expect(get(showUpdateAvailableDialog)).toBe(true);
+
+      expect(dismissOpenDialog()).toBe(true);
+      expect(dismissOpenDialog()).toBe(false);
+    });
   });
 });

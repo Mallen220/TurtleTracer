@@ -3,10 +3,15 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import GlobalEventMarkers from "../lib/components/GlobalEventMarkers.svelte";
-  import type { Line, SequenceItem } from "../types";
+  import type { Line, SequenceItem, TimePrediction } from "../types";
 
-  let { project }: { project: { lines: Line[]; sequence: SequenceItem[] } } =
-    $props();
+  let {
+    project,
+    timePrediction = undefined,
+  }: {
+    project: { lines: Line[]; sequence: SequenceItem[] };
+    timePrediction?: TimePrediction | null;
+  } = $props();
   // Only the initial values are wanted; edits flow back through the effect.
   const { lines: initialLines, sequence: initialSequence } = untrack(
     () => project,
@@ -20,4 +25,9 @@
   });
 </script>
 
-<GlobalEventMarkers bind:lines bind:sequence collapsedMarkers={false} />
+<GlobalEventMarkers
+  bind:lines
+  bind:sequence
+  collapsedMarkers={false}
+  {timePrediction}
+/>
