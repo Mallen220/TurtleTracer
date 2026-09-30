@@ -2,6 +2,10 @@
 
 This release makes path editing, project files, collision detection, macros, exports, and keyboard shortcuts more reliable and more consistent with each other. It also includes a big cleanup of the code behind them.
 
+## New setting
+
+- Square Corners: turn this on in Settings under Interface to draw buttons, dialogs, panels, and inputs with square corners instead of rounded ones. It is off by default and applies as soon as you check it.
+
 ## Simulation and collisions
 
 - Collision markers now line up with the robot's actual position. Angled robots are checked with the correct orientation, and thin obstacles crossing the robot are detected. Before, the red collision stretch of a path could be drawn several inches away from the real collision point.

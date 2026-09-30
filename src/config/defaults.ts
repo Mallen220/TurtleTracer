@@ -67,6 +67,7 @@ export const DEFAULT_SETTINGS: Settings = {
   javaPackageName: "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
   theme: "auto",
   programFontSize: 100,
+  squaredCorners: false,
   autosaveMode: "never",
   autosaveInterval: 5,
   showVelocityHeatmap: false,

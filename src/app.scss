@@ -129,3 +129,37 @@ body.is-browser {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   @apply bg-neutral-300 dark:bg-neutral-600;
 }
+
+/*
+  Square corners (Settings > Interface). The app rounds things in several ways
+  (Tailwind classes, inline styles, component styles, pseudo-elements, SVG
+  rects), so one override covers all of them. !important lets it win over
+  every one of those.
+*/
+html.squared-corners,
+html.squared-corners *,
+html.squared-corners *::before,
+html.squared-corners *::after {
+  border-radius: 0 !important;
+}
+
+/*
+  Scrollbar and slider parts get their own rules: a browser that doesn't know
+  one of these pseudo-elements would drop a whole combined rule.
+*/
+html.squared-corners::-webkit-scrollbar-thumb,
+html.squared-corners *::-webkit-scrollbar-thumb {
+  border-radius: 0 !important;
+}
+html.squared-corners *::-webkit-slider-thumb {
+  border-radius: 0 !important;
+}
+html.squared-corners *::-webkit-slider-runnable-track {
+  border-radius: 0 !important;
+}
+
+/* Icons draw rounded rectangles with rx/ry attributes, which CSS can override. */
+html.squared-corners rect {
+  rx: 0 !important;
+  ry: 0 !important;
+}

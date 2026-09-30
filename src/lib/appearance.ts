@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-// Applies the chosen colour theme and font size to the document.
+// Applies the chosen colour theme, font size and corner style to the document.
 import type { Settings } from "../types";
 import type { CustomTheme } from "./pluginsStore";
 import { POTATO_THEME_CSS } from "../utils/potatoTheme";
@@ -74,4 +74,13 @@ export function applyTheme(settings: Settings, customThemes: CustomTheme[]) {
 
 export function applyFontSize(settings: Settings) {
   document.documentElement.style.fontSize = `${settings.programFontSize || 100}%`;
+}
+
+/**
+ * Squares off every corner in the interface. The rules live in app.scss under
+ * `html.squared-corners`. Potato mode keeps its own rounded look.
+ */
+export function applySquaredCorners(settings: Settings) {
+  const squared = !!settings.squaredCorners && !isPotatoMode(settings);
+  document.documentElement.classList.toggle("squared-corners", squared);
 }
