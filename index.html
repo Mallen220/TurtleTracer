@@ -24,6 +24,12 @@
     />
     <title>Turtle Tracer</title>
     <link rel="icon" type="image/png" href="/icon.png" />
+    <link
+      rel="preload"
+      as="image"
+      href="/fields/%DEFAULT_FIELD_MAP%"
+      fetchpriority="high"
+    />
     <style>
       #loading-screen {
         position: fixed;
@@ -75,6 +81,8 @@
         font-size: 0.875rem !important;
         opacity: 0.5 !important;
         margin-top: 0.25rem !important;
+        /* Keeps the spinner from shifting when the version text is cleared. */
+        min-height: 1.25rem;
       }
       @keyframes spin {
         0% {

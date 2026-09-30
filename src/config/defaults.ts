@@ -2,6 +2,9 @@
 import type { Point, Line, Shape, Settings } from "../types";
 import { DEFAULT_KEY_BINDINGS } from "./keybindings";
 import { makeId } from "../utils/nameGenerator";
+import { DEFAULT_FIELD_MAP } from "./fieldMaps";
+
+export { DEFAULT_FIELD_MAP } from "./fieldMaps";
 
 /**
  * Default robot dimensions
@@ -51,7 +54,7 @@ export const DEFAULT_SETTINGS: Settings = {
   maxAcceleration: 30,
   maxDeceleration: 30,
   maxAngularAcceleration: 0, // 0 = Auto-calculate from linear acceleration
-  fieldMap: "biobuzz.webp",
+  fieldMap: DEFAULT_FIELD_MAP,
   fieldRotation: 0,
   // use no-image by default; users can opt in to the lightweight
   // legacy robot.png graphic via the settings panel if desired.

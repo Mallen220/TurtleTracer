@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import type { Settings } from "../../../types";
+  import { DEFAULT_FIELD_MAP } from "../../../config";
 
   interface Props {
     settings: Settings;
@@ -34,7 +35,7 @@
   <img
     src={settings.fieldMap && !settings.fieldMap.includes("custom")
       ? `/fields/${settings.fieldMap}`
-      : "/fields/biobuzz.webp"}
+      : `/fields/${DEFAULT_FIELD_MAP}`}
     alt="Field"
     class="absolute rounded-lg z-10 max-w-none"
     style={`top: ${y(fieldH)}px; left: ${x(0)}px; width: ${x(fieldW) - x(0)}px; height: ${y(0) - y(fieldH)}px;`}
@@ -42,7 +43,7 @@
     onerror={function (e) {
       const target = e.currentTarget || e.target;
       if (target instanceof HTMLImageElement) {
-        target.src = "/fields/biobuzz.webp";
+        target.src = `/fields/${DEFAULT_FIELD_MAP}`;
       }
     }}
   />

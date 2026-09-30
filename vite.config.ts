@@ -1,6 +1,17 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { DEFAULT_FIELD_MAP } from "./src/config/fieldMaps";
+
+/** Fills %DEFAULT_FIELD_MAP% in index.html with the app's default field image. */
+const defaultFieldMapInHtml = () => ({
+  name: "default-field-map-in-html",
+  transformIndexHtml: {
+    order: "pre" as const,
+    handler: (html: string) =>
+      html.split("%DEFAULT_FIELD_MAP%").join(DEFAULT_FIELD_MAP),
+  },
+});
 
 export default defineConfig({
   server: {
@@ -9,7 +20,7 @@ export default defineConfig({
   preview: {
     cors: false,
   },
-  plugins: [svelte()],
+  plugins: [svelte(), defaultFieldMapInHtml()],
   resolve: {
     alias: {
       "prettier/doc": "prettier/doc.js",

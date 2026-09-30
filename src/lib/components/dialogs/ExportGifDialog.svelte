@@ -1,5 +1,6 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
+  import { DEFAULT_FIELD_MAP } from "../../../config";
   import { untrack, onMount, onDestroy } from "svelte";
   import { scale } from "svelte/transition";
   import {
@@ -109,7 +110,7 @@
         signal: abortController.signal,
         backgroundImageSrc: settings.fieldMap
           ? `/fields/${settings.fieldMap}`
-          : "/fields/biobuzz.webp",
+          : `/fields/${DEFAULT_FIELD_MAP}`,
         robotImageSrc:
           settings.robotImage && settings.robotImage !== "none"
             ? settings.robotImage

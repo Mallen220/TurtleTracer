@@ -8,7 +8,7 @@
   import type Two from "two.js";
   import type { Group } from "two.js/src/group";
   import type { Settings } from "../../../types";
-  import { FIELD_SIZE } from "../../../config";
+  import { FIELD_SIZE, DEFAULT_FIELD_MAP } from "../../../config";
   import { fieldZoom, fieldPan } from "../../../stores";
   import { CloseIcon, SpinnerIcon, ArrowDownTrayIcon } from "../icons";
 
@@ -110,7 +110,7 @@
         quality,
         backgroundImageSrc: settings.fieldMap
           ? `/fields/${settings.fieldMap}`
-          : "/fields/biobuzz.webp",
+          : `/fields/${DEFAULT_FIELD_MAP}`,
         robotImageSrc:
           settings.robotImage && settings.robotImage !== "none"
             ? settings.robotImage

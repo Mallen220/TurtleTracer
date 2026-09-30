@@ -5,6 +5,7 @@
   import { fade, fly } from "svelte/transition";
   import { currentFilePath } from "../../../stores";
   import { formatTime } from "../../../utils";
+  import { DEFAULT_FIELD_MAP } from "../../../config";
   import {
     formatDisplayDistance,
     formatDisplayCoordinate,
@@ -176,7 +177,7 @@
       bgSrc =
         settings.fieldMap && !settings.fieldMap.includes("custom")
           ? `/fields/${settings.fieldMap}`
-          : "/fields/biobuzz.webp";
+          : `/fields/${DEFAULT_FIELD_MAP}`;
     }
 
     if (svg && bgSrc) {
