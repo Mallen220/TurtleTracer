@@ -87,7 +87,7 @@
   let xInput: HTMLInputElement | undefined = $state();
   let yInput: HTMLInputElement | undefined = $state();
   let headingControls: HeadingControls | undefined = $state();
-  let nameInput: HTMLInputElement | undefined;
+  let nameInput: HTMLInputElement | undefined = $state();
 
   // Container-based responsiveness: observe the grid container's width and
   // toggle a compact layout when it becomes too narrow (e.g., in a small
@@ -377,6 +377,7 @@
       <div class="flex items-center gap-2 flex-1 min-w-0">
         <div class="relative flex-1 min-w-0">
           <input
+            bind:this={nameInput}
             value={line.name}
             placeholder="Path Name"
             aria-label="Path name"

@@ -172,3 +172,86 @@ describe("shortcuts", () => {
     ).toBe("⌘ Shift S");
   });
 });
+
+describe("shortcut details", () => {
+  const setPlatform = (mac: boolean) => {
+    Object.defineProperty(navigator, "userAgent", {
+      value: mac ? "Mac OS X" : "Windows",
+      configurable: true,
+    });
+    Object.defineProperty(navigator, "platform", {
+      value: mac ? "MacIntel" : "Win32",
+      configurable: true,
+    });
+  };
+  const display = (
+    key: string,
+    options: { id?: string; action?: string } = {},
+  ) =>
+    getDisplayShortcut(options.action ?? "x", [
+      {
+        id: options.id ?? "x",
+        action: options.action ?? "x",
+        key,
+        description: "",
+      },
+    ]);
+  const event = (key: string, mods: Partial<KeyboardEvent> = {}) =>
+    ({
+      key,
+      ctrlKey: false,
+      shiftKey: false,
+      altKey: false,
+      metaKey: false,
+      ...mods,
+    }) as KeyboardEvent;
+
+  it("spells out special keys with symbols", () => {
+    setPlatform(false);
+    expect(display("escape")).toBe("Esc");
+    expect(display("enter")).toBe("Enter");
+    expect(display("backspace")).toBe("⌫");
+    expect(display("delete")).toBe("Del");
+    expect(display("up")).toBe("↑");
+    expect(display("down")).toBe("↓");
+    expect(display("left")).toBe("←");
+    expect(display("right")).toBe("→");
+    expect(display("ctrl+alt+shift+a")).toBe("Ctrl + Alt + Shift + A");
+  });
+
+  it("uses Mac symbols and spacing on a Mac", () => {
+    setPlatform(true);
+    expect(display("alt+up")).toBe("⌥ ↑");
+    expect(display("ctrl+cmd+z")).toBe("Ctrl ⌘ Z");
+    expect(display("command+k")).toBe("⌘ K");
+  });
+
+  it("calls the Command key Ctrl on other systems", () => {
+    setPlatform(false);
+    expect(display("command+k")).toBe("Ctrl + K");
+  });
+
+  it("finds a binding by its id as well as its action", () => {
+    setPlatform(false);
+    const bindings = [
+      { id: "binding-id", action: "do-thing", key: "f5", description: "" },
+    ];
+    expect(getDisplayShortcut("binding-id", bindings)).toBe("F5");
+    expect(getDisplayShortcut("do-thing", bindings)).toBe("F5");
+  });
+
+  it("shows nothing for a binding with no key", () => {
+    expect(display("")).toBe("");
+  });
+
+  it("ignores empty alternatives and modifier-only shortcuts when matching", () => {
+    expect(matchShortcut(event("a"), "ctrl+s, , a")).toBe(true);
+    expect(matchShortcut(event("Control", { ctrlKey: true }), "ctrl")).toBe(
+      false,
+    );
+    expect(matchShortcut(event("s", { ctrlKey: true }), "control+s")).toBe(
+      true,
+    );
+    expect(matchShortcut(event("x", { altKey: true }), "alt+x")).toBe(true);
+  });
+});

@@ -162,9 +162,30 @@ export async function updateAllMacroReferences(
       }
     }
 
-    // Write the updated file to disk (relative paths for disk-sourced data).
+    // Write the updated file to disk. Files on disk use relative macro paths,
+    // so data held in memory (absolute paths) is converted back first.
     try {
-      const content = JSON.stringify(updatedData, null, 2);
+      let diskData = updatedData;
+      if (dataHasAbsolutePaths && makeRelativePath) {
+        diskData = {
+          ...updatedData,
+          sequence: await Promise.all(
+            newSeq.map(async (item) => {
+              if (item.kind !== "macro") return item;
+              try {
+                const rel = await makeRelativePath(
+                  actualFilePath,
+                  item.filePath,
+                );
+                return { ...item, filePath: rel };
+              } catch {
+                return item;
+              }
+            }),
+          ),
+        };
+      }
+      const content = JSON.stringify(diskData, null, 2);
       await electron.writeFile(actualFilePath, content);
     } catch (e) {
       console.error(
