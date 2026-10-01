@@ -54,6 +54,12 @@ export const DEFAULT_SETTINGS: Settings = {
   maxAcceleration: 30,
   maxDeceleration: 30,
   maxAngularAcceleration: 0, // 0 = Auto-calculate from linear acceleration
+  pedroVersion: "v3",
+  pathSettleTime: 0.05,
+  stopToTurn: false,
+  translationalP: 0.1,
+  brakingQuadratic: 0,
+  brakingLinear: 0,
   fieldMap: DEFAULT_FIELD_MAP,
   fieldRotation: 0,
   // use no-image by default; users can opt in to the lightweight

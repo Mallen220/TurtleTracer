@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import { tuningFromProfile } from "../../../utils/robotProfile";
 import { get } from "svelte/store";
 import type ControlTab from "../../ControlTab.svelte";
 import type { Settings } from "../../../types";
@@ -585,6 +586,7 @@ export function buildActionHandlers(
         aVelocity: nextProfile.aVelocity,
         xVelocity: nextProfile.xVelocity,
         yVelocity: nextProfile.yVelocity,
+        ...tuningFromProfile(nextProfile, s),
         robotImage: nextProfile.robotImage || s.robotImage,
       }));
 

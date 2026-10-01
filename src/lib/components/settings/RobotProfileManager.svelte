@@ -1,6 +1,7 @@
 <!-- Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0. -->
 <script lang="ts">
   import { triggerDownload } from "../../../utils/file";
+  import { tuningFromProfile, tuningOf } from "../../../utils/robotProfile";
   import { onDestroy } from "svelte";
   import type { RobotProfile, Settings } from "../../../types";
   import { notification } from "../../../stores";
@@ -51,6 +52,7 @@
       aVelocity: settings.aVelocity,
       xVelocity: settings.xVelocity,
       yVelocity: settings.yVelocity,
+      ...tuningOf(settings),
       robotImage: settings.robotImage,
       robotDriveType: settings.robotDriveType,
       showRobotArrows: settings.showRobotArrows,
@@ -91,6 +93,7 @@
     settings.aVelocity = profile.aVelocity;
     settings.xVelocity = profile.xVelocity;
     settings.yVelocity = profile.yVelocity;
+    Object.assign(settings, tuningFromProfile(profile, settings));
     if (profile.robotImage) {
       settings.robotImage = profile.robotImage;
     }
@@ -126,6 +129,7 @@
       aVelocity: settings.aVelocity,
       xVelocity: settings.xVelocity,
       yVelocity: settings.yVelocity,
+      ...tuningOf(settings),
       robotImage: settings.robotImage,
       robotDriveType: settings.robotDriveType,
       showRobotArrows: settings.showRobotArrows,
@@ -210,6 +214,7 @@
             aVelocity: json.aVelocity ?? settings.aVelocity,
             xVelocity: json.xVelocity ?? settings.xVelocity,
             yVelocity: json.yVelocity ?? settings.yVelocity,
+            ...tuningFromProfile(json, settings),
             robotImage: json.robotImage,
             robotDriveType: json.robotDriveType,
             showRobotArrows: json.showRobotArrows,
