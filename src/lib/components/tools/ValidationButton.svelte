@@ -25,7 +25,7 @@
   let errorCount = $derived(errorTypes.length);
 
   const typeLabels: Record<string, string> = {
-    "sharp-corner": "Sharp corner in a chain (robot can't turn instantly)",
+    "chain-corner": "Chained corner the robot swings wide at",
   };
 
   function toggleValidation() {

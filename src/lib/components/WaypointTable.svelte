@@ -31,11 +31,7 @@
     getClosestTarget,
     type DragPosition,
   } from "../../utils/dragDrop";
-  import {
-    formatDisplayCoordinate,
-    formatDisplayDistance,
-    cmToInch,
-  } from "../../utils/coordinates";
+  import { formatDisplayCoordinate, cmToInch } from "../../utils/coordinates";
   import {
     snapToGrid,
     showGrid,
@@ -79,6 +75,10 @@
   import { getShortcutFromSettings } from "../../utils";
   import { toUser, toField } from "../../utils/coordinates";
   import { formatTime } from "../../utils/timeCalculator";
+  import {
+    pathTimings,
+    type PathTiming,
+  } from "../../utils/timeCalculator/drivenRange";
   import DebugPanel from "./common/DebugPanel.svelte";
 
   let {
@@ -113,18 +113,11 @@
   // Compute segment statistics for contextual display
   let timePrediction = $derived($timePredictionStore);
 
-  let pathStatsMap = $derived.by(() => {
-    const map = new Map();
-    if (timePrediction && timePrediction.timeline) {
-      timePrediction.timeline.forEach((event) => {
-        if (event.type === "travel" && event.lineIndex !== undefined) {
-          const lineId = lines[event.lineIndex]?.id;
-          if (lineId) map.set(lineId, event);
-        }
-      });
-    }
-    return map;
-  });
+  let pathStatsMap = $derived(
+    timePrediction?.timeline
+      ? pathTimings(timePrediction.timeline, lines)
+      : new Map<string, PathTiming>(),
+  );
 
   function handleRowClick(
     e: MouseEvent,
@@ -988,6 +981,7 @@
                       aria-label="Path Name"
                     />
                     {#if line.id && pathStatsMap.has(line.id)}
+                      {@const timing = pathStatsMap.get(line.id)!}
                       <div
                         role="presentation"
                         class="absolute right-[22px] top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 cursor-help flex items-center justify-center"
@@ -1002,20 +996,12 @@
                             class="w-48 p-2 bg-neutral-800 border border-neutral-700 rounded shadow-lg text-xs text-neutral-100 z-50 pointer-events-none"
                           >
                             <strong>Segment Stats</strong><br />
-                            Start: {formatTime(
-                              pathStatsMap.get(line.id).startTime,
-                            )}<br />
-                            End: {formatTime(
-                              pathStatsMap.get(line.id).endTime,
-                            )}<br />
-                            Duration: {formatTime(
-                              pathStatsMap.get(line.id).duration,
-                            )}<br />
-                            {#if pathStatsMap.get(line.id).distance !== undefined}
-                              Distance: {formatDisplayDistance(
-                                pathStatsMap.get(line.id).distance,
-                                settings || {},
-                                2,
+                            Start: {formatTime(timing.startTime)}<br />
+                            End: {formatTime(timing.endTime)}<br />
+                            Duration: {formatTime(timing.duration)}
+                            {#if timing.swingTime > 0.05}
+                              <br />Of which swinging onto it: {formatTime(
+                                timing.swingTime,
                               )}
                             {/if}
                           </div>

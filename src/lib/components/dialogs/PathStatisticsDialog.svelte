@@ -56,6 +56,12 @@
   }: Props = $props();
 
   let pathStats: PathStats | null = $state(null);
+  /** The number an insight carries, with what it is: "Swing: 7.7 in", or "Max Value: 40.0". */
+  function insightValue(insight: { value?: number; valueLabel?: string }) {
+    if (insight.valueLabel) return insight.valueLabel;
+    return insight.value ? `Max Value: ${insight.value.toFixed(1)}` : "-";
+  }
+
   let activeTab: "summary" | "graphs" | "insights" = $state("summary");
   let currentTime = $state(0);
 
@@ -75,12 +81,12 @@
     if (!pathStats) return;
 
     if (activeTab === "insights") {
-      let md = `| Time Range | Type | Message | Max Value |\n|---:|---|---|---:|\n`;
+      let md = `| Time Range | Type | Message | Value |\n|---:|---|---|---:|\n`;
       pathStats.insights.forEach((ins) => {
         const timeStr = ins.endTime
           ? `${ins.startTime.toFixed(2)}s - ${ins.endTime.toFixed(2)}s`
           : `${ins.startTime.toFixed(2)}s`;
-        md += `| ${timeStr} | ${ins.type.toUpperCase()} | ${ins.message} | ${ins.value ? ins.value.toFixed(1) : "-"} |\n`;
+        md += `| ${timeStr} | ${ins.type.toUpperCase()} | ${ins.message} | ${insightValue(ins)} |\n`;
       });
       navigator.clipboard.writeText(md).then(() => {
         notification.set({
@@ -483,7 +489,7 @@
                       {#if insight.value}
                         <div class="flex items-center gap-1.5">
                           <DotIcon className="-mx-0.5 opacity-50" />
-                          <span>Max Value: {insight.value.toFixed(1)}</span>
+                          <span>{insightValue(insight)}</span>
                         </div>
                       {/if}
                     </div>
