@@ -1,5 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, fireEvent, screen } from "@testing-library/svelte";
 import OptimizationDialog from "./OptimizationDialog.svelte";
 
@@ -53,10 +53,16 @@ const mockOptimize = vi.fn(async (callback: any) => {
   };
 });
 
+// What the dialog last built the optimizer with.
+const constructed = vi.hoisted(() => ({ args: [] as unknown[] }));
+
 vi.mock("../../../utils/pathOptimizer", () => ({
   PathOptimizer: class MockPathOptimizer {
     optimize = mockOptimize;
     stop = vi.fn();
+    constructor(...args: unknown[]) {
+      constructed.args = args;
+    }
   },
 }));
 
@@ -244,5 +250,101 @@ describe("OptimizationDialog with sharp chained corners", () => {
 
     await findByText("Apply New Path");
     expect(queryByText(/Sharp chained/)).toBeNull();
+  });
+});
+
+describe("OptimizationDialog chain correction toggle", () => {
+  const point = (x: number, y: number) => ({
+    x,
+    y,
+    heading: "constant" as const,
+    degrees: 0,
+  });
+  const line = (id: string, x: number, y: number) => ({
+    id,
+    name: id,
+    controlPoints: [],
+    color: "",
+    endPoint: point(x, y),
+    eventMarkers: [],
+  });
+  const lines = [line("a", 80, 10), line("b", 80, 90)];
+  const open = (chained: boolean) =>
+    render(OptimizationDialog, {
+      isOpen: true,
+      lines,
+      startPoint: point(10, 10),
+      settings: { ...DEFAULT_SETTINGS },
+      sequence: [
+        { kind: "path" as const, lineId: "a" },
+        {
+          kind: "path" as const,
+          lineId: "b",
+          ...(chained ? { isChain: true } : {}),
+        },
+      ],
+      onApply: vi.fn(),
+      onClose: vi.fn(),
+      onPreviewChange: vi.fn(),
+    });
+
+  beforeEach(() => {
+    constructed.args = [];
+  });
+
+  it("is offered when paths are chained, and on by default", () => {
+    open(true);
+    const box = screen.getByLabelText(
+      /Include chain corner correction/,
+    ) as HTMLInputElement;
+    expect(box.checked).toBe(true);
+  });
+
+  it("isn't offered when nothing is chained", () => {
+    open(false);
+    expect(
+      screen.queryByLabelText(/Include chain corner correction/),
+    ).toBeNull();
+  });
+
+  it("optimizes with the correction by default", async () => {
+    open(true);
+    await fireEvent.click(screen.getByText("Start Optimization"));
+    expect(constructed.args[5]).toEqual({ chainCorrection: true });
+  });
+
+  it("can optimize without it, just for that run", async () => {
+    const { findByText } = open(true);
+    await fireEvent.click(
+      screen.getByLabelText(/Include chain corner correction/),
+    );
+    await fireEvent.click(screen.getByText("Start Optimization"));
+    expect(constructed.args[5]).toEqual({ chainCorrection: false });
+    expect(
+      await findByText(/optimized as if the robot follows each chained path/),
+    ).toBeInTheDocument();
+  });
+
+  it("doesn't change the saved settings", async () => {
+    const settings = { ...DEFAULT_SETTINGS };
+    const before = JSON.stringify(settings);
+    render(OptimizationDialog, {
+      isOpen: true,
+      lines,
+      startPoint: point(10, 10),
+      settings,
+      sequence: [
+        { kind: "path" as const, lineId: "a" },
+        { kind: "path" as const, lineId: "b", isChain: true },
+      ],
+      onApply: vi.fn(),
+      onClose: vi.fn(),
+      onPreviewChange: vi.fn(),
+    });
+    await fireEvent.click(
+      screen.getByLabelText(/Include chain corner correction/),
+    );
+    expect(JSON.stringify(settings)).toBe(before);
+    expect("chainCorrection" in DEFAULT_SETTINGS).toBe(false);
   });
 });

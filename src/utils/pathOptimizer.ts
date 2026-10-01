@@ -11,10 +11,19 @@ import type {
   TimelineEvent,
   CollisionMarker,
 } from "../types";
-import { calculatePathTime } from "./timeCalculator";
+import { calculatePathTime, type TimeOptions } from "./timeCalculator";
 import { FIELD_SIZE } from "../config";
 import { pointInPolygon, polygonsOverlap, getRobotCorners } from "./geometry";
 import { robotPoseDuring, type RobotState as Pose } from "./animation";
+
+export interface OptimizerOptions {
+  /**
+   * Whether to time chained paths with the robot handed over early and
+   * swinging wide at the corners. Turn off to optimize as if it followed each
+   * path exactly. On by default.
+   */
+  chainCorrection?: boolean;
+}
 
 export interface OptimizationResult {
   generation: number;
@@ -36,6 +45,14 @@ const COLLISION_PENALTY = 10000;
  * path below clean ones without ruling it out.
  */
 const SWING_COLLISION_PENALTY = 30;
+/**
+ * A chained corner is cut when the next path takes over early. Cutting it so
+ * that the robot misses the point the paths join at by more than this many
+ * inches costs this many seconds per extra inch, so the optimizer can't gain
+ * time by skipping a point the path is meant to pass through.
+ */
+const MISS_TOLERANCE = 3;
+const MISS_PENALTY_PER_INCH = 3;
 /** Fitness of a path that can't be timed at all. */
 const INVALID_PENALTY = 20000;
 /** Control points are kept at least this far (inches) from line ends. */
@@ -100,6 +117,7 @@ export class PathOptimizer {
   private startPoint: Point;
   private originalLines: Line[];
   private settings: Settings;
+  private timeOptions: TimeOptions;
   private sequence: SequenceItem[];
   private shapes: Shape[];
   private obstacles: { shape: Shape; box: Box }[];
@@ -118,10 +136,12 @@ export class PathOptimizer {
     settings: Settings,
     sequence: SequenceItem[],
     shapes: Shape[] = [],
+    options: OptimizerOptions = {},
   ) {
     this.startPoint = structuredClone(startPoint);
     this.originalLines = structuredClone(lines);
     this.settings = settings;
+    this.timeOptions = { chainCorrection: options.chainCorrection };
     this.sequence = sequence;
     this.shapes = shapes;
 
@@ -170,6 +190,7 @@ export class PathOptimizer {
         lines,
         settings,
         this.sequence,
+        this.timeOptions,
       ).timeline;
     }
 
@@ -328,6 +349,7 @@ export class PathOptimizer {
       lines,
       this.settings,
       this.sequence,
+      this.timeOptions,
     );
     if (!Number.isFinite(result.totalTime)) {
       return { time: INVALID_PENALTY, cost: INVALID_PENALTY };
@@ -348,7 +370,16 @@ export class PathOptimizer {
     }
     const swing =
       swingCollisions > 0 ? SWING_COLLISION_PENALTY + swingCollisions : 0;
-    return { time: result.totalTime, cost: result.totalTime + swing };
+    let skipped = 0;
+    for (const ev of result.timeline) {
+      if (ev.type === "recovery" && ev.missedBy !== undefined) {
+        skipped += Math.max(0, ev.missedBy - MISS_TOLERANCE);
+      }
+    }
+    return {
+      time: result.totalTime,
+      cost: result.totalTime + swing + skipped * MISS_PENALTY_PER_INCH,
+    };
   }
 
   private candidate(lines: Line[]): Candidate {
@@ -512,6 +543,7 @@ export class PathOptimizer {
       this.originalLines,
       this.settings,
       this.sequence,
+      this.timeOptions,
     ).totalTime;
     if (this.hasImpossibleFixedPoints() || !Number.isFinite(initialTime)) {
       return {
