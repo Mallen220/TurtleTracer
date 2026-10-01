@@ -387,8 +387,15 @@
   function deleteControlPoint(line: Line, cpIndex: number) {
     if (line.locked) return;
     if (cpIndex >= 0 && cpIndex < line.controlPoints.length) {
-      line.controlPoints.splice(cpIndex, 1);
-      lines = [...lines];
+      // Replace the line rather than editing it in place: the table rows
+      // only update when the line they show is a different object.
+      const edited = {
+        ...line,
+        controlPoints: line.controlPoints.filter((_, i) => i !== cpIndex),
+      };
+      lines = lines.map((l) =>
+        l === line || (line.id && l.id === line.id) ? edited : l,
+      );
       if (recordChange) recordChange();
       selectedPointId.set(null);
     }

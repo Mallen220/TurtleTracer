@@ -78,18 +78,112 @@ export function calculateGlobalChainMeta(
   return meta;
 }
 
+/** Speed through a corner: full speed straight on, none at 90 degrees or more. */
+function cornerSpeedForTurn(maxVelocity: number, turnDegrees: number): number {
+  return maxVelocity * Math.max(0, Math.cos((turnDegrees * Math.PI) / 180));
+}
+
 /**
- * How fast the robot can go through a joint between two paths: full speed
- * when the headings match, slowing to a stop for a 90 degree (or sharper)
- * change.
+ * How fast the robot can go through a joint between two paths, from how much
+ * the heading changes: full speed when the headings match, slowing to a stop
+ * for a 90 degree (or sharper) change.
  */
 export function cornerSpeed(
   maxVelocity: number,
   headingBefore: number,
   headingAfter: number,
 ): number {
-  const turn = Math.abs(getAngularDifference(headingBefore, headingAfter));
-  return maxVelocity * Math.max(0, Math.cos((turn * Math.PI) / 180));
+  return cornerSpeedForTurn(
+    maxVelocity,
+    Math.abs(getAngularDifference(headingBefore, headingAfter)),
+  );
+}
+
+/**
+ * The direction the robot is travelling (degrees) as `line` starts and as it
+ * ends, from the line's control points. Null for a line with no length.
+ */
+export function travelDirections(
+  start: BasePoint,
+  line: Line,
+): { start: number; end: number } | null {
+  const end = line.endPoint;
+  const apart = (a: BasePoint, b: BasePoint) =>
+    Math.hypot(a.x - b.x, a.y - b.y) > 1e-6;
+  const path: BasePoint[] = [start, ...(line.controlPoints ?? []), end];
+  // Control points sitting on an end don't say which way the path leaves it.
+  const first = path.slice(1).find((p) => apart(p, start));
+  const last = path
+    .slice(0, -1)
+    .reverse()
+    .find((p) => apart(p, end));
+  if (!first || !last) return null;
+  return {
+    start: radiansToDegrees(Math.atan2(first.y - start.y, first.x - start.x)),
+    end: radiansToDegrees(Math.atan2(end.y - last.y, end.x - last.x)),
+  };
+}
+
+/** How many degrees the direction of travel turns between two paths. */
+export function travelTurn(
+  before: { end: number } | null,
+  after: { start: number } | null,
+): number {
+  if (!before || !after) return 0;
+  return Math.abs(getAngularDifference(before.end, after.start));
+}
+
+/** A joint between two chained paths where the robot has to turn sharply. */
+export interface SharpJunction {
+  /** Index in `lines` of the path the robot turns onto. */
+  lineIndex: number;
+  x: number;
+  y: number;
+  /** Change in the direction of travel, in degrees. */
+  turnDegrees: number;
+}
+
+/** Changes of direction of at least this many degrees are flagged as sharp. */
+export const SHARP_TURN_DEGREES = 60;
+
+/**
+ * Chained joints where the direction of travel changes by
+ * `SHARP_TURN_DEGREES` or more. A robot can't change direction instantly, so
+ * it swings wide there (see `chainRecovery`), which a chain is meant to avoid.
+ */
+export function findSharpJunctions(
+  startPoint: Point,
+  lines: Line[],
+  seq: SequenceItem[],
+): SharpJunction[] {
+  const lineById = new Map(lines.map((l) => [l.id!, l]));
+  const indexById = new Map(lines.map((l, i) => [l.id!, i]));
+  const found: SharpJunction[] = [];
+
+  let start: BasePoint = startPoint;
+  let previous: ReturnType<typeof travelDirections> = null;
+  seq.forEach((item, idx) => {
+    if (item.kind !== "path") return;
+    const line = lineById.get(item.lineId);
+    if (!line?.endPoint) return;
+
+    const directions = travelDirections(start, line);
+    if (continuesChain(seq, idx, lineById)) {
+      const turnDegrees = travelTurn(previous, directions);
+      if (turnDegrees >= SHARP_TURN_DEGREES) {
+        found.push({
+          lineIndex: indexById.get(item.lineId)!,
+          x: start.x,
+          y: start.y,
+          turnDegrees,
+        });
+      }
+    }
+    // A line with no length keeps the direction the robot was already going.
+    if (directions) previous = directions;
+    start = line.endPoint;
+  });
+  return found;
 }
 
 /**

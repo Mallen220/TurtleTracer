@@ -391,7 +391,7 @@ export interface ObstaclePreset {
   shapes: Shape[];
 }
 
-export type TimelineEventType = "travel" | "wait" | "macro";
+export type TimelineEventType = "travel" | "wait" | "macro" | "recovery";
 
 export interface TimelineEvent {
   type: TimelineEventType;
@@ -408,7 +408,10 @@ export interface TimelineEvent {
   startHeading?: number;
   targetHeading?: number;
   atPoint?: BasePoint;
-  // Detailed motion profile for travel events: maps step index to cumulative time
+  // Detailed motion profile for travel events: maps step index to cumulative time.
+  // A robot that joins a path part way along has times just below zero for the
+  // steps it skips, and one that is handed over early has times past `duration`
+  // for the steps it never drives.
   motionProfile?: number[];
   // Detailed velocity profile for travel events: maps step index to velocity
   velocityProfile?: number[];
@@ -417,6 +420,16 @@ export interface TimelineEvent {
   isGlobalOverride?: boolean;
   rootLine?: Line;
   globalHeading?: Point["heading"];
+  /**
+   * For a "recovery" event: where the robot goes between a chained path being
+   * handed over and the robot being back on the next one. `time` is seconds
+   * from the event's start.
+   */
+  trace?: { time: number[]; x: number[]; y: number[]; speed: number[] };
+  /** For a "recovery" event: how far the robot is from the next path when it is handed over. */
+  startOffset?: number;
+  /** For a "recovery" event: how far the robot swings past the next path, in inches. */
+  overshoot?: number;
 }
 
 export interface TimePrediction {
@@ -445,7 +458,9 @@ export interface CollisionMarker {
   y: number;
   time: number;
   segmentIndex?: number;
-  type?: "obstacle" | "boundary" | "zero-length" | "keep-in";
+  type?: "obstacle" | "boundary" | "zero-length" | "keep-in" | "sharp-corner";
+  /** The collision happens while the robot is off its path at a chained corner. */
+  offPath?: boolean;
   // Range properties
   endTime?: number;
   endX?: number;

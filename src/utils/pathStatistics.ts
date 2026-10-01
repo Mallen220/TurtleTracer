@@ -4,6 +4,7 @@ import {
   calculatePathTime,
   startingHeading,
 } from "./timeCalculator";
+import { findSharpJunctions } from "./timeCalculator/chainMeta";
 import { getAngularDifference } from "./math";
 import type {
   Point,
@@ -119,6 +120,17 @@ export function computePathStatistics(
     insights,
   );
 
+  // Speeding up or slowing down faster than the limits the simulation is
+  // meant to respect means the speed profile can't be trusted there.
+  const maxAccel = settings.maxAcceleration || 0;
+  const maxDecel = settings.maxDeceleration || 0;
+  const accelTolerance = 1.1;
+  const accelWarning = new InsightTracker(
+    "warning",
+    "Acceleration beyond the robot's limit",
+    insights,
+  );
+
   function addDataPoint(
     time: number,
     linear: number,
@@ -131,6 +143,12 @@ export function computePathStatistics(
     accelerationData.push({ time, value: acceleration });
     centripetalData.push({ time, value: centripetal });
     speedWarning.sample(time, linear >= maxVel * 0.99, linear);
+    accelWarning.sample(
+      time,
+      (maxAccel > 0 && acceleration > maxAccel * accelTolerance) ||
+        (maxDecel > 0 && -acceleration > maxDecel * accelTolerance),
+      Math.abs(acceleration),
+    );
     slipWarning.sample(
       time,
       kFriction > 0 && centripetal > frictionLimit,
@@ -154,6 +172,72 @@ export function computePathStatistics(
     addDataPoint(ev.endTime, 0, 0, 0, 0);
   }
 
+  /**
+   * Graph points and a row for the stretch where the robot is off the path
+   * between two chained paths. Speeds come from how far the robot moves.
+   */
+  function graphRecovery(ev: TimelineEvent) {
+    const trace = ev.type === "recovery" ? ev.trace : undefined;
+    if (!trace || trace.time.length < 2) return;
+    const stride = 5;
+    let previous: {
+      vx: number;
+      vy: number;
+      speed: number;
+      time: number;
+    } | null = null;
+    let distance = 0;
+    let topSpeed = 0;
+    for (let i = 0; i < trace.time.length; i += stride) {
+      const j = Math.min(i + stride, trace.time.length - 1);
+      const dt = trace.time[j] - trace.time[i];
+      if (dt <= 0) break;
+      const vx = (trace.x[j] - trace.x[i]) / dt;
+      const vy = (trace.y[j] - trace.y[i]) / dt;
+      const speed = Math.hypot(vx, vy);
+      distance += Math.hypot(trace.x[j] - trace.x[i], trace.y[j] - trace.y[i]);
+      topSpeed = Math.max(topSpeed, speed);
+
+      let acceleration = 0;
+      let sideways = 0;
+      if (previous) {
+        const span = trace.time[i] - previous.time;
+        const ax = (vx - previous.vx) / span;
+        const ay = (vy - previous.vy) / span;
+        acceleration = (speed - previous.speed) / span;
+        sideways = Math.sqrt(
+          Math.max(0, ax * ax + ay * ay - acceleration ** 2),
+        );
+      }
+      addDataPoint(
+        ev.startTime + trace.time[i],
+        speed,
+        0,
+        acceleration,
+        sideways,
+      );
+      previous = { vx, vy, speed, time: trace.time[i] };
+    }
+    const last = trace.time.length - 1;
+    segments.push({
+      name: "Overshoot recovery",
+      length: distance,
+      time: ev.duration,
+      maxVel: topSpeed,
+      maxAngVel: 0,
+      degrees: 0,
+      color: "#eab308",
+    });
+    maxLinear = Math.max(maxLinear, topSpeed);
+    addDataPoint(
+      ev.startTime + trace.time[last],
+      previous?.speed ?? 0,
+      0,
+      0,
+      0,
+    );
+  }
+
   let heading = startingHeading(startPoint, lines, sequence);
   let position: Point = startPoint;
   let maxLinear = 0;
@@ -172,6 +256,8 @@ export function computePathStatistics(
         ? profile.length - 1
         : (settings as any).resolution || 100,
       headings?.length ? headings[0] : heading,
+      // The profile's steps must line up with the analysis's steps.
+      profile?.length ? profile.length - 1 : 0,
     );
 
     let segMaxLinear = 0;
@@ -180,7 +266,15 @@ export function computePathStatistics(
 
     if (profile && analysis.steps.length > 0) {
       const count = Math.min(profile.length - 1, analysis.steps.length);
+      // The robot may join the path part way along, or be handed over before
+      // its end; steps it doesn't drive have no place on the graph.
+      let end = count;
       for (let i = 0; i < count; i++) {
+        if (profile[i + 1] <= 1e-7) continue;
+        if (profile[i] >= ev.duration - 1e-9) {
+          end = i;
+          break;
+        }
         const step = analysis.steps[i];
         const dt = profile[i + 1] - profile[i];
         const moving = dt > 1e-6;
@@ -215,14 +309,18 @@ export function computePathStatistics(
         segMaxLinear = Math.max(segMaxLinear, linear);
         segMaxAngular = Math.max(segMaxAngular, angular);
         addDataPoint(
-          ev.startTime + profile[i],
+          ev.startTime + Math.max(0, profile[i]),
           linear,
           angular,
           acceleration,
           centripetal,
         );
       }
-      addDataPoint(ev.endTime, 0, 0, 0, 0);
+      // Finish at the speed the robot actually leaves at; chained paths carry
+      // on without stopping, so this isn't always zero.
+      const exitSpeed =
+        velocities && velocities.length > end ? velocities[end] : 0;
+      addDataPoint(ev.endTime, exitSpeed, 0, 0, 0);
     } else {
       // No profile: assume constant speed across the segment.
       if (ev.duration > 0) {
@@ -277,7 +375,10 @@ export function computePathStatistics(
     );
     let event: TimelineEvent | undefined;
     if (found !== -1) {
-      for (let i = cursor; i < found; i++) graphStationaryEvent(timeline[i]);
+      for (let i = cursor; i < found; i++) {
+        graphStationaryEvent(timeline[i]);
+        graphRecovery(timeline[i]);
+      }
       cursor = found;
     }
 
@@ -325,7 +426,31 @@ export function computePathStatistics(
     analyzeTravel(line, timeline[found]);
   }
 
+  // Chained paths that turn sharply where they join.
+  for (const joint of findSharpJunctions(startPoint, lines, sequence)) {
+    const travel = timeline.find(
+      (ev) => ev.type === "travel" && ev.lineIndex === joint.lineIndex,
+    );
+    const recovery = timeline.find(
+      (ev) => ev.type === "recovery" && ev.lineIndex === joint.lineIndex,
+    );
+    const what =
+      recovery?.overshoot !== undefined && recovery.overshoot >= 0.5
+        ? `swing about ${recovery.overshoot.toFixed(1)} in past the path`
+        : "slow right down";
+    const taking = recovery ? `, taking ${recovery.duration.toFixed(1)} s` : "";
+    insights.push({
+      startTime: recovery?.startTime ?? travel?.startTime ?? 0,
+      endTime: recovery?.endTime,
+      type: "warning",
+      message: `Sharp ${Math.round(joint.turnDegrees)}° turn where chained paths join. A robot can't change direction instantly, so the simulation has it ${what}${taking}, before it is back on the next path.`,
+      value: recovery?.overshoot,
+    });
+  }
+  insights.sort((a, b) => a.startTime - b.startTime);
+
   speedWarning.close(prediction.totalTime);
+  accelWarning.close(prediction.totalTime);
   slipWarning.close(prediction.totalTime);
 
   return {

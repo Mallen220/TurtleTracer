@@ -37,6 +37,7 @@ const COLORS: Partial<Record<NonNullable<CollisionMarker["type"]>, Colors>> = {
   boundary: colorsFor("249, 115, 22", "#f97316"), // Orange-500
   "zero-length": colorsFor("217, 70, 239", "#d946ef"), // Fuchsia-500
   "keep-in": colorsFor("59, 130, 246", "#3b82f6"), // Blue-500
+  "sharp-corner": colorsFor("234, 179, 8", "#eab308"), // Yellow-500
 };
 
 /** Number of steps used to trace a collision range along a path. */

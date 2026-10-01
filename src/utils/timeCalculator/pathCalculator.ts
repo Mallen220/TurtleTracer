@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 // Times a whole project: walks the sequence and builds the timeline of
 // travel, turn-in-place and wait events that playback and export use.
+import { getCurvePoint } from "../math";
 import type {
   Point,
   Line,
@@ -9,19 +10,18 @@ import type {
   SequenceItem,
   TimelineEvent,
 } from "../../types";
-import {
-  getLineStartHeading,
-  getLineEndHeading,
-  restingHeading,
-} from "../math";
+import { getLineStartHeading, restingHeading } from "../math";
 import {
   calculateGlobalChainMeta,
   calculateEndHeadingAndRotation,
   continuesChain,
-  cornerSpeed,
+  travelDirections,
+  travelTurn,
   type ChainInfo,
 } from "./chainMeta";
+import { RECOVERY_MIN_TURN_DEGREES, simulateRecovery } from "./chainRecovery";
 import { analyzePathSegment, unwrapAngle } from "./segmentAnalyzer";
+import type { PathStep } from "./types";
 import { buildHeadingProfile } from "./headingProfile";
 import { calculateRotationTime } from "./rotation";
 import { calculateMotionProfileDetailed } from "./motionProfile";
@@ -85,6 +85,116 @@ export function startingHeading(
   return Number.isFinite(heading) ? heading : 0;
 }
 
+/** How many steps a chained path is split into (see `analyzePathSegment`). */
+const CHAIN_STEPS = 100;
+
+type RecoveryResult = ReturnType<typeof simulateRecovery>;
+const RECOVERY_CACHE_SIZE = 256;
+const recoveryCache = new Map<string, RecoveryResult>();
+
+const round = (n: number) => Math.round(n * 1000) / 1000;
+
+/** What a recovery depends on, as a string. */
+function recoveryKey(
+  position: { x: number; y: number },
+  velocity: { x: number; y: number },
+  path: { x: number; y: number }[],
+  settings: Settings,
+): string {
+  return [
+    round(position.x),
+    round(position.y),
+    round(velocity.x),
+    round(velocity.y),
+    settings.maxVelocity,
+    settings.maxAcceleration,
+    settings.maxDeceleration,
+    settings.kFriction,
+    ...path.flatMap((p) => [round(p.x), round(p.y)]),
+  ].join(",");
+}
+
+/**
+ * The step at which a chained path is handed to the next: once the robot
+ * couldn't stop before the end of the path if it braked from here. A turn too
+ * small to matter is driven straight through to the end.
+ */
+function handoverStep(
+  steps: PathStep[],
+  velocities: number[],
+  startStep: number,
+  settings: Settings,
+  turnDegrees: number,
+): number {
+  const end = steps.length;
+  if (turnDegrees < RECOVERY_MIN_TURN_DEGREES) return end;
+  const brake = settings.maxDeceleration || settings.maxAcceleration || 30;
+  let remaining = steps
+    .slice(startStep)
+    .reduce((sum, step) => sum + step.deltaLength, 0);
+  for (let i = startStep; i < end; i++) {
+    const v = velocities[i];
+    if (remaining <= (v * v) / (2 * brake)) return i;
+    remaining -= steps[i].deltaLength;
+  }
+  return end;
+}
+
+/**
+ * What the robot does after `line` is handed over to `nextLine` at step
+ * `endStep`: still moving along `line`, it is steered onto `nextLine`.
+ */
+function recoverFromHandover(input: {
+  line: Line;
+  prevPoint: Point;
+  nextLine: Line;
+  stepCount: number;
+  endStep: number;
+  speed: number;
+  settings: Settings;
+}) {
+  const { line, prevPoint, nextLine, stepCount, endStep, speed, settings } =
+    input;
+  const curve = [prevPoint, ...line.controlPoints, line.endPoint];
+  const t = endStep / stepCount;
+  const around = 0.5 / stepCount;
+  const before = getCurvePoint(Math.max(0, t - around), curve);
+  const after = getCurvePoint(Math.min(1, t + around), curve);
+  const heading = Math.hypot(after.x - before.x, after.y - before.y);
+  if (heading < 1e-9) return null;
+
+  const position = getCurvePoint(t, curve);
+  const velocity = {
+    x: ((after.x - before.x) / heading) * speed,
+    y: ((after.y - before.y) / heading) * speed,
+  };
+  const nextCurve = [
+    line.endPoint,
+    ...nextLine.controlPoints,
+    nextLine.endPoint,
+  ];
+
+  // Moving one path leaves most chained corners as they were, so keep the
+  // answer for each corner's inputs.
+  const key = recoveryKey(position, velocity, nextCurve, settings);
+  const cached = recoveryCache.get(key);
+  if (cached) return cached;
+
+  const result = simulateRecovery({
+    position,
+    velocity,
+    path: Array.from({ length: CHAIN_STEPS + 1 }, (_, i) =>
+      getCurvePoint(i / CHAIN_STEPS, nextCurve),
+    ),
+    settings,
+  });
+  if (recoveryCache.size >= RECOVERY_CACHE_SIZE) {
+    recoveryCache.delete(recoveryCache.keys().next().value!);
+  }
+  recoveryCache.set(key, result);
+  return result;
+}
+
 export function calculatePathTime(
   startPoint: Point,
   lines: Line[],
@@ -113,6 +223,12 @@ export function calculatePathTime(
   let lastPoint: Point = startPoint;
 
   let currentHeading = startingHeading(startPoint, lines, sequence);
+
+  /**
+   * Where the robot picks up a chained path: how far along (in steps) and how
+   * fast. Each is used once, in case the same path appears again.
+   */
+  const chainEntries = new Map<string, { step: number; speed: number }>();
 
   /** Adds the turn (if needed) and the travel for the path at `idx`. */
   function drivePath(
@@ -155,68 +271,26 @@ export function calculatePathTime(
       currentHeading = startHeading;
     }
 
+    const next = seq[idx + 1];
+    const nextLine =
+      next?.kind === "path" && continuesChain(seq, idx + 1, lineById)
+        ? lineById.get(next.lineId)
+        : undefined;
+    const hasNext = !!nextLine?.endPoint;
+
+    // Chained paths are sampled finely, so the robot can be handed over or
+    // pick one up part way along.
     const analysis = analyzePathSegment(
       prevPoint,
       line.controlPoints,
       line.endPoint,
       100,
       currentHeading,
+      isChained || hasNext ? 100 : 0,
     );
     const length = analysis.length;
+    const stepCount = analysis.steps.length;
     segmentLengths.push(length);
-
-    let translationTime: number;
-    let motionProfile: number[] | undefined;
-    let velocityProfile: number[] | undefined;
-    if (useMotionProfile) {
-      // Through a chain the robot keeps some speed at the joins, less the
-      // sharper the corner.
-      const maxVelocity = safeSettings.maxVelocity || 100;
-      let entryVelocity = 0;
-      const prevItem = seq[idx - 1];
-      if (
-        isChained &&
-        prevItem?.kind === "path" &&
-        lineById.has(prevItem.lineId)
-      ) {
-        entryVelocity = cornerSpeed(
-          maxVelocity,
-          currentHeading,
-          startHeadingRaw,
-        );
-      }
-      let exitVelocity = 0;
-      const nextItem = seq[idx + 1];
-      const nextLine =
-        nextItem?.kind === "path" ? lineById.get(nextItem.lineId) : undefined;
-      if (nextLine && continuesChain(seq, idx + 1, lineById)) {
-        const nextChain = chains.get(nextLine.id!);
-        exitVelocity = cornerSpeed(
-          maxVelocity,
-          getLineEndHeading(line, prevPoint),
-          getLineStartHeading(
-            nextLine,
-            line.endPoint,
-            nextChain?.rootLine,
-            nextChain?.chainTotalLength,
-            nextChain?.distanceBefore,
-          ),
-        );
-      }
-
-      const result = calculateMotionProfileDetailed(
-        analysis.steps,
-        safeSettings,
-        entryVelocity,
-        exitVelocity,
-      );
-      translationTime = result.totalTime;
-      motionProfile = result.profile;
-      velocityProfile = result.velocityProfile;
-    } else {
-      translationTime =
-        length / ((safeSettings.xVelocity + safeSettings.yVelocity) / 2);
-    }
 
     const { endHeading, rotationRequired } = calculateEndHeadingAndRotation(
       line,
@@ -233,11 +307,72 @@ export function calculatePathTime(
       safeSettings,
     );
 
-    // If turning takes longer than driving, the drive is slowed to match.
-    const segmentTime = Math.max(translationTime, rotationTime);
-    if (motionProfile && segmentTime > translationTime && translationTime > 0) {
-      const scale = segmentTime / translationTime;
-      motionProfile = motionProfile.map((t) => t * scale);
+    // Where along the path the robot starts, if the one before handed it over.
+    const entry = isChained ? chainEntries.get(line.id!) : undefined;
+    chainEntries.delete(line.id!);
+    const startStep = entry && entry.step < stepCount ? entry.step : 0;
+    const entrySpeed = startStep === entry?.step ? entry.speed : 0;
+
+    let segmentTime: number;
+    let travelTime: number;
+    let motionProfile: number[] | undefined;
+    let velocityProfile: number[] | undefined;
+    // The step the robot stops driving this path at: its end, unless the
+    // next chained path takes over early.
+    let endStep = stepCount;
+    if (useMotionProfile) {
+      // A path that needs time to turn can't be driven faster than that
+      // allows: even at this speed throughout, it takes as long as the turn.
+      const caps = new Map<number, number>();
+      if (rotationTime > 0 && length > 0) {
+        for (let b = 0; b <= stepCount - startStep; b++) {
+          caps.set(b, length / rotationTime);
+        }
+      }
+      // A chained path doesn't brake at its end; the next path carries on.
+      const solved = calculateMotionProfileDetailed(
+        analysis.steps.slice(startStep),
+        safeSettings,
+        entrySpeed,
+        hasNext ? Infinity : 0,
+        caps,
+      );
+
+      // If turning takes longer than driving, the drive is slowed to match.
+      segmentTime = Math.max(solved.totalTime, rotationTime);
+      const scale =
+        segmentTime > solved.totalTime && solved.totalTime > 0
+          ? segmentTime / solved.totalTime
+          : 1;
+      // Steps before `startStep` aren't driven: they take (almost) no time,
+      // and sit just before zero so the robot starts at `startStep`.
+      const skipped = Array.from(
+        { length: startStep },
+        (_, i) => -(startStep - i) * 1e-9,
+      );
+      motionProfile = [...skipped, ...solved.profile.map((t) => t * scale)];
+      // Driving the same distance in longer means going slower throughout.
+      velocityProfile = [
+        ...skipped.map(() => entrySpeed),
+        ...solved.velocityProfile.map((v) => v / scale),
+      ];
+
+      if (hasNext && nextLine) {
+        endStep = handoverStep(
+          analysis.steps,
+          velocityProfile,
+          startStep,
+          safeSettings,
+          travelTurn(
+            travelDirections(prevPoint, line),
+            travelDirections(line.endPoint, nextLine),
+          ),
+        );
+      }
+      travelTime = Math.max(0, motionProfile[endStep]);
+    } else {
+      segmentTime = travelTime =
+        length / ((safeSettings.xVelocity + safeSettings.yVelocity) / 2);
     }
 
     const isGlobalOverride = !!(
@@ -256,7 +391,7 @@ export function calculatePathTime(
             endHeading,
             physicalRotationTime: rotationTime,
             analysis,
-            motionProfile,
+            motionProfile: motionProfile.map((t) => Math.max(0, t)),
             settings: safeSettings,
             length,
             isChained,
@@ -264,12 +399,12 @@ export function calculatePathTime(
           })
         : undefined;
 
-    segmentTimes.push(segmentTime);
+    segmentTimes.push(travelTime);
     timeline.push({
       type: "travel",
-      duration: segmentTime,
+      duration: travelTime,
       startTime: currentTime,
-      endTime: currentTime + segmentTime,
+      endTime: currentTime + travelTime,
       lineIndex: lineIndexById.get(line.id!) ?? -1,
       line,
       prevPoint,
@@ -282,12 +417,87 @@ export function calculatePathTime(
         ? rootLine!.globalHeading!
         : line.endPoint.heading) as any,
     });
-    currentTime += segmentTime;
+    currentTime += travelTime;
 
-    // Carry on from the heading the profile actually ended at; with a chain
+    // Carry on from the heading the profile actually got to; with a chain
     // heading it can differ from `endHeading`.
-    currentHeading = headingProfile?.at(-1) ?? endHeading;
+    currentHeading = headingProfile?.[endStep] ?? endHeading;
     lastPoint = line.endPoint;
+
+    if (!hasNext || !nextLine || !velocityProfile) return;
+
+    const handoverSpeed = velocityProfile[endStep];
+    const recovery =
+      endStep < stepCount ||
+      travelTurn(
+        travelDirections(prevPoint, line),
+        travelDirections(line.endPoint, nextLine),
+      ) >= RECOVERY_MIN_TURN_DEGREES
+        ? recoverFromHandover({
+            line,
+            prevPoint,
+            nextLine,
+            stepCount,
+            endStep,
+            speed: handoverSpeed,
+            settings: safeSettings,
+          })
+        : null;
+    if (!recovery) {
+      chainEntries.set(nextLine.id!, { step: 0, speed: handoverSpeed });
+      return;
+    }
+
+    // The robot keeps turning toward the next path's heading while it gets
+    // back on the path, as far as the turn rate and the time allow.
+    const nextMeta = chains.get(nextLine.id!);
+    const goal = unwrapAngle(
+      getLineStartHeading(
+        nextLine,
+        line.endPoint,
+        nextMeta?.rootLine,
+        nextMeta?.chainTotalLength,
+        nextMeta?.distanceBefore,
+      ),
+      currentHeading,
+    );
+    const turnNeeded = Math.abs(goal - currentHeading);
+    const turnTime = calculateRotationTime(turnNeeded, safeSettings);
+    const reached =
+      Number.isFinite(goal) && turnNeeded > 0
+        ? currentHeading +
+          (goal - currentHeading) *
+            (turnTime > 0 ? Math.min(1, recovery.duration / turnTime) : 1)
+        : currentHeading;
+    const recoveredHeading = Number.isFinite(reached)
+      ? reached
+      : currentHeading;
+
+    timeline.push({
+      type: "recovery",
+      duration: recovery.duration,
+      startTime: currentTime,
+      endTime: currentTime + recovery.duration,
+      lineIndex: lineIndexById.get(nextLine.id!) ?? -1,
+      line: nextLine,
+      prevPoint: line.endPoint,
+      startHeading: currentHeading,
+      targetHeading: recoveredHeading,
+      trace: {
+        time: recovery.time,
+        x: recovery.x,
+        y: recovery.y,
+        speed: recovery.speed,
+      },
+      startOffset: recovery.startOffset,
+      overshoot: recovery.overshoot,
+    });
+    currentTime += recovery.duration;
+    currentHeading = recoveredHeading;
+    chainEntries.set(nextLine.id!, {
+      step: recovery.rejoinStep,
+      speed: recovery.rejoinSpeed,
+    });
   }
 
   function processSequence(seq: SequenceItem[], depth: number) {

@@ -1,5 +1,6 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { PathOptimizer } from "./pathOptimizer";
+import { findSharpJunctions } from "./timeCalculator/chainMeta";
 import { collisionMarkers, notification } from "../stores";
 import type {
   Line,
@@ -51,6 +52,17 @@ export function validatePath(
     currentStart = line.endPoint;
   });
 
+  // Chained paths that turn sharply at a joint, where the robot must nearly stop.
+  for (const joint of findSharpJunctions(startPoint, lines, sequence)) {
+    markers.push({
+      x: joint.x,
+      y: joint.y,
+      time: 0,
+      segmentIndex: joint.lineIndex,
+      type: "sharp-corner",
+    });
+  }
+
   collisionMarkers.set(markers);
 
   if (!silent) {
@@ -59,7 +71,11 @@ export function validatePath(
       const zeroLengthCount = markers.filter(
         (m) => m.type === "zero-length",
       ).length;
-      const obstacleCount = markers.length - boundaryCount - zeroLengthCount;
+      const sharpCount = markers.filter(
+        (m) => m.type === "sharp-corner",
+      ).length;
+      const obstacleCount =
+        markers.length - boundaryCount - zeroLengthCount - sharpCount;
 
       let msg = `Found ${markers.length} ${markers.length === 1 ? "issue" : "issues"}! `;
       const parts = [];
@@ -72,6 +88,10 @@ export function validatePath(
           `${boundaryCount} ${boundaryCount === 1 ? "boundary" : "boundaries"}`,
         );
       if (zeroLengthCount > 0) parts.push(`${zeroLengthCount} zero-length`);
+      if (sharpCount > 0)
+        parts.push(
+          `${sharpCount} sharp chained ${sharpCount === 1 ? "corner" : "corners"}`,
+        );
 
       msg += `(${parts.join(", ")})`;
 

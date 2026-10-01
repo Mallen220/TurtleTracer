@@ -24,7 +24,7 @@ type Scale = ScaleLinear<number, number>;
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
 const isMotionEvent = (e: TimelineEvent) =>
-  e.type === "travel" || e.type === "wait";
+  e.type === "travel" || e.type === "wait" || e.type === "recovery";
 
 /**
  * Finds the travel or wait event that is happening at `seconds`.
@@ -105,6 +105,25 @@ export function robotPoseDuring(
     event.duration > 0
       ? clamp01((seconds - event.startTime) / event.duration)
       : 1;
+
+  if (event.type === "recovery" && event.trace) {
+    // Off the path, between one chained path and the next.
+    const { time, x, y } = event.trace;
+    const relative = Math.max(0, seconds - event.startTime);
+    let i = 0;
+    while (i < time.length - 2 && relative > time[i + 1]) i++;
+    const span = time[i + 1] - time[i];
+    const f = span > 0 ? clamp01((relative - time[i]) / span) : 0;
+    return {
+      x: x[i] + (x[i + 1] - x[i]) * f,
+      y: y[i] + (y[i + 1] - y[i]) * f,
+      heading: shortestRotation(
+        event.startHeading ?? 0,
+        event.targetHeading ?? event.startHeading ?? 0,
+        event.duration > 0 ? clamp01(relative / event.duration) : 1,
+      ),
+    };
+  }
 
   if (event.type === "wait") {
     // Turning in place

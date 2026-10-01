@@ -18,6 +18,7 @@ export function analyzePathSegment(
   end: BasePoint,
   samples: number = 50,
   initialHeading: number, // Unwrapped starting heading
+  minSamples: number = 0, // Finer steps for paths the robot joins part way along
 ): PathAnalysis {
   const cps = controlPoints || [];
 
@@ -137,6 +138,8 @@ export function analyzePathSegment(
     const target = Math.ceil(estimatedLength * density);
     adaptiveSamples = Math.max(20, Math.min(target, samples));
   }
+
+  adaptiveSamples = Math.max(adaptiveSamples, Math.min(minSamples, samples));
 
   for (let i = 0; i <= adaptiveSamples; i++) {
     const t = i / adaptiveSamples;

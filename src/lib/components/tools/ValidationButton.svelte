@@ -24,6 +24,10 @@
   );
   let errorCount = $derived(errorTypes.length);
 
+  const typeLabels: Record<string, string> = {
+    "sharp-corner": "Sharp corner in a chain (robot can't turn instantly)",
+  };
+
   function toggleValidation() {
     let newMode: "continuous" | "on-check" | "disabled" = "on-check";
 
@@ -122,7 +126,7 @@
           class="text-xs text-neutral-700 dark:text-neutral-300 space-y-1 list-disc list-inside"
         >
           {#each errorTypes as errorType}
-            <li>{errorType}</li>
+            <li>{typeLabels[errorType] ?? errorType}</li>
           {/each}
         </ul>
         <p class="text-[10px] text-neutral-500 dark:text-neutral-400 mt-2">

@@ -189,9 +189,11 @@ describe("heading profile in chains", () => {
     straight("b", endPoint, { isChain: true, ...over });
 
   it("turns gradually into the next heading instead of stopping to turn", () => {
+    // A path that carries on in nearly the same direction, so the robot drives
+    // straight through the join rather than swinging wide.
     const [, profile] = profiles([
       first(),
-      second({ x: 100, y: 100, heading: "constant", degrees: 90 }),
+      second({ x: 200, y: 10, heading: "constant", degrees: 90 }),
     ]);
     expect(profile[0]).toBeCloseTo(0);
     expect(profile.at(-1)).toBeCloseTo(90);
@@ -341,11 +343,9 @@ describe("heading profile with piecewise headings", () => {
         ],
       },
     );
-    const b = straight(
-      "b",
-      { x: 100, y: 100, heading: "tangential" } as Point,
-      { isChain: true },
-    );
+    const b = straight("b", { x: 200, y: 10, heading: "tangential" } as Point, {
+      isChain: true,
+    });
     const [first, second] = profiles([a, b], { aVelocity: Math.PI * 8 });
     expect(first.at(-2)).toBeCloseTo(20, 0);
     expect(second.at(-1)).toBeCloseTo(70, 0);

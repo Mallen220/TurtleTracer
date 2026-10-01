@@ -1,4 +1,5 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
+import Two from "two.js";
 import { LINE_WIDTH } from "../../../config";
 import type { Line, Point, TimePrediction } from "../../../types";
 import { generatePathElements } from "./PathGenerator";
@@ -12,6 +13,42 @@ export interface StandardPathParams {
   isDiffMode: boolean;
   selectedLineId: string | null;
   ctx: RenderContext;
+}
+
+/** Most points used to draw one recovery path. */
+const RECOVERY_DRAW_POINTS = 32;
+
+/**
+ * Dashed lines for where the robot goes when it leaves a path at a sharp
+ * chained corner, between the two paths.
+ */
+function buildRecoveryElements(
+  timeline: TimePrediction["timeline"],
+  ctx: RenderContext,
+) {
+  return timeline.flatMap((ev, idx) => {
+    if (ev.type !== "recovery" || !ev.trace || ev.trace.time.length < 2) {
+      return [];
+    }
+    // Drawing every sample of a long recovery makes redrawing slow (each one
+    // is a Two.js anchor, rebuilt on every redraw), and a few dozen points
+    // trace the same curve.
+    const { x, y } = ev.trace;
+    const count = Math.min(x.length, RECOVERY_DRAW_POINTS);
+    const anchors = Array.from({ length: count }, (_, i) => {
+      const at = Math.round((i * (x.length - 1)) / (count - 1));
+      return new Two.Anchor(ctx.x(x[at]), ctx.y(y[at]));
+    });
+    const path = new Two.Path(anchors, false, false);
+    path.noFill();
+    path.stroke = "#eab308";
+    path.linewidth = ctx.uiLength(LINE_WIDTH);
+    path.dashes = [ctx.uiLength(1.5), ctx.uiLength(1.5)];
+    path.cap = "round";
+    path.join = "round";
+    path.id = `recovery-path-${idx}`;
+    return [path];
+  });
 }
 
 /**
@@ -37,7 +74,7 @@ export function buildStandardPathElements(params: StandardPathParams) {
       (e) => e.type === "travel" && e.line,
     );
 
-    return travelEvents.flatMap((ev, idx) => {
+    const paths = travelEvents.flatMap((ev, idx) => {
       const line = ev.line!;
       const start = ev.prevPoint!;
 
@@ -57,6 +94,10 @@ export function buildStandardPathElements(params: StandardPathParams) {
         isMainLine,
       );
     });
+    return [
+      ...paths,
+      ...buildRecoveryElements(effectiveTimePrediction.timeline, ctx),
+    ];
   }
 
   // Fallback if no simulation (e.g. initial load or error)

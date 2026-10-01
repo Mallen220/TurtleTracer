@@ -416,9 +416,17 @@
           const line = ev.line ?? lines[ev.lineIndex ?? -1];
           if (line?.eventMarkers) {
             line.eventMarkers.forEach((m) => {
-              const timeOffset = ev.motionProfile
-                ? timeAtProfileT(m.position, ev.motionProfile)
-                : ev.duration * m.position;
+              // A path handed over early (or joined part way along) has parts
+              // the robot doesn't drive; markers there happen at the nearest end.
+              const timeOffset = Math.max(
+                0,
+                Math.min(
+                  ev.duration,
+                  ev.motionProfile
+                    ? timeAtProfileT(m.position, ev.motionProfile)
+                    : ev.duration * m.position,
+                ),
+              );
               const absTime = ev.startTime + timeOffset;
               items.push({
                 type: "marker",

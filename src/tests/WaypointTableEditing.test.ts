@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { tick } from "svelte";
 import { get } from "svelte/store";
 import WaypointTableWrapper from "./WaypointTableWrapper.svelte";
+import WaypointTableStoreWrapper from "./WaypointTableStoreWrapper.svelte";
 import { registerCoreUI } from "../lib/coreRegistrations";
 import { actionRegistry } from "../lib/actionRegistry";
 import { DEFAULT_SETTINGS } from "../config/defaults";
@@ -312,5 +313,98 @@ describe("copying the table", () => {
       }),
     );
     expect(screen.getByLabelText("Copy Table")).toBeInTheDocument();
+  });
+});
+
+describe("deleting control points in the table", () => {
+  const withControlPoints = (extra: Partial<Line> = {}) =>
+    line("a", 40, 40, {
+      controlPoints: [
+        { x: 10, y: 10 },
+        { x: 20, y: 30 },
+        { x: 30, y: 20 },
+      ],
+      ...extra,
+    });
+  const rows = () => screen.queryAllByText(/↳ Control \d/);
+
+  it("takes the row out of the table straight away", async () => {
+    const { project, recordChange } = setup(
+      [withControlPoints()],
+      [pathStep("a")],
+    );
+    expect(rows()).toHaveLength(3);
+
+    await fireEvent.click(screen.getAllByLabelText("Delete control point")[1]);
+    await tick();
+
+    expect(rows()).toHaveLength(2);
+    expect(project.lines[0].controlPoints).toEqual([
+      { x: 10, y: 10 },
+      { x: 30, y: 20 },
+    ]);
+    expect(recordChange).toHaveBeenCalled();
+  });
+
+  it("can keep deleting until none are left", async () => {
+    const { project } = setup([withControlPoints()], [pathStep("a")]);
+    for (let left = 3; left > 0; left--) {
+      expect(rows()).toHaveLength(left);
+      await fireEvent.click(
+        screen.getAllByLabelText("Delete control point")[0],
+      );
+      await tick();
+    }
+    expect(rows()).toHaveLength(0);
+    expect(project.lines[0].controlPoints).toEqual([]);
+  });
+
+  it("leaves other paths' control points alone", async () => {
+    const other = line("b", 90, 90, { controlPoints: [{ x: 60, y: 60 }] });
+    const { project } = setup(
+      [withControlPoints(), other],
+      [pathStep("a"), pathStep("b")],
+    );
+    await fireEvent.click(screen.getAllByLabelText("Delete control point")[0]);
+    await tick();
+    expect(rows()).toHaveLength(3);
+    expect(project.lines[1].controlPoints).toHaveLength(1);
+  });
+
+  it("can't delete from a locked path", () => {
+    setup([withControlPoints({ locked: true })], [pathStep("a")]);
+    expect(screen.queryAllByLabelText("Delete control point")).toHaveLength(0);
+    expect(rows()).toHaveLength(3);
+  });
+});
+
+describe("deleting control points when lines live in a store, as in the app", () => {
+  it("takes the row out of the table straight away", async () => {
+    const lines = [
+      line("a", 40, 40, {
+        controlPoints: [
+          { x: 10, y: 10 },
+          { x: 20, y: 30 },
+        ],
+      }),
+    ];
+    const recordChange = vi.fn();
+    const view = render(WaypointTableStoreWrapper, {
+      startPoint: { ...startPoint },
+      lines,
+      sequence: [pathStep("a")],
+      recordChange,
+    });
+    const rows = () => screen.queryAllByText(/↳ Control \d/);
+    expect(rows()).toHaveLength(2);
+
+    await fireEvent.click(screen.getAllByLabelText("Delete control point")[0]);
+    await tick();
+
+    expect(rows()).toHaveLength(1);
+    expect((view.component as any).currentLines()[0].controlPoints).toEqual([
+      { x: 20, y: 30 },
+    ]);
+    expect(recordChange).toHaveBeenCalled();
   });
 });

@@ -20,11 +20,15 @@
     type OptimizationResult,
   } from "../../../utils/pathOptimizer";
   import { formatTime } from "../../../utils";
+  import { findSharpJunctions } from "../../../utils/timeCalculator/chainMeta";
   import { dimmedLinesStore } from "../../../stores";
   import { onDestroy } from "svelte";
 
   let progress = $state(0);
   let currentBestTime = $state(0);
+  // Sharp chained corners left in the optimized path. They are warnings, not
+  // reasons to reject the result.
+  let sharpCornerCount = $state(0);
   let showPreview = $state(true);
   interface Props {
     isOpen?: boolean;
@@ -143,6 +147,7 @@
     progress = 0;
     optimizationFailed = false;
     optimizationError = "";
+    sharpCornerCount = 0;
     isStopping = false;
     showPreview = true;
 
@@ -197,6 +202,9 @@
 
     const finalBestTime = optimizationResult.bestTime;
     optimizationFailed = finalBestTime >= 10000 || !!optimizationError;
+    sharpCornerCount = optimizedLines
+      ? findSharpJunctions(startPoint, optimizedLines, sequence).length
+      : 0;
 
     isRunning = false;
     isStopping = false;
@@ -219,6 +227,7 @@
       showPreview = true;
       optimizationFailed = false;
       optimizationError = "";
+      sharpCornerCount = 0;
       if (onPreviewChange) onPreviewChange(null);
 
       isOpen = false;
@@ -404,6 +413,23 @@
             could not find a valid path because the best candidates still collide
             with obstacles. Try creating an initial path that avoids obstacles to
             guide the optimizer.
+          </span>
+        </div>
+      {/if}
+
+      {#if !optimizationFailed && !optimizationError && sharpCornerCount > 0}
+        <div
+          class="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-yellow-800 dark:text-yellow-300 text-sm flex items-start gap-2"
+        >
+          <TriangleWarningIcon className="size-5 shrink-0 mt-0.5" />
+          <span>
+            <strong class="font-bold"
+              >Sharp chained {sharpCornerCount === 1
+                ? "corner"
+                : "corners"}:</strong
+            >
+            The robot is expected to swing wide. You can still apply this path. See
+            Path Statistics and manually verify this path.
           </span>
         </div>
       {/if}

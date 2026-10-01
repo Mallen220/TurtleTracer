@@ -179,3 +179,70 @@ describe("OptimizationDialog", () => {
     expect(onPreviewChange.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe("OptimizationDialog with sharp chained corners", () => {
+  const point = (x: number, y: number) => ({
+    x,
+    y,
+    heading: "constant" as const,
+    degrees: 0,
+  });
+  const out = {
+    id: "a",
+    name: "Out",
+    controlPoints: [],
+    color: "",
+    endPoint: point(80, 10),
+    eventMarkers: [],
+  };
+  const back = {
+    id: "b",
+    name: "Back",
+    controlPoints: [],
+    color: "",
+    endPoint: point(20, 10),
+    eventMarkers: [],
+  };
+  const sequence = [
+    { kind: "path" as const, lineId: "a" },
+    { kind: "path" as const, lineId: "b", isChain: true },
+  ];
+
+  const open = (chained: boolean) => {
+    mockOptimize.mockResolvedValueOnce({
+      lines: [out, back],
+      bestTime: 9.5,
+    });
+    const onApply = vi.fn();
+    const view = render(OptimizationDialog, {
+      isOpen: true,
+      lines: [out, back],
+      startPoint: point(10, 10),
+      settings: { ...DEFAULT_SETTINGS },
+      sequence: chained
+        ? sequence
+        : sequence.map((s) => ({ ...s, isChain: false })),
+      onApply,
+      onClose: vi.fn(),
+      onPreviewChange: vi.fn(),
+    });
+    return { ...view, onApply };
+  };
+
+  it("notes the corner but still lets the path be applied", async () => {
+    const { getByText, findByText, onApply } = open(true);
+    await fireEvent.click(getByText("Start Optimization"));
+
+    expect(await findByText(/Sharp chained corner:/)).toBeInTheDocument();
+    await fireEvent.click(await findByText("Apply New Path"));
+    expect(onApply).toHaveBeenCalled();
+  });
+
+  it("says nothing when the paths aren't chained", async () => {
+    const { getByText, findByText, queryByText } = open(false);
+    await fireEvent.click(getByText("Start Optimization"));
+
+    await findByText("Apply New Path");
+    expect(queryByText(/Sharp chained/)).toBeNull();
+  });
+});

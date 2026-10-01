@@ -22,13 +22,20 @@ export interface OptimizationResult {
   bestLines: Line[];
 }
 
-type Candidate = { lines: Line[]; time: number };
+/** `time` is what's shown; `cost` is what candidates are ranked by. */
+type Candidate = { lines: Line[]; time: number; cost: number };
 type Box = { minX: number; maxX: number; minY: number; maxY: number };
 
 /** How often (in seconds of path time) the robot's pose is checked. */
 const CHECK_INTERVAL = 0.2;
 /** Fitness of a path that collides; the collision count is added to it. */
 const COLLISION_PENALTY = 10000;
+/**
+ * Added to the cost of a path whose robot only collides while it swings off
+ * the path at a chained corner. That swing is an estimate, so it ranks the
+ * path below clean ones without ruling it out.
+ */
+const SWING_COLLISION_PENALTY = 30;
 /** Fitness of a path that can't be timed at all. */
 const INVALID_PENALTY = 20000;
 /** Control points are kept at least this far (inches) from line ends. */
@@ -212,8 +219,16 @@ export class PathOptimizer {
       }
 
       // One marker per stretch of the same kind of collision on one segment.
-      const segment = event.type === "travel" ? event.lineIndex : undefined;
-      if (current?.type === type && current.segmentEndIndex === segment) {
+      const segment =
+        event.type === "travel" || event.type === "recovery"
+          ? event.lineIndex
+          : undefined;
+      const offPath = event.type === "recovery";
+      if (
+        current?.type === type &&
+        current.segmentEndIndex === segment &&
+        !!current.offPath === offPath
+      ) {
         current.endTime = t;
         current.endX = pose.x;
         current.endY = pose.y;
@@ -225,6 +240,7 @@ export class PathOptimizer {
           time: t,
           segmentIndex: segment,
           type,
+          ...(offPath ? { offPath } : {}),
           endTime: t,
           endX: pose.x,
           endY: pose.y,
@@ -301,29 +317,42 @@ export class PathOptimizer {
   // --- Optimization ---
 
   /**
-   * Lower is better: the path time in seconds, or a penalty for paths that
-   * collide (more collisions, higher penalty) or can't be timed.
+   * Lower cost is better. A path's cost is its time in seconds; a path that
+   * collides gets a penalty (more collisions, higher penalty), and so does
+   * one that can't be timed. A path that only collides while the robot swings
+   * off it at a chained corner costs extra but keeps its real time.
    */
-  private fitness(lines: Line[]): number {
+  private score(lines: Line[]): { time: number; cost: number } {
     const result = calculatePathTime(
       this.startPoint,
       lines,
       this.settings,
       this.sequence,
     );
-    if (!Number.isFinite(result.totalTime)) return INVALID_PENALTY;
+    if (!Number.isFinite(result.totalTime)) {
+      return { time: INVALID_PENALTY, cost: INVALID_PENALTY };
+    }
 
     // Count samples in collision: each marker covers at least one.
     let collisions = 0;
+    let swingCollisions = 0;
     for (const m of this.getCollisions(result.timeline, lines)) {
-      collisions +=
+      const samples =
         1 + Math.round(((m.endTime ?? m.time) - m.time) / CHECK_INTERVAL);
+      if (m.offPath) swingCollisions += samples;
+      else collisions += samples;
     }
-    return collisions > 0 ? COLLISION_PENALTY + collisions : result.totalTime;
+    if (collisions > 0) {
+      const penalty = COLLISION_PENALTY + collisions;
+      return { time: penalty, cost: penalty };
+    }
+    const swing =
+      swingCollisions > 0 ? SWING_COLLISION_PENALTY + swingCollisions : 0;
+    return { time: result.totalTime, cost: result.totalTime + swing };
   }
 
   private candidate(lines: Line[]): Candidate {
-    return { lines, time: this.fitness(lines) };
+    return { lines, ...this.score(lines) };
   }
 
   /** A randomly changed copy of `lines`. Colliding paths change more. */
@@ -503,11 +532,11 @@ export class PathOptimizer {
       population.push(this.candidate(this.mutate(this.originalLines, true)));
     }
 
-    const byTime = (a: Candidate, b: Candidate) => a.time - b.time;
+    const byCost = (a: Candidate, b: Candidate) => a.cost - b.cost;
     let lastYield = performance.now();
 
     for (let gen = 0; gen < this.generations; gen++) {
-      population.sort(byTime);
+      population.sort(byCost);
       onUpdate({
         generation: gen + 1,
         bestTime: population[0].time,
@@ -539,7 +568,7 @@ export class PathOptimizer {
       population = next;
     }
 
-    population.sort(byTime);
+    population.sort(byCost);
     return {
       lines: population[0].lines,
       bestTime: population[0].time,
