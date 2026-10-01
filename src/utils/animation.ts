@@ -114,14 +114,11 @@ export function robotPoseDuring(
     while (i < time.length - 2 && relative > time[i + 1]) i++;
     const span = time[i + 1] - time[i];
     const f = span > 0 ? clamp01((relative - time[i]) / span) : 0;
+    const headings = event.trace.heading;
     return {
       x: x[i] + (x[i + 1] - x[i]) * f,
       y: y[i] + (y[i + 1] - y[i]) * f,
-      heading: shortestRotation(
-        event.startHeading ?? 0,
-        event.targetHeading ?? event.startHeading ?? 0,
-        event.duration > 0 ? clamp01(relative / event.duration) : 1,
-      ),
+      heading: headings[i] + (headings[i + 1] - headings[i]) * f,
     };
   }
 

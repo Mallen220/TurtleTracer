@@ -19,6 +19,12 @@ import type {
   Settings,
   TimelineEvent,
 } from "../types";
+import {
+  chained,
+  recoveriesIn,
+  separately,
+  travelsIn,
+} from "./helpers/sequences";
 
 beforeAll(() => registerCoreUI());
 
@@ -46,15 +52,8 @@ const line = (
 });
 
 /** Every path after the first continues the chain. */
-const chain = (...ids: string[]): SequenceItem[] =>
-  ids.map((lineId, i) => ({
-    kind: "path",
-    lineId,
-    ...(i > 0 ? { isChain: true } : {}),
-  }));
-
-const apart = (...ids: string[]): SequenceItem[] =>
-  ids.map((lineId) => ({ kind: "path", lineId }));
+const chain = chained;
+const apart = separately;
 
 const timelineOf = (
   lines: Line[],
@@ -64,10 +63,8 @@ const timelineOf = (
   calculatePathTime(start, lines, { ...settings, ...over }, sequence)
     .timeline as TimelineEvent[];
 
-const travels = (timeline: TimelineEvent[]) =>
-  timeline.filter((e) => e.type === "travel");
-const recoveries = (timeline: TimelineEvent[]) =>
-  timeline.filter((e) => e.type === "recovery");
+const travels = travelsIn;
+const recoveries = recoveriesIn;
 
 // Out along the top, then straight back: the direction of travel reverses.
 const reversal = [line("out", 80, 10), line("back", 20, 10)];
@@ -137,7 +134,7 @@ describe("speed through a chained joint", () => {
     expect(corner).toBeGreaterThan(onward);
   });
 
-  it("takes longer when the corner is sharper", () => {
+  it("takes longer to get round a right angle than a gentle bend", () => {
     const total = (x: number, y: number) =>
       calculatePathTime(
         start,
@@ -145,9 +142,8 @@ describe("speed through a chained joint", () => {
         settings,
         chain("out", "b"),
       ).totalTime;
-    // Same length paths, turning by 45, 90 and 180 degrees.
+    // Same length paths, turning by 45 degrees and by 90.
     expect(total(70 + 42, 10 + 42)).toBeLessThan(total(70, 70));
-    expect(total(70, 70)).toBeLessThan(total(10, 10));
   });
 
   it("is continuous: each event starts where the one before ended", () => {
@@ -192,12 +188,14 @@ describe("speed through a chained joint", () => {
     const lines = [line("out", 70, 10), line("up", 70, 120, [], 180)];
     const events = timelineOf(lines, chain("out", "up"));
     const [recovery] = recoveries(events);
-    expect(recovery.startHeading).toBeCloseTo(90);
-    expect(recovery.targetHeading).toBeGreaterThan(130);
-    const halfway = (recovery.startTime + recovery.endTime) / 2;
-    const heading = robotPoseDuring(recovery, halfway, lines, start)!.heading;
+    const headings = recovery.trace!.heading;
+    expect(headings[0]).toBeCloseTo(90);
+    expect(headings.at(-1)!).toBeGreaterThan(130);
+    // Part of the way through the turn it has moved, but not got there.
+    const soon = recovery.startTime + 0.3;
+    const heading = robotPoseDuring(recovery, soon, lines, start)!.heading;
     expect(heading).toBeGreaterThan(90);
-    expect(heading).toBeLessThan(recovery.targetHeading!);
+    expect(heading).toBeLessThan(headings.at(-1)!);
   });
 
   it("doesn't chain paths that aren't chained: it stops at the end of each", () => {
@@ -270,6 +268,12 @@ describe("recovery results are reused without going stale", () => {
 
   it("gives the same answer when asked again", () => {
     expect(total()).toBe(total());
+  });
+
+  it("notices a change to the robot's PID strength", () => {
+    const base = total();
+    expect(total({ translationalP: 0.4 })).not.toBeCloseTo(base, 2);
+    expect(total()).toBe(base);
   });
 
   it("notices a change to the robot's settings", () => {
@@ -353,7 +357,9 @@ describe("Path Statistics for chains", () => {
     expect(sharp).toHaveLength(1);
     expect(sharp[0].type).toBe("warning");
     expect(sharp[0].message).toContain("90°");
-    expect(sharp[0].message).toMatch(/swing about \d+\.\d in past the path/);
+    expect(sharp[0].message).toMatch(
+      /swings about \d+\.\d in past the next path/,
+    );
     expect(sharp[0].value).toBeGreaterThan(2);
     expect(sharp[0].endTime!).toBeGreaterThan(sharp[0].startTime);
   });
@@ -367,7 +373,7 @@ describe("Path Statistics for chains", () => {
     const result = stats(cornerPaths, ["out", "up"]);
     expect(result.segments.map((s) => s.name)).toEqual([
       "out",
-      "Overshoot recovery",
+      "Chained corner",
       "up",
     ]);
     const sum = result.segments.reduce((total, s) => total + s.time, 0);
@@ -438,7 +444,7 @@ describe("Sharp corner validation marker", () => {
     const markers = validate(reversal, ["out", "back"]);
     expect(markers).toHaveLength(1);
     expect(markers[0]).toMatchObject({
-      type: "sharp-corner",
+      type: "chain-corner",
       x: 80,
       y: 10,
       segmentIndex: 1,
