@@ -5,7 +5,11 @@ import type { Path } from "two.js/src/path";
 import type { Line as PathLine } from "two.js/src/shapes/line";
 import type { Line, Point } from "../../../types";
 import { getCurvePoint } from "../../../utils/math";
+import { drivenRange } from "../../../utils/timeCalculator/drivenRange";
 import { type RenderContext, createLineElement } from "./GeneratorUtils";
+
+/** The heatmap colour of the part of a line the robot doesn't drive. */
+const UNDRIVEN_COLOR = "hsl(0, 0%, 60%)";
 
 export function generatePathElements(
   targetLines: Line[],
@@ -43,6 +47,7 @@ export function generatePathElements(
 
         // Re-sample geometry to match profile (100 samples)
         const samples = 100;
+        const drivenParts = drivenRange(event);
         let cps = [_startPoint, ...line.controlPoints, line.endPoint];
         let prevPt = getCurvePoint(0, cps);
 
@@ -87,9 +92,12 @@ export function generatePathElements(
           const vAvg = vProfile[safeIndex] || 0;
           const ratio = Math.min(1, Math.max(0, vAvg / maxVel));
 
-          // Green (120) -> Red (0)
+          // Green (120) -> Red (0). The part of the line the robot doesn't
+          // drive (handed over early, or picked up after a swing) is grey.
           const hue = 120 - ratio * 120;
-          const color = `hsl(${hue}, 100%, 40%)`;
+          const driven =
+            t > drivenParts.from && t - 1 / samples < drivenParts.to;
+          const color = driven ? `hsl(${hue}, 100%, 40%)` : UNDRIVEN_COLOR;
 
           if (color === currentColor) {
             // Extend current path

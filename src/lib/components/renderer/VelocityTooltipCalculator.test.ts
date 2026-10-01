@@ -177,4 +177,62 @@ describe("VelocityTooltipCalculator", () => {
 
     expect(result.time).toBeCloseTo(4);
   });
+  describe("where the robot doesn't drive a path", () => {
+    const at = (rawInchX: number, timeline: TimelineEvent[]) =>
+      calculateVelocityTooltip({
+        rawInchX,
+        rawInchY: 0,
+        lines,
+        startPoint,
+        timeline,
+        clientX: 0,
+        clientY: 0,
+      });
+    const travel = (extra: Partial<TimelineEvent>) =>
+      ({
+        type: "travel",
+        lineIndex: 0,
+        startTime: 0,
+        endTime: 2,
+        duration: 2,
+        velocityProfile: [10, 20, 30],
+        ...extra,
+      }) as TimelineEvent;
+
+    it("shows nothing on the end of a path handed over early", () => {
+      const timeline = [travel({ drivenFrom: 0, drivenTo: 0.6 })];
+      expect(at(5, timeline).visible).toBe(true);
+      expect(at(8, timeline)).toEqual({ visible: false });
+    });
+
+    it("shows nothing on the start of a path picked up after a swing", () => {
+      const timeline = [travel({ drivenFrom: 0.4, drivenTo: 1 })];
+      expect(at(2, timeline)).toEqual({ visible: false });
+      expect(at(8, timeline).visible).toBe(true);
+    });
+
+    it("counts the distance only from where the path is picked up", () => {
+      const timeline = [travel({ drivenFrom: 0.4, drivenTo: 1 })];
+      expect(at(5, timeline).distance).toBeCloseTo(1);
+    });
+
+    it("counts the route of a swing as distance for the paths after it", () => {
+      const swing = {
+        type: "recovery",
+        lineIndex: 0,
+        startTime: 0,
+        endTime: 1,
+        duration: 1,
+        trace: {
+          time: [0, 1],
+          x: [0, 3],
+          y: [0, 4],
+          speed: [0, 0],
+          heading: [0, 0],
+        },
+      } as TimelineEvent;
+      const after = travel({ startTime: 1, endTime: 3 });
+      expect(at(5, [swing, after]).distance).toBeCloseTo(5 + 5);
+    });
+  });
 });

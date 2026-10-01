@@ -4,6 +4,10 @@ import { closestPointOnPath } from "../../../utils/geometry";
 import { timeAtProfileT } from "../../../utils/math";
 import { travelCurve } from "../../../utils/animation";
 import { analyzePathSegment } from "../../../utils/timeCalculator/segmentAnalyzer";
+import {
+  drivenLength,
+  drivenRange,
+} from "../../../utils/timeCalculator/drivenRange";
 
 export interface VelocityTooltipResult {
   visible: boolean;
@@ -36,6 +40,20 @@ function travelLength(
   const { curve } = travel;
   return analyzePathSegment(curve[0], curve.slice(1, -1), curve.at(-1)!, 100, 0)
     .length;
+}
+
+/** How far the robot goes along the route of a swing, in inches. */
+function traceLength(event: TimelineEvent): number {
+  const trace = event.trace;
+  if (!trace) return 0;
+  let length = 0;
+  for (let i = 1; i < trace.x.length; i++) {
+    length += Math.hypot(
+      trace.x[i] - trace.x[i - 1],
+      trace.y[i] - trace.y[i - 1],
+    );
+  }
+  return length;
 }
 
 /**
@@ -74,6 +92,11 @@ export function calculateVelocityTooltip(
   if (!tlEvent || !vProfile?.length) return { visible: false };
 
   const t = closest.t;
+  // A path handed over early, or picked up after a swing, isn't driven all the
+  // way along; there is nothing to show where the robot doesn't drive it.
+  const range = drivenRange(tlEvent);
+  if (t < range.from - 1e-9 || t > range.to + 1e-9) return { visible: false };
+
   const profileIndex = Math.floor(t * (vProfile.length - 1));
   const velocity = vProfile[Math.min(vProfile.length - 1, profileIndex)];
   const time =
@@ -86,9 +109,13 @@ export function calculateVelocityTooltip(
   let distance = 0;
   for (const ev of timeline) {
     if (ev === tlEvent) break;
-    if (ev.type === "travel") distance += travelLength(ev, lines, startPoint);
+    if (ev.type === "travel") {
+      distance += drivenLength(ev, travelLength(ev, lines, startPoint));
+    } else if (ev.type === "recovery") {
+      distance += traceLength(ev);
+    }
   }
-  distance += travelLength(tlEvent, lines, startPoint) * t;
+  distance += (t - range.from) * travelLength(tlEvent, lines, startPoint);
 
   return {
     visible: true,
