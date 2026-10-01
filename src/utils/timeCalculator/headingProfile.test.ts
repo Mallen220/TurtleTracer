@@ -351,3 +351,30 @@ describe("heading profile with piecewise headings", () => {
     expect(second.at(-1)).toBeCloseTo(70, 0);
   });
 });
+
+describe("turn rate", () => {
+  // Facing east, then wanting to face west (180 degrees away) in an instant.
+  const flip: Line = {
+    id: "flip",
+    endPoint: { x: 100, y: 10, heading: "constant", degrees: 190 },
+    controlPoints: [],
+    color: "red",
+  };
+
+  it("limits how fast the heading changes", () => {
+    const { timeline } = calculatePathTime(start, [flip], {
+      ...DEFAULT_SETTINGS,
+      aVelocity: 0.5,
+    });
+    const travel = timeline.find((e) => e.type === "travel")!;
+    const heading = travel.headingProfile!;
+    const times = travel.motionProfile!;
+    const rate = (0.5 * 180) / Math.PI;
+    for (let i = 1; i < heading.length; i++) {
+      const dt = Math.max(0, times[i] - (times[i - 1] ?? 0));
+      expect(Math.abs(heading[i] - heading[i - 1])).toBeLessThanOrEqual(
+        rate * dt + 1e-6,
+      );
+    }
+  });
+});

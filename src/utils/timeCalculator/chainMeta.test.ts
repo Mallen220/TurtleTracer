@@ -4,7 +4,6 @@ import {
   calculateEndHeadingAndRotation,
   calculateGlobalChainMeta,
   continuesChain,
-  cornerSpeed,
 } from "./chainMeta";
 import type { Line, Point, SequenceItem } from "../../types";
 import type { PathAnalysis } from "./types";
@@ -27,28 +26,6 @@ const path = (lineId: string, isChain?: boolean): SequenceItem => ({
   kind: "path",
   lineId,
   ...(isChain === undefined ? {} : { isChain }),
-});
-
-describe("cornerSpeed", () => {
-  it("keeps full speed when the headings match", () => {
-    expect(cornerSpeed(40, 30, 30)).toBeCloseTo(40);
-  });
-
-  it("slows in proportion to cos of the turn", () => {
-    expect(cornerSpeed(40, 0, 60)).toBeCloseTo(20);
-  });
-
-  it("stops for a right angle or anything sharper", () => {
-    expect(cornerSpeed(40, 0, 90)).toBeCloseTo(0);
-    expect(cornerSpeed(40, 0, 180)).toBe(0);
-    expect(cornerSpeed(40, 10, 300)).toBeGreaterThan(0); // 70 degrees the short way
-  });
-
-  it("measures the turn the short way round", () => {
-    expect(cornerSpeed(40, 350, 10)).toBeCloseTo(
-      40 * Math.cos((20 * Math.PI) / 180),
-    );
-  });
 });
 
 describe("continuesChain", () => {

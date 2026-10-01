@@ -4,6 +4,8 @@ export interface PathStep {
   radius: number;
   rotation: number;
   heading: number;
+  /** The direction of travel at the end of the step, in degrees. */
+  direction?: number;
 }
 
 export interface PathAnalysis {

@@ -12,6 +12,11 @@ import {
 import type { SequenceItem, Line, Point, BasePoint } from "../../types";
 import type { PathAnalysis } from "./types";
 
+/** Whether the chain's own heading, set on its first line, applies to its lines. */
+export function hasGlobalHeading(rootLine: Line | undefined): boolean {
+  return !!(rootLine?.globalHeading && rootLine.globalHeading !== "none");
+}
+
 /** Where a line sits within its chain. */
 export interface ChainInfo {
   rootLine: Line;
@@ -79,24 +84,11 @@ export function calculateGlobalChainMeta(
 }
 
 /** Speed through a corner: full speed straight on, none at 90 degrees or more. */
-function cornerSpeedForTurn(maxVelocity: number, turnDegrees: number): number {
-  return maxVelocity * Math.max(0, Math.cos((turnDegrees * Math.PI) / 180));
-}
-
-/**
- * How fast the robot can go through a joint between two paths, from how much
- * the heading changes: full speed when the headings match, slowing to a stop
- * for a 90 degree (or sharper) change.
- */
-export function cornerSpeed(
+export function cornerSpeedForTurn(
   maxVelocity: number,
-  headingBefore: number,
-  headingAfter: number,
+  turnDegrees: number,
 ): number {
-  return cornerSpeedForTurn(
-    maxVelocity,
-    Math.abs(getAngularDifference(headingBefore, headingAfter)),
-  );
+  return maxVelocity * Math.max(0, Math.cos((turnDegrees * Math.PI) / 180));
 }
 
 /**
@@ -133,8 +125,8 @@ export function travelTurn(
   return Math.abs(getAngularDifference(before.end, after.start));
 }
 
-/** A joint between two chained paths where the robot has to turn sharply. */
-export interface SharpJunction {
+/** A joint between two chained paths. */
+export interface ChainJunction {
   /** Index in `lines` of the path the robot turns onto. */
   lineIndex: number;
   x: number;
@@ -147,18 +139,17 @@ export interface SharpJunction {
 export const SHARP_TURN_DEGREES = 60;
 
 /**
- * Chained joints where the direction of travel changes by
- * `SHARP_TURN_DEGREES` or more. A robot can't change direction instantly, so
- * it swings wide there (see `chainRecovery`), which a chain is meant to avoid.
+ * Every joint between chained paths, with how far the direction of travel
+ * changes there.
  */
-export function findSharpJunctions(
+export function chainJunctions(
   startPoint: Point,
   lines: Line[],
   seq: SequenceItem[],
-): SharpJunction[] {
+): ChainJunction[] {
   const lineById = new Map(lines.map((l) => [l.id!, l]));
   const indexById = new Map(lines.map((l, i) => [l.id!, i]));
-  const found: SharpJunction[] = [];
+  const found: ChainJunction[] = [];
 
   let start: BasePoint = startPoint;
   let previous: ReturnType<typeof travelDirections> = null;
@@ -169,21 +160,33 @@ export function findSharpJunctions(
 
     const directions = travelDirections(start, line);
     if (continuesChain(seq, idx, lineById)) {
-      const turnDegrees = travelTurn(previous, directions);
-      if (turnDegrees >= SHARP_TURN_DEGREES) {
-        found.push({
-          lineIndex: indexById.get(item.lineId)!,
-          x: start.x,
-          y: start.y,
-          turnDegrees,
-        });
-      }
+      found.push({
+        lineIndex: indexById.get(item.lineId)!,
+        x: start.x,
+        y: start.y,
+        turnDegrees: travelTurn(previous, directions),
+      });
     }
     // A line with no length keeps the direction the robot was already going.
     if (directions) previous = directions;
     start = line.endPoint;
   });
   return found;
+}
+
+/**
+ * Chained joints where the direction of travel changes by `SHARP_TURN_DEGREES`
+ * or more. A robot can't change direction instantly, so it swings wide there
+ * (see `chainRecovery`), which a chain is meant to avoid.
+ */
+export function findSharpJunctions(
+  startPoint: Point,
+  lines: Line[],
+  seq: SequenceItem[],
+): ChainJunction[] {
+  return chainJunctions(startPoint, lines, seq).filter(
+    (joint) => joint.turnDegrees >= SHARP_TURN_DEGREES,
+  );
 }
 
 /**

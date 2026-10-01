@@ -29,6 +29,7 @@ export function analyzePathSegment(
   let tangentRotation = 0;
   let netRotation = 0;
   let prevAngle: number | null = null;
+  let direction = 0;
   let currentUnwrapped = Number.isFinite(initialHeading) ? initialHeading : 0;
 
   const steps: PathStep[] = [];
@@ -249,6 +250,7 @@ export function analyzePathSegment(
         }
       }
       prevAngle = angle;
+      direction = angle;
     }
 
     if (i > 0) {
@@ -257,6 +259,7 @@ export function analyzePathSegment(
         radius,
         rotation: stepRotation,
         heading: currentUnwrapped,
+        direction,
       });
     }
   }
