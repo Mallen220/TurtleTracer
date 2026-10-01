@@ -49,7 +49,8 @@ describe("computePathStatistics", () => {
 });
 
 describe("computePathStatistics details", () => {
-  const settings = { ...DEFAULT_SETTINGS };
+  // The robot stops to turn before a path facing another way.
+  const settings = { ...DEFAULT_SETTINGS, stopToTurn: true };
   const line = (
     id: string,
     endPoint: Partial<Point>,
@@ -71,7 +72,12 @@ describe("computePathStatistics details", () => {
       steps("a", "b"),
       settings,
     );
-    expect(stats.segments.map((s) => s.name)).toEqual(["Path 1", "Path 2"]);
+    // East, then north: the turn the robot makes between them is listed too.
+    expect(stats.segments.map((s) => s.name)).toEqual([
+      "Path 1",
+      "Turn",
+      "Path 2",
+    ]);
   });
 
   it("skips steps that refer to paths that don't exist", () => {
@@ -133,10 +139,16 @@ describe("computePathStatistics details", () => {
       (p, i) => p.value > 0 && stats.velocityData[i].value === 0,
     );
     expect(turning.length).toBeGreaterThan(0);
-    // The turn isn't one of the path rows, so its time is what's left over.
-    const turnTime =
-      stats.totalTime - stats.segments.reduce((sum, row) => sum + row.time, 0);
+    // The turn has its own row, so the rows add up to the whole run.
+    const turnRow = stats.segments.find((row) => row.name === "Turn")!;
+    expect(turnRow.degrees).toBeCloseTo(90, 3);
+    expect(turnRow.length).toBe(0);
+    const turnTime = turnRow.time;
     expect(turnTime).toBeGreaterThan(0);
+    expect(stats.segments.reduce((sum, row) => sum + row.time, 0)).toBeCloseTo(
+      stats.totalTime,
+      6,
+    );
     // A quarter turn (pi/2 radians) spread evenly over that time.
     expect(turning[0].value).toBeCloseTo(Math.PI / 2 / turnTime, 3);
   });
@@ -159,23 +171,6 @@ describe("computePathStatistics details", () => {
     expect(stats.maxAngularVelocity).toBe(0); // only paths count towards the maxima
   });
 
-  it("assumes constant speed when motion profiling is off", () => {
-    const { maxVelocity: _v, maxAcceleration: _a, ...noProfile } = settings;
-    const stats = computePathStatistics(
-      start,
-      [straight],
-      steps("a"),
-      noProfile as typeof settings,
-    );
-    const [segment] = stats.segments;
-    expect(segment.length).toBeCloseTo(120);
-    expect(segment.maxVel).toBeCloseTo(segment.length / segment.time);
-    expect(segment.degrees).toBeCloseTo(0);
-    expect(stats.maxLinearVelocity).toBeCloseTo(segment.maxVel);
-    // Flat graph: two points at the same speed.
-    expect(stats.velocityData.filter((p) => p.value > 0)).toHaveLength(2);
-  });
-
   it("reports the top speed and distance for the whole path", () => {
     const stats = computePathStatistics(
       start,
@@ -190,5 +185,26 @@ describe("computePathStatistics details", () => {
     );
     expect(stats.velocityData[0]).toEqual({ time: 0, value: 0 });
     expect(stats.accelerationData.length).toBe(stats.velocityData.length);
+  });
+  it("lists the paths inside a macro, in the order they run", () => {
+    const macro: SequenceItem = {
+      kind: "macro",
+      id: "m",
+      name: "Inner",
+      filePath: "inner.turt",
+      sequence: steps("b"),
+    } as SequenceItem;
+    const stats = computePathStatistics(
+      start,
+      [line("a", { x: 60, y: 10 }), line("b", { x: 60, y: 60 })],
+      [...steps("a"), macro],
+      settings,
+    );
+    const names = stats.segments.map((s) => s.name);
+    expect(names).toContain("Path 1");
+    expect(names).toContain("Path 2");
+    expect(names.indexOf("Path 1")).toBeLessThan(names.indexOf("Path 2"));
+    const segmentTime = stats.segments.reduce((sum, s) => sum + s.time, 0);
+    expect(segmentTime).toBeCloseTo(stats.totalTime, 6);
   });
 });

@@ -4,8 +4,9 @@ import {
   calculatePathTime,
   startingHeading,
 } from "./timeCalculator";
-import { findSharpJunctions } from "./timeCalculator/chainMeta";
+import { chainCornerIssues } from "./timeCalculator/chainIssues";
 import { getAngularDifference } from "./math";
+import { MAX_MACRO_DEPTH } from "../lib/macroUtils";
 import type {
   Point,
   Line,
@@ -30,6 +31,8 @@ export interface Insight {
   type: "warning" | "info" | "error";
   message: string;
   value?: number;
+  /** What `value` is, with its unit, e.g. "Swing: 7.7 in". */
+  valueLabel?: string;
 }
 
 export interface PathStats {
@@ -83,6 +86,16 @@ class InsightTracker {
     this.out.push({ ...this.open, endTime: time });
     this.open = null;
   }
+}
+
+/** The sequence's steps in the order they run, with macros replaced by their own steps. */
+function stepsInOrder(items: SequenceItem[], depth = 0): SequenceItem[] {
+  if (depth > MAX_MACRO_DEPTH) return [];
+  return items.flatMap((item) =>
+    item.kind === "macro"
+      ? stepsInOrder(item.sequence ?? [], depth + 1)
+      : [item],
+  );
 }
 
 /**
@@ -172,6 +185,23 @@ export function computePathStatistics(
     addDataPoint(ev.endTime, 0, 0, 0, 0);
   }
 
+  /** A row for a turn in place the simulation added before a path. */
+  function listInsertedTurn(ev: TimelineEvent) {
+    if (ev.type !== "wait" || ev.waitId) return;
+    const turn = Math.abs(
+      getAngularDifference(ev.startHeading ?? 0, ev.targetHeading ?? 0),
+    );
+    segments.push({
+      name: "Turn",
+      length: 0,
+      time: ev.duration,
+      maxVel: 0,
+      maxAngVel: ev.duration > 0 ? toRadians(turn) / ev.duration : 0,
+      degrees: turn,
+      color: "#d946ef",
+    });
+  }
+
   /**
    * Graph points and a row for the stretch where the robot is off the path
    * between two chained paths. Speeds come from how far the robot moves.
@@ -220,7 +250,7 @@ export function computePathStatistics(
     }
     const last = trace.time.length - 1;
     segments.push({
-      name: "Overshoot recovery",
+      name: "Chained corner",
       length: distance,
       time: ev.duration,
       maxVel: topSpeed,
@@ -366,10 +396,10 @@ export function computePathStatistics(
 
   addDataPoint(0, 0, 0, 0, 0);
 
-  // Walk the sequence and the timeline together. Timeline events between
-  // two sequence items (e.g. inserted turns) are graphed as they're passed.
+  // Walk the steps and the timeline together. Timeline events between two
+  // steps (e.g. inserted turns) are graphed as they're passed.
   let cursor = 0;
-  for (const item of sequence) {
+  for (const item of stepsInOrder(sequence)) {
     const found = timeline.findIndex(
       (ev, i) => i >= cursor && eventBelongsTo(item, ev),
     );
@@ -378,6 +408,7 @@ export function computePathStatistics(
       for (let i = cursor; i < found; i++) {
         graphStationaryEvent(timeline[i]);
         graphRecovery(timeline[i]);
+        listInsertedTurn(timeline[i]);
       }
       cursor = found;
     }
@@ -426,27 +457,24 @@ export function computePathStatistics(
     analyzeTravel(line, timeline[found]);
   }
 
-  // Chained paths that turn sharply where they join.
-  for (const joint of findSharpJunctions(startPoint, lines, sequence)) {
-    const travel = timeline.find(
-      (ev) => ev.type === "travel" && ev.lineIndex === joint.lineIndex,
-    );
-    const recovery = timeline.find(
-      (ev) => ev.type === "recovery" && ev.lineIndex === joint.lineIndex,
-    );
-    const what =
-      recovery?.overshoot !== undefined && recovery.overshoot >= 0.5
-        ? `swing about ${recovery.overshoot.toFixed(1)} in past the path`
-        : "slow right down";
-    const taking = recovery ? `, taking ${recovery.duration.toFixed(1)} s` : "";
+  // The chained corners worth a word: each is said once.
+  for (const issue of chainCornerIssues(
+    timeline,
+    startPoint,
+    lines,
+    sequence,
+    settings,
+  )) {
     insights.push({
-      startTime: recovery?.startTime ?? travel?.startTime ?? 0,
-      endTime: recovery?.endTime,
-      type: "warning",
-      message: `Sharp ${Math.round(joint.turnDegrees)}° turn where chained paths join. A robot can't change direction instantly, so the simulation has it ${what}${taking}, before it is back on the next path.`,
-      value: recovery?.overshoot,
+      startTime: issue.startTime,
+      endTime: issue.endTime,
+      type: issue.severity,
+      message: issue.message,
+      value: issue.value,
+      valueLabel: issue.valueLabel,
     });
   }
+
   insights.sort((a, b) => a.startTime - b.startTime);
 
   speedWarning.close(prediction.totalTime);

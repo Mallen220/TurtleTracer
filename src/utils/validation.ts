@@ -1,6 +1,7 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { PathOptimizer } from "./pathOptimizer";
-import { findSharpJunctions } from "./timeCalculator/chainMeta";
+import { calculatePathTime } from "./timeCalculator";
+import { chainCornerIssues } from "./timeCalculator/chainIssues";
 import { collisionMarkers, notification } from "../stores";
 import type {
   Line,
@@ -52,14 +53,23 @@ export function validatePath(
     currentStart = line.endPoint;
   });
 
-  // Chained paths that turn sharply at a joint, where the robot must nearly stop.
-  for (const joint of findSharpJunctions(startPoint, lines, sequence)) {
+  // Chained corners the robot struggles with, where the paths join.
+  const prediction = timeline
+    ? null
+    : calculatePathTime(startPoint, lines, settings, sequence);
+  for (const issue of chainCornerIssues(
+    timeline ?? prediction!.timeline,
+    startPoint,
+    lines,
+    sequence,
+    settings,
+  )) {
     markers.push({
-      x: joint.x,
-      y: joint.y,
-      time: 0,
-      segmentIndex: joint.lineIndex,
-      type: "sharp-corner",
+      x: issue.x,
+      y: issue.y,
+      time: issue.startTime,
+      segmentIndex: issue.lineIndex,
+      type: "chain-corner",
     });
   }
 
@@ -71,11 +81,11 @@ export function validatePath(
       const zeroLengthCount = markers.filter(
         (m) => m.type === "zero-length",
       ).length;
-      const sharpCount = markers.filter(
-        (m) => m.type === "sharp-corner",
+      const cornerCount = markers.filter(
+        (m) => m.type === "chain-corner",
       ).length;
       const obstacleCount =
-        markers.length - boundaryCount - zeroLengthCount - sharpCount;
+        markers.length - boundaryCount - zeroLengthCount - cornerCount;
 
       let msg = `Found ${markers.length} ${markers.length === 1 ? "issue" : "issues"}! `;
       const parts = [];
@@ -88,9 +98,9 @@ export function validatePath(
           `${boundaryCount} ${boundaryCount === 1 ? "boundary" : "boundaries"}`,
         );
       if (zeroLengthCount > 0) parts.push(`${zeroLengthCount} zero-length`);
-      if (sharpCount > 0)
+      if (cornerCount > 0)
         parts.push(
-          `${sharpCount} sharp chained ${sharpCount === 1 ? "corner" : "corners"}`,
+          `${cornerCount} chained ${cornerCount === 1 ? "corner" : "corners"}`,
         );
 
       msg += `(${parts.join(", ")})`;
