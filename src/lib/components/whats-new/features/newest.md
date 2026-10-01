@@ -4,7 +4,7 @@ This release makes path editing, project files, collision detection, macros, exp
 
 ## New setting
 
-- Square Corners: turn this on in Settings under Interface to draw buttons, dialogs, panels, and inputs with square corners instead of rounded ones. It is off by default and applies as soon as you check it.
+- Square Corners: turn this on in Settings under Interface to draw buttons, dialogs, panels, and inputs with square corners instead of rounded ones. It is off by default.
 
 ## Simulation and collisions
 
