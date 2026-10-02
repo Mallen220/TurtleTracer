@@ -41,9 +41,10 @@
 <p>
 
   
+  
   <!-- COVERAGE_BADGE_START -->
   <a href="coverage/index.html">
-    <img src="README_Content/coverage-badge.svg" alt="Branch Coverage: 86.2%" height="20">
+    <img src="README_Content/coverage-badge.svg" alt="Branch Coverage: 86.18%" height="20">
   </a>
   <!-- COVERAGE_BADGE_END -->
 </p>
