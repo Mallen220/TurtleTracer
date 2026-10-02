@@ -2,7 +2,16 @@
 
 This release makes path editing, project files, collision detection, macros, exports, and keyboard shortcuts more reliable and more consistent with each other. It also includes a big cleanup of the code behind them.
 
-## New setting
+## Chained paths
+
+- A chained corner is now simulated the way Pedro Pathing drives it. The robot can't turn instantly, so it carries on past the join, swings out, and steers back onto the next path. The Field shows the swing as a dashed line, the playback follows it, and the time includes it.
+- Sharp corners and corners where the robot misses the join point get one warning in Path Statistics, one marker on the field, and one entry in the validation list. Each says how far the robot swings or misses by. The speed tooltip and heatmap skip the part of a path the robot doesn't drive, and the Table counts the swing in the time of the path it leads onto.
+- The optimizer can now handle sharp chained corners. It treats a swing into an obstacle as a collision, and it penalizes paths that skip the join point. The Optimization dialog has a toggle to include the corner correction, and says how many sharp corners your paths have.
+- New Motion settings describe how your robot behaves: Pedro Pathing version (v3 or an approximate v2), Translational P, Path Settle Time, Stop to Turn, and two advanced braking coefficients. The Translational P setting has a small preview of a corner so you can see what a value does. Very high values are treated as the strongest correction instead of making the simulation unstable.
+- Robot profiles now save Translational P, the braking coefficients, and the settle time with the rest of your robot's settings. Profiles saved before this keep your current values for them.
+- Forward and strafe velocity are labeled as such. Slow Down for Curves and Heading Response Time were removed because they changed the results very little.
+
+## New Interface Setting
 
 - Square Corners: turn this on in Settings under Interface to draw buttons, dialogs, panels, and inputs with square corners instead of rounded ones. It is off by default.
 
@@ -30,6 +39,7 @@ This release makes path editing, project files, collision detection, macros, exp
 
 ## Editing and shortcuts
 
+- Deleting control points in the waypoint table is more responsive.
 - Reverse path, snap selection, and moving items up or down had stopped working. They work again.
 - Adding a path, wait, or turn with the keyboard now matches the menu. The new item goes after your selection, and new paths start in a sensible position and direction.
 - Duplicate now works for turns in the Table tab, and it is disabled for macros instead of silently doing nothing.
@@ -63,4 +73,4 @@ This release makes path editing, project files, collision detection, macros, exp
 
 ## Under the hood
 
-This is one of the larger cleanups in recent development. Thousands of lines of duplicated or unused code were removed, and big components such as the file manager, settings, path table, and main app were simplified. The automated test suite now has 2,176 tests, and branch coverage is above 85%.
+This is one of the larger cleanups in recent development. Thousands of lines of duplicated or unused code were removed, and big components such as the file manager, settings, path table, and main app were simplified. The automated test suite now has more than 2,400 tests, and branch coverage is above 85%.

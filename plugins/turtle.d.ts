@@ -279,6 +279,25 @@ interface Settings {
   maxAcceleration: number; // inches/sec²
   maxDeceleration?: number; // inches/sec²
   maxAngularAcceleration?: number; // rad/sec²
+  /**
+   * Which Pedro Pathing behaviour to simulate. v3 measures heading progress
+   * along a path by distance and hands chained paths over early; v2 measures
+   * it by the curve parameter and hands over at the end of the path.
+   */
+  pedroVersion?: "v3" | "v2";
+  /** Seconds the robot holds at the end of a path before the next step starts. */
+  pathSettleTime?: number;
+  /** Stop to turn in place before a path that starts at a different heading. */
+  stopToTurn?: boolean;
+  /**
+   * The P gain of Pedro's translational PID, which steers the robot back onto
+   * the path: motor power per inch of error. A stronger controller swings less
+   * wide at a chained corner and gets back onto the path sooner.
+   */
+  translationalP?: number;
+  /** Braking distance (in) is `quadratic * v^2 + linear * v`, with v in in/s. 0 and 0 use max deceleration. */
+  brakingQuadratic?: number;
+  brakingLinear?: number;
   fieldMap: string;
   fieldRotation?: number; // 0, 90, 180, 270
   robotImage?: string;
@@ -374,6 +393,11 @@ interface RobotProfile {
   aVelocity: number; // angular velocity
   xVelocity: number;
   yVelocity: number;
+  // How the robot is tuned (profiles saved before these existed don't have them)
+  translationalP?: number;
+  brakingQuadratic?: number;
+  brakingLinear?: number;
+  pathSettleTime?: number;
   robotImage?: string;
   robotDriveType?: "holonomic" | "swerve"; // Drive train type for visualization
   showRobotArrows?: boolean;
@@ -401,6 +425,17 @@ interface ObstaclePreset {
 
 type TimelineEventType = "travel" | "wait" | "macro" | "recovery";
 
+/** Where a robot goes while it is steered back onto a path. Shared: read only. */
+interface RecoveryTrace {
+  /** Seconds from the start of the event. */
+  readonly time: readonly number[];
+  readonly x: readonly number[];
+  readonly y: readonly number[];
+  readonly speed: readonly number[];
+  /** The robot's heading at each sample, in degrees. */
+  readonly heading: readonly number[];
+}
+
 interface TimelineEvent {
   type: TimelineEventType;
   duration: number;
@@ -416,10 +451,19 @@ interface TimelineEvent {
   startHeading?: number;
   targetHeading?: number;
   atPoint?: BasePoint;
+  /**
+   * For a travel event: how much of the line this event drives, as fractions
+   * of it (0 to 1). A robot handed over early doesn't drive the end of its
+   * line, and one that joins part way along doesn't drive the start. Use
+   * `drivenRange` rather than reading these directly.
+   */
+  drivenFrom?: number;
+  drivenTo?: number;
   // Detailed motion profile for travel events: maps step index to cumulative time.
-  // A robot that joins a path part way along has times just below zero for the
-  // steps it skips, and one that is handed over early has times past `duration`
-  // for the steps it never drives.
+  // The steps outside the driven range are not part of this event: those before
+  // it have times just below zero, those after it times past `duration`. Time
+  // to position lookups work as usual; use `drivenRange` for anything that
+  // counts distance or speed along the whole line.
   motionProfile?: number[];
   // Detailed velocity profile for travel events: maps step index to velocity
   velocityProfile?: number[];
@@ -430,10 +474,13 @@ interface TimelineEvent {
   globalHeading?: Point["heading"];
   /**
    * For a "recovery" event: where the robot goes between a chained path being
-   * handed over and the robot being back on the next one. `time` is seconds
-   * from the event's start.
+   * handed over and the robot being back on the next one.
    */
-  trace?: { time: number[]; x: number[]; y: number[]; speed: number[] };
+  trace?: RecoveryTrace;
+  /** For a "recovery" event: whether the robot gets back onto the next path. */
+  settled?: boolean;
+  /** For a "recovery" event: how close the robot gets to the point the paths join at, in inches. */
+  missedBy?: number;
   /** For a "recovery" event: how far the robot is from the next path when it is handed over. */
   startOffset?: number;
   /** For a "recovery" event: how far the robot swings past the next path, in inches. */
@@ -466,7 +513,7 @@ interface CollisionMarker {
   y: number;
   time: number;
   segmentIndex?: number;
-  type?: "obstacle" | "boundary" | "zero-length" | "keep-in" | "sharp-corner";
+  type?: "obstacle" | "boundary" | "zero-length" | "keep-in" | "chain-corner";
   /** The collision happens while the robot is off its path at a chained corner. */
   offPath?: boolean;
   // Range properties
