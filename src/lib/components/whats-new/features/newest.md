@@ -2,6 +2,16 @@
 
 This release makes path editing, project files, collision detection, macros, exports, and keyboard shortcuts more reliable and more consistent with each other. It also includes a big cleanup of the code behind them.
 
+## More Realistic Path Motion
+
+- Several updates to all path behavior such that it more accurately reflects true Pedro Pathing Behavior for most teams. 
+- Instead of the new setting "Stop to Turn" being true by default for all users it's not false by default.
+- Simulation now accepts a Translational P (default 0.1) to simulate path overshooting.
+- Users can choose to use the new or old PP algorithm. With or without foresight. Pedro Pathing Version v3 vs v2. Default: v3. 
+- Motion tab update to make it easier for users to find and update the motion fields with their real values.
+- Users with complex configurations can now overright the default braking rates. 
+
+
 ## Chained paths
 
 - A chained corner is now simulated the way Pedro Pathing drives it. The robot can't turn instantly, so it carries on past the join, swings out, and steers back onto the next path. The Field shows the swing as a dashed line, the playback follows it, and the time includes it.
