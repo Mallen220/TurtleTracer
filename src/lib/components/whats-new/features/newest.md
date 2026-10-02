@@ -14,7 +14,7 @@ This release makes path editing, project files, collision detection, macros, exp
 
 ## Chained paths
 
-- A chained corner is now simulated the way Pedro Pathing drives it. The robot can't turn instantly, so it carries on past the join, swings out, and steers back onto the next path. The Field shows the swing as a dashed line, the playback follows it, and the time includes it.
+- A chained corner is now simulated the way Pedro Pathing drives it. The robot can't turn instantly, so it carries on past the join, swings out, and steers back onto the next path (Overshooting). The Field shows the swing as a dashed line, the playback follows it, and the time includes it.
 - Sharp corners and corners where the robot misses the join point get one warning in Path Statistics, one marker on the field, and one entry in the validation list. Each says how far the robot swings or misses by. The speed tooltip and heatmap skip the part of a path the robot doesn't drive, and the Table counts the swing in the time of the path it leads onto.
 - The optimizer can now handle sharp chained corners. It treats a swing into an obstacle as a collision, and it penalizes paths that skip the join point. The Optimization dialog has a toggle to include the corner correction, and says how many sharp corners your paths have.
 - New Motion settings describe how your robot behaves: Pedro Pathing version (v3 or an approximate v2), Translational P, Path Settle Time, Stop to Turn, and two advanced braking coefficients. The Translational P setting has a small preview of a corner so you can see what a value does. Very high values are treated as the strongest correction instead of making the simulation unstable.
