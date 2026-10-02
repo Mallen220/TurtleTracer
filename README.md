@@ -63,7 +63,7 @@
       <img src="README_Content/lighthouse-badges/lighthouse_seo.svg" alt="Lighthouse SEO Badge">
     </a>
   </p>
-  <p><sub>Lighthouse badges generated for v2.3.0</sub></p>
+  <p><sub>Lighthouse badges generated for v2.4.0</sub></p>
   <!-- LIGHTHOUSE_BADGES_END -->
 
   <a href="https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full" target="_blank" rel="noopener noreferrer">
