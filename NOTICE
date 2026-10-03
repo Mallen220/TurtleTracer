@@ -610,3 +610,17 @@ src/tests/WaypointTableMenu.test.ts
 src/tests/WaypointTableWrapper.svelte
 src/utils/pathStatistics.test.ts
 src/utils/pathStatistics.ts
+src/lib/components/whats-new/features/v2.4.0.md
+src/lib/exporters/commandLibraries/index.ts
+src/lib/exporters/commandLibraries/ivy.ts
+src/lib/exporters/commandLibraries/nextFtc.ts
+src/lib/exporters/commandLibraries/solversLib.ts
+src/lib/exporters/commandLibraries/types.ts
+src/tests/commandLibraries.test.ts
+src/tests/ExportCodeDialogBehaviour.test.ts
+src/tests/sequentialExporter.test.ts
+tests/install/linux-scenarios.sh
+tests/install/make-fixtures.sh
+tests/install/run-linux.sh
+tests/install/run-macos.sh
+tests/install/sandbox-boot/run-in-docker.sh

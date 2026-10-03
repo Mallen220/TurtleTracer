@@ -1,14 +1,5 @@
 #!/usr/bin/env bash
 # Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-#
-# Turtle Tracer installer for macOS and Linux. (Windows users: see install.ps1.)
-#
-#   curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash -s -- --version 2.3.0
-#
-# Run with --help for all options. Nothing is changed on your system until the
-# plan has been shown and confirmed (or --yes was passed).
-
 set -euo pipefail
 
 REPO="Mallen220/TurtleTracer"

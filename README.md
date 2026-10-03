@@ -40,8 +40,6 @@
 </p>
 <p>
 
-  
-  
   <!-- COVERAGE_BADGE_START -->
   <a href="coverage/index.html">
     <img src="README_Content/coverage-badge.svg" alt="Branch Coverage: 86.18%" height="20">
@@ -216,16 +214,16 @@ Add options after `bash -s --`, for example to install a specific version withou
 curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash -s -- --version 2.3.0
 ```
 
-| Option | What it does |
-| --- | --- |
-| `--version X.Y.Z` | Install that exact version (stable or pre-release). |
+| Option                      | What it does                                                 |
+| --------------------------- | ------------------------------------------------------------ |
+| `--version X.Y.Z`           | Install that exact version (stable or pre-release).          |
 | `--stable` / `--prerelease` | Install the newest stable release or the newest pre-release. |
-| `--yes` | Don't ask questions; use your options and the defaults. |
-| `--dry-run` | Show the plan and change nothing. |
-| `--user` | macOS: install into `~/Applications`, no password. |
-| `--format deb\|appimage` | Linux: choose the package type. |
-| `--require-checksum` | Refuse to install if the download can't be verified. |
-| `--uninstall` | Remove Turtle Tracer. Your projects and settings are kept. |
+| `--yes`                     | Don't ask questions; use your options and the defaults.      |
+| `--dry-run`                 | Show the plan and change nothing.                            |
+| `--user`                    | macOS: install into `~/Applications`, no password.           |
+| `--format deb\|appimage`    | Linux: choose the package type.                              |
+| `--require-checksum`        | Refuse to install if the download can't be verified.         |
+| `--uninstall`               | Remove Turtle Tracer. Your projects and settings are kept.   |
 
 On Windows, set `$env:TT_VERSION = '2.3.0'` before running the command, or use `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.ps1))) -Version 2.3.0 -Prerelease` style parameters (`-Version`, `-Prerelease`, `-Stable`, `-Yes`, `-DryRun`, `-Uninstall`).
 
