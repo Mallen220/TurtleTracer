@@ -162,19 +162,25 @@ Open [live.turtletracer.com](https://live.turtletracer.com/). There is nothing t
 curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash
 ```
 
-_(Enter your password when prompted to complete installation)_
+The installer asks which version you want (press Enter for the latest stable release, `p` for the newest pre-release, or type a number such as `2.3.0`). It then shows what it is about to do and waits for a yes before changing anything. It normally needs no password, because it installs into `/Applications` as you. If your account can't write there, it says so and asks for your password only for that step, or you can add `--user` to install into `~/Applications` instead.
 
 <details>
 <summary><b>Manual Installation</b></summary>
 1. Download the latest `.dmg` from <a href="https://github.com/Mallen220/TurtleTracer/releases">Releases</a>.<br>
 2. Mount the DMG and drag the app to your Applications folder.<br>
-3. <b>Important:</b> Run the following command in Terminal to clear the quarantine attribute:<br>
+3. <b>Important:</b> Turtle Tracer isn't signed with an Apple developer certificate, so if macOS refuses to open it, run this in Terminal to clear the quarantine attribute:<br>
    <code>sudo xattr -rd com.apple.quarantine "/Applications/Turtle Tracer.app"</code>
 </details>
 
 ### Windows
 
 **Microsoft Store (Recommended):** Download from the [Microsoft Store](https://apps.microsoft.com/detail/9nk0b4fdj3zw?referrer=appbadge&mode=full) to get automatic updates for stable releases.
+
+**PowerShell installer:** this downloads the `.exe`, checks it against the published checksum and installs it. Windows asks for administrator approval, because the installer is per-machine.
+
+```powershell
+irm https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.ps1 | iex
+```
 
 <details>
 <summary><b>Manual Installation (.exe)</b></summary>
@@ -191,14 +197,43 @@ _(Enter your password when prompted to complete installation)_
 curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash
 ```
 
+The installer detects your distribution and CPU, and asks which version you want, the same way as on macOS. On Debian and Ubuntu it installs the `.deb` with `apt` (this needs `sudo`). On other distributions, or if you don't have `sudo`, it installs the AppImage into `~/Applications` and adds a menu entry. If `libfuse2` is missing it sets the launcher to unpack the AppImage on start instead of failing, and tells you how to make it faster.
+
 <details>
 <summary><b>AppImage / Manual Installation</b></summary>
 1. Download the `.deb` or `.AppImage` from <a href="https://github.com/Mallen220/TurtleTracer/releases">Releases</a>.<br>
 2. For AppImage, grant execution permissions:<br>
-   <code>chmod +x TurtleTracer*.AppImage</code><br>
-   <code>./TurtleTracer*.AppImage</code><br>
-3. Ensure you have <code>libfuse2</code> and <code>zlib1g</code> installed via your package manager.
+   <code>chmod +x Turtle-Tracer*.AppImage</code><br>
+   <code>./Turtle-Tracer*.AppImage</code><br>
+3. AppImages need <code>libfuse2</code>. If it isn't installed, run with <code>APPIMAGE_EXTRACT_AND_RUN=1 ./Turtle-Tracer*.AppImage</code>.
 </details>
+
+### Installer options and troubleshooting
+
+Add options after `bash -s --`, for example to install a specific version without being asked anything:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.sh | bash -s -- --version 2.3.0
+```
+
+| Option | What it does |
+| --- | --- |
+| `--version X.Y.Z` | Install that exact version (stable or pre-release). |
+| `--stable` / `--prerelease` | Install the newest stable release or the newest pre-release. |
+| `--yes` | Don't ask questions; use your options and the defaults. |
+| `--dry-run` | Show the plan and change nothing. |
+| `--user` | macOS: install into `~/Applications`, no password. |
+| `--format deb\|appimage` | Linux: choose the package type. |
+| `--require-checksum` | Refuse to install if the download can't be verified. |
+| `--uninstall` | Remove Turtle Tracer. Your projects and settings are kept. |
+
+On Windows, set `$env:TT_VERSION = '2.3.0'` before running the command, or use `& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.ps1))) -Version 2.3.0 -Prerelease` style parameters (`-Version`, `-Prerelease`, `-Stable`, `-Yes`, `-DryRun`, `-Uninstall`).
+
+- **Every download is verified.** Releases publish a `SHA256SUMS` file and the installers refuse a file that doesn't match. Releases from before checksums existed install with a warning instead.
+- **"GitHub's rate limit was reached."** GitHub limits anonymous lookups per network. The installer falls back to lookups that aren't limited, and tells you what it couldn't check. You can also name a version with `--version`, or set `GITHUB_TOKEN`.
+- **It can't find a file for your system.** The message lists what the release does contain. Builds exist for 64-bit Intel/AMD and ARM on macOS and Linux (glibc distributions, so not Alpine) and for 64-bit Windows.
+- **Something failed.** The installer saves a log (`~/turtle-tracer-install.log` on macOS and Linux, `%TEMP%\turtle-tracer-install.log` on Windows). Attach it to an [issue](https://github.com/Mallen220/TurtleTracer/issues).
+- **The app won't start on Linux with a sandbox error.** Turtle Tracer turns Chromium's sandbox off by itself when your system can't support it (for example AppImages on Ubuntu 23.10 and newer). If you still see the error, run it with `--no-sandbox`.
 
 ## Workflow and file management
 

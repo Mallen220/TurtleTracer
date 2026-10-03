@@ -1,0 +1,104 @@
+name: Test Installers
+
+# Exercises install.sh and install.ps1 against a local fake of GitHub's release endpoints
+# (tests/install/fake-github.py), so nothing here depends on real releases.
+
+on:
+  pull_request:
+    paths:
+      - install.sh
+      - install.ps1
+      - tests/install/**
+      - .github/workflows/test-install.yml
+  push:
+    branches: [main]
+    paths:
+      - install.sh
+      - install.ps1
+      - tests/install/**
+      - .github/workflows/test-install.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck -x -S style install.sh
+      # The test scripts use `a && b || c` assertions on purpose.
+      - run: shellcheck -x -S warning -e SC2015,SC2010 tests/install/*.sh tests/install/sandbox-boot/*.sh
+
+  linux:
+    name: Linux (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - debian:12-slim
+          - ubuntu:22.04
+          - ubuntu:24.04
+          - fedora:41
+          - archlinux:latest
+          - alpine:3.20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scenarios (user namespaces blocked, Docker's default)
+        run: HOST_NET=1 tests/install/run-linux.sh ${{ matrix.image }}
+      - name: Scenarios (user namespaces available)
+        run: HOST_NET=1 DOCKER_ARGS="--security-opt seccomp=unconfined" tests/install/run-linux.sh ${{ matrix.image }}
+
+  sandbox-boot:
+    name: Electron needs --no-sandbox where Chromium's sandbox can't work
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Boot real Electron as a non-root user in a container
+        run: |
+          out=$(tests/install/sandbox-boot/run-in-docker.sh 2>&1) || true
+          echo "$out"
+          # Without the flag it aborts; with it the window loads. Both are what install.sh relies on.
+          echo "$out" | grep -q "SUID sandbox helper binary was found, but is not configured correctly"
+          echo "$out" | grep -q "BOOT_OK"
+
+  macos:
+    name: macOS (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-13]
+    steps:
+      - uses: actions/checkout@v4
+      # Runs under /bin/bash (3.2), the bash `curl | bash` gets on a Mac. HOME and the system
+      # Applications folder are temp directories.
+      - run: tests/install/run-macos.sh
+
+  windows:
+    name: Windows (${{ matrix.shell }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [pwsh, powershell]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fake release server
+        shell: bash
+        run: |
+          tests/install/make-fixtures.sh "$RUNNER_TEMP/fix"
+          python tests/install/fake-github.py 18084 "$RUNNER_TEMP/fix" > "$RUNNER_TEMP/server.log" 2>&1 &
+          sleep 2
+      - name: Scenarios
+        shell: ${{ matrix.shell }}
+        env:
+          TT_GITHUB_URL: http://127.0.0.1:18084
+          TT_API_URL: http://127.0.0.1:18084
+        run: ./tests/install/windows-scenarios.ps1
