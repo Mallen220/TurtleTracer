@@ -538,7 +538,7 @@ describe_failure() {
             if [ "$(header_value x-ratelimit-remaining)" = "0" ]; then
                 local reset
                 reset=$(header_value x-ratelimit-reset)
-                API_FAIL_REASON="GitHub's anonymous rate limit was reached (it resets around $(format_epoch "$reset")). Setting GITHUB_TOKEN raises the limit."
+                API_FAIL_REASON="GitHub's anonymous rate limit was reached (it resets around $(format_epoch "$reset"))."
             else
                 API_FAIL_REASON="GitHub refused the request (HTTP $HTTP_CODE)."
             fi
