@@ -1,11 +1,17 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-import type { Point, Line, SequenceItem, TurtleData } from "../../types";
+import type {
+  Point,
+  Line,
+  SequenceItem,
+  TurtleData,
+  CommandLibraryId,
+} from "../../types";
 import {
-  generateTrackerEventRegistrationCode,
+  chainHasEventMarkers,
+  chainMarkerRegistrationCode,
   getUniqueEventMarkerNames,
 } from "./eventMarkerUtils";
 import { actionRegistry } from "../../lib/actionRegistry";
-import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
 import { type CoordinateSystem } from "../../utils/coordinates";
 import {
   DEFAULT_PROJECT_EXTENSION,
@@ -13,6 +19,8 @@ import {
   stripProjectExtension,
 } from "../../utils/fileExtensions";
 import { exporterRegistry } from "./index";
+import { getCommandLibrary } from "./commandLibraries";
+import { buildPoseTable, poseNameOf } from "./poseTable";
 import {
   javaLength,
   formatJava,
@@ -24,7 +32,6 @@ import {
   chainGlobalHeading,
   groupChains,
   uniqueNames,
-  identifierFor,
   type FormatOptions,
   type HeadingConfig,
 } from "./javaFormat";
@@ -34,7 +41,7 @@ export async function generateSequentialCommandCode(
   lines: Line[],
   fileName: string | null = null,
   sequence?: SequenceItem[],
-  targetLibrary: "SolversLib" | "NextFTC" = "SolversLib",
+  targetLibrary: CommandLibraryId = "SolversLib",
   packageName: string = "org.firstinspires.ftc.teamcode.Commands.AutoCommands",
   hardcodeValues: boolean = false,
   coordinateSystem: CoordinateSystem = "Pedro",
@@ -49,58 +56,27 @@ export async function generateSequentialCommandCode(
   // project's numbers; otherwise it's loaded at runtime with pp.get().
   const poseDeclarations: string[] = [];
   const poseInitializations: string[] = [];
-  const declareInitializedPose = (name: string, value: string) => {
+  const opts: FormatOptions = { coordinateSystem, codeUnits };
+  const poseName = (idx: number) => poseNameOf(lines, idx);
+
+  for (const { name, x, y, degrees } of buildPoseTable(
+    startPoint,
+    lines,
+    sequence,
+  )) {
+    let value: string;
+    if (!hardcodeValues) {
+      value = `pp.get("${name}")`;
+    } else if (degrees === undefined) {
+      value = `p.of(${x.toFixed(3)}, ${y.toFixed(3)}, 0.0)`;
+    } else if (coordinateSystem === "FTC") {
+      value = poseCode({ x, y }, opts, degrees);
+    } else {
+      value = `p.of(${javaLength(x, codeUnits)}, ${javaLength(y, codeUnits)}, ${degrees})`;
+    }
     poseDeclarations.push(`    private Pose ${name};`);
     poseInitializations.push(`        ${name} = ${value};`);
-  };
-  const declarePose = (name: string, point: Point, degrees: number) => {
-    if (!hardcodeValues) {
-      declareInitializedPose(name, `pp.get("${name}")`);
-    } else if (coordinateSystem === "FTC") {
-      declareInitializedPose(name, poseCode(point, opts, degrees));
-    } else {
-      const { x, y } = point;
-      declareInitializedPose(
-        name,
-        `p.of(${javaLength(x, codeUnits)}, ${javaLength(y, codeUnits)}, ${degrees})`,
-      );
-    }
-  };
-
-  const opts: FormatOptions = { coordinateSystem, codeUnits };
-  const poseName = (idx: number) =>
-    idx < 0 ? "startPoint" : identifierFor(lines[idx].name, `point${idx + 1}`);
-
-  // The same start heading playback uses.
-  declarePose(
-    "startPoint",
-    startPoint,
-    startingHeading(startPoint, lines, sequence),
-  );
-
-  const declared = new Set(["startPoint"]);
-  lines.forEach((line, lineIdx) => {
-    const name = poseName(lineIdx);
-    const end = line.endPoint;
-    let endDegrees = 0;
-    if (end.heading === "constant") endDegrees = end.degrees ?? 0;
-    else if (end.heading === "linear") endDegrees = end.endDeg ?? 0;
-
-    // Lines with the same name share one pose.
-    if (!declared.has(name)) {
-      declared.add(name);
-      declarePose(name, end, endDegrees);
-    }
-
-    line.controlPoints.forEach((cp, i) => {
-      declareInitializedPose(
-        `${name}_line${lineIdx}_control${i + 1}`,
-        hardcodeValues
-          ? `p.of(${cp.x.toFixed(3)}, ${cp.y.toFixed(3)}, 0.0)`
-          : `pp.get("${name}_control${i + 1}")`,
-      );
-    });
-  });
+  }
 
   // Paths are named after their start and end poses, e.g. startPointTOShoot.
   const pathChainVariables = uniqueNames(
@@ -114,12 +90,7 @@ export async function generateSequentialCommandCode(
     .filter(Boolean)
     .join("\n");
 
-  // Define library-specific names
-  const isNextFTC = targetLibrary === "NextFTC";
-  const SequentialGroupClass = isNextFTC
-    ? "SequentialGroup"
-    : "SequentialCommandGroup";
-  const FollowPathCmdClass = isNextFTC ? "FollowPath" : "FollowPathCommand";
+  const library = getCommandLibrary(targetLibrary);
 
   // Generate addCommands calls with event handling; iterate sequence if provided
   const commands: string[] = [];
@@ -135,7 +106,12 @@ export async function generateSequentialCommandCode(
     // Registry Check
     const action = actionRegistry.get(item.kind);
     if (action?.toSequentialCommand) {
-      commands.push(action.toSequentialCommand(item, { isNextFTC }));
+      commands.push(
+        action.toSequentialCommand(item, {
+          targetLibrary: library.id,
+          isNextFTC: library.id === "NextFTC",
+        }),
+      );
       return;
     }
 
@@ -156,12 +132,31 @@ export async function generateSequentialCommandCode(
     // The name of the entire Path is the pathName of the root path
     const pathName = pathChainVariables[lineIdx];
 
-    // Construct FollowPath instantiation
-    const followPathInstance = isNextFTC
-      ? `new ${FollowPathCmdClass}(${pathName})`
-      : `new ${FollowPathCmdClass}(follower, ${pathName})`;
+    const followPathInstance = library.commands.followPath(pathName);
 
-    commands.push(`                ${followPathInstance}`);
+    if (!chainHasEventMarkers(lines, lineIdx)) {
+      commands.push(`                ${followPathInstance}`);
+      return;
+    }
+
+    // The tracker only watches one path at a time: give it this path's
+    // markers, then keep it updating for as long as the path is followed.
+    const registrations = chainMarkerRegistrationCode(lines, lineIdx, {
+      indent: "                        ",
+      coordinateSystem,
+      codeUnits,
+      fromReader: !hardcodeValues,
+    });
+    commands.push(
+      `                ${library.commands.instant(`{
+                        tracker.clearPathEvents();${registrations}
+                        tracker.setCurrentPath(${pathName});
+                    }`)}`,
+      `                ${library.commands.race(`
+                    ${followPathInstance},
+                    ${library.commands.perpetual("tracker.update()")}
+                `)}`,
+    );
   });
 
   // Interpolator arguments for a path between two pose variables. Unless
@@ -226,32 +221,14 @@ export async function generateSequentialCommandCode(
     })
     .join("\n\n");
 
-  // Generate imports based on library
-  let imports = "";
-  if (isNextFTC) {
-    imports = `
-import dev.nextftc.core.commands.Command;
-import dev.nextftc.core.commands.groups.SequentialGroup;
-import dev.nextftc.core.commands.groups.ParallelRaceGroup;
-import dev.nextftc.core.commands.delays.Delay;
-import dev.nextftc.core.commands.delays.WaitUntil;
-import dev.nextftc.core.commands.utility.InstantCommand;
-import org.firstinspires.ftc.teamcode.pedroPathing.FollowPath;
-`;
-  } else {
-    imports = `
-import com.seattlesolvers.solverslib.command.SequentialCommandGroup;
-import com.seattlesolvers.solverslib.command.ParallelRaceGroup;
-import com.seattlesolvers.solverslib.command.WaitCommand;
-import com.seattlesolvers.solverslib.command.WaitUntilCommand;
-import com.seattlesolvers.solverslib.command.InstantCommand;
-import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
-`;
-  }
-
   const ppReaderImport = hardcodeValues
     ? ""
     : "import com.turtletracerlib.TurtleTracerReader;";
+  // Paths with markers read them from the file when they start, which for
+  // some libraries is outside the constructor, so the reader has to be a field.
+  const readerIsField =
+    !hardcodeValues &&
+    lines.some((line) => line.eventMarkers && line.eventMarkers.length > 0);
   const ppReaderInit = hardcodeValues
     ? ""
     : (() => {
@@ -260,196 +237,69 @@ import com.seattlesolvers.solverslib.pedroCommand.FollowPathCommand;
           stripProjectExtension(rawName || "AutoPath") || "AutoPath";
         const ext =
           getProjectExtensionFromPath(rawName) || DEFAULT_PROJECT_EXTENSION;
-        return `TurtleTracerReader pp = new TurtleTracerReader("${baseName}${ext}", hw.appContext);`;
+        return `${readerIsField ? "" : "TurtleTracerReader "}pp = new TurtleTracerReader("${baseName}${ext}", hw.appContext);`;
       })();
 
-  const hasEventMarkers = lines.some(
-    (line) => line.eventMarkers && line.eventMarkers.length > 0,
+  // Waits and turns can carry markers too, and need the tracker as well.
+  const sequenceMarkers = seq.flatMap(
+    (item) =>
+      (item as { eventMarkers?: { name: string }[] }).eventMarkers ?? [],
   );
-  const markerNames = getUniqueEventMarkerNames(lines);
+  const hasEventMarkers =
+    lines.some((line) => line.eventMarkers && line.eventMarkers.length > 0) ||
+    sequenceMarkers.length > 0;
+  const markerNames = [
+    ...new Set([
+      ...getUniqueEventMarkerNames(lines),
+      ...sequenceMarkers.map((m) => m.name).filter(Boolean),
+    ]),
+  ];
 
-  const getEventBindingCode = (isNextFTC: boolean) => {
+  const getEventBindingCode = () => {
     if (!hasEventMarkers) return "";
-    const telemetryArg = isNextFTC ? "null" : "telemetry";
-    if (!hardcodeValues && markerNames.length > 0) {
-      return `\n        pp${markerNames.map((name) => `.onEvent("${name}", NamedCommands.getCommand("${name}"))`).join("\n          ")};
-
-        ProgressTracker tracker = new ProgressTracker(follower, ${telemetryArg});
-        pp.registerEvents(tracker);`;
-    } else if (hardcodeValues) {
-      return `\n        ProgressTracker tracker = new ProgressTracker(follower, ${telemetryArg});${generateTrackerEventRegistrationCode(lines, "        ", coordinateSystem, codeUnits)}`;
-    }
-    return "";
+    const bindings =
+      !hardcodeValues && markerNames.length > 0
+        ? `\n        pp${markerNames.map((name) => `.onEvent("${name}", NamedCommands.getCommand("${name}"))`).join("\n          ")};\n`
+        : "";
+    // Each path registers its own markers just before it is followed.
+    return `${bindings}
+        tracker = new ProgressTracker(follower, ${library.trackerTelemetry});`;
   };
 
-  let sequentialCommandCode = "";
-
-  if (isNextFTC) {
-    sequentialCommandCode = `
-${AUTO_GENERATED_FILE_WARNING_MESSAGE}
-
-package ${packageName};
-
-import com.pedropathing.api.PoseFactory;
-import com.pedropathing.follower.Follower;
-import com.pedropathing.paths.Path;
-import static com.pedropathing.api.Paths.curve;
-import static com.pedropathing.api.Paths.line;
-import static com.pedropathing.api.Paths.path;
-import com.pedropathing.math.Pose;
-import com.pedropathing.paths.interpolator.Interpolator;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-${imports}
-${hasEventMarkers ? "import com.turtletracerlib.pathing.ProgressTracker;\nimport com.turtletracerlib.pathing.NamedCommands;\n" : ""}${ppReaderImport}
-import java.io.IOException;
-import ${packageName.split(".").slice(0, 4).join(".")}.Subsystems.Drivetrain;
-
-public class ${className} extends Command {
-
-    private final Follower follower;
-    private final PoseFactory p = PoseFactory.degrees();
-    private Command group;
-
-    // Poses
-${poseDeclarations.join("\n")}
-
-    // Path chains
-${pathChainDeclarations}
-
-    public ${className}(final Drivetrain drive, HardwareMap hw) throws IOException {
-        this.follower = drive.getFollower();
-
-        ${ppReaderInit}${getEventBindingCode(true)}
-
-        // Load poses
-${poseInitializations.join("\n")}
-
-        follower.setPose(startPoint);
-    }
-
-    public void buildPaths() {
-        ${pathBuilders}
-    }
-
-    @Override
-    public void start() {
-        buildPaths();
-        group = new SequentialGroup(
-${commands.join(",\n")}
-        );
-        group.start();
-    }
-
-    @Override
-    public void update() {
-        if (group != null) group.update();
-    }
-
-    @Override
-    public void stop(boolean interrupted) {
-        if (group != null) group.stop(interrupted);
-    }
-
-    @Override
-    public boolean isDone() {
-        return group != null && group.isDone();
-    }
-
-    ${
+  const sequentialCommandCode = library.classTemplate({
+    warning: AUTO_GENERATED_FILE_WARNING_MESSAGE,
+    packageName,
+    className,
+    imports: library.imports,
+    ppReaderImport,
+    ppReaderInit,
+    hasEventMarkers,
+    trackerField:
+      (readerIsField ? "\n    private TurtleTracerReader pp;" : "") +
+      (hasEventMarkers ? "\n    private ProgressTracker tracker;" : ""),
+    eventBindingCode: getEventBindingCode(),
+    poseDeclarations: poseDeclarations.join("\n"),
+    poseInitializations: poseInitializations.join("\n"),
+    pathChainDeclarations,
+    pathBuilders,
+    commands: commands.join(",\n"),
+    ftcPoseHelper:
       coordinateSystem === "FTC"
         ? `
     private Pose buildPose(double x, double y, double heading) {
         return p.of(y + 72.0, 72.0 - x, heading);
     }
     `
-        : ""
-    }
-    ${
+        : "",
+    metricHelper:
       codeUnits === "metric"
         ? `
     private double cmToInches(double cm) {
         return cm / 2.54;
     }
 `
-        : ""
-    }
-}
-`;
-  } else {
-    sequentialCommandCode = `
-${AUTO_GENERATED_FILE_WARNING_MESSAGE}
-
-package ${packageName};
-
-import com.pedropathing.api.PoseFactory;
-import com.pedropathing.follower.Follower;
-import com.pedropathing.paths.Path;
-import static com.pedropathing.api.Paths.curve;
-import static com.pedropathing.api.Paths.line;
-import static com.pedropathing.api.Paths.path;
-import com.pedropathing.math.Pose;
-import com.pedropathing.paths.interpolator.Interpolator;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-${imports}
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-${ppReaderImport}
-${hasEventMarkers ? "import com.turtletracerlib.pathing.ProgressTracker;\n" : ""}import com.turtletracerlib.pathing.NamedCommands;
-import java.io.IOException;
-import ${packageName.split(".").slice(0, 4).join(".")}.Subsystems.Drivetrain;
-
-public class ${className} extends ${SequentialGroupClass} {
-
-    private final Follower follower;
-    private final PoseFactory p = PoseFactory.degrees();
-
-    // Poses
-${poseDeclarations.join("\n")}
-
-    // Path chains
-${pathChainDeclarations}
-
-    public ${className}(final Drivetrain drive, HardwareMap hw, Telemetry telemetry) throws IOException {
-        this.follower = drive.getFollower();
-
-        ${ppReaderInit}${getEventBindingCode(false)}
-
-        // Load poses
-${poseInitializations.join("\n")}
-
-        follower.setPose(startPoint);
-
-        buildPaths();
-
-        addCommands(
-${commands.join(",\n")}
-        );
-    }
-
-    public void buildPaths() {
-        ${pathBuilders}
-    }
-
-    ${
-      coordinateSystem === "FTC"
-        ? `
-    private Pose buildPose(double x, double y, double heading) {
-        return p.of(y + 72.0, 72.0 - x, heading);
-    }
-    `
-        : ""
-    }
-    ${
-      codeUnits === "metric"
-        ? `
-    private double cmToInches(double cm) {
-        return cm / 2.54;
-    }
-`
-        : ""
-    }
-}
-`;
-  }
+        : "",
+  });
 
   return formatJava(sequentialCommandCode);
 }

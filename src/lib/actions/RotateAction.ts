@@ -15,6 +15,7 @@ import type { SequenceItem, SequenceRotateItem } from "../../types";
 import { stationaryMarkerElements } from "./stationaryMarkers";
 import { calculateRotationTime, unwrapAngle } from "../../utils/timeCalculator";
 import { makeId } from "../../utils/nameGenerator";
+import { libraryForContext } from "../exporters/commandLibraries";
 
 /** A new turn to 0°. */
 export const createRotate = (): SequenceRotateItem => ({
@@ -85,6 +86,7 @@ export const RotateAction: ActionDefinition = {
     let code = `
         case ${stateStep}:
           follower.hold(follower.pose().withHeading(${radians.toFixed(3)}));
+          follower.algorithm().reset();
           setPathState(${stateStep + 1});
           break;
 
@@ -104,54 +106,51 @@ export const RotateAction: ActionDefinition = {
     const rotateItem = item as SequenceRotateItem;
     const degrees = rotateItem.degrees || 0;
     const radians = (degrees * Math.PI) / 180;
-    const isNextFTC = context.isNextFTC || false;
-
-    // Define classes based on library
-    const InstantCmdClass = "InstantCommand";
-    const WaitUntilCmdClass = isNextFTC ? "WaitUntil" : "WaitUntilCommand";
-    const ParallelRaceClass = "ParallelRaceGroup"; // Same for NextFTC and SolversLib
-    const SequentialGroupClass = isNextFTC
-      ? "SequentialGroup"
-      : "SequentialCommandGroup";
+    const { commands } = libraryForContext(context);
+    // hold() doesn't mark the follower busy again, so isBusy() would already
+    // be false and the turn would be skipped. Resetting the algorithm does it.
+    const holdHeading = `follower.hold(follower.pose().withHeading(${radians.toFixed(3)}));
+                        follower.algorithm().reset();`;
+    const waitForStop = commands.waitUntil("!follower.isBusy()");
 
     const markers = (rotateItem.eventMarkers ?? []).toSorted(
       (a, b) => (a.position || 0) - (b.position || 0),
     );
 
     if (markers.length === 0) {
-      return `new ${InstantCmdClass}(() -> follower.hold(follower.pose().withHeading(${radians.toFixed(3)}))),
-                new ${WaitUntilCmdClass}(() -> !follower.isBusy())`;
+      return `${commands.instant(`{
+                        ${holdHeading}
+                    }`)},
+                ${waitForStop}`;
     }
 
     const firstMarker = markers[0];
-    let turnCommand = `new ${InstantCmdClass}(() -> {
-                        follower.hold(follower.pose().withHeading(${radians.toFixed(3)}));
-                        progressTracker.turn(${radians.toFixed(3)}, "${firstMarker.name}", ${firstMarker.position.toFixed(3)});`;
+    let turnBody = `{
+                        ${holdHeading}
+                        tracker.turn(${radians.toFixed(3)}, "${firstMarker.name}", ${firstMarker.position.toFixed(3)});`;
 
     // Register remaining markers
     for (let i = 1; i < markers.length; i++) {
-      turnCommand += `
-                        progressTracker.registerEvent("${markers[i].name}", ${markers[i].position.toFixed(3)});`;
+      turnBody += `
+                        tracker.registerEvent("${markers[i].name}", ${markers[i].position.toFixed(3)});`;
     }
-    turnCommand += `
-                    })`;
+    turnBody += `
+                    }`;
+    const turnCommand = commands.instant(turnBody);
 
-    let eventSequence = `new ${ParallelRaceClass}(
-                    new ${WaitUntilCmdClass}(() -> !follower.isBusy()),
-                    new ${SequentialGroupClass}(`;
+    const markerSteps = markers
+      .map(
+        (marker) => `
+                        ${commands.waitUntil(`tracker.shouldTriggerEvent("${marker.name}")`)},
+                        ${commands.instant(`tracker.executeEvent("${marker.name}")`)}`,
+      )
+      .join(",");
 
-    markers.forEach((marker, idx) => {
-      if (idx > 0) eventSequence += `,`;
-      eventSequence += `
-                        new ${WaitUntilCmdClass}(() -> progressTracker.shouldTriggerEvent("${marker.name}")),
-                        new ${InstantCmdClass}(() -> progressTracker.executeEvent("${marker.name}"))`;
-    });
-
-    eventSequence += `,
-                        new ${WaitUntilCmdClass}(() -> !follower.isBusy())`;
-
-    eventSequence += `
-                    ))`;
+    const eventSequence = commands.race(`
+                    ${waitForStop},
+                    ${commands.sequential(`${markerSteps},
+                        ${waitForStop}
+                    `)}`);
 
     // Combine them
     return `${turnCommand},

@@ -8,6 +8,7 @@
     SequenceItem,
     Settings,
     Shape,
+    CommandLibraryId,
   } from "../../../types/index";
   import { exporterRegistry } from "../../exporters";
   import {
@@ -86,7 +87,7 @@
   let isGenerating = $state(false);
   let format: "java" | "sequential" | "points" | "json" | "custom" =
     $state("java");
-  let targetLibrary: "SolversLib" | "NextFTC" = $state("SolversLib");
+  let targetLibrary: CommandLibraryId = $state("SolversLib");
 
   // Sync state with settings
   $effect(() => {

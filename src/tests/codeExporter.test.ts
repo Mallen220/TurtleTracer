@@ -165,6 +165,15 @@ describe("codeExporter", () => {
       expect(code).not.toContain("addParametricCallback");
     });
 
+    it("creates the follower the way Pedro 3's quickstart does", async () => {
+      const code = await generateJavaCode(startPoint, [line3], true);
+      expect(code).toContain(
+        "import org.firstinspires.ftc.teamcode.pedro.Constants;",
+      );
+      expect(code).toContain("follower = Constants.create(hardwareMap);");
+      expect(code).not.toContain("PedroConstants");
+    });
+
     it("should export event markers on ProgressTracker in full autonomous OpMode", async () => {
       const lines = [line3];
       const code = await generateJavaCode(startPoint, lines, true);
@@ -179,11 +188,26 @@ describe("codeExporter", () => {
       expect(code).toContain(
         "tracker = new ProgressTracker(follower, telemetry);",
       );
+      // Registered per path, right before it is followed, tied to its segment.
       expect(code).toContain(
-        'tracker.onParametric(0.500, NamedCommands.getCommand("marker1"));',
+        'tracker.onParametric(0, 0.500, NamedCommands.getCommand("marker1"));',
       );
       expect(code).toContain("tracker.update();");
       expect(code).toContain("tracker.setCurrentPath(paths.line3);");
+      const at = (text: string) => code.indexOf(text);
+      expect(at("tracker.clearPathEvents();")).toBeGreaterThan(
+        at("follower.follow(paths.line3);"),
+      );
+      expect(at("tracker.onParametric(")).toBeGreaterThan(
+        at("tracker.clearPathEvents();"),
+      );
+      expect(at("tracker.setCurrentPath(paths.line3);")).toBeGreaterThan(
+        at("tracker.onParametric("),
+      );
+      // Not up front, where every path's markers would trigger on every path.
+      expect(code.slice(0, at("public void loop()"))).not.toContain(
+        "tracker.onParametric(",
+      );
       // Paths class inside OpMode must remain pure geometry
       expect(code).not.toContain(".reverseTangent().onParametric");
     });
@@ -445,14 +469,15 @@ describe("codeExporter", () => {
         "import dev.nextftc.core.commands.delays.WaitUntil;",
       );
       expect(code).toContain(
-        "import org.firstinspires.ftc.teamcode.pedroPathing.FollowPath;",
+        "import dev.nextftc.core.commands.utility.LambdaCommand;",
       );
 
       // Check Methods
       expect(code).toContain("public void start() {");
       expect(code).toContain("buildPaths();");
       expect(code).toContain("group = new SequentialGroup(");
-      expect(code).toContain("new FollowPath(startPointTOline1)");
+      expect(code).toContain("follower.follow(startPointTOline1)");
+      expect(code).not.toContain("teamcode.pedroPathing");
       expect(code).toContain("group.start();");
 
       expect(code).toContain("public void update() {");
@@ -470,10 +495,10 @@ describe("codeExporter", () => {
         "import com.turtletracerlib.pathing.ProgressTracker;",
       );
       expect(code).not.toContain(
-        "public TestPath(final Drivetrain drive, HardwareMap hw, Telemetry telemetry)",
+        "public TestPath(final Follower follower, HardwareMap hw, Telemetry telemetry)",
       );
       expect(code).toContain(
-        "public TestPath(final Drivetrain drive, HardwareMap hw) throws IOException",
+        "public TestPath(final Follower follower, HardwareMap hw) throws IOException",
       );
     });
 
@@ -715,9 +740,9 @@ describe("codeExporter", () => {
         'pp.onEvent("marker1", NamedCommands.getCommand("marker1"));',
       );
       expect(code).toContain(
-        "ProgressTracker tracker = new ProgressTracker(follower, telemetry);",
+        "tracker = new ProgressTracker(follower, telemetry);",
       );
-      expect(code).toContain("pp.registerEvents(tracker);");
+      expect(code).toContain("pp.registerLineEvents(tracker, 0, 0);");
     });
 
     it("should register event markers with ProgressTracker in NextFTC sequential code (null telemetry)", async () => {
@@ -742,10 +767,8 @@ describe("codeExporter", () => {
       expect(code).toContain(
         'pp.onEvent("marker1", NamedCommands.getCommand("marker1"));',
       );
-      expect(code).toContain(
-        "ProgressTracker tracker = new ProgressTracker(follower, null);",
-      );
-      expect(code).toContain("pp.registerEvents(tracker);");
+      expect(code).toContain("tracker = new ProgressTracker(follower, null);");
+      expect(code).toContain("pp.registerLineEvents(tracker, 0, 0);");
     });
 
     it("should bind event markers to ProgressTracker directly when hardcodeValues is true", async () => {
@@ -764,10 +787,10 @@ describe("codeExporter", () => {
         "import com.turtletracerlib.pathing.ProgressTracker;",
       );
       expect(code).toContain(
-        "ProgressTracker tracker = new ProgressTracker(follower, telemetry);",
+        "tracker = new ProgressTracker(follower, telemetry);",
       );
       expect(code).toContain(
-        'tracker.onParametric(0.500, NamedCommands.getCommand("marker1"));',
+        'tracker.onParametric(0, 0.500, NamedCommands.getCommand("marker1"));',
       );
     });
 
@@ -858,6 +881,8 @@ describe("codeExporter", () => {
       expect(code).toContain(
         "follower.hold(follower.pose().withHeading(1.571));",
       );
+      // hold() doesn't mark the follower busy, so isBusy() needs the reset.
+      expect(code).toContain("follower.algorithm().reset();");
       expect(code).toContain("if(!follower.isBusy()) {");
     });
   });

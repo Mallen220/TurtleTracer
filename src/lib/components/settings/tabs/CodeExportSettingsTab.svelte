@@ -8,6 +8,7 @@
   import { currentFilePath, currentDirectoryStore } from "../../../../stores";
   import * as ICONS from "../../icons";
   import { isBrowser } from "../../../../utils/platform";
+  import { COMMAND_LIBRARIES } from "../../../exporters/commandLibraries";
 
   interface Props {
     settings: Settings;
@@ -277,8 +278,9 @@
                   set("autoExportTargetLibrary", e.currentTarget.value as any)}
                 class="w-full px-3 py-2 rounded-md border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="SolversLib">SolversLib</option>
-                <option value="NextFTC">NextFTC</option>
+                {#each COMMAND_LIBRARIES as library (library.id)}
+                  <option value={library.id}>{library.label}</option>
+                {/each}
               </select>
             </SettingsItem>
 

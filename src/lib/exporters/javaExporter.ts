@@ -2,7 +2,7 @@
 import type { Point, Line, SequenceItem, TurtleData } from "../../types";
 import { actionRegistry } from "../../lib/actionRegistry";
 import { startingHeading } from "../../utils/timeCalculator/pathCalculator";
-import { generateTrackerEventRegistrationCode } from "./eventMarkerUtils";
+import { chainMarkerRegistrationCode } from "./eventMarkerUtils";
 import { type CoordinateSystem } from "../../utils/coordinates";
 
 import { exporterRegistry } from "./index";
@@ -99,6 +99,7 @@ function stateMachineCode(
   lines: Line[],
   names: string[],
   trackEvents: boolean,
+  opts: FormatOptions,
 ): string {
   let code = "";
   let state = 0;
@@ -128,7 +129,16 @@ function stateMachineCode(
 
     const path = `paths.${names[idx]}`;
     code += `\n          follower.follow(${path});`;
-    if (trackEvents) code += `\n          tracker.setCurrentPath(${path});`;
+    if (trackEvents) {
+      // The tracker watches one path at a time, so it gets this path's
+      // markers (and none of the others') when the path starts.
+      const registrations = chainMarkerRegistrationCode(lines, idx, {
+        indent: "          ",
+        ...opts,
+      });
+      code += `\n          tracker.clearPathEvents();${registrations}`;
+      code += `\n          tracker.setCurrentPath(${path});`;
+    }
     code += `\n          setPathState(${state + 1});\n          break;`;
     code += `\n        case ${state + 1}:`;
     code += `\n          if(!follower.isBusy()) {\n            setPathState(${state + 2});\n          }\n          break;`;
@@ -268,6 +278,7 @@ export async function generateJavaCode(
     lines,
     pathChainNames,
     hasEventMarkers,
+    opts,
   );
 
   let file = "";
@@ -291,7 +302,7 @@ export async function generateJavaCode(
     import com.qualcomm.robotcore.eventloop.opmode.OpMode;
     import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
     import com.qualcomm.robotcore.util.ElapsedTime;
-    import org.firstinspires.ftc.teamcode.pedroPathing.PedroConstants;
+    import org.firstinspires.ftc.teamcode.pedro.Constants;
     ${namedCommandsImport}${telemetry.imports}
     import com.pedropathing.api.PoseFactory;
     import com.pedropathing.follower.Follower;
@@ -316,14 +327,14 @@ export async function generateJavaCode(
       public void init() {
         ${telemetry.init}
 
-        follower = PedroConstants.createFollower(hardwareMap);
+        follower = Constants.create(hardwareMap);
         follower.setPose(${startPose});
 
         pathTimer = new ElapsedTime();
         paths = new Paths(follower); // Build paths
         ${
           hasEventMarkers
-            ? `\n        tracker = new ProgressTracker(follower, telemetry);${generateTrackerEventRegistrationCode(lines, "        ", coordinateSystem, codeUnits)}`
+            ? `\n        tracker = new ProgressTracker(follower, telemetry);`
             : ""
         }
       }

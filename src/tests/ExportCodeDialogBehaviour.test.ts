@@ -278,6 +278,26 @@ describe("the sequential command class name", () => {
     ).toBeInTheDocument();
   });
 
+  it("offers Ivy and warns that it is experimental", async () => {
+    const exporter = sequential();
+    const { open } = mount();
+    await open("sequential");
+    expect(screen.queryByText(/output is/)).not.toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("tab", { name: "Ivy" }));
+    await waitFor(() =>
+      expect((exporter.mock.calls.at(-1) as any[])[1].targetLibrary).toBe(
+        "Ivy",
+      ),
+    );
+    expect(get(settingsStore).autoExportTargetLibrary).toBe("Ivy");
+    expect(
+      screen.getByText(/Command-based sequence for Pedro Pathing's Ivy/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Ivy output is experimental",
+    );
+  });
+
   it("restores the default package when it is cleared and Enter is pressed", async () => {
     sequential();
     settingsStore.update((s) => ({ ...s, javaPackageName: "  " }) as any);

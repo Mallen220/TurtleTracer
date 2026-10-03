@@ -14,6 +14,7 @@ import WaitSection from "../components/sections/WaitSection.svelte";
 import type { SequenceItem, SequenceWaitItem } from "../../types";
 import { stationaryMarkerElements } from "./stationaryMarkers";
 import { makeId } from "../../utils/nameGenerator";
+import { libraryForContext } from "../exporters/commandLibraries";
 
 /** A new one-second wait. */
 export const createWait = (): SequenceWaitItem => ({
@@ -94,25 +95,14 @@ export const WaitAction: ActionDefinition = {
   ): string => {
     const waitItem = item as SequenceWaitItem;
     const waitDuration = waitItem.durationMs || 0;
-    const isNextFTC = context.isNextFTC || false;
-
-    // Define classes based on library
-    const WaitCmdClass = isNextFTC ? "Delay" : "WaitCommand";
-    const InstantCmdClass = "InstantCommand";
-    const ParallelRaceClass = "ParallelRaceGroup"; // Same for NextFTC and SolversLib
-    const SequentialGroupClass = isNextFTC
-      ? "SequentialGroup"
-      : "SequentialCommandGroup";
-
-    const getWaitValue = (ms: number) =>
-      isNextFTC ? (ms / 1000).toFixed(3) : ms.toFixed(0);
+    const { commands } = libraryForContext(context);
 
     const markers = (waitItem.eventMarkers ?? []).toSorted(
       (a, b) => (a.position || 0) - (b.position || 0),
     );
 
     if (markers.length === 0) {
-      return `new ${WaitCmdClass}(${getWaitValue(waitDuration)})`;
+      return commands.wait(waitDuration);
     }
 
     let scheduled = 0;
@@ -124,18 +114,24 @@ export const WaitAction: ActionDefinition = {
       const delta = Math.max(0, targetMs - scheduled);
       scheduled = targetMs;
 
+      // executeEvent ignores events the tracker doesn't know about, and
+      // nothing else registers a wait's markers when poses are embedded.
+      const fire = `{
+                        tracker.registerEvent("${marker.name}", ${(marker.position || 0).toFixed(3)});
+                        tracker.executeEvent("${marker.name}");
+                    }`;
       markerCommandParts.push(
-        `new ${WaitCmdClass}(${getWaitValue(delta)}), new ${InstantCmdClass}(() -> progressTracker.executeEvent("${marker.name}"))`,
+        `${commands.wait(delta)}, ${commands.instant(fire)}`,
       );
     });
 
     const remaining = Math.max(0, waitDuration - scheduled);
-    markerCommandParts.push(`new ${WaitCmdClass}(${getWaitValue(remaining)})`);
+    markerCommandParts.push(commands.wait(remaining));
 
-    return `new ${ParallelRaceClass}(
-                    new ${WaitCmdClass}(${getWaitValue(waitDuration)}),
-                    new ${SequentialGroupClass}(${markerCommandParts.join(",")})
-                )`;
+    return commands.race(`
+                    ${commands.wait(waitDuration)},
+                    ${commands.sequential(markerCommandParts.join(","))}
+                `);
   },
 
   calculateTime: (

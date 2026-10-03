@@ -30,7 +30,8 @@ import type {
   TurtleData,
 } from "../types";
 import { makeId } from "./nameGenerator";
-import { getLineStartHeading, getLineEndHeading } from "./math";
+import { getLineEndHeading } from "./math";
+import { startingHeading } from "./timeCalculator/pathCalculator";
 import {
   DEFAULT_PROJECT_EXTENSION,
   ensureDefaultProjectExtension,
@@ -64,9 +65,15 @@ export function joinPath(dir: string, name: string): string {
 
 /**
  * The saved start point describes the whole path as a linear heading from
- * the first line's start heading to the last line's end heading.
+ * the start heading to the last line's end heading. The start heading is the
+ * one playback and generated code start with: that of the first path the
+ * robot drives, which isn't the first line when the sequence is reordered.
  */
-function withPathHeadings(startPoint: Point, lines: Line[]): Point {
+function withPathHeadings(
+  startPoint: Point,
+  lines: Line[],
+  sequence: SequenceItem[],
+): Point {
   if (!lines || lines.length === 0) return startPoint;
 
   const { degrees: _degrees, ...rest } = startPoint as Point & {
@@ -75,7 +82,7 @@ function withPathHeadings(startPoint: Point, lines: Line[]): Point {
   return {
     ...rest,
     heading: "linear",
-    startDeg: getLineStartHeading(lines[0], startPoint),
+    startDeg: startingHeading(startPoint, lines, sequence),
     endDeg: getLineEndHeading(
       lines.at(-1),
       lines.at(-2)?.endPoint ?? startPoint,
@@ -146,13 +153,15 @@ async function buildProjectFile(targetPath?: string) {
       }
     }
   }
-  const data = createProjectData(
-    withPathHeadings(get(startPointStore), lines),
-    lines,
-    get(shapesStore),
+  const sequenceToSave =
     sequence.length > 0
       ? sequence
-      : lines.map((l): SequenceItem => ({ kind: "path", lineId: l.id! })),
+      : lines.map((l): SequenceItem => ({ kind: "path", lineId: l.id! }));
+  const data = createProjectData(
+    withPathHeadings(get(startPointStore), lines, sequenceToSave),
+    lines,
+    get(shapesStore),
+    sequenceToSave,
     get(extraDataStore),
   );
   encodeLinkedNames(data);

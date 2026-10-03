@@ -577,6 +577,61 @@ describe("fileHandlers", () => {
     });
   });
 
+  describe("what the project file stores about poses", () => {
+    const save = async () => {
+      mockElectronAPI.showSaveDialog.mockResolvedValue("/exported/file.turt");
+      mockElectronAPI.writeFile.mockResolvedValue(true);
+      await fileHandlers.exportAsProjectFile();
+      const call = mockElectronAPI.writeFile.mock.calls.find(
+        (args) => args[0] === "/exported/file.turt",
+      );
+      return JSON.parse(call![1] as string);
+    };
+    const line = (id: string, x: number, end: object) =>
+      ({
+        id,
+        name: id,
+        endPoint: { x, y: 30, ...end },
+        controlPoints: [],
+      }) as any;
+
+    it("keeps each point once, in the start point and lines, with no copy of them", async () => {
+      startPointStore.set({ x: 10, y: 20, heading: "constant", degrees: 90 });
+      linesStore.set([line("A", 40, { heading: "constant", degrees: 135 })]);
+      expect(await save()).not.toHaveProperty("poses");
+    });
+
+    // Generated code starts the robot at the heading of the first path it
+    // drives, and the library reads that back from startDeg.
+    it("saves the start heading of the first path in the sequence, not the first line", async () => {
+      startPointStore.set({ x: 10, y: 10, heading: "constant", degrees: 0 });
+      linesStore.set([
+        line("A", 30, { heading: "constant", degrees: 135 }),
+        line("B", 50, { heading: "constant", degrees: 45 }),
+      ]);
+      sequenceStore.set([
+        { kind: "path", lineId: "B" },
+        { kind: "path", lineId: "A" },
+      ] as any);
+      const { startPoint } = await save();
+      expect(startPoint).toMatchObject({ heading: "linear", startDeg: 45 });
+    });
+
+    it("saves the first line's start heading when the sequence is in order", async () => {
+      startPointStore.set({ x: 10, y: 10, heading: "constant", degrees: 0 });
+      linesStore.set([
+        line("A", 30, { heading: "constant", degrees: 135 }),
+        line("B", 50, { heading: "constant", degrees: 45 }),
+      ]);
+      sequenceStore.set([
+        { kind: "path", lineId: "A" },
+        { kind: "path", lineId: "B" },
+      ] as any);
+      const { startPoint } = await save();
+      expect(startPoint.startDeg).toBe(135);
+    });
+  });
+
   describe("loadFile", () => {
     function setupMockFileReaderAndEvent(fileName = "newfile.turt") {
       const evt = {

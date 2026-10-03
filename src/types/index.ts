@@ -338,7 +338,7 @@ export interface Settings {
   autoExportPath?: string;
   autoExportPathMode?: "relative" | "absolute";
   autoExportFormat?: "java" | "sequential" | "points" | "json";
-  autoExportTargetLibrary?: "SolversLib" | "NextFTC";
+  autoExportTargetLibrary?: CommandLibraryId;
   autoExportFullClass?: boolean;
   autoExportEmbedPoseData?: boolean; // Embed pose data in the generated code
   telemetryImplementation?: "Standard" | "Dashboard" | "Panels" | "None";
@@ -837,12 +837,16 @@ export interface FieldRenderContext {
   timePrediction?: TimePrediction;
 }
 
+/** The command-based libraries the sequential exporter can target. */
+export type CommandLibraryId = "SolversLib" | "NextFTC" | "Ivy";
+
 export interface CodeExportContext {
   stateStep?: number; // For state machine generation
   indent?: string;
   variableName?: string;
-  isNextFTC?: boolean; // For sequential generation target
-  targetLibrary?: "SolversLib" | "NextFTC";
+  /** @deprecated Use targetLibrary. Kept so existing plugins keep working. */
+  isNextFTC?: boolean;
+  targetLibrary?: CommandLibraryId; // For sequential generation target
 }
 
 export interface JavaCodeResult {

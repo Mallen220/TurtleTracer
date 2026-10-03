@@ -9,7 +9,7 @@ vi.mock("prettier-plugin-java", () => ({ default: {} }));
 
 import { generateSequentialCommandCode } from "../lib/exporters/sequentialExporter";
 import { registerCoreUI } from "../lib/coreRegistrations";
-import type { Line, Point, SequenceItem } from "../types";
+import type { CommandLibraryId, Line, Point, SequenceItem } from "../types";
 
 beforeAll(() => registerCoreUI());
 
@@ -32,7 +32,7 @@ const line = (
 type Options = {
   fileName?: string | null;
   sequence?: SequenceItem[];
-  library?: "SolversLib" | "NextFTC";
+  library?: CommandLibraryId;
   hardcode?: boolean;
   system?: "Pedro" | "FTC";
   units?: "imperial" | "metric";
@@ -298,8 +298,25 @@ describe("generateSequentialCommandCode", () => {
     });
   });
 
+  describe("constructor", () => {
+    // Pedro's quickstart has no Drivetrain subsystem, so the follower is passed in.
+    it.each([
+      [
+        "SolversLib",
+        "final Follower follower, HardwareMap hw, Telemetry telemetry",
+      ],
+      ["NextFTC", "final Follower follower, HardwareMap hw)"],
+      ["Ivy", "final Follower follower, HardwareMap hw)"],
+    ] as const)("%s takes the follower directly", async (library, params) => {
+      const code = await generate(scoreAndPark(), { library, hardcode: true });
+      expect(code).toContain(`Auto(${params}`);
+      expect(code).toContain("this.follower = follower;");
+      expect(code).not.toMatch(/Drivetrain|getFollower|Subsystems/);
+    });
+  });
+
   describe("libraries", () => {
-    it("uses NextFTC's command names and follows paths without a follower argument", async () => {
+    it("uses NextFTC's command names and follows paths with its own command, not a team class", async () => {
       const code = await generate(scoreAndPark(), {
         library: "NextFTC",
         hardcode: true,
@@ -307,9 +324,133 @@ describe("generateSequentialCommandCode", () => {
       expect(code).toContain(
         "import dev.nextftc.core.commands.groups.SequentialGroup;",
       );
-      expect(code).toContain("new FollowPath(startPointTOScore)");
+      expect(code).toContain(
+        'new LambdaCommand("FollowPath").setStart(() -> follower.follow(startPointTOScore)).setIsDone(() -> !follower.isBusy())',
+      );
+      expect(code).toContain(
+        "import dev.nextftc.core.commands.utility.LambdaCommand;",
+      );
+      expect(code).not.toContain("teamcode.pedroPathing");
       expect(code).not.toContain("SequentialCommandGroup");
     });
+  });
+
+  describe("Ivy", () => {
+    const rotate = (extra: object = {}): SequenceItem =>
+      ({ kind: "rotate", id: "r", name: "", degrees: 90, ...extra }) as any;
+    const wait = (extra: object = {}): SequenceItem =>
+      ({ kind: "wait", id: "w", name: "", durationMs: 1500, ...extra }) as any;
+    const path = (id: string): SequenceItem => ({ kind: "path", lineId: id });
+    const marker = [
+      { id: "e", name: "raiseArm", position: 0.5, parameters: [] },
+    ];
+
+    it("builds the sequence with Ivy's factories and a command() method", async () => {
+      const code = squash(
+        await generate(scoreAndPark(), { library: "Ivy", hardcode: true }),
+      );
+      expect(code).toContain("import com.pedropathing.ivy.groups.Groups;");
+      expect(code).toContain(
+        "import com.pedropathing.ivy.pedro.PedroCommands;",
+      );
+      expect(code).toContain("public class Auto {");
+      expect(code).toContain("public Command command() { buildPaths();");
+      expect(code).toContain(
+        "return Groups.sequential( PedroCommands.follow(follower, startPointTOScore), PedroCommands.follow(follower, ScoreTOPark) );",
+      );
+    });
+
+    it("tells the user to reset the scheduler and update both loops", async () => {
+      const code = squash(await generate(scoreAndPark(), { library: "Ivy" }));
+      expect(code).toContain("{@code Scheduler.reset();} in init()");
+      expect(code).toContain("{@code follower.update();}");
+      expect(code).toContain("{@code Scheduler.execute();}");
+    });
+
+    it("takes no telemetry in the constructor and gives the tracker null", async () => {
+      const code = await generate(
+        [line("a", "Score", { x: 20, y: 20 }, { eventMarkers: marker as any })],
+        { library: "Ivy" },
+      );
+      expect(code).toContain("HardwareMap hw) throws IOException");
+      expect(code).not.toContain("Telemetry telemetry");
+      expect(code).toContain("new ProgressTracker(follower, null);");
+    });
+
+    it("waits in milliseconds, not seconds", async () => {
+      const code = await generate(scoreAndPark(), {
+        library: "Ivy",
+        sequence: [path("a"), wait(), path("b")],
+      });
+      expect(code).toContain("Commands.waitMs(1500)");
+      expect(code).not.toMatch(/waitMs\(1\.5/);
+    });
+
+    it("turns with Commands.instant and Commands.waitUntil", async () => {
+      const code = squash(
+        await generate(scoreAndPark(), {
+          library: "Ivy",
+          sequence: [path("a"), rotate(), path("b")],
+        }),
+      );
+      expect(code).toContain(
+        "Commands.instant(() -> { follower.hold(follower.pose().withHeading(1.571)); follower.algorithm().reset(); }), Commands.waitUntil(() -> !follower.isBusy())",
+      );
+    });
+
+    it("races marker events against the wait", async () => {
+      const code = squash(
+        await generate(scoreAndPark(), {
+          library: "Ivy",
+          sequence: [path("a"), wait({ eventMarkers: marker }), path("b")],
+        }),
+      );
+      expect(code).toContain(
+        'Groups.race( Commands.waitMs(1500), Groups.sequential(Commands.waitMs(750), Commands.instant(() -> { tracker.registerEvent("raiseArm", 0.500); tracker.executeEvent("raiseArm"); }),Commands.waitMs(750)) )',
+      );
+    });
+
+    it("races marker events against a turn", async () => {
+      const code = squash(
+        await generate(scoreAndPark(), {
+          library: "Ivy",
+          sequence: [path("a"), rotate({ eventMarkers: marker }), path("b")],
+        }),
+      );
+      expect(code).toContain(
+        "Groups.race( Commands.waitUntil(() -> !follower.isBusy()), Groups.sequential(",
+      );
+      expect(code).toContain(
+        'Commands.waitUntil(() -> tracker.shouldTriggerEvent("raiseArm")), Commands.instant(() -> tracker.executeEvent("raiseArm")), Commands.waitUntil(() -> !follower.isBusy()) ))',
+      );
+    });
+  });
+
+  describe("turns", () => {
+    const turn = (): SequenceItem =>
+      ({ kind: "rotate", id: "r", name: "", degrees: 90 }) as any;
+
+    // Pedro only marks the follower busy in follow() and algorithm().reset().
+    // hold() alone leaves isBusy() false, so the wait for the turn would
+    // pass immediately.
+    it.each(["SolversLib", "NextFTC", "Ivy"] as const)(
+      "%s resets the algorithm after holding the new heading",
+      async (library) => {
+        const code = squash(
+          await generate(scoreAndPark(), {
+            library,
+            sequence: [
+              { kind: "path", lineId: "a" },
+              turn(),
+              { kind: "path", lineId: "b" },
+            ],
+          }),
+        );
+        expect(code).toMatch(
+          /follower\.hold\(follower\.pose\(\)\.withHeading\(1\.571\)\); follower\.algorithm\(\)\.reset\(\);/,
+        );
+      },
+    );
   });
 
   describe("event markers", () => {
@@ -332,22 +473,123 @@ describe("generateSequentialCommandCode", () => {
         '.onEvent("raiseArm", NamedCommands.getCommand("raiseArm"))',
       );
       expect(code).toContain(
-        "ProgressTracker tracker = new ProgressTracker(follower, telemetry);",
+        "tracker = new ProgressTracker(follower, telemetry);",
       );
-      expect(code).toContain("pp.registerEvents(tracker);");
+      // Each path registers its own markers from the file as it starts.
+      expect(code).toContain("pp.registerLineEvents(tracker, 0, 0);");
+      expect(code).not.toContain("pp.registerEvents");
+      expect(code).toContain("private TurtleTracerReader pp;");
     });
 
     it("builds the tracker directly when hardcoded", async () => {
       const code = await generate(withMarker(), { hardcode: true });
       expect(code).toContain(
-        "ProgressTracker tracker = new ProgressTracker(follower, telemetry);",
+        "tracker = new ProgressTracker(follower, telemetry);",
       );
       expect(code).not.toContain("pp.registerEvents");
+      expect(code).not.toContain("registerLineEvents");
+      expect(squash(code)).toContain(
+        'tracker.onParametric(0, 0.500, NamedCommands.getCommand("raiseArm"));',
+      );
+    });
+
+    it.each([
+      ["SolversLib", "new RunCommand(() -> tracker.update())"],
+      [
+        "NextFTC",
+        'new LambdaCommand("Update").setUpdate(() -> tracker.update())',
+      ],
+      ["Ivy", "Commands.infinite(() -> tracker.update())"],
+    ] as const)(
+      "%s clears, registers and updates the tracker around the path it belongs to",
+      async (library, update) => {
+        const code = squash(
+          await generate(withMarker(), { library, hardcode: true }),
+        );
+        expect(code).toContain(
+          "tracker.clearPathEvents(); tracker.onParametric(0, 0.500",
+        );
+        expect(code).toContain("tracker.setCurrentPath(startPointTOScore);");
+        // The update runs alongside the follow and ends with it.
+        expect(code).toMatch(
+          new RegExp(
+            `(ParallelRaceGroup|Groups.race)\\( .*startPointTOScore.*${update.replaceAll(/[()]/g, String.raw`\$&`)}`,
+          ),
+        );
+      },
+    );
+
+    it("scopes each marker to its line's place in the chain", async () => {
+      const lines = [
+        line("a", "One", { x: 20, y: 20 }),
+        line(
+          "b",
+          "Two",
+          { x: 30, y: 20 },
+          {
+            isChain: true,
+            eventMarkers: [
+              { id: "e", name: "raiseArm", position: 0.25, parameters: [] },
+            ] as any,
+          },
+        ),
+      ];
+      const hard = squash(await generate(lines, { hardcode: true }));
+      expect(hard).toContain(
+        'tracker.onParametric(1, 0.250, NamedCommands.getCommand("raiseArm"));',
+      );
+      const read = squash(await generate(lines));
+      expect(read).toContain("pp.registerLineEvents(tracker, 1, 1);");
+    });
+
+    it("keeps a path without markers free of tracker calls", async () => {
+      const lines = [...withMarker(), line("b", "Park", { x: 40, y: 20 })];
+      const code = squash(await generate(lines, { hardcode: true }));
+      expect(code).toContain("tracker.setCurrentPath(startPointTOScore)");
+      expect(code).not.toContain("tracker.setCurrentPath(ScoreTOPark)");
     });
 
     it("passes null instead of telemetry for NextFTC", async () => {
       const code = await generate(withMarker(), { library: "NextFTC" });
       expect(code).toContain("new ProgressTracker(follower, null);");
+    });
+
+    it.each(["SolversLib", "NextFTC", "Ivy"] as const)(
+      "%s keeps the tracker in a field its commands can reach",
+      async (library) => {
+        const code = await generate(withMarker(), { library });
+        expect(code).toContain("private ProgressTracker tracker;");
+        expect(code).not.toContain("progressTracker");
+      },
+    );
+
+    it("declares the tracker when only a wait has markers", async () => {
+      const code = await generate(scoreAndPark(), {
+        sequence: [
+          { kind: "path", lineId: "a" },
+          {
+            kind: "wait",
+            id: "w",
+            name: "",
+            durationMs: 1000,
+            eventMarkers: [
+              { id: "e", name: "raiseArm", position: 0.5, parameters: [] },
+            ],
+          } as any,
+          { kind: "path", lineId: "b" },
+        ],
+      });
+      expect(code).toContain("private ProgressTracker tracker;");
+      expect(code).toContain(
+        "tracker = new ProgressTracker(follower, telemetry);",
+      );
+      expect(code).toContain(
+        '.onEvent("raiseArm", NamedCommands.getCommand("raiseArm"))',
+      );
+      // Registered first, since executeEvent skips events it doesn't know.
+      expect(squash(code)).toContain(
+        'tracker.registerEvent("raiseArm", 0.500); tracker.executeEvent("raiseArm");',
+      );
     });
 
     it("adds no tracker when nothing has markers", async () => {

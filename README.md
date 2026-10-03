@@ -248,7 +248,7 @@ Where your projects live depends on how you run Turtle Tracer.
 Exported code uses [TurtleTracerLib](https://www.turtletracer.com/turtle-tracer-lib/installation/), so add it to your robot project first. Turtle Tracer can export:
 
 1. Java class: a complete Java file for your FTC robot controller, written for Pedro Pathing.
-2. Sequential commands: command groups for SolversLib or NextFTC, with event markers included.
+2. Sequential commands: command groups for SolversLib, NextFTC or Ivy, with event markers included.
 3. Points: the path's points as plain text.
 4. Project data: the raw `.turt` file.
 5. Strategy sheet: a printable summary of your routine with room for strategy notes, for planning with alliance partners.
