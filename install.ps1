@@ -495,6 +495,7 @@ function Install-TurtleTracer {
         Step 'Verifying the download'
         $verified = $false
         $why = ''
+        $expectedGap = $false
         try {
             $sums = (Invoke-WebRequest -Uri "$GitHubUrl/$Repo/releases/download/v$Version/SHA256SUMS" -UseBasicParsing -Headers @{ 'User-Agent' = 'turtle-tracer-installer' }).Content
             if ($sums -is [byte[]]) { $sums = [Text.Encoding]::UTF8.GetString($sums) }
@@ -512,13 +513,18 @@ function Install-TurtleTracer {
             }
         } catch {
             if ($_.Exception.Message -eq 'TT_ABORT') { throw }
-            if ((Get-StatusCode $_) -eq 404) { $why = "v$Version was published without a checksum file (releases before checksums were added don't have one)" }
+            # Normal for releases made before checksums existed, so this isn't worth alarming anyone.
+            if ((Get-StatusCode $_) -eq 404) { $expectedGap = $true; $why = "v$Version has no published checksum file (releases made before checksums were added don't)" }
             else { $why = "the checksum file couldn't be fetched: $(Describe-Failure $_)" }
         }
         if (-not $verified) {
             if ($RequireChecksum) { Fail "Can't verify the download and -RequireChecksum was given." @("Reason: $why") -NoManualHelp }
-            Warn "Couldn't verify the download: $why."
-            Warn "It still came over HTTPS directly from github.com/$Repo."
+            if ($expectedGap) {
+                Info "No checksum is published for v$Version, so I can't verify it (normal for releases before checksums were added). It came over HTTPS from github.com/$Repo."
+            } else {
+                Warn "Couldn't verify the download: $why."
+                Warn "It still came over HTTPS directly from github.com/$Repo."
+            }
         }
 
         if ($env:TT_SKIP_INSTALL) { Say 'TT_SKIP_INSTALL is set: stopping before running the installer.'; return }

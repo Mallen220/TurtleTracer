@@ -76,7 +76,14 @@ out=$(inst --yes --version 2.3.0); rc=$?
 [ $rc -ne 0 ] && has_text "tampered file: checksum mismatch is fatal" "$out" "Checksum mismatch" || bad "tampered file" "$out"
 [ ! -d "$A/Turtle Tracer.app" ] && pass "nothing installed after mismatch" || bad "installed despite mismatch"
 "$HERE/make-fixtures.sh" "$WORK/fix" >/dev/null 2>&1   # restore (rewrites assets + checksums)
-out=$(inst --yes --version 2.2.1);           has_text "no checksum published: warns, continues" "$out" "was published without a checksum file"
+out=$(inst --yes --version 2.2.1);           has_text "no checksum published: calm one-line notice, continues" "$out" "No checksum is published for v2.2.1"
+lacks_text "no checksum published: no alarming [!] warning" "$out" "[!]"
+# A checksum file that exists but doesn't list this download is odd, so that one should still warn.
+sandbox
+dmg="Turtle-Tracer-2.3.0-$( [ "$(uname -m)" = arm64 ] && echo arm64 || echo x64 ).dmg"
+grep -v "$dmg" "$WORK/fix/assets/v2.3.0/SHA256SUMS" >"$WORK/sums.tmp" && cp "$WORK/sums.tmp" "$WORK/fix/assets/v2.3.0/SHA256SUMS"
+out=$(inst --yes --version 2.3.0);           has_text "checksum file missing this entry: still warns" "$out" "[!] Couldn't verify the download"
+"$HERE/make-fixtures.sh" "$WORK/fix" >/dev/null 2>&1
 out=$(inst --yes --version 2.2.1 --require-checksum); [ $? -ne 0 ] && pass "--require-checksum refuses" || bad "--require-checksum" "$out"
 
 echo "-- lookup fallbacks"

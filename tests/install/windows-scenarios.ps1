@@ -68,7 +68,8 @@ Expect-Text 'download reports progress' ($script:Progress -join "`n") 'Downloadi
 Expect-Text 'download progress is closed when finished' ($script:Progress -join "`n") '-Completed'
 Expect-Text 'human-readable size is shown' $out 'Downloaded'
 $out = Invoke-Installer @('-Yes', '-Version', '2.2.1')
-Expect-Text 'no checksum published: warns and continues' $out 'was published without a checksum file'
+Expect-Text 'no checksum published: warns and continues' $out 'No checksum is published for v2.2.1'
+Expect-NoText 'no checksum published: no alarming [!] warning' $out '[!]'
 $out = Invoke-Installer @('-Yes', '-Version', '2.2.1', '-RequireChecksum')
 Expect-Text '-RequireChecksum refuses' $out '-RequireChecksum was given'
 Remove-Item Env:TT_SKIP_INSTALL
