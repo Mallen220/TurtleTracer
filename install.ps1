@@ -158,7 +158,7 @@ function Install-TurtleTracer {
             if ((Get-ResponseHeader $err 'x-ratelimit-remaining') -eq '0') {
                 $when = 'later'
                 try { $when = [DateTimeOffset]::FromUnixTimeSeconds([long](Get-ResponseHeader $err 'x-ratelimit-reset')).LocalDateTime.ToString('HH:mm') } catch { }
-                return "GitHub's anonymous rate limit was reached (it resets around $when). Setting `$env:GITHUB_TOKEN raises the limit."
+                return "GitHub's anonymous rate limit was reached (it resets around $when)."
             }
             return "GitHub refused the request (HTTP $code)."
         }

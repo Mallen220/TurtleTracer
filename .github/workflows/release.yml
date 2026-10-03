@@ -63,11 +63,11 @@ jobs:
             <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
           </a>
 
-          Windows Users can download from the Microsoft Store to receive auto-updates for stable releases. Or run this in PowerShell:
+          Windows Users can download from the Microsoft Store to receive auto-updates for stable releases (Recommended). Or run this in PowerShell:
           ```powershell
           irm https://raw.githubusercontent.com/Mallen220/TurtleTracer/main/install.ps1 | iex
           ```
-          A .exe file is also provided below. Every download is listed in `SHA256SUMS`, which the installers use to verify what they fetch.
+          A .exe file is also provided below.
 
           ## Release Notes
           EOF
