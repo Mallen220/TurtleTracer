@@ -840,20 +840,17 @@
 </div>
 
 <style>
-  /* Blur the control tab when the stats panel is open; clicking the background closes the panel */
+  /* Dim the control tab when the stats panel is open; clicking the background closes the panel */
   .controlTabBlurred {
-    filter: blur(4px);
     opacity: 0.88;
-    transition:
-      filter 0.15s ease,
-      opacity 0.15s ease;
+    transition: opacity 0.15s ease;
     position: relative;
   }
 
   /* Overlay that sits above the control tab contents while stats are open */
   .control-tab-overlay {
     cursor: pointer;
-    background: transparent; /* keep blurred visuals visible */
+    background: transparent; /* keep the dimmed control tab visible */
     outline: none;
   }
 
