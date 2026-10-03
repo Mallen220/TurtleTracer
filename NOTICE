@@ -626,3 +626,4 @@ tests/install/run-macos.sh
 tests/install/sandbox-boot/run-in-docker.sh
 src/lib/exporters/poseTable.ts
 src/tests/poseTable.test.ts
+src/lib/exporters/commandLibraries/pedroImports.ts
