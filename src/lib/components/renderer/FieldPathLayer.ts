@@ -2,8 +2,9 @@
 import Two from "two.js";
 import { LINE_WIDTH } from "../../../config";
 import type { Line, Point, TimePrediction } from "../../../types";
-import { generatePathElements } from "./PathGenerator";
+import { generatePathElements, type PathElement } from "./PathGenerator";
 import type { RenderContext } from "./GeneratorUtils";
+import type { ElementCache } from "./ElementCache";
 
 export interface StandardPathParams {
   effectiveTimePrediction: TimePrediction | null;
@@ -13,6 +14,8 @@ export interface StandardPathParams {
   isDiffMode: boolean;
   selectedLineId: string | null;
   ctx: RenderContext;
+  /** Reuses the shapes of lines that haven't changed since the last call. */
+  cache?: ElementCache<PathElement[]>;
 }
 
 /** Most points used to draw one recovery path. */
@@ -63,6 +66,7 @@ export function buildStandardPathElements(params: StandardPathParams) {
     isDiffMode,
     selectedLineId,
     ctx,
+    cache,
   } = params;
 
   if (isDiffMode) return [];
@@ -92,16 +96,18 @@ export function buildStandardPathElements(params: StandardPathParams) {
         `timeline-path-${idx}`,
         ctx,
         isMainLine,
+        cache,
       );
     });
+    cache?.sweep();
     return [
       ...paths,
       ...buildRecoveryElements(effectiveTimePrediction.timeline, ctx),
     ];
   }
 
-  // Fallback if no simulation (e.g. initial load or error)
-  return generatePathElements(
+  // Fallback if no simulation (e.g. initial load, an error, or while dragging)
+  const paths = generatePathElements(
     sequencedLines,
     startPoint,
     (l) => l.color,
@@ -112,7 +118,10 @@ export function buildStandardPathElements(params: StandardPathParams) {
     "",
     ctx,
     true,
+    cache,
   );
+  cache?.sweep();
+  return paths;
 }
 
 export interface DiffPathParams {

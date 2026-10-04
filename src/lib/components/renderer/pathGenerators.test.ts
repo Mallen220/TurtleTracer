@@ -4,6 +4,7 @@ import { generatePathElements } from "./PathGenerator";
 import { generatePreviewPathElements } from "./PreviewPathGenerator";
 import type { Line, Point } from "../../../types";
 import { createPathAnchors } from "./GeneratorUtils";
+import { ElementCache } from "./ElementCache";
 import Two from "two.js";
 
 vi.mock("../../../utils/math", async () => {
@@ -146,6 +147,59 @@ describe("Generator Utilities", () => {
         true,
       );
       expect(elements.length).toBeGreaterThan(1);
+    });
+  });
+
+  describe("generatePathElements with a cache", () => {
+    const lineTo = (id: string, x: number): Line => ({
+      id,
+      endPoint: { x, y: 0 } as Point,
+      controlPoints: [],
+      color: "#ff0000",
+    });
+    const draw = (
+      lines: Line[],
+      cache: ElementCache<any>,
+      width = (_l: Line) => 2,
+    ) =>
+      generatePathElements(
+        lines,
+        startPoint,
+        (l) => l.color,
+        width,
+        "p",
+        mockCtx,
+        false,
+        cache,
+      );
+
+    it("rebuilds only the moved line and the one starting from it", () => {
+      const cache = new ElementCache<any>();
+      const lines = [lineTo("a", 10), lineTo("b", 20), lineTo("c", 30)];
+      const before = draw(lines, cache);
+
+      const moved = [...lines];
+      moved[1] = { ...lines[1], endPoint: { x: 25, y: 5 } as Point };
+      const after = draw(moved, cache);
+
+      expect(after[0]).toBe(before[0]);
+      expect(after[1]).not.toBe(before[1]);
+      expect(after[2]).not.toBe(before[2]);
+      expect(after.map((e) => e.id)).toEqual(before.map((e) => e.id));
+    });
+
+    it("rebuilds a line when its style or the view changes", () => {
+      const cache = new ElementCache<any>();
+      const lines = [lineTo("a", 10), lineTo("b", 20)];
+      const before = draw(lines, cache);
+
+      const selected = draw(lines, cache, (l) => (l.id === "b" ? 5 : 2));
+      expect(selected[0]).toBe(before[0]);
+      expect(selected[1]).not.toBe(before[1]);
+
+      mockCtx = { ...mockCtx, x: (v: number) => v * 20 };
+      const zoomed = draw(lines, cache, (l) => (l.id === "b" ? 5 : 2));
+      expect(zoomed[0]).not.toBe(selected[0]);
     });
   });
 

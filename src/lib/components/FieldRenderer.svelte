@@ -73,11 +73,16 @@
   } from "./renderer/FieldWheelHandler";
   import { getUpdatedLinearStartHeading } from "./renderer/LinearHeadingSync";
   import { FieldScene } from "./renderer/FieldSceneRenderer";
+  import { ElementCache } from "./renderer/ElementCache";
   import {
     buildStandardPathElements,
     buildDiffPathElements,
   } from "./renderer/FieldPathLayer";
-  import { generatePointElements } from "./renderer/PointGenerator";
+  import type { PathElement } from "./renderer/PathGenerator";
+  import {
+    generatePointElements,
+    type PointElement,
+  } from "./renderer/PointGenerator";
   import { generateEventMarkerElements } from "./renderer/EventMarkerGenerator";
   import { generateDiffEventMarkerElements } from "./renderer/DiffEventMarkerGenerator";
   import { generateShapeElements } from "./renderer/ShapeGenerator";
@@ -471,6 +476,8 @@
   // Each layer is derived on its own, so it is rebuilt only when what it
   // shows changes. None of them depend on the playhead, so playback doesn't
   // rebuild them; only the facing line and onion layers follow it.
+  const pathCache = new ElementCache<PathElement[]>();
+  const pointCache = new ElementCache<PointElement[]>();
   /** Editing aids are hidden while presenting or comparing with git. */
   let showEditingAids = $derived(!$isPresentationMode && !isDiffMode);
 
@@ -484,6 +491,7 @@
       isDiffMode,
       selectedLineId: $selectedLineId,
       ctx,
+      cache: pathCache,
     }),
     ...buildDiffPathElements({
       isDiffMode,
@@ -514,7 +522,14 @@
   );
   let pointElements = $derived(
     showEditingAids
-      ? generatePointElements(startPoint, lines, shapes, sequence, ctx)
+      ? generatePointElements(
+          startPoint,
+          lines,
+          shapes,
+          sequence,
+          ctx,
+          pointCache,
+        )
       : [],
   );
   let collisionElements = $derived(
