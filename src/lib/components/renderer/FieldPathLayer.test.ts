@@ -21,10 +21,8 @@ describe("FieldPathLayer", () => {
     uiLength: (v: number) => v,
     settings: {},
     timePrediction: null,
-    percentStore: 0,
     dimmedIds: [],
     multiSelectedPointIds: [],
-    robotXY: null,
   };
 
   describe("buildStandardPathElements", () => {

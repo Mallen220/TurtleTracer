@@ -72,8 +72,22 @@
     calculateNextZoom,
   } from "./renderer/FieldWheelHandler";
   import { getUpdatedLinearStartHeading } from "./renderer/LinearHeadingSync";
-  import { generateAllSceneElements } from "./renderer/FieldSceneElements";
-  import { syncFieldScene } from "./renderer/FieldSceneRenderer";
+  import { FieldScene } from "./renderer/FieldSceneRenderer";
+  import {
+    buildStandardPathElements,
+    buildDiffPathElements,
+  } from "./renderer/FieldPathLayer";
+  import { generatePointElements } from "./renderer/PointGenerator";
+  import { generateEventMarkerElements } from "./renderer/EventMarkerGenerator";
+  import { generateDiffEventMarkerElements } from "./renderer/DiffEventMarkerGenerator";
+  import { generateShapeElements } from "./renderer/ShapeGenerator";
+  import { generatePreviewPathElements } from "./renderer/PreviewPathGenerator";
+  import { generateCollisionElements } from "./renderer/CollisionMarkerGenerator";
+  import {
+    activeTravelLineIndex,
+    generateOnionLayerElements,
+  } from "./renderer/OnionLayerGenerator";
+  import { generateFacingLineElements } from "./renderer/FacingLineGenerator";
   import {
     buildContextMenuForEvent,
     createContextMenuStoreCallbacks,
@@ -133,6 +147,7 @@
 
   // Local state
   let two: Two | undefined = $state();
+  let scene: FieldScene | undefined = $state();
   let ghostRobotState: { x: number; y: number; heading: number } | null =
     $state(null);
 
@@ -164,15 +179,6 @@
   let tooltipDistance = $state(0);
 
   let interactionController: FieldInteractionController | undefined;
-
-  // Follow Robot Logic (Loop for playback)
-  let followLoopId: number;
-  function followLoop() {
-    if ($followRobotStore && $playingStore && robotXY) {
-      panToField(robotXY.x, robotXY.y);
-    }
-    followLoopId = requestAnimationFrame(followLoop);
-  }
 
   function zoomTo(newZoom: number, focus?: { x: number; y: number }) {
     const res = calculateZoomTo({
@@ -220,12 +226,10 @@
       svgEl.style.height = "100%";
       svgEl.style.zIndex = "15";
     }
+    scene = new FieldScene(two);
 
     // Trigger hook for plugins to initialize overlays
     hookRegistry.run("fieldOverlayInit", overlayContainer);
-
-    // Start Follow Loop
-    followLoop();
 
     interactionController = new FieldInteractionController({
       domElement: two!.renderer.domElement,
@@ -328,7 +332,6 @@
 
   onDestroy(() => {
     interactionController?.destroy();
-    if (followLoopId) cancelAnimationFrame(followLoopId);
   });
   // D3 Scales
   let zoom = $derived($fieldZoom);
@@ -377,9 +380,10 @@
     ),
   );
   let robotXY = $derived($robotXYStore);
-  // Follow Robot Logic (Reactive for scrubbing/stepping)
+  // Keep the robot centred while following it, whether it moves by
+  // playback, scrubbing or stepping.
   $effect(() => {
-    if ($followRobotStore && robotXY && !$playingStore) {
+    if ($followRobotStore && robotXY) {
       panToField(robotXY.x, robotXY.y);
     }
   });
@@ -459,55 +463,119 @@
     uiLength,
     settings,
     timePrediction: effectiveTimePrediction,
-    percentStore: $percentStore,
     dimmedIds,
     multiSelectedPointIds: $multiSelectedPointIds,
-    robotXY,
   });
-  // --- Two.js Scene Elements Creation ---
-  let sceneElements = $derived(
-    generateAllSceneElements({
+
+  // --- Field drawings ---
+  // Each layer is derived on its own, so it is rebuilt only when what it
+  // shows changes. None of them depend on the playhead, so playback doesn't
+  // rebuild them; only the facing line and onion layers follow it.
+  /** Editing aids are hidden while presenting or comparing with git. */
+  let showEditingAids = $derived(!$isPresentationMode && !isDiffMode);
+
+  let shapeElements = $derived(generateShapeElements(shapes, ctx));
+  let lineElements = $derived([
+    ...buildStandardPathElements({
+      effectiveTimePrediction,
       lines,
       sequencedLines,
       startPoint,
-      shapes,
-      sequence,
-      markers,
       isDiffMode,
-      diffData,
-      oldData,
-      previewOptimizedLines,
-      effectiveTimePrediction,
       selectedLineId: $selectedLineId,
-      selectedPointId: $selectedPointId,
-      hoveredMarkerId: $hoveredMarkerId,
-      ppI,
       ctx,
+    }),
+    ...buildDiffPathElements({
+      isDiffMode,
+      oldData,
+      sequencedLines,
+      startPoint,
+      diffData,
+      ctx,
+    }),
+    ...generatePreviewPathElements(previewOptimizedLines, startPoint, ctx),
+  ]);
+  let eventElements = $derived(
+    showEditingAids
+      ? generateEventMarkerElements(lines, startPoint, sequence, {
+          ...ctx,
+          hoveredMarkerId: $hoveredMarkerId,
+          selectedLineId: $selectedLineId,
+          selectedPointId: $selectedPointId,
+        })
+      : generateDiffEventMarkerElements(
+          isDiffMode,
+          diffData,
+          oldData,
+          lines,
+          startPoint,
+          { ...ctx, hoveredMarkerId: $hoveredMarkerId, ppI },
+        ),
+  );
+  let pointElements = $derived(
+    showEditingAids
+      ? generatePointElements(startPoint, lines, shapes, sequence, ctx)
+      : [],
+  );
+  let collisionElements = $derived(
+    showEditingAids
+      ? generateCollisionElements(
+          markers,
+          lines,
+          startPoint,
+          effectiveTimePrediction,
+          ctx,
+        )
+      : [],
+  );
+
+  /**
+   * The line being driven, for onion layers on the current path only. The
+   * playhead is read only in that mode, and the index rarely changes, so
+   * playback doesn't rebuild the onion layers.
+   */
+  let onionLineIndex = $derived(
+    settings.showOnionLayers && settings.onionSkinCurrentPathOnly
+      ? activeTravelLineIndex(effectiveTimePrediction, $percentStore)
+      : undefined,
+  );
+  let onionLayerElements = $derived(
+    generateOnionLayerElements(lines, startPoint, settings, onionLineIndex),
+  );
+  let facingLineElements = $derived(
+    generateFacingLineElements(lines, {
+      x,
+      y,
+      timePrediction: effectiveTimePrediction,
+      percent: $percentStore,
+      robotXY,
     }),
   );
 
   // Render Loop
   $effect(() => {
-    if (two) {
-      $pluginRedrawTrigger; // Subscribe to plugin redraw requests
-      syncFieldScene({
-        two,
-        width,
-        height,
-        shapeElements: sceneElements.shapeElements,
-        path: sceneElements.path,
-        diffPathElements: sceneElements.diffPathElements,
-        previewPathElements: sceneElements.previewPathElements,
-        points: sceneElements.points,
-        eventMarkerElements: sceneElements.eventMarkerElements,
-        collisionElements: sceneElements.collisionElements,
-        diffEventMarkerElements: sceneElements.diffEventMarkerElements,
-        snapGuides,
-        isPresentationMode: $isPresentationMode,
-        isDiffMode,
-        fieldRenderers: $fieldRenderRegistry,
-      });
+    if (!scene) return;
+    const fieldRenderers = $fieldRenderRegistry;
+    $pluginRedrawTrigger; // Subscribe to plugin redraw requests
+    if (fieldRenderers.length > 0) {
+      // Plugins have always been redrawn on every frame of playback, so
+      // anything they draw at the robot keeps following it.
+      $percentStore;
+      robotXY;
     }
+    scene.sync({
+      width,
+      height,
+      layers: {
+        "shape-group": shapeElements,
+        "line-group": lineElements,
+        "event-group": eventElements,
+        "point-group": pointElements,
+        "collision-group": collisionElements,
+        "snap-group": showEditingAids ? snapGuides : [],
+      },
+      fieldRenderers,
+    });
   });
 </script>
 
@@ -553,8 +621,8 @@
       {x}
       {y}
       {uiLength}
-      onionLayerElements={sceneElements.onionLayerElements}
-      facingLineElements={sceneElements.facingLineElements}
+      {onionLayerElements}
+      {facingLineElements}
       isDrawingMode={$isDrawingMode}
       {isDrawing}
       {drawPoints}

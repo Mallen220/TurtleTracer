@@ -26,7 +26,6 @@ describe("Generator Utilities", () => {
       uiLength: (val: number) => val,
       settings: { showVelocityHeatmap: false, maxVelocity: 100 },
       timePrediction: null,
-      percentStore: 0,
       dimmedIds: [],
       multiSelectedPointIds: [],
     };
