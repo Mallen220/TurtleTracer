@@ -1,5 +1,4 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
-
 /** The Pedro Pathing and FTC imports every generated sequential class needs, whatever the command library. */
 export const PEDRO_IMPORTS = `import com.pedropathing.api.PoseFactory;
 import com.pedropathing.follower.Follower;

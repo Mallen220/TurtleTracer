@@ -41,6 +41,11 @@ const styleOf = (el: Element | null) =>
   (el as HTMLElement).getAttribute("style") ?? "";
 const px = (style: string, prop: string) =>
   Number(new RegExp(`${prop}:\\s*(-?[\\d.]+)px`).exec(style)?.[1]);
+/** Where a robot box is centred, in screen pixels. */
+const centre = (style: string) => {
+  const match = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(style);
+  return { left: Number(match?.[1]), top: Number(match?.[2]) };
+};
 
 describe("which robot is drawn", () => {
   it("draws nothing without a position", () => {
@@ -57,8 +62,7 @@ describe("which robot is drawn", () => {
     const { container } = mount();
     const box = container.querySelector("[style*='z-index: 20']")!;
     const style = styleOf(box);
-    expect(px(style, "left")).toBe(40); // 20 inches
-    expect(px(style, "top")).toBe(288 - 60); // 30 inches, y pointing down
+    expect(centre(style)).toEqual({ left: 40, top: 288 - 60 }); // y points down
     expect(px(style, "width")).toBe(32); // 16 inches
     expect(px(style, "height")).toBe(20); // 10 inches
     expect(style).toContain("rotate(45deg)");
@@ -80,7 +84,7 @@ describe("which robot is drawn", () => {
     expect(boxes).toHaveLength(2);
     expect(styleOf(boxes[0])).toContain("rgba(34, 197, 94");
     expect(styleOf(boxes[1])).toContain("rgba(239, 68, 68");
-    expect(px(styleOf(boxes[1]), "left")).toBe(100);
+    expect(centre(styleOf(boxes[1])).left).toBe(100);
     expect(styleOf(boxes[1])).toContain("rotate(10deg)");
   });
 
@@ -455,8 +459,17 @@ describe("the turtle robot", () => {
     expect(tailAngle()).toBe(0);
   });
 
+  it("only asks for frames while playing", async () => {
+    const { rerender } = mount({ isPlaying: false }, { robotImage: "turtle" });
+    expect(frames).toHaveLength(0);
+    await rerender({ isPlaying: true });
+    expect(frames).toHaveLength(1);
+    await rerender({ isPlaying: false });
+    expect(cancelAnimationFrame).toHaveBeenCalled();
+  });
+
   it("stops asking for frames when it goes away", () => {
-    const { unmount } = mount({}, { robotImage: "turtle" });
+    const { unmount } = mount({ isPlaying: true }, { robotImage: "turtle" });
     unmount();
     expect(cancelAnimationFrame).toHaveBeenCalled();
   });
@@ -471,7 +484,7 @@ describe("the timeline hover ghost", () => {
     expect(ghost.parentElement!.getAttribute("style")).toContain(
       "opacity: 0.5",
     );
-    expect(px(styleOf(ghost.parentElement), "left")).toBe(120);
+    expect(centre(styleOf(ghost.parentElement)).left).toBe(120);
     expect(styleOf(ghost.parentElement)).toContain("rotate(90deg)");
   });
 
@@ -526,7 +539,7 @@ describe("the telemetry ghost", () => {
   it("shows where the robot really was, behind the planned robot", () => {
     const { container } = mount(ghost);
     const box = container.querySelector("[style*='z-index: 19']")!;
-    expect(px(styleOf(box), "left")).toBe(50);
+    expect(centre(styleOf(box)).left).toBe(50);
     expect(styleOf(box)).toContain("rotate(120deg)");
     expect(styleOf(box)).toContain("dashed rgb(107, 114, 128)");
     expect(

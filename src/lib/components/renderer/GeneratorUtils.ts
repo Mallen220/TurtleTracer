@@ -12,20 +12,23 @@ import type {
   TimePrediction,
 } from "../../../types";
 
+/**
+ * What the field's drawings are built from. It deliberately leaves out the
+ * playhead and the robot's pose: those change every frame of playback, and
+ * anything built from this context is rebuilt when it changes.
+ */
 export interface RenderContext {
   x: d3.ScaleLinear<number, number>;
   y: d3.ScaleLinear<number, number>;
   uiLength: (inches: number) => number;
   settings: Settings;
   timePrediction: TimePrediction | null | undefined;
-  percentStore: number;
   dimmedIds: string[];
   multiSelectedPointIds: string[];
   ppI?: number;
   hoveredMarkerId?: string | null;
   selectedLineId?: string | null;
   selectedPointId?: string | null;
-  robotXY?: { x: number; y: number } | null;
 }
 
 /**

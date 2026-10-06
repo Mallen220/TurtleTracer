@@ -1,8 +1,10 @@
 // Copyright 2026 Matthew Allen. Licensed under the Modified Apache License, Version 2.0.
 import { describe, it, expect } from "vitest";
 import { scaleLinear } from "d3";
-import { generateFacingLineElements } from "./FacingLineGenerator";
-import type { RenderContext } from "./GeneratorUtils";
+import {
+  generateFacingLineElements,
+  type PlayheadContext,
+} from "./FacingLineGenerator";
 import type {
   Line,
   PiecewiseSegment,
@@ -31,21 +33,17 @@ const travel = (over: Partial<TimelineEvent> = {}): TimelineEvent => ({
   ...over,
 });
 
-function context(over: Partial<RenderContext> = {}): RenderContext {
+function context(over: Partial<PlayheadContext> = {}): PlayheadContext {
   return {
     x,
     y,
-    uiLength: (n) => n,
-    settings: {} as any,
     timePrediction: {
       totalTime: 10,
       segmentTimes: [],
       totalDistance: 0,
       timeline: [travel()],
     },
-    percentStore: 50,
-    dimmedIds: [],
-    multiSelectedPointIds: [],
+    percent: 50,
     robotXY: { x: 20, y: 30 },
     ...over,
   };
@@ -186,10 +184,7 @@ describe("generateFacingLineElements", () => {
 
     it("shows the facing line only while a facingPoint segment is active", () => {
       const at = (percent: number) =>
-        generateFacingLineElements(
-          [piecewise()],
-          context({ percentStore: percent }),
-        );
+        generateFacingLineElements([piecewise()], context({ percent }));
       expect(at(20)).toEqual([]); // inside the constant segment
       expect(at(70)).toEqual([
         { x1: 40, y1: 228, x2: 100, y2: 288 - 40, color: "#ff0000" },
@@ -213,7 +208,7 @@ describe("generateFacingLineElements", () => {
         { globalHeading: "piecewise", globalSegments: segments },
       );
       const ctx = context({
-        percentStore: 80,
+        percent: 80,
         timePrediction: {
           totalTime: 10,
           segmentTimes: [],
@@ -245,15 +240,15 @@ describe("generateFacingLineElements", () => {
           },
         ],
       } as any);
-      expect(
-        generateFacingLineElements([l], context({ percentStore: 90 })),
-      ).toEqual([]);
+      expect(generateFacingLineElements([l], context({ percent: 90 }))).toEqual(
+        [],
+      );
     });
 
     it("treats an event with no duration as finished", () => {
       const l = piecewise();
       const ctx = context({
-        percentStore: 0,
+        percent: 0,
         timePrediction: {
           totalTime: 0,
           segmentTimes: [],

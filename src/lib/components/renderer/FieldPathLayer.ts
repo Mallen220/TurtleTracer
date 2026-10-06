@@ -2,8 +2,9 @@
 import Two from "two.js";
 import { LINE_WIDTH } from "../../../config";
 import type { Line, Point, TimePrediction } from "../../../types";
-import { generatePathElements } from "./PathGenerator";
+import { generatePathElements, type PathElement } from "./PathGenerator";
 import type { RenderContext } from "./GeneratorUtils";
+import type { ElementCache } from "./ElementCache";
 
 export interface StandardPathParams {
   effectiveTimePrediction: TimePrediction | null;
@@ -13,6 +14,8 @@ export interface StandardPathParams {
   isDiffMode: boolean;
   selectedLineId: string | null;
   ctx: RenderContext;
+  /** Reuses the shapes of lines that haven't changed since the last call. */
+  cache?: ElementCache<PathElement[]>;
 }
 
 /** Most points used to draw one recovery path. */
@@ -63,6 +66,7 @@ export function buildStandardPathElements(params: StandardPathParams) {
     isDiffMode,
     selectedLineId,
     ctx,
+    cache,
   } = params;
 
   if (isDiffMode) return [];
@@ -84,6 +88,8 @@ export function buildStandardPathElements(params: StandardPathParams) {
         ? ctx.uiLength(LINE_WIDTH * 2.5)
         : ctx.uiLength(LINE_WIDTH);
 
+      // The heatmap shows how fast the robot drives this stretch, which is
+      // this event's own profile. Macro paths aren't coloured.
       return generatePathElements(
         [line],
         start,
@@ -91,17 +97,20 @@ export function buildStandardPathElements(params: StandardPathParams) {
         () => width,
         `timeline-path-${idx}`,
         ctx,
-        isMainLine,
+        isMainLine ? () => ev : undefined,
+        cache,
       );
     });
+    cache?.sweep();
     return [
       ...paths,
       ...buildRecoveryElements(effectiveTimePrediction.timeline, ctx),
     ];
   }
 
-  // Fallback if no simulation (e.g. initial load or error)
-  return generatePathElements(
+  // Fallback if no simulation (e.g. initial load, an error, or while
+  // dragging). Without a timeline there are no speeds for a heatmap.
+  const paths = generatePathElements(
     sequencedLines,
     startPoint,
     (l) => l.color,
@@ -111,8 +120,11 @@ export function buildStandardPathElements(params: StandardPathParams) {
         : ctx.uiLength(LINE_WIDTH),
     "",
     ctx,
-    true,
+    undefined,
+    cache,
   );
+  cache?.sweep();
+  return paths;
 }
 
 export interface DiffPathParams {
@@ -142,7 +154,6 @@ export function buildDiffPathElements(params: DiffPathParams) {
         () => ctx.uiLength(LINE_WIDTH),
         "diff-old",
         ctx,
-        false,
       )
     : [];
 
@@ -158,7 +169,6 @@ export function buildDiffPathElements(params: DiffPathParams) {
     () => ctx.uiLength(LINE_WIDTH),
     "diff-new",
     ctx,
-    false,
   );
 
   return [...committedPaths, ...currentPaths];

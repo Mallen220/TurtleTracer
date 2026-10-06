@@ -5,6 +5,7 @@ import Two from "two.js";
 import { generatePointElements } from "../../../lib/components/renderer/PointGenerator";
 import { generateCollisionElements } from "../../../lib/components/renderer/CollisionMarkerGenerator";
 import { generateEventMarkerElements } from "../../../lib/components/renderer/EventMarkerGenerator";
+import { ElementCache } from "../../../lib/components/renderer/ElementCache";
 import {
   actionRegistry,
   type ActionDefinition,
@@ -181,5 +182,76 @@ describe("Renderer Generators", () => {
     } finally {
       actionRegistry.unregister("wait");
     }
+  });
+
+  describe("generatePointElements with a cache", () => {
+    const startPoint = { x: 0, y: 0, heading: "tangential" } as any;
+    const lineTo = (id: string, x: number, extra = {}) =>
+      ({
+        id,
+        color: "#ff0000",
+        controlPoints: [{ x: x - 5, y: 5 }],
+        endPoint: { x, y: 0, heading: "tangential" },
+        ...extra,
+      }) as any;
+    const sequenceOf = (lines: any[]) =>
+      lines.map((l) => ({ kind: "path", lineId: l.id, isChain: l.isChain }));
+    const draw = (lines: any[], cache: ElementCache<any>, over = {}) =>
+      generatePointElements(
+        startPoint,
+        lines,
+        [],
+        sequenceOf(lines) as any,
+        { ...ctx, multiSelectedPointIds: [], ...over } as any,
+        cache,
+      );
+    const byId = (points: any[]) =>
+      new Map(points.map((p) => [p.id as string, p]));
+
+    it("rebuilds only the points of the line that moved", () => {
+      const cache = new ElementCache<any>();
+      const lines = [lineTo("a", 10), lineTo("b", 20)];
+      const before = byId(draw(lines, cache));
+
+      const moved = [lines[0], { ...lines[1], endPoint: { x: 30, y: 0 } }];
+      const after = byId(draw(moved, cache));
+
+      expect(after.get("point-0-0")).toBe(before.get("point-0-0"));
+      expect(after.get("point-1-0")).toBe(before.get("point-1-0"));
+      expect(after.get("point-1-1")).toBe(before.get("point-1-1"));
+      expect(after.get("point-2-0")).not.toBe(before.get("point-2-0"));
+      expect([...after.keys()]).toEqual([...before.keys()]);
+    });
+
+    it("redraws points when several are selected", () => {
+      const cache = new ElementCache<any>();
+      const lines = [lineTo("a", 10), lineTo("b", 20)];
+      const before = byId(draw(lines, cache));
+      const after = byId(
+        draw(lines, cache, {
+          multiSelectedPointIds: ["point-2-0", "point-2-1-background"],
+        }),
+      );
+      expect(after.get("point-1-0")).toBe(before.get("point-1-0"));
+      expect(after.get("point-2-0").fill).toBe("#4ade80");
+      expect(after.get("point-2-1").children[0].fill).toBe("#4ade80");
+    });
+
+    it("redraws a chained line's target when the chain's heading changes", () => {
+      const cache = new ElementCache<any>();
+      const root = lineTo("a", 10, { globalHeading: "none" });
+      const child = lineTo("b", 20, { isChain: true });
+      expect(byId(draw([root, child], cache)).has("targetpoint-2")).toBe(false);
+
+      const facing = {
+        ...root,
+        globalHeading: "facingPoint",
+        globalTargetX: 40,
+        globalTargetY: 40,
+      };
+      const after = byId(draw([facing, child], cache));
+      expect(after.has("targetpoint-1")).toBe(true);
+      expect(after.has("targetpoint-2")).toBe(true);
+    });
   });
 });

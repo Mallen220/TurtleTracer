@@ -618,7 +618,7 @@
                           onclose={() => (isIconMenuOpen = false)}
                         >
                           <div
-                            class="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-white/95 dark:bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/80"
+                            class="p-3 border-b border-neutral-200 dark:border-neutral-700 bg-white/95 dark:bg-neutral-900/95"
                           >
                             <input
                               type="text"
