@@ -629,4 +629,6 @@ src/tests/poseTable.test.ts
 src/lib/exporters/commandLibraries/pedroImports.ts
 src/lib/components/renderer/ElementCache.ts
 src/tests/libraryVersionChecker.test.ts
+src/lib/exporters/javaFormat.ts
+src/tests/javaClassNames.test.ts
 src/utils/versions.ts

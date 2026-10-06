@@ -16,6 +16,8 @@ import {
   groupChains,
   uniqueNames,
   identifierFor,
+  javaClassName,
+  projectBaseName,
   AUTO_GENERATED_FILE_WARNING_MESSAGE,
   type FormatOptions,
   type HeadingConfig,
@@ -222,8 +224,14 @@ export async function generateJavaCode(
   telemetryImpl: TelemetryImpl = "Panels",
   coordinateSystem: CoordinateSystem = "Pedro",
   codeUnits: "imperial" | "metric" = "imperial",
+  /** The project file; the class and OpMode are named after it. */
+  fileName: string | null = null,
 ): Promise<string> {
   const pathChainNames = uniqueVariableNames(lines);
+  const className = javaClassName(fileName, "TurtleTracerAutonomous");
+  const opModeName = (
+    projectBaseName(fileName) || "Turtle Tracer Autonomous"
+  ).replaceAll(/["\\]/g, "");
   const opts: FormatOptions = { coordinateSystem, codeUnits };
 
   let pathsClass = `
@@ -313,9 +321,9 @@ export async function generateJavaCode(
     import com.pedropathing.math.Pose;
     import com.pedropathing.paths.interpolator.Interpolator;
     
-    @Autonomous(name = "Turtle Tracer Autonomous", group = "Autonomous")
+    @Autonomous(name = "${opModeName}", group = "Autonomous")
     ${classAnnotations}
-    public class TurtleTracerAutonomous extends OpMode {
+    public class ${className} extends OpMode {
       ${telemetry.field}
       public Follower follower; // Pathing follower instance
       private final PoseFactory p = PoseFactory.degrees();
@@ -403,6 +411,7 @@ exporterRegistry.register({
       settings.telemetryImpl ?? "Panels",
       settings.coordinateSystem ?? "Pedro",
       settings.codeUnits ?? "imperial",
+      settings.fileName ?? null,
     );
   },
 });
