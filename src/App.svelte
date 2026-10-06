@@ -251,7 +251,7 @@
   // Desktop builds ask about unsaved changes through the main process
   // (see handleAppCloseRequested); this covers running in a browser.
   function handleBeforeUnload(e: BeforeUnloadEvent) {
-    if (!electronAPI && get(isUnsaved)) {
+    if (isBrowser && get(isUnsaved)) {
       e.preventDefault();
       e.returnValue = "";
     }
