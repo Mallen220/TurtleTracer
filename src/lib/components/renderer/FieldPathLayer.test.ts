@@ -78,6 +78,72 @@ describe("FieldPathLayer", () => {
     });
   });
 
+  describe("velocity heatmap", () => {
+    const pathTo = (id: string, x: number): Line => ({
+      id,
+      color: "#ff0000",
+      endPoint: { x, y: 0, heading: "tangential" },
+      controlPoints: [],
+    });
+    const a = pathTo("a", 10);
+    const b = pathTo("b", 20);
+    const travel = (
+      line: Line,
+      prevPoint: Point,
+      lineIndex: number,
+      speed: number,
+    ) => ({
+      type: "travel",
+      line,
+      prevPoint,
+      lineIndex,
+      startTime: lineIndex,
+      endTime: lineIndex + 1,
+      duration: 1,
+      velocityProfile: [speed, speed, speed],
+    });
+    const heatmapCtx = {
+      ...mockCtx,
+      settings: { showVelocityHeatmap: true, maxVelocity: 100 },
+    };
+    const strokesOf = (lines: Line[], events: unknown[]) => {
+      const timeline = events as TimePrediction["timeline"];
+      const res = buildStandardPathElements({
+        effectiveTimePrediction: { timeline } as TimePrediction,
+        lines,
+        sequencedLines: lines,
+        startPoint,
+        isDiffMode: false,
+        selectedLineId: null,
+        ctx: { ...heatmapCtx, timePrediction: { timeline } },
+      });
+      return new Map(res.map((e) => [e.id, e.stroke]));
+    };
+
+    it("colours each path by how fast the robot drives that path", () => {
+      // Slow first path, full-speed second path.
+      const strokes = strokesOf(
+        [a, b],
+        [travel(a, startPoint, 0, 0), travel(b, a.endPoint, 1, 100)],
+      );
+      expect(strokes.get("timeline-path-0-line-1-heatmap-0")).toBe(
+        "hsl(120, 100%, 40%)", // green
+      );
+      expect(strokes.get("timeline-path-1-line-1-heatmap-0")).toBe(
+        "hsl(0, 100%, 40%)", // red
+      );
+    });
+
+    it("leaves macro paths in their own colour", () => {
+      const fromMacro = pathTo("macro", 20);
+      const strokes = strokesOf(
+        [a],
+        [travel(a, startPoint, 0, 0), travel(fromMacro, a.endPoint, -1, 100)],
+      );
+      expect(strokes.get("timeline-path-1-line-1")).toBe("#ff0000");
+    });
+  });
+
   describe("recovery paths", () => {
     const prediction = (events: unknown[]) =>
       ({ timeline: events }) as unknown as TimePrediction;

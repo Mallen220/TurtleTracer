@@ -29,11 +29,15 @@ export function generatePathElements(
   getWidth: (line: Line) => number,
   idPrefix: string,
   ctx: RenderContext,
-  isHeatmapEnabled: boolean = false,
+  /**
+   * The timeline event holding a line's speeds, for the velocity heatmap.
+   * Lines without one are drawn in their own colour.
+   */
+  velocityEventFor?: (line: Line) => TimelineEvent | undefined,
   cache?: ElementCache<PathElement[]>,
 ) {
   const _path: PathElement[] = [];
-  const { x, y, uiLength, settings, timePrediction, dimmedIds } = ctx;
+  const { x, y, uiLength, settings, dimmedIds } = ctx;
 
   targetLines.forEach((line, idx) => {
     if (!line?.endPoint || line.hidden) return;
@@ -41,14 +45,8 @@ export function generatePathElements(
       idx === 0 ? targetStartPoint : targetLines[idx - 1]?.endPoint || null;
     if (!_startPoint) return;
 
-    // Velocity heatmap (only for the main path). The timeline event carries
-    // the velocity data; lineIndex matches the index in 'lines'.
-    const showHeatmap =
-      isHeatmapEnabled && settings.showVelocityHeatmap && timePrediction;
-    const event = showHeatmap
-      ? timePrediction.timeline.find(
-          (e) => e.type === "travel" && e.lineIndex === idx,
-        )
+    const event = settings.showVelocityHeatmap
+      ? velocityEventFor?.(line)
       : undefined;
     const style: LineStyle = {
       id: `${idPrefix}-line-${idx + 1}`,

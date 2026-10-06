@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { generatePathElements } from "./PathGenerator";
 import { generatePreviewPathElements } from "./PreviewPathGenerator";
-import type { Line, Point } from "../../../types";
+import type { Line, Point, TimelineEvent } from "../../../types";
 import { createPathAnchors } from "./GeneratorUtils";
 import { ElementCache } from "./ElementCache";
 import Two from "two.js";
@@ -115,7 +115,6 @@ describe("Generator Utilities", () => {
         () => 2,
         "test-prefix",
         mockCtx,
-        false,
       );
       expect(elements).toHaveLength(3);
       expect(elements[0].id).toBe("test-prefix-line-1");
@@ -125,28 +124,28 @@ describe("Generator Utilities", () => {
 
     it("should render heatmap segments", () => {
       mockCtx.settings.showVelocityHeatmap = true;
-      mockCtx.timePrediction = {
-        timeline: [
-          {
-            type: "travel",
-            lineIndex: 0,
-            velocityProfile: [0, 50, 100, 50, 0],
-          },
-        ],
-      };
+      const event = {
+        type: "travel",
+        lineIndex: 0,
+        velocityProfile: [0, 50, 100, 50, 0],
+      } as TimelineEvent;
       const lines: Line[] = [
         { id: "line-heatmap", endPoint, controlPoints: [], color: "#ff0000" },
       ];
-      const elements = generatePathElements(
-        lines,
-        startPoint,
-        (l) => l.color,
-        () => 2,
-        "test-prefix",
-        mockCtx,
-        true,
-      );
-      expect(elements.length).toBeGreaterThan(1);
+      const draw = (velocityEventFor?: () => TimelineEvent) =>
+        generatePathElements(
+          lines,
+          startPoint,
+          (l) => l.color,
+          () => 2,
+          "test-prefix",
+          mockCtx,
+          velocityEventFor,
+        );
+      expect(draw(() => event).length).toBeGreaterThan(1);
+      // Without the line's speeds it's drawn in its own colour.
+      expect(draw()).toHaveLength(1);
+      expect(draw()[0].stroke).toBe("#ff0000");
     });
   });
 
@@ -169,7 +168,7 @@ describe("Generator Utilities", () => {
         width,
         "p",
         mockCtx,
-        false,
+        undefined,
         cache,
       );
 

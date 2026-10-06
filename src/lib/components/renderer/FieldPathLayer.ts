@@ -88,6 +88,8 @@ export function buildStandardPathElements(params: StandardPathParams) {
         ? ctx.uiLength(LINE_WIDTH * 2.5)
         : ctx.uiLength(LINE_WIDTH);
 
+      // The heatmap shows how fast the robot drives this stretch, which is
+      // this event's own profile. Macro paths aren't coloured.
       return generatePathElements(
         [line],
         start,
@@ -95,7 +97,7 @@ export function buildStandardPathElements(params: StandardPathParams) {
         () => width,
         `timeline-path-${idx}`,
         ctx,
-        isMainLine,
+        isMainLine ? () => ev : undefined,
         cache,
       );
     });
@@ -106,7 +108,8 @@ export function buildStandardPathElements(params: StandardPathParams) {
     ];
   }
 
-  // Fallback if no simulation (e.g. initial load, an error, or while dragging)
+  // Fallback if no simulation (e.g. initial load, an error, or while
+  // dragging). Without a timeline there are no speeds for a heatmap.
   const paths = generatePathElements(
     sequencedLines,
     startPoint,
@@ -117,7 +120,7 @@ export function buildStandardPathElements(params: StandardPathParams) {
         : ctx.uiLength(LINE_WIDTH),
     "",
     ctx,
-    true,
+    undefined,
     cache,
   );
   cache?.sweep();
@@ -151,7 +154,6 @@ export function buildDiffPathElements(params: DiffPathParams) {
         () => ctx.uiLength(LINE_WIDTH),
         "diff-old",
         ctx,
-        false,
       )
     : [];
 
@@ -167,7 +169,6 @@ export function buildDiffPathElements(params: DiffPathParams) {
     () => ctx.uiLength(LINE_WIDTH),
     "diff-new",
     ctx,
-    false,
   );
 
   return [...committedPaths, ...currentPaths];
