@@ -3,6 +3,8 @@
   import type { FileInfo } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
   import PathPreview from "./PathPreview.svelte";
+  import LegacyFileBadge from "./LegacyFileBadge.svelte";
+  import { isLegacyProjectFileName } from "../../../utils/fileExtensions";
   import {
     FolderIcon,
     DocumentIcon,
@@ -37,6 +39,8 @@
     onrenameSave?: (name: string) => void;
     onrenameCancel?: () => void;
     onmoveFile?: (data: { sourceFile: FileInfo; targetDir: FileInfo }) => void;
+    /** Folders can't be renamed or deleted (in a GitHub repository). */
+    lockFolders?: boolean;
     onmenuAction?: (data: { action: string; file: FileInfo }) => void;
   }
 
@@ -53,6 +57,7 @@
     onrenameSave,
     onrenameCancel,
     onmoveFile,
+    lockFolders = false,
     onmenuAction,
   }: Props = $props();
 
@@ -229,11 +234,16 @@
               </div>
             {:else}
               <div class="flex items-baseline justify-between gap-2">
-                <span
-                  class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate"
-                  title={file.name}
-                >
-                  {file.name.replaceAll(/\.(pp|turt)$/gi, "")}
+                <span class="flex items-center gap-1.5 min-w-0">
+                  <span
+                    class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate"
+                    title={file.name}
+                  >
+                    {file.name.replaceAll(/\.(pp|turt)$/gi, "")}
+                  </span>
+                  {#if !file.isDirectory && isLegacyProjectFileName(file.name)}
+                    <LegacyFileBadge />
+                  {/if}
                 </span>
                 <div class="flex items-center gap-1">
                   {#if showGitStatus && file.gitStatus && file.gitStatus !== "clean"}
@@ -311,6 +321,7 @@
     y={contextMenu.y}
     fileName={contextMenu.file.name}
     isDirectory={contextMenu.file.isDirectory}
+    canChange={!(lockFolders && contextMenu.file.isDirectory)}
     onclose={() => (contextMenu = null)}
     onaction={(action) => handleMenuAction(action)}
   />

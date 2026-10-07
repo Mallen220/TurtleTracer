@@ -215,3 +215,36 @@ export function uniqueNames(names: string[]): string[] {
 export function identifierFor(name: string | undefined, fallback: string) {
   return name ? name.replaceAll(/[^a-zA-Z0-9]/g, "") : fallback;
 }
+
+const JAVA_KEYWORDS = new Set(
+  (
+    "abstract assert boolean break byte case catch char class const continue " +
+    "default do double else enum extends final finally float for goto if " +
+    "implements import instanceof int interface long native new package " +
+    "private protected public return short static strictfp super switch " +
+    "synchronized this throw throws transient try void volatile while true " +
+    "false null var record yield"
+  ).split(" "),
+);
+
+/** A project file's name without its folder or extension ("" without one). */
+export function projectBaseName(fileName: string | null | undefined): string {
+  const name = (fileName ?? "").split(/[\\/]/).pop() ?? "";
+  return name.replace(/\.(turt|pp)$/i, "");
+}
+
+/**
+ * A valid Java class name for a project file. Java requires a public class
+ * to share its file's name, so generated files are named after the project
+ * and declare a class with the same name.
+ */
+export function javaClassName(
+  fileName: string | null | undefined,
+  fallback: string,
+): string {
+  let name = projectBaseName(fileName).replaceAll(/[^a-zA-Z0-9]/g, "_");
+  if (!/[a-zA-Z0-9]/.test(name)) return fallback;
+  if (/^\d/.test(name)) name = `Auto${name}`;
+  if (JAVA_KEYWORDS.has(name)) name += "Auto";
+  return name;
+}

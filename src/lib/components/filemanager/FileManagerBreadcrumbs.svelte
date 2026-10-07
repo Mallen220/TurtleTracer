@@ -4,6 +4,7 @@
   import { tick } from "svelte";
   import { FolderIcon, UndoIcon } from "../icons";
   import { isBrowser } from "../../../utils/platform";
+  import { displayPath, shortPathText } from "../../../utils/displayPaths";
 
   interface Props {
     currentPath: string;
@@ -24,37 +25,6 @@
   let isEditing = $state(false);
   let inputPath = $state("");
   let inputElement: HTMLInputElement | undefined = $state();
-
-  // Format path for display - tries to be smart about common paths
-  function formatPath(pathStr: string): string {
-    if (!pathStr) return "";
-
-    if (pathStr.startsWith("/browser_fs")) {
-      pathStr = pathStr.slice("/browser_fs".length);
-      if (pathStr === "") {
-        pathStr = "/";
-      }
-    }
-
-    // Handle home directory alias
-    const home = process.env.HOME || "~";
-    if (pathStr.startsWith(home)) {
-      pathStr = "~" + pathStr.slice(home.length);
-    }
-
-    // Handle specific project markers like "AutoPaths" or "GitHub"
-    // This makes deep paths more readable
-    const markers = ["AutoPaths", "GitHub", "Documents"];
-    for (const marker of markers) {
-      const idx = pathStr.indexOf(marker);
-      if (idx !== -1) {
-        // Keep the marker and everything after
-        return "..." + pathStr.slice(Math.max(0, idx - 1)); // include the slash before marker
-      }
-    }
-
-    return pathStr;
-  }
 
   async function startEditing() {
     isEditing = true;
@@ -108,13 +78,13 @@
     {/if}
     <div
       class="flex-1 min-w-0 truncate cursor-text hover:text-neutral-700 dark:hover:text-neutral-200 px-2 py-0.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
-      title="Click to edit path"
+      title={`${displayPath(currentPath)}\nClick to edit`}
       onclick={startEditing}
       role="button"
       tabindex="0"
       onkeydown={(e) => e.key === "Enter" && startEditing()}
     >
-      {formatPath(currentPath)}
+      {shortPathText(currentPath)}
     </div>
 
     {#if !isBrowser}

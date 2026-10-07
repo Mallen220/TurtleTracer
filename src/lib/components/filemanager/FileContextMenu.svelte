@@ -18,6 +18,8 @@
     y: number;
     fileName: string;
     isDirectory?: boolean;
+    /** False hides Rename and Delete, for folders that can't be changed. */
+    canChange?: boolean;
     onclose?: () => void;
     onaction?: (
       action:
@@ -36,6 +38,7 @@
     y,
     fileName,
     isDirectory = false,
+    canChange = true,
     onclose,
     onaction,
   }: Props = $props();
@@ -125,15 +128,17 @@
       Save Current to File
     </button>
   {/if}
-  <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
+  {#if canChange}
+    <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
 
-  <button
-    onclick={() => onaction?.("rename")}
-    class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
-  >
-    <PenIcon className="size-4" strokeWidth={1.5} />
-    Rename
-  </button>
+    <button
+      onclick={() => onaction?.("rename")}
+      class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center gap-2"
+    >
+      <PenIcon className="size-4" strokeWidth={1.5} />
+      Rename
+    </button>
+  {/if}
 
   {#if !isDirectory}
     <button
@@ -162,13 +167,15 @@
       Reverse Copy
     </button>
   {/if}
-  <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
+  {#if canChange}
+    <div class="h-px bg-neutral-200 dark:bg-neutral-700 my-1"></div>
 
-  <button
-    onclick={() => onaction?.("delete")}
-    class="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
-  >
-    <TrashIcon className="size-4" strokeWidth={1.5} />
-    Delete
-  </button>
+    <button
+      onclick={() => onaction?.("delete")}
+      class="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
+    >
+      <TrashIcon className="size-4" strokeWidth={1.5} />
+      Delete
+    </button>
+  {/if}
 </div>

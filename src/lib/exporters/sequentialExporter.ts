@@ -23,6 +23,7 @@ import { getCommandLibrary } from "./commandLibraries";
 import { buildPoseTable, poseNameOf } from "./poseTable";
 import {
   javaLength,
+  javaClassName,
   formatJava,
   flattenMacros,
   AUTO_GENERATED_FILE_WARNING_MESSAGE,
@@ -47,10 +48,7 @@ export async function generateSequentialCommandCode(
   coordinateSystem: CoordinateSystem = "Pedro",
   codeUnits: "imperial" | "metric" = "imperial",
 ): Promise<string> {
-  const baseName = fileName ? fileName.split(/[\\/]/).pop() || "" : "";
-  const className =
-    stripProjectExtension(baseName).replaceAll(/[^a-zA-Z0-9]/g, "_") ||
-    "AutoPath";
+  const className = javaClassName(fileName, "AutoPath");
 
   // Every pose becomes a field. With hardcodeValues it's set from the
   // project's numbers; otherwise it's loaded at runtime with pp.get().

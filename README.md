@@ -130,6 +130,7 @@ It is one app with two ways to run it. Use it in your browser at [live.turtletra
 - History: Auto-Save, undo and redo, and a History Panel.
 - File manager: folders, recent files, drag and drop, and rename and duplicate. It works in the browser too.
 - Git integration (desktop): see each file's status (Modified, Staged, Untracked) and view diffs.
+- GitHub repositories (browser and desktop): open your team's repository from a link, edit its paths, and commit them back, with the generated code in the same commit.
 - Import Java: bring an existing Java autonomous into Turtle Tracer as a project.
 - Robots: keep several robot profiles, choose a robot image (there is a turtle), and add custom features to it. Profiles and settings can be exported and imported.
 - Units and coordinates: use Pedro or FTC coordinates, and inches or metric units.
@@ -240,6 +241,21 @@ Where your projects live depends on how you run Turtle Tracer.
 - In the desktop app, paths are saved as `.turt` files on your hard drive. You can commit them to Git alongside your robot's Java code, and the app shows each file's Git status.
 - In the browser, projects are kept in your browser's storage. The file manager works the same way, but clearing your site data deletes them, so download a `.turt` file from the export dialog when you want to keep a copy.
 - In both, the file manager lets you organize folders, duplicate routines, and open older `.pp` files.
+
+### Editing paths in a GitHub repository
+
+Teams that keep their robot code on GitHub can edit its paths without cloning it, in the browser or the desktop app.
+
+1. In the file manager, click the GitHub button (or **+ → Open from GitHub**) and paste a link to your repository, or to a folder or file in it. Pick a branch and open it. The file manager starts in `TeamCode/src/main/assets/AutoPaths`, where TurtleTracerLib reads paths from.
+2. Open and edit paths as usual. **Saving keeps your edits on this device only**; the Navbar shows "N not committed" until you send them, and you can keep working offline.
+3. Click **Commit** (in the file manager or on that Navbar badge) to send every edited file in one commit, either to the branch or to a new branch with a link to open a pull request. Teammates get it when they pull, and the robot after the next build and deploy.
+4. Click **Update** to bring in commits other people pushed. If a file changed both on GitHub and here, choose **Keep both** (your version is saved next to GitHub's as "(my version)"), GitHub's, or yours.
+
+If Auto Export is on, the regenerated code goes in the same commit. Point the Auto Export path at a folder under `TeamCode/src/main/java` (for example `../../java/org/firstinspires/ftc/teamcode/autos`); the class is named after the project and its package comes from the folder, so it compiles where it lands.
+
+To protect your team's code, Turtle Tracer only changes path projects and the code it generates in a repository: it won't edit other files, replace code a person wrote, or delete or move folders that came from GitHub, and a project in a repository can't refer to files outside it. Only one tab or window edits repositories at a time; others can look until it closes. If you can't commit (the branch was deleted, or you lost access), use **Switch branch** or **Save copies on this device** from the repository's menu.
+
+Committing needs a fine-grained personal access token. Turtle Tracer walks you through making one when you first commit: set its **Resource owner** to the owner of your repository, choose **Only select repositories** and pick yours, and set **Contents** to **Read and write**. If your organization approves tokens, an owner has to approve it first. The token is kept until you close Turtle Tracer, unless you choose to remember it on that device for 30 days (in the desktop app it's locked with your system's keychain and never handed to the page); don't remember it on shared computers. Only public repositories are supported for now. See [PRIVACY.md](PRIVACY.md) for what is sent to GitHub.
 
 ## Exporting your paths
 

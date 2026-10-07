@@ -4,6 +4,8 @@
   import { AVAILABLE_FIELD_MAPS } from "../../../config/defaults";
   import FileContextMenu from "./FileContextMenu.svelte";
   import PathPreview from "./PathPreview.svelte";
+  import LegacyFileBadge from "./LegacyFileBadge.svelte";
+  import { isLegacyProjectFileName } from "../../../utils/fileExtensions";
   import {
     FolderIcon,
     DocumentIcon,
@@ -37,6 +39,8 @@
     onrenameSave?: (name: string) => void;
     onrenameCancel?: () => void;
     onmoveFile?: (data: { sourceFile: FileInfo; targetDir: FileInfo }) => void;
+    /** Folders can't be renamed or deleted (in a GitHub repository). */
+    lockFolders?: boolean;
     onmenuAction?: (data: { action: string; file: FileInfo }) => void;
   }
 
@@ -53,6 +57,7 @@
     onrenameSave,
     onrenameCancel,
     onmoveFile,
+    lockFolders = false,
     onmenuAction,
   }: Props = $props();
 
@@ -320,11 +325,16 @@
                 />
               </div>
             {:else}
-              <div
-                class="text-xs font-medium text-neutral-900 dark:text-neutral-100 truncate w-full px-1"
-                title={file.name}
-              >
-                {file.name.replaceAll(/\.(pp|turt)$/gi, "")}
+              <div class="flex items-center justify-center gap-1 w-full px-1">
+                <span
+                  class="text-xs font-medium text-neutral-900 dark:text-neutral-100 truncate"
+                  title={file.name}
+                >
+                  {file.name.replaceAll(/\.(pp|turt)$/gi, "")}
+                </span>
+                {#if !file.isDirectory && isLegacyProjectFileName(file.name)}
+                  <LegacyFileBadge />
+                {/if}
               </div>
               {#if file.error}
                 <div class="text-[10px] text-red-500 truncate">
@@ -352,6 +362,7 @@
     y={contextMenu.y}
     fileName={contextMenu.file.name}
     isDirectory={contextMenu.file.isDirectory}
+    canChange={!(lockFolders && contextMenu.file.isDirectory)}
     onclose={() => (contextMenu = null)}
     onaction={(action) => handleMenuAction(action)}
   />

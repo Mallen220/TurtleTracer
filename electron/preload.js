@@ -55,6 +55,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Git operations
   gitShow: (filePath) => ipcRenderer.invoke("git:show", filePath),
+
+  // GitHub: the token stays in the main process, which makes the requests.
+  githubToken: {
+    status: () => ipcRenderer.invoke("github:token-status"),
+    set: (token, remember, login) =>
+      ipcRenderer.invoke("github:token-set", token, remember, login),
+    clear: () => ipcRenderer.invoke("github:token-clear"),
+  },
+  githubFetch: (url, init) => ipcRenderer.invoke("github:fetch", url, init),
   gitStatus: (directory) => ipcRenderer.invoke("git:status", directory),
 
   // Renderer ready signal
