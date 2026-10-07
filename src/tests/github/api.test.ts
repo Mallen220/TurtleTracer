@@ -23,8 +23,9 @@ function clientWith(
   respond: (url: string, init?: RequestInit) => Response | Promise<Response>,
   token: string | null = null,
 ) {
-  const fetchMock = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) =>
-    respond(String(url), init),
+  // The client always asks for a URL string.
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) =>
+    respond(url, init),
   );
   return {
     client: createGitHubClient(() => token, fetchMock as typeof fetch),
@@ -50,9 +51,9 @@ describe("GitHub client", () => {
     });
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("https://api.github.com/repos/team/robot");
-    expect((init?.headers as Record<string, string>).Authorization).toBe(
-      undefined,
-    );
+    expect(
+      (init?.headers as Record<string, string>).Authorization,
+    ).toBeUndefined();
   });
 
   it("sends the token when there is one", async () => {

@@ -27,7 +27,8 @@ export function parseGitHubLink(input: string): GitHubLink | null {
   // git@github.com:owner/repo.git
   text = text.replace(/^git@github\.com:/i, "github.com/");
   text = text.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, "");
-  text = text.replace(/[?#].*$/, "");
+  const query = text.search(/[?#]/);
+  if (query !== -1) text = text.slice(0, query);
 
   const segments = text
     .split("/")

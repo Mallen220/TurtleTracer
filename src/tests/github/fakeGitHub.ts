@@ -9,6 +9,9 @@ import { gitBlobSha } from "../../utils/github/repos";
 
 type Files = Record<string, string>;
 
+/** GitHub's answer to a request: `work`'s result, or its error, a moment later. */
+const answer = <T>(work: () => T): Promise<T> => Promise.resolve().then(work);
+
 interface FakeRepo {
   owner: string;
   repo: string;
@@ -91,27 +94,31 @@ export class FakeGitHub implements GitHubClient {
     return r;
   }
 
-  async getRepo(owner: string, repo: string) {
+  getRepo(owner: string, repo: string) {
     this.#count("getRepo");
-    const r = this.#repo(owner, repo);
-    return {
-      owner: r.owner,
-      repo: r.repo,
-      defaultBranch: r.defaultBranch,
-      isPrivate: r.isPrivate,
-    };
+    return answer(() => {
+      const r = this.#repo(owner, repo);
+      return {
+        owner: r.owner,
+        repo: r.repo,
+        defaultBranch: r.defaultBranch,
+        isPrivate: r.isPrivate,
+      };
+    });
   }
 
-  async listBranches(owner: string, repo: string) {
+  listBranches(owner: string, repo: string) {
     this.#count("listBranches");
-    return Object.keys(this.#repo(owner, repo).branches);
+    return answer(() => Object.keys(this.#repo(owner, repo).branches));
   }
 
-  async getBranchHead(owner: string, repo: string, branch: string) {
+  getBranchHead(owner: string, repo: string, branch: string) {
     this.#count("getBranchHead");
-    const sha = this.#repo(owner, repo).branches[branch];
-    if (!sha) throw new GitHubError(`No branch ${branch}`, "not-found");
-    return sha;
+    return answer(() => {
+      const sha = this.#repo(owner, repo).branches[branch];
+      if (!sha) throw new GitHubError(`No branch ${branch}`, "not-found");
+      return sha;
+    });
   }
 
   async getFiles(_owner: string, _repo: string, commitSha: string) {
@@ -129,68 +136,66 @@ export class FakeGitHub implements GitHubClient {
     };
   }
 
-  async readFile(
-    _owner: string,
-    _repo: string,
-    commitSha: string,
-    path: string,
-  ) {
+  readFile(_owner: string, _repo: string, commitSha: string, path: string) {
     this.#count("readFile");
-    const content = this.commits.get(commitSha)?.[path];
-    if (content === undefined) {
-      throw new GitHubError(`Couldn't find ${path}`, "not-found");
-    }
-    return content;
+    return answer(() => {
+      const content = this.commits.get(commitSha)?.[path];
+      if (content === undefined) {
+        throw new GitHubError(`Couldn't find ${path}`, "not-found");
+      }
+      return content;
+    });
   }
 
-  async getViewer() {
-    if (!this.token) throw new GitHubError("No token", "unauthorized");
-    return this.viewer;
+  getViewer() {
+    return answer(() => {
+      if (!this.token) throw new GitHubError("No token", "unauthorized");
+      return this.viewer;
+    });
   }
 
-  async canPush() {
-    return this.pushAllowed;
+  canPush() {
+    return answer(() => this.pushAllowed);
   }
 
-  async createBranch(
-    owner: string,
-    repo: string,
-    branch: string,
-    fromSha: string,
-  ) {
+  createBranch(owner: string, repo: string, branch: string, fromSha: string) {
     this.#count("createBranch");
-    const r = this.#repo(owner, repo);
-    if (r.branches[branch] && r.branches[branch] !== fromSha) {
-      throw new GitHubError(
-        `A branch named ${branch} already exists.`,
-        "other",
-      );
-    }
-    r.branches[branch] = fromSha;
+    return answer(() => {
+      const r = this.#repo(owner, repo);
+      if (r.branches[branch] && r.branches[branch] !== fromSha) {
+        throw new GitHubError(
+          `A branch named ${branch} already exists.`,
+          "other",
+        );
+      }
+      r.branches[branch] = fromSha;
+    });
   }
 
-  async commit(request: CommitRequest) {
+  commit(request: CommitRequest) {
     this.#count("commit");
     this.commitRequests.push(request);
-    if (!this.token) throw new GitHubError("Add a token", "unauthorized");
-    if (this.protectedBranches.has(request.branch)) {
-      throw new GitHubError(
-        "Changes must be made through a pull request.",
-        "protected",
-      );
-    }
-    const r = this.#repo(request.owner, request.repo);
-    if (r.branches[request.branch] !== request.expectedHeadSha) {
-      throw new GitHubError("Someone else committed", "stale");
-    }
-    const files = { ...this.commits.get(request.expectedHeadSha)! };
-    Object.assign(files, request.additions);
-    for (const path of request.deletions) delete files[path];
-    const sha = this.#commitFiles(files);
-    r.branches[request.branch] = sha;
-    return {
-      sha,
-      url: `https://github.com/${r.owner}/${r.repo}/commit/${sha}`,
-    };
+    return answer(() => {
+      if (!this.token) throw new GitHubError("Add a token", "unauthorized");
+      if (this.protectedBranches.has(request.branch)) {
+        throw new GitHubError(
+          "Changes must be made through a pull request.",
+          "protected",
+        );
+      }
+      const r = this.#repo(request.owner, request.repo);
+      if (r.branches[request.branch] !== request.expectedHeadSha) {
+        throw new GitHubError("Someone else committed", "stale");
+      }
+      const files = { ...this.commits.get(request.expectedHeadSha)! };
+      Object.assign(files, request.additions);
+      for (const path of request.deletions) delete files[path];
+      const sha = this.#commitFiles(files);
+      r.branches[request.branch] = sha;
+      return {
+        sha,
+        url: `https://github.com/${r.owner}/${r.repo}/commit/${sha}`,
+      };
+    });
   }
 }

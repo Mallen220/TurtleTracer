@@ -8,7 +8,9 @@ import { githubRepos } from "./repos";
 /** `parts` joined onto `dir` with whichever separator `dir` uses. */
 const join = (dir: string, ...parts: string[]) => {
   const sep = dir.includes("\\") ? "\\" : "/";
-  return [dir.replace(/[\\/]+$/, ""), ...parts].join(sep);
+  let end = dir.length;
+  while (end > 0 && "\\/".includes(dir[end - 1]!)) end--;
+  return [dir.slice(0, end), ...parts].join(sep);
 };
 
 /**
@@ -30,10 +32,12 @@ export async function saveCopiesOnDevice(
   }
   const folder = join(root, "From GitHub", repoKey(ref).replace("/", "-"));
   const files = await githubRepos.changedFiles(ref);
-  for (const { repoPath, content } of files) {
-    const parts = repoPath.split("/");
-    await api.createDirectory?.(join(folder, ...parts.slice(0, -1)));
-    await api.writeFile(join(folder, ...parts), content);
-  }
+  await Promise.all(
+    files.map(async ({ repoPath, content }) => {
+      const parts = repoPath.split("/");
+      await api.createDirectory?.(join(folder, ...parts.slice(0, -1)));
+      await api.writeFile(join(folder, ...parts), content);
+    }),
+  );
   return { folder, count: files.length };
 }

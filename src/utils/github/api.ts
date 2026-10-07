@@ -133,7 +133,7 @@ export function desktopFetch(): typeof fetch | undefined {
 
   return async (input, init = {}) => {
     const headers = Object.fromEntries(new Headers(init.headers).entries());
-    const res = await bridge(String(input), {
+    const res = await bridge(urlOf(input), {
       method: init.method ?? "GET",
       headers,
       body: typeof init.body === "string" ? init.body : undefined,
@@ -151,6 +151,12 @@ export function desktopFetch(): typeof fetch | undefined {
   };
 }
 
+/** The URL a fetch() call asks for. */
+function urlOf(input: RequestInfo | URL): string {
+  if (typeof input === "string") return input;
+  return input instanceof URL ? input.href : input.url;
+}
+
 const API = "https://api.github.com";
 const RAW = "https://raw.githubusercontent.com";
 
@@ -162,7 +168,7 @@ export function toBase64(text: string): string {
   const bytes = new TextEncoder().encode(text);
   let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    binary += String.fromCodePoint(...bytes.subarray(i, i + 0x8000));
   }
   return btoa(binary);
 }
@@ -197,14 +203,15 @@ async function errorFrom(res: Response, what: string): Promise<GitHubError> {
   if (res.status === 404) {
     return new GitHubError(`Couldn't find ${what} on GitHub.`, "not-found");
   }
+  const said = detail ? `: ${detail}` : "";
   if (res.status === 403) {
     return new GitHubError(
-      `GitHub refused access to ${what}${detail ? `: ${detail}` : "."}`,
+      `GitHub refused access to ${what}${said || "."}`,
       "forbidden",
     );
   }
   return new GitHubError(
-    `GitHub couldn't load ${what} (${res.status}${detail ? `: ${detail}` : ""}).`,
+    `GitHub couldn't load ${what} (${res.status}${said}).`,
     "other",
   );
 }
@@ -443,8 +450,6 @@ function commitError(
       "forbidden",
     );
   }
-  return new GitHubError(
-    `GitHub didn't accept the commit${message ? `: ${message}` : "."}`,
-    "other",
-  );
+  const said = message ? `: ${message}` : ".";
+  return new GitHubError(`GitHub didn't accept the commit${said}`, "other");
 }

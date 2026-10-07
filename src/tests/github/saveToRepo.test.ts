@@ -161,8 +161,9 @@ describe("saving a project from a GitHub repository", () => {
       timeout: 0,
       actionLabel: "Use this path",
     });
+    const generated = `${AUTO}/GeneratedCode`;
     expect(notice.message).toBe(
-      `Assets.java wasn't exported: ${pathInMessage(`${AUTO}/GeneratedCode`)} isn't compiled. Set the Auto Export path to ${pathInMessage("../../java/org/firstinspires/ftc/teamcode/wrong")} to put it in ${pathInMessage("TeamCode/src/main/java/org/firstinspires/ftc/teamcode/wrong")}.`,
+      `Assets.java wasn't exported: ${pathInMessage(generated)} isn't compiled. Set the Auto Export path to ${pathInMessage("../../java/org/firstinspires/ftc/teamcode/wrong")} to put it in ${pathInMessage("TeamCode/src/main/java/org/firstinspires/ftc/teamcode/wrong")}.`,
     );
     const changed = async () =>
       (await githubRepos.changes(ref)).map((c) => c.repoPath);

@@ -89,7 +89,7 @@ export const FOLDER_RULE =
  */
 export function packageForJavaFile(path: string): string | null {
   const match = /(?:^|\/)src\/main\/java\/(.+)\/[^/]+\.java$/i.exec(path);
-  return match ? match[1].split("/").join(".") : null;
+  return match ? match[1].replaceAll("/", ".") : null;
 }
 
 /**

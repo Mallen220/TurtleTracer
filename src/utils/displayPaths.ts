@@ -36,8 +36,9 @@ const KEEP_END = 2;
 const MIN_HIDDEN = 2;
 
 const HOME =
-  /^(?:\/Users\/[^/]+|\/home\/[^/]+|[A-Za-z]:\\Users\\[^\\]+)(?=[\\/])/i;
-const ROOT_NAME = /^(?:|~|\.\.?|[A-Za-z]:)$/;
+  /^(?:\/Users\/[^/]+|\/home\/[^/]+|[a-z]:\\Users\\[^\\]+)(?=[\\/])/i;
+// "" before a leading separator, or a home, parent or drive.
+const ROOT_NAME = /^(?:~|\.\.?|[A-Za-z]:)?$/;
 
 /**
  * The start and end of a long path, without the folders between them, or

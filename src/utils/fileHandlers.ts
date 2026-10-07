@@ -23,6 +23,7 @@ import { loadTrajectoryFromFile, downloadTrajectory } from "./index";
 import { exporterRegistry } from "../lib/exporters";
 import type {
   Line,
+  Notification,
   Point,
   SequenceItem,
   Settings,
@@ -350,29 +351,7 @@ export async function saveProject({
     addToRecentFiles(savedPath);
     isUnsaved.set(false);
 
-    if (!quiet) {
-      notification.set(
-        convertedFromLegacy
-          ? {
-              message:
-                "Legacy .pp file detected. Saved as .turt. Use the .turt file going forward.",
-              type: "warning",
-              timeout: 6000,
-            }
-          : isGitHubPath(savedPath)
-            ? {
-                message:
-                  "Saved here. Commit it from the Files panel to send it to GitHub.",
-                type: "success",
-                timeout: 4000,
-              }
-            : {
-                message: `Project saved to ${pathInMessage(savedPath)}`,
-                type: "success",
-                timeout: 3000,
-              },
-      );
-    }
+    if (!quiet) notification.set(savedNotice(savedPath, convertedFromLegacy));
 
     // Other open projects may use this file as a macro.
     if (get(macrosStore).has(savedPath)) {
@@ -393,28 +372,64 @@ export async function saveProject({
     );
     return true;
   } catch (err) {
-    console.error("Save error:", err);
-    if (err instanceof StaleFileError && targetPath) {
-      // Someone committed this file since it was opened: ask first.
-      const stalePath = targetPath;
-      notification.set({
-        message: err.message,
-        type: "warning",
-        timeout: 0,
-        actionLabel: "Save anyway",
-        action: async () => {
-          await githubRepos.acceptGitHubVersion(stalePath);
-          await saveProject({ path: stalePath, quiet });
-        },
-      });
-      return false;
-    }
-    notification.set({
-      message: `Save failed: ${(err as Error).message}`,
-      type: "error",
-    });
+    reportSaveError(err, targetPath, quiet);
     return false;
   }
+}
+
+/** What to tell the user once a project is saved. */
+function savedNotice(
+  savedPath: string,
+  convertedFromLegacy: boolean,
+): Notification {
+  if (convertedFromLegacy) {
+    return {
+      message:
+        "Legacy .pp file detected. Saved as .turt. Use the .turt file going forward.",
+      type: "warning",
+      timeout: 6000,
+    };
+  }
+  if (isGitHubPath(savedPath)) {
+    return {
+      message:
+        "Saved here. Commit it from the Files panel to send it to GitHub.",
+      type: "success",
+      timeout: 4000,
+    };
+  }
+  return {
+    message: `Project saved to ${pathInMessage(savedPath)}`,
+    type: "success",
+    timeout: 3000,
+  };
+}
+
+/** Tells the user a save failed, offering to save anyway over a newer commit. */
+function reportSaveError(
+  err: unknown,
+  targetPath: string | undefined,
+  quiet: boolean,
+) {
+  console.error("Save error:", err);
+  if (err instanceof StaleFileError && targetPath) {
+    // Someone committed this file since it was opened: ask first.
+    notification.set({
+      message: err.message,
+      type: "warning",
+      timeout: 0,
+      actionLabel: "Save anyway",
+      action: async () => {
+        await githubRepos.acceptGitHubVersion(targetPath);
+        await saveProject({ path: targetPath, quiet });
+      },
+    });
+    return;
+  }
+  notification.set({
+    message: `Save failed: ${(err as Error).message}`,
+    type: "error",
+  });
 }
 
 function currentFileBaseName(): string {
@@ -630,20 +645,7 @@ export async function handleAutoExport(
 
   try {
     const format = settings.autoExportFormat;
-    const extension =
-      format === "json" ? "json" : format === "points" ? "txt" : "java";
-    const baseName =
-      stripProjectExtension(fileNameOf(targetPath)) || "AutoPath";
-    // Java needs a public class's file to share its name.
-    const fileStem =
-      extension === "java"
-        ? javaClassName(
-            baseName,
-            format === "java" ? "TurtleTracerAutonomous" : "AutoPath",
-          )
-        : baseName;
-    const filename = `${fileStem}.${extension}`;
-
+    const { baseName, filename } = exportFileName(format, targetPath);
     const exportDirName = settings.autoExportPath || "GeneratedCode";
     const exportDir = await electronAPI.resolvePath(targetPath, exportDirName);
     const finalPath = await electronAPI.resolvePath(
@@ -651,24 +653,12 @@ export async function handleAutoExport(
       `${exportDirName}/${filename}`,
     );
 
-    // Code committed to a repository has to compile: a whole class, in the
-    // package its folder says.
+    // Code in a repository goes in the package its folder says.
     const inRepository = isGitHubPath(targetPath);
     if (
       inRepository &&
-      format === "java" &&
-      settings.autoExportFullClass === false
+      !readyForRepository(targetPath, finalPath, filename, settings)
     ) {
-      throw new Error(
-        'Turn on "Generate Full Class" in the Code Export settings to export code into a GitHub repository. On its own, the Paths class won\'t compile.',
-      );
-    }
-    if (
-      inRepository &&
-      extension === "java" &&
-      !isCompiledJavaPath(finalPath)
-    ) {
-      suggestJavaExportPath(targetPath, finalPath, filename, settings);
       return;
     }
     const packageName =
@@ -676,29 +666,21 @@ export async function handleAutoExport(
       settings.javaPackageName;
 
     await electronAPI.createDirectory?.(exportDir);
-
-    let content: string;
-    if (format === "json") {
-      content = JSON.stringify(projectData, null, 2);
-    } else {
-      const exporter = get(exporterRegistry)[format as string];
-      if (!exporter) {
-        throw new Error(`Auto export format ${format} not found.`);
-      }
-      content = await exporter.exportCode(
-        { startPoint, lines, shapes: projectData.shapes ?? shapes, sequence },
-        {
-          ...settings,
-          fileName: baseName,
-          exportFullCode: settings.autoExportFullClass ?? true,
-          packageName,
-          telemetryImpl: settings.telemetryImplementation,
-          hardcodeValues: settings.autoExportEmbedPoseData,
-          targetLibrary: settings.autoExportTargetLibrary ?? "SolversLib",
-        },
-      );
-    }
-
+    const content =
+      format === "json"
+        ? JSON.stringify(projectData, null, 2)
+        : await exportedCode(
+            format,
+            {
+              startPoint,
+              lines,
+              shapes: projectData.shapes ?? shapes,
+              sequence,
+            },
+            settings,
+            baseName,
+            packageName,
+          );
     await electronAPI.writeFile(finalPath, content);
 
     notification.set({
@@ -715,6 +697,71 @@ export async function handleAutoExport(
       timeout: 5000,
     });
   }
+}
+
+/** Each export format's file extension; the others are Java. */
+const EXPORT_EXTENSIONS: Partial<Record<string, string>> = {
+  json: "json",
+  points: "txt",
+};
+
+/** The project's name, and the name of the file its export goes in. */
+function exportFileName(format: string | undefined, projectPath: string) {
+  const extension = EXPORT_EXTENSIONS[format ?? ""] ?? "java";
+  const baseName = stripProjectExtension(fileNameOf(projectPath)) || "AutoPath";
+  if (extension !== "java") {
+    return { baseName, filename: `${baseName}.${extension}` };
+  }
+  // Java needs a public class's file to share its name.
+  const fallback = format === "java" ? "TurtleTracerAutonomous" : "AutoPath";
+  return { baseName, filename: `${javaClassName(baseName, fallback)}.java` };
+}
+
+/**
+ * Code committed to a repository has to compile: a whole class, in a folder
+ * that's compiled. Returns false, having suggested a folder that is, if the
+ * code would go anywhere else.
+ */
+function readyForRepository(
+  projectPath: string,
+  finalPath: string,
+  filename: string,
+  settings: Settings,
+): boolean {
+  if (
+    settings.autoExportFormat === "java" &&
+    settings.autoExportFullClass === false
+  ) {
+    throw new Error(
+      'Turn on "Generate Full Class" in the Code Export settings to export code into a GitHub repository. On its own, the Paths class won\'t compile.',
+    );
+  }
+  if (filename.endsWith(".java") && !isCompiledJavaPath(finalPath)) {
+    suggestJavaExportPath(projectPath, finalPath, filename, settings);
+    return false;
+  }
+  return true;
+}
+
+/** The project as code in the export `format`. */
+async function exportedCode(
+  format: string | undefined,
+  data: TurtleData,
+  settings: Settings,
+  baseName: string,
+  packageName: string | undefined,
+): Promise<string> {
+  const exporter = get(exporterRegistry)[format as string];
+  if (!exporter) throw new Error(`Auto export format ${format} not found.`);
+  return exporter.exportCode(data, {
+    ...settings,
+    fileName: baseName,
+    exportFullCode: settings.autoExportFullClass ?? true,
+    packageName,
+    telemetryImpl: settings.telemetryImplementation,
+    hardcodeValues: settings.autoExportEmbedPoseData,
+    targetLibrary: settings.autoExportTargetLibrary ?? "SolversLib",
+  });
 }
 
 /**

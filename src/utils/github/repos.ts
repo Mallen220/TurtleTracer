@@ -122,13 +122,13 @@ export interface CommitResult {
  */
 export interface EditingLock {
   held(): boolean;
-  /** Resolves once this tab may edit. */
-  acquired: Promise<void>;
+  /** Calls `callback` once this tab may edit: straight away if it can now. */
+  whenAcquired(callback: () => void): void;
 }
 
 const alwaysHeld: EditingLock = {
   held: () => true,
-  acquired: Promise.resolve(),
+  whenAcquired: (callback) => callback(),
 };
 
 /** The editing lock shared by every Turtle Tracer tab in this browser. */
@@ -137,15 +137,20 @@ export function browserEditingLock(): EditingLock {
   // Browsers without Web Locks are older than any that run the app.
   if (!locks) return alwaysHeld;
   let held = false;
-  const acquired = new Promise<void>((resolve) => {
-    void locks.request("turtle-tracer-github-editing", () => {
-      held = true;
-      resolve();
-      // Held until this tab closes; then the next tab waiting gets it.
-      return new Promise<void>(() => {});
-    });
+  const waiting: (() => void)[] = [];
+  void locks.request("turtle-tracer-github-editing", () => {
+    held = true;
+    for (const callback of waiting.splice(0)) callback();
+    // Held until this tab closes; then the next tab waiting gets it.
+    return new Promise<void>(() => {});
   });
-  return { held: () => held, acquired };
+  return {
+    held: () => held,
+    whenAcquired(callback) {
+      if (held) callback();
+      else waiting.push(callback);
+    },
+  };
 }
 
 export const OTHER_TAB_MESSAGE =
@@ -165,21 +170,23 @@ const byteLength = (text: string) => new TextEncoder().encode(text).length;
 const now = () => new Date().toISOString();
 const sizeText = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`;
 
+/** `value` with the keys of every object in it in alphabetical order. */
+function withSortedKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(withSortedKeys);
+  if (!value || typeof value !== "object") return value;
+  const object = value as Record<string, unknown>;
+  return Object.fromEntries(
+    Object.keys(object)
+      .sort((a, b) => a.localeCompare(b))
+      .map((key) => [key, withSortedKeys(object[key])]),
+  );
+}
+
 /** A project's JSON with keys in a fixed order and no app version, to compare. */
 function projectWithoutVersion(text: string): string | null {
   try {
-    const sorted = (value: unknown): unknown =>
-      Array.isArray(value)
-        ? value.map(sorted)
-        : value && typeof value === "object"
-          ? Object.fromEntries(
-              Object.keys(value)
-                .sort()
-                .map((k) => [k, sorted((value as Record<string, unknown>)[k])]),
-            )
-          : value;
     const { version: _version, ...rest } = JSON.parse(text);
-    return JSON.stringify(sorted(rest));
+    return JSON.stringify(withSortedKeys(rest));
   } catch {
     return null;
   }
@@ -192,9 +199,50 @@ function copyName(repoPath: string, taken: (path: string) => boolean) {
     dot > repoPath.lastIndexOf("/") ? repoPath.slice(0, dot) : repoPath;
   const ext = repoPath.slice(stem.length);
   for (let n = 1; ; n++) {
-    const candidate = `${stem} (my version${n > 1 ? ` ${n}` : ""})${ext}`;
+    const number = n > 1 ? ` ${n}` : "";
+    const candidate = `${stem} (my version${number})${ext}`;
     if (!taken(candidate)) return candidate;
   }
+}
+
+/** What the file manager shows for a file in a repository. */
+function fileInfo(record: RepoRecord, path: string, synced: Date): FileInfo {
+  const change = record.changes[path];
+  let gitStatus: FileInfo["gitStatus"] = "clean";
+  if (change) gitStatus = record.files[path] ? "modified" : "untracked";
+  return {
+    name: path.slice(path.lastIndexOf("/") + 1),
+    path: githubPath(record, path),
+    size:
+      typeof change?.content === "string"
+        ? byteLength(change.content)
+        : (record.files[path]?.size ?? 0),
+    modified: change ? new Date(change.editedAt) : synced,
+    isDirectory: false,
+    gitStatus,
+  };
+}
+
+/**
+ * Sorts the edits to files GitHub has changed too: those that now match
+ * GitHub's version, and conflicts.
+ */
+async function compareEdits(record: RepoRecord, next: RepoRecord["files"]) {
+  const edited = Object.entries(record.changes).filter(
+    ([path]) => record.files[path]?.sha !== next[path]?.sha,
+  );
+  const mine = await Promise.all(
+    edited.map(([, change]) =>
+      change.content === null ? undefined : gitBlobSha(change.content),
+    ),
+  );
+  const sameAsGitHub: string[] = [];
+  const conflicts: string[] = [];
+  for (const [i, [path]] of edited.entries()) {
+    if (mine[i] === next[path]?.sha) sameAsGitHub.push(path);
+    else conflicts.push(path);
+  }
+  return { sameAsGitHub, conflicts };
 }
 
 /** Git's id for a file with these contents (what `git hash-object` prints). */
@@ -204,7 +252,8 @@ export async function gitBlobSha(content: string): Promise<string> {
   const bytes = new Uint8Array(header.length + body.length);
   bytes.set(header);
   bytes.set(body, header.length);
-  const digest = await crypto.subtle.digest("SHA-1", bytes);
+  // Git names files by their SHA-1; it's an id here, not a security check.
+  const digest = await crypto.subtle.digest("SHA-1", bytes); // NOSONAR
   return [...new Uint8Array(digest)]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
@@ -216,19 +265,19 @@ export class GitHubRepos {
   /** False while another tab or window is editing repositories. */
   readonly editable = writable(true);
 
-  #client: GitHubClient;
-  #storage: RepoStorage;
-  #lock: EditingLock;
+  readonly #client: GitHubClient;
+  readonly #storage: RepoStorage;
+  readonly #lock: EditingLock;
   /** Tells other tabs when a repository changes, so they can reload it. */
-  #channel: BroadcastChannel | null;
+  readonly #channel: BroadcastChannel | null;
   #records = new Map<string, RepoRecord>();
   #loaded: Promise<void> | null = null;
-  #saving = new Map<string, Promise<void>>();
+  readonly #saving = new Map<string, Promise<void>>();
   /** Downloaded file contents by git id, and downloads in progress. */
-  #blobs = new Map<string, string>();
-  #downloads = new Map<string, Promise<string>>();
+  readonly #blobs = new Map<string, string>();
+  readonly #downloads = new Map<string, Promise<string>>();
   /** GitHub's version of each project open in the editor, when it was opened. */
-  #openedVersions = new Map<string, string | null>();
+  readonly #openedVersions = new Map<string, string | null>();
 
   constructor(
     client: GitHubClient,
@@ -241,14 +290,17 @@ export class GitHubRepos {
     this.#lock = lock;
     this.#channel = channel;
     this.editable.set(lock.held());
-    void lock.acquired.then(async () => {
-      this.editable.set(true);
-      // The tab that was editing may have changed things in the meantime.
-      if (this.#loaded) await this.#reload();
-    });
+    lock.whenAcquired(() => void this.#takeOver());
     channel?.addEventListener("message", () => {
       if (!this.#lock.held()) void this.#reload();
     });
+  }
+
+  /** This tab may edit now that the one that was editing has closed. */
+  async #takeOver() {
+    this.editable.set(true);
+    // That tab may have changed things in the meantime.
+    if (this.#loaded !== null) await this.#reload();
   }
 
   /** Loads the repositories opened before. */
@@ -444,26 +496,9 @@ export class GitHubRepos {
     for (const path of this.#currentFiles(record)) {
       if (!path.startsWith(prefix)) continue;
       const rest = path.slice(prefix.length);
-      if (rest.includes("/")) {
-        addFolder(rest.slice(0, rest.indexOf("/")));
-        continue;
-      }
-      const change = record.changes[path];
-      entries.set(rest, {
-        name: rest,
-        path: githubPath(record, path),
-        size:
-          typeof change?.content === "string"
-            ? byteLength(change.content)
-            : (record.files[path]?.size ?? 0),
-        modified: change ? new Date(change.editedAt) : synced,
-        isDirectory: false,
-        gitStatus: change
-          ? record.files[path]
-            ? "modified"
-            : "untracked"
-          : "clean",
-      });
+      const slash = rest.indexOf("/");
+      if (slash === -1) entries.set(rest, fileInfo(record, path, synced));
+      else addFolder(rest.slice(0, slash));
     }
     for (const folder of record.folders) {
       if (folder.startsWith(prefix))
@@ -580,12 +615,15 @@ export class GitHubRepos {
           .filter((p) => p.startsWith(src + "/"))
           .map((p) => [p, dest + p.slice(src.length)])
       : [[src, dest]];
+    const contents = await Promise.all(
+      moves.map(([oldPath]) => this.#read(record, oldPath)),
+    );
+    await Promise.all(
+      moves.map(([, newPath], i) =>
+        this.#setContent(record, newPath, contents[i]!),
+      ),
+    );
     for (const [oldPath, newPath] of moves) {
-      await this.#setContent(
-        record,
-        newPath,
-        await this.#read(record, oldPath),
-      );
       this.#remove(record, oldPath);
       // An open project keeps its version check under its new name.
       const opened = this.#openedVersions.get(githubPath(record, oldPath));
@@ -728,8 +766,12 @@ export class GitHubRepos {
     });
 
     // The branch now holds exactly these edits on top of what we had.
-    for (const [path, content] of Object.entries(additions)) {
-      const sha = await gitBlobSha(content);
+    const added = Object.entries(additions);
+    const shas = await Promise.all(
+      added.map(([, content]) => gitBlobSha(content)),
+    );
+    for (const [i, [path, content]] of added.entries()) {
+      const sha = shas[i]!;
       record.files[path] = { sha, size: byteLength(content) };
       this.#cacheBlob(sha, content);
       // The editor shows what was just committed.
@@ -790,44 +832,13 @@ export class GitHubRepos {
     resolve?: Resolution,
   ): Promise<UpdateResult> {
     this.#checkEditable();
-    const headSha = await this.#client
-      .getBranchHead(record.owner, record.repo, branch)
-      .catch((e) => {
-        if (e instanceof GitHubError && e.kind === "not-found") {
-          throw new GitHubError(
-            `The branch ${branch} isn't on GitHub any more. Use Switch branch to take your changes to another branch, or save copies of them on this device.`,
-            "not-found",
-          );
-        }
-        throw e;
-      });
+    const headSha = await this.#branchHead(record, branch);
     if (headSha === record.headSha && branch === record.branch) {
       return { status: "up-to-date" };
     }
 
-    const { files, truncated } = await this.#client.getFiles(
-      record.owner,
-      record.repo,
-      headSha,
-    );
-    if (truncated) {
-      throw new Error(`${repoKey(record)} has too many files to open here.`);
-    }
-    const next: RepoRecord["files"] = Object.fromEntries(
-      files.map((f) => [f.path, { sha: f.sha, size: f.size }]),
-    );
-
-    const sameAsGitHub: string[] = [];
-    const conflicts: string[] = [];
-    for (const [path, change] of Object.entries(record.changes)) {
-      const before = record.files[path]?.sha;
-      const after = next[path]?.sha;
-      if (before === after) continue;
-      const mine =
-        change.content === null ? undefined : await gitBlobSha(change.content);
-      if (mine === after) sameAsGitHub.push(path);
-      else conflicts.push(path);
-    }
+    const next = await this.#filesAt(record, headSha);
+    const { sameAsGitHub, conflicts } = await compareEdits(record, next);
     if (conflicts.length > 0 && !resolve) {
       return {
         status: "conflicts",
@@ -836,36 +847,13 @@ export class GitHubRepos {
     }
 
     for (const path of sameAsGitHub) delete record.changes[path];
-    const copies: string[] = [];
-    if (resolve === "theirs" || resolve === "both") {
-      for (const path of conflicts) {
-        const change = record.changes[path];
-        delete record.changes[path];
-        // Generated code is made again on the next save, so only projects
-        // are worth a copy.
-        if (resolve === "both" && change?.content && isProjectFile(path)) {
-          const copy = copyName(path, (p) => !!next[p] || !!record.changes[p]);
-          record.changes[copy] = { content: change.content, editedAt: now() };
-          copies.push(githubPath(record, copy));
-        }
-      }
-    }
+    const copies = this.#resolveConflicts(record, next, conflicts, resolve);
     const changedOnGitHub = [
       ...new Set([...Object.keys(record.files), ...Object.keys(next)]),
     ].filter(
       (path) =>
         record.files[path]?.sha !== next[path]?.sha && !record.changes[path],
     );
-    // Projects kept as "mine" stay open as they are; saving them again
-    // shouldn't count as replacing what GitHub has now.
-    if (resolve === "mine") {
-      for (const path of conflicts) {
-        const appPath = githubPath(record, path);
-        if (this.#openedVersions.has(appPath)) {
-          this.#openedVersions.set(appPath, next[path]?.sha ?? null);
-        }
-      }
-    }
 
     const old = { ...record, files: record.files };
     record.files = next;
@@ -879,6 +867,75 @@ export class GitHubRepos {
       changedOnGitHub: changedOnGitHub.map((p) => githubPath(record, p)),
       copies,
     };
+  }
+
+  /** The commit at the tip of `branch` on GitHub. */
+  #branchHead(record: RepoRecord, branch: string): Promise<string> {
+    return this.#client
+      .getBranchHead(record.owner, record.repo, branch)
+      .catch((e) => {
+        if (e instanceof GitHubError && e.kind === "not-found") {
+          throw new GitHubError(
+            `The branch ${branch} isn't on GitHub any more. Use Switch branch to take your changes to another branch, or save copies of them on this device.`,
+            "not-found",
+          );
+        }
+        throw e;
+      });
+  }
+
+  /** The files in the commit `sha`. */
+  async #filesAt(
+    record: RepoRecord,
+    sha: string,
+  ): Promise<RepoRecord["files"]> {
+    const { files, truncated } = await this.#client.getFiles(
+      record.owner,
+      record.repo,
+      sha,
+    );
+    if (truncated) {
+      throw new Error(`${repoKey(record)} has too many files to open here.`);
+    }
+    return Object.fromEntries(
+      files.map((f) => [f.path, { sha: f.sha, size: f.size }]),
+    );
+  }
+
+  /**
+   * Settles the files edited both here and on GitHub as `resolve` says.
+   * Returns the copies "Keep both" made of projects.
+   */
+  #resolveConflicts(
+    record: RepoRecord,
+    next: RepoRecord["files"],
+    conflicts: string[],
+    resolve?: Resolution,
+  ): string[] {
+    if (resolve === "mine") {
+      // Projects kept as "mine" stay open as they are; saving them again
+      // shouldn't count as replacing what GitHub has now.
+      for (const path of conflicts) {
+        const appPath = githubPath(record, path);
+        if (this.#openedVersions.has(appPath)) {
+          this.#openedVersions.set(appPath, next[path]?.sha ?? null);
+        }
+      }
+      return [];
+    }
+    const copies: string[] = [];
+    for (const path of conflicts) {
+      const change = record.changes[path];
+      delete record.changes[path];
+      // Generated code is made again on the next save, so only projects
+      // are worth a copy.
+      if (resolve === "both" && change?.content && isProjectFile(path)) {
+        const copy = copyName(path, (p) => !!next[p] || !!record.changes[p]);
+        record.changes[copy] = { content: change.content, editedAt: now() };
+        copies.push(githubPath(record, copy));
+      }
+    }
+    return copies;
   }
 
   // --- Internals ---

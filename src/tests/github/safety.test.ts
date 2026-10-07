@@ -41,17 +41,19 @@ beforeEach(async () => {
 /** A lock another tab holds until `release` is called. */
 function heldElsewhere() {
   let held = false;
-  let release!: () => void;
+  const waiting: (() => void)[] = [];
   const lock: EditingLock = {
     held: () => held,
-    acquired: new Promise<void>((resolve) => {
-      release = () => {
-        held = true;
-        resolve();
-      };
-    }),
+    whenAcquired(callback) {
+      if (held) callback();
+      else waiting.push(callback);
+    },
   };
-  return { lock, release: () => release() };
+  const release = () => {
+    held = true;
+    for (const callback of waiting) callback();
+  };
+  return { lock, release };
 }
 
 describe("two tabs", () => {
@@ -73,7 +75,6 @@ describe("two tabs", () => {
     await repos.writeFile(at(FAR), project(7)); // the first tab edits
 
     release(); // the first tab closes
-    await lock.acquired;
     await new Promise((r) => setTimeout(r, 0));
 
     expect(get(second.editable)).toBe(true);

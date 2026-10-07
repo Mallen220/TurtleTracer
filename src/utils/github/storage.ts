@@ -94,12 +94,27 @@ export function indexedDbRepoStorage(): RepoStorage {
 export function memoryRepoStorage(): RepoStorage {
   const repos = new Map<string, RepoRecord>();
   const blobs = new Map<string, string>();
+  // Answers a moment later, as IndexedDB does, with errors as rejections.
+  const later = <T>(work: () => T): Promise<T> => Promise.resolve().then(work);
   return {
-    loadRepos: async () => [...repos.values()].map((r) => structuredClone(r)),
-    saveRepo: async (r) => void repos.set(keyOf(r), structuredClone(r)),
-    deleteRepo: async (key) => void repos.delete(key),
-    getBlob: async (sha) => blobs.get(sha),
-    putBlob: async (sha, content) => void blobs.set(sha, content),
-    deleteBlobs: async (shas) => shas.forEach((sha) => blobs.delete(sha)),
+    loadRepos: () =>
+      later(() => [...repos.values()].map((r) => structuredClone(r))),
+    saveRepo: (r) =>
+      later(() => {
+        repos.set(keyOf(r), structuredClone(r));
+      }),
+    deleteRepo: (key) =>
+      later(() => {
+        repos.delete(key);
+      }),
+    getBlob: (sha) => later(() => blobs.get(sha)),
+    putBlob: (sha, content) =>
+      later(() => {
+        blobs.set(sha, content);
+      }),
+    deleteBlobs: (shas) =>
+      later(() => {
+        for (const sha of shas) blobs.delete(sha);
+      }),
   };
 }
