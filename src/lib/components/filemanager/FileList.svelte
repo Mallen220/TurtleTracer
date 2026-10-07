@@ -3,6 +3,8 @@
   import type { FileInfo } from "../../../types";
   import FileContextMenu from "./FileContextMenu.svelte";
   import PathPreview from "./PathPreview.svelte";
+  import LegacyFileBadge from "./LegacyFileBadge.svelte";
+  import { isLegacyProjectFileName } from "../../../utils/fileExtensions";
   import {
     FolderIcon,
     DocumentIcon,
@@ -232,11 +234,16 @@
               </div>
             {:else}
               <div class="flex items-baseline justify-between gap-2">
-                <span
-                  class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate"
-                  title={file.name}
-                >
-                  {file.name.replaceAll(/\.(pp|turt)$/gi, "")}
+                <span class="flex items-center gap-1.5 min-w-0">
+                  <span
+                    class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate"
+                    title={file.name}
+                  >
+                    {file.name.replaceAll(/\.(pp|turt)$/gi, "")}
+                  </span>
+                  {#if !file.isDirectory && isLegacyProjectFileName(file.name)}
+                    <LegacyFileBadge />
+                  {/if}
                 </span>
                 <div class="flex items-center gap-1">
                   {#if showGitStatus && file.gitStatus && file.gitStatus !== "clean"}

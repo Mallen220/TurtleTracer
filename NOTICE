@@ -664,3 +664,5 @@ src/lib/components/PathText.svelte
 src/tests/displayPaths.test.ts
 src/utils/displayPaths.ts
 src/utils/messagePaths.ts
+src/lib/components/filemanager/LegacyFileBadge.svelte
+src/tests/legacyFileBadge.test.ts
