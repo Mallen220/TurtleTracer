@@ -32,6 +32,7 @@ vi.mock("electron", () => ({
     handle: vi.fn(),
     on: vi.fn(),
   },
+  safeStorage: { isEncryptionAvailable: vi.fn(() => false) },
 }));
 
 vi.mock("express", () => {

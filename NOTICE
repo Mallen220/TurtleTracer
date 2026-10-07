@@ -648,6 +648,8 @@ src/utils/github/repos.ts
 src/utils/github/router.ts
 src/utils/github/storage.ts
 src/utils/github/token.ts
+electron/ipc/githubHandlers.js
+electron/ipc/githubHandlers.test.js
 src/lib/exporters/javaFormat.ts
 src/tests/github/rules.test.ts
 src/tests/github/safety.test.ts

@@ -3,6 +3,7 @@ import { registerAppHandlers } from "./appHandlers.js";
 import { registerDirectoryHandlers } from "./directoryHandlers.js";
 import { registerFileHandlers } from "./fileHandlers.js";
 import { registerGitHandlers } from "./gitHandlers.js";
+import { registerGitHubHandlers } from "./githubHandlers.js";
 import { registerPluginHandlers } from "./pluginHandlers.js";
 import { registerTelemetryHandlers } from "./telemetryHandlers.js";
 
@@ -11,6 +12,7 @@ export function registerIpcHandlers(state) {
   registerDirectoryHandlers();
   registerFileHandlers();
   registerGitHandlers();
+  registerGitHubHandlers();
   registerPluginHandlers();
   registerTelemetryHandlers();
 }

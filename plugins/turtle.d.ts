@@ -1044,6 +1044,31 @@ interface ElectronAPI {
   gitShow?: (filePath: string) => Promise<string | null>;
   gitStatus?: (directory: string) => Promise<any>;
 
+  // GitHub (desktop): the token stays in the main process, which makes the
+  // requests. See electron/ipc/githubHandlers.js.
+  githubToken?: {
+    status: () => Promise<{
+      hasToken: boolean;
+      remembered: boolean;
+      login: string | null;
+    }>;
+    set: (
+      token: string,
+      remember: boolean,
+      login: string | null,
+    ) => Promise<{ remembered: boolean }>;
+    clear: () => Promise<void>;
+  };
+  githubFetch?: (
+    url: string,
+    init: { method: string; headers: Record<string, string>; body?: string },
+  ) => Promise<{
+    status?: number;
+    headers?: Record<string, string>;
+    body?: string;
+    error?: string;
+  }>;
+
   // Renderer ready signal
   rendererReady?: () => Promise<void>;
 
