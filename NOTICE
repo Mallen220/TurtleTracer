@@ -650,6 +650,7 @@ src/utils/github/storage.ts
 src/utils/github/token.ts
 electron/ipc/githubHandlers.js
 electron/ipc/githubHandlers.test.js
+PRIVACY.md
 src/lib/exporters/javaFormat.ts
 src/tests/github/rules.test.ts
 src/tests/github/safety.test.ts
